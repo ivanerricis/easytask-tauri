@@ -30,7 +30,7 @@ export const NoteList = () => {
                     <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="flex w-full overflow-x-auto bg-background"
+                        className="flex w-full overflow-x-auto bg-secondary"
                     >
                         {currentNotes.map((note, index) => (
                             <Draggable key={note.id} draggableId={note.id.toString()} index={index}>

@@ -39,10 +39,10 @@ export const NoteHeader = ({ note }: NoteHeaderProps) => {
         <div
             role="button"
             onClick={setCurrent}
-            className={`flex flex-col items-center cursor-pointer border-r ${currentNote?.id === note.id ? 'bg-secondary' : 'bg-background hover:bg-secondary/40'}`}
+            className={`flex flex-col items-center cursor-pointer border-r ${currentNote?.id === note.id ? 'bg-background' : 'bg-secondary hover:bg-background/40'}`}
         >
             <div
-                className="w-full h-0.5"
+                className="w-full h-1"
                 style={{
                     backgroundColor: currentNote?.id === note.id ? note.color : 'var(--background-color)'
                 }}
@@ -52,7 +52,7 @@ export const NoteHeader = ({ note }: NoteHeaderProps) => {
                 <h1 className={`w-full text-left text-sm text-nowrap ${currentNote?.id === note.id ? "text-foreground" : "text-muted-foreground"}`}>
                     {note.name}
                 </h1>
-                <button onClick={handleCloseHeader} className="flex items-center justify-center cursor-pointer p-1 hover:bg-accent rounded-sm">
+                <button onClick={handleCloseHeader} className="flex items-center justify-center cursor-pointer p-1 hover:bg-accent rounded-xs">
                     <X className="h-4 w-4" />
                 </button>
             </div>

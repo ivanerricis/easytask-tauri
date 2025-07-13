@@ -3,7 +3,9 @@ pub mod note;
 pub mod section;
 pub mod section_group;
 pub mod task;
+pub mod types;
 pub mod workspace;
+pub mod workspace_data;
 use rusqlite::{Connection, Result};
 
 pub fn init_database(db_path: &str) -> Result<()> {

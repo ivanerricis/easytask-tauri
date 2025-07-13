@@ -15,6 +15,7 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import type { Folder } from "@/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useState } from "react"
+import { ButtonInPopover } from "@/components/button-in-popover"
 
 const defaultFolder = {
     name: "",
@@ -35,8 +36,9 @@ export function DialogAddSubFolder({ parentFolder }: ParentFolderProps) {
     const handleCreateFolder = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentWorkspace?.id) return
+        if (folder.name.trim() === "") return
         try {
-            await createSubFolder(parentFolder.id, folder.name, folder.color)
+            await createSubFolder(parentFolder.id, folder.name.trim(), folder.color)
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             setIsOpen(false)
@@ -63,16 +65,9 @@ export function DialogAddSubFolder({ parentFolder }: ParentFolderProps) {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button
-                    onClick={(e) => { e.stopPropagation() }}
-                    size={"sm"}
-                    variant={"ghost"}
-                    className="text-xs rounded-sm justify-start"
-                >
-                    Aggiungi cartella
-                </Button>
+                <ButtonInPopover text="Aggiungi cartella" onClick={() => { setIsOpen(true) }} />
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px]" onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
                     <DialogTitle>Crea una cartella</DialogTitle>
                     <DialogDescription />
@@ -86,12 +81,13 @@ export function DialogAddSubFolder({ parentFolder }: ParentFolderProps) {
                                 name="name"
                                 value={folder.name}
                                 onChange={(e) => setFolder({ ...folder, name: e.target.value })}
+                                onClick={(e) => { e.stopPropagation() }}
                             />
                         </div>
                         <div className="grid gap-3">
                             <Label>Colore</Label>
                             <div
-                                className="flex items-center justify-center h-full w-full border rounded-sm"
+                                className="flex items-center justify-center h-full w-full border rounded-xs"
                                 style={{ backgroundColor: folder.color }}
                             >
                                 <Input
@@ -101,6 +97,7 @@ export function DialogAddSubFolder({ parentFolder }: ParentFolderProps) {
                                     className="opacity-0 cursor-pointer"
                                     value={folder.color}
                                     onChange={(e) => setFolder({ ...folder, color: e.target.value })}
+                                    onClick={(e) => { e.stopPropagation() }}
                                 />
                             </div>
                         </div>

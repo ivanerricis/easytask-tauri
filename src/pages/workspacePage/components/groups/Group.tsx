@@ -10,7 +10,7 @@ type GroupProps = {
 export const Group = ({ dragHandleProps, group }: GroupProps) => {
 
     return (
-        <div className="flex flex-col"
+        <div className="flex flex-col gap-2"
         >
             <>
                 {group.sections.map((section, index) => (

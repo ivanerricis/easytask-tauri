@@ -7,6 +7,8 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import { ErrorPage } from "@/components/pages/error-page"
 import { LoadingPage } from "@/components/pages/loading-page"
 import { MainPageLayout } from "./MainPageLayout"
+import { getDB } from "@/db/dbManager"
+import { createWorkspace } from "@/db/queries/workspace"
 
 const MainPage = () => {
     const { workspaces, getWorkspaces, isLoading, error } = useWorkspace()
@@ -31,18 +33,30 @@ const MainPage = () => {
         )
     }
 
+    const handleClick = async () => {
+        try {
+            await getDB()
+            console.log("Database pronto")
+            await createWorkspace("Prova", "#000000")
+            console.log("Workspace creato")
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
     return (
         <MainPageLayout>
             <div className="flex flex-col w-[600px] h-full items-center justify-center gap-8">
-                <h1 className="font-bold text-4xl">Bentornato!</h1>
+                <h1 className="text-4xl">Bentornato!</h1>
                 <div className="flex w-full items-center justify-center gap-4">
                     <ButtonNewWorkspace />
                 </div>
-                <div className="flex flex-col items-center justify-center w-full p-2 gap-2 border rounded-md">
+                <div className="flex flex-col items-center justify-center w-full p-2 gap-2 border rounded-xs">
                     <div className="flex items-center justify-between w-full">
-                        <h1 className="font-bold text-lg w-full ml-2">
+                        <h1 className="text-lg w-full ml-2">
                             Apri un Workspace recente:
                         </h1>
+                        <Button onClick={handleClick}>Clicca</Button>
                         <Button onClick={getWorkspaces} variant="outline" size="icon">
                             <RefreshCcw />
                         </Button>

@@ -10,28 +10,29 @@ type DialogEditProps = {
     workspace: Workspace
 }
 
-const defaultWorkspace = {
-    name: "",
-    color: ""
+type defaultWorkspaceType = {
+    name: string
+    color?: string
 }
 
 export const DialogEditWorkspace = ({ workspace }: DialogEditProps) => {
-
+    const defaultWorkspace: defaultWorkspaceType = { name: "", color: "" }
     const [isOpen, setIsOpen] = useState(false)
     const [newWorkspace, setWorkspace] = useState(defaultWorkspace)
     const { editWorkspace, getWorkspaces } = useWorkspace()
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        setWorkspace({
-            name: workspace.name,
-            color: workspace.color
-        })
+        if (workspace.color)
+            setWorkspace({ name: workspace.name, color: workspace.color })
+        else
+            setWorkspace({ name: workspace.name })
     }, [workspace])
 
     const onSave = async () => {
+        if (newWorkspace.name.trim() === "") return
         try {
-            await editWorkspace(workspace.id, newWorkspace.name, newWorkspace.color)
+            await editWorkspace(workspace.id, newWorkspace.name.trim(), newWorkspace.color)
             await getWorkspaces()
             setIsOpen(false)
         } catch (error: any) {
@@ -60,7 +61,7 @@ export const DialogEditWorkspace = ({ workspace }: DialogEditProps) => {
                     onClick={(e) => { e.stopPropagation() }}
                     variant={"ghost"}
                     size={"sm"}
-                    className="hover:text-foreground justify-start rounded-sm"
+                    className="hover:text-foreground justify-start rounded-xs"
                 >
                     Modifica
                 </Button>
@@ -85,7 +86,7 @@ export const DialogEditWorkspace = ({ workspace }: DialogEditProps) => {
                     <div className="grid gap-3">
                         <Label>Colore</Label>
                         <div
-                            className="flex items-center justify-center h-full w-full border rounded-sm"
+                            className="flex items-center justify-center h-full w-full border rounded-xs"
                             style={{ backgroundColor: newWorkspace.color }}
                         >
                             <Input

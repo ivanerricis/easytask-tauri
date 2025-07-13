@@ -13,11 +13,11 @@ export const ButtonMenu = ({ workspace }: ButtonMenuProps) => {
     return (
         <Popover>
             <PopoverTrigger asChild>
-                <button className="flex items-center justify-center cursor-pointer">
+                <button className="flex items-center justify-center cursor-pointer w-full h-full">
                     <EllipsisVertical className="flex items-center justify-center w-5 h-5" />
                 </button>
             </PopoverTrigger>
-            <PopoverContent className="flex flex-col w-auto p-1 rounded-sm">
+            <PopoverContent className="flex flex-col w-auto p-1 rounded-xs">
                 <DialogEditWorkspace workspace={workspace} />
                 <DialogDeleteWorkspace workspaceId={workspace.id} />
             </PopoverContent>

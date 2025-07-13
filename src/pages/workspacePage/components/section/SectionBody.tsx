@@ -15,7 +15,7 @@ export const SectionBody = ({ isOpen, section }: SectionBodyProps) => {
             {section.tasks.map((task) => (
                 <Task key={task.id} task={task}></Task>
             ))}
-            <AddTask sectionId={section.id}/>
+            <AddTask sectionId={section.id} />
         </div>
     )
 }

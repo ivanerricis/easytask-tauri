@@ -104,7 +104,7 @@ export function DialogAddFolder() {
                         {error && <p className="text-destructive">{error}</p>}
                         <div className="grid gap-3">
                             <Label>Colore</Label>
-                            <div className="flex items-center justify-center h-full w-full border rounded-sm"
+                            <div className="flex items-center justify-center h-full w-full border rounded-xs"
                                 style={{ backgroundColor: folder.color }}
                             >
                                 <Input
@@ -127,7 +127,7 @@ export function DialogAddFolder() {
                                 Annulla
                             </Button>
                         </DialogClose>
-                        <Button type="submit">Crea cartella</Button>
+                        <Button type="submit" disabled={!folder.name}>Crea cartella</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

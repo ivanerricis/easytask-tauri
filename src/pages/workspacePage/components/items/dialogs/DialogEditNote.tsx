@@ -6,18 +6,19 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import type { Note } from "@/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useEffect, useState } from "react"
+import { ButtonInPopover } from "@/components/button-in-popover"
 
 type DialogEditProps = {
     note: Note
 }
 
-const defaultNote = {
-    name: "",
-    color: ""
+type defaultNoteType = {
+    name: string
+    color?: string
 }
 
 export const DialogEditNote = ({ note }: DialogEditProps) => {
-
+    const defaultNote: defaultNoteType = {name: "", color: ""}
     const [isOpen, setIsOpen] = useState(false)
     const [newNote, setNote] = useState(defaultNote)
     const { currentWorkspace } = useWorkspace()
@@ -25,16 +26,17 @@ export const DialogEditNote = ({ note }: DialogEditProps) => {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        setNote({
-            name: note.name,
-            color: note.color
-        })
+        if (note.color)
+            setNote({ name: note.name, color: note.color })
+        else
+            setNote({ name: note.name })
     }, [note])
 
     const onSave = async () => {
         if (!currentWorkspace) return
+        if (newNote.name.trim() === "") return
         try {
-            await editNote(note.id, newNote.name, newNote.color)
+            await editNote(note.id, newNote.name.trim(), newNote.color)
             await getWorkspaceData(currentWorkspace.id)
             setIsOpen(false)
         } catch (error: any) {
@@ -61,16 +63,9 @@ export const DialogEditNote = ({ note }: DialogEditProps) => {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button
-                    onClick={(e) => { e.stopPropagation() }}
-                    variant={"ghost"}
-                    size={"sm"}
-                    className="hover:text-foreground justify-start rounded-sm text-xs"
-                >
-                    Modifica
-                </Button>
+                <ButtonInPopover text="Modifica" onClick={() => { setIsOpen(true) }} />
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
                     <DialogTitle>Modifica la nota</DialogTitle>
                     <DialogDescription />
@@ -84,13 +79,14 @@ export const DialogEditNote = ({ note }: DialogEditProps) => {
                             value={newNote.name}
                             onChange={e => { setNote({ ...newNote, name: e.target.value }) }}
                             onKeyDown={handleKeyDown}
+                            onClick={(e) => { e.stopPropagation() }}
                         />
                     </div>
                     {error && <p className="text-destructive">{error}</p>}
                     <div className="grid gap-3">
                         <Label>Colore</Label>
                         <div
-                            className="flex items-center justify-center h-full w-full border rounded-sm"
+                            className="flex items-center justify-center h-full w-full border rounded-xs"
                             style={{ backgroundColor: newNote.color }}
                         >
                             <Input
@@ -100,13 +96,14 @@ export const DialogEditNote = ({ note }: DialogEditProps) => {
                                 className="opacity-0 cursor-pointer"
                                 value={newNote.color}
                                 onChange={e => { setNote({ ...newNote, color: e.target.value }) }}
+                                onClick={(e) => { e.stopPropagation() }}
                             />
                         </div>
                     </div>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button variant="outline" onClick={(e) => {e.stopPropagation()}}>
+                        <Button variant="outline" onClick={(e) => { e.stopPropagation() }}>
                             Annulla
                         </Button>
                     </DialogClose>

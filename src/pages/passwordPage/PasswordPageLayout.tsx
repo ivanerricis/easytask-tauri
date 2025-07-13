@@ -8,9 +8,7 @@ type PasswordPageLayoutProps = {
 export const PasswordPageLayout = ({ children }: PasswordPageLayoutProps) => {
     return (
         <div className="flex flex-col h-full w-full">
-            <Navbar
-                leftContainer={<h1 className="font-bold text-lg">EasyTask</h1>}
-            />
+            <Navbar />
             <main className="flex flex-col w-full h-full items-center justify-center">
                 {children}
             </main>

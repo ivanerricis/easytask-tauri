@@ -69,12 +69,12 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
     const resizerPosition = position === "left" ? "right-0" : "left-0"
 
     return (
-        <div className={`flex ${flexDirection} h-full ${className || ""}`}>
+        <div className={`flex ${flexDirection} relative h-full z-20 ${className || ""}`}>
 
             {/* Big Sidebar */}
             <div
                 ref={sidebarRef}
-                className={`relative flex flex-col h-full bg-secondary border-border ${sidebarOpen ? borderClass : ""}`}
+                className={`lg:relative ${(position === "left") ? "lg:left-auto" : "lg:right-auto"} lg:top-auto absolute ${(position === "left") ? "left-10" : "right-10"} top-0 flex flex-col h-full bg-secondary ${sidebarOpen ? borderClass : ""}`}
                 style={{
                     width: actualWidth,
                     minWidth: 0,
@@ -93,7 +93,7 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
             </div>
 
             {/* Little Sidebar */}
-            <div className={`flex flex-col items-center justify-between p-1 bg-popover border-border ${borderClass}`}>
+            <div className={`flex flex-col items-center justify-between p-1 bg-background ${borderClass}`}>
                 <div className="h-full w-full flex flex-col">
                     <Button
                         onClick={handleToggle}

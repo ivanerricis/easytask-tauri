@@ -8,7 +8,7 @@ type ItemWorkSpaceProps = {
 
 export const ItemWorkSpace = ({ workspace, className }: ItemWorkSpaceProps) => {
     return (
-        <div role="button" className={`group cursor-pointer relative w-full flex items-center rounded-sm border opacity-50 hover:opacity-100 bg-background transition-all overflow-x-hidden ${className}`}>
+        <div role="button" className={`group cursor-pointer relative w-full flex items-center rounded-xs border opacity-50 hover:opacity-100 bg-background transition-all overflow-x-hidden ${className}`}>
             {/* Text + Icon */}
             <div className={`flex items-center py-1 px-2 gap-2 w-full`}>
                 <Box className="w-5 h-5 shrink-0 text-foreground transition-all" />

@@ -31,8 +31,9 @@ export function DialogAddNote() {
     const handleCreateNote = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentWorkspace?.id) return
+        if (note.name.trim() === "") return
         try {
-            await createWorkspaceNote(currentWorkspace.id, note.name, note.color)
+            await createWorkspaceNote(currentWorkspace.id, note.name.trim(), note.color)
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             setIsOpen(false)
@@ -107,7 +108,7 @@ export function DialogAddNote() {
                         {error && (<p className="text-destructive">{error}</p>)}
                         <div className="grid gap-3">
                             <Label>Colore</Label>
-                            <div className="flex items-center justify-center h-full w-full border rounded-sm"
+                            <div className="flex items-center justify-center h-full w-full border rounded-xs"
                                 style={{ backgroundColor: note.color }}
                             >
                                 <Input

@@ -1,3 +1,4 @@
+import { ButtonInPopover } from "@/components/button-in-popover"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useWorkspace } from "@/contexts/workspace-context"
@@ -30,15 +31,9 @@ export const DialogDeleteNote = ({ noteId }: DialogDeleteProps) => {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button
-                    onClick={(e) => { e.stopPropagation() }}
-                    size={"sm"}
-                    variant={"ghost"}
-                    className="text-xs rounded-sm justify-start text-destructive hover:text-destructive hover:!bg-destructive/15">
-                    Elimina
-                </Button>
+                <ButtonInPopover text="Elimina" onClick={() => { setIsOpen(true) }} destructive />
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
                     <DialogTitle className="text-destructive">
                         Stai per eliminare la nota
@@ -49,7 +44,7 @@ export const DialogDeleteNote = ({ noteId }: DialogDeleteProps) => {
                 </DialogHeader>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button variant="outline" onClick={(e) => {e.stopPropagation()}}>
+                        <Button variant="outline" onClick={(e) => { e.stopPropagation() }}>
                             Annulla
                         </Button>
                     </DialogClose>

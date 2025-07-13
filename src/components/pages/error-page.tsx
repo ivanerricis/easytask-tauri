@@ -14,11 +14,11 @@ export const ErrorPage = ({ error }: ErrorPageProps) => {
             <h1 className="font-bold text-lg">
                 Ops c'è stato un errore...
             </h1>
-            <div className="flex flex-col rounded-sm border p-2 gap-1">
+            <div className="flex flex-col rounded-xs border p-2 gap-1">
                 <h2>
                     Descrizione dell'errore:
                 </h2>
-                <p className="text-destructive w-[300px] border rounded-sm p-2">{error}</p>
+                <p className="text-destructive w-[300px] border rounded-xs p-2">{error}</p>
             </div>
             <Button variant="outline" onClick={() => navigate("/")}>
                 <ArrowLeft />

@@ -5,8 +5,15 @@ import { useState, useRef, useEffect } from "react"
 import type { FormEvent } from "react"
 import { toast } from "sonner"
 
+const defaultSection = {
+    name: "",
+    color: ""
+}
+
 export const AddSection = () => {
     const [isOpen, setOpen] = useState(false)
+    const [paletteIsOpen, setPaletteOpen] = useState(false)
+    const [section, setSection] = useState(defaultSection)
     const [inputValue, setInputValue] = useState("")
     const { createSection, currentNote, getNoteData } = useWorkspaceData()
     const formRef = useRef<HTMLFormElement>(null)
@@ -45,7 +52,7 @@ export const AddSection = () => {
         if (inputValue.trim()) {
             try {
                 if (!currentNote) return
-                createSection(currentNote.id, inputValue.trim(), "1")
+                createSection(currentNote.id, inputValue.trim(), 1)
                 handleOpen()
                 if (!currentNote) return
                 getNoteData(currentNote.id)
@@ -82,7 +89,40 @@ export const AddSection = () => {
                         className="rounded-none border-none"
                     />
                 </div>
-                <div className="flex items-center w-full">
+                {!paletteIsOpen
+                    ? <div
+                        role="button"
+                        onClick={() => { setPaletteOpen(true) }}
+                        className="group/color cursor-pointer flex items-center justify-center w-full h-8"
+                    >
+                        <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground transition-all" />
+                    </div>
+                    : <div className="flex items-center justify-center w-full">
+                        <div
+                            className="flex items-center justify-center h-8 w-full bg-primary"
+                            style={{ backgroundColor: section.color }}
+                        >
+                            <Input
+                                id="color-1"
+                                name="color"
+                                type="color"
+                                className="opacity-0 cursor-pointer"
+                                value={section.color}
+                                onChange={e => setSection({
+                                    ...section,
+                                    color: e.target.value
+                                })}
+                            />
+                        </div>
+                        <div
+                            role="button"
+                            onClick={(e) => { e.preventDefault(), setPaletteOpen(false) }}
+                            className="group/close cursor-pointer flex items-center justify-center w-full h-8"
+                        >
+                            <X size={20} className="group-hover:text-foreground transition-all group-hover/close:text-foreground text-muted-foreground" />
+                        </div>
+                    </div>}
+                <div className="flex items-center w-full border-t">
                     <div
                         role="button"
                         onClick={handleSubmit}
@@ -93,15 +133,9 @@ export const AddSection = () => {
                     <div
                         role="button"
                         onClick={handleOpen}
-                        className="group/close cursor-pointer flex items-center justify-center w-full h-8 border-r"
+                        className="group/close cursor-pointer flex items-center justify-center w-full h-8"
                     >
                         <X size={20} className="group-hover/close:text-foreground text-muted-foreground transition-all" />
-                    </div>
-                    <div
-                        role="button"
-                        className="group/color cursor-pointer flex items-center justify-center w-full"
-                    >
-                        <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground transition-all" />
                     </div>
                 </div>
             </form>

@@ -29,7 +29,7 @@ export const DialogDeleteWorkspace = ({ workspaceId }: DialogDeleteProps) => {
                     onClick={(e) => { e.stopPropagation() }}
                     variant={"ghost"}
                     size={"sm"}
-                    className="text-destructive hover:text-destructive hover:!bg-destructive/15 justify-start rounded-sm"
+                    className="text-destructive hover:text-destructive hover:!bg-destructive/15 justify-start rounded-xs"
                 >
                     Elimina
                 </Button>

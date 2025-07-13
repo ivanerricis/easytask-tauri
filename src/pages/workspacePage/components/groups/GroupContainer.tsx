@@ -37,7 +37,7 @@ export const GroupContainer = () => {
     return (
         <>
             {currentNotes.length > 0 ?
-                (<div className="flex items-start justify-start h-full overflow-x-auto overflow-y-auto bg-secondary">
+                (<div className="flex items-start justify-start h-full overflow-x-auto overflow-y-auto bg-background">
                     <DragDropContext onDragEnd={handleOnDragEnd}>
                         <Droppable droppableId="groups" direction="horizontal">
                             {(provided) => (

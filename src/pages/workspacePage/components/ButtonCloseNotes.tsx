@@ -15,7 +15,7 @@ export const ButtonCloseNotes = () => {
 
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "p" && (e.metaKey || e.ctrlKey)) {
+            if (e.key === "t" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault()
                 setCurrentNotes([])
                 setCurrentNote(null)

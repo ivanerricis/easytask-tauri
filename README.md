@@ -1,69 +1,84 @@
-# React + TypeScript + Vite
+# EasyTask
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+An **advanced todo list** based on **Workspaces**, inspired by systems like Notion, Obsidian, and task management apps.
 
-Currently, two official plugins are available:
+Each Workspace is fully customizable and supports hierarchical management of elements with the ability to color any object.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## Expanding the ESLint configuration
+## Key Features
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- ✅ Create and manage **Workspaces**  
+- ✅ Each Workspace can contain **Folders** and **Files**  
+- ✅ Folders can be nested (infinite tree structure)  
+- ✅ Files contain **Sections**  
+- ✅ Sections can contain other Sections and **Tasks**  
+- ✅ Tasks can contain sub-Tasks (infinite nesting)  
+- ✅ Each element can be customized with **colors**  
+- ✅ Drag & Drop between elements  
+- ✅ Modern UI (React + Tailwind CSS + shadcn/ui)  
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+## Technologies Used
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- **Tauri**
+- **React** + **TypeScript**
+- **Vite**
+- **Tailwind CSS**
+- **shadcn/ui**
+- **@hello-pangea/dnd** for drag & drop functionality
+- **ESLint** with TypeScript and React configurations
+
+---
+
+## Local Installation
+
+
+# 1. Clone the repository
+```bash
+git clone https://github.com/ivanerricis/easytask-tauri.
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 2. Navigate to the project directory
+```bash
+cd your-repo
 ```
+
+# 3. Install dependencies
+```bash
+npm install
+```
+
+# 4. Start the development server
+```bash
+npm run dev
+```
+---
+
+## App Structure
+
+```
+Workspace
+ ├── Folder
+ │    ├── Folder
+ │    └── File
+ │         └── Sections
+ │              ├── Sub-sections
+ │              └── Tasks
+ │                   └── Sub-tasks
+ └── File
+      └── Sections
+```
+
+---
+
+## Customization
+Each element can be:
+
+- Colored with custom colors
+
+- Reordered via drag & drop
+
+- Collapsed/expanded for easier navigation

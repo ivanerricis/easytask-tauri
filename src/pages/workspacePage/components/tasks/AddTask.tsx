@@ -8,8 +8,15 @@ type AddTaskProps = {
     sectionId: number
 }
 
+const defaultTask = {
+    text: "",
+    color: ""
+}
+
 export const AddTask = ({ sectionId }: AddTaskProps) => {
     const [isOpen, setOpen] = useState(false)
+    const [paletteIsOpen, setPaletteOpen] = useState(false)
+    const [task, setTask] = useState(defaultTask)
     const [inputValue, setInputValue] = useState("")
     const { createTask, currentNote, getNoteData } = useWorkspaceData()
     const formRef = useRef<HTMLFormElement>(null)
@@ -34,7 +41,6 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault()
         if (inputValue.trim()) {
-            console.log('Task creato')
             createTask(sectionId, inputValue.trim())
             handleOpen()
             if (!currentNote) return
@@ -47,7 +53,7 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
             <div
                 role="button"
                 onClick={handleOpen}
-                className="cursor-pointer group/add flex items-center justify-center w-full border-t h-8"
+                className="cursor-pointer group/add flex items-center justify-center w-full h-10"
             >
                 <Plus size={20} className="group-hover/add:text-foreground text-muted-foreground transition-all" />
             </div>
@@ -66,6 +72,39 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                         className="rounded-none border-none"
                     />
                 </div>
+                {!paletteIsOpen
+                    ? <div
+                        role="button"
+                        onClick={() => { setPaletteOpen(true) }}
+                        className="group/color cursor-pointer flex items-center justify-center w-full h-8 border-t"
+                    >
+                        <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground transition-all" />
+                    </div>
+                    : <div className="flex items-center justify-center w-full">
+                        <div
+                            className="flex items-center justify-center h-8 w-full bg-primary"
+                            style={{ backgroundColor: task.color }}
+                        >
+                            <Input
+                                id="color-1"
+                                name="color"
+                                type="color"
+                                className="opacity-0 cursor-pointer"
+                                value={task.color}
+                                onChange={e => setTask({
+                                    ...task,
+                                    color: e.target.value
+                                })}
+                            />
+                        </div>
+                        <div
+                            role="button"
+                            onClick={(e) => { e.preventDefault(), setPaletteOpen(false) }}
+                            className="group/close cursor-pointer flex items-center justify-center w-full h-8"
+                        >
+                            <X size={20} className="group-hover:text-foreground transition-all group-hover/close:text-foreground text-muted-foreground" />
+                        </div>
+                    </div>}
                 <div className="flex items-center w-full border-t">
                     <div
                         role="button"
@@ -77,15 +116,9 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                     <div
                         role="button"
                         onClick={handleOpen}
-                        className="group/close cursor-pointer flex items-center justify-center w-full h-8 border-r"
+                        className="group/close cursor-pointer flex items-center justify-center w-full h-8"
                     >
                         <X size={20} className="group-hover:text-foreground transition-all group-hover/close:text-foreground text-muted-foreground" />
-                    </div>
-                    <div
-                        role="button"
-                        className="group/color cursor-pointer flex items-center justify-center w-full"
-                    >
-                        <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground transition-all" />
                     </div>
                 </div>
             </form>

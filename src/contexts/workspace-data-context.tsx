@@ -28,12 +28,12 @@ type WorkspaceDataContextType = {
     createWorkspaceNote: (workspaceId: number, name: string, color: string) => Promise<void>
     createSubFolder: (folderId: number, name: string, color: string) => Promise<void>
     createNoteInFolder: (folderId: number, name: string, color: string) => Promise<void>
-    createSection: (noteId: number, title: string, position: string, color?: string) => Promise<void>
+    createSection: (noteId: number, title: string, position: number, color?: string) => Promise<void>
     createSectionInGroup: (groupId: number, title: string, color?: string) => Promise<void>
     createTask: (sectionId: number, text: string, color?: string) => Promise<void>
 
-    editNote: (noteId: number, name: string, color: string) => Promise<void>
-    editFolder: (folderId: number, name: string, color: string) => Promise<void>
+    editNote: (noteId: number, name: string, color?: string) => Promise<void>
+    editFolder: (folderId: number, name: string, color?: string) => Promise<void>
 
     deleteFolder: (id: number) => Promise<void>
     deleteNote: (id: number) => Promise<void>
@@ -154,7 +154,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }
 
-    const createSection = async (noteId: number, title: string, position: string, color?: string) => {
+    const createSection = async (noteId: number, title: string, position: number, color?: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {
@@ -211,7 +211,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     /* ------------------------------------------------------------------------------------ */
     // Editing methods
 
-    const editNote = async (noteId: number, name: string, color: string) => {
+    const editNote = async (noteId: number, name: string, color?: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {
@@ -223,7 +223,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }
 
-    const editFolder = async (folderId: number, name: string, color: string) => {
+    const editFolder = async (folderId: number, name: string, color?: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {

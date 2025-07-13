@@ -42,7 +42,7 @@ export function ComboboxWorkspace() {
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="justify-between opacity-50 hover:opacity-100 rounded-sm border"
+                    className="justify-between opacity-50 hover:opacity-100 rounded-xs border"
                 >
                     <div className="flex items-center gap-2">
                         <Box />
@@ -65,7 +65,7 @@ export function ComboboxWorkspace() {
                                 >
                                     <CheckIcon
                                         className={cn(
-                                            "mr-2 h-4 w-4",
+                                            "h-4 w-4",
                                             value === workspace.name ? "opacity-100" : "opacity-0"
                                         )}
                                     />

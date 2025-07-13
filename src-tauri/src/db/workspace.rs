@@ -1,17 +1,6 @@
+use crate::db::types::Workspace;
 use crate::get_db_path;
 use rusqlite::{params, Connection};
-use serde::Serialize;
-
-#[derive(Serialize)]
-pub struct Workspace {
-    pub id: i64,
-    pub name: String,
-    pub color: String,
-    pub creation_date: String,
-    pub creation_time: String,
-    pub edit_date: String,
-    pub edit_time: String,
-}
 
 pub const CREATE_WORKSPACE_TABLE: &str = r#"
 CREATE TABLE IF NOT EXISTS workspace (
@@ -23,6 +12,17 @@ CREATE TABLE IF NOT EXISTS workspace (
   edit_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
   edit_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime'))
 );
+
+CREATE TRIGGER IF NOT EXISTS update_workspace_edit_timestamp
+    AFTER UPDATE ON workspace
+    FOR EACH ROW
+    BEGIN
+        UPDATE workspace
+        SET
+            edit_date = DATE('now', 'localtime'),
+            edit_time = strftime('%H:%M', 'now', 'localtime')
+    WHERE id = OLD.id;
+    END;
 "#;
 
 #[tauri::command]

@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, X } from "lucide-react"
 import { useState } from "react"
 
 const defaultWorkspace = {
@@ -24,11 +24,13 @@ export function ButtonNewWorkspace() {
     const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
     const { createWorkspace, getWorkspaces } = useWorkspace()
+    const [paletteIsOpen, setPaletteOpen] = useState(false);
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
+        if (workspace.name.trim() === "") return
         try {
-            await createWorkspace(workspace.name, workspace.color)
+            await createWorkspace(workspace.name.trim(), workspace.color)
             await getWorkspaces()
             setError(null)
             setIsOpen(false)
@@ -55,7 +57,7 @@ export function ButtonNewWorkspace() {
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button
-                    className="flex items-center justify-center w-[280px] p-6 rounded-full gap-2 font-bold text-lg transition-all"
+                    className="flex items-center justify-center w-[280px] p-6 rounded-full gap-2 text-lg transition-all"
                 >
                     Crea un nuovo Workspace
                     <ArrowRight className="!h-5 !w-5" />
@@ -84,25 +86,37 @@ export function ButtonNewWorkspace() {
                             />
                             {error && (<p className="text-sm text-destructive">{error}</p>)}
                         </div>
-                        <div className="grid gap-3">
-                            <Label>Color</Label>
-                            <div
-                                className="flex items-center justify-center h-full w-full border rounded-sm"
-                                style={{ backgroundColor: workspace.color }}
-                            >
-                                <Input
-                                    id="color-1"
-                                    name="color"
-                                    type="color"
-                                    className="opacity-0 cursor-pointer"
-                                    value={workspace.color}
-                                    onChange={e => setWorkspace({
-                                        ...workspace,
-                                        color: e.target.value
-                                    })}
-                                />
+                        {paletteIsOpen ?
+                            <div className="flex items-center justify-between gap-1">
+                                <div
+                                    className="flex items-center justify-center h-full w-full border rounded-xs"
+                                    style={{ backgroundColor: workspace.color }}
+                                >
+                                    <Input
+                                        id="color-1"
+                                        name="color"
+                                        type="color"
+                                        className="opacity-0 cursor-pointer"
+                                        value={workspace.color}
+                                        onChange={e => setWorkspace({
+                                            ...workspace,
+                                            color: e.target.value
+                                        })}
+                                    />
+                                </div>
+                                <Button
+                                    onClick={(e) => { e.preventDefault(), setPaletteOpen(false) }}
+                                    variant={"buttonIcon"}
+                                    className="h-full"
+                                >
+                                    <X />
+                                </Button>
                             </div>
-                        </div>
+                            :
+                            <Button variant={"outline"} onClick={(e) => { e.preventDefault(), setPaletteOpen(true) }}>
+                                Aggiungi colore
+                            </Button>
+                        }
                     </div>
                     <DialogFooter className="mt-4">
                         <Button

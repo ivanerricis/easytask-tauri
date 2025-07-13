@@ -2,6 +2,16 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* @font-face {
+  font-family: 'Roboto';
+  font-display: swap;
+  src: url('/fonts/Roboto.ttf') format('truetype');
+}
+
+@theme {
+  --font-sans: 'Roboto', sans-serif;
+} */
+
 html,
 body,
 #root {
@@ -10,14 +20,6 @@ body,
   padding: 0;
   box-sizing: border-box;
   width: 100%;
-}
-
-.app-drag {
-  -webkit-app-region: drag;
-}
-
-.app-no-drag {
-  -webkit-app-region: no-drag;
 }
 
 ::-webkit-scrollbar {
@@ -146,7 +148,15 @@ body,
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@layer utilities {
+  .app-drag {
+    -webkit-app-region: drag;
+  }
 
+  .app-no-drag {
+    -webkit-app-region: no-drag;
+  }
+}
 
 @layer base {
   * {

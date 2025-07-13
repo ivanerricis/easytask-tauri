@@ -6,18 +6,19 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import type { Folder } from "@/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { useEffect, useState } from "react"
+import { ButtonInPopover } from "@/components/button-in-popover"
 
 type DialogEditProps = {
     folder: Folder
 }
 
-const defaultFolder = {
-    name: "",
-    color: ""
+type defaultFolderType = {
+    name: string
+    color?: string
 }
 
 export const DialogEditFolder = ({ folder }: DialogEditProps) => {
-
+    const defaultFolder: defaultFolderType = { name: "", color: "" }
     const [isOpen, setIsOpen] = useState(false)
     const [newFolder, setFolder] = useState(defaultFolder)
     const { editFolder, getWorkspaceData } = useWorkspaceData()
@@ -25,16 +26,17 @@ export const DialogEditFolder = ({ folder }: DialogEditProps) => {
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
-        setFolder({
-            name: folder.name,
-            color: folder.color
-        })
+        if (folder.color)
+            setFolder({ name: folder.name, color: folder.color })
+        else
+            setFolder({ name: folder.name })
     }, [folder])
 
     const onSave = async () => {
         if (!currentWorkspace) return
+        if (folder.name.trim() === "") return
         try {
-            await editFolder(folder.id, newFolder.name, newFolder.color)
+            await editFolder(folder.id, newFolder.name.trim(), newFolder.color)
             await getWorkspaceData(currentWorkspace.id)
             setIsOpen(false)
         } catch (error: any) {
@@ -61,16 +63,9 @@ export const DialogEditFolder = ({ folder }: DialogEditProps) => {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button
-                    onClick={(e) => { e.stopPropagation() }}
-                    variant={"ghost"}
-                    size={"sm"}
-                    className="hover:text-foreground justify-start rounded-sm text-xs"
-                >
-                    Modifica
-                </Button>
+                <ButtonInPopover text="Modifica" onClick={() => { setIsOpen(true) }} />
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
                     <DialogTitle>Modifica la cartella</DialogTitle>
                     <DialogDescription />
@@ -84,13 +79,14 @@ export const DialogEditFolder = ({ folder }: DialogEditProps) => {
                             value={newFolder.name}
                             onChange={e => { setFolder({ ...newFolder, name: e.target.value }) }}
                             onKeyDown={handleKeyDown}
+                            onClick={(e) => { e.stopPropagation() }}
                         />
                     </div>
                     {error && <p className="text-destructive">{error}</p>}
                     <div className="grid gap-3">
                         <Label>Colore</Label>
                         <div
-                            className="flex items-center justify-center h-full w-full border rounded-sm"
+                            className="flex items-center justify-center h-full w-full border rounded-xs"
                             style={{ backgroundColor: newFolder.color }}
                         >
                             <Input
@@ -100,13 +96,14 @@ export const DialogEditFolder = ({ folder }: DialogEditProps) => {
                                 className="opacity-0 cursor-pointer"
                                 value={newFolder.color}
                                 onChange={e => { setFolder({ ...newFolder, color: e.target.value }) }}
+                                onClick={(e) => { e.stopPropagation() }}
                             />
                         </div>
                     </div>
                 </div>
                 <DialogFooter>
                     <DialogClose asChild>
-                        <Button onClick={(e) => {e.stopPropagation()}} variant="outline">
+                        <Button onClick={(e) => { e.stopPropagation() }} variant="outline">
                             Annulla
                         </Button>
                     </DialogClose>

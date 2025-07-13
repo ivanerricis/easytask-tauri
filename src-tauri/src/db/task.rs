@@ -1,3 +1,6 @@
+use crate::get_db_path;
+use rusqlite::{params, Connection};
+
 pub const CREATE_TASK_TABLE: &str = r#"
 CREATE TABLE IF NOT EXISTS task (
         id INTEGER PRIMARY KEY,
@@ -29,3 +32,41 @@ CREATE TABLE IF NOT EXISTS task (
     WHERE id = OLD.id;
     END;
 "#;
+
+#[tauri::command]
+pub fn create_task(section_id: i64, text: String, color: Option<String>) -> Result<(), String> {
+    let conn = Connection::open(get_db_path()).map_err(|e| e.to_string())?;
+    let res = match color {
+        Some(color) => conn.execute(
+            "INSERT INTO task (section_id, text, color) VALUES (?, ?, ?)",
+            params![section_id, text, color],
+        ),
+        None => conn.execute(
+            "INSERT INTO task (section_id, text) VALUES (?, ?)",
+            params![section_id, text],
+        ),
+    };
+    handle_sql_error(res)
+}
+
+#[tauri::command]
+pub fn delete_task(id: i64) -> Result<(), String> {
+    let conn = Connection::open(get_db_path()).map_err(|e| e.to_string())?;
+    conn.execute("DELETE FROM task WHERE id=?", params![id])
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn handle_sql_error(res: rusqlite::Result<usize>) -> Result<(), String> {
+    match res {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            let msg = e.to_string();
+            if msg.contains("CHECK constraint failed") {
+                Err("EMPTY_TEXT".into())
+            } else {
+                Err("GENERIC_ERROR".into())
+            }
+        }
+    }
+}

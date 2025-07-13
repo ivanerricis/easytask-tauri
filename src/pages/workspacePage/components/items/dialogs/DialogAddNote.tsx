@@ -14,6 +14,7 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import type { Folder } from "@/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useState } from "react"
+import { ButtonInPopover } from "@/components/button-in-popover"
 
 const defaultNote = {
     name: "",
@@ -34,8 +35,9 @@ export function DialogAddNote({ parentFolder }: ParentFolderProps) {
     const handleCreateNote = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentWorkspace?.id) return
+        if (note.name.trim() === "") return
         try {
-            await createNoteInFolder(parentFolder.id, note.name, note.color)
+            await createNoteInFolder(parentFolder.id, note.name.trim(), note.color)
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             setIsOpen(false)
@@ -63,16 +65,9 @@ export function DialogAddNote({ parentFolder }: ParentFolderProps) {
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
-                <Button
-                    onClick={(e) => { e.stopPropagation() }}
-                    size={"sm"}
-                    variant={"ghost"}
-                    className="text-xs rounded-sm justify-start"
-                >
-                    Aggiungi nota
-                </Button>
+                <ButtonInPopover text="Aggiungi nota" onClick={() => { setIsOpen(true) }} />
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-[425px]" onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
                     <DialogTitle>Crea una nota</DialogTitle>
                     <DialogDescription />
@@ -86,13 +81,14 @@ export function DialogAddNote({ parentFolder }: ParentFolderProps) {
                                 name="name"
                                 value={note.name}
                                 onChange={(e) => setNote({ ...note, name: e.target.value })}
+                                onClick={(e) => { e.stopPropagation() }}
                             />
                         </div>
                         {error && <p className="text-sm text-red-500">{error}</p>}
                         <div className="grid gap-3">
                             <Label>Colore</Label>
                             <div
-                                className="flex items-center justify-center h-full w-full border rounded-sm"
+                                className="flex items-center justify-center h-full w-full border rounded-xs"
                                 style={{ backgroundColor: note.color }}
                             >
                                 <Input
@@ -102,6 +98,7 @@ export function DialogAddNote({ parentFolder }: ParentFolderProps) {
                                     className="opacity-0 cursor-pointer"
                                     value={note.color}
                                     onChange={(e) => setNote({ ...note, color: e.target.value })}
+                                    onClick={(e) => { e.stopPropagation() }}
                                 />
                             </div>
                         </div>

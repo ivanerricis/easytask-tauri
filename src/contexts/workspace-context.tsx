@@ -11,7 +11,7 @@ type WorkspaceContextType = {
     setCurrentWorkspace: React.Dispatch<React.SetStateAction<Workspace | null>>
     getWorkspaces: () => Promise<void>
     createWorkspace: (name: string, color: string) => Promise<void>
-    editWorkspace: (id: number, name: string, color: string) => Promise<void>
+    editWorkspace: (id: number, name: string, color?: string) => Promise<void>
     deleteWorkspace: (id: number) => Promise<void>
     resetWorkspace: () => void
 }
@@ -43,7 +43,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(true)
         try {
             await invoke('create_workspace', { name, color })
-            await getWorkspaces() // aggiorna la lista dopo la creazione
+            await getWorkspaces()
         } catch (error) {
             setError('Errore creazione Workspace')
             throw error
@@ -52,7 +52,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
-    const editWorkspace = async (id: number, name: string, color: string) => {
+    const editWorkspace = async (id: number, name: string, color?: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {

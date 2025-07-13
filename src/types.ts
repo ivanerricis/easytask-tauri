@@ -1,7 +1,7 @@
 export type Workspace = {
     id: number
     name: string
-    color: string
+    color?: string
     creation_date: string
     creation_time: string
     edit_date: string
@@ -17,7 +17,7 @@ export type Folder = {
     creation_time: string
     edit_date: string
     edit_time: string
-    color: string
+    color?: string
     subfolders: Folder[]
     notes: Note[]
 }
@@ -32,7 +32,7 @@ export type Note = {
     creation_time: string
     edit_date: string
     edit_time: string
-    color: string
+    color?: string
     groups: Group[]
 }
 
@@ -51,7 +51,7 @@ export type Section = {
     creation_time: string
     edit_date: string
     edit_time: string
-    color: string | null
+    color?: string | null
     isArchived: boolean
     tasks: Task[]
 }
@@ -64,7 +64,7 @@ export type Task = {
     creation_time: string
     edit_date: string
     edit_time: string
-    color: string | null
+    color?: string | null
     text: string
     isCompleted: boolean
     isArchived: boolean

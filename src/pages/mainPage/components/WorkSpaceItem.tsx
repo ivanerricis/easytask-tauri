@@ -20,15 +20,15 @@ export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
     }
 
     return (
-        <div className="group flex flex-col items-center w-full h-24 bg-background hover:bg-secondary border rounded-md">
-            <div className="grid grid-cols-[95%_5%] w-full relative h-full">
+        <div className="group flex flex-col items-center w-full h-24 bg-background hover:bg-secondary border rounded-xs">
+            <div className="flex items-center justify-between w-full relative h-full">
                 {/* Workspace Info */}
                 <div
                     role="button"
                     className="flex flex-col justify-between p-2 relative cursor-pointer"
                     onClick={handleOpen}
                 >
-                    <h1 className="text-muted-foreground group-hover:text-foreground text-xl font-bold transition-all truncate overflow-hidden whitespace-nowrap mr-8">
+                    <h1 className="text-muted-foreground group-hover:text-foreground text-xl transition-all truncate overflow-hidden whitespace-nowrap mr-8">
                         {workspace.name}
                     </h1>
                     <div className="flex flex-col items-start gap-1 w-full">
@@ -43,12 +43,12 @@ export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
 
                 {/* Color Bar */}
                 <div
-                    className="w-full h-full rounded-e-sm border-l"
+                    className="w-3 h-full rounded-e-[1px] border-l"
                     style={{ backgroundColor: workspace.color }}
                 />
 
                 {/* Menu Button */}
-                <div className="flex items-center justify-center right-5 top-1 absolute opacity-0 group-hover:opacity-100 hover:bg-background rounded-sm p-1 transition-all">
+                <div className="flex items-center justify-center right-5 top-1 absolute opacity-0 group-hover:opacity-100 hover:bg-background rounded-xs p-1 transition-all">
                     <ButtonMenu workspace={workspace} />
                 </div>
             </div>

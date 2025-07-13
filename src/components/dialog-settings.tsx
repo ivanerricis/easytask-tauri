@@ -21,7 +21,7 @@ export const DialogSettings = ({ className }: DialogSettingsProps) => {
     return (
         <Dialog>
             <DialogTrigger asChild>
-                <Button variant="buttonIcon" size="icon" className={`absolute left-1 bottom-1 ${className}`}>
+                <Button variant="buttonIcon" size="icon" className={`absolute left-1 bottom-1 !bg-transparent ${className}`}>
                     <Settings />
                 </Button>
             </DialogTrigger>
@@ -46,7 +46,7 @@ export const DialogSettings = ({ className }: DialogSettingsProps) => {
                         Colore d'accento:
                     </h1>
                     <div
-                        className="flex items-center justify-center w-9 h-9 border rounded-sm"
+                        className="flex items-center justify-center w-9 h-9 border rounded-xs"
                         style={{ backgroundColor: color }}
                     >
                         <Input

@@ -1,4 +1,7 @@
 import React from "react"
+import { getCurrentWindow } from "@tauri-apps/api/window"
+import { ButtonNavbar } from "./button-navbar"
+import { Minus, Square, X } from "lucide-react"
 
 type NavBarProps = {
     leftContainer?: React.ReactNode
@@ -7,11 +10,40 @@ type NavBarProps = {
 }
 
 export const Navbar = ({ leftContainer, centerContainer, rightContainer }: NavBarProps) => {
+    const window = getCurrentWindow();
+
+    const handleClose = async () => {
+        window.close()
+    }
+
+    const handletoggleMaximize = () => {
+        window.toggleMaximize()
+    }
+
+    const handleMinimize = () => {
+        window.minimize()
+    }
+
     return (
-        <div className="z-50 top-0 flex items-center justify-between w-full py-1 px-2 border-b border-border shadow-sm app-drag bg-background">
-            <div className="flex-1 text-left">{leftContainer}</div>
-            <div className="flex-1 text-center">{centerContainer}</div>
-            <div className="flex-1 text-right">{<div className="pr-22">{rightContainer}</div>}</div>
+        <div className="z-50 flex items-center justify-between w-full border-b shadow-sm bg-background" data-tauri-drag-region>
+            <div className="flex-1 text-left" data-tauri-drag-region>{leftContainer}</div>
+            <div className="flex-1 text-center" data-tauri-drag-region>{centerContainer}</div>
+            <div className="flex-1 flex flex-row-reverse items-center justify-start text-right" data-tauri-drag-region>
+                <div className="flex items-center justify-end">
+                    <ButtonNavbar onClick={handleMinimize}>
+                        <Minus className="w-5 h-5" />
+                    </ButtonNavbar>
+                    <ButtonNavbar onClick={handletoggleMaximize} className={"!p-2.5"}>
+                        <Square className="w-4 h-4" />
+                    </ButtonNavbar>
+                    <ButtonNavbar onClick={handleClose}>
+                        <X className="w-5 h-5" />
+                    </ButtonNavbar>
+                </div>
+                <div data-tauri-drag-region>
+                    {rightContainer}
+                </div>
+            </div>
         </div >
     )
 }
