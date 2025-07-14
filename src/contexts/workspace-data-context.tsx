@@ -2,6 +2,11 @@ import { createContext, useContext, useState } from "react"
 import { core } from '@tauri-apps/api';
 const { invoke } = core;
 import type { Folder, Group, Note } from "@/types"
+import { getDBWorkspaceData } from "@/db/queries/workspace";
+import { createDBNoteInFolder, createDBWorkspaceNote, deleteDBNote, getDBNoteData } from "@/db/queries/note"
+import { createDBSubFolder, createDBWorkspaceFolder, deleteDBFolder } from "@/db/queries/folder";
+import { createDBSection, createDBSectionInGroup, deleteDBSection } from "@/db/queries/section";
+import { createDBSubTask, createDBTask, deleteDBTask } from "@/db/queries/task";
 
 /* ------------------------------------------------------------------------------------ */
 
@@ -24,13 +29,14 @@ type WorkspaceDataContextType = {
     getNoteData: (noteId: number) => Promise<void>
     getGroups: (noteId: string) => Promise<void>
 
-    createWorkspaceFolder: (workspaceId: number, name: string, color: string) => Promise<void>
-    createWorkspaceNote: (workspaceId: number, name: string, color: string) => Promise<void>
-    createSubFolder: (folderId: number, name: string, color: string) => Promise<void>
-    createNoteInFolder: (folderId: number, name: string, color: string) => Promise<void>
+    createWorkspaceFolder: (workspaceId: number, name: string, color?: string) => Promise<void>
+    createWorkspaceNote: (workspaceId: number, name: string, color?: string) => Promise<void>
+    createSubFolder: (folderId: number, name: string, color?: string) => Promise<void>
+    createNoteInFolder: (folderId: number, name: string, color?: string) => Promise<void>
     createSection: (noteId: number, title: string, position: number, color?: string) => Promise<void>
     createSectionInGroup: (groupId: number, title: string, color?: string) => Promise<void>
     createTask: (sectionId: number, text: string, color?: string) => Promise<void>
+    createSubTask: (taskId: number, text: string, color?: string) => Promise<void>
 
     editNote: (noteId: number, name: string, color?: string) => Promise<void>
     editFolder: (folderId: number, name: string, color?: string) => Promise<void>
@@ -64,7 +70,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         if (isLoading) return
         setIsLoading(true)
         try {
-            const data = await invoke<{ folders: Folder[], notes: Note[] }>('get_workspace_data', { workspaceId })
+            const data = await getDBWorkspaceData(workspaceId)
             setFolders(data.folders)
             setNotes(data.notes)
         } catch (error) {
@@ -79,7 +85,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         if (isLoading) return
         setIsLoading(true)
         try {
-            const data = await invoke<{ groups: Group[] }>('get_note_data', { noteId })
+            const data = await getDBNoteData(noteId)
             setGroups(data.groups || [])
         } catch (error) {
             setError('Errore caricamento dati nota')
@@ -88,6 +94,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             setIsLoading(false)
         }
     }
+
+
 
     const getGroups = async (noteId: string) => {
         if (isLoading) return
@@ -106,11 +114,11 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     /* ------------------------------------------------------------------------------------ */
     // Create methods
 
-    const createWorkspaceFolder = async (workspaceId: number, name: string, color: string) => {
+    const createWorkspaceFolder = async (workspaceId: number, name: string, color?: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('create_workspace_folder', { workspaceId, name, color })
+            await createDBWorkspaceFolder(workspaceId, name, color)
         } catch (error) {
             throw error
         } finally {
@@ -118,11 +126,11 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }
 
-    const createWorkspaceNote = async (workspaceId: number, name: string, color: string) => {
+    const createWorkspaceNote = async (workspaceId: number, name: string, color?: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('create_workspace_note', { workspaceId, name, color })
+            await createDBWorkspaceNote(workspaceId, name, color)
         } catch (error) {
             throw error
         } finally {
@@ -130,11 +138,11 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }
 
-    const createSubFolder = async (folderId: number, name: string, color: string) => {
+    const createSubFolder = async (folderId: number, name: string, color?: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('create_sub_folder', { folderId, name, color })
+            await createDBSubFolder(folderId, name, color)
         } catch (error) {
             throw error
         } finally {
@@ -142,11 +150,11 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }
 
-    const createNoteInFolder = async (folderId: number, name: string, color: string) => {
+    const createNoteInFolder = async (folderId: number, name: string, color?: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('create_note_in_folder', { folderId, name, color })
+            await createDBNoteInFolder(folderId, name, color)
         } catch (error) {
             throw error
         } finally {
@@ -158,7 +166,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('create_section', { noteId, title, position, color })
+            await createDBSection(noteId, title, position, color)
         } catch (error: any) {
             if (error?.message?.includes('SECTION_EXISTS')) {
                 throw new Error('Esiste già una Section con questo nome')
@@ -179,7 +187,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('create_section_in_group', { groupId, title, color })
+            await createDBSectionInGroup(groupId, title, color)
         } catch (error: any) {
             if (error?.message?.includes('SECTION_EXISTS')) {
                 throw new Error('Esiste già una Section con questo nome')
@@ -200,7 +208,19 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('create_task', { sectionId, text, color })
+            await createDBTask(sectionId, text, color)
+        } catch (error) {
+            throw error
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const createSubTask = async (taskId: number, text: string, color?: string) => {
+        if (isLoading) return
+        setIsLoading(true)
+        try {
+            await createDBSubTask(taskId, text, color)
         } catch (error) {
             throw error
         } finally {
@@ -242,7 +262,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('delete_folder', { id })
+            await deleteDBFolder(id)
         } catch (error) {
             setError('Errore eliminazione folder')
             throw error
@@ -255,7 +275,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('delete_note', { id })
+            await deleteDBNote(id)
         } catch (error) {
             setError('Errore eliminazione nota')
             throw error
@@ -268,7 +288,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('delete_section', { id })
+            await deleteDBSection(id)
         } catch (error) {
             setError('Errore eliminazione section')
             throw error
@@ -281,7 +301,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('delete_task', { id })
+            await deleteDBTask(id)
         } catch (error) {
             setError('Errore eliminazione task')
             throw error
@@ -323,6 +343,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             createSection,
             createSectionInGroup,
             createTask,
+            createSubTask,
             editNote,
             editFolder,
             deleteFolder,

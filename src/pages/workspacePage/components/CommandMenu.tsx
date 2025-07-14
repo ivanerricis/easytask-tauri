@@ -6,7 +6,7 @@ import { useEffect, useState } from "react"
 
 export function CommandMenu() {
     const [open, setOpen] = useState(false)
-    const { notes, setCurrentNote, getNoteData, setCurrentNotes } = useWorkspaceData()
+    const { notes, setCurrentNote, getNoteData, setCurrentNotes, folders } = useWorkspaceData()
 
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -18,6 +18,13 @@ export function CommandMenu() {
         document.addEventListener("keydown", down)
         return () => document.removeEventListener("keydown", down)
     }, [])
+
+    const allNotesMap = new Map<number, Note>()
+    notes.forEach(note => allNotesMap.set(note.id, note))
+    folders.forEach(folder => {
+        folder.notes.forEach(note => allNotesMap.set(note.id, note))
+    })
+    const allNotes = Array.from(allNotesMap.values())
 
     return (
         <>
@@ -32,19 +39,17 @@ export function CommandMenu() {
                 <CommandList>
                     <CommandEmpty>Nessun risultato.</CommandEmpty>
                     <CommandGroup heading="Suggerimenti">
-                        {notes.map((note) => (
+                        {allNotes.map((note) => (
                             <CommandItem
                                 key={note.id}
-                                onSelect={() => {
+                                onSelect={async () => {
                                     setOpen(prev => !prev)
                                     setCurrentNotes((prev: Note[]) => {
                                         const alreadyExists = prev.some(n => n.id === note.id)
                                         return alreadyExists ? prev : [...prev, note]
                                     })
                                     setCurrentNote(note)
-                                    getNoteData(note.id)
-                                    setCurrentNote(note)
-                                    getNoteData(note.id)
+                                    await getNoteData(note.id)
                                 }}
                             >
                                 {note.name}

@@ -13,12 +13,8 @@ async function createDB(): Promise<Database> {
     const folderPath = `${documentPath}/EasyTask/`;
     const filePath = `${folderPath}easytask-3.db`;
 
-    console.log('Percorso della cartella:', folderPath);
-    console.log('Percorso del file:', filePath);
-
     // Controlla se la cartella EasyTask esiste, altrimenti la crea
     if (!(await exists(folderPath, { baseDir: BaseDirectory.Document }))) {
-        console.log('Cartella non esistente, creandola...');
         await mkdir(folderPath, { recursive: true, baseDir: BaseDirectory.Document });
     }
 
@@ -29,7 +25,6 @@ async function createDB(): Promise<Database> {
     const tablesExist = await checkIfTablesExist(db);
 
     if (!tablesExist) {
-        console.log('Tabelle non esistenti, creandole...');
         await initDB(db);
     }
 
@@ -38,11 +33,10 @@ async function createDB(): Promise<Database> {
 
 async function checkIfTablesExist(db: Database): Promise<boolean> {
     try {
-        // Prova a eseguire una query su una delle tabelle
-        await db.select<{ name: string }[]>(
+        const result = await db.select<{ name: string }[]>(
             "SELECT name FROM sqlite_master WHERE type='table' AND name='workspace'"
         );
-        return true;
+        return result.length > 0; // ← controlla se la tabella è davvero presente
     } catch (error) {
         return false;
     }

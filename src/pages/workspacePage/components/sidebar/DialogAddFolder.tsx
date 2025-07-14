@@ -23,7 +23,7 @@ const defaultFolder = {
 
 export function DialogAddFolder() {
 
-    const [folder, setFolder] = useState({ name: "", color: "#ffb375" })
+    const [folder, setFolder] = useState(defaultFolder)
     const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
     const { currentWorkspace } = useWorkspace()
@@ -32,8 +32,9 @@ export function DialogAddFolder() {
     const handleCreateFolder = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentWorkspace?.id) return
+        if (folder.name.trim() === "") return
         try {
-            await createWorkspaceFolder(currentWorkspace.id, folder.name, folder.color)
+            await createWorkspaceFolder(currentWorkspace.id, folder.name.trim(), folder.color)
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             setIsOpen(false)

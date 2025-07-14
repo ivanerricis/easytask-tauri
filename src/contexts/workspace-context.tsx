@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState } from 'react'
-import { core } from '@tauri-apps/api';
-const { invoke } = core;
 import type { Workspace } from '@/types'
+import { getDBWorkspaces, createDBWorkspace, editDBWorkspace, deleteDBWorkspace } from '@/db/queries/workspace'
 
 type WorkspaceContextType = {
     workspaces: Workspace[]
@@ -10,7 +9,7 @@ type WorkspaceContextType = {
     error: string | null
     setCurrentWorkspace: React.Dispatch<React.SetStateAction<Workspace | null>>
     getWorkspaces: () => Promise<void>
-    createWorkspace: (name: string, color: string) => Promise<void>
+    createWorkspace: (name: string, color?: string) => Promise<void>
     editWorkspace: (id: number, name: string, color?: string) => Promise<void>
     deleteWorkspace: (id: number) => Promise<void>
     resetWorkspace: () => void
@@ -28,7 +27,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         if (isLoading) return
         setIsLoading(true)
         try {
-            const data: Workspace[] = await invoke('get_workspaces')
+            const data = await getDBWorkspaces()
             setWorkspaces(data)
         } catch (error) {
             setError('Errore caricamento Workspace')
@@ -38,11 +37,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
-    const createWorkspace = async (name: string, color: string) => {
+    const createWorkspace = async (name: string, color?: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('create_workspace', { name, color })
+            await createDBWorkspace(name, color ?? null)
             await getWorkspaces()
         } catch (error) {
             setError('Errore creazione Workspace')
@@ -56,7 +55,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('edit_workspace', { id, name, color })
+            await editDBWorkspace(id, name, color ?? null)
             await getWorkspaces()
         } catch (error) {
             setError('Errore nella modifica del Workspace')
@@ -70,7 +69,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         if (isLoading) return
         setIsLoading(true)
         try {
-            await invoke('delete_workspace', { id })
+            await deleteDBWorkspace(id)
             await getWorkspaces()
         } catch (error) {
             setError('Errore eliminazione Workspace')

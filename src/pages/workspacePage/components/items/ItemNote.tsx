@@ -13,14 +13,14 @@ export const ItemNote = ({ note, className }: ItemNoteProps) => {
     const [isHovered, setIsHovered] = useState(false)
     const { setCurrentNotes, setCurrentNote, getNoteData } = useWorkspaceData()
 
-    const handleOpenFile = (e: React.MouseEvent) => {
+    const handleOpenFile = async (e: React.MouseEvent) => {
         e.stopPropagation();
         setCurrentNotes((prev: Note[]) => {
             const alreadyExists = prev.some(n => n.id === note.id)
             return alreadyExists ? prev : [...prev, note]
         })
         setCurrentNote(note)
-        getNoteData(note.id)
+        await getNoteData(note.id)
     }
 
     function hexToRgba(alpha: number, hex?: string) {

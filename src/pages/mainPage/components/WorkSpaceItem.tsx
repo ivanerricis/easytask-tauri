@@ -48,9 +48,7 @@ export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
                 />
 
                 {/* Menu Button */}
-                <div className="flex items-center justify-center right-5 top-1 absolute opacity-0 group-hover:opacity-100 hover:bg-background rounded-xs p-1 transition-all">
-                    <ButtonMenu workspace={workspace} />
-                </div>
+                <ButtonMenu workspace={workspace} />
             </div>
         </div>
     )

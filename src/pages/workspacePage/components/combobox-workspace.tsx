@@ -25,12 +25,12 @@ export function ComboboxWorkspace() {
     const { getWorkspaceData } = useWorkspaceData()
     const [value, setValue] = React.useState(currentWorkspace?.name)
 
-    const handleSelect = (selectedValue: string) => {
+    const handleSelect = async (selectedValue: string) => {
         const selectedWorkspace = workspaces.find(ws => ws.name === selectedValue)
         if (selectedWorkspace) {
             setValue(selectedValue)
             setCurrentWorkspace(selectedWorkspace)
-            getWorkspaceData(selectedWorkspace.id)
+            await getWorkspaceData(selectedWorkspace.id)
             setOpen(false)
         }
     }

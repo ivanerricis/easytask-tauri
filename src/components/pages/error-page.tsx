@@ -1,13 +1,23 @@
+import { useWorkspace } from "@/contexts/workspace-context"
 import { Button } from "../ui/button"
 import { ArrowLeft } from "lucide-react"
 import { useNavigate } from "react-router-dom"
+import { useWorkspaceData } from "@/contexts/workspace-data-context"
 
 type ErrorPageProps = {
     error: string | null
 }
 
 export const ErrorPage = ({ error }: ErrorPageProps) => {
-    const navigate = useNavigate();
+    const navigate = useNavigate()
+    const { resetWorkspace } = useWorkspace()
+    const { resetData } = useWorkspaceData()
+
+    const handleClick = () => {
+        resetWorkspace()
+        resetData()
+        navigate('/')
+    }
 
     return (
         <div className="flex flex-col items-center justify-center h-full gap-4">
@@ -20,7 +30,7 @@ export const ErrorPage = ({ error }: ErrorPageProps) => {
                 </h2>
                 <p className="text-destructive w-[300px] border rounded-xs p-2">{error}</p>
             </div>
-            <Button variant="outline" onClick={() => navigate("/")}>
+            <Button variant="outline" onClick={handleClick}>
                 <ArrowLeft />
                 Torna alla home
             </Button>

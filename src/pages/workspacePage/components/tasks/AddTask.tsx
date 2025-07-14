@@ -38,13 +38,13 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
         setInputValue("")
     }
 
-    const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
         if (inputValue.trim()) {
-            createTask(sectionId, inputValue.trim())
+            await createTask(sectionId, inputValue.trim())
             handleOpen()
             if (!currentNote) return
-            getNoteData(currentNote.id)
+            await getNoteData(currentNote.id)
         }
     }
 

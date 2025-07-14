@@ -31,7 +31,7 @@ export const DialogDeleteSection = ({ sectionId }: DialogDeleteProps) => {
                     onClick={(e) => { e.stopPropagation() }}
                     size={"sm"}
                     variant={"ghost"}
-                    className="text-xs rounded-sm justify-start text-destructive hover:text-destructive hover:!bg-destructive/15">
+                    className="text-xs rounded-xs justify-start text-destructive hover:text-destructive hover:!bg-destructive/15">
                     Elimina
                 </Button>
             </DialogTrigger>

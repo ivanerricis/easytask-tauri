@@ -1,4 +1,4 @@
-import { Trash2, Download } from "lucide-react"
+import { Trash2, Upload } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 type IconType = 'trash' | 'download'
@@ -11,7 +11,7 @@ type ItemFooterProps = {
 
 const iconMap: Record<IconType, LucideIcon> = {
     trash: Trash2,
-    download: Download
+    download: Upload
 }
 
 export const ItemFooter = ({ text, type, className }: ItemFooterProps) => {

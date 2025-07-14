@@ -5,7 +5,6 @@ import { DialogDeleteNote } from "../dialogs/DialogDeleteNote"
 import type { Note } from "@/types"
 import { DialogEditNote } from "../dialogs/DialogEditNote"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import { ButtonInPopover } from "@/components/button-in-popover"
 import { Button } from "@/components/ui/button"
 
 type ButtonMenuNoteProps = {
@@ -19,7 +18,7 @@ export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
         e.stopPropagation()
     }
 
-    const handleOpenFile = (e: React.MouseEvent) => {
+    const handleOpenNote = (e: React.MouseEvent) => {
         e.stopPropagation();
         setCurrentNotes((prev: Note[]) => {
             const alreadyExists = prev.some(n => n.id === note.id)
@@ -37,7 +36,7 @@ export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
                 </button>
             </PopoverTrigger>
             <PopoverContent className="flex flex-col justify-center gap-1 w-26 p-1 rounded-xs">
-                <Button size={"sm"} variant={"ghost"} className="text-sm rounded-xs justify-start">
+                <Button onClick={handleOpenNote} size={"sm"} variant={"ghost"} className="text-sm rounded-xs justify-start">
                     Apri
                 </Button>
                 <DialogEditNote note={note} />

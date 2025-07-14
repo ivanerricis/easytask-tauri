@@ -47,15 +47,15 @@ export const AddSection = () => {
         setInputValue("")
     }
 
-    const handleSubmit = (e: FormEvent) => {
+    const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
         if (inputValue.trim()) {
             try {
                 if (!currentNote) return
-                createSection(currentNote.id, inputValue.trim(), 1)
+                await createSection(currentNote.id, inputValue.trim(), 1)
                 handleOpen()
                 if (!currentNote) return
-                getNoteData(currentNote.id)
+                await getNoteData(currentNote.id)
             } catch (error: any) {
                 toast.error(error || 'Errore nella creazione della sezione')
             }
@@ -78,7 +78,7 @@ export const AddSection = () => {
             <form
                 ref={formRef}
                 onSubmit={handleSubmit}
-                className="flex flex-col items-center justify-center border bg-background"
+                className="flex flex-col items-center justify-center border"
             >
                 <div className="flex items-center justify-center w-full border-b">
                     <Input
@@ -86,14 +86,14 @@ export const AddSection = () => {
                         onChange={(e) => setInputValue(e.target.value)}
                         placeholder="Scrivi qualcosa..."
                         autoFocus
-                        className="rounded-none border-none"
+                        className="rounded-none border-none !bg-background"
                     />
                 </div>
                 {!paletteIsOpen
                     ? <div
                         role="button"
                         onClick={() => { setPaletteOpen(true) }}
-                        className="group/color cursor-pointer flex items-center justify-center w-full h-8"
+                        className="group/color cursor-pointer flex items-center justify-center w-full h-8 bg-secondary"
                     >
                         <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground transition-all" />
                     </div>
@@ -117,12 +117,12 @@ export const AddSection = () => {
                         <div
                             role="button"
                             onClick={(e) => { e.preventDefault(), setPaletteOpen(false) }}
-                            className="group/close cursor-pointer flex items-center justify-center w-full h-8"
+                            className="group/close cursor-pointer flex items-center justify-center w-full h-8 bg-secondary"
                         >
                             <X size={20} className="group-hover:text-foreground transition-all group-hover/close:text-foreground text-muted-foreground" />
                         </div>
                     </div>}
-                <div className="flex items-center w-full border-t">
+                <div className="flex items-center w-full border-t bg-secondary">
                     <div
                         role="button"
                         onClick={handleSubmit}

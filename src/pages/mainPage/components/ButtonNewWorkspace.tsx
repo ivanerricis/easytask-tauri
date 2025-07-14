@@ -23,14 +23,17 @@ export function ButtonNewWorkspace() {
     const [workspace, setWorkspace] = useState(defaultWorkspace)
     const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
-    const { createWorkspace, getWorkspaces } = useWorkspace()
     const [paletteIsOpen, setPaletteOpen] = useState(false);
+    const { createWorkspace, getWorkspaces } = useWorkspace()
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
         if (workspace.name.trim() === "") return
         try {
-            await createWorkspace(workspace.name.trim(), workspace.color)
+            if (paletteIsOpen)
+                await createWorkspace(workspace.name.trim(), workspace.color)
+            else
+                await createWorkspace(workspace.name.trim())
             await getWorkspaces()
             setError(null)
             setIsOpen(false)
@@ -105,6 +108,7 @@ export function ButtonNewWorkspace() {
                                     />
                                 </div>
                                 <Button
+                                    type="button"
                                     onClick={(e) => { e.preventDefault(), setPaletteOpen(false) }}
                                     variant={"buttonIcon"}
                                     className="h-full"
@@ -113,7 +117,11 @@ export function ButtonNewWorkspace() {
                                 </Button>
                             </div>
                             :
-                            <Button variant={"outline"} onClick={(e) => { e.preventDefault(), setPaletteOpen(true) }}>
+                            <Button
+                                type="button"
+                                variant={"outline"}
+                                onClick={(e) => { e.preventDefault(), setPaletteOpen(true) }}
+                                className="h-full">
                                 Aggiungi colore
                             </Button>
                         }

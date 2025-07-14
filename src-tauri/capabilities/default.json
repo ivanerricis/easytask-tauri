@@ -47,6 +47,14 @@
           "path": "$DOCUMENT/**"
         }
       ]
+    },
+    {
+      "identifier": "sql:allow-select",
+      "allow": [
+        {
+          "path": "$DOCUMENT/**"
+        }
+      ]
     }
   ]
 }
