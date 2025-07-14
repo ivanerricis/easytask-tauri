@@ -1,3 +1,7 @@
+/**
+ * Creates the task table in the database.
+ * @category Database Schema
+ */
 export const createTaskTable = `
     CREATE TABLE IF NOT EXISTS task (
         id INTEGER PRIMARY KEY,

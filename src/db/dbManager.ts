@@ -6,6 +6,11 @@ import { BaseDirectory } from "@tauri-apps/api/path";
 
 let dbInstance: Database | null = null;
 
+/**
+ * Creates the database if it doesn't exist and initializes it with the schema.
+ * @returns Promise resolving to the Database instance.
+ * @category Database
+ */
 async function createDB(): Promise<Database> {
     // Ottiene il percorso della cartella Document
     const documentPath = await documentDir();
@@ -31,6 +36,12 @@ async function createDB(): Promise<Database> {
     return db;
 }
 
+/**
+ * Checks if the necessary tables exist in the database.
+ * @param db Database instance to check for table existence.
+ * @returns Promise resolving to a boolean indicating if the tables exist.
+ * @category Database
+ */
 async function checkIfTablesExist(db: Database): Promise<boolean> {
     try {
         const result = await db.select<{ name: string }[]>(
@@ -42,6 +53,11 @@ async function checkIfTablesExist(db: Database): Promise<boolean> {
     }
 }
 
+/**
+ * Gets the database instance, creating it if it doesn't exist.
+ * @returns Promise resolving to the Database instance.
+ * @category Database
+ */
 export async function getDB(): Promise<Database> {
     if (!dbInstance) {
         dbInstance = await createDB();

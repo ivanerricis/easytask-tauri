@@ -50,6 +50,13 @@ export async function getDBNoteData(noteId: number) {
     return { groups: fullGroups };
 }
 
+/**
+ * Creates a new note in the database.
+ * @param workspaceId The ID of the workspace to which the note belongs.
+ * @param name The name of the note.
+ * @param color The color of the note (optional).
+ * @category Database
+ */
 export async function createDBWorkspaceNote(workspaceId: number, name: string, color?: string | null) {
     const db = await getDB()
 
@@ -69,6 +76,13 @@ export async function createDBWorkspaceNote(workspaceId: number, name: string, c
     }
 }
 
+/**
+ * Creates a new note in a specific folder.
+ * @param folderId The ID of the folder where the note will be created.
+ * @param name The name of the note.
+ * @param color The color of the note (optional).
+ * @category Database
+ */
 export async function createDBNoteInFolder(folderId: number, name: string, color?: string | null) {
     const db = await getDB()
 
@@ -110,6 +124,11 @@ export async function editDBNote(noteId: number, name: string, color: string) {
     }
 }
 
+/**
+ * Deletes a note from the database.
+ * @param id The ID of the note to delete.
+ * @category Database
+ */
 export async function deleteDBNote(id: number) {
     const db = await getDB()
 

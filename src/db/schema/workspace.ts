@@ -1,3 +1,7 @@
+/**
+ * Creates the workspace table in the database.
+ * @category Database Schema
+ */
 export const createWorkspaceTable = `
   CREATE TABLE IF NOT EXISTS workspace (
     id INTEGER PRIMARY KEY,

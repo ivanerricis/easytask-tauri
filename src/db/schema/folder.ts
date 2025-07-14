@@ -1,3 +1,7 @@
+/**
+ * Creates the folder table in the database.
+ * @category Database Schema
+ */
 export const createFolderTable = `
     CREATE TABLE IF NOT EXISTS folder (
         id INTEGER PRIMARY KEY,

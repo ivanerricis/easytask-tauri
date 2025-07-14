@@ -1,3 +1,7 @@
+/**
+ * Creates the note table in the database.
+ * @category Database Schema
+ */
 export const createNoteTable = `
     CREATE TABLE IF NOT EXISTS note (
         id INTEGER PRIMARY KEY,

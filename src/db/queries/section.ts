@@ -1,5 +1,12 @@
 import { getDB } from "../dbManager";
 
+/**
+ * Creates a new section in a specific group.
+ * @param groupId The ID of the group where the section will be created.
+ * @param title The title of the section.
+ * @param color The color of the section (optional).
+ * @category Database
+ */
 export async function createDBSectionInGroup(groupId: number, title: string, color?: string | null) {
     const db = await getDB()
 
@@ -19,6 +26,13 @@ export async function createDBSectionInGroup(groupId: number, title: string, col
     }
 }
 
+/**
+ * Creates a new folder in the database.
+ * @param workspaceId The ID of the workspace to which the folder belongs.
+ * @param name The name of the folder.
+ * @param color The color of the folder (optional).
+ * @category Database
+ */
 export async function createDBSection(noteId: number, title: string, position: number, color?: string | null) {
     const db = await getDB()
 
@@ -75,6 +89,11 @@ export async function editDBSection(id: number, title: string, color?: string, a
     }
 }
 
+/**
+ * Deletes a section from the database.
+ * @param id The ID of the section to delete.
+ * @category Database
+ */
 export async function deleteDBSection(id: number) {
     const db = await getDB()
 

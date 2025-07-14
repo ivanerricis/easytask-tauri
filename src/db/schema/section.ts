@@ -1,3 +1,7 @@
+/**
+ * Creates the section table in the database.
+ * @category Database Schema
+ */
 export const createSectionTable = `
     CREATE TABLE IF NOT EXISTS section (
         id INTEGER PRIMARY KEY,

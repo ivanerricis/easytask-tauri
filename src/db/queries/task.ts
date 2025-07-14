@@ -1,5 +1,12 @@
 import { getDB } from "../dbManager"
 
+/**
+ * Creates a new task in the database.
+ * @param sectionId The ID of the section to which the task belongs.
+ * @param text The text of the task.
+ * @param color The color of the task (optional).
+ * @category Database
+ */
 export async function createDBTask(sectionId: number, text: string, color?: string | null) {
     const db = await getDB()
 
@@ -20,6 +27,13 @@ export async function createDBTask(sectionId: number, text: string, color?: stri
     }
 }
 
+/**
+ * Creates a new subtask in the database.
+ * @param taskId The ID of the task to create a subtask for.
+ * @param text The text of the subtask.
+ * @param color The color of the subtask (optional).
+ * @category Database
+ */
 export async function createDBSubTask(taskId: number, text: string, color?: string | null) {
     const db = await getDB()
 
@@ -39,6 +53,13 @@ export async function createDBSubTask(taskId: number, text: string, color?: stri
     }
 }
 
+/**
+ * Edits an existing task in the database.
+ * @param id The ID of the task to edit.
+ * @param text The new text of the task.
+ * @param color The new color of the task (optional).
+ * @category Database
+ */
 export async function deleteDBTask(id: number) {
     const db = await getDB()
 
