@@ -4,6 +4,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { useState } from "react"
+import { toast } from "sonner"
 
 type DialogDeleteProps = {
     noteId: number
@@ -15,7 +16,7 @@ export const DialogDeleteNote = ({ noteId }: DialogDeleteProps) => {
     const { deleteNote, getWorkspaceData, setCurrentNotes, setCurrentNote, currentNotes } = useWorkspaceData()
     const { currentWorkspace } = useWorkspace()
 
-    const onDelete = async (e: React.MouseEvent) => {
+    const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation()
         if (!currentWorkspace) return
         try {
@@ -37,7 +38,7 @@ export const DialogDeleteNote = ({ noteId }: DialogDeleteProps) => {
             }
             setIsOpen(false)
         } catch (err: any) {
-
+            toast.error('Impossibile elimianre la nota')
         }
     }
 
@@ -61,7 +62,7 @@ export const DialogDeleteNote = ({ noteId }: DialogDeleteProps) => {
                             Annulla
                         </Button>
                     </DialogClose>
-                    <Button variant="destructive" onClick={onDelete}>
+                    <Button variant="destructive" onClick={handleDelete}>
                         Elimina
                     </Button>
                 </DialogFooter>

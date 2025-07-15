@@ -1,33 +1,40 @@
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { useState } from "react"
+import React, { useState } from "react"
+import { toast } from "sonner"
 
 type DialogDeleteProps = {
     workspaceId: number
-    onComplete?: () => void
+    onClosePopover?: () => void;
 }
 
-export const DialogDeleteWorkspace = ({ workspaceId, onComplete }: DialogDeleteProps) => {
+export const DialogDeleteWorkspace = ({ workspaceId, onClosePopover }: DialogDeleteProps) => {
 
     const [isOpen, setIsOpen] = useState(false)
     const { deleteWorkspace, getWorkspaces } = useWorkspace()
 
-    const onDelete = async () => {
+    const handleDelete = async () => {
         try {
             await deleteWorkspace(workspaceId)
             await getWorkspaces()
             setIsOpen(false)
-        } catch (err: any) {
-
+            onClosePopover?.()
+        } catch (error: any) {
+            toast.error('Impossibile eliminare il Workspace')
         }
+    }
+
+    const handleCancel = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        onClosePopover?.()
     }
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button
-                    onClick={(e) => { e.stopPropagation(), onComplete }}
+                    onClick={(e) => { e.stopPropagation() }}
                     variant={"ghost"}
                     size={"sm"}
                     className="text-destructive hover:text-destructive hover:!bg-destructive/15 justify-start rounded-xs"
@@ -45,12 +52,13 @@ export const DialogDeleteWorkspace = ({ workspaceId, onComplete }: DialogDeleteP
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <DialogClose asChild>
-                        <Button variant="outline">
-                            Annulla
-                        </Button>
-                    </DialogClose>
-                    <Button variant="destructive" onClick={onDelete}>
+                    <Button
+                        onClick={handleCancel}
+                        variant="outline"
+                    >
+                        Annulla
+                    </Button>
+                    <Button variant="destructive" onClick={handleDelete}>
                         Elimina
                     </Button>
                 </DialogFooter>

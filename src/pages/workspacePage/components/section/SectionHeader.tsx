@@ -32,15 +32,17 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleProps }
     const completionPercentage = calculateCompletionPercentage(section.tasks)
 
     return (
-        <div className="flex flex-col items-center justify-center">
-            {section.color && <div className="w-full h-0.5" style={{ backgroundColor: section.color }}></div>}
+        <div className="relative flex flex-col items-center justify-center">
+
+            {/* Color Container */}
+            {section.color && <div className="w-full h-0.5 absolute top-0" style={{ backgroundColor: section.color }}></div>}
             <div
                 className="group flex items-center w-full p-2 whitespace-nowrap"
             >
                 {dragHandleProps && <div className="group flex items-center justify-center"
                     {...dragHandleProps}
                 >
-                    <Grip className="text-muted-foreground group-hover:text-foreground transition-all w-4 h-4" />
+                    <Grip className="text-muted-foreground group-hover:text-foreground w-4 h-4" />
                 </div>}
                 {section.tasks.length > 0 ?
                     <div role="button" onClick={handleOpen} className="shrink-0">
@@ -50,12 +52,14 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleProps }
                     <h1 className="text-sm font-medium ml-2 shrink-0">
                         {section.title}
                     </h1>
-                    <div className="flex items-center gap-2 shrink-0 ml-auto">
+                    <div className="flex items-center gap-2 shrink-0">
                         <Progress className="w-20" value={completionPercentage} />
                         <h1 className="text-xs font-medium">
                             {Math.round(completionPercentage)} %
                         </h1>
-                        <ButtonMenuSection sectionId={section.id} />
+                        <div className="opacity-0 group-hover:opacity-100">
+                            <ButtonMenuSection sectionId={section.id} />
+                        </div>
                     </div>
                 </div>
             </div>

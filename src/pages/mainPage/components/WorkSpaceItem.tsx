@@ -24,13 +24,13 @@ export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
 
             {/* Color Bar */}
             {workspace.color && <div
-                className="w-3 h-full rounded-e-[1px] border-l bg-background"
+                className="w-2 h-full rounded-l-[0.5px] bg-background"
                 style={{ backgroundColor: workspace.color }}
             />}
 
             {/* Workspace Info */}
             <div className="flex flex-col justify-between p-2 relative w-full">
-                <h1 className="text-muted-foreground group-hover:text-foreground text-xl transition-all truncate overflow-hidden whitespace-nowrap mr-8">
+                <h1 className="text-muted-foreground group-hover:text-foreground text-xl truncate overflow-hidden whitespace-nowrap mr-8">
                     {workspace.name}
                 </h1>
                 <div className="flex flex-col items-start gap-1 w-full">

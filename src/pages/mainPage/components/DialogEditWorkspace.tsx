@@ -9,6 +9,7 @@ import { Palette, X } from "lucide-react"
 
 type DialogEditProps = {
     workspace: Workspace
+    onClosePopover?: () => void;
 }
 
 type defaultWorkspaceType = {
@@ -16,7 +17,7 @@ type defaultWorkspaceType = {
     color?: string
 }
 
-export const DialogEditWorkspace = ({ workspace }: DialogEditProps) => {
+export const DialogEditWorkspace = ({ workspace, onClosePopover }: DialogEditProps) => {
     const defaultWorkspace: defaultWorkspaceType = { name: "", color: "" }
     const [isOpen, setIsOpen] = useState(false)
     const [paletteIsOpen, setPaletteOpen] = useState(false)
@@ -52,6 +53,8 @@ export const DialogEditWorkspace = ({ workspace }: DialogEditProps) => {
             else if (error.message === 'GENERIC_ERROR')
                 setError('Errore durante la modifica del Workspace')
             return
+        } finally {
+            onClosePopover?.()
         }
     }
 
@@ -59,6 +62,7 @@ export const DialogEditWorkspace = ({ workspace }: DialogEditProps) => {
         setWorkspace(defaultWorkspace)
         setError(null)
         setIsOpen(false)
+        onClosePopover?.()
     }
 
     return (
@@ -88,7 +92,8 @@ export const DialogEditWorkspace = ({ workspace }: DialogEditProps) => {
                                 value={newWorkspace.name}
                                 onChange={e => {
                                     setError(null)
-                                    setWorkspace({ ...newWorkspace, name: e.target.value }) }}
+                                    setWorkspace({ ...newWorkspace, name: e.target.value })
+                                }}
                             />
                             {error && <p className="text-sm text-destructive">{error}</p>}
                         </div>

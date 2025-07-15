@@ -19,7 +19,7 @@ const defaultWorkspace = {
     color: "#ffb375"
 }
 
-export function ButtonNewWorkspace() {
+export function DialogCreateWorkspace() {
     const [workspace, setWorkspace] = useState(defaultWorkspace)
     const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
@@ -30,10 +30,7 @@ export function ButtonNewWorkspace() {
         e.preventDefault()
         if (workspace.name.trim() === "") return
         try {
-            if (paletteIsOpen)
-                await createWorkspace(workspace.name.trim(), workspace.color)
-            else
-                await createWorkspace(workspace.name.trim())
+            await createWorkspace(workspace.name.trim(), paletteIsOpen ? workspace.color : undefined)
             await getWorkspaces()
             setError(null)
             setIsOpen(false)

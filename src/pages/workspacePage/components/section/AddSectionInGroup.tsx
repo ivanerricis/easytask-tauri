@@ -62,8 +62,8 @@ export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
                 onClick={handleOpen}
                 className="group cursor-pointer flex items-center justify-center border gap-1 p-2 bg-background"
             >
-                <Plus size={20} className="group-hover:text-foreground text-muted-foreground transition-all" />
-                <h1 className="text-muted-foreground group-hover:text-foreground w-full transition-all">
+                <Plus size={20} className="group-hover:text-foreground text-muted-foreground" />
+                <h1 className="text-muted-foreground group-hover:text-foreground w-full">
                     Aggiungi una sezione
                 </h1>
             </div>
@@ -86,9 +86,9 @@ export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
                     ? <div
                         role="button"
                         onClick={() => { setPaletteOpen(true) }}
-                        className="group/color cursor-pointer flex items-center justify-center w-full h-8 border-t bg-secondary"
+                        className="group/color cursor-pointer flex items-center justify-center w-full h-8 bg-secondary"
                     >
-                        <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground transition-all" />
+                        <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground" />
                     </div>
                     : <div className="flex items-center justify-center w-full">
                         <div
@@ -112,7 +112,7 @@ export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
                             onClick={(e) => { e.preventDefault(), setPaletteOpen(false) }}
                             className="group/close cursor-pointer flex items-center justify-center w-full h-8 bg-secondary"
                         >
-                            <X size={20} className="group-hover:text-foreground transition-all group-hover/close:text-foreground text-muted-foreground" />
+                            <X size={20} className="group-hover:text-foreground group-hover/close:text-foreground text-muted-foreground" />
                         </div>
                     </div>}
                 <div className="flex items-center w-full border-t bg-secondary">
@@ -121,14 +121,14 @@ export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
                         onClick={handleSubmit}
                         className="group/add cursor-pointer flex items-center justify-center w-full h-8 border-r"
                     >
-                        <Plus size={20} className="group-hover/add:text-foreground text-muted-foreground transition-all" />
+                        <Plus size={20} className="group-hover/add:text-foreground text-muted-foreground" />
                     </div>
                     <div
                         role="button"
                         onClick={handleOpen}
                         className="group/close cursor-pointer flex items-center justify-center w-full h-8"
                     >
-                        <X size={20} className="group-hover/close:text-foreground text-muted-foreground transition-all" />
+                        <X size={20} className="group-hover/close:text-foreground text-muted-foreground" />
                     </div>
                 </div>
             </form>

@@ -15,13 +15,13 @@ export const ButtonMenu = ({ workspace }: ButtonMenuProps) => {
     return (
         <Popover open={open} onOpenChange={setOpen}>
             <PopoverTrigger asChild>
-                <div onClick={(e) => { e.stopPropagation() }} className="flex items-center justify-center right-1 top-1 absolute opacity-0 cursor-pointer group-hover:opacity-100 hover:bg-background rounded-xs p-1 transition-all">
+                <div onClick={(e) => { e.stopPropagation() }} className="flex items-center justify-center right-1 top-1 absolute opacity-0 cursor-pointer group-hover:opacity-100 hover:bg-background rounded-xs p-1">
                     <EllipsisVertical className="flex items-center justify-center w-5 h-5" />
                 </div>
             </PopoverTrigger>
             <PopoverContent onClick={(e) => { e.stopPropagation() }} className="flex flex-col w-auto p-1 rounded-xs">
-                <DialogEditWorkspace workspace={workspace} />
-                <DialogDeleteWorkspace workspaceId={workspace.id} />
+                <DialogEditWorkspace workspace={workspace} onClosePopover={() => setOpen(false)} />
+                <DialogDeleteWorkspace workspaceId={workspace.id} onClosePopover={() => setOpen(false)} />
             </PopoverContent>
         </Popover >
     );

@@ -10,22 +10,20 @@ type AddTaskProps = {
 
 const defaultTask = {
     text: "",
-    color: ""
+    color: "#FFFFFF"
 }
 
 export const AddTask = ({ sectionId }: AddTaskProps) => {
     const [isOpen, setOpen] = useState(false)
     const [paletteIsOpen, setPaletteOpen] = useState(false)
     const [task, setTask] = useState(defaultTask)
-    const [inputValue, setInputValue] = useState("")
     const { createTask, currentNote, getNoteData } = useWorkspaceData()
     const formRef = useRef<HTMLFormElement>(null)
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (formRef.current && !formRef.current.contains(event.target as Node)) {
-                setOpen(false)
-                setInputValue("")
+                handleOpen()
             }
         }
 
@@ -35,13 +33,14 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
 
     const handleOpen = () => {
         setOpen(prev => !prev)
-        setInputValue("")
+        setTask(defaultTask)
+        setPaletteOpen(false)
     }
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
-        if (inputValue.trim()) {
-            await createTask(sectionId, inputValue.trim())
+        if (task.text.trim()) {
+            await createTask(sectionId, task.text.trim(), paletteIsOpen ? task.color : undefined);
             handleOpen()
             if (!currentNote) return
             await getNoteData(currentNote.id)
@@ -55,7 +54,7 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                 onClick={handleOpen}
                 className="cursor-pointer group/add flex items-center justify-center w-full h-10"
             >
-                <Plus size={20} className="group-hover/add:text-foreground text-muted-foreground transition-all" />
+                <Plus size={20} className="group-hover/add:text-foreground text-muted-foreground" />
             </div>
         ) : (
             <form
@@ -63,10 +62,10 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                 onSubmit={handleSubmit}
                 className="flex flex-col items-center justify-center w-full"
             >
-                <div className="flex items-center justify-center w-full border-t">
+                <div className="flex items-center justify-center w-full">
                     <Input
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
+                        value={task.text}
+                        onChange={(e) => setTask({ ...task, text: e.target.value })}
                         placeholder="Scrivi qualcosa..."
                         autoFocus
                         className="rounded-none border-none"
@@ -76,13 +75,13 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                     ? <div
                         role="button"
                         onClick={() => { setPaletteOpen(true) }}
-                        className="group/color cursor-pointer flex items-center justify-center w-full h-8 border-t"
+                        className="group/color cursor-pointer flex items-center justify-center w-full h-8"
                     >
-                        <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground transition-all" />
+                        <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground" />
                     </div>
                     : <div className="flex items-center justify-center w-full">
                         <div
-                            className="flex items-center justify-center h-8 w-full bg-primary"
+                            className="flex items-center justify-center h-8 w-full"
                             style={{ backgroundColor: task.color }}
                         >
                             <Input
@@ -99,10 +98,10 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                         </div>
                         <div
                             role="button"
-                            onClick={(e) => { e.preventDefault(), setPaletteOpen(false) }}
+                            onClick={(e) => { e.preventDefault(); setPaletteOpen(false); setTask({ ...task, color: "#FFFFFF" }); }}
                             className="group/close cursor-pointer flex items-center justify-center w-full h-8"
                         >
-                            <X size={20} className="group-hover:text-foreground transition-all group-hover/close:text-foreground text-muted-foreground" />
+                            <X size={20} className="group-hover:text-foreground group-hover/close:text-foreground text-muted-foreground" />
                         </div>
                     </div>}
                 <div className="flex items-center w-full border-t">
@@ -111,14 +110,14 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                         onClick={handleSubmit}
                         className="group/add cursor-pointer flex items-center justify-center w-full h-8 border-r"
                     >
-                        <Plus size={20} className="group-hover:text-foreground transition-all group-hover/add:text-foreground text-muted-foreground" />
+                        <Plus size={20} className="group-hover:text-foreground group-hover/add:text-foreground text-muted-foreground" />
                     </div>
                     <div
                         role="button"
                         onClick={handleOpen}
                         className="group/close cursor-pointer flex items-center justify-center w-full h-8"
                     >
-                        <X size={20} className="group-hover:text-foreground transition-all group-hover/close:text-foreground text-muted-foreground" />
+                        <X size={20} className="group-hover:text-foreground group-hover/close:text-foreground text-muted-foreground" />
                     </div>
                 </div>
             </form>

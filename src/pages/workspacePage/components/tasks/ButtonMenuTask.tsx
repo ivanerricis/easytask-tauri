@@ -11,7 +11,7 @@ export const ButtonMenuTask = ({ taskId }: ButtonMenuFolderProps) => {
     return (
         <Popover>
             <PopoverTrigger asChild>
-                <button onClick={(e) => e.stopPropagation()} className="p-1 rounded-xs cursor-pointer">
+                <button onClick={(e) => e.stopPropagation()} className="rounded-xs cursor-pointer">
                     <EllipsisVertical className="!h-4 !w-4" />
                 </button>
             </PopoverTrigger>
