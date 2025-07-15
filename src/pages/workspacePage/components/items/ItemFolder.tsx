@@ -38,7 +38,7 @@ export const ItemFolder = ({ folder, className, children }: ItemFolderProps) => 
                     <h1 className="text-left text-sm transition-all w-full truncate">
                         {folder.name}
                     </h1>
-                    <div className="flex items-center justify-center absolute right-1 gap-1">
+                    <div className="flex items-center justify-center absolute right-1 gap-1 opacity-0 group-hover:opacity-100">
                         <ButtonMenuFolder folder={folder} />
                     </div>
                 </div>

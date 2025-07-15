@@ -94,9 +94,7 @@ export async function createDBWorkspace(name: string, color?: string | null) {
         await db.execute('INSERT INTO workspace (name, color) VALUES (?, ?)', [name, color ?? null])
     } catch (error: any) {
         const errorMessage = String(error)
-        console.log(error)
         if (errorMessage.includes('UNIQUE')) {
-            console.log('Exists')
             throw new Error('WORKSPACE_EXISTS')
         }
         else if (errorMessage.includes('CHECK')) {
@@ -122,10 +120,11 @@ export async function editDBWorkspace(id: number, name: string, color?: string |
     try {
         await db.execute('UPDATE workspace SET name=?, color=? WHERE id=?', [name, color ?? null, id])
     } catch (error: any) {
-        if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+        const errorMessage = String(error)
+        if (errorMessage.includes('UNIQUE')) {
             throw new Error('WORKSPACE_EXISTS')
         }
-        else if (error.code === 'SQLITE_CONSTRAINT_CHECK') {
+        else if (errorMessage.includes('CHECK')) {
             throw new Error('EMPTY_NAME')
         }
         else {

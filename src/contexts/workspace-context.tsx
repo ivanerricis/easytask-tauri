@@ -43,8 +43,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         try {
             await createDBWorkspace(name, color ?? null)
             await getWorkspaces()
-        } catch (error) {
-            setError('Errore creazione Workspace')
+        } catch (error: any) {
             throw error
         } finally {
             setIsLoading(false)
@@ -57,8 +56,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         try {
             await editDBWorkspace(id, name, color ?? null)
             await getWorkspaces()
-        } catch (error) {
-            setError('Errore nella modifica del Workspace')
+        } catch (error: any) {
             throw error
         } finally {
             setIsLoading(false)

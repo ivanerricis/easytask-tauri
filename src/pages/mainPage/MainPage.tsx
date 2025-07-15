@@ -1,7 +1,7 @@
 import { useEffect } from "react"
 import { WorkSpaceItem } from "./components/WorkSpaceItem"
 import { ButtonNewWorkspace } from "./components/ButtonNewWorkspace"
-import { RefreshCcw } from "lucide-react"
+import { RefreshCcw, Loader2 } from "lucide-react" // Importa un'icona per il loading
 import { Button } from "@/components/ui/button"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { ErrorPage } from "@/components/pages/error-page"
@@ -15,7 +15,9 @@ const MainPage = () => {
         getWorkspaces()
     }, [])
 
-    if (isLoading) {
+    const isInitialLoading = isLoading && workspaces.length === 0;
+
+    if (isInitialLoading) {
         return (
             <MainPageLayout>
                 <LoadingPage />
@@ -23,7 +25,7 @@ const MainPage = () => {
         )
     }
 
-    if (error) {
+    if (error && workspaces.length === 0) {
         return (
             <MainPageLayout>
                 <ErrorPage error={error} />
@@ -43,11 +45,11 @@ const MainPage = () => {
                         <h1 className="text-lg w-full ml-2">
                             Apri un Workspace recente:
                         </h1>
-                        <Button onClick={getWorkspaces} variant="outline" size="icon">
-                            <RefreshCcw />
+                        <Button onClick={getWorkspaces} variant="outline" size="icon" disabled={isLoading}>
+                            {isLoading ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
                         </Button>
                     </div>
-                    <div className="grid grid-cols-2 w-full p-1 overflow-y-auto h-[200px] lg:h-[350px] gap-1 transition- content-start">
+                    <div className="grid grid-cols-2 w-full overflow-y-auto h-[200px] lg:h-[350px] gap-1 transition- content-start">
                         {workspaces.length > 0 ? (
                             workspaces.map((ws) => (
                                 <WorkSpaceItem

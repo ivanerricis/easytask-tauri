@@ -12,7 +12,7 @@ type DialogDeleteProps = {
 export const DialogDeleteNote = ({ noteId }: DialogDeleteProps) => {
 
     const [isOpen, setIsOpen] = useState(false)
-    const { deleteNote, getWorkspaceData, setCurrentNotes } = useWorkspaceData()
+    const { deleteNote, getWorkspaceData, setCurrentNotes, setCurrentNote, currentNotes } = useWorkspaceData()
     const { currentWorkspace } = useWorkspace()
 
     const onDelete = async (e: React.MouseEvent) => {
@@ -21,7 +21,20 @@ export const DialogDeleteNote = ({ noteId }: DialogDeleteProps) => {
         try {
             await deleteNote(noteId)
             await getWorkspaceData(currentWorkspace.id)
-            setCurrentNotes(prev => prev.filter(n => n.id !== noteId))
+            const updatedNotes = currentNotes.filter(n => n.id !== noteId)
+            setCurrentNotes(updatedNotes)
+
+            if (updatedNotes.length > 0) {
+                const currentIndex = currentNotes.findIndex(n => n.id === noteId)
+
+                if (currentIndex === updatedNotes.length) {
+                    setCurrentNote(updatedNotes[currentIndex - 1])
+                } else {
+                    setCurrentNote(updatedNotes[currentIndex])
+                }
+            } else {
+                setCurrentNote(null)
+            }
             setIsOpen(false)
         } catch (err: any) {
 

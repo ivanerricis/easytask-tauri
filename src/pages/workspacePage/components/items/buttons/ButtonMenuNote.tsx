@@ -18,14 +18,14 @@ export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
         e.stopPropagation()
     }
 
-    const handleOpenNote = (e: React.MouseEvent) => {
+    const handleOpenNote = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        await getNoteData(note.id)
         setCurrentNotes((prev: Note[]) => {
             const alreadyExists = prev.some(n => n.id === note.id)
             return alreadyExists ? prev : [...prev, note]
         })
         setCurrentNote(note)
-        getNoteData(note.id)
     }
 
     return (

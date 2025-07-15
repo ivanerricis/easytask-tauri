@@ -13,43 +13,38 @@ export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
     const { getWorkspaceData } = useWorkspaceData()
     const navigate = useNavigate()
 
-    const handleOpen = () => {
-        setCurrentWorkspace(workspace);
-        getWorkspaceData(workspace.id)
+    const handleOpen = async () => {
+        setCurrentWorkspace(workspace)
+        await getWorkspaceData(workspace.id)
         navigate(`/workspace/${workspace.id}`)
     }
 
     return (
-        <div className="group flex flex-col items-center w-full h-24 bg-background hover:bg-secondary border rounded-xs">
-            <div className="flex items-center justify-between w-full relative h-full">
-                {/* Workspace Info */}
-                <div
-                    role="button"
-                    className="flex flex-col justify-between p-2 relative cursor-pointer"
-                    onClick={handleOpen}
-                >
-                    <h1 className="text-muted-foreground group-hover:text-foreground text-xl transition-all truncate overflow-hidden whitespace-nowrap mr-8">
-                        {workspace.name}
+        <div role="button" onClick={handleOpen} className="group relative flex items-center w-full cursor-pointer h-24 bg-background hover:bg-secondary border rounded-xs">
+
+            {/* Color Bar */}
+            {workspace.color && <div
+                className="w-3 h-full rounded-e-[1px] border-l bg-background"
+                style={{ backgroundColor: workspace.color }}
+            />}
+
+            {/* Workspace Info */}
+            <div className="flex flex-col justify-between p-2 relative w-full">
+                <h1 className="text-muted-foreground group-hover:text-foreground text-xl transition-all truncate overflow-hidden whitespace-nowrap mr-8">
+                    {workspace.name}
+                </h1>
+                <div className="flex flex-col items-start gap-1 w-full">
+                    <h1 className="text-muted-foreground text-sm">
+                        Creato il: {workspace.creation_date} - {workspace.creation_time}
                     </h1>
-                    <div className="flex flex-col items-start gap-1 w-full">
-                        <h1 className="text-muted-foreground text-sm">
-                            Creato il: {workspace.creation_date} - {workspace.creation_time}
-                        </h1>
-                        <h1 className="text-muted-foreground text-sm">
-                            Modificato il: {workspace.edit_date} - {workspace.edit_time}
-                        </h1>
-                    </div>
+                    <h1 className="text-muted-foreground text-sm">
+                        Modificato il: {workspace.edit_date} - {workspace.edit_time}
+                    </h1>
                 </div>
-
-                {/* Color Bar */}
-                <div
-                    className="w-3 h-full rounded-e-[1px] border-l"
-                    style={{ backgroundColor: workspace.color }}
-                />
-
-                {/* Menu Button */}
-                <ButtonMenu workspace={workspace} />
             </div>
+
+            {/* Menu Button */}
+            <ButtonMenu workspace={workspace} />
         </div>
     )
 }

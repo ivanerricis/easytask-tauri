@@ -11,7 +11,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { ArrowRight, X } from "lucide-react"
+import { ArrowRight, Palette, X } from "lucide-react"
 import { useState } from "react"
 
 const defaultWorkspace = {
@@ -37,16 +37,15 @@ export function ButtonNewWorkspace() {
             await getWorkspaces()
             setError(null)
             setIsOpen(false)
+            setWorkspace(defaultWorkspace)
         } catch (error: any) {
-            if (error.message?.includes('EMPTY_NAME'))
+            if (error.message === 'EMPTY_NAME')
                 setError('Il nome del Workspace non può essere vuoto')
-            else if (error.message?.includes('WORKSPACE_EXISTS'))
+            else if (error.message === 'WORKSPACE_EXISTS')
                 setError('Esiste già un Workspace con questo nome')
-            else if (error.message?.includes('GENERIC_ERROR'))
+            else if (error.message === 'GENERIC_ERROR')
                 setError('Errore durante la creazione del Workspace')
             return
-        } finally {
-            setWorkspace(defaultWorkspace)
         }
     }
 
@@ -74,7 +73,7 @@ export function ButtonNewWorkspace() {
                 <form onSubmit={handleCreate}>
                     <div className="grid gap-4">
                         <div className="grid gap-3">
-                            <Label>Nome Workspace</Label>
+                            <Label>Nome</Label>
                             <Input
                                 id="name-1"
                                 name="name"
@@ -123,6 +122,7 @@ export function ButtonNewWorkspace() {
                                 onClick={(e) => { e.preventDefault(), setPaletteOpen(true) }}
                                 className="h-full">
                                 Aggiungi colore
+                                <Palette />
                             </Button>
                         }
                     </div>
@@ -140,6 +140,6 @@ export function ButtonNewWorkspace() {
                     </DialogFooter>
                 </form>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     )
 }

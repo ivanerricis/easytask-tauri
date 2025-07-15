@@ -5,9 +5,10 @@ import { useState } from "react"
 
 type DialogDeleteProps = {
     workspaceId: number
+    onComplete?: () => void
 }
 
-export const DialogDeleteWorkspace = ({ workspaceId }: DialogDeleteProps) => {
+export const DialogDeleteWorkspace = ({ workspaceId, onComplete }: DialogDeleteProps) => {
 
     const [isOpen, setIsOpen] = useState(false)
     const { deleteWorkspace, getWorkspaces } = useWorkspace()
@@ -26,7 +27,7 @@ export const DialogDeleteWorkspace = ({ workspaceId }: DialogDeleteProps) => {
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button
-                    onClick={(e) => { e.stopPropagation() }}
+                    onClick={(e) => { e.stopPropagation(), onComplete }}
                     variant={"ghost"}
                     size={"sm"}
                     className="text-destructive hover:text-destructive hover:!bg-destructive/15 justify-start rounded-xs"

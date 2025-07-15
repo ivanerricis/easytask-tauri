@@ -36,10 +36,8 @@ export const Task = ({ task, children }: TaskProps) => {
                             {task.text}
                         </h1>
                     </div>
-
-                    {/* Priority && ButtonMenu container */}
-                    <div className="flex items-center justify-between">
-                        <div className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-500 w-2 h-2 mx-2`}></div>
+                    <div className={`${task.priority ? `flex` : `flex`} rounded-full bg-red-500 w-2 h-2`}></div>
+                    <div className="flex items-center justify-center hover:bg-secondary">
                         <ButtonMenuTask taskId={task.id} />
                     </div>
                 </div>

@@ -15,12 +15,12 @@ export const ItemNote = ({ note, className }: ItemNoteProps) => {
 
     const handleOpenFile = async (e: React.MouseEvent) => {
         e.stopPropagation();
+        await getNoteData(note.id)
         setCurrentNotes((prev: Note[]) => {
             const alreadyExists = prev.some(n => n.id === note.id)
             return alreadyExists ? prev : [...prev, note]
         })
         setCurrentNote(note)
-        await getNoteData(note.id)
     }
 
     function hexToRgba(alpha: number, hex?: string) {
@@ -47,7 +47,7 @@ export const ItemNote = ({ note, className }: ItemNoteProps) => {
                     {note.name}
                 </h1>
             </div>
-            <div className="flex items-center justify-center absolute right-1 gap-1">
+            <div className="flex items-center justify-center absolute right-1 gap-1 opacity-0 group-hover:opacity-100">
                 <ButtonMenuNote note={note} />
             </div>
         </div>
