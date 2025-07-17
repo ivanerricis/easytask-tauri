@@ -1,4 +1,4 @@
-import type { Workspace } from "@/types"
+import type { Workspace } from "@/types/types"
 import { WorkSpaceItem } from "./WorkSpaceItem"
 
 type WorkspacesContainerProps = {

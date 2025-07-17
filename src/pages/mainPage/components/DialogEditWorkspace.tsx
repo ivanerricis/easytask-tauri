@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import type { Workspace } from "@/types"
+import type { Workspace } from "@/types/types"
 import { useWorkspace } from "@/contexts/workspace-context"
 import React, { useEffect, useState } from "react"
 import { Palette, X } from "lucide-react"
@@ -19,7 +19,7 @@ type defaultWorkspaceType = {
 }
 
 export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogEditProps) => {
-    const defaultWorkspace: defaultWorkspaceType = { name: "", color: "" }
+    const defaultWorkspace: defaultWorkspaceType = { name: workspace.name, color: workspace.color }
     const [paletteIsOpen, setPaletteOpen] = useState(false)
     const [newWorkspace, setWorkspace] = useState(defaultWorkspace)
     const { editWorkspace, getWorkspaces } = useWorkspace()
@@ -47,13 +47,12 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
             setError(null)
             onOpenChange(false)
         } catch (error: any) {
-            if (error.message === 'EMPTY_NAME')
+            if (error.code === 'EMPTY_NAME')
                 setError('Il nome del Workspace non può essere vuoto')
-            else if (error.message === 'WORKSPACE_EXISTS')
+            else if (error.code === 'WORKSPACE_EXISTS')
                 setError('Esiste già un Workspace con questo nome')
-            else if (error.message === 'GENERIC_ERROR')
+            else if (error.code === 'GENERIC_ERROR')
                 setError('Errore durante la modifica del Workspace')
-            return
         }
     }
 
@@ -76,6 +75,8 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
                         <div className="grid gap-3">
                             <Label>Nome</Label>
                             <Input
+                                onClick={(e) => { e.stopPropagation() }}
+                                type="text"
                                 id="name-1"
                                 name="name"
                                 value={newWorkspace.name}
@@ -97,6 +98,7 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
                                         name="color"
                                         type="color"
                                         className="opacity-0 cursor-pointer"
+                                        onClick={(e) => { e.stopPropagation() }}
                                         value={newWorkspace.color}
                                         onChange={e => { setWorkspace({ ...newWorkspace, color: e.target.value }) }}
                                     />

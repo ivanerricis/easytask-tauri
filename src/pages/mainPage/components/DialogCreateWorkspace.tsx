@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { ArrowRight, Palette, X } from "lucide-react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 
 const defaultWorkspace = {
     name: "",
@@ -26,6 +26,17 @@ export function DialogCreateWorkspace() {
     const [paletteIsOpen, setPaletteOpen] = useState(false);
     const { createWorkspace, getWorkspaces } = useWorkspace()
 
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.key === "n") {
+                e.preventDefault()
+                setIsOpen(true)
+            }
+        }
+        window.addEventListener("keydown", handleKeyDown)
+        return () => window.removeEventListener("keydown", handleKeyDown)
+    }, [])
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
         if (workspace.name.trim() === "") return
@@ -36,13 +47,12 @@ export function DialogCreateWorkspace() {
             setIsOpen(false)
             setWorkspace(defaultWorkspace)
         } catch (error: any) {
-            if (error.message === 'EMPTY_NAME')
+            if (error.code === 'EMPTY_NAME')
                 setError('Il nome del Workspace non può essere vuoto')
-            else if (error.message === 'WORKSPACE_EXISTS')
+            else if (error.code === 'WORKSPACE_EXISTS')
                 setError('Esiste già un Workspace con questo nome')
-            else if (error.message === 'GENERIC_ERROR')
+            else if (error.code === 'GENERIC_ERROR')
                 setError('Errore durante la creazione del Workspace')
-            return
         }
     }
 

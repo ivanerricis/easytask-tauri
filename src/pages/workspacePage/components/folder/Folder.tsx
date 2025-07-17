@@ -1,7 +1,7 @@
 import { ChevronDown, Folder as FolderIcon, FolderOpen } from "lucide-react"
 import React, { useState } from "react"
 import { ButtonMenuFolder } from "./ButtonMenuFolder"
-import type { Folder } from "@/types"
+import type { Folder } from "@/types/types"
 
 type ItemFolderProps = {
     folder: Folder

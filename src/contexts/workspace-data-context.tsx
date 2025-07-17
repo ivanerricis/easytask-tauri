@@ -1,7 +1,7 @@
 import { createContext, useContext, useState } from "react"
 import { core } from '@tauri-apps/api';
 const { invoke } = core;
-import type { Folder, Group, Note } from "@/types"
+import type { Folder, Group, Note } from "@/types/types"
 import { getDBWorkspaceData } from "@/db/queries/workspace";
 import { createDBNoteInFolder, createDBWorkspaceNote, deleteDBNote, getDBNoteData } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, deleteDBFolder } from "@/db/queries/folder";

@@ -1,5 +1,5 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-import type { Folder } from "@/types"
+import type { Folder } from "@/types/types"
 import { EllipsisVertical } from "lucide-react"
 import { DialogAddSubFolder } from "./DialogAddSubFolder"
 import { DialogAddNote } from "./DialogAddNote"

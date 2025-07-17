@@ -1,9 +1,8 @@
 import { Checkbox } from "@/components/ui/checkbox"
-import type { Task as TaskType } from "@/types"
+import type { Task as TaskType } from "@/types/types"
 import { ButtonMenuTask } from "./ButtonMenuTask"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { toast } from "sonner"
-import { useEffect } from "react"
 
 type TaskProps = {
     task: TaskType
@@ -22,10 +21,6 @@ export const Task = ({ task, children }: TaskProps) => {
             toast.error('Impossibile modificare il task')
         }
     }
-
-    useEffect(() => {
-        console.log("CHECKED VALUE:", task.completed, typeof task.completed)
-    })
 
     return (
         <div className="flex flex-col items-center w-full">

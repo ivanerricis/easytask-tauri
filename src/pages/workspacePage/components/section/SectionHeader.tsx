@@ -1,5 +1,5 @@
 import { Progress } from "@/components/ui/progress"
-import type { Section as SectionType, Task } from "@/types"
+import type { Section as SectionType, Task } from "@/types/types"
 import { ChevronDown, Grip } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 

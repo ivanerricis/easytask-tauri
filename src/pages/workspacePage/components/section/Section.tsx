@@ -1,7 +1,7 @@
 import { SectionHeader } from "./SectionHeader"
 import { SectionBody } from "./SectionBody"
 import { useState } from "react"
-import type { Section as SectionType } from "@/types"
+import type { Section as SectionType } from "@/types/types"
 
 type SectionProps = {
     section: SectionType

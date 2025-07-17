@@ -1,6 +1,6 @@
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import type { Note } from "@/types"
+import type { Note } from "@/types/types"
 import { SearchIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 

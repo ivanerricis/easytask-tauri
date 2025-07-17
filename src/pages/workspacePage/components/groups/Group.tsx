@@ -1,6 +1,6 @@
 import { Section } from "../section/Section"
 import { AddSectionInGroup } from "../section/AddSectionInGroup"
-import type { Group as GroupType } from "@/types"
+import type { Group as GroupType } from "@/types/types"
 
 type GroupProps = {
     dragHandleProps?: any

@@ -3,14 +3,14 @@ import { EllipsisVertical } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DialogEditWorkspace } from "./DialogEditWorkspace";
 import { DialogDeleteWorkspace } from "./DialogDeleteWorkspace";
-import type { Workspace } from "@/types";
+import type { Workspace } from "@/types/types";
 import { ButtonInPopover } from "@/components/button-in-popover";
 
 type ButtonMenuProps = {
     workspace: Workspace
 }
 
-export const ButtonMenu = ({ workspace }: ButtonMenuProps) => {
+export const ButtonMenuWorkspace = ({ workspace }: ButtonMenuProps) => {
     const [isEditWorkspaceOpen, setEditWorkspaceOpen] = useState(false);
     const [isDeleteWorkspaceOpen, setDeleteWorkspaceOpen] = useState(false);
     const [popoverOpen, setPopoverOpen] = useState(false);

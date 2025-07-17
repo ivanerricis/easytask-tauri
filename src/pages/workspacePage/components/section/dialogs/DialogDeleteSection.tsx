@@ -1,40 +1,32 @@
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import { useState } from "react"
+import { toast } from "sonner"
 
 type DialogDeleteProps = {
     sectionId: number
+    isOpen: boolean
+    onOpenChange: (open: boolean) => void
 }
 
-export const DialogDeleteSection = ({ sectionId }: DialogDeleteProps) => {
+export const DialogDeleteSection = ({ sectionId, isOpen, onOpenChange }: DialogDeleteProps) => {
 
-    const [isOpen, setIsOpen] = useState(false)
     const { deleteSection, getNoteData, currentNote } = useWorkspaceData()
 
-    const onDelete = async (e: React.MouseEvent) => {
+    const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation()
         if (!currentNote) return
         try {
             await deleteSection(sectionId)
             await getNoteData(currentNote.id)
-            setIsOpen(false)
+            onOpenChange(false)
         } catch (err: any) {
-
+            toast.error("Impossibile eliminare la section")
         }
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button
-                    onClick={(e) => { e.stopPropagation() }}
-                    size={"sm"}
-                    variant={"ghost"}
-                    className="text-xs rounded-xs justify-start text-destructive hover:text-destructive hover:!bg-destructive/15">
-                    Elimina
-                </Button>
-            </DialogTrigger>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle className="text-destructive">
@@ -50,7 +42,7 @@ export const DialogDeleteSection = ({ sectionId }: DialogDeleteProps) => {
                             Annulla
                         </Button>
                     </DialogClose>
-                    <Button variant="destructive" onClick={onDelete}>
+                    <Button variant="destructive" onClick={handleDelete}>
                         Elimina
                     </Button>
                 </DialogFooter>

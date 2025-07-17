@@ -1,4 +1,4 @@
-import type { Folder, Note } from "@/types"
+import type { Folder, Note } from "@/types/types"
 import { useEffect } from "react"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"

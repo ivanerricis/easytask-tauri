@@ -1,4 +1,4 @@
-import { createAppError } from "@/error";
+import { createError } from "@/types/error";
 import { getDB } from "../dbManager";
 
 /**
@@ -42,13 +42,13 @@ export async function createDBSubFolder(folderId: number, name: string, color?: 
     } catch (error: any) {
         const errorMessage = String(error)
         if (errorMessage.includes('UNIQUE')) {
-            throw createAppError("FOLDER_EXISTS", "Esiste già una cartella con questo nome")
+            throw createError("FOLDER_EXISTS", "Esiste già una cartella con questo nome")
         }
         else if (errorMessage.includes('CHECK')) {
-            throw createAppError("EMPTY_NAME", "Il nome della cartella non può essere vuoto")
+            throw createError("EMPTY_NAME", "Il nome della cartella non può essere vuoto")
         }
         else {
-            throw createAppError("UNKNOWN_ERROR", "Si è verificato un errore sconosciuto")
+            throw createError("UNKNOWN_ERROR", "Si è verificato un errore sconosciuto")
         }
     }
 }

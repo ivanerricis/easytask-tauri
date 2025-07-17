@@ -1,4 +1,4 @@
-import type { Group, Section, Task } from "@/types";
+import type { Group, Section, Task } from "@/types/types";
 import { getDB } from "../dbManager";
 
 export async function getDBNoteData(noteId: number) {

@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useWorkspace } from "@/contexts/workspace-context"
+import { DialogClose } from "@radix-ui/react-dialog"
 import React from "react"
 import { toast } from "sonner"
 
@@ -14,7 +15,8 @@ export const DialogDeleteWorkspace = ({ workspaceId, isOpen, onOpenChange }: Dia
 
     const { deleteWorkspace, getWorkspaces } = useWorkspace()
 
-    const handleDelete = async () => {
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation()
         try {
             await deleteWorkspace(workspaceId)
             await getWorkspaces()
@@ -22,10 +24,6 @@ export const DialogDeleteWorkspace = ({ workspaceId, isOpen, onOpenChange }: Dia
         } catch (error: any) {
             toast.error('Impossibile eliminare il Workspace')
         }
-    }
-
-    const handleCancel = async (e: React.MouseEvent) => {
-        e.stopPropagation()
     }
 
     return (
@@ -40,12 +38,14 @@ export const DialogDeleteWorkspace = ({ workspaceId, isOpen, onOpenChange }: Dia
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
-                    <Button
-                        onClick={handleCancel}
-                        variant="outline"
-                    >
-                        Annulla
-                    </Button>
+                    <DialogClose asChild>
+                        <Button
+                            onClick={(e) => {e.stopPropagation()}}
+                            variant="outline"
+                        >
+                            Annulla
+                        </Button>
+                    </DialogClose>
                     <Button variant="destructive" onClick={handleDelete}>
                         Elimina
                     </Button>

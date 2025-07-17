@@ -1,4 +1,4 @@
-import type { Section } from "@/types"
+import type { Section } from "@/types/types"
 import { AddTask } from "../tasks/AddTask"
 import { Task } from "../tasks/Task"
 

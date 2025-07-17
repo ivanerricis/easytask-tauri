@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState } from 'react'
-import type { Workspace } from '@/types'
+import type { Workspace } from '@/types/types'
 import { getDBWorkspaces, createDBWorkspace, editDBWorkspace, deleteDBWorkspace } from '@/db/queries/workspace'
 
 type WorkspaceContextType = {
@@ -29,8 +29,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         try {
             const data = await getDBWorkspaces()
             setWorkspaces(data)
-        } catch (error) {
-            setError('Errore caricamento Workspace')
+        } catch (error: any) {
             throw error
         } finally {
             setIsLoading(false)
@@ -69,8 +68,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         try {
             await deleteDBWorkspace(id)
             await getWorkspaces()
-        } catch (error) {
-            setError('Errore eliminazione Workspace')
+        } catch (error: any) {
             throw error
         } finally {
             setIsLoading(false)

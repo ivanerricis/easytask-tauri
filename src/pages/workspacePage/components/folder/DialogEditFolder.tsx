@@ -3,7 +3,7 @@ import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, Di
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/workspace-context"
-import type { Folder } from "@/types"
+import type { Folder } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { useEffect, useState } from "react"
 

@@ -2,7 +2,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { EllipsisVertical } from "lucide-react"
 import React, { useState } from "react"
 import { DialogDeleteNote } from "./DialogDeleteNote"
-import type { Note } from "@/types"
+import type { Note } from "@/types/types"
 import { DialogEditNote } from "./DialogEditNote"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { Button } from "@/components/ui/button"

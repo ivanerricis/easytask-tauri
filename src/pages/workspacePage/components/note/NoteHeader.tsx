@@ -1,5 +1,5 @@
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import type { Note } from "@/types"
+import type { Note } from "@/types/types"
 import { X } from "lucide-react"
 import React from "react"
 

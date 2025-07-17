@@ -1,9 +1,12 @@
 import { Input } from "@/components/ui/input"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import { Palette, Plus, X } from "lucide-react"
+import { Palette, X } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import type { FormEvent } from "react"
 import { toast } from "sonner"
+import { CloseButton } from "./CloseButton"
+import { PlusButton } from "./PlusButton"
+import { AddButton } from "./AddButton"
 
 const defaultSection = {
     name: "",
@@ -19,7 +22,7 @@ export const AddSection = () => {
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (event.key === 'N') {
+            if (event.altKey && event.key.toLowerCase() === 'n') {
                 event.preventDefault()
                 handleOpen()
             }
@@ -65,16 +68,7 @@ export const AddSection = () => {
 
     return (
         !isOpen ? (
-            <div
-                role="button"
-                onClick={handleOpen}
-                className="group cursor-pointer flex items-center justify-center border gap-1 p-2"
-            >
-                <Plus size={20} className="group-hover:text-foreground text-muted-foreground" />
-                <h1 className="text-muted-foreground group-hover:text-foreground w-full text-nowrap">
-                    Aggiungi una sezione
-                </h1>
-            </div>
+            <AddButton onClick={handleOpen} />
         ) : (
             <form
                 ref={formRef}
@@ -124,20 +118,8 @@ export const AddSection = () => {
                         </div>
                     </div>}
                 <div className="flex items-center w-full border-t bg-secondary">
-                    <div
-                        role="button"
-                        onClick={handleSubmit}
-                        className="group/add cursor-pointer flex items-center justify-center w-full h-8 border-r"
-                    >
-                        <Plus size={20} className="group-hover/add:text-foreground text-muted-foreground" />
-                    </div>
-                    <div
-                        role="button"
-                        onClick={handleOpen}
-                        className="group/close cursor-pointer flex items-center justify-center w-full h-8"
-                    >
-                        <X size={20} className="group-hover/close:text-foreground text-muted-foreground transition-all" />
-                    </div>
+                    <PlusButton disabled={!section.name.trim()} onClick={() => handleSubmit} />
+                    <CloseButton onClick={handleOpen} />
                 </div>
             </form>
         )
