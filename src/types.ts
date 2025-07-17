@@ -66,7 +66,7 @@ export type Task = {
     edit_time: string
     color?: string | null
     text: string
-    isCompleted: boolean
+    completed: boolean
     isArchived: boolean
     priority: boolean
     description: string

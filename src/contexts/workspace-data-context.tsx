@@ -6,7 +6,7 @@ import { getDBWorkspaceData } from "@/db/queries/workspace";
 import { createDBNoteInFolder, createDBWorkspaceNote, deleteDBNote, getDBNoteData } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, deleteDBFolder } from "@/db/queries/folder";
 import { createDBSection, createDBSectionInGroup, deleteDBSection } from "@/db/queries/section";
-import { createDBSubTask, createDBTask, deleteDBTask } from "@/db/queries/task";
+import { createDBSubTask, createDBTask, deleteDBTask, editDBTaskCompletion, editDBTaskPriority } from "@/db/queries/task";
 
 /* ------------------------------------------------------------------------------------ */
 
@@ -40,6 +40,8 @@ type WorkspaceDataContextType = {
 
     editNote: (noteId: number, name: string, color?: string) => Promise<void>
     editFolder: (folderId: number, name: string, color?: string) => Promise<void>
+    editTaskPriority: (taskId: number, priority: boolean) => Promise<void>
+    editTaskCompletion: (taskId: number, isCompleted: boolean) => Promise<void>
 
     deleteFolder: (id: number) => Promise<void>
     deleteNote: (id: number) => Promise<void>
@@ -142,8 +144,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         if (isLoading) return
         setIsLoading(true)
         try {
-            await createDBSubFolder(folderId, name, color)
-        } catch (error) {
+            await createDBSubFolder(folderId, name, color ?? null)
+        } catch (error: any) {
             throw error
         } finally {
             setIsLoading(false)
@@ -255,6 +257,30 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }
 
+    const editTaskPriority = async (taskId: number, priority: boolean) => {
+        if (isLoading) return
+        setIsLoading(true)
+        try {
+            await editDBTaskPriority(taskId, priority)
+        } catch (error) {
+            throw error
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const editTaskCompletion = async (taskId: number, isCompleted: boolean) => {
+        if (isLoading) return
+        setIsLoading(true)
+        try {
+            await editDBTaskCompletion(taskId, isCompleted)
+        } catch (error) {
+            throw error
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     /* ------------------------------------------------------------------------------------ */
     // Deleting methods
 
@@ -317,7 +343,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         setGroups([])
     }
 
-    /* ------------------------------------------------------------------------------------ */
+    /* -----------------------------------editTaskPriority------------------------------------------------- */
 
     return (
         <WorkspaceDataContext.Provider value={{
@@ -346,6 +372,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             createSubTask,
             editNote,
             editFolder,
+            editTaskPriority,
+            editTaskCompletion,
             deleteFolder,
             deleteNote,
             deleteSection,

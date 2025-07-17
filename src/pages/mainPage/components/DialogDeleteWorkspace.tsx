@@ -1,25 +1,24 @@
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useWorkspace } from "@/contexts/workspace-context"
-import React, { useState } from "react"
+import React from "react"
 import { toast } from "sonner"
 
 type DialogDeleteProps = {
     workspaceId: number
-    onClosePopover?: () => void;
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
-export const DialogDeleteWorkspace = ({ workspaceId, onClosePopover }: DialogDeleteProps) => {
+export const DialogDeleteWorkspace = ({ workspaceId, isOpen, onOpenChange }: DialogDeleteProps) => {
 
-    const [isOpen, setIsOpen] = useState(false)
     const { deleteWorkspace, getWorkspaces } = useWorkspace()
 
     const handleDelete = async () => {
         try {
             await deleteWorkspace(workspaceId)
             await getWorkspaces()
-            setIsOpen(false)
-            onClosePopover?.()
+            onOpenChange(false)
         } catch (error: any) {
             toast.error('Impossibile eliminare il Workspace')
         }
@@ -27,21 +26,10 @@ export const DialogDeleteWorkspace = ({ workspaceId, onClosePopover }: DialogDel
 
     const handleCancel = async (e: React.MouseEvent) => {
         e.stopPropagation()
-        onClosePopover?.()
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button
-                    onClick={(e) => { e.stopPropagation() }}
-                    variant={"ghost"}
-                    size={"sm"}
-                    className="text-destructive hover:text-destructive hover:!bg-destructive/15 justify-start rounded-xs"
-                >
-                    Elimina
-                </Button>
-            </DialogTrigger>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle className="text-destructive">

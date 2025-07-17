@@ -1,15 +1,16 @@
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/workspace-context"
 import type { Note } from "@/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useEffect, useState } from "react"
-import { ButtonInPopover } from "@/components/button-in-popover"
 
 type DialogEditProps = {
     note: Note
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
 type defaultNoteType = {
@@ -17,9 +18,8 @@ type defaultNoteType = {
     color?: string
 }
 
-export const DialogEditNote = ({ note }: DialogEditProps) => {
-    const defaultNote: defaultNoteType = {name: "", color: ""}
-    const [isOpen, setIsOpen] = useState(false)
+export const DialogEditNote = ({ note, isOpen, onOpenChange }: DialogEditProps) => {
+    const defaultNote: defaultNoteType = { name: "", color: "" }
     const [newNote, setNote] = useState(defaultNote)
     const { currentWorkspace } = useWorkspace()
     const { editNote, getWorkspaceData } = useWorkspaceData()
@@ -38,7 +38,7 @@ export const DialogEditNote = ({ note }: DialogEditProps) => {
         try {
             await editNote(note.id, newNote.name.trim(), newNote.color)
             await getWorkspaceData(currentWorkspace.id)
-            setIsOpen(false)
+            onOpenChange(false)
         } catch (error: any) {
             if (error.message?.includes('EMPTY_NAME'))
                 setError('Il nome della nota non può essere vuoto')
@@ -47,7 +47,7 @@ export const DialogEditNote = ({ note }: DialogEditProps) => {
             }
             else if (error.message?.includes('GENERIC_ERROR'))
                 setError('Errore durante la creazione della nota')
-            return // prevenire la chiusura in caso di errore
+            return
         } finally {
             setNote(defaultNote)
         }
@@ -61,10 +61,7 @@ export const DialogEditNote = ({ note }: DialogEditProps) => {
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <ButtonInPopover text="Modifica" onClick={() => { setIsOpen(true) }} />
-            </DialogTrigger>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
                     <DialogTitle>Modifica la nota</DialogTitle>

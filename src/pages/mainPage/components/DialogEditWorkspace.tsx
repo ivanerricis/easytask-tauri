@@ -1,15 +1,16 @@
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import type { Workspace } from "@/types"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Palette, X } from "lucide-react"
 
 type DialogEditProps = {
     workspace: Workspace
-    onClosePopover?: () => void;
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
 type defaultWorkspaceType = {
@@ -17,9 +18,8 @@ type defaultWorkspaceType = {
     color?: string
 }
 
-export const DialogEditWorkspace = ({ workspace, onClosePopover }: DialogEditProps) => {
+export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogEditProps) => {
     const defaultWorkspace: defaultWorkspaceType = { name: "", color: "" }
-    const [isOpen, setIsOpen] = useState(false)
     const [paletteIsOpen, setPaletteOpen] = useState(false)
     const [newWorkspace, setWorkspace] = useState(defaultWorkspace)
     const { editWorkspace, getWorkspaces } = useWorkspace()
@@ -35,6 +35,7 @@ export const DialogEditWorkspace = ({ workspace, onClosePopover }: DialogEditPro
     }, [])
 
     const handleEdit = async (e: React.FormEvent) => {
+        e.stopPropagation()
         e.preventDefault()
         if (newWorkspace.name.trim() === "") return
         try {
@@ -44,7 +45,7 @@ export const DialogEditWorkspace = ({ workspace, onClosePopover }: DialogEditPro
                 await editWorkspace(workspace.id, newWorkspace.name.trim())
             await getWorkspaces()
             setError(null)
-            setIsOpen(false)
+            onOpenChange(false)
         } catch (error: any) {
             if (error.message === 'EMPTY_NAME')
                 setError('Il nome del Workspace non può essere vuoto')
@@ -53,30 +54,18 @@ export const DialogEditWorkspace = ({ workspace, onClosePopover }: DialogEditPro
             else if (error.message === 'GENERIC_ERROR')
                 setError('Errore durante la modifica del Workspace')
             return
-        } finally {
-            onClosePopover?.()
         }
     }
 
-    const handleCancel = () => {
+    const handleCancel = (e: React.MouseEvent) => {
+        e.stopPropagation()
         setWorkspace(defaultWorkspace)
         setError(null)
-        setIsOpen(false)
-        onClosePopover?.()
+        onOpenChange(false)
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button
-                    onClick={(e) => { e.stopPropagation() }}
-                    variant={"ghost"}
-                    size={"sm"}
-                    className="hover:text-foreground justify-start rounded-xs"
-                >
-                    Modifica
-                </Button>
-            </DialogTrigger>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Modifica il Workspace</DialogTitle>
@@ -114,7 +103,7 @@ export const DialogEditWorkspace = ({ workspace, onClosePopover }: DialogEditPro
                                 </div>
                                 <Button
                                     type="button"
-                                    onClick={(e) => { e.preventDefault(), setPaletteOpen(false), setWorkspace({ ...newWorkspace, color: "#FFFFFF" }) }}
+                                    onClick={(e) => { e.stopPropagation(), e.preventDefault(), setPaletteOpen(false), setWorkspace({ ...newWorkspace, color: "#FFFFFF" }) }}
                                     variant={"buttonIcon"}
                                     className="h-full"
                                 >
@@ -125,7 +114,7 @@ export const DialogEditWorkspace = ({ workspace, onClosePopover }: DialogEditPro
                             <Button
                                 type="button"
                                 variant={"outline"}
-                                onClick={(e) => { e.preventDefault(), setPaletteOpen(true) }}
+                                onClick={(e) => { e.stopPropagation(), e.preventDefault(), setPaletteOpen(true) }}
                                 className="h-full">
                                 Aggiungi colore
                                 <Palette />
@@ -140,7 +129,10 @@ export const DialogEditWorkspace = ({ workspace, onClosePopover }: DialogEditPro
                         >
                             Annulla
                         </Button>
-                        <Button type="submit" disabled={!newWorkspace.name}>
+                        <Button
+                            onClick={(e) => { e.stopPropagation() }}
+                            type="submit"
+                            disabled={!newWorkspace.name}>
                             Salva
                         </Button>
                     </DialogFooter>

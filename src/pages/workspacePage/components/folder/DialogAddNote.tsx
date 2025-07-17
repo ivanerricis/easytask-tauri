@@ -6,7 +6,6 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,7 +13,6 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import type { Folder } from "@/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useState } from "react"
-import { ButtonInPopover } from "@/components/button-in-popover"
 
 const defaultNote = {
     name: "",
@@ -23,12 +21,13 @@ const defaultNote = {
 
 type ParentFolderProps = {
     parentFolder: Folder
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
-export function DialogAddNote({ parentFolder }: ParentFolderProps) {
-    const [note, setNote] = useState({ name: "", color: "#ffb375" })
+export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFolderProps) {
+    const [note, setNote] = useState(defaultNote)
     const [error, setError] = useState<string | null>(null)
-    const [isOpen, setIsOpen] = useState(false)
     const { createNoteInFolder, getWorkspaceData } = useWorkspaceData()
     const { currentWorkspace } = useWorkspace()
 
@@ -40,7 +39,7 @@ export function DialogAddNote({ parentFolder }: ParentFolderProps) {
             await createNoteInFolder(parentFolder.id, note.name.trim(), note.color)
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
-            setIsOpen(false)
+            onOpenChange(false)
         } catch (error: any) {
             console.log(error.message)
             if (error.message?.includes('EMPTY_NAME'))
@@ -59,14 +58,11 @@ export function DialogAddNote({ parentFolder }: ParentFolderProps) {
         e.stopPropagation()
         setNote(defaultNote)
         setError(null)
-        setIsOpen(false)
+        onOpenChange(false)
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <ButtonInPopover text="Aggiungi nota" onClick={() => { setIsOpen(true) }} />
-            </DialogTrigger>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px]" onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
                     <DialogTitle>Crea una nota</DialogTitle>

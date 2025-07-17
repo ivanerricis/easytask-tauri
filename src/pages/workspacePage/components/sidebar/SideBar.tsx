@@ -18,7 +18,6 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
     const [isResizing, setIsResizing] = useState(false)
     const [sidebarOpen, setSidebarOpen] = useState(defaultOpen ?? true)
     const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH)
-    // const [prevWidth, setPrevWidth] = useState(DEFAULT_WIDTH)
 
     const startResizing = useCallback((e: React.MouseEvent) => {
         e.preventDefault()
@@ -39,7 +38,6 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
 
         const clampedWidth = Math.min(Math.max(newWidth, 200), 500)
         setSidebarWidth(clampedWidth)
-        // setPrevWidth(clampedWidth)
     }, [isResizing, position])
 
     useEffect(() => {
@@ -52,15 +50,11 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
     }, [resize, stopResizing])
 
     const handleToggle = () => {
-        if (sidebarOpen) {
-            // setPrevWidth(sidebarWidth)
-        }
         setSidebarOpen(!sidebarOpen)
     }
 
     const handleDoubleClick = () => {
         setSidebarWidth(DEFAULT_WIDTH)
-        // setPrevWidth(DEFAULT_WIDTH)
     }
 
     const actualWidth = sidebarOpen ? sidebarWidth : 0

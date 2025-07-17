@@ -1,5 +1,5 @@
 import { File } from "lucide-react"
-import { ButtonMenuNote } from "./buttons/ButtonMenuNote"
+import { ButtonMenuNote } from "./ButtonMenuNote"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import type { Note } from "@/types"
 import { useState } from "react"

@@ -1,17 +1,16 @@
-import { ButtonInPopover } from "@/components/button-in-popover"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import { useState } from "react"
 
 type DialogDeleteProps = {
     folderId: number
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
-export const DialogDeleteFolder = ({ folderId }: DialogDeleteProps) => {
+export const DialogDeleteFolder = ({ folderId, isOpen, onOpenChange }: DialogDeleteProps) => {
 
-    const [isOpen, setIsOpen] = useState(false)
     const { deleteFolder, getWorkspaceData } = useWorkspaceData()
     const { currentWorkspace } = useWorkspace()
 
@@ -21,16 +20,15 @@ export const DialogDeleteFolder = ({ folderId }: DialogDeleteProps) => {
         try {
             await deleteFolder(folderId)
             await getWorkspaceData(currentWorkspace.id)
-            setIsOpen(false)
+            onOpenChange(false)
         } catch (err: any) {
 
         }
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogTrigger asChild>
-                <ButtonInPopover text="Elimina" onClick={() => { setIsOpen(true) }} destructive />
             </DialogTrigger>
             <DialogContent onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>

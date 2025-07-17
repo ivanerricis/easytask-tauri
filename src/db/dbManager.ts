@@ -16,7 +16,7 @@ async function createDB(): Promise<Database> {
     const documentPath = await documentDir();
     // Aggiunge il percorso relativo della cartella EasyTask
     const folderPath = `${documentPath}/EasyTask/`;
-    const filePath = `${folderPath}easytask-3.db`;
+    const filePath = `${folderPath}easytask.db`;
 
     // Controlla se la cartella EasyTask esiste, altrimenti la crea
     if (!(await exists(folderPath, { baseDir: BaseDirectory.Document }))) {

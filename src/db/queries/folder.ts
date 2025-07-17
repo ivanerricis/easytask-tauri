@@ -1,3 +1,4 @@
+import { createAppError } from "@/error";
 import { getDB } from "../dbManager";
 
 /**
@@ -40,15 +41,14 @@ export async function createDBSubFolder(folderId: number, name: string, color?: 
         await db.execute('INSERT INTO folder (folder_id, name, color) VALUES (?, ?, ?)', [folderId, name, color ?? null])
     } catch (error: any) {
         const errorMessage = String(error)
-        console.log(errorMessage)
         if (errorMessage.includes('UNIQUE')) {
-            throw new Error('FOLDER_EXISTS')
+            throw createAppError("FOLDER_EXISTS", "Esiste già una cartella con questo nome")
         }
         else if (errorMessage.includes('CHECK')) {
-            throw new Error('EMPTY_NAME')
+            throw createAppError("EMPTY_NAME", "Il nome della cartella non può essere vuoto")
         }
         else {
-            throw new Error(error)
+            throw createAppError("UNKNOWN_ERROR", "Si è verificato un errore sconosciuto")
         }
     }
 }

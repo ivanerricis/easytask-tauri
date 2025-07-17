@@ -15,8 +15,8 @@ const calculateCompletionPercentage = (tasks: Task[]): number => {
     if (totalTasks === 0) return 100
 
     const completedTasks = tasks.reduce((acc, task) => {
-        const isTaskCompleted = task.isCompleted ||
-            (task.subtasks.length > 0 && task.subtasks.every(subtask => subtask.isCompleted))
+        const isTaskCompleted = task.completed ||
+            (task.subtasks.length > 0 && task.subtasks.every(subtask => subtask.completed))
         return acc + (isTaskCompleted ? 1 : 0)
     }, 0)
 
@@ -44,22 +44,22 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleProps }
                 >
                     <Grip className="text-muted-foreground group-hover:text-foreground w-4 h-4" />
                 </div>}
-                {section.tasks.length > 0 ?
+                {(section.tasks.length > 0) &&
                     <div role="button" onClick={handleOpen} className="shrink-0">
                         <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} transition-all ml-1`} />
-                    </div> : <></>}
-                <div className="flex items-center gap-2 w-full">
+                    </div>}
+                <div className="flex items-center justify-between gap-2 w-full">
                     <h1 className="text-sm font-medium ml-2 shrink-0">
                         {section.title}
                     </h1>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
                         <Progress className="w-20" value={completionPercentage} />
-                        <h1 className="text-xs font-medium">
+                        <h1 className="text-xs">
                             {Math.round(completionPercentage)} %
                         </h1>
-                        <div className="opacity-0 group-hover:opacity-100">
-                            <ButtonMenuSection sectionId={section.id} />
-                        </div>
+                    </div>
+                    <div className="opacity-0 group-hover:opacity-100">
+                        <ButtonMenuSection sectionId={section.id} />
                     </div>
                 </div>
             </div>

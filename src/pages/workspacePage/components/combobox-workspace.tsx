@@ -42,7 +42,7 @@ export function ComboboxWorkspace() {
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
-                    className="justify-between opacity-50 hover:opacity-100 rounded-xs border"
+                    className="justify-between opacity-50 hover:opacity-100 rounded-xs border !px-2.5"
                 >
                     <div className="flex items-center gap-2">
                         <Box />

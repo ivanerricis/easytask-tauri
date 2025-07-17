@@ -6,17 +6,20 @@ type ButtonInPopoverProps = {
     children?: React.ReactNode
     className?: string
     destructive?: boolean
-    onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
+    onClick?: () => void
 }
 
 export const ButtonInPopover = ({ text, children, className, destructive, onClick }: ButtonInPopoverProps) => {
 
+    const handleClick = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        e.preventDefault()
+        onClick?.()
+    }
+
     return (
         <Button
-            onClick={e => {
-                e.stopPropagation()
-                onClick?.(e)
-            }}
+            onClick={handleClick}
             variant={"ghost"}
             size={"sm"}
             className={cn(`${destructive ? "text-destructive hover:text-destructive hover:!bg-destructive/15" : "hover:text-foreground"} justify-start rounded-xs text-sm`,

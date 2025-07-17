@@ -54,6 +54,38 @@ export async function createDBSubTask(taskId: number, text: string, color?: stri
 }
 
 /**
+ * Edits the priority of an existing task in the database.
+ * @param id The ID of the task to edit.
+ * @param priority The new priority of the task.
+ * @category Database
+ */
+export async function editDBTaskPriority(id: number, priority: boolean) {
+    const db = await getDB()
+
+    try {
+        await db.execute('UPDATE task SET priority=? WHERE id=?', [priority ? 1 : 0, id])
+    } catch (error: any) {
+        throw new Error(error)
+    }
+}
+
+/**
+ * Edits the completion status of an existing task in the database.
+ * @param id The ID of the task to edit.
+ * @param isComplited The new completion status of the task.
+ * @category Database
+ */
+export async function editDBTaskCompletion(id: number, isCompleted: boolean) {
+    const db = await getDB()
+
+    try {
+        await db.execute('UPDATE task SET completed=? WHERE id=?', [isCompleted ? 1 : 0, id])
+    } catch (error: any) {
+        throw new Error(error)
+    }
+}
+
+/**
  * Edits an existing task in the database.
  * @param id The ID of the task to edit.
  * @param text The new text of the task.

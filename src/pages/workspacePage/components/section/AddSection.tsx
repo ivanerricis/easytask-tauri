@@ -52,8 +52,7 @@ export const AddSection = () => {
             try {
                 if (!currentNote) return
                 await createSection(currentNote.id, section.name.trim(), 1, paletteIsOpen ? section.color : undefined)
-                setOpen(false)
-                setSection(defaultSection)
+                handleOpen()
                 if (!currentNote) return
                 await getNoteData(currentNote.id)
             } catch (error: any) {

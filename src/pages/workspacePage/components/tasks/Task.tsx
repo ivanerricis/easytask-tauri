@@ -1,7 +1,9 @@
 import { Checkbox } from "@/components/ui/checkbox"
 import type { Task as TaskType } from "@/types"
-import { useState } from "react"
 import { ButtonMenuTask } from "./ButtonMenuTask"
+import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { toast } from "sonner"
+import { useEffect } from "react"
 
 type TaskProps = {
     task: TaskType
@@ -9,18 +11,28 @@ type TaskProps = {
 }
 
 export const Task = ({ task, children }: TaskProps) => {
-    const [isChecked, setIsChecked] = useState(task.isCompleted)
+    const { editTaskCompletion, getNoteData, currentNote } = useWorkspaceData()
 
-    const handleCheckedChange = (checked: boolean) => {
-        setIsChecked(checked)
+    const handleCheckedChange = async () => {
+        try {
+            await editTaskCompletion(task.id, !task.completed)
+            if (currentNote)
+                await getNoteData(currentNote.id)
+        } catch (error) {
+            toast.error('Impossibile modificare il task')
+        }
     }
+
+    useEffect(() => {
+        console.log("CHECKED VALUE:", task.completed, typeof task.completed)
+    })
 
     return (
         <div className="flex flex-col items-center w-full">
 
             <div className="flex items-center w-full border-b relative">
                 {/* Color Container */}
-                {task.color && <div className="w-1 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
+                {task.color && <div className="w-0.5 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
 
                 {/* Task items container */}
                 <div className="group flex items-center justify-between w-full p-2">
@@ -28,17 +40,21 @@ export const Task = ({ task, children }: TaskProps) => {
                     {/* Checkbox && text container */}
                     <div className="flex items-center gap-2 ml-1 w-full">
                         <Checkbox
-                            checked={isChecked}
+                            checked={!!task.completed}
                             onCheckedChange={handleCheckedChange}
                             className="cursor-pointer"
                         />
-                        <h1 className={`${isChecked ? 'line-through text-muted-foreground' : ''} w-full text-wrap break-words whitespace-normal`}>
+                        <h1 className={`${task.completed ? 'line-through text-muted-foreground' : ''} w-full text-wrap break-words whitespace-normal`}>
                             {task.text}
                         </h1>
                     </div>
-                    <div className={`${task.priority ? `flex` : `flex`} rounded-full bg-red-500 w-2 h-2 p-1`}></div>
+
+                    {/* Priority circle */}
+                    <div className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-500 w-2 h-2 p-1 ml-2 mr-1`}></div>
+
+                    {/* ButtonMenu */}
                     <div className="flex items-center justify-center hover:bg-secondary opacity-0 group-hover:opacity-100">
-                        <ButtonMenuTask taskId={task.id} />
+                        <ButtonMenuTask task={task} />
                     </div>
                 </div>
             </div>

@@ -1,18 +1,17 @@
-import { ButtonInPopover } from "@/components/button-in-popover"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import { useState } from "react"
 import { toast } from "sonner"
 
 type DialogDeleteProps = {
     noteId: number
+    isOpen: boolean;
+    onOpenChange: (open: boolean) => void;
 }
 
-export const DialogDeleteNote = ({ noteId }: DialogDeleteProps) => {
+export const DialogDeleteNote = ({ noteId, isOpen, onOpenChange }: DialogDeleteProps) => {
 
-    const [isOpen, setIsOpen] = useState(false)
     const { deleteNote, getWorkspaceData, setCurrentNotes, setCurrentNote, currentNotes } = useWorkspaceData()
     const { currentWorkspace } = useWorkspace()
 
@@ -36,17 +35,14 @@ export const DialogDeleteNote = ({ noteId }: DialogDeleteProps) => {
             } else {
                 setCurrentNote(null)
             }
-            setIsOpen(false)
+            onOpenChange(false)
         } catch (err: any) {
             toast.error('Impossibile elimianre la nota')
         }
     }
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <ButtonInPopover text="Elimina" onClick={() => { setIsOpen(true) }} destructive />
-            </DialogTrigger>
+        <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
                     <DialogTitle className="text-destructive">

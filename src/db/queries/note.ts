@@ -11,7 +11,7 @@ export async function getDBNoteData(noteId: number) {
     );
 
     // 2. Funzione ricorsiva per recuperare i task
-    const getTasksRecursively = async (sectionId: number, parentTaskId: number | null = null): Promise<any[]> => {
+    const getTasksRecursively = async (sectionId: number, parentTaskId: number | null = null): Promise<Task[]> => {
         const tasks = await db.select<Task[]>(
             'SELECT * FROM task WHERE section_id = ? AND task_id IS ?',
             [sectionId, parentTaskId]

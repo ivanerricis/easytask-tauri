@@ -10,14 +10,13 @@ type AddSectionInGroupProps = {
 }
 const defaultSection = {
     name: "",
-    color: ""
+    color: "#FFFFFF"
 }
 
 export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
     const [isOpen, setOpen] = useState(false)
     const [paletteIsOpen, setPaletteOpen] = useState(false)
     const [section, setSection] = useState(defaultSection)
-    const [inputValue, setInputValue] = useState("")
     const { createSectionInGroup, currentNote, getNoteData } = useWorkspaceData()
     const formRef = useRef<HTMLFormElement>(null)
 
@@ -25,7 +24,7 @@ export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
         const handleClickOutside = (event: MouseEvent) => {
             if (formRef.current && !formRef.current.contains(event.target as Node)) {
                 setOpen(false)
-                setInputValue("")
+                setSection(defaultSection)
             }
         }
 
@@ -38,19 +37,21 @@ export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
 
     const handleOpen = () => {
         setOpen(prev => !prev)
-        setInputValue("")
+        setSection(defaultSection)
     }
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
-        if (inputValue.trim()) {
+        if (section.name.trim()) {
             try {
-                await createSectionInGroup(groupId, inputValue.trim())
+                await createSectionInGroup(groupId, section.name.trim(), paletteIsOpen ? section.color : undefined)
                 handleOpen()
                 if (!currentNote) return
                 await getNoteData(currentNote.id)
             } catch (error: any) {
                 toast.error(error.message || 'Errore durante la creazione della sezione')
+            } finally {
+                setPaletteOpen(false)
             }
         }
     }
@@ -75,8 +76,8 @@ export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
             >
                 <div className="flex items-center justify-center w-full">
                     <Input
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
+                        value={section.name}
+                        onChange={(e) => setSection({ ...section, name: e.target.value })}
                         placeholder="Scrivi qualcosa..."
                         autoFocus
                         className="rounded-none border-none !bg-background"
@@ -109,7 +110,7 @@ export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
                         </div>
                         <div
                             role="button"
-                            onClick={(e) => { e.preventDefault(), setPaletteOpen(false) }}
+                            onClick={(e) => { e.preventDefault(); setPaletteOpen(false); setSection({ ...section, color: defaultSection.color }) }}
                             className="group/close cursor-pointer flex items-center justify-center w-full h-8 bg-secondary"
                         >
                             <X size={20} className="group-hover:text-foreground group-hover/close:text-foreground text-muted-foreground" />

@@ -31,7 +31,7 @@ export function CommandMenu() {
             <div role="button" onClick={() => { setOpen(prev => !prev) }} className="flex relative w-full items-center justify-center">
                 <div className="relative flex items-center justify-center w-full transition-all">
                     <SearchIcon className="absolute left-2 w-4 h-4 text-muted-foreground" />
-                    <h1 className="flex items-center app-no-drag rounded-[4px] h-6 pl-7 pr-16 md:text-xs border w-full text-left text-muted-foreground">Cerca...</h1>
+                    <h1 className="flex items-center app-no-drag rounded-[4px] h-6 pl-7 pr-16 md:text-xs border w-full text-left text-muted-foreground cursor-default">Cerca...</h1>
                 </div>
             </div>
             <CommandDialog open={open} onOpenChange={setOpen} className="rounded-xs">
@@ -41,6 +41,7 @@ export function CommandMenu() {
                     <CommandGroup heading="Suggerimenti">
                         {allNotes.map((note) => (
                             <CommandItem
+                                className="!p-2"
                                 key={note.id}
                                 onSelect={async () => {
                                     setOpen(prev => !prev)

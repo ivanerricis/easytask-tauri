@@ -10,7 +10,7 @@ export const createTaskTable = `
         text TEXT NOT NULL CHECK (LENGTH(text) > 0),
         description TEXT,
         completed BOOLEAN NOT NULL DEFAULT FALSE,
-        priority INTEGER NOT NULL DEFAULT 0,
+        priority BOOLEAN NOT NULL DEFAULT FALSE,
         archived BOOLEAN NOT NULL DEFAULT FALSE,
         color TEXT CHECK (LENGTH(color) > 0),
         creation_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
