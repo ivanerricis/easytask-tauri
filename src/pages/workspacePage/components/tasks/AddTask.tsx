@@ -3,6 +3,8 @@ import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { Palette, Plus, X } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import type { FormEvent } from "react"
+import { PlusButton } from "../section/PlusButton"
+import { CloseButton } from "../section/CloseButton"
 
 type AddTaskProps = {
     sectionId: number
@@ -105,20 +107,8 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                         </div>
                     </div>}
                 <div className="flex items-center w-full border-t">
-                    <div
-                        role="button"
-                        onClick={handleSubmit}
-                        className="group/add cursor-pointer flex items-center justify-center w-full h-8 border-r"
-                    >
-                        <Plus size={20} className="group-hover:text-foreground group-hover/add:text-foreground text-muted-foreground" />
-                    </div>
-                    <div
-                        role="button"
-                        onClick={handleOpen}
-                        className="group/close cursor-pointer flex items-center justify-center w-full h-8"
-                    >
-                        <X size={20} className="group-hover:text-foreground group-hover/close:text-foreground text-muted-foreground" />
-                    </div>
+                    <PlusButton disabled={!task.text.trim()} onClick={() => handleSubmit} />
+                    <CloseButton onClick={handleOpen} />
                 </div>
             </form>
         )

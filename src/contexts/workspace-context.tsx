@@ -28,7 +28,7 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(true)
         try {
             const data = await getDBWorkspaces()
-            setWorkspaces(data)
+            setWorkspaces(data ?? [])
         } catch (error: any) {
             throw error
         } finally {

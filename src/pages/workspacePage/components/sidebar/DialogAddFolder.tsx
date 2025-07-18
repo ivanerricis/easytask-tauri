@@ -2,7 +2,6 @@ import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
-    DialogClose,
     DialogContent,
     DialogDescription,
     DialogFooter,
@@ -140,16 +139,19 @@ export function DialogAddFolder() {
                             }
                         </div>
                         <DialogFooter className="mt-4">
-                            <DialogClose asChild>
-                                <Button
-                                    variant="outline"
-                                    type="button"
-                                    onClick={handleCancel}
-                                >
-                                    Annulla
-                                </Button>
-                            </DialogClose>
-                            <Button type="submit" disabled={!folder.name.trim()}>Crea cartella</Button>
+                            <Button
+                                variant="outline"
+                                type="button"
+                                onClick={handleCancel}
+                            >
+                                Annulla
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={!folder.name.trim()}
+                            >
+                                Crea cartella
+                            </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>

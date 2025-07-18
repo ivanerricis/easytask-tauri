@@ -56,7 +56,7 @@ export const NoteHeader = ({ note }: NoteHeaderProps) => {
         <div
             role="button"
             onClick={setCurrent}
-            className={`relative flex flex-col items-center cursor-pointer border-r
+            className={`relative flex flex-col items-center cursor-pointer
                 ${currentNote?.id === note.id ? 'bg-background' : 'bg-secondary hover:bg-background/40'}`}
         >
             {/* Color container */}
@@ -69,7 +69,7 @@ export const NoteHeader = ({ note }: NoteHeaderProps) => {
             </div>
 
             {/* Text + Close button */}
-            <div className="flex items-center justify-between pb-1 pt-2 pl-2 pr-1 gap-2 h-full">
+            <div className="flex items-center justify-between pb-1 pt-1.5 pl-2 pr-1 gap-2 h-full">
                 <h1 className={`w-full text-left text-sm text-nowrap ${currentNote?.id === note.id ? "text-foreground" : "text-muted-foreground"}`}>
                     {note.name}
                 </h1>

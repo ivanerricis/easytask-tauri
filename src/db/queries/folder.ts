@@ -42,15 +42,60 @@ export async function createDBSubFolder(folderId: number, name: string, color?: 
 }
 
 
-export async function editDBFolder(folderId: number, name: string, color: string) {
+export async function editDBFolder(folderId: number, name: string, color?: string | null) {
     const db = await getDB()
 
     try {
-        if (color)
-            await db.execute('UPDATE folder SET name=?, color=? WHERE id=?', [name, color, folderId])
-        else
-            await db.execute('UPDATE folder SET name=? WHERE id=?', [name, folderId])
+        await db.execute('UPDATE folder SET name=?, color=? WHERE id=?', [name, color ?? null, folderId])
     } catch (error: any) {
+        handleDBError(error, "FOLDER", {
+            UNIQUE: "A folder with this name already exists.",
+            CHECK: "The folder name cannot be empty.",
+        })
+    }
+}
+
+/**
+ * Updates the color of a folder and all its subfolders.
+ * @param folderId The ID of the folder to update.
+ * @param color The new color of the folder (optional).
+ * @category Database
+ */
+export async function updateDBFolderColorContent(folderId: number, color?: string | null) {
+    const db = await getDB()
+
+    try {
+        const folders = await db.select<{ id: number }[]>(
+            `
+            WITH RECURSIVE folder_tree AS (
+                SELECT id FROM folder WHERE id = ?
+                UNION ALL
+                SELECT f.id FROM folder f
+                INNER JOIN folder_tree ft ON f.folder_id = ft.id
+            )
+            SELECT id FROM folder_tree
+            `,
+            [folderId]
+        )
+
+        const folderIds = folders.map(f => f.id)
+        if (folderIds.length === 0) return
+
+        const placeholders = folderIds.map(() => '?').join(',')
+        console.log(placeholders)
+
+        await db.execute(
+            `UPDATE folder SET color = ? WHERE id IN (${placeholders})`,
+            [color, ...folderIds]
+        )
+
+        await db.execute(
+            `UPDATE note SET color = ? WHERE folder_id IN (${placeholders})`,
+            [color, ...folderIds]
+        )
+
+    } catch (error: any) {
+        console.error(error)
         handleDBError(error, "FOLDER", {
             UNIQUE: "A folder with this name already exists.",
             CHECK: "The folder name cannot be empty.",
@@ -63,11 +108,11 @@ export async function editDBFolder(folderId: number, name: string, color: string
  * @param id The ID of the folder to delete.
  * @category Database
  */
-export async function deleteDBFolder(id: number) {
+export async function deleteDBFolder(folderId: number) {
     const db = await getDB()
 
     try {
-        await db.execute('DELETE FROM folder WHERE id=?', [id])
+        await db.execute('DELETE FROM folder WHERE id=?', [folderId])
     } catch (error: any) {
         throw createError('FOLDER_DELETE_ERROR', 'An error occurred while deleting the folder: ' + error.message)
     }

@@ -58,11 +58,11 @@ export async function createDBSection(noteId: number, title: string, position: n
  * @param archived The new archived status of the section (optional).
  * @category Database
  */
-export async function editDBSection(id: number, title: string, color?: string | null, archived?: boolean | null) {
+export async function editDBSection(sectionId: number, title: string, color?: string | null, archived?: boolean | null) {
     const db = await getDB()
 
     try {
-        await db.execute('UPDATE section SET title=?, color=?, archived=? WHERE id=?', [title, color ?? null, archived ?? null, id])
+        await db.execute('UPDATE section SET title=?, color=?, archived=? WHERE id=?', [title, color ?? null, archived ?? null, sectionId])
     } catch (error: any) {
         handleDBError(error, "SECTION", {
             UNIQUE: "A section with this name already exists.",
@@ -77,15 +77,15 @@ export async function editDBSection(id: number, title: string, color?: string | 
  * @param id The ID of the section to delete.
  * @category Database
  */
-export async function deleteDBSection(id: number) {
+export async function deleteDBSection(sectionId: number) {
     const db = await getDB()
 
     try {
-        const groupQuery = await db.select<{ group_id: number }[]>('SELECT group_id FROM section WHERE id=?', [id])
+        const groupQuery = await db.select<{ group_id: number }[]>('SELECT group_id FROM section WHERE id=?', [sectionId])
         const count = await db.select<{ count: number }[]>('SELECT COUNT(*) as count FROM section WHERE group_id=?', [groupQuery[0].group_id])
 
         if (count[0].count !== 1)
-            await db.execute('DELETE FROM section WHERE id=?', [id])
+            await db.execute('DELETE FROM section WHERE id=?', [sectionId])
         else
             await db.execute('DELETE FROM section_group WHERE id=?', [groupQuery[0].group_id])
     } catch (error: any) {

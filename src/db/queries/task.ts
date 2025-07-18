@@ -54,11 +54,11 @@ export async function createDBSubTask(taskId: number, text: string, color?: stri
  * @param priority The new priority of the task.
  * @category Database
  */
-export async function editDBTaskPriority(id: number, priority: boolean) {
+export async function editDBTaskPriority(taskId: number, priority: boolean) {
     const db = await getDB()
 
     try {
-        await db.execute('UPDATE task SET priority=? WHERE id=?', [priority ? 1 : 0, id])
+        await db.execute('UPDATE task SET priority=? WHERE id=?', [priority ? 1 : 0, taskId])
     } catch (error: any) {
         handleDBError(error, "TASK", {
             UNIQUE: "A task with this name already exists.",
@@ -73,11 +73,11 @@ export async function editDBTaskPriority(id: number, priority: boolean) {
  * @param isComplited The new completion status of the task.
  * @category Database
  */
-export async function editDBTaskCompletion(id: number, isCompleted: boolean) {
+export async function editDBTaskCompletion(taskId: number, isCompleted: boolean) {
     const db = await getDB()
 
     try {
-        await db.execute('UPDATE task SET completed=? WHERE id=?', [isCompleted ? 1 : 0, id])
+        await db.execute('UPDATE task SET completed=? WHERE id=?', [isCompleted ? 1 : 0, taskId])
     } catch (error: any) {
         createError('TASK_UPDATE_ERROR', 'An error occurred while updating the task: ' + error.message)
     }
@@ -90,11 +90,11 @@ export async function editDBTaskCompletion(id: number, isCompleted: boolean) {
  * @param color The new color of the task (optional).
  * @category Database
  */
-export async function deleteDBTask(id: number) {
+export async function deleteDBTask(taskId: number) {
     const db = await getDB()
 
     try {
-        await db.execute('DELETE FROM task WHERE id=?', [id])
+        await db.execute('DELETE FROM task WHERE id=?', [taskId])
     } catch (error: any) {
         throw createError('TASK_DELETE_ERROR', 'An error occurred while deleting the task: ' + error.message)
     }

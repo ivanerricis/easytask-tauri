@@ -5,50 +5,54 @@ import { createError, handleDBError } from "@/types/error";
 export async function getDBNoteData(noteId: number) {
     const db = await getDB();
 
-    // 1. Prendi tutti i gruppi della nota
-    const groups = await db.select<Group[]>(
-        'SELECT * FROM section_group WHERE note_id = ? ORDER BY position',
-        [noteId]
-    );
-
-    // 2. Funzione ricorsiva per recuperare i task
-    const getTasksRecursively = async (sectionId: number, parentTaskId: number | null = null): Promise<Task[]> => {
-        const tasks = await db.select<Task[]>(
-            'SELECT * FROM task WHERE section_id = ? AND task_id IS ?',
-            [sectionId, parentTaskId]
+    try {
+        // 1. Prendi tutti i gruppi della nota
+        const groups = await db.select<Group[]>(
+            'SELECT * FROM section_group WHERE note_id = ? ORDER BY position',
+            [noteId]
         );
 
-        return await Promise.all(
-            tasks.map(async task => ({
-                ...task,
-                subtasks: await getTasksRecursively(sectionId, task.id)
-            }))
-        );
-    };
-
-    // 3. Per ogni gruppo, prendi le section e le task ricorsive
-    const fullGroups = await Promise.all(
-        groups.map(async group => {
-            const sections = await db.select<Section[]>(
-                'SELECT * FROM section WHERE group_id = ?',
-                [group.id]
+        // 2. Funzione ricorsiva per recuperare i task
+        const getTasksRecursively = async (sectionId: number, parentTaskId: number | null = null): Promise<Task[]> => {
+            const tasks = await db.select<Task[]>(
+                'SELECT * FROM task WHERE section_id = ? AND task_id IS ?',
+                [sectionId, parentTaskId]
             );
 
-            const sectionsWithTasks = await Promise.all(
-                sections.map(async section => ({
-                    ...section,
-                    tasks: await getTasksRecursively(section.id)
+            return await Promise.all(
+                tasks.map(async task => ({
+                    ...task,
+                    subtasks: await getTasksRecursively(sectionId, task.id)
                 }))
             );
+        };
 
-            return {
-                ...group,
-                sections: sectionsWithTasks
-            };
-        })
-    );
+        // 3. Per ogni gruppo, prendi le section e le task ricorsive
+        const fullGroups = await Promise.all(
+            groups.map(async group => {
+                const sections = await db.select<Section[]>(
+                    'SELECT * FROM section WHERE group_id = ?',
+                    [group.id]
+                );
 
-    return { groups: fullGroups };
+                const sectionsWithTasks = await Promise.all(
+                    sections.map(async section => ({
+                        ...section,
+                        tasks: await getTasksRecursively(section.id)
+                    }))
+                );
+
+                return {
+                    ...group,
+                    sections: sectionsWithTasks
+                };
+            })
+        );
+
+        return { groups: fullGroups };
+    } catch (error: any) {
+        console.log(error);
+    }
 }
 
 /**
@@ -116,11 +120,11 @@ export async function editDBNote(noteId: number, name: string, color?: string | 
  * @param id The ID of the note to delete.
  * @category Database
  */
-export async function deleteDBNote(id: number) {
+export async function deleteDBNote(noteId: number) {
     const db = await getDB()
 
     try {
-        await db.execute('DELETE FROM note WHERE id=?', [id])
+        await db.execute('DELETE FROM note WHERE id=?', [noteId])
     } catch (error: any) {
         throw createError('UNKNOWN_ERROR', 'An unknown error occurred while deleting the note: ' + error.message)
     }

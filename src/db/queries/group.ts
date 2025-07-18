@@ -10,7 +10,6 @@ export async function updateDBGroupPositions(groups: Group[]) {
             await db.execute('UPDATE section_group SET position=? WHERE id=?', [group.position, group.id])
         }
     } catch (error: any) {
-
         throw createError('GROUP_UPDATE_ERROR', 'An error occurred while updating group positions: ' + error.message)
     }
 }

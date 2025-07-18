@@ -28,7 +28,7 @@ const WorkSpacePage = () => {
     if (errorWorkspace || errorData) {
         return (
             <WorkSpaceLayout>
-                <ErrorPage error={errorWorkspace} />
+                <ErrorPage error={errorWorkspace || errorData} />
             </WorkSpaceLayout>
         )
     }

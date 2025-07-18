@@ -39,20 +39,12 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
         e.preventDefault()
         if (newWorkspace.name.trim() === "") return
         try {
-            if (paletteIsOpen)
-                await editWorkspace(workspace.id, newWorkspace.name.trim(), newWorkspace.color)
-            else
-                await editWorkspace(workspace.id, newWorkspace.name.trim())
+            await editWorkspace(workspace.id, newWorkspace.name.trim(), paletteIsOpen ? newWorkspace.color : undefined)
             await getWorkspaces()
             setError(null)
             onOpenChange(false)
-        } catch (error: any) {
-            if (error.code === 'EMPTY_NAME')
-                setError('Il nome del Workspace non può essere vuoto')
-            else if (error.code === 'WORKSPACE_EXISTS')
-                setError('Esiste già un Workspace con questo nome')
-            else if (error.code === 'GENERIC_ERROR')
-                setError('Errore durante la modifica del Workspace')
+        } catch (err: any) {
+            setError(err.message)
         }
     }
 
@@ -75,7 +67,6 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
                         <div className="grid gap-3">
                             <Label>Nome</Label>
                             <Input
-                                onClick={(e) => { e.stopPropagation() }}
                                 type="text"
                                 id="name-1"
                                 name="name"
@@ -105,7 +96,7 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
                                 </div>
                                 <Button
                                     type="button"
-                                    onClick={(e) => { e.stopPropagation(), e.preventDefault(), setPaletteOpen(false), setWorkspace({ ...newWorkspace, color: "#FFFFFF" }) }}
+                                    onClick={() => { setPaletteOpen(false), setWorkspace({ ...newWorkspace, color: "#FFFFFF" }) }}
                                     variant={"buttonIcon"}
                                     className="h-full"
                                 >
@@ -116,7 +107,7 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
                             <Button
                                 type="button"
                                 variant={"outline"}
-                                onClick={(e) => { e.stopPropagation(), e.preventDefault(), setPaletteOpen(true) }}
+                                onClick={() => { setPaletteOpen(true) }}
                                 className="h-full">
                                 Aggiungi colore
                                 <Palette />
@@ -132,7 +123,6 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
                             Annulla
                         </Button>
                         <Button
-                            onClick={(e) => { e.stopPropagation() }}
                             type="submit"
                             disabled={!newWorkspace.name}>
                             Salva
