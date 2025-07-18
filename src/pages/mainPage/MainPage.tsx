@@ -7,6 +7,7 @@ import { ErrorPage } from "@/components/pages/error-page"
 import { LoadingPage } from "@/components/pages/loading-page"
 import { MainPageLayout } from "./MainPageLayout"
 import { WorkspacesContainer } from "./components/WorkspacesContainer"
+import { TooltipCustom } from "@/components/tooltip-custom"
 
 const MainPage = () => {
     const { workspaces, getWorkspaces, isLoading, error } = useWorkspace()
@@ -45,9 +46,11 @@ const MainPage = () => {
                         <h1 className="text-lg w-full ml-2">
                             Apri un Workspace recente:
                         </h1>
-                        <Button onClick={getWorkspaces} variant="outline" size="icon" disabled={isLoading}>
-                            {isLoading ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
-                        </Button>
+                        <TooltipCustom text="Ricarica i Workspace">
+                            <Button onClick={getWorkspaces} variant="outline" size="icon" disabled={isLoading}>
+                                {isLoading ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
+                            </Button>
+                        </TooltipCustom>
                     </div>
                     <WorkspacesContainer workspaces={workspaces} />
                 </div>

@@ -30,13 +30,13 @@ export const Navbar = ({ leftContainer, centerContainer, rightContainer }: NavBa
             <div className="flex-1 text-center" data-tauri-drag-region>{centerContainer}</div>
             <div className="flex-1 flex flex-row-reverse items-center justify-start text-right" data-tauri-drag-region>
                 <div className="flex items-center justify-end">
-                    <ButtonNavbar onClick={handleMinimize}>
+                    <ButtonNavbar onClick={handleMinimize} window>
                         <Minus className="w-5 h-5" />
                     </ButtonNavbar>
-                    <ButtonNavbar onClick={handletoggleMaximize} className={"!p-2.5"}>
+                    <ButtonNavbar onClick={handletoggleMaximize} className={"!p-2.5"} window>
                         <Square className="w-4 h-4" />
                     </ButtonNavbar>
-                    <ButtonNavbar onClick={handleClose}>
+                    <ButtonNavbar onClick={handleClose} window>
                         <X className="w-5 h-5" />
                     </ButtonNavbar>
                 </div>

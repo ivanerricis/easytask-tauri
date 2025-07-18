@@ -1,3 +1,4 @@
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import type { Note } from "@/types/types"
@@ -28,12 +29,6 @@ export function CommandMenu() {
 
     return (
         <>
-            <div role="button" onClick={() => { setOpen(prev => !prev) }} className="flex relative w-full items-center justify-center">
-                <div className="relative flex items-center justify-center w-full transition-all">
-                    <SearchIcon className="absolute left-2 w-4 h-4 text-muted-foreground" />
-                    <h1 className="flex items-center app-no-drag rounded-[4px] h-6 pl-7 pr-16 md:text-xs border w-full text-left text-muted-foreground cursor-default">Cerca...</h1>
-                </div>
-            </div>
             <CommandDialog open={open} onOpenChange={setOpen} className="rounded-xs">
                 <CommandInput placeholder="Cerca una nota..." />
                 <CommandList>
@@ -58,6 +53,16 @@ export function CommandMenu() {
                     </CommandGroup>
                 </CommandList>
             </CommandDialog>
+
+            <TooltipCustom text="Cerca una nota" shortcut="(Ctrl + O)">
+                <div
+                    role="button"
+                    onClick={() => { setOpen(prev => !prev) }}
+                    className="relative flex items-center justify-center w-full">
+                    <SearchIcon className="absolute left-2 w-4 h-4 text-muted-foreground" />
+                    <h1 className="flex items-center app-no-drag rounded-[4px] h-6 pl-7 pr-16 md:text-xs border w-full text-left text-muted-foreground cursor-default">Cerca...</h1>
+                </div>
+            </TooltipCustom>
         </>
     )
 }

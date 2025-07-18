@@ -1,3 +1,4 @@
+import { createError, handleDBError } from "@/types/error"
 import { getDB } from "../dbManager"
 
 /**
@@ -40,16 +41,10 @@ export async function createDBSubTask(taskId: number, text: string, color?: stri
     try {
         await db.execute('INSERT INTO task (task_id, text, color) VALUES (?, ?, ?)', [taskId, text, color ?? null])
     } catch (error: any) {
-        const errorMessage = String(error)
-        if (errorMessage.includes('UNIQUE')) {
-            throw new Error('TASK_EXISTS')
-        }
-        else if (errorMessage.includes('CHECK')) {
-            throw new Error('EMPTY_NAME')
-        }
-        else {
-            throw new Error(error)
-        }
+        handleDBError(error, "TASK", {
+            UNIQUE: "A task with this name already exists.",
+            CHECK: "The task name cannot be empty.",
+        })
     }
 }
 
@@ -65,7 +60,10 @@ export async function editDBTaskPriority(id: number, priority: boolean) {
     try {
         await db.execute('UPDATE task SET priority=? WHERE id=?', [priority ? 1 : 0, id])
     } catch (error: any) {
-        throw new Error(error)
+        handleDBError(error, "TASK", {
+            UNIQUE: "A task with this name already exists.",
+            CHECK: "The task name cannot be empty.",
+        })
     }
 }
 
@@ -81,7 +79,7 @@ export async function editDBTaskCompletion(id: number, isCompleted: boolean) {
     try {
         await db.execute('UPDATE task SET completed=? WHERE id=?', [isCompleted ? 1 : 0, id])
     } catch (error: any) {
-        throw new Error(error)
+        createError('TASK_UPDATE_ERROR', 'An error occurred while updating the task: ' + error.message)
     }
 }
 
@@ -98,6 +96,6 @@ export async function deleteDBTask(id: number) {
     try {
         await db.execute('DELETE FROM task WHERE id=?', [id])
     } catch (error: any) {
-        throw new Error(error)
+        throw createError('TASK_DELETE_ERROR', 'An error occurred while deleting the task: ' + error.message)
     }
 }

@@ -6,7 +6,7 @@ import { Group } from "./Group"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 
 export const GroupContainer = () => {
-    const { getNoteData, currentNote, groups, setGroups } = useWorkspaceData()
+    const { getNoteData, UpdateGroupsPositions, currentNote, groups, setGroups } = useWorkspaceData()
 
     useEffect(() => {
         const fetchNoteData = async () => {
@@ -18,19 +18,27 @@ export const GroupContainer = () => {
     }, [currentNote])
 
     const handleOnDragEnd = async (result: DropResult) => {
-        if (!result.destination) return
+        if (!result.destination || !groups) return
 
-        const items = Array.from(groups || [])
+        const items = Array.from(groups)
         const [reorderedItem] = items.splice(result.source.index, 1)
         items.splice(result.destination.index, 0, reorderedItem)
 
-        setGroups(items)
+        const updatedGroups = items.map((group, index) => ({
+            ...group,
+            position: index
+        }))
 
-        // TODO: Aggiungere qui la chiamata per aggiornare le posizioni nel database
-        // await window.ipcRenderer.invoke('updateGroupPositions', items.map((group, index) => ({
-        //     id: group.id,
-        //     position: index
-        // })))
+        setGroups(updatedGroups)
+
+        try {
+            await UpdateGroupsPositions(updatedGroups)
+            if (currentNote)
+                await getNoteData(currentNote?.id)
+        } catch (error: any) {
+            console.error("Errore durante l'aggiornamento delle posizioni dei gruppi:", error)
+            setGroups(groups)
+        }
     }
 
     return (

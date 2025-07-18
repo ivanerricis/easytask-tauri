@@ -43,10 +43,10 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             onOpenChange(false)
+            setPaletteOpen(false)
             setFolder(defaultFolder)
         } catch (err: any) {
             setError(err.message)
-            console.log(error)
         }
     }
 
@@ -54,6 +54,7 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
         e.stopPropagation()
         setFolder(defaultFolder)
         setError(null)
+        setPaletteOpen(false)
         onOpenChange(false)
     }
 
@@ -78,7 +79,7 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
                                 }}
                                 onClick={(e) => { e.stopPropagation() }}
                             />
-                            {error && <p className="text-sm text-destructive">{error}</p>}
+                            {error && <p className="text-xs text-destructive">{error}</p>}
                         </div>
                         {paletteIsOpen ?
                             <div className="flex items-center justify-between gap-1">
@@ -100,7 +101,10 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
                                 </div>
                                 <Button
                                     type="button"
-                                    onClick={(e) => { e.preventDefault(), setPaletteOpen(false) }}
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        setPaletteOpen(false)
+                                    }}
                                     variant={"buttonIcon"}
                                     className="h-full"
                                 >

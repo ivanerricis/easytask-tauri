@@ -1,3 +1,4 @@
+import { createError, handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 
 /**
@@ -13,16 +14,10 @@ export async function createDBSectionInGroup(groupId: number, title: string, col
     try {
         await db.execute('INSERT INTO section (group_id, title, color) VALUES (?, ?, ?)', [groupId, title, color ?? null]);
     } catch (error: any) {
-        const errorMessage = String(error)
-        if (errorMessage.includes('UNIQUE')) {
-            throw new Error('SECTION_EXISTS')
-        }
-        else if (errorMessage.includes('CHECK')) {
-            throw new Error('EMPTY_NAME')
-        }
-        else {
-            throw new Error(error)
-        }
+        handleDBError(error, "SECTION", {
+            UNIQUE: "A section with this name already exists.",
+            CHECK: "The section name cannot be empty.",
+        })
     }
 }
 
@@ -48,49 +43,37 @@ export async function createDBSection(noteId: number, title: string, position: n
     } catch (error: any) {
         // await db.execute('ROLLBACK')
 
-        const errorMessage = String(error)
-        if (errorMessage.includes('UNIQUE')) {
-            throw new Error('SECTION_EXISTS')
-        }
-        else if (errorMessage.includes('CHECK')) {
-            throw new Error('EMPTY_NAME')
-        }
-        else {
-            throw new Error(error)
-        }
+        handleDBError(error, "SECTION", {
+            UNIQUE: "A section with this name already exists.",
+            CHECK: "The section name cannot be empty.",
+        })
     }
 }
 
-export async function editDBSection(id: number, title: string, color?: string, archived?: boolean) {
+/**
+ * Edits an existing section in the database.
+ * @param id The ID of the section to edit.
+ * @param title The new title of the section.
+ * @param color The new color of the section (optional).
+ * @param archived The new archived status of the section (optional).
+ * @category Database
+ */
+export async function editDBSection(id: number, title: string, color?: string | null, archived?: boolean | null) {
     const db = await getDB()
 
     try {
-        if (color)
-            if (archived)
-                await db.execute('UPDATE section SET title=?, color=?, archived=? WHERE id=?', [title, color, archived, id])
-            else
-                await db.execute('UPDATE section SET title=?, color=? WHERE id=?', [title, color, id])
-        else
-            if (archived)
-                await db.execute('UPDATE section SET title=?, archived=? WHERE id=?', [title, color, archived, id])
-            else
-                await db.execute('UPDATE section SET title=? WHERE id=?', [title, id])
+        await db.execute('UPDATE section SET title=?, color=?, archived=? WHERE id=?', [title, color ?? null, archived ?? null, id])
     } catch (error: any) {
-        const errorMessage = String(error)
-        if (errorMessage.includes('UNIQUE')) {
-            throw new Error('SECTION_EXISTS')
-        }
-        else if (errorMessage.includes('CHECK')) {
-            throw new Error('EMPTY_NAME')
-        }
-        else {
-            throw new Error(error)
-        }
+        handleDBError(error, "SECTION", {
+            UNIQUE: "A section with this name already exists.",
+            CHECK: "The section name cannot be empty.",
+        })
     }
 }
 
 /**
  * Deletes a section from the database.
+ * If the section is the last one in its group, the group will also be deleted.
  * @param id The ID of the section to delete.
  * @category Database
  */
@@ -106,6 +89,6 @@ export async function deleteDBSection(id: number) {
         else
             await db.execute('DELETE FROM section_group WHERE id=?', [groupQuery[0].group_id])
     } catch (error: any) {
-        throw new Error(error)
+        throw createError('UNKNOWN_ERROR', 'An unknown error occurred while deleting the section: ' + error.message)
     }
 }

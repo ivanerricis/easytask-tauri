@@ -1,3 +1,4 @@
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { CopyMinus } from "lucide-react"
@@ -26,13 +27,15 @@ export const ButtonCloseNotes = () => {
     }, [])
 
     return (
-        <Button
-            variant={"buttonIcon"}
-            size={"icon"}
-            disabled={currentNotes.length === 0}
-            onClick={closeNotes}
-        >
-            <CopyMinus className="scale-x-[-1]" />
-        </Button>
+        <TooltipCustom text="Chiudi tutte le note" shortcut="(Ctrl + T)">
+            <Button
+                variant={"buttonIcon"}
+                size={"icon"}
+                disabled={currentNotes.length === 0}
+                onClick={closeNotes}
+            >
+                <CopyMinus className="scale-x-[-1]" />
+            </Button>
+        </TooltipCustom>
     )
 }

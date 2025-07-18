@@ -1,6 +1,6 @@
 import type { Workspace } from "@/types/types";
 import { getDB } from "../dbManager"
-import { createError } from "@/types/error";
+import { createError, handleDBError } from "@/types/error";
 
 export async function getDBWorkspaceData(workspaceId: number) {
     const db = await getDB();
@@ -78,7 +78,10 @@ export async function getDBWorkspaces() {
     try {
         return await db.select<Workspace[]>('SELECT * FROM workspace ORDER BY edit_date DESC, edit_time DESC')
     } catch (error: any) {
-        throw createError("ERROR_ON_GET_WORKSPACE", "Error while retrieving workspaces: " + error.message)
+        handleDBError(error, "ERROR_ON_GET_WORKSPACE", {
+            UNIQUE: "A workspace with this name already exists.",
+            CHECK: "The workspace name cannot be empty.",
+        })
     }
 }
 
@@ -94,17 +97,10 @@ export async function createDBWorkspace(name: string, color?: string | null) {
     try {
         await db.execute('INSERT INTO workspace (name, color) VALUES (?, ?)', [name, color ?? null])
     } catch (error: any) {
-        const errorMessage = String(error)
-        if (errorMessage.includes('UNIQUE')) {
-            throw createError('WORKSPACE_EXISTS', 'A workspace with this name already exists.')
-        }
-        else if (errorMessage.includes('CHECK')) {
-            throw createError('EMPTY_NAME', 'The workspace name cannot be empty.')
-        }
-        else {
-            throw createError('UNKNOWN_ERROR', 'An unknown error occurred: ' + error.message)
-        }
-
+        handleDBError(error, "WORKSPACE", {
+            UNIQUE: "A workspace with this name already exists.",
+            CHECK: "The workspace name cannot be empty.",
+        })
     }
 }
 
@@ -121,16 +117,10 @@ export async function editDBWorkspace(id: number, name: string, color?: string |
     try {
         await db.execute('UPDATE workspace SET name=?, color=? WHERE id=?', [name, color ?? null, id])
     } catch (error: any) {
-        const errorMessage = String(error)
-        if (errorMessage.includes('UNIQUE')) {
-            throw createError('WORKSPACE_EXISTS', 'A workspace with this name already exists.')
-        }
-        else if (errorMessage.includes('CHECK')) {
-            throw createError('EMPTY_NAME', 'The workspace name cannot be empty.')
-        }
-        else {
-            throw createError('UNKNOWN_ERROR', 'An unknown error occurred: ' + error.message)
-        }
+        handleDBError(error, "WORKSPACE", {
+            UNIQUE: "A workspace with this name already exists.",
+            CHECK: "The workspace name cannot be empty.",
+        })
     }
 }
 
@@ -145,6 +135,6 @@ export async function deleteDBWorkspace(id: number) {
     try {
         await db.execute('DELETE FROM workspace WHERE id=?', [id])
     } catch (error: any) {
-        throw createError('UNKNOWN_ERROR', 'An unknown error occurred: ' + error.message)
+        throw createError('WORKSPACE_DELETE_ERROR', 'An error occurred while deleting the workspace: ' + error.message)
     }
 }

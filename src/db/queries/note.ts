@@ -1,5 +1,6 @@
 import type { Group, Section, Task } from "@/types/types";
 import { getDB } from "../dbManager";
+import { createError, handleDBError } from "@/types/error";
 
 export async function getDBNoteData(noteId: number) {
     const db = await getDB();
@@ -63,16 +64,10 @@ export async function createDBWorkspaceNote(workspaceId: number, name: string, c
     try {
         await db.execute('INSERT INTO note (workspace_id, name, color) VALUES (?, ?, ?)', [workspaceId, name, color ?? null]);
     } catch (error: any) {
-        const errorMessage = String(error)
-        if (errorMessage.includes('UNIQUE')) {
-            throw new Error('NOTE_EXISTS')
-        }
-        else if (errorMessage.includes('CHECK')) {
-            throw new Error('EMPTY_NAME')
-        }
-        else {
-            throw new Error(error)
-        }
+        handleDBError(error, "NOTE", {
+            UNIQUE: "A note with this name already exists.",
+            CHECK: "The note name cannot be empty.",
+        })
     }
 }
 
@@ -89,38 +84,30 @@ export async function createDBNoteInFolder(folderId: number, name: string, color
     try {
         await db.execute('INSERT INTO note (folder_id, name, color) VALUES (?, ?, ?)', [folderId, name, color ?? null]);
     } catch (error: any) {
-        const errorMessage = String(error)
-        if (errorMessage.includes('UNIQUE')) {
-            throw new Error('NOTE_EXISTS')
-        }
-        else if (errorMessage.includes('CHECK')) {
-            throw new Error('EMPTY_NAME')
-        }
-        else {
-            throw new Error(error)
-        }
+        handleDBError(error, "NOTE", {
+            UNIQUE: "A note with this name already exists.",
+            CHECK: "The note name cannot be empty.",
+        })
     }
 }
 
-export async function editDBNote(noteId: number, name: string, color: string) {
+/**
+ * Edits an existing note in the database.
+ * @param noteId The ID of the note to edit.
+ * @param name The new name of the note.
+ * @param color The new color of the note (optional).
+ * @category Database
+ */
+export async function editDBNote(noteId: number, name: string, color?: string | null) {
     const db = await getDB()
 
     try {
-        if (color)
-            await db.execute('UPDATE note SET name=?, color=? WHERE id=?', [name, color, noteId]);
-        else
-            await db.execute('UPDATE note SET name=? WHERE id=?', [name, noteId]);
+        await db.execute('UPDATE note SET name=?, color=? WHERE id=?', [name, color ?? null, noteId]);
     } catch (error: any) {
-        const errorMessage = String(error)
-        if (errorMessage.includes('UNIQUE')) {
-            throw new Error('NOTE_EXISTS')
-        }
-        else if (errorMessage.includes('CHECK')) {
-            throw new Error('EMPTY_NAME')
-        }
-        else {
-            throw new Error(error)
-        }
+        handleDBError(error, "NOTE", {
+            UNIQUE: "A note with this name already exists.",
+            CHECK: "The note name cannot be empty.",
+        })
     }
 }
 
@@ -135,6 +122,6 @@ export async function deleteDBNote(id: number) {
     try {
         await db.execute('DELETE FROM note WHERE id=?', [id])
     } catch (error: any) {
-        throw new Error(error)
+        throw createError('UNKNOWN_ERROR', 'An unknown error occurred while deleting the note: ' + error.message)
     }
 }

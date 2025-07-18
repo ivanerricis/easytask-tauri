@@ -77,15 +77,16 @@ export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
                             className="rounded-none border-none !bg-background"
                         />
                     </div>
-                    {!paletteIsOpen
-                        ? <div
+                    {!paletteIsOpen ?
+                        <div
                             role="button"
                             onClick={() => { setPaletteOpen(true) }}
                             className="group/color cursor-pointer flex items-center justify-center w-full h-8 bg-secondary"
                         >
                             <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground" />
                         </div>
-                        : <div className="flex items-center justify-center w-full">
+                        :
+                        <div className="flex items-center justify-center w-full">
                             <div
                                 className="flex items-center justify-center h-8 w-full bg-primary"
                                 style={{ backgroundColor: section.color }}

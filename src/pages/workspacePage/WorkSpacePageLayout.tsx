@@ -2,7 +2,7 @@ import { Navbar } from "@/components/navbar"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { ArrowLeft } from "lucide-react"
-import React from "react"
+import React, { useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { CommandMenu } from "./components/CommandMenu"
 import { ButtonNavbar } from "@/components/button-navbar"
@@ -17,8 +17,18 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
     const { resetData } = useWorkspaceData()
     const navigate = useNavigate()
 
-    const handleGoHome = (e: React.MouseEvent) => {
-        e.stopPropagation()
+    useEffect(() => {
+        const handleShortcut = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.key.toLowerCase() === "h") {
+                e.preventDefault()
+                handleGoHome()
+            }
+        }
+        window.addEventListener("keydown", handleShortcut)
+        return () => window.removeEventListener("keydown", handleShortcut)
+    }, [])
+
+    const handleGoHome = () => {
         resetWorkspace()
         resetData()
         navigate('/')
@@ -29,7 +39,12 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
             <Navbar
                 centerContainer={
                     <div className="flex">
-                        <ButtonNavbar onClick={handleGoHome} className={"text-foreground"}>
+                        <ButtonNavbar
+                            onClick={handleGoHome}
+                            className={"text-foreground mr-2"}
+                            textTooltip="Torna alla Home"
+                            textTooltipShortcut="(Ctrl + H)"
+                        >
                             <ArrowLeft className="w-5 h-5" />
                         </ButtonNavbar>
                         <CommandMenu />

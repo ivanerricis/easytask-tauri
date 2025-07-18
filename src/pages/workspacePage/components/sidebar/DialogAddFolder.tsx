@@ -1,3 +1,4 @@
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -7,13 +8,12 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
-    DialogTrigger,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import { FolderPlus } from "lucide-react"
+import { FolderPlus, Palette, X } from "lucide-react"
 import { useEffect, useState } from "react"
 
 const defaultFolder = {
@@ -26,6 +26,7 @@ export function DialogAddFolder() {
     const [folder, setFolder] = useState(defaultFolder)
     const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
+    const [paletteIsOpen, setPaletteOpen] = useState(false)
     const { currentWorkspace } = useWorkspace()
     const { createWorkspaceFolder, getWorkspaceData } = useWorkspaceData()
 
@@ -34,26 +35,21 @@ export function DialogAddFolder() {
         if (!currentWorkspace?.id) return
         if (folder.name.trim() === "") return
         try {
-            await createWorkspaceFolder(currentWorkspace.id, folder.name.trim(), folder.color)
+            await createWorkspaceFolder(currentWorkspace.id, folder.name.trim(), paletteIsOpen ? folder.color : undefined)
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             setIsOpen(false)
-        } catch (error: any) {
-            if (error.message?.includes('EMPTY_NAME'))
-                setError('Il nome non della cartella può essere vuoto')
-            else if (error.message?.includes('FOLDER_EXISTS'))
-                setError('Esiste già una cartella con questo nome')
-            else if (error.message?.includes('GENERIC_ERROR'))
-                setError('Errore durante la creazione della cartella')
-            return
-        } finally {
+            setPaletteOpen(false)
             setFolder(defaultFolder)
+        } catch (err: any) {
+            setError(err.message)
         }
     }
 
     const handleCancel = () => {
-        setFolder(defaultFolder)
         setError(null)
+        setPaletteOpen(false)
+        setFolder(defaultFolder)
     }
 
     useEffect(() => {
@@ -77,61 +73,97 @@ export function DialogAddFolder() {
     }, [])
 
     return (
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogTrigger asChild>
-                <Button variant='buttonIcon' size="icon">
+        <>
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>Crea una cartella</DialogTitle>
+                        <DialogDescription />
+                    </DialogHeader>
+                    <form onSubmit={handleCreateFolder}>
+                        <div className="grid gap-4">
+                            <div className="grid gap-3">
+                                <Label>Nome</Label>
+                                <Input
+                                    id="name-1"
+                                    name="name"
+                                    value={folder.name}
+                                    onChange={e => {
+                                        setError(null)
+                                        setFolder({ ...folder, name: e.target.value })
+                                    }}
+                                />
+                                {error && <p className="text-xs text-destructive">{error}</p>}
+                            </div>
+                            {paletteIsOpen ?
+                                <div className="flex items-center justify-between gap-1">
+                                    <div
+                                        className="flex items-center justify-center h-full w-full border rounded-xs"
+                                        style={{ backgroundColor: folder.color }}
+                                    >
+                                        <Input
+                                            id="color-1"
+                                            name="color"
+                                            type="color"
+                                            className="opacity-0 cursor-pointer"
+                                            value={folder.color}
+                                            onChange={e => setFolder({
+                                                ...folder,
+                                                color: e.target.value
+                                            })}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault()
+                                            setPaletteOpen(false)
+                                        }}
+                                        variant={"buttonIcon"}
+                                        className="h-full"
+                                    >
+                                        <X />
+                                    </Button>
+                                </div>
+                                :
+                                <Button
+                                    type="button"
+                                    variant={"outline"}
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        setPaletteOpen(true)
+                                    }}
+                                    className="h-full">
+                                    Aggiungi colore
+                                    <Palette />
+                                </Button>
+                            }
+                        </div>
+                        <DialogFooter className="mt-4">
+                            <DialogClose asChild>
+                                <Button
+                                    variant="outline"
+                                    type="button"
+                                    onClick={handleCancel}
+                                >
+                                    Annulla
+                                </Button>
+                            </DialogClose>
+                            <Button type="submit" disabled={!folder.name.trim()}>Crea cartella</Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
+
+            <TooltipCustom text="Crea una cartella" shortcut="(Ctrl + M)">
+                <Button
+                    onClick={() => setIsOpen(true)}
+                    variant='buttonIcon'
+                    size="icon"
+                >
                     <FolderPlus />
                 </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-                <DialogHeader>
-                    <DialogTitle>Crea una cartella</DialogTitle>
-                    <DialogDescription />
-                </DialogHeader>
-                <form onSubmit={handleCreateFolder}>
-                    <div className="grid gap-4">
-                        <div className="grid gap-3">
-                            <Label>Nome</Label>
-                            <Input
-                                id="name-1"
-                                name="name"
-                                value={folder.name}
-                                onChange={e => setFolder({
-                                    ...folder,
-                                    name: e.target.value
-                                })}
-                            />
-                        </div>
-                        {error && <p className="text-destructive">{error}</p>}
-                        <div className="grid gap-3">
-                            <Label>Colore</Label>
-                            <div className="flex items-center justify-center h-full w-full border rounded-xs"
-                                style={{ backgroundColor: folder.color }}
-                            >
-                                <Input
-                                    id="color-1"
-                                    name="color"
-                                    type="color"
-                                    className="opacity-0 cursor-pointer"
-                                    value={folder.color}
-                                    onChange={e => setFolder({
-                                        ...folder,
-                                        color: e.target.value
-                                    })}
-                                />
-                            </div>
-                        </div>
-                    </div>
-                    <DialogFooter className="mt-4">
-                        <DialogClose asChild>
-                            <Button variant="outline" type="button" onClick={handleCancel}>
-                                Annulla
-                            </Button>
-                        </DialogClose>
-                        <Button type="submit" disabled={!folder.name}>Crea cartella</Button>
-                    </DialogFooter>
-                </form>
-            </DialogContent>
-        </Dialog>
+            </TooltipCustom>
+        </>
     )
 }

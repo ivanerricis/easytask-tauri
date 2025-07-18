@@ -13,6 +13,7 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import type { Folder } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useState } from "react"
+import { Palette, X } from "lucide-react"
 
 const defaultNote = {
     name: "",
@@ -28,6 +29,7 @@ type ParentFolderProps = {
 export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFolderProps) {
     const [note, setNote] = useState(defaultNote)
     const [error, setError] = useState<string | null>(null)
+    const [paletteIsOpen, setPaletteOpen] = useState(false)
     const { createNoteInFolder, getWorkspaceData } = useWorkspaceData()
     const { currentWorkspace } = useWorkspace()
 
@@ -36,21 +38,14 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
         if (!currentWorkspace?.id) return
         if (note.name.trim() === "") return
         try {
-            await createNoteInFolder(parentFolder.id, note.name.trim(), note.color)
+            await createNoteInFolder(parentFolder.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             onOpenChange(false)
-        } catch (error: any) {
-            console.log(error.message)
-            if (error.message?.includes('EMPTY_NAME'))
-                setError('Il nome della nota non può essere vuoto')
-            else if (error.message?.includes('NOTE_EXISTS'))
-                setError('Esiste già una nota con questo nome')
-            else if (error.message?.includes('GENERIC_ERROR'))
-                setError('Errore durante la creazione della nota')
-            return
-        } finally {
+            setPaletteOpen(false)
             setNote(defaultNote)
+        } catch (err: any) {
+            setError(err.message)
         }
     }
 
@@ -58,6 +53,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
         e.stopPropagation()
         setNote(defaultNote)
         setError(null)
+        setPaletteOpen(false)
         onOpenChange(false)
     }
 
@@ -76,31 +72,64 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                                 id="name-1"
                                 name="name"
                                 value={note.name}
-                                onChange={(e) => setNote({ ...note, name: e.target.value })}
+                                onChange={(e) => {
+                                    setError(null)
+                                    setNote({ ...note, name: e.target.value })
+                                }}
                                 onClick={(e) => { e.stopPropagation() }}
                             />
                         </div>
-                        {error && <p className="text-sm text-red-500">{error}</p>}
-                        <div className="grid gap-3">
-                            <Label>Colore</Label>
-                            <div
-                                className="flex items-center justify-center h-full w-full border rounded-xs"
-                                style={{ backgroundColor: note.color }}
-                            >
-                                <Input
-                                    id="color-1"
-                                    name="color"
-                                    type="color"
-                                    className="opacity-0 cursor-pointer"
-                                    value={note.color}
-                                    onChange={(e) => setNote({ ...note, color: e.target.value })}
-                                    onClick={(e) => { e.stopPropagation() }}
-                                />
+                        {error && <p className="text-xs text-red-500">{error}</p>}
+                        {paletteIsOpen ?
+                            <div className="flex items-center justify-between gap-1">
+                                <div
+                                    className="flex items-center justify-center h-full w-full border rounded-xs"
+                                    style={{ backgroundColor: note.color }}
+                                >
+                                    <Input
+                                        id="color-1"
+                                        name="color"
+                                        type="color"
+                                        className="opacity-0 cursor-pointer"
+                                        value={note.color}
+                                        onChange={e => setNote({
+                                            ...note,
+                                            color: e.target.value
+                                        })}
+                                    />
+                                </div>
+                                <Button
+                                    type="button"
+                                    onClick={(e) => {
+                                        e.preventDefault()
+                                        setPaletteOpen(false)
+                                    }}
+                                    variant={"buttonIcon"}
+                                    className="h-full"
+                                >
+                                    <X />
+                                </Button>
                             </div>
-                        </div>
+                            :
+                            <Button
+                                type="button"
+                                variant={"outline"}
+                                onClick={(e) => {
+                                    e.preventDefault()
+                                    setPaletteOpen(true)
+                                }}
+                                className="h-full">
+                                Aggiungi colore
+                                <Palette />
+                            </Button>
+                        }
                     </div>
                     <DialogFooter className="mt-4">
-                        <Button variant="outline" type="button" onClick={handleCancel}>
+                        <Button
+                            variant="outline"
+                            type="button"
+                            onClick={handleCancel}
+                        >
                             Annulla
                         </Button>
                         <Button type="submit" disabled={!note.name.trim()}>

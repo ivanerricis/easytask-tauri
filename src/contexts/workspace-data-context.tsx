@@ -7,6 +7,7 @@ import { createDBNoteInFolder, createDBWorkspaceNote, deleteDBNote, getDBNoteDat
 import { createDBSubFolder, createDBWorkspaceFolder, deleteDBFolder } from "@/db/queries/folder";
 import { createDBSection, createDBSectionInGroup, deleteDBSection } from "@/db/queries/section";
 import { createDBSubTask, createDBTask, deleteDBTask, editDBTaskCompletion, editDBTaskPriority } from "@/db/queries/task";
+import { updateDBGroupPositions } from "@/db/queries/group";
 
 /* ------------------------------------------------------------------------------------ */
 
@@ -38,6 +39,7 @@ type WorkspaceDataContextType = {
     createTask: (sectionId: number, text: string, color?: string) => Promise<void>
     createSubTask: (taskId: number, text: string, color?: string) => Promise<void>
 
+    UpdateGroupsPositions: (groups: Group[]) => Promise<void>
     editNote: (noteId: number, name: string, color?: string) => Promise<void>
     editFolder: (folderId: number, name: string, color?: string) => Promise<void>
     editTaskPriority: (taskId: number, priority: boolean) => Promise<void>
@@ -194,7 +196,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             if (error?.message?.includes('SECTION_EXISTS')) {
                 throw new Error('Esiste già una Section con questo nome')
             }
-            else if (error?.message?.includes('EMPTY_NAME')) {
+            else if (error?.message?.includes('EMPTY_NA----------------ME')) {
                 throw new Error('Il titolo della Section non può essere vuoto')
             }
             else if (error?.message?.includes('GENERIC_ERROR')) {
@@ -232,6 +234,18 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
     /* ------------------------------------------------------------------------------------ */
     // Editing methods
+
+    const UpdateGroupsPositions = async (groups: Group[]) => {
+        if (isLoading) return
+        setIsLoading(true)
+        try {
+            await updateDBGroupPositions(groups)
+        } catch (error) {
+            throw error
+        } finally {
+            setIsLoading(false)
+        }
+    }
 
     const editNote = async (noteId: number, name: string, color?: string) => {
         if (isLoading) return
@@ -343,7 +357,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         setGroups([])
     }
 
-    /* -----------------------------------editTaskPriority------------------------------------------------- */
+    /* ------------------------------------------------------------------------------------ */
 
     return (
         <WorkspaceDataContext.Provider value={{
@@ -370,6 +384,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             createSectionInGroup,
             createTask,
             createSubTask,
+            UpdateGroupsPositions,
             editNote,
             editFolder,
             editTaskPriority,
