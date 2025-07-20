@@ -7,6 +7,7 @@ import type { Note } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useEffect, useState } from "react"
 import { Palette, X } from "lucide-react"
+import { toast } from "sonner"
 
 type DialogEditProps = {
     note: Note
@@ -24,16 +25,16 @@ export const DialogEditNote = ({ note, isOpen, onOpenChange }: DialogEditProps) 
     const [newNote, setNote] = useState(defaultNote)
     const [paletteIsOpen, setPaletteOpen] = useState(false)
     const { currentWorkspace } = useWorkspace()
-    const { editNote, getWorkspaceData } = useWorkspaceData()
+    const { editNote, getWorkspaceData, currentNotes } = useWorkspaceData()
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         if (note.color) {
-            setPaletteOpen(true)
             setNote({ name: note.name, color: note.color })
+            setPaletteOpen(true)
         }
         else
-            setNote({ name: note.name })
+            setNote({ name: note.name, color: "#FFFFFF" })
     }, [note])
 
     const handleSave = async (e: React.FormEvent) => {
@@ -43,11 +44,15 @@ export const DialogEditNote = ({ note, isOpen, onOpenChange }: DialogEditProps) 
         try {
             await editNote(note.id, newNote.name.trim(), paletteIsOpen ? newNote.color : undefined)
             await getWorkspaceData(currentWorkspace.id)
+            setError(null)
             onOpenChange(false)
+            const noteIndex = currentNotes.findIndex(n => n.id === note.id)
+            if (noteIndex !== -1) {
+                currentNotes[noteIndex].color = paletteIsOpen ? newNote.color : undefined
+            }
         } catch (err: any) {
-            setError(err.message)
-        } finally {
-            setNote(defaultNote)
+            // setError(err.message)
+            toast.error(err.message)
         }
     }
 
@@ -117,7 +122,7 @@ export const DialogEditNote = ({ note, isOpen, onOpenChange }: DialogEditProps) 
                             <Button
                                 type="button"
                                 variant={"outline"}
-                                onClick={() => { setPaletteOpen(true) }}
+                                onClick={() => setPaletteOpen(true)}
                                 className="h-full">
                                 Aggiungi colore
                                 <Palette />

@@ -7,6 +7,7 @@ import type { Folder } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { useEffect, useState } from "react"
 import { Palette, X } from "lucide-react"
+import { toast } from "sonner"
 
 type DialogEditProps = {
     folder: Folder
@@ -46,9 +47,8 @@ export const DialogEditFolder = ({ folder, isOpen, onOpenChange }: DialogEditPro
             setError(null)
             onOpenChange(false)
         } catch (err: any) {
-            setError(err.message)
-        } finally {
-            setFolder(defaultFolder)
+            // setError(err.message)
+            toast.error(err.message)
         }
     }
 

@@ -49,6 +49,7 @@ export function DialogAddFolder() {
         setError(null)
         setPaletteOpen(false)
         setFolder(defaultFolder)
+        setIsOpen(false)
     }
 
     useEffect(() => {
@@ -63,6 +64,9 @@ export function DialogAddFolder() {
 
             if (e.key === "m" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault()
+                setError(null)
+                setPaletteOpen(false)
+                setFolder(defaultFolder)
                 setIsOpen(true)
             }
         }

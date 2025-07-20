@@ -60,13 +60,13 @@ export const NoteHeader = ({ note }: NoteHeaderProps) => {
                 ${currentNote?.id === note.id ? 'bg-background' : 'bg-secondary hover:bg-background/40'}`}
         >
             {/* Color container */}
-            <div
+            {note.color && <div
                 className="w-full h-0.5 absolute top-0"
                 style={{
                     backgroundColor: currentNote?.id === note.id ? note.color : 'var(--background-color)'
                 }}
             >
-            </div>
+            </div>}
 
             {/* Text + Close button */}
             <div className="flex items-center justify-between pb-1 pt-1.5 pl-2 pr-1 gap-2 h-full">

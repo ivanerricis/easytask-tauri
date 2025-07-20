@@ -35,7 +35,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
 
     const handleCreateNote = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (!currentWorkspace?.id) return
+        if (!currentWorkspace) return
         if (note.name.trim() === "") return
         try {
             await createNoteInFolder(parentFolder.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
@@ -46,6 +46,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
             setNote(defaultNote)
         } catch (err: any) {
             setError(err.message)
+            console.log(error)
         }
     }
 
@@ -59,7 +60,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[425px]" onClick={(e) => { e.stopPropagation() }}>
+            <DialogContent onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
                     <DialogTitle>Crea una nota</DialogTitle>
                     <DialogDescription />
@@ -132,7 +133,10 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                         >
                             Annulla
                         </Button>
-                        <Button type="submit" disabled={!note.name.trim()}>
+                        <Button
+                            type="submit"
+                            disabled={!note.name.trim()}
+                        >
                             Crea nota
                         </Button>
                     </DialogFooter>

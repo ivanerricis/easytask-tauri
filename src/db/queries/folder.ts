@@ -82,7 +82,6 @@ export async function updateDBFolderColorContent(folderId: number, color?: strin
         if (folderIds.length === 0) return
 
         const placeholders = folderIds.map(() => '?').join(',')
-        console.log(placeholders)
 
         await db.execute(
             `UPDATE folder SET color = ? WHERE id IN (${placeholders})`,

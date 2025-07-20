@@ -47,7 +47,10 @@ export const ButtonMenuFolder = ({ folder }: ButtonMenuFolderProps) => {
                         <EllipsisVertical className="!h-4 !w-4" />
                     </button>
                 </PopoverTrigger>
-                <PopoverContent className="flex flex-col justify-center gap-1 w-auto p-1">
+                <PopoverContent
+                    onClick={(e) => { e.stopPropagation() }}
+                    className="flex flex-col justify-center gap-1 w-auto p-1"
+                >
                     <ButtonInPopover text="Aggiungi cartella" onClick={() => { setAddSubFolderOpen(true); closeAll() }} />
                     <ButtonInPopover text="Aggiungi nota" onClick={() => { setAddNoteOpen(true); closeAll() }} />
                     <ButtonInPopover text="Modifica cartella" onClick={() => { setEditFolderOpen(true); closeAll() }} />

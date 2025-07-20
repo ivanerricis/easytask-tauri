@@ -63,6 +63,9 @@ export function DialogAddNote() {
 
             if (e.key === "n" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault()
+                setNote(defaultNote)
+                setError(null)
+                setPaletteOpen(false)
                 setIsOpen(true)
             }
         }
@@ -74,7 +77,7 @@ export function DialogAddNote() {
     return (
         <>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent className="sm:max-w-[425px]">
+                <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Crea una nota</DialogTitle>
                         <DialogDescription />
@@ -98,48 +101,48 @@ export function DialogAddNote() {
                             </div>
                             {error && (<p className="text-xs text-destructive">{error}</p>)}
                             {paletteIsOpen ?
-                            <div className="flex items-center justify-between gap-1">
-                                <div
-                                    className="flex items-center justify-center h-full w-full border rounded-xs"
-                                    style={{ backgroundColor: note.color }}
-                                >
-                                    <Input
-                                        id="color-1"
-                                        name="color"
-                                        type="color"
-                                        className="opacity-0 cursor-pointer"
-                                        value={note.color}
-                                        onChange={e => setNote({
-                                            ...note,
-                                            color: e.target.value
-                                        })}
-                                    />
+                                <div className="flex items-center justify-between gap-1">
+                                    <div
+                                        className="flex items-center justify-center h-full w-full border rounded-xs"
+                                        style={{ backgroundColor: note.color }}
+                                    >
+                                        <Input
+                                            id="color-1"
+                                            name="color"
+                                            type="color"
+                                            className="opacity-0 cursor-pointer"
+                                            value={note.color}
+                                            onChange={e => setNote({
+                                                ...note,
+                                                color: e.target.value
+                                            })}
+                                        />
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        onClick={(e) => {
+                                            e.preventDefault()
+                                            setPaletteOpen(false)
+                                        }}
+                                        variant={"buttonIcon"}
+                                        className="h-full"
+                                    >
+                                        <X />
+                                    </Button>
                                 </div>
+                                :
                                 <Button
                                     type="button"
+                                    variant={"outline"}
                                     onClick={(e) => {
                                         e.preventDefault()
-                                        setPaletteOpen(false)
+                                        setPaletteOpen(true)
                                     }}
-                                    variant={"buttonIcon"}
-                                    className="h-full"
-                                >
-                                    <X />
+                                    className="h-full">
+                                    Aggiungi colore
+                                    <Palette />
                                 </Button>
-                            </div>
-                            :
-                            <Button
-                                type="button"
-                                variant={"outline"}
-                                onClick={(e) => {
-                                    e.preventDefault()
-                                    setPaletteOpen(true)
-                                }}
-                                className="h-full">
-                                Aggiungi colore
-                                <Palette />
-                            </Button>
-                        }
+                            }
                         </div>
                         <DialogFooter className="mt-4">
                             <Button

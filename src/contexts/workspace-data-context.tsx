@@ -215,7 +215,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         setIsLoading(true)
         try {
             await editDBNote(noteId, name, color)
-        } catch (error) {
+        } catch (error: any) {
             throw error
         } finally {
             setIsLoading(false)
@@ -239,7 +239,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         setIsLoading(true)
         try {
             await editDBFolder(folderId, name, color)
-        } catch (error) {
+        } catch (error: any) {
             throw error
         } finally {
             setIsLoading(false)

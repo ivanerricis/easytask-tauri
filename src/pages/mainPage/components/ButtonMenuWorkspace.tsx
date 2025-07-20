@@ -27,7 +27,10 @@ export const ButtonMenuWorkspace = ({ workspace }: ButtonMenuProps) => {
                         <EllipsisVertical className="flex items-center justify-center w-5 h-5" />
                     </div>
                 </PopoverTrigger>
-                <PopoverContent className="flex flex-col w-auto p-1 rounded-xs">
+                <PopoverContent
+                    onClick={(e) => { e.stopPropagation() }}
+                    className="flex flex-col w-auto p-1 rounded-xs"
+                >
                     <ButtonInPopover text="Modifica" onClick={() => { setEditWorkspaceOpen(true); closeAll() }} />
                     <ButtonInPopover text="Elimina" destructive onClick={() => { setDeleteWorkspaceOpen(true); closeAll() }} />
                 </PopoverContent>
