@@ -55,6 +55,14 @@
           "path": "$DOCUMENT/**"
         }
       ]
+    },
+    {
+      "identifier": "store:default",
+      "allow": [
+        {
+          "path": true
+        }
+      ]
     }
   ]
 }

@@ -2,7 +2,6 @@ import type { Workspace } from "@/types/types"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useNavigate } from "react-router-dom"
 import { ButtonMenuWorkspace } from "./ButtonMenuWorkspace"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
 
 type WorkSpaceItemProps = {
     workspace: Workspace
@@ -10,12 +9,10 @@ type WorkSpaceItemProps = {
 
 export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
     const { setCurrentWorkspace } = useWorkspace()
-    const { getWorkspaceData } = useWorkspaceData()
     const navigate = useNavigate()
 
-    const handleOpen = async () => {
+    const handleOpen = () => {
         setCurrentWorkspace(workspace)
-        await getWorkspaceData(workspace.id)
         navigate(`/workspace/${workspace.id}`)
     }
 

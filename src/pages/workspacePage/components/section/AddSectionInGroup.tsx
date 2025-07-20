@@ -41,6 +41,7 @@ export const AddSectionInGroup = ({ groupId }: AddSectionInGroupProps) => {
     const handleOpen = () => {
         setOpen(prev => !prev)
         setSection(defaultSection)
+        setPaletteOpen(false)
     }
 
     const handleSubmit = async (e: FormEvent) => {

@@ -7,28 +7,33 @@ import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { useEffect, useState } from "react"
 
 const WorkSpacePage = () => {
-    const { currentWorkspace, isLoading: isLoadingWorkspace, error: errorWorkspace } = useWorkspace()
-    const { isLoading: isLoadingData, error: errorData } = useWorkspaceData()
-    const [initialLoading, setInitialLoading] = useState(true)
+    const { currentWorkspace } = useWorkspace()
+    const { error, getWorkspaceData, } = useWorkspaceData()
+    const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
-        if (!isLoadingWorkspace && !isLoadingData) {
-            setInitialLoading(false)
+        const fetchData = async () => {
+            if (isLoading) {
+                if (currentWorkspace)
+                    await getWorkspaceData(currentWorkspace.id)
+                setIsLoading(false)
+            }
         }
-    }, [isLoadingWorkspace, isLoadingData])
+        fetchData()
+    }, [])
 
-    if (initialLoading) {
+    if (isLoading) {
         return (
             <WorkSpaceLayout>
-                <LoadingPage />
+                <LoadingPage text="Caricamento dati del Workspace..." />
             </WorkSpaceLayout>
         )
     }
 
-    if (errorWorkspace || errorData) {
+    if (error) {
         return (
             <WorkSpaceLayout>
-                <ErrorPage error={errorWorkspace || errorData} />
+                <ErrorPage error={error} />
             </WorkSpaceLayout>
         )
     }

@@ -69,7 +69,6 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     /* ------------------------------------------------------------------------------------ */
     // Getter methods
     const getWorkspaceData = async (workspaceId: number) => {
-        if (isLoading) return
         setIsLoading(true)
         try {
             const data = await getDBWorkspaceData(workspaceId)

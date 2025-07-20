@@ -21,7 +21,7 @@ const MainPage = () => {
     if (isInitialLoading) {
         return (
             <MainPageLayout>
-                <LoadingPage />
+                <LoadingPage text="Caricamento dei Workspace..."/>
             </MainPageLayout>
         )
     }

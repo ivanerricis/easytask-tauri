@@ -1,11 +1,12 @@
 import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Settings } from "lucide-react"
 import { Input } from "./ui/input"
-import React, { useState } from "react"
+import React, { useEffect, useState } from "react"
 import { Separator } from "./ui/separator"
 import { TooltipCustom } from "./tooltip-custom"
+import { store } from "@/lib/store/initStore"
 
 type DialogSettingsProps = {
     className?: string
@@ -15,14 +16,33 @@ export const DialogSettings = ({ className }: DialogSettingsProps) => {
     const [isOpen, setIsOpen] = useState(false)
     const [color, setColor] = useState("#ffb375");
 
-    const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setColor(e.target.value)
+    useEffect(() => {
+        if (isOpen) {
+            const loadColor = async () => {
+                const savedColor = await store.get<{ hex: string }>('primaryColor');
+                if (savedColor?.hex) {
+                    setColor(savedColor.hex);
+                }
+            };
+            loadColor();
+        }
+    }, [isOpen]);
+
+    const handleColorChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newHexColor = e.target.value;
+        setColor(newHexColor);
+
+        document.documentElement.style.setProperty('--primary', newHexColor);
+
+        await store.set('primaryColor', { hex: newHexColor });
+        await store.save();
     }
 
     return (
         <>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent className="w-[350px]">
+                    <DialogDescription />
                     <DialogHeader>
                         <DialogTitle>
                             Impostazioni
@@ -47,11 +67,8 @@ export const DialogSettings = ({ className }: DialogSettingsProps) => {
                             style={{ backgroundColor: color }}
                         >
                             <Input
-                                id="color-1"
-                                name="color"
                                 type="color"
                                 className="opacity-0 cursor-pointer"
-                                defaultValue={"#ffb375"}
                                 value={color}
                                 onChange={handleColorChange}
                             />

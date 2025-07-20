@@ -1,3 +1,4 @@
+import { store } from "@/lib/store/initStore"
 import { createContext, useContext, useEffect, useState } from "react"
 
 type Theme = "dark" | "light" | "system"
@@ -16,6 +17,11 @@ type ThemeProviderState = {
 const initialState: ThemeProviderState = {
     theme: "system",
     setTheme: () => null,
+}
+
+type StoredColor = {
+    hex: string;
+    hsl: string;
 }
 
 const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
@@ -47,6 +53,21 @@ export function ThemeProvider({
 
         root.classList.add(theme)
     }, [theme])
+
+    useEffect(() => {
+        const applyInitialAccentColor = async () => {
+            const primaryColor = await store.get<StoredColor>('primaryColor');
+            const defaultColor = '#ffb375';
+
+            const colorToApply = primaryColor?.hex || defaultColor;
+
+            const root = document.documentElement;
+            root.style.setProperty('--primary', colorToApply);
+        };
+
+        applyInitialAccentColor();
+    }, []);
+
 
     const value = {
         theme,

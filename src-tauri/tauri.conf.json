@@ -53,6 +53,9 @@
         "read-meta",
         "mkdir"
       ]
+    },
+    "tauri-plugin-store": {
+      "store": ["settings"]
     }
   }
 }

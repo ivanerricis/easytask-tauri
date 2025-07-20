@@ -47,6 +47,7 @@ export const AddSection = () => {
     const handleOpen = () => {
         setOpen(prev => !prev)
         setSection(defaultSection)
+        setPaletteOpen(false)
     }
 
     const handleSubmit = async (e: FormEvent) => {
