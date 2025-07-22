@@ -66,7 +66,7 @@ export const SideBarLeft = () => {
                 </div>}
             >
                 <div
-                    className="flex flex-col gap-1 p-1 w-full"
+                    className="relative flex flex-col gap-1 p-1 w-full"
                 >
                     {folders.length > 0 || notes.length > 0 ? (
                         <>

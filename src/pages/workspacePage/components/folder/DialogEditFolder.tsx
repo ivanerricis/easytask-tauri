@@ -35,7 +35,7 @@ export const DialogEditFolder = ({ folder, isOpen, onOpenChange }: DialogEditPro
         }
         else
             setFolder({ name: folder.name, color: "#FFFFFF" })
-    }, [folder])
+    }, [])
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -47,15 +47,15 @@ export const DialogEditFolder = ({ folder, isOpen, onOpenChange }: DialogEditPro
             setError(null)
             onOpenChange(false)
         } catch (err: any) {
-            // setError(err.message)
+            setError(err.message)
             toast.error(err.message)
         }
     }
 
     const handleCancel = () => {
-        setError(null)
-        setPaletteOpen(false)
         setFolder(defaultFolder)
+        setPaletteOpen(false)
+        setError(null)
         onOpenChange(false)
     }
 

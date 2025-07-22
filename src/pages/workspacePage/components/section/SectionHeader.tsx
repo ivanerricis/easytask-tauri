@@ -58,8 +58,8 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleProps }
                             {Math.round(completionPercentage)} %
                         </h1>
                     </div>
-                    <div className="opacity-0 group-hover:opacity-100">
-                        <ButtonMenuSection sectionId={section.id} />
+                    <div className="relative">
+                        <ButtonMenuSection section={section} />
                     </div>
                 </div>
             </div>

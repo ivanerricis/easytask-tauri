@@ -1,6 +1,6 @@
 import type { Workspace } from "@/types/types";
 import { getDB } from "../dbManager"
-import { createError, handleDBError } from "@/types/error";
+import { handleDBError } from "@/types/error";
 
 export async function getDBWorkspaceData(workspaceId: number) {
     try {
@@ -125,20 +125,5 @@ export async function editDBWorkspace(id: number, name: string, color?: string |
             UNIQUE: "A workspace with this name already exists.",
             CHECK: "The workspace name cannot be empty.",
         })
-    }
-}
-
-/**
- * Deletes a workspace from the database.
- * @param id The ID of the workspace to delete.
- * @category Database Queries
- */
-export async function deleteDBWorkspace(id: number) {
-    const db = await getDB();
-
-    try {
-        await db.execute('DELETE FROM workspace WHERE id=?', [id])
-    } catch (error: any) {
-        throw createError('WORKSPACE_DELETE_ERROR', 'An error occurred while deleting the workspace: ' + error.message)
     }
 }

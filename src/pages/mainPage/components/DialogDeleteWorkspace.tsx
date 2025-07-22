@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useWorkspace } from "@/contexts/workspace-context"
+import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { DialogClose } from "@radix-ui/react-dialog"
 import React from "react"
 import { toast } from "sonner"
@@ -13,12 +14,13 @@ type DialogDeleteProps = {
 
 export const DialogDeleteWorkspace = ({ workspaceId, isOpen, onOpenChange }: DialogDeleteProps) => {
 
-    const { deleteWorkspace, getWorkspaces } = useWorkspace()
+    const { getWorkspaces } = useWorkspace()
+    const { deleteItem } = useWorkspaceData()
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation()
         try {
-            await deleteWorkspace(workspaceId)
+            await deleteItem("workspace", workspaceId)
             await getWorkspaces()
             onOpenChange(false)
         } catch (error: any) {
@@ -40,7 +42,7 @@ export const DialogDeleteWorkspace = ({ workspaceId, isOpen, onOpenChange }: Dia
                 <DialogFooter>
                     <DialogClose asChild>
                         <Button
-                            onClick={(e) => {e.stopPropagation()}}
+                            onClick={(e) => { e.stopPropagation() }}
                             variant="outline"
                         >
                             Annulla

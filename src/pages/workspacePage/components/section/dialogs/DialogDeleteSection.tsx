@@ -11,13 +11,13 @@ type DialogDeleteProps = {
 
 export const DialogDeleteSection = ({ sectionId, isOpen, onOpenChange }: DialogDeleteProps) => {
 
-    const { deleteSection, getNoteData, currentNote } = useWorkspaceData()
+    const { deleteItem, getNoteData, currentNote } = useWorkspaceData()
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation()
         if (!currentNote) return
         try {
-            await deleteSection(sectionId)
+            await deleteItem("section", sectionId)
             await getNoteData(currentNote.id)
             onOpenChange(false)
         } catch (err: any) {

@@ -7,16 +7,16 @@ import { DialogDeleteFolder } from "./DialogDeleteFolder"
 import { DialogEditFolder } from "./DialogEditFolder"
 import { useState } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
-import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { useWorkspace } from "@/contexts/workspace-context"
 
 type ButtonMenuFolderProps = {
     folder: Folder
+    onChangeColor: () => void
 }
 
-export const ButtonMenuFolder = ({ folder }: ButtonMenuFolderProps) => {
+export const ButtonMenuFolder = ({ folder, onChangeColor }: ButtonMenuFolderProps) => {
     const [isAddSubFolderOpen, setAddSubFolderOpen] = useState(false);
     const [isAddNoteOpen, setAddNoteOpen] = useState(false);
     const [isEditFolderOpen, setEditFolderOpen] = useState(false);
@@ -54,9 +54,8 @@ export const ButtonMenuFolder = ({ folder }: ButtonMenuFolderProps) => {
                     <ButtonInPopover text="Aggiungi cartella" onClick={() => { setAddSubFolderOpen(true); closeAll() }} />
                     <ButtonInPopover text="Aggiungi nota" onClick={() => { setAddNoteOpen(true); closeAll() }} />
                     <ButtonInPopover text="Modifica cartella" onClick={() => { setEditFolderOpen(true); closeAll() }} />
-                    <Button onClick={handleColorContent} size={"sm"} variant={"ghost"} className="text-sm rounded-xs justify-start">
-                        Colora contenuto
-                    </Button>
+                    <ButtonInPopover text="Cambia colore" onClick={() => { onChangeColor(); closeAll() }} />
+                    <ButtonInPopover text="Colora contenuto" onClick={() => { handleColorContent(); closeAll() }} />
                     <ButtonInPopover text="Elimina" destructive onClick={() => { setDeleteFolderOpen(true); closeAll() }} />
                 </PopoverContent>
             </Popover>

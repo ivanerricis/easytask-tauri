@@ -8,9 +8,10 @@ import { ButtonInPopover } from "@/components/button-in-popover";
 
 type ButtonMenuProps = {
     workspace: Workspace
+    onChangeColor: () => void
 }
 
-export const ButtonMenuWorkspace = ({ workspace }: ButtonMenuProps) => {
+export const ButtonMenuWorkspace = ({ workspace, onChangeColor }: ButtonMenuProps) => {
     const [isEditWorkspaceOpen, setEditWorkspaceOpen] = useState(false);
     const [isDeleteWorkspaceOpen, setDeleteWorkspaceOpen] = useState(false);
     const [popoverOpen, setPopoverOpen] = useState(false);
@@ -32,6 +33,7 @@ export const ButtonMenuWorkspace = ({ workspace }: ButtonMenuProps) => {
                     className="flex flex-col w-auto p-1 rounded-xs"
                 >
                     <ButtonInPopover text="Modifica" onClick={() => { setEditWorkspaceOpen(true); closeAll() }} />
+                    <ButtonInPopover text="Cambia colore" onClick={() => { onChangeColor(); closeAll() }} />
                     <ButtonInPopover text="Elimina" destructive onClick={() => { setDeleteWorkspaceOpen(true); closeAll() }} />
                 </PopoverContent>
             </Popover >

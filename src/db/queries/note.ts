@@ -1,6 +1,6 @@
 import type { Group, Section, Task } from "@/types/types";
 import { getDB } from "../dbManager";
-import { createError, handleDBError } from "@/types/error";
+import { handleDBError } from "@/types/error";
 
 export async function getDBNoteData(noteId: number) {
     const db = await getDB();
@@ -112,20 +112,5 @@ export async function editDBNote(noteId: number, name: string, color?: string | 
             UNIQUE: "A note with this name already exists.",
             CHECK: "The note name cannot be empty.",
         })
-    }
-}
-
-/**
- * Deletes a note from the database.
- * @param id The ID of the note to delete.
- * @category Database
- */
-export async function deleteDBNote(noteId: number) {
-    const db = await getDB()
-
-    try {
-        await db.execute('DELETE FROM note WHERE id=?', [noteId])
-    } catch (error: any) {
-        throw createError('UNKNOWN_ERROR', 'An unknown error occurred while deleting the note: ' + error.message)
     }
 }

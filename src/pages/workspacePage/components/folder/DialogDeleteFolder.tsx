@@ -11,14 +11,14 @@ type DialogDeleteProps = {
 
 export const DialogDeleteFolder = ({ folderId, isOpen, onOpenChange }: DialogDeleteProps) => {
 
-    const { deleteFolder, getWorkspaceData } = useWorkspaceData()
+    const { deleteItem, getWorkspaceData } = useWorkspaceData()
     const { currentWorkspace } = useWorkspace()
 
     const onDelete = async (e: React.MouseEvent) => {
         e.stopPropagation()
         if (!currentWorkspace) return
         try {
-            await deleteFolder(folderId)
+            await deleteItem("folder", folderId)
             await getWorkspaceData(currentWorkspace.id)
             onOpenChange(false)
         } catch (err: any) {

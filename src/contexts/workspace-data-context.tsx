@@ -1,11 +1,12 @@
 import { createContext, useContext, useState } from "react"
 import type { Folder, Group, Note } from "@/types/types"
 import { getDBWorkspaceData } from "@/db/queries/workspace";
-import { createDBNoteInFolder, createDBWorkspaceNote, editDBNote, deleteDBNote, getDBNoteData } from "@/db/queries/note"
-import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent, editDBFolder, deleteDBFolder } from "@/db/queries/folder";
-import { createDBSection, createDBSectionInGroup, deleteDBSection } from "@/db/queries/section";
-import { createDBSubTask, createDBTask, deleteDBTask, editDBTaskCompletion, editDBTaskPriority } from "@/db/queries/task";
+import { createDBNoteInFolder, createDBWorkspaceNote, editDBNote, getDBNoteData } from "@/db/queries/note"
+import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent, editDBFolder } from "@/db/queries/folder";
+import { createDBSection, createDBSectionInGroup } from "@/db/queries/section";
+import { createDBSubTask, createDBTask, editDBTaskCompletion, editDBTaskPriority } from "@/db/queries/task";
 import { updateDBGroupPositions } from "@/db/queries/group";
+import { updateDBColor, deleteDBItem } from "@/db/queries/shared_queries";
 
 /* ------------------------------------------------------------------------------------ */
 
@@ -36,17 +37,15 @@ type WorkspaceDataContextType = {
     createTask: (sectionId: number, text: string, color?: string) => Promise<void>
     createSubTask: (taskId: number, text: string, color?: string) => Promise<void>
 
-    UpdateGroupsPositions: (groups: Group[]) => Promise<void>
     editNote: (noteId: number, name: string, color?: string) => Promise<void>
-    updateFolderColorContent: (folderId: number, color?: string) => Promise<void>
     editFolder: (folderId: number, name: string, color?: string) => Promise<void>
     editTaskPriority: (taskId: number, priority: boolean) => Promise<void>
     editTaskCompletion: (taskId: number, isCompleted: boolean) => Promise<void>
+    updateItemColor: (itemType: string, itemId: number, color?: string) => Promise<void>
+    updateGroupsPositions: (groups: Group[]) => Promise<void>
+    updateFolderColorContent: (folderId: number, color?: string) => Promise<void>
 
-    deleteFolder: (id: number) => Promise<void>
-    deleteNote: (id: number) => Promise<void>
-    deleteSection: (id: number) => Promise<void>
-    deleteTask: (id: number) => Promise<void>
+    deleteItem: (itemType: string, itemId: number) => Promise<void>
     resetData: () => void
 }
 
@@ -198,36 +197,12 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     /* ------------------------------------------------------------------------------------ */
     // Editing methods
 
-    const UpdateGroupsPositions = async (groups: Group[]) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await updateDBGroupPositions(groups)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
     const editNote = async (noteId: number, name: string, color?: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {
             await editDBNote(noteId, name, color)
         } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    const updateFolderColorContent = async (folderId: number, color?: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await updateDBFolderColorContent(folderId, color)
-        } catch (error) {
             throw error
         } finally {
             setIsLoading(false)
@@ -270,51 +245,51 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }
 
+    const updateItemColor = async (itemType: string, itemId: number, color?: string) => {
+        if (isLoading) return
+        setIsLoading(true)
+        try {
+            await updateDBColor(itemType, itemId, color)
+        } catch (error: any) {
+            throw error
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const updateGroupsPositions = async (groups: Group[]) => {
+        if (isLoading) return
+        setIsLoading(true)
+        try {
+            await updateDBGroupPositions(groups)
+        } catch (error) {
+            throw error
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const updateFolderColorContent = async (folderId: number, color?: string) => {
+        if (isLoading) return
+        setIsLoading(true)
+        try {
+            await updateDBFolderColorContent(folderId, color)
+        } catch (error) {
+            throw error
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     /* ------------------------------------------------------------------------------------ */
     // Deleting methods
 
-    const deleteFolder = async (id: number) => {
+    const deleteItem = async (itemType: string, itemId: number) => {
         if (isLoading) return
         setIsLoading(true)
         try {
-            await deleteDBFolder(id)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    const deleteNote = async (id: number) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await deleteDBNote(id)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    const deleteSection = async (id: number) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await deleteDBSection(id)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    const deleteTask = async (id: number) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await deleteDBTask(id)
-        } catch (error) {
+            await deleteDBItem(itemType, itemId)
+        } catch (error: any) {
             throw error
         } finally {
             setIsLoading(false)
@@ -354,16 +329,14 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             createSectionInGroup,
             createTask,
             createSubTask,
-            UpdateGroupsPositions,
             editNote,
-            updateFolderColorContent,
             editFolder,
             editTaskPriority,
             editTaskCompletion,
-            deleteFolder,
-            deleteNote,
-            deleteSection,
-            deleteTask,
+            updateItemColor,
+            updateGroupsPositions,
+            updateFolderColorContent,
+            deleteItem,
             resetData
         }}>
             {children}

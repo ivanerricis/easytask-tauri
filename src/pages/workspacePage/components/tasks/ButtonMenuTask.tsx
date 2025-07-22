@@ -11,9 +11,10 @@ import { ButtonInPopover } from "@/components/button-in-popover"
 
 type ButtonMenuFolderProps = {
     task: Task
+    onChangeColor: () => void
 }
 
-export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
+export const ButtonMenuTask = ({ task, onChangeColor }: ButtonMenuFolderProps) => {
     const [popoverOpen, setPopoverOpen] = useState(false)
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
     const { editTaskPriority, getNoteData, currentNote } = useWorkspaceData()
@@ -39,7 +40,7 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
         <>
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                 <PopoverTrigger asChild>
-                    <button onClick={(e) => e.stopPropagation()} className="rounded-xs cursor-pointer">
+                    <button onClick={(e) => e.stopPropagation()} className="p-1 rounded-xs cursor-pointer">
                         <EllipsisVertical className="!h-4 !w-4" />
                     </button>
                 </PopoverTrigger>
@@ -47,6 +48,7 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
                     onClick={(e) => { e.stopPropagation() }}
                     className="flex flex-col justify-center gap-1 w-auto p-1 rounded-xs"
                 >
+                    <ButtonInPopover text="Cambia colore" onClick={() => { onChangeColor(), closeAll() }} />
                     <Button
                         onClick={handleEditPriority}
                         size={"sm"}
@@ -57,6 +59,7 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
                     <ButtonInPopover text="Elimina" destructive onClick={() => { setDeleteTaskOpen(true); closeAll() }} />
                 </PopoverContent>
             </Popover>
+
             <DialogDeleteTask
                 taskId={task.id}
                 isOpen={isDeleteTaskOpen}

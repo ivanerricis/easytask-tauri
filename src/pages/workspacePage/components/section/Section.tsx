@@ -17,7 +17,7 @@ export const Section = ({ section, dragHandleProps }: SectionProps) => {
     }
 
     return (
-        <div className="min-w-[250px] border bg-secondary h-full flex flex-col">
+        <div className="min-w-[250px] border bg-accent h-full flex flex-col p-1">
             <SectionHeader
                 isOpen={isOpen}
                 onOpenChange={handleOpen}

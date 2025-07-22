@@ -6,7 +6,7 @@ import { Group } from "./Group"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 
 export const GroupContainer = () => {
-    const { getNoteData, UpdateGroupsPositions, currentNote, groups, setGroups } = useWorkspaceData()
+    const { getNoteData, updateGroupsPositions, currentNote, groups, setGroups } = useWorkspaceData()
 
     useEffect(() => {
         const fetchNoteData = async () => {
@@ -32,7 +32,7 @@ export const GroupContainer = () => {
         setGroups(updatedGroups)
 
         try {
-            await UpdateGroupsPositions(updatedGroups)
+            await updateGroupsPositions(updatedGroups)
             if (currentNote)
                 await getNoteData(currentNote?.id)
         } catch (error: any) {

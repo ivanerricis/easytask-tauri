@@ -1,4 +1,3 @@
-import { Button } from "./ui/button"
 import { cn } from "@/lib/utils"
 
 type ButtonInPopoverProps = {
@@ -6,7 +5,7 @@ type ButtonInPopoverProps = {
     children?: React.ReactNode
     className?: string
     destructive?: boolean
-    onClick?: () => void
+    onClick?: () => void | Promise<void>
 }
 
 export const ButtonInPopover = ({ text, children, className, destructive, onClick }: ButtonInPopoverProps) => {
@@ -18,15 +17,14 @@ export const ButtonInPopover = ({ text, children, className, destructive, onClic
     }
 
     return (
-        <Button
+        <button
             onClick={handleClick}
-            variant={"ghost"}
-            size={"sm"}
-            className={cn(`${destructive ? "text-destructive hover:text-destructive hover:!bg-destructive/15" : "hover:text-foreground"} justify-start rounded-xs text-sm`,
+            className={cn(`${destructive ? "text-destructive hover:text-destructive hover:!bg-destructive/15" : "hover:text-foreground"}
+                justify-start rounded-xs text-xs px-1 py-1.5 text-left hover:bg-secondary cursor-pointer`,
                 className)}
         >
             {text}
             {children}
-        </Button>
+        </button>
     )
 }

@@ -3,16 +3,21 @@ import { EllipsisVertical } from "lucide-react"
 import { DialogDeleteSection } from "./dialogs/DialogDeleteSection"
 import { useState } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
+import { DialogAddColor } from "./dialogs/DialogAddColor"
+import type { Section } from "@/types/types"
+import { useWorkspaceData } from "@/contexts/workspace-data-context"
 
 type ButtonMenuFolderProps = {
-    sectionId: number
+    section: Section
 }
 
-export const ButtonMenuSection = ({ sectionId }: ButtonMenuFolderProps) => {
+export const ButtonMenuSection = ({ section }: ButtonMenuFolderProps) => {
     const [isDeleteSectionOpen, setDeleteSectionOpen] = useState(false)
+    const [isColorSectionOpen, setColorSectionOpen] = useState(false)
     const [popoverOpen, setPopoverOpen] = useState(false)
+    const { updateItemColor, getNoteData, currentNote } = useWorkspaceData()
 
-    const closAll = () => {
+    const closeAll = () => {
         setPopoverOpen(false)
     }
 
@@ -28,12 +33,23 @@ export const ButtonMenuSection = ({ sectionId }: ButtonMenuFolderProps) => {
                     onClick={(e) => { e.stopPropagation() }}
                     className="flex flex-col justify-center gap-1 w-auto p-1 rounded-xs"
                 >
-                    <ButtonInPopover text="Elimina" destructive onClick={() => { setDeleteSectionOpen(true), closAll() }} />
+                    <ButtonInPopover text="Cambia colore" onClick={() => { setColorSectionOpen(true), closeAll() }} />
+                    <ButtonInPopover text="Elimina" destructive onClick={() => { setDeleteSectionOpen(true), closeAll() }} />
                 </PopoverContent>
             </Popover>
 
+            <DialogAddColor
+                item={section}
+                itemType='section'
+                isOpen={isColorSectionOpen}
+                onOpenChange={setColorSectionOpen}
+                addColorItem={updateItemColor}
+                getItemId={currentNote?.id}
+                getItemData={getNoteData}
+            />
+
             <DialogDeleteSection
-                sectionId={sectionId}
+                sectionId={section.id}
                 isOpen={isDeleteSectionOpen}
                 onOpenChange={setDeleteSectionOpen}
             />

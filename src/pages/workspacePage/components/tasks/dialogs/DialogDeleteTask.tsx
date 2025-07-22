@@ -9,13 +9,13 @@ type DialogDeleteProps = {
 }
 
 export const DialogDeleteTask = ({ taskId, isOpen, onOpenChange }: DialogDeleteProps) => {
-    const { deleteTask, getNoteData, currentNote } = useWorkspaceData()
+    const { deleteItem, getNoteData, currentNote } = useWorkspaceData()
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation()
         if (!currentNote) return
         try {
-            await deleteTask(taskId)
+            await deleteItem("task", taskId)
             await getNoteData(currentNote.id)
             onOpenChange(false)
         } catch (err: any) {

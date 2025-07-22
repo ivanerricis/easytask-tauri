@@ -35,7 +35,6 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
     }, [])
 
     const handleEdit = async (e: React.FormEvent) => {
-        e.stopPropagation()
         e.preventDefault()
         if (newWorkspace.name.trim() === "") return
         try {
@@ -48,9 +47,9 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
         }
     }
 
-    const handleCancel = (e: React.MouseEvent) => {
-        e.stopPropagation()
+    const handleCancel = () => {
         setWorkspace(defaultWorkspace)
+        setPaletteOpen(false)
         setError(null)
         onOpenChange(false)
     }
@@ -67,7 +66,6 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
                         <div className="grid gap-3">
                             <Label>Nome</Label>
                             <Input
-                                type="text"
                                 id="name-1"
                                 name="name"
                                 value={newWorkspace.name}
@@ -89,14 +87,21 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
                                         name="color"
                                         type="color"
                                         className="opacity-0 cursor-pointer"
-                                        onClick={(e) => { e.stopPropagation() }}
                                         value={newWorkspace.color}
-                                        onChange={e => { setWorkspace({ ...newWorkspace, color: e.target.value }) }}
+                                        onChange={e => {
+                                            setWorkspace({
+                                                ...newWorkspace,
+                                                color: e.target.value
+                                            })
+                                        }}
                                     />
                                 </div>
                                 <Button
                                     type="button"
-                                    onClick={() => { setPaletteOpen(false), setWorkspace({ ...newWorkspace, color: "#FFFFFF" }) }}
+                                    onClick={() => {
+                                        setPaletteOpen(false)
+                                        setWorkspace({ ...newWorkspace, color: "#FFFFFF" })
+                                    }}
                                     variant={"buttonIcon"}
                                     className="h-full"
                                 >
@@ -124,7 +129,8 @@ export const DialogEditWorkspace = ({ workspace, isOpen, onOpenChange }: DialogE
                         </Button>
                         <Button
                             type="submit"
-                            disabled={!newWorkspace.name}>
+                            disabled={!newWorkspace.name}
+                        >
                             Salva
                         </Button>
                     </DialogFooter>

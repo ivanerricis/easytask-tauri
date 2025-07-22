@@ -1,4 +1,4 @@
-import { createError, handleDBError } from "@/types/error";
+import { handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 
 /**
@@ -6,7 +6,7 @@ import { getDB } from "../dbManager";
  * @param sectionId The ID of the section to which the task belongs.
  * @param text The text of the task.
  * @param color The color of the task (optional).
- * @category Database
+ * @category Database Queries
  */
 export async function createDBWorkspaceFolder(workspaceId: number, name: string, color?: string | null) {
     const db = await getDB()
@@ -26,7 +26,7 @@ export async function createDBWorkspaceFolder(workspaceId: number, name: string,
  * @param folderId The ID of the folder to edit.
  * @param name The new name of the folder.
  * @param color The new color of the folder (optional).
- * @category Database
+ * @category Database Queries
  */
 export async function createDBSubFolder(folderId: number, name: string, color?: string | null) {
     const db = await getDB()
@@ -59,7 +59,7 @@ export async function editDBFolder(folderId: number, name: string, color?: strin
  * Updates the color of a folder and all its subfolders.
  * @param folderId The ID of the folder to update.
  * @param color The new color of the folder (optional).
- * @category Database
+ * @category Database Queries
  */
 export async function updateDBFolderColorContent(folderId: number, color?: string | null) {
     const db = await getDB()
@@ -99,20 +99,5 @@ export async function updateDBFolderColorContent(folderId: number, color?: strin
             UNIQUE: "A folder with this name already exists.",
             CHECK: "The folder name cannot be empty.",
         })
-    }
-}
-
-/**
- * Deletes a folder from the database.
- * @param id The ID of the folder to delete.
- * @category Database
- */
-export async function deleteDBFolder(folderId: number) {
-    const db = await getDB()
-
-    try {
-        await db.execute('DELETE FROM folder WHERE id=?', [folderId])
-    } catch (error: any) {
-        throw createError('FOLDER_DELETE_ERROR', 'An error occurred while deleting the folder: ' + error.message)
     }
 }

@@ -5,14 +5,14 @@ import { DialogDeleteNote } from "./DialogDeleteNote"
 import type { Note } from "@/types/types"
 import { DialogEditNote } from "./DialogEditNote"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import { Button } from "@/components/ui/button"
 import { ButtonInPopover } from "@/components/button-in-popover"
 
 type ButtonMenuNoteProps = {
     note: Note
+    onChangeColor: () => void
 }
 
-export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
+export const ButtonMenuNote = ({ note, onChangeColor }: ButtonMenuNoteProps) => {
     const { setCurrentNotes, setCurrentNote, getNoteData } = useWorkspaceData()
     const [isEditNoteOpen, setEditNoteOpen] = useState(false);
     const [isDeleteNoteOpen, setDeleteNoteOpen] = useState(false);
@@ -26,8 +26,7 @@ export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
         setPopoverOpen(false);
     }
 
-    const handleOpenNote = async (e: React.MouseEvent) => {
-        e.stopPropagation();
+    const openNote = async () => {
         await getNoteData(note.id)
         setCurrentNotes((prev: Note[]) => {
             const alreadyExists = prev.some(n => n.id === note.id)
@@ -48,10 +47,9 @@ export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
                     onClick={(e) => { e.stopPropagation() }}
                     className="flex flex-col justify-center gap-1 w-auto p-1 rounded-xs"
                 >
-                    <Button onClick={handleOpenNote} size={"sm"} variant={"ghost"} className="text-sm rounded-xs justify-start">
-                        Apri nota
-                    </Button>
+                    <ButtonInPopover text="Apri nota" onClick={() => { openNote(); closeAll() }} />
                     <ButtonInPopover text="Modifica nota" onClick={() => { setEditNoteOpen(true); closeAll() }} />
+                    <ButtonInPopover text="Cambia colore" onClick={() => { onChangeColor(); closeAll() }} />
                     <ButtonInPopover text="Elimina" destructive onClick={() => { setDeleteNoteOpen(true); closeAll() }} />
                 </PopoverContent>
             </Popover>

@@ -2,13 +2,18 @@ import type { Workspace } from "@/types/types"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useNavigate } from "react-router-dom"
 import { ButtonMenuWorkspace } from "./ButtonMenuWorkspace"
+import { useState } from "react"
+import { DialogAddColor } from "@/pages/workspacePage/components/section/dialogs/DialogAddColor"
+import { useWorkspaceData } from "@/contexts/workspace-data-context"
 
 type WorkSpaceItemProps = {
     workspace: Workspace
 }
 
 export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
-    const { setCurrentWorkspace } = useWorkspace()
+    const [isColorOpen, setIsColorOpen] = useState(false)
+    const { setCurrentWorkspace, getWorkspaces } = useWorkspace()
+    const { updateItemColor } = useWorkspaceData()
     const navigate = useNavigate()
 
     const handleOpen = () => {
@@ -24,31 +29,50 @@ export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
 
 
     return (
-        <div role="button" onClick={handleOpen} className="group relative flex items-center w-full cursor-pointer h-24 bg-background hover:bg-secondary border rounded-xs">
+        <div className="relative flex">
+            <div
+                role="button"
+                onClick={handleOpen}
+                className="group relative flex items-center w-full cursor-pointer h-24 bg-background hover:bg-secondary border rounded-xs">
 
-            {/* Color Bar */}
-            {workspace.color && <div
-                className="w-2 h-full absolute rounded-l-[0.5px] bg-background"
-                style={{ backgroundColor: workspace.color }}
-            />}
+                {/* Color Bar */}
+                {workspace.color && <div
+                    className="w-2 h-full absolute rounded-l-[0.5px] bg-background"
+                    style={{ backgroundColor: workspace.color }}
+                />}
 
-            {/* Workspace Info */}
-            <div className="flex flex-col justify-between p-2 ml-2 relative w-full">
-                <h1 className="text-muted-foreground group-hover:text-foreground text-xl truncate overflow-hidden whitespace-nowrap mr-8">
-                    {workspace.name}
-                </h1>
-                <div className="flex flex-col items-start gap-1 w-full">
-                    <h1 className="text-muted-foreground text-sm">
-                        Creato il: {formatDate(workspace.creation_date)} - {workspace.creation_time}
+                {/* Workspace Info */}
+                <div className="flex flex-col justify-between p-2 ml-2 relative w-full">
+                    <h1 className="text-muted-foreground group-hover:text-foreground text-xl truncate overflow-hidden whitespace-nowrap mr-8">
+                        {workspace.name}
                     </h1>
-                    <h1 className="text-muted-foreground text-sm">
-                        Modificato il: {formatDate(workspace.edit_date)} - {workspace.edit_time}
-                    </h1>
+                    <div className="flex flex-col items-start gap-1 w-full">
+                        <h1 className="text-muted-foreground text-sm">
+                            Creato il: {formatDate(workspace.creation_date)} - {workspace.creation_time}
+                        </h1>
+                        <h1 className="text-muted-foreground text-sm">
+                            Modificato il: {formatDate(workspace.edit_date)} - {workspace.edit_time}
+                        </h1>
+                    </div>
                 </div>
+
+                {/* Menu Button */}
+                <ButtonMenuWorkspace
+                    workspace={workspace}
+                    onChangeColor={() => setIsColorOpen(true)}
+                />
             </div>
 
-            {/* Menu Button */}
-            <ButtonMenuWorkspace workspace={workspace} />
+            <DialogAddColor
+                className="!-top-0"
+                item={workspace}
+                itemType="workspace"
+                isOpen={isColorOpen}
+                onOpenChange={setIsColorOpen}
+                addColorItem={updateItemColor}
+                getItemId={workspace.id}
+                getItemData={getWorkspaces}
+            />
         </div>
     )
 }
