@@ -1,5 +1,5 @@
 import { Navbar } from "@/components/navbar"
-import { DialogSettings } from "../../components/dialog-settings"
+import { DialogSettings } from "@/components/dialogs/dialog-settings"
 
 type MainPageLayoutProps = {
     children: React.ReactNode

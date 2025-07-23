@@ -8,7 +8,7 @@ export const createFolderTable = `
         workspace_id INTEGER,
         folder_id INTEGER,
         name TEXT NOT NULL CHECK (LENGTH(name) > 0),
-        color TEXT CHECK (LENGTH(color) > 0),
+        color TEXT CHECK (LENGTH(color) > 0) DEFAULT NULL,
         creation_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
         creation_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
         edit_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),

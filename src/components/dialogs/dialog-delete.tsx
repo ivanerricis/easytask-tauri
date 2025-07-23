@@ -1,30 +1,36 @@
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { DialogClose } from "@radix-ui/react-dialog"
 import React from "react"
 import { toast } from "sonner"
 
-type DialogDeleteProps = {
-    workspaceId: number
+type DialogDeleteProps<T> = {
+    item: T
+    itemType: string
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
+    getItemId?: number | undefined
+    getItemData: (id: number) => Promise<void>
 }
 
-export const DialogDeleteWorkspace = ({ workspaceId, isOpen, onOpenChange }: DialogDeleteProps) => {
+type defaultItemType = {
+    id: number
+}
 
-    const { getWorkspaces } = useWorkspace()
+export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, getItemId, isOpen, onOpenChange, getItemData }: DialogDeleteProps<T>) => {
     const { deleteItem } = useWorkspaceData()
 
     const handleDelete = async (e: React.MouseEvent) => {
         e.stopPropagation()
         try {
-            await deleteItem("workspace", workspaceId)
-            await getWorkspaces()
+            await deleteItem(itemType, item.id)
+            if (typeof getItemId === "number") {
+                await getItemData(getItemId)
+            }
             onOpenChange(false)
         } catch (error: any) {
-            toast.error('Impossibile eliminare il Workspace')
+            toast.error('Impossibile eliminare l\'elemento: ' + error.message)
         }
     }
 
@@ -33,7 +39,7 @@ export const DialogDeleteWorkspace = ({ workspaceId, isOpen, onOpenChange }: Dia
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle className="text-destructive">
-                        Stai per eliminare il Workspace
+                        Stai per eliminare l'elemento
                     </DialogTitle>
                     <DialogDescription>
                         Sei sicuro? Questa operazione non può essere annullata!

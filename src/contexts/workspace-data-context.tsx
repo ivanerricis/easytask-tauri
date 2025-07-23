@@ -1,12 +1,12 @@
 import { createContext, useContext, useState } from "react"
 import type { Folder, Group, Note } from "@/types/types"
 import { getDBWorkspaceData } from "@/db/queries/workspace";
-import { createDBNoteInFolder, createDBWorkspaceNote, editDBNote, getDBNoteData } from "@/db/queries/note"
-import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent, editDBFolder } from "@/db/queries/folder";
+import { createDBNoteInFolder, createDBWorkspaceNote, getDBNoteData } from "@/db/queries/note"
+import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder";
 import { createDBSection, createDBSectionInGroup } from "@/db/queries/section";
 import { createDBSubTask, createDBTask, editDBTaskCompletion, editDBTaskPriority } from "@/db/queries/task";
 import { updateDBGroupPositions } from "@/db/queries/group";
-import { updateDBColor, deleteDBItem } from "@/db/queries/shared_queries";
+import { renameDBItem, updateDBColor, deleteDBItem } from "@/db/queries/shared_queries";
 
 /* ------------------------------------------------------------------------------------ */
 
@@ -30,17 +30,17 @@ type WorkspaceDataContextType = {
 
     createWorkspaceFolder: (workspaceId: number, name: string, color?: string) => Promise<void>
     createWorkspaceNote: (workspaceId: number, name: string, color?: string) => Promise<void>
-    createSubFolder: (folderId: number, name: string, color?: string) => Promise<void>
-    createNoteInFolder: (folderId: number, name: string, color?: string) => Promise<void>
+
+    createSubFolder: (folderId: number, name: string) => Promise<void>
+    createNoteInFolder: (folderId: number, name: string) => Promise<void>
     createSection: (noteId: number, title: string, position: number, color?: string) => Promise<void>
     createSectionInGroup: (groupId: number, title: string, color?: string) => Promise<void>
     createTask: (sectionId: number, text: string, color?: string) => Promise<void>
     createSubTask: (taskId: number, text: string, color?: string) => Promise<void>
 
-    editNote: (noteId: number, name: string, color?: string) => Promise<void>
-    editFolder: (folderId: number, name: string, color?: string) => Promise<void>
     editTaskPriority: (taskId: number, priority: boolean) => Promise<void>
     editTaskCompletion: (taskId: number, isCompleted: boolean) => Promise<void>
+    renameItem: (itemType: string, itemId: number, name: string) => Promise<void>
     updateItemColor: (itemType: string, itemId: number, color?: string) => Promise<void>
     updateGroupsPositions: (groups: Group[]) => Promise<void>
     updateFolderColorContent: (folderId: number, color?: string) => Promise<void>
@@ -122,11 +122,11 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }
 
-    const createSubFolder = async (folderId: number, name: string, color?: string) => {
+    const createSubFolder = async (folderId: number, name: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {
-            await createDBSubFolder(folderId, name, color)
+            await createDBSubFolder(folderId, name)
         } catch (error: any) {
             throw error
         } finally {
@@ -134,11 +134,11 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }
 
-    const createNoteInFolder = async (folderId: number, name: string, color?: string) => {
+    const createNoteInFolder = async (folderId: number, name: string) => {
         if (isLoading) return
         setIsLoading(true)
         try {
-            await createDBNoteInFolder(folderId, name, color)
+            await createDBNoteInFolder(folderId, name)
         } catch (error) {
             throw error
         } finally {
@@ -197,30 +197,6 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     /* ------------------------------------------------------------------------------------ */
     // Editing methods
 
-    const editNote = async (noteId: number, name: string, color?: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await editDBNote(noteId, name, color)
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
-    const editFolder = async (folderId: number, name: string, color?: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await editDBFolder(folderId, name, color)
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
     const editTaskPriority = async (taskId: number, priority: boolean) => {
         if (isLoading) return
         setIsLoading(true)
@@ -238,6 +214,18 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         setIsLoading(true)
         try {
             await editDBTaskCompletion(taskId, isCompleted)
+        } catch (error) {
+            throw error
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
+    const renameItem = async (itemType: string, itemId: number, name: string) => {
+        if (isLoading) return
+        setIsLoading(true)
+        try {
+            await renameDBItem(itemType, itemId, name)
         } catch (error) {
             throw error
         } finally {
@@ -329,10 +317,9 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             createSectionInGroup,
             createTask,
             createSubTask,
-            editNote,
-            editFolder,
             editTaskPriority,
             editTaskCompletion,
+            renameItem,
             updateItemColor,
             updateGroupsPositions,
             updateFolderColorContent,

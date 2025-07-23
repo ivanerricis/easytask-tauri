@@ -2,31 +2,29 @@ import type { Workspace } from "@/types/types"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useNavigate } from "react-router-dom"
 import { ButtonMenuWorkspace } from "./ButtonMenuWorkspace"
-import { useState } from "react"
-import { DialogAddColor } from "@/pages/workspacePage/components/section/dialogs/DialogAddColor"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import React from "react"
 
 type WorkSpaceItemProps = {
     workspace: Workspace
 }
 
-export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
-    const [isColorOpen, setIsColorOpen] = useState(false)
-    const { setCurrentWorkspace, getWorkspaces } = useWorkspace()
-    const { updateItemColor } = useWorkspaceData()
+export const WorkSpaceItem = React.memo(({ workspace }: WorkSpaceItemProps) => {
+    const { setCurrentWorkspace } = useWorkspace()
     const navigate = useNavigate()
 
-    const handleOpen = () => {
-        setCurrentWorkspace(workspace)
-        navigate(`/workspace/${workspace.id}`)
-    }
-
-    const formatDate = (dateStr: string) => {
+    function formatDate(dateStr: string) {
         if (!dateStr) return ""
         const [year, month, day] = dateStr.split("-")
         return `${day}-${month}-${year}`
     }
 
+    const formattedCreationDate = formatDate(workspace.creation_date)
+    const formattedEditDate = formatDate(workspace.edit_date)
+
+    const handleOpen = () => {
+        setCurrentWorkspace(workspace)
+        navigate(`/workspace/${workspace.id}`)
+    }
 
     return (
         <div className="relative flex">
@@ -48,10 +46,10 @@ export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
                     </h1>
                     <div className="flex flex-col items-start gap-1 w-full">
                         <h1 className="text-muted-foreground text-sm">
-                            Creato il: {formatDate(workspace.creation_date)} - {workspace.creation_time}
+                            Creato il: {formattedCreationDate} - {workspace.creation_time}
                         </h1>
                         <h1 className="text-muted-foreground text-sm">
-                            Modificato il: {formatDate(workspace.edit_date)} - {workspace.edit_time}
+                            Modificato il: {formattedEditDate} - {workspace.edit_time}
                         </h1>
                     </div>
                 </div>
@@ -59,20 +57,8 @@ export const WorkSpaceItem = ({ workspace }: WorkSpaceItemProps) => {
                 {/* Menu Button */}
                 <ButtonMenuWorkspace
                     workspace={workspace}
-                    onChangeColor={() => setIsColorOpen(true)}
                 />
             </div>
-
-            <DialogAddColor
-                className="!-top-0"
-                item={workspace}
-                itemType="workspace"
-                isOpen={isColorOpen}
-                onOpenChange={setIsColorOpen}
-                addColorItem={updateItemColor}
-                getItemId={workspace.id}
-                getItemData={getWorkspaces}
-            />
         </div>
     )
-}
+})

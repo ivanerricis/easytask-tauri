@@ -12,7 +12,7 @@ export const createTaskTable = `
         completed BOOLEAN NOT NULL DEFAULT FALSE,
         priority BOOLEAN NOT NULL DEFAULT FALSE,
         archived BOOLEAN NOT NULL DEFAULT FALSE,
-        color TEXT CHECK (LENGTH(color) > 0),
+        color TEXT CHECK (LENGTH(color) > 0) DEFAULT NULL,
         creation_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
         creation_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
         edit_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),

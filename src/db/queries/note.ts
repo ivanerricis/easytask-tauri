@@ -82,31 +82,11 @@ export async function createDBWorkspaceNote(workspaceId: number, name: string, c
  * @param color The color of the note (optional).
  * @category Database
  */
-export async function createDBNoteInFolder(folderId: number, name: string, color?: string | null) {
+export async function createDBNoteInFolder(folderId: number, name: string) {
     const db = await getDB()
 
     try {
-        await db.execute('INSERT INTO note (folder_id, name, color) VALUES (?, ?, ?)', [folderId, name, color ?? null]);
-    } catch (error: any) {
-        handleDBError(error, "NOTE", {
-            UNIQUE: "A note with this name already exists.",
-            CHECK: "The note name cannot be empty.",
-        })
-    }
-}
-
-/**
- * Edits an existing note in the database.
- * @param noteId The ID of the note to edit.
- * @param name The new name of the note.
- * @param color The new color of the note (optional).
- * @category Database
- */
-export async function editDBNote(noteId: number, name: string, color?: string | null) {
-    const db = await getDB()
-
-    try {
-        await db.execute('UPDATE note SET name=?, color=? WHERE id=?', [name, color ?? null, noteId]);
+        await db.execute('INSERT INTO note (folder_id, name) VALUES (?, ?)', [folderId, name]);
     } catch (error: any) {
         handleDBError(error, "NOTE", {
             UNIQUE: "A note with this name already exists.",

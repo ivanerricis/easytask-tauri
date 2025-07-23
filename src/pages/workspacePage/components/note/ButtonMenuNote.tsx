@@ -1,29 +1,29 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { EllipsisVertical } from "lucide-react"
 import React, { useState } from "react"
-import { DialogDeleteNote } from "./DialogDeleteNote"
 import type { Note } from "@/types/types"
-import { DialogEditNote } from "./DialogEditNote"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { ButtonInPopover } from "@/components/button-in-popover"
+import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
+import { useWorkspace } from "@/contexts/workspace-context"
+import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
+import { Separator } from "@/components/ui/separator"
+import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 
 type ButtonMenuNoteProps = {
     note: Note
-    onChangeColor: () => void
 }
 
-export const ButtonMenuNote = ({ note, onChangeColor }: ButtonMenuNoteProps) => {
-    const { setCurrentNotes, setCurrentNote, getNoteData } = useWorkspaceData()
-    const [isEditNoteOpen, setEditNoteOpen] = useState(false);
-    const [isDeleteNoteOpen, setDeleteNoteOpen] = useState(false);
+export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
+    const { currentWorkspace } = useWorkspace()
+    const { setCurrentNotes, setCurrentNote, getNoteData, getWorkspaceData, updateItemColor } = useWorkspaceData()
+    const [isColorOpen, setColorOpen] = useState(false);
+    const [isRenameOpen, setRenameOpen] = useState(false);
+    const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [popoverOpen, setPopoverOpen] = useState(false);
 
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation()
-    }
-
-    const closeAll = () => {
-        setPopoverOpen(false);
     }
 
     const openNote = async () => {
@@ -39,30 +39,65 @@ export const ButtonMenuNote = ({ note, onChangeColor }: ButtonMenuNoteProps) => 
         <>
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                 <PopoverTrigger asChild>
-                    <button onClick={handleClick} className="p-1 rounded-xs cursor-pointer">
+                    <div onClick={handleClick} className="p-1 rounded-xs cursor-pointer">
                         <EllipsisVertical className="!h-4 !w-4" />
-                    </button>
+                    </div>
                 </PopoverTrigger>
                 <PopoverContent
                     onClick={(e) => { e.stopPropagation() }}
-                    className="flex flex-col justify-center gap-1 w-auto p-1 rounded-xs"
+                    className="relative flex w-auto p-0 rounded-xs gap-1 bg-transparent border-none"
                 >
-                    <ButtonInPopover text="Apri nota" onClick={() => { openNote(); closeAll() }} />
-                    <ButtonInPopover text="Modifica nota" onClick={() => { setEditNoteOpen(true); closeAll() }} />
-                    <ButtonInPopover text="Cambia colore" onClick={() => { onChangeColor(); closeAll() }} />
-                    <ButtonInPopover text="Elimina" destructive onClick={() => { setDeleteNoteOpen(true); closeAll() }} />
+                    <div className="flex flex-col gap-1 p-1 border bg-background">
+                        <ButtonInPopover
+                            text="Apri nota"
+                            type="open"
+                            onClick={() => { openNote(); setPopoverOpen(false) }}
+                        />
+                        <ButtonInPopover
+                            text="Rinomina"
+                            type="rename"
+                            onClick={() => { setRenameOpen(true); setPopoverOpen(false) }}
+                        />
+                        <ButtonInPopover
+                            text="Cambia colore"
+                            type="color"
+                            onClick={() => { setColorOpen(!isColorOpen) }}
+                        />
+                        <Separator />
+                        <ButtonInPopover
+                            text="Elimina"
+                            type="delete"
+                            destructive
+                            onClick={() => { setDeleteOpen(true); setPopoverOpen(false) }}
+                        />
+                    </div>
+                    <DialogAddColor
+                        item={note}
+                        itemType="note"
+                        isOpen={isColorOpen}
+                        onOpenChange={setColorOpen}
+                        addColorItem={updateItemColor}
+                        getItemId={currentWorkspace?.id}
+                        getItemData={getWorkspaceData}
+                    />
                 </PopoverContent>
             </Popover>
 
-            <DialogEditNote
-                note={note}
-                isOpen={isEditNoteOpen}
-                onOpenChange={setEditNoteOpen}
+            <DialogRenameItem
+                item={note}
+                itemType="note"
+                isOpen={isRenameOpen}
+                onOpenChange={setRenameOpen}
+                getItemId={currentWorkspace?.id}
+                getItemData={getWorkspaceData}
             />
-            <DialogDeleteNote
-                noteId={note.id}
-                isOpen={isDeleteNoteOpen}
-                onOpenChange={setDeleteNoteOpen}
+            <DialogDeleteItem
+                item={note}
+                itemType="note"
+                isOpen={isDeleteOpen}
+                onOpenChange={setDeleteOpen}
+                getItemId={currentWorkspace?.id}
+                getItemData={getWorkspaceData}
             />
         </>
     )

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react'
 import type { Workspace } from '@/types/types'
-import { getDBWorkspaces, createDBWorkspace, editDBWorkspace, deleteDBWorkspace } from '@/db/queries/workspace'
+import { getDBWorkspaces, createDBWorkspace, editDBWorkspace } from '@/db/queries/workspace'
 
 type WorkspaceContextType = {
     workspaces: Workspace[]
@@ -11,7 +11,6 @@ type WorkspaceContextType = {
     getWorkspaces: () => Promise<void>
     createWorkspace: (name: string, color?: string) => Promise<void>
     editWorkspace: (id: number, name: string, color?: string) => Promise<void>
-    deleteWorkspace: (id: number) => Promise<void>
     resetWorkspace: () => void
 }
 
@@ -62,19 +61,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
-    const deleteWorkspace = async (id: number) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await deleteDBWorkspace(id)
-            await getWorkspaces()
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
     const resetWorkspace = () => {
         setCurrentWorkspace(null)
         setError(null)
@@ -87,7 +73,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             isLoading,
             error,
             getWorkspaces,
-            deleteWorkspace,
             createWorkspace,
             editWorkspace,
             setCurrentWorkspace,

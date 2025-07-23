@@ -1,30 +1,25 @@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { EllipsisVertical } from "lucide-react"
-import { DialogDeleteTask } from "./dialogs/DialogDeleteTask"
 import type { Task } from "@/types/types"
-import { Button } from "@/components/ui/button"
-import type React from "react"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { toast } from "sonner"
 import { useState } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
+import { Separator } from "@/components/ui/separator"
+import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
+import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 
 type ButtonMenuFolderProps = {
     task: Task
-    onChangeColor: () => void
 }
 
-export const ButtonMenuTask = ({ task, onChangeColor }: ButtonMenuFolderProps) => {
+export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
     const [popoverOpen, setPopoverOpen] = useState(false)
+    const [isColorOpen, setColorOpen] = useState(false)
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
-    const { editTaskPriority, getNoteData, currentNote } = useWorkspaceData()
+    const { editTaskPriority, getNoteData, updateItemColor, currentNote } = useWorkspaceData()
 
-    const closeAll = () => {
-        setPopoverOpen(false)
-    }
-
-    const handleEditPriority = async (e: React.MouseEvent) => {
-        e.stopPropagation()
+    const handleEditPriority = async () => {
         try {
             await editTaskPriority(task.id, !task.priority)
             if (currentNote)
@@ -32,7 +27,7 @@ export const ButtonMenuTask = ({ task, onChangeColor }: ButtonMenuFolderProps) =
         } catch (error: any) {
             toast.error('Impossibile modificare la priorità')
         } finally {
-            closeAll()
+            setPopoverOpen(false)
         }
     }
 
@@ -40,30 +35,52 @@ export const ButtonMenuTask = ({ task, onChangeColor }: ButtonMenuFolderProps) =
         <>
             <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
                 <PopoverTrigger asChild>
-                    <button onClick={(e) => e.stopPropagation()} className="p-1 rounded-xs cursor-pointer">
+                    <div onClick={(e) => e.stopPropagation()} className="p-1 rounded-xs cursor-pointer">
                         <EllipsisVertical className="!h-4 !w-4" />
-                    </button>
+                    </div>
                 </PopoverTrigger>
                 <PopoverContent
                     onClick={(e) => { e.stopPropagation() }}
-                    className="flex flex-col justify-center gap-1 w-auto p-1 rounded-xs"
+                    className="relative flex w-auto p-0 rounded-xs gap-1 bg-transparent border-none"
                 >
-                    <ButtonInPopover text="Cambia colore" onClick={() => { onChangeColor(), closeAll() }} />
-                    <Button
-                        onClick={handleEditPriority}
-                        size={"sm"}
-                        variant={"ghost"}
-                        className="text-xs rounded-xs justify-start">
-                        {task.priority ? 'Rimuovi priorità' : 'Aggiungi priorità'}
-                    </Button>
-                    <ButtonInPopover text="Elimina" destructive onClick={() => { setDeleteTaskOpen(true); closeAll() }} />
+                    <div className="flex flex-col gap-1 p-1 border bg-background">
+                        <ButtonInPopover
+                            text="Cambia colore"
+                            type="color"
+                            onClick={() => { setColorOpen(!isColorOpen) }}
+                        />
+                        <ButtonInPopover
+                            text={task.priority ? 'Rimuovi priorità' : 'Aggiungi priorità'}
+                            type={task.priority ? 'removePriority' : 'addPriority'}
+                            onClick={() => { handleEditPriority(); setPopoverOpen(false) }}
+                        />
+                        <Separator />
+                        <ButtonInPopover
+                            text="Elimina"
+                            type="delete"
+                            destructive
+                            onClick={() => { setDeleteTaskOpen(true); setPopoverOpen(false) }}
+                        />
+                    </div>
+                    <DialogAddColor
+                        item={task}
+                        itemType="task"
+                        isOpen={isColorOpen}
+                        onOpenChange={setColorOpen}
+                        addColorItem={updateItemColor}
+                        getItemId={currentNote?.id}
+                        getItemData={getNoteData}
+                    />
                 </PopoverContent>
             </Popover>
 
-            <DialogDeleteTask
-                taskId={task.id}
+            <DialogDeleteItem
+                item={task}
+                itemType="task"
                 isOpen={isDeleteTaskOpen}
                 onOpenChange={setDeleteTaskOpen}
+                getItemId={currentNote?.id}
+                getItemData={getNoteData}
             />
         </>
     )

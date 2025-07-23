@@ -2,11 +2,33 @@ import { createError, handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 
 /**
+ * Renames an item in the database.
+ * @param itemType Type of item to rename (e.g., 'task', 'section').
+ * @param itemId ID of the item to rename.
+ * @param name New name value
+ * @category Database Queries
+ */
+export async function renameDBItem(itemType: string, itemId: number, name: string) {
+    const db = await getDB()
+
+    try {
+        if(itemType === "section")
+            await db.execute('UPDATE ' + itemType + ' SET title=? WHERE id=?', [name, itemId])
+        if(itemType === "task")
+            await db.execute('UPDATE ' + itemType + ' SET text=? WHERE id=?', [name, itemId])
+        else
+            await db.execute('UPDATE ' + itemType + ' SET name=? WHERE id=?', [name, itemId])
+    } catch (error: any) {
+
+    }
+}
+
+/**
  * Updates the color of an item in the database.
  * @param itemType Type of item to update color for (e.g., 'task', 'section').
  * @param itemId ID of the item to update.
  * @param color New color value (or null to remove color)
- * @category Database
+ * @category Database Queries
  */
 export async function updateDBColor(itemType: string, itemId: number, color?: string | null) {
     const db = await getDB()
@@ -26,6 +48,7 @@ export async function updateDBColor(itemType: string, itemId: number, color?: st
  * Deletes an item from the database.
  * @param itemType Type of item to delete (e.g., 'task', 'section').
  * @param itemId ID of the item to delete.
+ * @category Database Queries
  */
 export async function deleteDBItem(itemType: string, itemId: number) {
     const db = await getDB()

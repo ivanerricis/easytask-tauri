@@ -2,10 +2,10 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Settings } from "lucide-react"
-import { Input } from "./ui/input"
+import { Input } from "@/components/ui/input"
 import React, { useEffect, useState } from "react"
-import { Separator } from "./ui/separator"
-import { TooltipCustom } from "./tooltip-custom"
+import { Separator } from "@/components/ui/separator"
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { store } from "@/lib/store/initStore"
 
 type DialogSettingsProps = {

@@ -1,5 +1,5 @@
 import type { Workspace } from "@/types/types"
-import { WorkSpaceItem } from "./WorkSpaceItem"
+import { WorkSpaceItem } from "./WorkSpace"
 
 type WorkspacesContainerProps = {
     workspaces: Workspace[]

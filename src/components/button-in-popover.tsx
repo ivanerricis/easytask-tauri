@@ -1,14 +1,29 @@
 import { cn } from "@/lib/utils"
+import { ArrowRight, FilePlus, FolderPlus, HelpCircle, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash } from "lucide-react"
 
 type ButtonInPopoverProps = {
     text: string
+    type: string
     children?: React.ReactNode
     className?: string
     destructive?: boolean
     onClick?: () => void | Promise<void>
 }
 
-export const ButtonInPopover = ({ text, children, className, destructive, onClick }: ButtonInPopoverProps) => {
+const iconMap: Record<string, React.ElementType> = {
+    open: SquareArrowOutUpRight,
+    addFolder: FolderPlus,
+    addNote: FilePlus,
+    rename: Pen,
+    color: Palette,
+    colorContent: PaintBucket,
+    addPriority: OctagonAlert,
+    removePriority: OctagonX,
+    delete: Trash,
+}
+
+export const ButtonInPopover = ({ text, type, children, className, destructive, onClick }: ButtonInPopoverProps) => {
+    const IconComponent = iconMap[type] || HelpCircle
 
     const handleClick = (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -20,11 +35,13 @@ export const ButtonInPopover = ({ text, children, className, destructive, onClic
         <button
             onClick={handleClick}
             className={cn(`${destructive ? "text-destructive hover:text-destructive hover:!bg-destructive/15" : "hover:text-foreground"}
-                justify-start rounded-xs text-xs px-1 py-1.5 text-left hover:bg-secondary cursor-pointer`,
+                flex justify-start items-center rounded-xs text-sm px-1 py-1.5 text-left hover:bg-secondary cursor-pointer gap-2 text-nowrap`,
                 className)}
         >
+            <IconComponent className="w-4 h-4" />
             {text}
             {children}
+            {/* {type === "color" && < ArrowRight className="w-4 h-4"/>} */}
         </button>
     )
 }

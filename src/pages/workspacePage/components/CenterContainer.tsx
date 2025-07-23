@@ -8,7 +8,7 @@ export const CenterContainer = () => {
     const { currentNote } = useWorkspaceData()
 
     return (
-        <div className="flex flex-col w-full overflow-x-auto overflow-y-hidden">
+        <div className="flex flex-col w-full overflow-x-auto">
             <NoteList />
             {currentNote ? <GroupContainer /> : <BlankNote />}
         </div>

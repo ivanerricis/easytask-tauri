@@ -7,7 +7,7 @@ export const createSectionTable = `
         id INTEGER PRIMARY KEY,
         group_id INTEGER NOT NULL,
         title TEXT NOT NULL CHECK (LENGTH(title) > 0),
-        color TEXT CHECK (LENGTH(color) > 0),
+        color TEXT CHECK (LENGTH(color) > 0) DEFAULT NULL,
         archived BOOLEAN NOT NULL DEFAULT FALSE,
         creation_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
         creation_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),

@@ -3,17 +3,16 @@ import type { Task as TaskType } from "@/types/types"
 import { ButtonMenuTask } from "./ButtonMenuTask"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { toast } from "sonner"
-import { useState } from "react"
-import { DialogAddColor } from "../section/dialogs/DialogAddColor"
+import { cn } from "@/lib/utils"
+import React from "react"
 
 type TaskProps = {
     task: TaskType
     children?: React.ReactNode
 }
 
-export const Task = ({ task, children }: TaskProps) => {
-    const [isColorOpen, setIsColorOpen] = useState(false)
-    const { editTaskCompletion, updateItemColor, getNoteData, currentNote } = useWorkspaceData()
+export const Task = React.memo(({ task, children }: TaskProps) => {
+    const { editTaskCompletion, getNoteData, currentNote } = useWorkspaceData()
 
     const handleCheckedChange = async () => {
         try {
@@ -26,54 +25,45 @@ export const Task = ({ task, children }: TaskProps) => {
     }
 
     return (
-        <div className="relative flex">
-            <div className="flex flex-col items-center w-full">
+        <div className="relative flex flex-col items-center w-full">
 
-                <div className="relative flex items-center w-full border-b">
-                    {/* Color Container */}
-                    {task.color && <div className="w-0.5 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
+            <div className="relative flex items-center w-full border-b">
+                {/* Color Container */}
+                {task.color && <div className="w-0.5 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
 
-                    {/* Task items container */}
-                    <div className="group flex items-center justify-between w-full p-2">
+                {/* Task items container */}
+                <div className="group flex items-center justify-between w-full p-2">
 
-                        {/* Checkbox && text container */}
-                        <div className="flex items-center gap-2 ml-1 w-full">
-                            <Checkbox
-                                checked={!!task.completed}
-                                onCheckedChange={handleCheckedChange}
-                                className="cursor-pointer"
-                            />
-                            <h1 className={`${task.completed ? 'line-through text-muted-foreground' : ''} w-full text-wrap break-words whitespace-normal`}>
-                                {task.text}
-                            </h1>
-                        </div>
+                    {/* Checkbox && text container */}
+                    <div className="flex items-center gap-2 ml-1 w-full">
+                        <Checkbox
+                            checked={!!task.completed}
+                            onCheckedChange={handleCheckedChange}
+                            className="cursor-pointer"
+                        />
+                        <h1 className={cn(
+                            "w-full text-wrap break-words whitespace-normal",
+                            task.completed && "line-through text-muted-foreground"
+                        )}>
 
-                        {/* Priority circle */}
-                        <div className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-500 w-2 h-2 p-1 ml-2 mr-1`}></div>
+                            {task.text}
+                        </h1>
+                    </div>
 
-                        {/* ButtonMenu */}
-                        <div className="">
-                            <ButtonMenuTask
-                                task={task}
-                                onChangeColor={() => setIsColorOpen(true)}
-                            />
-                        </div>
+                    {/* Priority circle */}
+                    <div className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-500 w-2 h-2 p-1 ml-2 mr-1`}></div>
+
+                    {/* ButtonMenu */}
+                    <div className="">
+                        <ButtonMenuTask
+                            task={task}
+                        />
                     </div>
                 </div>
-                {task.subtasks.length > 0 && <div className="flex items-center w-full pl-6">
-                    {children}
-                </div>}
-            </div >
-
-            <DialogAddColor
-                item={task}
-                itemType="task"
-                isOpen={isColorOpen}
-                onOpenChange={setIsColorOpen}
-                addColorItem={updateItemColor}
-                getItemId={currentNote?.id}
-                getItemData={getNoteData}
-            />
-        </div>
+            </div>
+            {task.subtasks.length > 0 && <div className="flex items-center w-full pl-6">
+                {children}
+            </div>}
+        </div >
     )
-}
+})
