@@ -1,6 +1,6 @@
 import { Input } from "@/components/ui/input"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import { Palette, Plus, X } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import type { FormEvent } from "react"
 import { PlusButton } from "../section/PlusButton"
@@ -10,15 +10,9 @@ type AddTaskProps = {
     sectionId: number
 }
 
-const defaultTask = {
-    text: "",
-    color: "#FFFFFF"
-}
-
 export const AddTask = ({ sectionId }: AddTaskProps) => {
     const [isOpen, setOpen] = useState(false)
-    const [paletteIsOpen, setPaletteOpen] = useState(false)
-    const [task, setTask] = useState(defaultTask)
+    const [text, setText] = useState("")
     const { createTask, currentNote, getNoteData } = useWorkspaceData()
     const formRef = useRef<HTMLFormElement>(null)
 
@@ -35,14 +29,13 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
 
     const handleOpen = () => {
         setOpen(prev => !prev)
-        setTask(defaultTask)
-        setPaletteOpen(false)
+        setText("")
     }
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
-        if (task.text.trim()) {
-            await createTask(sectionId, task.text.trim(), paletteIsOpen ? task.color : undefined);
+        if (text.trim()) {
+            await createTask(sectionId, text.trim());
             handleOpen()
             if (!currentNote) return
             await getNoteData(currentNote.id)
@@ -66,48 +59,15 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
             >
                 <div className="flex items-center justify-center w-full">
                     <Input
-                        value={task.text}
-                        onChange={(e) => setTask({ ...task, text: e.target.value })}
+                        value={text}
+                        onChange={(e) => setText(e.target.value)}
                         placeholder="Scrivi qualcosa..."
                         autoFocus
                         className="rounded-none border-none"
                     />
                 </div>
-                {!paletteIsOpen
-                    ? <div
-                        role="button"
-                        onClick={() => { setPaletteOpen(true) }}
-                        className="group/color cursor-pointer flex items-center justify-center w-full h-8"
-                    >
-                        <Palette size={20} className="group-hover/color:text-foreground text-muted-foreground" />
-                    </div>
-                    : <div className="flex items-center justify-center w-full">
-                        <div
-                            className="flex items-center justify-center h-8 w-full"
-                            style={{ backgroundColor: task.color }}
-                        >
-                            <Input
-                                id="color-1"
-                                name="color"
-                                type="color"
-                                className="opacity-0 cursor-pointer"
-                                value={task.color}
-                                onChange={e => setTask({
-                                    ...task,
-                                    color: e.target.value
-                                })}
-                            />
-                        </div>
-                        <div
-                            role="button"
-                            onClick={(e) => { e.preventDefault(); setPaletteOpen(false); setTask({ ...task, color: "#FFFFFF" }); }}
-                            className="group/close cursor-pointer flex items-center justify-center w-full h-8"
-                        >
-                            <X size={20} className="group-hover:text-foreground group-hover/close:text-foreground text-muted-foreground" />
-                        </div>
-                    </div>}
                 <div className="flex items-center w-full border-t">
-                    <PlusButton disabled={!task.text.trim()} onClick={() => handleSubmit} />
+                    <PlusButton disabled={!text.trim()} onClick={() => handleSubmit} />
                     <CloseButton onClick={handleOpen} />
                 </div>
             </form>

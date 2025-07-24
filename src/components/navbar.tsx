@@ -9,7 +9,7 @@ type NavBarProps = {
     rightContainer?: React.ReactNode
 }
 
-export const Navbar = ({ leftContainer, centerContainer, rightContainer }: NavBarProps) => {
+export const Navbar = React.memo(({ leftContainer, centerContainer, rightContainer }: NavBarProps) => {
     const window = getCurrentWindow();
 
     const handleClose = async () => {
@@ -26,8 +26,8 @@ export const Navbar = ({ leftContainer, centerContainer, rightContainer }: NavBa
 
     return (
         <div className="z-50 flex items-center justify-between w-full border-b shadow-sm bg-background" data-tauri-drag-region>
-            <div className="flex-1 text-left" data-tauri-drag-region>{leftContainer}</div>
-            <div className="flex-1 text-center" data-tauri-drag-region>{centerContainer}</div>
+            <div className="flex-1 text-left" >{leftContainer}</div>
+            <div className="flex-1 text-center">{centerContainer}</div>
             <div className="flex-1 flex flex-row-reverse items-center justify-start text-right" data-tauri-drag-region>
                 <div className="flex items-center justify-end">
                     <ButtonNavbar onClick={handleMinimize} window>
@@ -40,10 +40,10 @@ export const Navbar = ({ leftContainer, centerContainer, rightContainer }: NavBa
                         <X className="w-5 h-5" />
                     </ButtonNavbar>
                 </div>
-                <div data-tauri-drag-region>
+                <div>
                     {rightContainer}
                 </div>
             </div>
         </div >
     )
-}
+})

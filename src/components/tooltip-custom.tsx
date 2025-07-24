@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 type TooltipCustomProps = {
     children: React.ReactNode
     shortcut?: string
-    text: string
+    text?: string
 }
 
 export const TooltipCustom = ({ children, text, shortcut }: TooltipCustomProps) => {
@@ -12,12 +12,12 @@ export const TooltipCustom = ({ children, text, shortcut }: TooltipCustomProps) 
             <TooltipTrigger asChild>
                 {children}
             </TooltipTrigger>
-            <TooltipContent>
+            {text && <TooltipContent>
                 <div className="flex flex-col items-center justify-center">
                     <p>{text}</p>
                     <p>{shortcut}</p>
                 </div>
-            </TooltipContent>
+            </TooltipContent>}
         </Tooltip>
     )
 }

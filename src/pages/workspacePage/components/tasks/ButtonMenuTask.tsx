@@ -17,11 +17,11 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
     const [popoverOpen, setPopoverOpen] = useState(false)
     const [isColorOpen, setColorOpen] = useState(false)
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
-    const { editTaskPriority, getNoteData, updateItemColor, currentNote } = useWorkspaceData()
+    const { updateTaskPriority, getNoteData, updateItemColor, currentNote } = useWorkspaceData()
 
     const handleEditPriority = async () => {
         try {
-            await editTaskPriority(task.id, !task.priority)
+            await updateTaskPriority(task.id, !task.priority)
             if (currentNote)
                 await getNoteData(currentNote.id)
         } catch (error: any) {

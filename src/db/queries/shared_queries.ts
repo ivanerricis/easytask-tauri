@@ -1,6 +1,31 @@
 import { createError, handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 
+export async function createDBItem(itemType: string, itemName: string, parentType?: string, parentId?: number) {
+    const db = await getDB()
+
+    try {
+        if (parentType && parentId) {
+            if (itemType === "section")
+                await db.execute(`INSERT INTO section (title, ${parentType}_id) VALUES (?, ?)`, [itemName, parentId])
+            else if (itemType === "task")
+                await db.execute(`INSERT INTO task (text, ${parentType}_id) VALUES (?, ?)`, [itemName, parentId])
+            else
+                await db.execute(`INSERT INTO ${itemType} (name, ${parentType}_id) VALUES (?, ?)`, [itemName, parentId])
+        }
+        else {
+            if (itemType === "workspace") {
+                await db.execute('INSERT INTO workspace (name) VALUES (?)', [itemName])
+            }
+        }
+    } catch (error: any) {
+        handleDBError(error, itemType.toUpperCase(), {
+            UNIQUE: "An item with this name already exists.",
+            CHECK: "The name cannot be empty.",
+        })
+    }
+}
+
 /**
  * Renames an item in the database.
  * @param itemType Type of item to rename (e.g., 'task', 'section').
@@ -12,14 +37,18 @@ export async function renameDBItem(itemType: string, itemId: number, name: strin
     const db = await getDB()
 
     try {
-        if(itemType === "section")
+        if (itemType === "section")
             await db.execute('UPDATE ' + itemType + ' SET title=? WHERE id=?', [name, itemId])
-        if(itemType === "task")
+        else if (itemType === "task")
             await db.execute('UPDATE ' + itemType + ' SET text=? WHERE id=?', [name, itemId])
         else
             await db.execute('UPDATE ' + itemType + ' SET name=? WHERE id=?', [name, itemId])
     } catch (error: any) {
-
+        console.log(error)
+        handleDBError(error, itemType.toUpperCase(), {
+            UNIQUE: "An item with this name already exists.",
+            CHECK: "The name cannot be empty.",
+        })
     }
 }
 

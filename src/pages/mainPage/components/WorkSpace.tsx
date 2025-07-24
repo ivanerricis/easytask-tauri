@@ -33,7 +33,7 @@ export const WorkSpaceItem = React.memo(({ workspace }: WorkSpaceItemProps) => {
                 onClick={handleOpen}
                 className="group relative flex items-center w-full cursor-pointer h-24 bg-background hover:bg-secondary border rounded-xs">
 
-                {/* Color Bar */}
+                {/* Color Container */}
                 {workspace.color && <div
                     className="w-2 h-full absolute rounded-l-[0.5px] bg-background"
                     style={{ backgroundColor: workspace.color }}

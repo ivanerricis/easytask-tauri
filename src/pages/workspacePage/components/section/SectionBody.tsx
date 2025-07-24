@@ -9,11 +9,9 @@ type SectionBodyProps = {
 
 export const SectionBody = ({ isOpen, section }: SectionBodyProps) => {
     return (
-        <div
-            className={`flex flex-col w-full border-t overflow-hidden bg-secondary ${isOpen ? 'h-full opacity-100' : 'max-h-0 opacity-0'}`}
-        >
+        <div className={`flex flex-col w-full border-t overflow-hidden bg-secondary ${isOpen ? 'h-full opacity-100' : 'max-h-0 opacity-0'}`}>
             {section.tasks.map((task) => (
-                <Task key={task.id} task={task}></Task>
+                <Task key={task.id} task={task} />
             ))}
             <AddTask sectionId={section.id} />
         </div>

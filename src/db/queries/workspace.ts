@@ -107,23 +107,3 @@ export async function createDBWorkspace(name: string, color?: string | null) {
         })
     }
 }
-
-/**
- * Edits an existing workspace in the database.
- * @param id The ID of the workspace to edit.
- * @param name The new name of the workspace.
- * @param color The new color of the workspace (optional).
- * @category Database Queries
- */
-export async function editDBWorkspace(id: number, name: string, color?: string | null) {
-    const db = await getDB()
-
-    try {
-        await db.execute('UPDATE workspace SET name=?, color=? WHERE id=?', [name, color ?? null, id])
-    } catch (error: any) {
-        handleDBError(error, "WORKSPACE", {
-            UNIQUE: "A workspace with this name already exists.",
-            CHECK: "The workspace name cannot be empty.",
-        })
-    }
-}

@@ -8,11 +8,11 @@ import { getDB } from "../dbManager"
  * @param color The color of the task (optional).
  * @category Database
  */
-export async function createDBTask(sectionId: number, text: string, color?: string | null) {
+export async function createDBTask(sectionId: number, text: string) {
     const db = await getDB()
 
     try {
-        await db.execute('INSERT INTO task (section_id, text, color) VALUES (?, ?, ?)', [sectionId, text, color ?? null])
+        await db.execute('INSERT INTO task (section_id, text) VALUES (?, ?)', [sectionId, text])
     } catch (error: any) {
         const errorMessage = String(error)
         console.log(errorMessage)
@@ -35,11 +35,11 @@ export async function createDBTask(sectionId: number, text: string, color?: stri
  * @param color The color of the subtask (optional).
  * @category Database
  */
-export async function createDBSubTask(taskId: number, text: string, color?: string | null) {
+export async function createDBSubTask(taskId: number, text: string) {
     const db = await getDB()
 
     try {
-        await db.execute('INSERT INTO task (task_id, text, color) VALUES (?, ?, ?)', [taskId, text, color ?? null])
+        await db.execute('INSERT INTO task (task_id, text) VALUES (?, ?)', [taskId, text])
     } catch (error: any) {
         handleDBError(error, "TASK", {
             UNIQUE: "A task with this name already exists.",
@@ -54,7 +54,7 @@ export async function createDBSubTask(taskId: number, text: string, color?: stri
  * @param priority The new priority of the task.
  * @category Database
  */
-export async function editDBTaskPriority(taskId: number, priority: boolean) {
+export async function updateDBTaskPriority(taskId: number, priority: boolean) {
     const db = await getDB()
 
     try {
@@ -73,7 +73,7 @@ export async function editDBTaskPriority(taskId: number, priority: boolean) {
  * @param isComplited The new completion status of the task.
  * @category Database
  */
-export async function editDBTaskCompletion(taskId: number, isCompleted: boolean) {
+export async function updateDBTaskCompletion(taskId: number, isCompleted: boolean) {
     const db = await getDB()
 
     try {
@@ -82,6 +82,25 @@ export async function editDBTaskCompletion(taskId: number, isCompleted: boolean)
         handleDBError(error, "TASK", {
             UNIQUE: "A task with this name already exists.",
             CHECK: "The task name cannot be empty.",
+        })
+    }
+}
+
+/**
+ * Changes the text of an existing task in the database.
+ * @param taskId The ID of the task to edit.
+ * @param text The new text of the task.
+ * @category Database
+ */
+export async function changeDBTaskText(taskId: number, text: string) {
+    const db = await getDB()
+
+    try {
+        await db.execute('UPDATE task SET text=? WHERE id=?', [text, taskId])
+    } catch (error: any) {
+        handleDBError(error, "TASK", {
+            UNIQUE: "A task with this text already exists.",
+            CHECK: "The task text cannot be empty.",
         })
     }
 }

@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils"
-import { ArrowRight, FilePlus, FolderPlus, HelpCircle, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash } from "lucide-react"
+import { FilePlus, FolderPlus, HelpCircle, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash } from "lucide-react"
+import React from "react"
 
 type ButtonInPopoverProps = {
     text: string
@@ -22,7 +23,7 @@ const iconMap: Record<string, React.ElementType> = {
     delete: Trash,
 }
 
-export const ButtonInPopover = ({ text, type, children, className, destructive, onClick }: ButtonInPopoverProps) => {
+export const ButtonInPopover = React.memo(({ text, type, children, className, destructive, onClick }: ButtonInPopoverProps) => {
     const IconComponent = iconMap[type] || HelpCircle
 
     const handleClick = (e: React.MouseEvent) => {
@@ -41,7 +42,6 @@ export const ButtonInPopover = ({ text, type, children, className, destructive, 
             <IconComponent className="w-4 h-4" />
             {text}
             {children}
-            {/* {type === "color" && < ArrowRight className="w-4 h-4"/>} */}
         </button>
     )
-}
+})

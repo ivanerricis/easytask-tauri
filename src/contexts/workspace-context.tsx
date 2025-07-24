@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react'
 import type { Workspace } from '@/types/types'
-import { getDBWorkspaces, createDBWorkspace, editDBWorkspace } from '@/db/queries/workspace'
+import { getDBWorkspaces, createDBWorkspace } from '@/db/queries/workspace'
 
 type WorkspaceContextType = {
     workspaces: Workspace[]
@@ -10,7 +10,6 @@ type WorkspaceContextType = {
     setCurrentWorkspace: React.Dispatch<React.SetStateAction<Workspace | null>>
     getWorkspaces: () => Promise<void>
     createWorkspace: (name: string, color?: string) => Promise<void>
-    editWorkspace: (id: number, name: string, color?: string) => Promise<void>
     resetWorkspace: () => void
 }
 
@@ -22,6 +21,11 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    /**
+     * Retrieves the list of workspaces.
+     * @throws Will throw an error if the workspaces cannot be retrieved.
+     * @category Workspace Context
+     */
     const getWorkspaces = async () => {
         if (isLoading) return
         setIsLoading(true)
@@ -48,19 +52,10 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         }
     }
 
-    const editWorkspace = async (id: number, name: string, color?: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await editDBWorkspace(id, name, color ?? null)
-            await getWorkspaces()
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
+    /**
+     * Resets the current workspace and clears any errors.
+     * @category Workspace Context
+     */
     const resetWorkspace = () => {
         setCurrentWorkspace(null)
         setError(null)
@@ -74,7 +69,6 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             error,
             getWorkspaces,
             createWorkspace,
-            editWorkspace,
             setCurrentWorkspace,
             resetWorkspace
         }}>

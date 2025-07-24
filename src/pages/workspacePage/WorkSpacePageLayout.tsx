@@ -41,7 +41,7 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
                     <div className="flex">
                         <ButtonNavbar
                             onClick={handleGoHome}
-                            className={"text-foreground mr-2"}
+                            className={"text-foreground pr-1"}
                             textTooltip="Torna alla Home"
                             textTooltipShortcut="(Ctrl + H)"
                         >

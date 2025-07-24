@@ -7,7 +7,7 @@ type ButtonNavbarProps = {
     onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
     className?: String
     window?: boolean
-    textTooltip: string
+    textTooltip?: string
     textTooltipShortcut?: string
 }
 

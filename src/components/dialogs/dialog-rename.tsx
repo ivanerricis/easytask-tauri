@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useState } from "react"
 
-type DialogEditProps<T> = {
+type DialogRenameProps<T> = {
     item: T
     itemType: string
     isOpen: boolean;
@@ -19,7 +19,7 @@ type defaultItemType = {
     title?: string
 }
 
-export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, isOpen, onOpenChange, getItemData, getItemId }: DialogEditProps<T>) => {
+export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, isOpen, onOpenChange, getItemData, getItemId }: DialogRenameProps<T>) => {
     const [name, setName] = useState(item.name)
     const [title, setTitle] = useState(item.title)
     const { renameItem } = useWorkspaceData()
