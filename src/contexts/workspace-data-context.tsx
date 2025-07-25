@@ -4,7 +4,7 @@ import { getDBWorkspaceData } from "@/db/queries/workspace";
 import { createDBNoteInFolder, createDBWorkspaceNote, getDBNoteData } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder";
 import { createDBSection, createDBSectionInGroup } from "@/db/queries/section";
-import { changeDBTaskText, createDBSubTask, createDBTask, updateDBTaskCompletion, updateDBTaskPriority } from "@/db/queries/task";
+import { createDBSubTask, createDBTask, updateDBTaskCompletion, updateDBTaskPriority } from "@/db/queries/task";
 import { updateDBGroupPositions } from "@/db/queries/group";
 import { renameDBItem, updateDBColor, deleteDBItem } from "@/db/queries/shared_queries";
 
@@ -40,7 +40,6 @@ type WorkspaceDataContextType = {
 
     updateTaskPriority: (taskId: number, priority: boolean) => Promise<void>
     updateTaskCompletion: (taskId: number, isCompleted: boolean) => Promise<void>
-    changeTaskText: (taskId: number, text: string) => Promise<void>
     renameItem: (itemType: string, itemId: number, name: string) => Promise<void>
     updateItemColor: (itemType: string, itemId: number, color?: string) => Promise<void>
     updateGroupsPositions: (groups: Group[]) => Promise<void>
@@ -249,16 +248,6 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }
 
-    const changeTaskText = async (taskId: number, text: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await changeDBTaskText(taskId, text)
-        } catch (error: any) {
-            throw error
-        }
-    }
-
     /**
      * Rename an item in the workspace.
      * @param itemType - The type of the item to rename (e.g., "folder", "note", "section", "task").
@@ -393,7 +382,6 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             createSubTask,
             updateTaskPriority,
             updateTaskCompletion,
-            changeTaskText,
             renameItem,
             updateItemColor,
             updateGroupsPositions,

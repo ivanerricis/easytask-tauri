@@ -85,22 +85,3 @@ export async function updateDBTaskCompletion(taskId: number, isCompleted: boolea
         })
     }
 }
-
-/**
- * Changes the text of an existing task in the database.
- * @param taskId The ID of the task to edit.
- * @param text The new text of the task.
- * @category Database
- */
-export async function changeDBTaskText(taskId: number, text: string) {
-    const db = await getDB()
-
-    try {
-        await db.execute('UPDATE task SET text=? WHERE id=?', [text, taskId])
-    } catch (error: any) {
-        handleDBError(error, "TASK", {
-            UNIQUE: "A task with this text already exists.",
-            CHECK: "The task text cannot be empty.",
-        })
-    }
-}

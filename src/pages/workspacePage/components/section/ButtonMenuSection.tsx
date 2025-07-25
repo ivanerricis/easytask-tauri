@@ -1,67 +1,76 @@
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { EllipsisVertical } from "lucide-react"
 import { useState } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
-import { DialogAddColor } from "../../../../components/dialogs/dialog-add-color"
+import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 import type { Section } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
-type ButtonMenuFolderProps = {
+type ButtonMenuSectionProps = {
     section: Section
 }
 
-export const ButtonMenuSection = ({ section }: ButtonMenuFolderProps) => {
+export const ButtonMenuSection = ({ section }: ButtonMenuSectionProps) => {
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
-    const [isColorOpen, setColorOpen] = useState(false)
-    const [popoverOpen, setPopoverOpen] = useState(false)
+    const [dropDownOpen, setDropDownOpen] = useState(false)
     const { updateItemColor, getNoteData, currentNote } = useWorkspaceData()
 
     return (
         <>
-            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                <PopoverTrigger asChild>
+            <DropdownMenu open={dropDownOpen} onOpenChange={setDropDownOpen}>
+                <DropdownMenuTrigger asChild>
                     <div onClick={(e) => e.stopPropagation()} className="p-1 rounded-xs cursor-pointer">
                         <EllipsisVertical className="!h-4 !w-4" />
                     </div>
-                </PopoverTrigger>
-                <PopoverContent
-                    onClick={(e) => { e.stopPropagation() }}
-                    className="relative flex w-auto p-0 rounded-xs gap-1 bg-transparent border-none"
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1 rounded-xs"
                 >
-                    <div className="flex flex-col gap-1 p-1 border bg-background">
+                    <DropdownMenuGroup className="flex flex-col gap-1">
                         <ButtonInPopover
                             text="Rinomina"
                             type="rename"
-                            onClick={() => { setRenameOpen(true), setPopoverOpen(false) }}
+                            onClick={() => {
+                                setRenameOpen(true)
+                                setDropDownOpen(false)
+                            }}
                         />
-                        <ButtonInPopover
-                            text="Cambia colore"
-                            type="color"
-                            onClick={() => { setColorOpen(!isColorOpen) }}
-                        />
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                                <ButtonInPopover
+                                    text="Cambia colore"
+                                    type="color"
+                                />
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                                <DialogAddColor
+                                    item={section}
+                                    itemType="section"
+                                    addColorItem={updateItemColor}
+                                    getItemId={currentNote?.id}
+                                    getItemData={getNoteData}
+                                    setDropDownOpen={setDropDownOpen}
+                                />
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
                         <Separator />
                         <ButtonInPopover
                             text="Elimina"
                             type="delete"
                             destructive
-                            onClick={() => { setDeleteOpen(true), setPopoverOpen(false) }}
+                            onClick={() => {
+                                setDeleteOpen(true)
+                                setDropDownOpen(false)
+                            }}
                         />
-                    </div>
-                    <DialogAddColor
-                        item={section}
-                        itemType="section"
-                        isOpen={isColorOpen}
-                        onOpenChange={setColorOpen}
-                        addColorItem={updateItemColor}
-                        getItemId={currentNote?.id}
-                        getItemData={getNoteData}
-                    />
-                </PopoverContent>
-            </Popover>
+                    </DropdownMenuGroup>
+                </DropdownMenuContent>
+            </DropdownMenu>
 
             <DialogRenameItem
                 item={section}

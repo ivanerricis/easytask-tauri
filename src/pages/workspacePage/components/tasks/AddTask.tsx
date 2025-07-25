@@ -57,7 +57,7 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                 onSubmit={handleSubmit}
                 className="flex flex-col items-center justify-center w-full"
             >
-                <div className="flex items-center justify-center w-full">
+                <div className="flex items-center justify-center w-full bg-background">
                     <Input
                         value={text}
                         onChange={(e) => setText(e.target.value)}
@@ -66,7 +66,7 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                         className="rounded-none border-none"
                     />
                 </div>
-                <div className="flex items-center w-full border-t">
+                <div className="flex items-center w-full border-t divide-x">
                     <PlusButton disabled={!text.trim()} onClick={() => handleSubmit} />
                     <CloseButton onClick={handleOpen} />
                 </div>

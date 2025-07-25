@@ -1,4 +1,3 @@
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import type { Folder } from "@/types/types"
 import { EllipsisVertical } from "lucide-react"
 import { DialogAddSubFolder } from "./DialogAddSubFolder"
@@ -12,6 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type ButtonMenuFolderProps = {
     folder: Folder
@@ -21,9 +21,8 @@ export const ButtonMenuFolder = ({ folder }: ButtonMenuFolderProps) => {
     const [isAddSubFolderOpen, setAddSubFolderOpen] = useState(false);
     const [isAddNoteOpen, setAddNoteOpen] = useState(false);
     const [isRenameOpen, setRenameOpen] = useState(false);
-    const [isColorOpen, setColorOpen] = useState(false);
     const [isDeleteFolderOpen, setDeleteFolderOpen] = useState(false);
-    const [popoverOpen, setPopoverOpen] = useState(false);
+    const [dropDownOpen, setDropDownOpen] = useState(false);
     const { updateFolderColorContent, getWorkspaceData, updateItemColor } = useWorkspaceData()
     const { currentWorkspace } = useWorkspace()
 
@@ -39,71 +38,80 @@ export const ButtonMenuFolder = ({ folder }: ButtonMenuFolderProps) => {
 
     return (
         <>
-            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                <PopoverTrigger asChild>
-                    <div onClick={(e) => e.stopPropagation()} className="p-1 rounded-xs cursor-pointer">
-                        <EllipsisVertical className="!h-4 !w-4" />
+            <DropdownMenu open={dropDownOpen} onOpenChange={setDropDownOpen}>
+                <DropdownMenuTrigger asChild>
+                    <div
+                        role="button"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1 rounded-xs cursor-pointer"
+                    >
+                        <EllipsisVertical className="size-4" />
                     </div>
-                </PopoverTrigger>
-                <PopoverContent
-                    onClick={(e) => { e.stopPropagation() }}
-                    className="flex justify-center gap-1 w-auto p-0 bg-transparent border-none"
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    onClick={(e) => e.stopPropagation()}
+                    className="rounded-xs"
                 >
-                    <div className="flex flex-col gap-1 p-1 border bg-background">
-                        <ButtonInPopover
-                            text="Aggiungi cartella"
-                            type="addFolder"
-                            onClick={() => { setAddSubFolderOpen(true); setPopoverOpen(false) }}
-                        />
+
+                    <DropdownMenuGroup className="flex flex-col gap-1 p-1">
                         <ButtonInPopover
                             text="Aggiungi nota"
                             type="addNote"
-                            onClick={() => { setAddNoteOpen(true); setPopoverOpen(false) }}
+                            onClick={() => { setAddNoteOpen(true); setDropDownOpen(false) }}
+                        />
+                        <ButtonInPopover
+                            text="Aggiungi cartella"
+                            type="addFolder"
+                            onClick={() => { setAddSubFolderOpen(true); setDropDownOpen(false) }}
                         />
                         <ButtonInPopover
                             text="Rinomina"
                             type="rename"
-                            onClick={() => { setRenameOpen(true); setPopoverOpen(false) }}
-                        />
-                        <ButtonInPopover
-                            text="Cambia colore"
-                            type="color"
-                            onClick={() => { setColorOpen(!isColorOpen) }}
+                            onClick={() => { setRenameOpen(true); setDropDownOpen(false) }}
                         />
                         <ButtonInPopover
                             text="Colora contenuto"
                             type="colorContent"
-                            onClick={() => { handleColorContent(); setPopoverOpen(false) }}
+                            onClick={() => { handleColorContent(); setDropDownOpen(false) }}
                         />
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                                <ButtonInPopover
+                                    text="Cambia colore"
+                                    type="color"
+                                />
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                                <DialogAddColor
+                                    item={folder}
+                                    itemType="folder"
+                                    addColorItem={updateItemColor}
+                                    getItemId={currentWorkspace?.id}
+                                    getItemData={getWorkspaceData}
+                                    setDropDownOpen={setDropDownOpen}
+                                />
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
                         <Separator />
                         <ButtonInPopover
                             text="Elimina"
                             type="delete"
                             destructive
-                            onClick={() => { setDeleteFolderOpen(true); setPopoverOpen(false) }}
+                            onClick={() => { setDeleteFolderOpen(true); setDropDownOpen(false) }}
                         />
-                    </div>
-                    <DialogAddColor
-                        item={folder}
-                        itemType="folder"
-                        isOpen={isColorOpen}
-                        onOpenChange={setColorOpen}
-                        addColorItem={updateItemColor}
-                        getItemId={currentWorkspace?.id}
-                        getItemData={getWorkspaceData}
-                    />
-                </PopoverContent>
-            </Popover>
+                    </DropdownMenuGroup>
+                </DropdownMenuContent>
+            </DropdownMenu>
 
-            <DialogAddSubFolder
-                parentFolder={folder}
-                isOpen={isAddSubFolderOpen}
-                onOpenChange={setAddSubFolderOpen}
-            />
             <DialogAddNote
                 parentFolder={folder}
                 isOpen={isAddNoteOpen}
                 onOpenChange={setAddNoteOpen}
+            />
+            <DialogAddSubFolder
+                parentFolder={folder}
+                isOpen={isAddSubFolderOpen}
+                onOpenChange={setAddSubFolderOpen}
             />
             <DialogRenameItem
                 item={folder}

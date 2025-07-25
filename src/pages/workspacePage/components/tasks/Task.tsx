@@ -13,47 +13,47 @@ type TaskProps = {
 }
 
 export const Task = React.memo(({ task, children }: TaskProps) => {
-    const [isOpen, setOpen] = useState(false)
+    const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(task.text)
-    const { updateTaskCompletion, changeTaskText, getNoteData, currentNote } = useWorkspaceData()
+    const { updateTaskCompletion, renameItem, getNoteData, currentNote } = useWorkspaceData()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
 
     useEffect(() => {
-        if (isOpen && textareaRef.current) {
+        if (isTextAreaOpen && textareaRef.current) {
             const input = textareaRef.current
             const length = input.value.length
             input.focus()
             input.setSelectionRange(length, length)
         }
-    }, [isOpen])
+    }, [isTextAreaOpen])
 
     const handleCheckedChange = async () => {
         try {
             await updateTaskCompletion(task.id, !task.completed)
             if (currentNote)
                 await getNoteData(currentNote.id)
-        } catch (error) {
-            toast.error('Impossibile modificare il task')
+        } catch (err: any) {
+            toast.error('Impossibile modificare il task' + ' - ' + err.message)
         }
     }
 
     const handleChangeText = async () => {
         try {
             if (task.text !== text && text.trim() !== "") {
-                await changeTaskText(task.id, text.trim())
+                await renameItem("task", task.id, text.trim())
                 if (currentNote)
                     await getNoteData(currentNote.id)
             }
         } catch (err: any) {
-            toast.error('Impossibile cambaire il testo del task')
+            toast.error('Impossibile cambiare il testo del task' + ' - ' + err.message)
         }
-        setOpen(false)
+        setTextAreaOpen(false)
     }
 
     return (
         <div className={cn(
-            "relative flex flex-col items-center w-full",
-            isOpen && "border border-primary rounded-xs"
+            "relative flex flex-col items-center w-full border border-transparent transition-none",
+            isTextAreaOpen && "border border-primary rounded-xs"
         )}>
             <div className="relative flex items-center w-full border-b">
                 {/* Color Container */}
@@ -69,26 +69,27 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                             onCheckedChange={handleCheckedChange}
                             className="cursor-pointer mt-0.5"
                         />
-                        {!isOpen && <TextareaAutosize
-                            onClick={() => { setOpen(true), setText(task.text) }}
+                        {!isTextAreaOpen && <TextareaAutosize
+                            onClick={() => { setTextAreaOpen(true), setText(task.text) }}
                             value={task.text}
                             className={cn(
                                 "w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm",
                                 task.completed && "line-through text-muted-foreground"
                             )}
                         />}
-                        {isOpen && <TextareaAutosize
+                        {isTextAreaOpen && <TextareaAutosize
                             ref={textareaRef}
                             minRows={1}
                             value={text}
                             onChange={e => setText(e.target.value)}
+                            onBlur={handleChangeText}
                             onKeyDown={e => {
                                 if (e.key === "Enter" && !e.shiftKey) {
                                     e.preventDefault();
                                     handleChangeText();
                                 }
                             }}
-                            className="w-full max-h-auto text-wrap break-words whitespace-normal resize-y text-sm"
+                            className="w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm"
                         />}
                     </div>
 

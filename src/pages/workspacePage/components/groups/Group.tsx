@@ -1,6 +1,6 @@
-import { Section } from "../section/Section"
-import { AddSectionInGroup } from "../section/AddSectionInGroup"
 import type { Group as GroupType } from "@/types/types"
+import { Section } from "../section/Section"
+import { AddSection } from "../section/AddSection"
 
 type GroupProps = {
     dragHandleProps?: any
@@ -20,7 +20,7 @@ export const Group = ({ dragHandleProps, group }: GroupProps) => {
                         dragHandleProps={index === 0 ? dragHandleProps : undefined} />
                 ))}
             </>
-            <AddSectionInGroup groupId={group.id} />
+            <AddSection inGroup groupId={group.id} />
         </div>
     )
 }

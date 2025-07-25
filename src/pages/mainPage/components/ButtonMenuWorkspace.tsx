@@ -1,73 +1,92 @@
 import { useState } from "react";
 import { EllipsisVertical } from "lucide-react";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Workspace } from "@/types/types";
 import { ButtonInPopover } from "@/components/button-in-popover";
-import { Separator } from "@/components/ui/separator";
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename";
-import { useWorkspace } from "@/contexts/workspace-context";
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete";
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color";
+import { useWorkspace } from "@/contexts/workspace-context";
 import { useWorkspaceData } from "@/contexts/workspace-data-context";
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuSeparator,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 
 type ButtonMenuProps = {
     workspace: Workspace
-}
+};
 
 export const ButtonMenuWorkspace = ({ workspace }: ButtonMenuProps) => {
     const [isRenameOpen, setRenameOpen] = useState(false);
-    const [isColorOpen, setColorOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
-    const [popoverOpen, setPopoverOpen] = useState(false);
-    const { getWorkspaces } = useWorkspace()
-    const { updateItemColor } = useWorkspaceData()
+    const [dropDownOpen, setDropDownOpen] = useState(false);
+
+    const { getWorkspaces } = useWorkspace();
+    const { updateItemColor } = useWorkspaceData();
 
     return (
         <>
-            <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
-                <PopoverTrigger asChild>
+            <DropdownMenu open={dropDownOpen} onOpenChange={setDropDownOpen}>
+                <DropdownMenuTrigger asChild>
                     <div
                         role="button"
-                        onClick={(e) => { e.stopPropagation() }}
-                        className="flex items-center justify-center right-1 top-1 absolute opacity-0 cursor-pointer group-hover:opacity-100 hover:bg-background rounded-xs p-1">
-                        <EllipsisVertical className="flex items-center justify-center w-5 h-5" />
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1 rounded-xs cursor-pointer hover:bg-accent"
+                    >
+                        <EllipsisVertical className="size-4" />
                     </div>
-                </PopoverTrigger>
-                <PopoverContent
-                    onClick={(e) => { e.stopPropagation() }}
-                    className="relative flex w-auto p-0 rounded-xs gap-1 bg-transparent border-none"
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    onClick={(e) => e.stopPropagation()}
+                    className="p-1 rounded-xs"
                 >
-                    <div
-                        className="flex flex-col gap-1 p-1 max-h-max border bg-background">
+                    <DropdownMenuGroup className="flex flex-col gap-1">
                         <ButtonInPopover
                             text="Rinomina"
                             type="rename"
-                            onClick={() => { setRenameOpen(true); setPopoverOpen(false) }}
+                            onClick={() => {
+                                setRenameOpen(true);
+                                setDropDownOpen(false);
+                            }}
                         />
-                        <ButtonInPopover
-                            text="Cambia colore"
-                            type="color"
-                            onClick={() => { setColorOpen(!isColorOpen) }}
-                        />
-                        <Separator />
+
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                                <ButtonInPopover
+                                    text="Cambia colore"
+                                    type="color"
+                                />
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent>
+                                <DialogAddColor
+                                    item={workspace}
+                                    itemType="workspace"
+                                    addColorItem={updateItemColor}
+                                    getItemId={workspace.id}
+                                    getItemData={getWorkspaces}
+                                    setDropDownOpen={setDropDownOpen}
+                                />
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                        <DropdownMenuSeparator />
                         <ButtonInPopover
                             text="Elimina"
                             type="delete"
                             destructive
-                            onClick={() => { setDeleteOpen(true); setPopoverOpen(false) }}
+                            onClick={() => {
+                                setDeleteOpen(true);
+                                setDropDownOpen(false);
+                            }}
                         />
-                    </div>
-                    <DialogAddColor
-                        item={workspace}
-                        itemType="workspace"
-                        isOpen={isColorOpen}
-                        onOpenChange={setColorOpen}
-                        addColorItem={updateItemColor}
-                        getItemId={workspace.id}
-                        getItemData={getWorkspaces}
-                    />
-                </PopoverContent>
-            </Popover >
+                    </DropdownMenuGroup>
+                </DropdownMenuContent>
+            </DropdownMenu>
 
             <DialogRenameItem
                 item={workspace}
@@ -77,6 +96,7 @@ export const ButtonMenuWorkspace = ({ workspace }: ButtonMenuProps) => {
                 getItemData={getWorkspaces}
                 getItemId={workspace.id}
             />
+
             <DialogDeleteItem
                 item={workspace}
                 itemType="workspace"
@@ -85,5 +105,5 @@ export const ButtonMenuWorkspace = ({ workspace }: ButtonMenuProps) => {
                 getItemData={getWorkspaces}
             />
         </>
-    )
-}
+    );
+};

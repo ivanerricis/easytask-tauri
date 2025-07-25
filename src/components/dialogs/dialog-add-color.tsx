@@ -1,15 +1,14 @@
-import { X } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import React, { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 type DialogAddColorProps<T> = {
     item: T
     itemType: string
-    isOpen: boolean
     getItemId?: number | undefined
-    onOpenChange: (open: boolean) => void
     addColorItem: (itemType: string, id: number, color?: string) => Promise<void>
     getItemData: (id: number) => Promise<void>
+    setDropDownOpen?: (open: boolean) => void
     className?: string
 }
 
@@ -19,39 +18,27 @@ type defaultItemType = {
 }
 
 const COLORS16 = [
-    '#e6194b', // rosso vivo
-    '#3cb44b', // verde intenso
-    '#ffe119', // giallo brillante
-    '#4363d8', // blu forte
-    '#f58231', // arancio acceso
-    '#911eb4', // viola profondo
-    '#46f0f0', // ciano chiaro
-    '#f032e6', // rosa magenta
-    '#bcf60c', // lime chiaro
-    '#fabebe', // rosa pesca
-    '#008080', // teal scuro
-    '#e6beff', // lilla delicato
-    '#9a6324', // marrone scuro
-    '#fffac8', // crema chiaro
-    '#000075', // blu notte
-    '#808080', // grigio neutro
+    '#e6194b',
+    '#3cb44b',
+    '#ffe119',
+    '#4363d8',
+    '#f58231',
+    '#911eb4',
+    '#46f0f0',
+    '#f032e6',
+    '#bcf60c',
+    '#fabebe',
+    '#008080',
+    '#e6beff',
+    '#9a6324',
+    '#fffac8',
+    '#000075',
 ] as const
 
-export const DialogAddColor = <T extends defaultItemType>({ item, itemType, isOpen, getItemId, onOpenChange, addColorItem, getItemData, className }: DialogAddColorProps<T>) => {
+export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getItemId, addColorItem, getItemData, setDropDownOpen, className }: DialogAddColorProps<T>) => {
     const [color, setColor] = useState(item.color)
     const dialogRef = React.useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dialogRef.current && !dialogRef.current.contains(event.target as Node)) {
-                onOpenChange(false);
-            }
-        };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, [isOpen, onOpenChange]);
+    const [inputColor, setInputColor] = useState("#000000")
 
     useEffect(() => {
         if (item.color)
@@ -65,7 +52,7 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, isOp
 
     const handleSaveColor = async (e: React.MouseEvent, selectedColor?: string) => {
         e.stopPropagation()
-        onOpenChange(false)
+        if (setDropDownOpen) setDropDownOpen(false)
         try {
             const colorToSave = selectedColor ?? color
             if (item.color !== colorToSave && getItemId && colorToSave) {
@@ -74,12 +61,14 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, isOp
             }
         } catch (err: any) {
             toast.error(err.message)
+        } finally {
+            setInputColor("#000000")
         }
     }
 
     const handleDeleteColor = async (e: React.MouseEvent) => {
         e.stopPropagation()
-        onOpenChange(false)
+        if (setDropDownOpen) setDropDownOpen(false)
         try {
             if (item.color && getItemId) {
                 await addColorItem(itemType, item.id)
@@ -92,36 +81,50 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, isOp
 
     return (
         <>
-            {isOpen && <div
+            <div
                 ref={dialogRef}
-                className={`flex flex-col z-[99999] rounded-xs gap-1, ${className}`}
+                className={`flex flex-col rounded-xs gap-1, ${className}`}
             >
-                <div className="bg-background border">
-                    <div className="grid grid-cols-4">
-                        {COLORS16.map((colorValue) => (
-                            <div
-                                role="button"
-                                key={colorValue}
-                                onClick={(e) => {
-                                    handleColorClick(colorValue, e);
-                                }}
-                                className="cursor-pointer h-6 w-6"
-                                style={{ backgroundColor: colorValue }}
-                            >
-                            </div>
-                        ))}
-                    </div>
-                    <div className="flex items-center justify-start p-1">
-                        <button
-                            onClick={handleDeleteColor}
-                            className="flex items-center p-1 cursor-pointer w-full hover:bg-secondary rounded-xs text-sm"
+                <div className="grid grid-cols-4">
+                    {COLORS16.map((colorValue) => (
+                        <div
+                            role="button"
+                            key={colorValue}
+                            onClick={(e) => {
+                                handleColorClick(colorValue, e);
+                            }}
+                            className="cursor-pointer size-8"
+                            style={{ backgroundColor: colorValue }}
                         >
-                            <X className="h-5 w-5" />
-                            Elimina
-                        </button>
+                        </div>
+                    ))}
+                    <div
+                        className="relative flex items-center justify-center w-full h-full"
+                        style={{ backgroundColor: inputColor }}
+                    >
+                        <input
+                            type="color"
+                            className="h-6 w-6 opacity-0 cursor-pointer"
+                            value={inputColor}
+                            onChange={(e) => {
+                                const newColor = e.target.value
+                                setInputColor(newColor)
+                                handleColorClick(newColor, e as unknown as React.MouseEvent)
+                            }}
+                        />
+                        <Plus className="absolute pointer-events-none" />
                     </div>
                 </div>
-            </div>}
+                <div className="flex items-center justify-start p-1">
+                    <button
+                        onClick={handleDeleteColor}
+                        className="flex items-center p-1 cursor-pointer w-full hover:bg-secondary rounded-xs text-sm"
+                    >
+                        <X className="h-5 w-5" />
+                        Elimina
+                    </button>
+                </div>
+            </div>
         </>
     )
 }

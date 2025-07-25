@@ -36,7 +36,7 @@ export const ButtonInPopover = React.memo(({ text, type, children, className, de
         <button
             onClick={handleClick}
             className={cn(`${destructive ? "text-destructive hover:text-destructive hover:!bg-destructive/15" : "hover:text-foreground"}
-                flex justify-start items-center rounded-xs text-sm px-1 py-1.5 text-left hover:bg-secondary cursor-pointer gap-2 text-nowrap`,
+                flex justify-start items-center w-full rounded-xs text-sm px-1 py-1.5 text-left hover:bg-accent cursor-pointer gap-2 text-nowrap`,
                 className)}
         >
             <IconComponent className="w-4 h-4" />
