@@ -24,31 +24,34 @@ export const ItemFolder = React.memo(({ folder, className, children }: ItemFolde
 
     return (
         <div className="relative flex flex-col gap-1 w-full">
-            <div role="button"
+            <div
+                role="button"
                 onClick={() => setHeight(!height)}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                className={'group cursor-pointer gap-1 w-full pl-1 h-7 flex items-center rounded-xs border bg-background opacity-85 hover:opacity-100 overflow-x-hidden'}
+                className="group cursor-pointer gap-1 w-full pl-1 h-7 flex items-center rounded-xs border border-accent bg-background opacity-85 hover:opacity-100 overflow-x-hidden"
                 style={{ backgroundColor: `${hexToRgba(isHovered ? 0.8 : 0.5, folder.color)}` }}
             >
-                <ChevronDown className={`${height === true ? 'rotate-0' : '-rotate-90'} w-4 h-4 shrink-0 opacity-85 group-hover:opacity-100 transition-all`} />
-                <div className={`relative w-full h-full flex items-center justify-center gap-2 transition-all overflow-x-hidden ${className}`}>
-                    {/* Text + Icon */}
-                    {!height ? <FolderIcon className="w-4 h-4 shrink-0" /> : <FolderOpen className="w-4 h-4 shrink-0" />}
-                    <h1 className="text-left text-sm w-full truncate pr-7">
+                <div className={`relative w-full h-full flex items-center gap-1 ${className}`}>
+                    <ChevronDown className={`${height ? 'rotate-0' : '-rotate-90'} size-4 shrink-0 opacity-85 group-hover:opacity-100 transition-all`} />
+                    {height ? (
+                        <FolderOpen className="size-4 shrink-0" />
+                    ) : (
+                        <FolderIcon className="size-4 shrink-0" />
+                    )}
+                    <h1 className="w-full text-sm truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]">
                         {folder.name}
                     </h1>
-                    <div className="flex items-center justify-center opacity-0 group-hover:opacity-100">
-                        <ButtonMenuFolder
-                            folder={folder}
-                        />
+                    <div className="shrink-0 px-1 opacity-0 group-hover:opacity-100">
+                        <ButtonMenuFolder folder={folder} />
                     </div>
                 </div>
             </div>
+
             {height && hasContent && (
                 <div className="relative w-full">
-                    <div className="absolute left-[12px] top-0 bottom-0 w-[1px] bg-foreground/15" />
-                    <div className="ml-[26px] flex flex-col gap-1">
+                    <div className="absolute left-[9px] h-full w-[1px] bg-foreground/15" />
+                    <div className="ml-[17px] flex flex-col gap-1">
                         {children}
                     </div>
                 </div>

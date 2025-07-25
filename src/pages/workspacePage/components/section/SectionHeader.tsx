@@ -66,7 +66,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleProps }
             {/* Color Container */}
             {section.color && <div className="w-full h-0.5 absolute top-0" style={{ backgroundColor: section.color }}></div>}
             <div
-                className="group flex items-center w-full p-2 whitespace-nowrap"
+                className="group flex items-center w-full px-1 py-1 whitespace-nowrap"
             >
                 {dragHandleProps && <div className="group flex items-center justify-center"
                     {...dragHandleProps}
@@ -103,7 +103,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleProps }
                             {Math.round(completionPercentage)} %
                         </h1>
                     </div>
-                    <div className="relative">
+                    <div className="opacity-0 group-hover:opacity-100">
                         <ButtonMenuSection section={section} />
                     </div>
                 </div>

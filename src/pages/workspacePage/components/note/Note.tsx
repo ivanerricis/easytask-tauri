@@ -33,22 +33,20 @@ export const ItemNote = React.memo(({ note, className }: ItemNoteProps) => {
             onClick={handleOpenFile}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className={`relative group cursor-pointer w-full h-7 flex items-center opacity-85 bg-background hover:opacity-100 rounded-xs border overflow-x-hidden ${className}`}
+            className={`relative group cursor-pointer w-full h-7 flex items-center opacity-85 bg-background hover:opacity-100 rounded-xs border border-accent overflow-x-hidden ${className}`}
             style={{ backgroundColor: `${hexToRgba(isHovered ? 0.8 : 0.5, note.color)}` }}
-
         >
-            {/* Text + Icon */}
-            <div className={`flex items-center px-1 gap-2 w-full`}>
-                <File className="w-4 h-4 shrink-0 text-foreground" />
-                <h1 className="text-left text-sm text-foreground w-full truncate pr-6">
+            {/* Icon + Text */}
+            <div className="flex items-center gap-1 px-1 overflow-hidden w-full">
+                <File className="size-4 shrink-0 text-foreground" />
+                <h1 className="text-sm text-foreground truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]">
                     {note.name}
                 </h1>
             </div>
-            <div className="flex items-center justify-center opacity-0 group-hover:opacity-100">
-                <ButtonMenuNote
-                    note={note}
-                />
+            <div className="shrink-0 px-1 opacity-0 group-hover:opacity-100">
+                <ButtonMenuNote note={note} />
             </div>
         </div>
+
     )
 })

@@ -97,7 +97,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                     <div className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-500 w-2 h-2 p-1 ml-2 mr-1 mt-2`}></div>
 
                     {/* ButtonMenu */}
-                    <div className="">
+                    <div className="opacity-0 group-hover:opacity-100">
                         <ButtonMenuTask
                             task={task}
                         />

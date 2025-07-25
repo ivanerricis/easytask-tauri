@@ -15,7 +15,7 @@ type AddSectionFormProps = {
 export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     const [isOpen, setOpen] = useState(false)
     const [name, setName] = useState("")
-    const { createSection, createSectionInGroup, currentNote, getNoteData } = useWorkspaceData()
+    const { createSection, createSectionInGroup, currentNote, getNoteData, groups } = useWorkspaceData()
     const formRef = useRef<HTMLFormElement>(null)
 
     useEffect(() => {
@@ -65,7 +65,9 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                 }
                 await createSectionInGroup(groupId, name.trim())
             } else {
-                await createSection(currentNote.id, name.trim(), 1)
+                const lastGroup = groups.at(-1)
+                const lastPosition: number = lastGroup?.position ?? 0
+                await createSection(currentNote.id, name.trim(), lastPosition + 1)
             }
 
             handleOpen()
