@@ -62,9 +62,7 @@ export const NoteHeader = ({ note }: NoteHeaderProps) => {
             {/* Color container */}
             {note.color && <div
                 className="w-full h-0.5 absolute top-0"
-                style={{
-                    backgroundColor: currentNote?.id === note.id ? note.color : 'var(--background-color)'
-                }}
+                style={{ backgroundColor: note.color }}
             >
             </div>}
 

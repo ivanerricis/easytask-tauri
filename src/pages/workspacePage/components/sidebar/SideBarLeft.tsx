@@ -15,11 +15,13 @@ import { ComboboxWorkspace } from "../combobox-workspace"
 import { ButtonCloseNotes } from "../ButtonCloseNotes"
 import { ButtonCollapseItems } from "./ButtonCollapseItems"
 import { ButtonUpload } from "./ButtonUpload"
+import { usePreferences } from "@/contexts/preferences-context"
 
 export const SideBarLeft = () => {
 
     const { currentWorkspace } = useWorkspace()
-    const { folders, notes, getWorkspaceData } = useWorkspaceData()
+    const { workspaceDataTree, getWorkspaceData } = useWorkspaceData()
+    const { sidebarLeftOpen, setSideBarLeftOpen } = usePreferences()
 
     useEffect(() => {
         if (currentWorkspace?.id) {
@@ -33,10 +35,10 @@ export const SideBarLeft = () => {
         if ("subfolders" in item) {
             return (
                 <ItemFolder folder={item}>
-                    {item.subfolders.map((child) => (
+                    {item.subfolders?.map((child) => (
                         <FileSystemItem key={`folder-${child.id}`} item={child} />
                     ))}
-                    {item.notes.map((note) => (
+                    {item.notes?.map((note) => (
                         <ItemNote key={`note-${note.id}`} note={note} />
                     ))}
                 </ItemFolder>
@@ -49,6 +51,8 @@ export const SideBarLeft = () => {
     return (
         <SideBar
             position="left"
+            defaultOpen={sidebarLeftOpen}
+            updateOpen={setSideBarLeftOpen}
             bottomContainer={<DialogSettings className="relative top-0 left-0" />}
         >
             <SideBarContainer
@@ -65,16 +69,14 @@ export const SideBarLeft = () => {
                     <ComboboxWorkspace />
                 </div>}
             >
-                <div
-                    className="relative flex flex-col gap-1 p-1 w-full"
-                >
-                    {folders.length > 0 || notes.length > 0 ? (
+                <div className="relative flex flex-col gap-1 p-1 w-full">
+                    {workspaceDataTree?.rootFolders.length || workspaceDataTree?.rootNotes.length ? (
                         <>
-                            {folders.map((item) => (
-                                <FileSystemItem key={`folder-${item.id}`} item={item} />
+                            {workspaceDataTree?.rootFolders.map((folder) => (
+                                <FileSystemItem key={`folder-${folder.id}`} item={folder} />
                             ))}
-                            {notes.map((item) => (
-                                <FileSystemItem key={`note-${item.id}`} item={item} />
+                            {workspaceDataTree?.rootNotes.map((note) => (
+                                <FileSystemItem key={`note-${note.id}`} item={note} />
                             ))}
                         </>
                     ) : (

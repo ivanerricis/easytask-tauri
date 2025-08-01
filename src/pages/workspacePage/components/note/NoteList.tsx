@@ -30,12 +30,12 @@ export const NoteList = () => {
                     <div
                         ref={provided.innerRef}
                         {...provided.droppableProps}
-                        className="flex w-full overflow-x-auto bg-secondary divide-x-1"
+                        className="flex w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1"
                     >
                         {currentNotes.map((note, index) => (
                             <Draggable key={note.id} draggableId={note.id.toString()} index={index}>
                                 {(provided) => (
-                                    <div className="flex"
+                                    <div
                                         ref={provided.innerRef}
                                         {...provided.draggableProps}
                                         {...provided.dragHandleProps}

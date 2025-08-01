@@ -48,7 +48,7 @@ export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
                 >
                     <DropdownMenuGroup className="flex flex-col gap-1">
                         <ButtonInPopover
-                            text="Apri nota"
+                            text="Apri"
                             type="open"
                             onClick={() => { openNote(); setDropDownOpen(false) }}
                         />

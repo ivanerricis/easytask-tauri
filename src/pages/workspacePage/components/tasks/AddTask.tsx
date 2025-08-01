@@ -47,9 +47,9 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
             <div
                 role="button"
                 onClick={handleOpen}
-                className="cursor-pointer group/add flex items-center justify-center w-full h-10"
+                className="cursor-pointer group/add flex items-center justify-center w-full h-9"
             >
-                <Plus size={20} className="group-hover/add:text-foreground text-muted-foreground" />
+                <Plus className="group-hover/add:text-foreground text-muted-foreground size-5" />
             </div>
         ) : (
             <form
@@ -63,7 +63,7 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                         onChange={(e) => setText(e.target.value)}
                         placeholder="Scrivi qualcosa..."
                         autoFocus
-                        className="rounded-none border-none"
+                        className="rounded-none border-none text-sm"
                     />
                 </div>
                 <div className="flex items-center w-full border-t divide-x">

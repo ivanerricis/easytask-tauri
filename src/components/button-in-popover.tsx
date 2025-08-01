@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { FilePlus, FolderPlus, HelpCircle, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash } from "lucide-react"
+import { FilePlus, FileText, FileX, FolderPlus, HelpCircle, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2 } from "lucide-react"
 import React from "react"
 
 type ButtonInPopoverProps = {
@@ -20,7 +20,9 @@ const iconMap: Record<string, React.ElementType> = {
     colorContent: PaintBucket,
     addPriority: OctagonAlert,
     removePriority: OctagonX,
-    delete: Trash,
+    addDescription: FileText,
+    removeDescription: FileX,
+    delete: Trash2,
 }
 
 export const ButtonInPopover = React.memo(({ text, type, children, className, destructive, onClick }: ButtonInPopoverProps) => {
@@ -36,10 +38,10 @@ export const ButtonInPopover = React.memo(({ text, type, children, className, de
         <button
             onClick={handleClick}
             className={cn(`${destructive ? "text-destructive hover:text-destructive hover:!bg-destructive/15" : "hover:text-foreground"}
-                flex justify-start items-center w-full rounded-xs text-sm px-1 py-1.5 text-left hover:bg-accent cursor-pointer gap-2 text-nowrap`,
+                flex justify-start items-center w-full rounded-xs text-xs px-1 py-1.5 text-left hover:bg-accent cursor-pointer gap-2 text-nowrap`,
                 className)}
         >
-            <IconComponent className="w-4 h-4" />
+            <IconComponent className="size-4" />
             {text}
             {children}
         </button>

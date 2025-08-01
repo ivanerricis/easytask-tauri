@@ -1,16 +1,16 @@
 import { Progress } from "@/components/ui/progress"
 import type { Section as SectionType, Task } from "@/types/types"
-import { ChevronDown, Grip } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 import { useEffect, useRef, useState } from "react"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { toast } from "sonner"
+import { usePreferences } from "@/contexts/preferences-context"
 
 type SectionHeaderProps = {
     isOpen: boolean
     onOpenChange: (isOpen: boolean) => void
     section: SectionType
-    dragHandleProps?: any
 }
 
 const calculateCompletionPercentage = (tasks: Task[]): number => {
@@ -26,10 +26,11 @@ const calculateCompletionPercentage = (tasks: Task[]): number => {
     return (completedTasks / totalTasks) * 100
 }
 
-export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleProps }: SectionHeaderProps) => {
+export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderProps) => {
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(section.title)
     const { getNoteData, renameItem, currentNote } = useWorkspaceData()
+    const { showProgressBar } = usePreferences()
     const textareaRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
@@ -68,14 +69,9 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleProps }
             <div
                 className="group flex items-center w-full px-1 py-1 whitespace-nowrap"
             >
-                {dragHandleProps && <div className="group flex items-center justify-center"
-                    {...dragHandleProps}
-                >
-                    <Grip className="text-muted-foreground group-hover:text-foreground w-4 h-4" />
-                </div>}
                 {(section.tasks.length > 0) &&
-                    <div role="button" onClick={handleOpen} className="shrink-0">
-                        <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} transition-all ml-1`} />
+                    <div role="button" onClick={handleOpen} className="shrink-0 cursor-pointer">
+                        <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1 size-5`} />
                     </div>}
                 <div className="flex items-center justify-between gap-2 w-full">
                     {!isTextAreaOpen && <h1
@@ -97,12 +93,12 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleProps }
                         }}
                         className="w-auto px-1 ml-2 border border-primary resize-none text-sm rounded-xs"
                     />}
-                    <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
+                    {showProgressBar && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
                         <Progress className="w-20" value={completionPercentage} />
                         <h1 className="text-xs">
                             {Math.round(completionPercentage)} %
                         </h1>
-                    </div>
+                    </div>}
                     <div className="opacity-0 group-hover:opacity-100">
                         <ButtonMenuSection section={section} />
                     </div>

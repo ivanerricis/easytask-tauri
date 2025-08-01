@@ -3,6 +3,7 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import { useNavigate } from "react-router-dom"
 import { ButtonMenuWorkspace } from "./ButtonMenuWorkspace"
 import React from "react"
+import { formatDate } from "@/lib/utils"
 
 type WorkSpaceItemProps = {
     workspace: Workspace
@@ -11,12 +12,6 @@ type WorkSpaceItemProps = {
 export const WorkSpaceItem = React.memo(({ workspace }: WorkSpaceItemProps) => {
     const { setCurrentWorkspace } = useWorkspace()
     const navigate = useNavigate()
-
-    function formatDate(dateStr: string) {
-        if (!dateStr) return ""
-        const [year, month, day] = dateStr.split("-")
-        return `${day}-${month}-${year}`
-    }
 
     const formattedCreationDate = formatDate(workspace.creation_date)
     const formattedEditDate = formatDate(workspace.edit_date)

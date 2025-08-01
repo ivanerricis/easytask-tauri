@@ -55,12 +55,12 @@ export const ButtonMenuFolder = ({ folder }: ButtonMenuFolderProps) => {
 
                     <DropdownMenuGroup className="flex flex-col gap-1 p-1">
                         <ButtonInPopover
-                            text="Aggiungi nota"
+                            text="Nuova nota"
                             type="addNote"
                             onClick={() => { setAddNoteOpen(true); setDropDownOpen(false) }}
                         />
                         <ButtonInPopover
-                            text="Aggiungi cartella"
+                            text="Nuova cartella"
                             type="addFolder"
                             onClick={() => { setAddSubFolderOpen(true); setDropDownOpen(false) }}
                         />

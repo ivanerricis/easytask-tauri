@@ -1,6 +1,7 @@
 import type { Group as GroupType } from "@/types/types"
 import { Section } from "../section/Section"
 import { AddSection } from "../section/AddSection"
+import { GroupHeader } from "./GroupHeader"
 
 type GroupProps = {
     dragHandleProps?: any
@@ -10,16 +11,20 @@ type GroupProps = {
 export const Group = ({ dragHandleProps, group }: GroupProps) => {
 
     return (
-        <div className="flex flex-col gap-1"
+        <div className="flex flex-col gap-1 h-full"
         >
-            <>
-                {group.sections.map((section, index) => (
+            <GroupHeader
+                group={group}
+                dragHandleProps={dragHandleProps}
+            />
+            <div className="flex flex-col gap-1 overflow-y-auto">
+                {group.sections.map((section) => (
                     <Section
                         key={section.id}
                         section={section}
-                        dragHandleProps={index === 0 ? dragHandleProps : undefined} />
+                    />
                 ))}
-            </>
+            </div>
             <AddSection inGroup groupId={group.id} />
         </div>
     )

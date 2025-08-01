@@ -10,8 +10,8 @@ export type Workspace = {
 
 export type Folder = {
     id: number
-    workspaceId: number | null
-    folderId: number | null
+    workspaceID: number | null
+    folderID: number | null
     name: string
     creation_date: string
     creation_time: string
@@ -25,8 +25,8 @@ export type Folder = {
 
 export type Note = {
     id: number
-    workspaceId: number | null
-    folderId: number | null
+    workspaceID: number | null
+    folderID: number | null
     name: string
     creation_date: string
     creation_time: string
@@ -38,14 +38,14 @@ export type Note = {
 
 export type Group = {
     id: number
-    noteId: number
+    noteID: number
     position: number
     sections: Section[]
 }
 
 export type Section = {
     id: number
-    groupId: number
+    groupID: number
     title: string
     creation_date: string
     creation_time: string
@@ -58,8 +58,8 @@ export type Section = {
 
 export type Task = {
     id: number
-    sectionId: number | null
-    taskId: number | null
+    sectionID: number | null
+    taskID: number | null
     creation_date: string
     creation_time: string
     edit_date: string
@@ -71,4 +71,20 @@ export type Task = {
     priority: boolean
     description: string
     subtasks: Task[]
+}
+
+export type WorkspaceDataTree = {
+    rootFolders: Folder[]
+    rootNotes: Note[]
+}
+
+export type NoteDataTree = {
+    groups: Group[]
+}
+
+export type AudioPlayerPosition = {
+    x: number,
+    y: number,
+    scaleX: number,
+    scaleY: number
 }

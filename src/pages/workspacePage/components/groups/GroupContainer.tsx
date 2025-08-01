@@ -6,14 +6,15 @@ import { Group } from "./Group"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 
 export const GroupContainer = () => {
-    const { getNoteData, updateGroupsPositions, currentNote, groups, setGroups } = useWorkspaceData()
+    const { getNoteData, updateGroupsPositions, currentNote, noteDataTree, setGroups } = useWorkspaceData()
+
+    const groups = noteDataTree?.groups
 
     useEffect(() => {
         const fetchNoteData = async () => {
             if (!currentNote) return
             await getNoteData(currentNote.id)
         }
-
         fetchNoteData()
     }, [currentNote])
 
@@ -33,8 +34,6 @@ export const GroupContainer = () => {
 
         try {
             await updateGroupsPositions(updatedGroups)
-            if (currentNote)
-                await getNoteData(currentNote?.id)
         } catch (error: any) {
             console.error("Errore durante l'aggiornamento delle posizioni dei gruppi:", error)
             setGroups(groups)
@@ -42,40 +41,38 @@ export const GroupContainer = () => {
     }
 
     return (
-        <>
-            <div className="flex items-start justify-start h-full overflow-x-auto overflow-y-auto bg-background">
-                <DragDropContext onDragEnd={handleOnDragEnd}>
-                    <Droppable droppableId="groups" direction="horizontal">
-                        {(provided) => (
-                            <div
-                                {...provided.droppableProps}
-                                ref={provided.innerRef}
-                                className="flex items-start p-2"
-                            >
-                                {Array.isArray(groups) && groups.length > 0 &&
-                                    groups.map((group, index) => (
-                                        <Draggable key={group.id} draggableId={String(group.id)} index={index}>
-                                            {(provided) => (
-                                                <div
-                                                    ref={provided.innerRef}
-                                                    {...provided.draggableProps}
-                                                    style={{
-                                                        ...provided.draggableProps.style,
-                                                        marginRight: "8px"
-                                                    }}
-                                                >
-                                                    <Group dragHandleProps={provided.dragHandleProps} group={group} />
-                                                </div>
-                                            )}
-                                        </Draggable>
-                                    ))}
-                                {provided.placeholder}
-                                <AddSection />
-                            </div>
-                        )}
-                    </Droppable>
-                </DragDropContext>
-            </div>
-        </>
+        <DragDropContext onDragEnd={handleOnDragEnd}>
+            <Droppable droppableId="groups" direction="horizontal">
+                {(provided) => (
+                    <div
+                        {...provided.droppableProps}
+                        ref={provided.innerRef}
+                        className="flex w-full h-full items-start p-2 space-x-2 overflow-x-auto"
+                    >
+                        {Array.isArray(groups) && groups.length > 0 &&
+                            [...groups]
+                                .sort((a, b) => a.position - b.position)
+                                .map((group, index) => (
+                                    <Draggable key={group.id} draggableId={String(group.id)} index={index}>
+                                        {(provided) => (
+                                            <div
+                                                className="h-full w-full"
+                                                ref={provided.innerRef}
+                                                {...provided.draggableProps}
+                                                style={{
+                                                    ...provided.draggableProps.style
+                                                }}
+                                            >
+                                                <Group dragHandleProps={provided.dragHandleProps} group={group} />
+                                            </div>
+                                        )}
+                                    </Draggable>
+                                ))}
+                        {provided.placeholder}
+                        <AddSection />
+                    </div>
+                )}
+            </Droppable>
+        </DragDropContext>
     )
 }

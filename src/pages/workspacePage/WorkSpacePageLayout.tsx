@@ -35,7 +35,7 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
     }
 
     return (
-        <div className="flex flex-col w-full h-screen">
+        <div className="flex flex-col w-full h-full">
             <Navbar
                 centerContainer={
                     <div className="flex">
@@ -51,7 +51,7 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
                     </div>
                 }
             />
-            <main className="flex flex-1 w-full overflow-hidden">
+            <main className="flex flex-1 w-full h-full overflow-hidden">
                 {children}
             </main>
         </div>

@@ -1,71 +1,22 @@
-import type { Workspace } from "@/types/types";
+import type { Folder, Note, Workspace } from "@/types/types";
 import { getDB } from "../dbManager"
 import { handleDBError } from "@/types/error";
 
-export async function getDBWorkspaceData(workspaceId: number) {
+/**
+ * Retrieves the workspace data for a given workspace ID.
+ * @param workspaceID The ID of the workspace to retrieve data for.
+ * @returns The workspace data, including folders and notes.
+ * @category Database Queries
+ */
+export async function getDBWorkspaceData(workspaceID: number) {
     try {
-        const db = await getDB();
+        const db = await getDB()
+        const folders = await db.select<Folder[]>('SELECT * FROM folder WHERE workspaceID=? ORDER BY name COLLATE NOCASE ASC',
+            [workspaceID])
+        const notes = await db.select<Note[]>('SELECT * FROM note WHERE workspaceID=? OR folderID IN (SELECT id FROM folder WHERE workspaceid=?) ORDER BY name COLLATE NOCASE ASC',
+            [workspaceID, workspaceID])
 
-        const allFolders: any[] = await db.select(`
-        SELECT * FROM folder WHERE workspace_id = ? OR folder_id IS NOT NULL
-    `, [workspaceId]);
-
-        const allNotes: any[] = await db.select(`
-        SELECT * FROM note 
-        WHERE workspace_id = ? 
-           OR folder_id IN (SELECT id FROM folder WHERE workspace_id = ? OR folder_id IS NOT NULL)
-    `, [workspaceId, workspaceId])
-
-        const folderMap = new Map<number, any>();
-        const folderChildrenMap = new Map<number, any[]>();
-        const folderNotesMap = new Map<number, any[]>();
-        const rootFolders: any[] = [];
-
-        for (const folder of allFolders) {
-            folder.subfolders = [];
-            folder.notes = [];
-            folderMap.set(folder.id, folder);
-
-            if (folder.folder_id != null) {
-                if (!folderChildrenMap.has(folder.folder_id)) {
-                    folderChildrenMap.set(folder.folder_id, []);
-                }
-                folderChildrenMap.get(folder.folder_id)!.push(folder);
-            } else {
-                rootFolders.push(folder);
-            }
-        }
-
-        for (const note of allNotes) {
-            const noteWithGroups = { ...note, groups: [] };
-            if (note.folder_id != null) {
-                if (!folderNotesMap.has(note.folder_id)) {
-                    folderNotesMap.set(note.folder_id, []);
-                }
-                folderNotesMap.get(note.folder_id)!.push(noteWithGroups);
-            }
-        }
-
-        function attachSubfolders(folder: any) {
-            folder.notes = folderNotesMap.get(folder.id) || [];
-            folder.subfolders = folderChildrenMap.get(folder.id) || [];
-            for (const subfolder of folder.subfolders) {
-                attachSubfolders(subfolder);
-            }
-        }
-
-        for (const folder of rootFolders) {
-            attachSubfolders(folder);
-        }
-
-        const notesWithoutFolder = allNotes
-            .filter(note => note.folder_id == null)
-            .map(note => ({ ...note, groups: [] }));
-
-        return {
-            folders: rootFolders,
-            notes: notesWithoutFolder,
-        };
+        return { folders, notes }
     } catch (error) {
         console.log(error)
     }
@@ -77,9 +28,8 @@ export async function getDBWorkspaceData(workspaceId: number) {
  * @category Database Queries
  */
 export async function getDBWorkspaces() {
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         return await db.select<Workspace[]>('SELECT * FROM workspace ORDER BY edit_date DESC, edit_time DESC')
     } catch (error: any) {
         handleDBError(error, "ERROR_ON_GET_WORKSPACE", {
@@ -96,9 +46,8 @@ export async function getDBWorkspaces() {
  * @category Database Queries
  */
 export async function createDBWorkspace(name: string, color?: string | null) {
-    const db = await getDB();
-
     try {
+        const db = await getDB();
         await db.execute('INSERT INTO workspace (name, color) VALUES (?, ?)', [name, color ?? null])
     } catch (error: any) {
         handleDBError(error, "WORKSPACE", {

@@ -2,56 +2,25 @@ import type { Group, Section, Task } from "@/types/types";
 import { getDB } from "../dbManager";
 import { handleDBError } from "@/types/error";
 
+
+/**
+ * Retrieves the data for a specific note from the database.
+ * @param noteId The ID of the note for which to retrieve data.
+ * @returns The note data, including groups, sections, and tasks.
+ * @category Database
+ */
 export async function getDBNoteData(noteId: number) {
-    const db = await getDB();
-
     try {
-        // 1. Prendi tutti i gruppi della nota
-        const groups = await db.select<Group[]>(
-            'SELECT * FROM section_group WHERE note_id = ? ORDER BY position',
-            [noteId]
-        );
-
-        // 2. Funzione ricorsiva per recuperare i task
-        const getTasksRecursively = async (sectionId: number, parentTaskId: number | null = null): Promise<Task[]> => {
-            const tasks = await db.select<Task[]>(
-                'SELECT * FROM task WHERE section_id = ? AND task_id IS ?',
-                [sectionId, parentTaskId]
-            );
-
-            return await Promise.all(
-                tasks.map(async task => ({
-                    ...task,
-                    subtasks: await getTasksRecursively(sectionId, task.id)
-                }))
-            );
-        };
-
-        // 3. Per ogni gruppo, prendi le section e le task ricorsive
-        const fullGroups = await Promise.all(
-            groups.map(async group => {
-                const sections = await db.select<Section[]>(
-                    'SELECT * FROM section WHERE group_id = ?',
-                    [group.id]
-                );
-
-                const sectionsWithTasks = await Promise.all(
-                    sections.map(async section => ({
-                        ...section,
-                        tasks: await getTasksRecursively(section.id)
-                    }))
-                );
-
-                return {
-                    ...group,
-                    sections: sectionsWithTasks
-                };
-            })
-        );
-
-        return { groups: fullGroups };
+        const db = await getDB()
+        const groups = await db.select<Group[]>('SELECT * FROM section_group WHERE noteID=? ORDER BY position', [noteId])
+        const sections = await db.select<Section[]>('SELECT * from section WHERE groupID IN (SELECT id FROM section_group WHERE noteID=?)', [noteId])
+        const tasks = await db.select<Task[]>(`
+            SELECT * FROM task WHERE sectionID IN (
+            SELECT id FROM section WHERE groupID IN (
+            SELECT id from section_group WHERE noteID=?))`, [noteId]);
+        return { groups, sections, tasks }
     } catch (error: any) {
-        console.log(error);
+        console.log(error)
     }
 }
 
@@ -63,10 +32,9 @@ export async function getDBNoteData(noteId: number) {
  * @category Database
  */
 export async function createDBWorkspaceNote(workspaceId: number, name: string, color?: string | null) {
-    const db = await getDB()
-
     try {
-        await db.execute('INSERT INTO note (workspace_id, name, color) VALUES (?, ?, ?)', [workspaceId, name, color ?? null]);
+        const db = await getDB()
+        await db.execute('INSERT INTO note (workspaceID, name, color) VALUES (?, ?, ?)', [workspaceId, name, color ?? null]);
     } catch (error: any) {
         handleDBError(error, "NOTE", {
             UNIQUE: "A note with this name already exists.",
@@ -83,10 +51,9 @@ export async function createDBWorkspaceNote(workspaceId: number, name: string, c
  * @category Database
  */
 export async function createDBNoteInFolder(folderId: number, name: string) {
-    const db = await getDB()
-
     try {
-        await db.execute('INSERT INTO note (folder_id, name) VALUES (?, ?)', [folderId, name]);
+        const db = await getDB()
+        await db.execute('INSERT INTO note (folderID, name) VALUES (?, ?)', [folderId, name]);
     } catch (error: any) {
         handleDBError(error, "NOTE", {
             UNIQUE: "A note with this name already exists.",

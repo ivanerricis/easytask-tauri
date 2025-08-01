@@ -16,6 +16,10 @@
     "core:window:allow-is-fullscreen",
     "window-state:default",
     "fs:default",
+    "dialog:default",
+    "shell:allow-open",
+    "shell:allow-spawn",
+    "shell:allow-execute",
     {
       "identifier": "fs:allow-exists",
       "allow": [

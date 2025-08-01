@@ -12,6 +12,7 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import type { Folder } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useState } from "react"
+import { toast } from "sonner"
 
 type ParentFolderProps = {
     parentFolder: Folder
@@ -37,7 +38,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
             setName("")
         } catch (err: any) {
             setError(err.message)
-            console.log(error)
+            toast.error(err.message)
         }
     }
 
@@ -55,22 +56,17 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                     <DialogTitle>Crea una nota</DialogTitle>
                     <DialogDescription />
                 </DialogHeader>
-                <form onSubmit={handleCreateNote}>
-                    <div className="grid gap-4">
-                        <div className="grid gap-3">
-                            <Input
-                                id="name-1"
-                                name="name"
-                                value={name}
-                                onChange={(e) => {
-                                    setError(null)
-                                    setName(e.target.value )
-                                }}
-                                onClick={(e) => { e.stopPropagation() }}
-                            />
-                            {error && <p className="text-xs text-destructive">{error}</p>}
-                        </div>
-                    </div>
+                <form onSubmit={handleCreateNote} className="grid gap-3">
+                    <Input
+                        id="name-1"
+                        name="name"
+                        value={name}
+                        onChange={(e) => {
+                            setError(null)
+                            setName(e.target.value)
+                        }}
+                    />
+                    {error && <p className="text-xs text-destructive">{error}</p>}
                     <DialogFooter className="mt-4">
                         <Button
                             variant="outline"

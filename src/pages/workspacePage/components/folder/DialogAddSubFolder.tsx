@@ -13,6 +13,7 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import type { Folder } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useState } from "react"
+import { toast } from "sonner"
 
 type ParentFolderProps = {
     parentFolder: Folder
@@ -31,13 +32,14 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
         if (!currentWorkspace?.id) return
         if (name.trim() === "") return
         try {
-            await createSubFolder(parentFolder.id, name.trim())
+            await createSubFolder(currentWorkspace?.id, parentFolder.id, name.trim())
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             onOpenChange(false)
             setName("")
         } catch (err: any) {
             setError(err.message)
+            toast.error(err.message)
         }
     }
 
@@ -55,30 +57,30 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
                     <DialogTitle>Crea una cartella</DialogTitle>
                     <DialogDescription />
                 </DialogHeader>
-                <form onSubmit={handleCreateFolder}>
-                    <div className="grid gap-3">
-                        <Input
-                            id="name-1"
-                            name="name"
-                            value={name}
-                            onChange={(e) => {
-                                setError(null)
-                                setName(e.target.value)
-                            }}
-                            onClick={(e) => { e.stopPropagation() }}
-                        />
-                        {error && <p className="text-xs text-destructive">{error}</p>}
-                    </div>
+                <form onSubmit={handleCreateFolder} className="grid gap-3">
+                    <Input
+                        id="name-1"
+                        name="name"
+                        value={name}
+                        onChange={(e) => {
+                            setError(null)
+                            setName(e.target.value)
+                        }}
+                    />
+                    {error && <p className="text-xs text-destructive">{error}</p>}
                     <DialogFooter className="mt-4">
                         <DialogClose asChild>
                             <Button
                                 variant="outline"
                                 type="button"
-                                onClick={handleCancel}>
+                                onClick={handleCancel}
+                            >
                                 Annulla
                             </Button>
                         </DialogClose>
-                        <Button type="submit" disabled={!name.trim()}>
+                        <Button
+                            type="submit"
+                            disabled={!name.trim()}>
                             Crea cartella
                         </Button>
                     </DialogFooter>

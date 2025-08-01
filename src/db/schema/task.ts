@@ -5,8 +5,8 @@
 export const createTaskTable = `
     CREATE TABLE IF NOT EXISTS task (
         id INTEGER PRIMARY KEY,
-        section_id INTEGER,
-        task_id INTEGER,
+        sectionID INTEGER,
+        taskID INTEGER,
         text TEXT NOT NULL CHECK (LENGTH(text) > 0),
         description TEXT,
         completed BOOLEAN NOT NULL DEFAULT FALSE,
@@ -17,9 +17,9 @@ export const createTaskTable = `
         creation_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
         edit_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
         edit_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
-        FOREIGN KEY(section_id) REFERENCES section(id) ON DELETE CASCADE,
-        FOREIGN KEY(task_id) REFERENCES task(id) ON DELETE CASCADE
-        UNIQUE(text, section_id)
+        FOREIGN KEY(sectionID) REFERENCES section(id) ON DELETE CASCADE,
+        FOREIGN KEY(taskID) REFERENCES task(id) ON DELETE CASCADE
+        UNIQUE(text, sectionID)
     );
 
     CREATE TRIGGER IF NOT EXISTS update_task_edit_timestamp

@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { DialogTaskDescription } from "./DialogTaskDescription"
 
 type ButtonMenuFolderProps = {
     task: Task
@@ -15,8 +16,9 @@ type ButtonMenuFolderProps = {
 
 export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
     const [dropDownOpen, setDropDownOpen] = useState(false)
+    const [isDescriptionOpen, setDescriptionOpen] = useState(false)
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
-    const { updateTaskPriority, getNoteData, updateItemColor, currentNote } = useWorkspaceData()
+    const { updateTaskPriority, updateTaskDescription, getNoteData, updateItemColor, currentNote } = useWorkspaceData()
 
     const handleEditPriority = async () => {
         try {
@@ -27,6 +29,25 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
             toast.error('Impossibile modificare la priorità')
         } finally {
             setDropDownOpen(false)
+        }
+    }
+
+    const handleDescription = async () => {
+        if (task.description) {
+            try {
+                if (currentNote) {
+                    await updateTaskDescription(task.id, undefined)
+                    await getNoteData(currentNote.id)
+                }
+            } catch (err: any) {
+                toast.error(err.message)
+            } finally {
+                setDropDownOpen(false)
+            }
+        }
+        else {
+            setDropDownOpen(false)
+            setDescriptionOpen(true)
         }
     }
 
@@ -43,6 +64,11 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
                     className="p-1 rounded-xs"
                 >
                     <DropdownMenuGroup className="flex flex-col gap-1">
+                        <ButtonInPopover
+                            text={task.description ? 'Rimuovi descrizione' : 'Aggiungi descrizione'}
+                            type={task.description ? 'removeDescription' : 'addDescription'}
+                            onClick={() => { handleDescription() }}
+                        />
                         <ButtonInPopover
                             text={task.priority ? 'Rimuovi priorità' : 'Aggiungi priorità'}
                             type={task.priority ? 'removePriority' : 'addPriority'}
@@ -76,6 +102,12 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
                     </DropdownMenuGroup>
                 </DropdownMenuContent>
             </DropdownMenu>
+
+            <DialogTaskDescription
+                task={task}
+                open={isDescriptionOpen}
+                onOpenChange={setDescriptionOpen}
+            />
 
             <DialogDeleteItem
                 item={task}

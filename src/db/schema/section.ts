@@ -5,7 +5,7 @@
 export const createSectionTable = `
     CREATE TABLE IF NOT EXISTS section (
         id INTEGER PRIMARY KEY,
-        group_id INTEGER NOT NULL,
+        groupID INTEGER NOT NULL,
         title TEXT NOT NULL CHECK (LENGTH(title) > 0),
         color TEXT CHECK (LENGTH(color) > 0) DEFAULT NULL,
         archived BOOLEAN NOT NULL DEFAULT FALSE,
@@ -13,8 +13,8 @@ export const createSectionTable = `
         creation_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
         edit_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
         edit_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
-        FOREIGN KEY(group_id) REFERENCES section_group(id) ON DELETE CASCADE,
-        UNIQUE(title, group_id)
+        FOREIGN KEY(groupID) REFERENCES section_group(id) ON DELETE CASCADE,
+        UNIQUE(title, groupID)
     );
 
     CREATE TRIGGER IF NOT EXISTS update_section_edit_timestamp

@@ -3,10 +3,11 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Settings } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import { Separator } from "@/components/ui/separator"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { store } from "@/lib/store/initStore"
+import { usePreferences } from "@/contexts/preferences-context"
+import { Checkbox } from "@/components/ui/checkbox"
 
 type DialogSettingsProps = {
     className?: string
@@ -14,34 +15,34 @@ type DialogSettingsProps = {
 
 export const DialogSettings = ({ className }: DialogSettingsProps) => {
     const [isOpen, setIsOpen] = useState(false)
-    const [color, setColor] = useState("#ffb375");
-
-    useEffect(() => {
-        if (isOpen) {
-            const loadColor = async () => {
-                const savedColor = await store.get<{ hex: string }>('primaryColor');
-                if (savedColor?.hex) {
-                    setColor(savedColor.hex);
-                }
-            };
-            loadColor();
-        }
-    }, [isOpen]);
+    const {
+        primaryColor, setPrimaryColor,
+        showProgressBar, setShowProgressBar,
+        showSectionCount, setShowSectionCount,
+        showTaskCount, setShowTaskCount,
+        resetPlayerPosition
+    } = usePreferences()
 
     const handleColorChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newHexColor = e.target.value;
-        setColor(newHexColor);
+        setPrimaryColor(e.target.value)
+    }
 
-        document.documentElement.style.setProperty('--primary', newHexColor);
+    const handleProgressBar = async () => {
+        setShowProgressBar(!showProgressBar)
+    }
 
-        await store.set('primaryColor', { hex: newHexColor });
-        await store.save();
+    const handleSectionCount = async () => {
+        setShowSectionCount(!showSectionCount)
+    }
+
+    const handleTaskCount = async () => {
+        setShowTaskCount(!showTaskCount)
     }
 
     return (
         <>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent className="w-[350px]">
+                <DialogContent>
                     <DialogDescription />
                     <DialogHeader>
                         <DialogTitle>
@@ -52,6 +53,7 @@ export const DialogSettings = ({ className }: DialogSettingsProps) => {
                     <DialogHeader className="font-bold">
                         Aspetto
                     </DialogHeader>
+
                     <div className="flex items-center justify-between w-full">
                         <h1 className="text-sm">
                             Cambia tema:
@@ -63,16 +65,59 @@ export const DialogSettings = ({ className }: DialogSettingsProps) => {
                             Colore d'accento:
                         </h1>
                         <div
-                            className="flex items-center justify-center w-9 h-9 border rounded-xs"
-                            style={{ backgroundColor: color }}
+                            className="flex items-center justify-center size-5 border rounded-xs"
+                            style={{ backgroundColor: primaryColor }}
                         >
                             <Input
                                 type="color"
                                 className="opacity-0 cursor-pointer"
-                                value={color}
+                                value={primaryColor}
                                 onChange={handleColorChange}
                             />
                         </div>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-sm">
+                            Mostra barra d'avanzamento nelle sezioni
+                        </h1>
+                        <Checkbox
+                            checked={showProgressBar}
+                            onCheckedChange={handleProgressBar}
+                            className="size-5"
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-sm">
+                            Mostra numero di sezioni
+                        </h1>
+                        <Checkbox
+                            checked={showSectionCount}
+                            onCheckedChange={handleSectionCount}
+                            className="size-5"
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-sm">
+                            Mostra numero di task
+                        </h1>
+                        <Checkbox
+                            checked={showTaskCount}
+                            onCheckedChange={handleTaskCount}
+                            className="size-5"
+                        />
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <h1 className="text-sm">
+                            Ripristina la posizione del player audio
+                        </h1>
+                        <Button
+                            variant={"outline"}
+                            size={"sm"}
+                            onClick={resetPlayerPosition}
+                            className=""
+                        >
+                            Reset
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>

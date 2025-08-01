@@ -9,10 +9,9 @@ import { getDB } from "../dbManager";
  * @category Database Queries
  */
 export async function createDBWorkspaceFolder(workspaceId: number, name: string, color?: string | null) {
-    const db = await getDB()
-
     try {
-        await db.execute('INSERT INTO folder (workspace_id, name, color) VALUES (?, ?, ?)', [workspaceId, name, color ?? null])
+        const db = await getDB()
+        await db.execute('INSERT INTO folder (workspaceID, name, color) VALUES (?, ?, ?)', [workspaceId, name, color ?? null])
     } catch (error: any) {
         handleDBError(error, "FOLDER", {
             UNIQUE: "A folder with this name already exists.",
@@ -28,11 +27,10 @@ export async function createDBWorkspaceFolder(workspaceId: number, name: string,
  * @param color The new color of the folder (optional).
  * @category Database Queries
  */
-export async function createDBSubFolder(folderId: number, name: string) {
-    const db = await getDB()
-
+export async function createDBSubFolder(workspaceID: number, folderId: number, name: string) {
     try {
-        await db.execute('INSERT INTO folder (folder_id, name) VALUES (?, ?)', [folderId, name])
+        const db = await getDB()
+        await db.execute('INSERT INTO folder (workspaceID, folderID, name) VALUES (?, ?, ?)', [workspaceID, folderId, name])
     } catch (error: any) {
         handleDBError(error, "FOLDER", {
             UNIQUE: "A folder with this name already exists.",
@@ -48,16 +46,15 @@ export async function createDBSubFolder(folderId: number, name: string) {
  * @category Database Queries
  */
 export async function updateDBFolderColorContent(folderId: number, color?: string | null) {
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         const folders = await db.select<{ id: number }[]>(
             `
             WITH RECURSIVE folder_tree AS (
                 SELECT id FROM folder WHERE id = ?
                 UNION ALL
                 SELECT f.id FROM folder f
-                INNER JOIN folder_tree ft ON f.folder_id = ft.id
+                INNER JOIN folder_tree ft ON f.folderID = ft.id
             )
             SELECT id FROM folder_tree
             `,
@@ -75,7 +72,7 @@ export async function updateDBFolderColorContent(folderId: number, color?: strin
         )
 
         await db.execute(
-            `UPDATE note SET color = ? WHERE folder_id IN (${placeholders})`,
+            `UPDATE note SET color = ? WHERE folderID IN (${placeholders})`,
             [color, ...folderIds]
         )
 

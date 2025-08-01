@@ -21,7 +21,7 @@ type defaultItemType = {
 export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, getItemId, isOpen, onOpenChange, getItemData }: DialogDeleteProps<T>) => {
     const { deleteItem } = useWorkspaceData()
 
-    const handleDelete = async (e: React.MouseEvent) => {
+    const handleDelete = async (e: React.SyntheticEvent) => {
         e.stopPropagation()
         try {
             await deleteItem(itemType, item.id)
@@ -34,9 +34,17 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
         }
     }
 
+    const handleEnter = (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key === "Enter") {
+            handleDelete(e)
+        }
+    }
+
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent>
+            <DialogContent
+                onKeyDown={(e) => handleEnter(e)}
+            >
                 <DialogHeader>
                     <DialogTitle className="text-destructive">
                         Stai per eliminare l'elemento
@@ -59,6 +67,6 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
                     </Button>
                 </DialogFooter>
             </DialogContent>
-        </Dialog>
+        </Dialog >
     )
 }

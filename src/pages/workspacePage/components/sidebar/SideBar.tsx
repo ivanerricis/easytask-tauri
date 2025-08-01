@@ -8,15 +8,16 @@ type SideBarProps = {
     className?: string
     topContainer?: React.ReactNode
     bottomContainer?: React.ReactNode
-    defaultOpen?: boolean
+    defaultOpen: boolean
+    updateOpen: (value: boolean) => void
 }
 
-const DEFAULT_WIDTH = 245
+const DEFAULT_WIDTH = 260
 
-export const SideBar = ({ children, position = "left", className, topContainer, bottomContainer, defaultOpen }: SideBarProps) => {
+export const SideBar = ({ children, position = "left", className, topContainer, bottomContainer, defaultOpen, updateOpen }: SideBarProps) => {
     const sidebarRef = useRef<HTMLDivElement>(null)
     const [isResizing, setIsResizing] = useState(false)
-    const [sidebarOpen, setSidebarOpen] = useState(defaultOpen ?? true)
+    const [sidebarOpen, setSidebarOpen] = useState(defaultOpen)
     const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH)
 
     const startResizing = useCallback((e: React.MouseEvent) => {
@@ -51,6 +52,7 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
 
     const handleToggle = () => {
         setSidebarOpen(!sidebarOpen)
+        updateOpen(!defaultOpen)
     }
 
     const handleDoubleClick = () => {
@@ -79,7 +81,7 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
                 {sidebarOpen && children}
                 {sidebarOpen && (
                     <div
-                        className={`absolute top-0 h-full w-1.5 cursor-col-resize hover:bg-foreground/20 ${resizerPosition}`}
+                        className={`absolute top-0 h-full w-1.5 cursor-col-resize hover:bg-accent ${resizerPosition}`}
                         onMouseDown={startResizing}
                         onDoubleClick={handleDoubleClick}
                     />

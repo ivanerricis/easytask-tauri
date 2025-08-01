@@ -9,10 +9,9 @@ import { getDB } from "../dbManager";
  * @category Database Queries
  */
 export async function createDBSectionInGroup(groupId: number, title: string) {
-    const db = await getDB()
-
     try {
-        await db.execute('INSERT INTO section (group_id, title) VALUES (?, ?)', [groupId, title]);
+        const db = await getDB()
+        await db.execute('INSERT INTO section (groupID, title) VALUES (?, ?)', [groupId, title]);
     } catch (error: any) {
         handleDBError(error, "SECTION", {
             UNIQUE: "A section with this name already exists.",
@@ -29,15 +28,14 @@ export async function createDBSectionInGroup(groupId: number, title: string) {
  * @category Database Queries
  */
 export async function createDBSection(noteId: number, title: string, position: number) {
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         // await db.execute('BEGIN')
 
-        const result = await db.execute('INSERT INTO section_group (note_id, position) VALUES (?, ?)', [noteId, position]);
+        const result = await db.execute('INSERT INTO section_group (noteID, position) VALUES (?, ?)', [noteId, position]);
         const groupId = result.lastInsertId
 
-        await db.execute('INSERT INTO section (group_id, title) VALUES (?, ?)', [groupId, title]);
+        await db.execute('INSERT INTO section (groupID, title) VALUES (?, ?)', [groupId, title]);
 
         // await db.execute('COMMIT')
     } catch (error: any) {

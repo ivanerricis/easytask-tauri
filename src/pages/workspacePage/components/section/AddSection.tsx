@@ -65,9 +65,12 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                 }
                 await createSectionInGroup(groupId, name.trim())
             } else {
-                const lastGroup = groups.at(-1)
-                const lastPosition: number = lastGroup?.position ?? 0
-                await createSection(currentNote.id, name.trim(), lastPosition + 1)
+                let position = 0
+                if (groups.length > 0) {
+                    const lastGroup = groups.at(-1)!
+                    position = lastGroup.position + 1
+                }
+                await createSection(currentNote.id, name.trim(), position)
             }
 
             handleOpen()
@@ -78,12 +81,12 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     }
 
     return !isOpen ? (
-        <AddButton onClick={handleOpen} />
+        <AddButton onClick={handleOpen} inGroup={inGroup} />
     ) : (
         <form
             ref={formRef}
             onSubmit={handleSubmit}
-            className="flex flex-col items-center justify-center border"
+            className={`flex flex-col items-center justify-center border border-1, ${inGroup ? 'w-full' : 'w-fit'}`}
         >
             <div className="flex items-center justify-center w-full">
                 <Input
@@ -91,7 +94,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Scrivi qualcosa..."
                     autoFocus
-                    className="rounded-none border-none !bg-background"
+                    className={`rounded-none border-none !bg-background text-sm, ${inGroup ? 'w-full' : 'w-fit'}`}
                 />
             </div>
             <div className="flex items-center w-full border-t bg-secondary divide-x">

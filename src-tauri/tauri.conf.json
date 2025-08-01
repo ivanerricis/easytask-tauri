@@ -55,7 +55,9 @@
       ]
     },
     "tauri-plugin-store": {
-      "store": ["settings"]
+      "store": [
+        "settings"
+      ]
     }
   }
 }

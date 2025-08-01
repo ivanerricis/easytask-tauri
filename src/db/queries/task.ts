@@ -1,4 +1,4 @@
-import { handleDBError } from "@/types/error"
+import { createError, handleDBError } from "@/types/error"
 import { getDB } from "../dbManager"
 
 /**
@@ -9,10 +9,9 @@ import { getDB } from "../dbManager"
  * @category Database
  */
 export async function createDBTask(sectionId: number, text: string) {
-    const db = await getDB()
-
     try {
-        await db.execute('INSERT INTO task (section_id, text) VALUES (?, ?)', [sectionId, text])
+        const db = await getDB()
+        await db.execute('INSERT INTO task (sectionID, text) VALUES (?, ?)', [sectionId, text])
     } catch (error: any) {
         const errorMessage = String(error)
         console.log(errorMessage)
@@ -36,10 +35,9 @@ export async function createDBTask(sectionId: number, text: string) {
  * @category Database
  */
 export async function createDBSubTask(taskId: number, text: string) {
-    const db = await getDB()
-
     try {
-        await db.execute('INSERT INTO task (task_id, text) VALUES (?, ?)', [taskId, text])
+        const db = await getDB()
+        await db.execute('INSERT INTO task (taskID, text) VALUES (?, ?)', [taskId, text])
     } catch (error: any) {
         handleDBError(error, "TASK", {
             UNIQUE: "A task with this name already exists.",
@@ -55,9 +53,8 @@ export async function createDBSubTask(taskId: number, text: string) {
  * @category Database
  */
 export async function updateDBTaskPriority(taskId: number, priority: boolean) {
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         await db.execute('UPDATE task SET priority=? WHERE id=?', [priority ? 1 : 0, taskId])
     } catch (error: any) {
         handleDBError(error, "TASK", {
@@ -74,14 +71,29 @@ export async function updateDBTaskPriority(taskId: number, priority: boolean) {
  * @category Database
  */
 export async function updateDBTaskCompletion(taskId: number, isCompleted: boolean) {
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         await db.execute('UPDATE task SET completed=? WHERE id=?', [isCompleted ? 1 : 0, taskId])
     } catch (error: any) {
         handleDBError(error, "TASK", {
             UNIQUE: "A task with this name already exists.",
             CHECK: "The task name cannot be empty.",
         })
+    }
+}
+
+/**
+ * Updates the description of a task in the database.
+ * @param taskID ID of the task to update
+ * @param description New description for the task
+ * @category Database
+ */
+export async function updateDBTaskDescription(taskID: number, description?: string) {
+    try {
+        const db = await getDB()
+        await db.execute('UPDATE task SET description=? WHERE id=?', [description ?? null, taskID])
+    } catch (error: any) {
+        createError(`TASK_DESCRIPTION_UPDATE_FAILED`, "Failed to update task description: " + error.message)
+
     }
 }

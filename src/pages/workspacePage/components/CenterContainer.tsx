@@ -4,13 +4,12 @@ import { NoteList } from "./note/NoteList"
 import { BlankNote } from "./BlankNote"
 
 export const CenterContainer = () => {
-
     const { currentNote } = useWorkspaceData()
 
     return (
-        <div className="flex flex-col w-full overflow-x-auto">
-            <NoteList />
+        <div className="flex flex-col w-full overflow-hidden relative">
+            {currentNote && <NoteList />}
             {currentNote ? <GroupContainer /> : <BlankNote />}
-        </div>
+        </div >
     )
 }

@@ -23,7 +23,7 @@ export function ModeToggle() {
     return (
         <DropdownMenu >
             <DropdownMenuTrigger className="app-no-drag" asChild>
-                <Button variant="outline" className="flex items-center justify-center gap-1">
+                <Button variant="outline" size={"sm"} className="flex items-center justify-center gap-1 p-2">
                     <div className="relative w-[1.2rem] h-[1.2rem] flex items-center">
                         <Sun className="relative h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
                         <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
