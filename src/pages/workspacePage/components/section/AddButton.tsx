@@ -24,10 +24,10 @@ export const AddButton = ({ onClick, inGroup }: AddButtonProps) => {
     }
 
     return (
-        <div className={`flex items-center gap-1, ${inGroup ? 'w-full' : 'w-fit'}`}>
+        <div className={`flex items-center gap-1 ${inGroup ? 'w-full' : 'w-fit'}`}>
             <button
                 onClick={onClick}
-                className="group cursor-pointer flex items-center justify-start w-full border border-transparent hover:border-dashed hover:border-accent gap-1 p-2 bg-background"
+                className="group cursor-pointer flex items-center justify-start w-full border border-transparent rounded-xs hover:border-solid hover:border-accent gap-1 p-2 bg-background"
             >
                 <Plus className="group-hover:text-foreground text-muted-foreground size-4" />
                 <h1 className="text-muted-foreground group-hover:text-foreground text-nowrap text-sm">
@@ -37,7 +37,7 @@ export const AddButton = ({ onClick, inGroup }: AddButtonProps) => {
             {inGroup &&
                 <button
                     onClick={handleAddFile}
-                    className="group flex items-center justify-center p-2 border border-transparent hover:border-dashed hover:border-accent cursor-pointer">
+                    className="group flex items-center justify-center p-2 border border-transparent rounded-xs hover:border-solid hover:border-accent cursor-pointer bg-background">
                     <Link2 className="text-muted-foreground group-hover:text-foreground size-5 -rotate-45" />
                 </button>}
         </div>

@@ -20,6 +20,7 @@ export const GroupContainer = () => {
 
     const handleOnDragEnd = async (result: DropResult) => {
         if (!result.destination || !groups) return
+        if (result.source.index === result.destination.index) return
 
         const items = Array.from(groups)
         const [reorderedItem] = items.splice(result.source.index, 1)
@@ -56,7 +57,7 @@ export const GroupContainer = () => {
                                     <Draggable key={group.id} draggableId={String(group.id)} index={index}>
                                         {(provided) => (
                                             <div
-                                                className="h-full w-full"
+                                                className="h-full w-fit"
                                                 ref={provided.innerRef}
                                                 {...provided.draggableProps}
                                                 style={{

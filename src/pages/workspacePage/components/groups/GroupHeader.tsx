@@ -12,7 +12,7 @@ export const GroupHeader = ({ group, dragHandleProps }: GroupHeaderProps) => {
     const { showSectionCount, showTaskCount } = usePreferences()
 
     return (
-        <div className="group flex items-center justify-between border px-2 py-1 bg-accent w-full rounded-xs">
+        <div className="group flex items-center justify-between border px-2 py-1 bg-background hover:bg-secondary w-full rounded-xs">
             {dragHandleProps && <div className="group flex items-center justify-center" {...dragHandleProps}>
                 <Grip className="text-muted-foreground group-hover:text-foreground w-4 h-4 mr-3" />
             </div>}

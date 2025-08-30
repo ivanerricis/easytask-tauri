@@ -65,7 +65,7 @@ export const SideBarLeft = () => {
                 </SideBarHeader>}
                 footer={<div className="flex flex-col gap-1 border-t p-1 w-full">
                     {/* <ItemFooter type="trash" text="Trash" /> */}
-                    <ItemFooter type="download" text="Export Workspace" />
+                    <ItemFooter type="download" text="Esporta Workspace" />
                     <ComboboxWorkspace />
                 </div>}
             >

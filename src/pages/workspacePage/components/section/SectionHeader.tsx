@@ -71,7 +71,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderPr
             >
                 {(section.tasks.length > 0) &&
                     <div role="button" onClick={handleOpen} className="shrink-0 cursor-pointer">
-                        <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1 size-5`} />
+                        <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1.5 size-5`} />
                     </div>}
                 <div className="flex items-center justify-between gap-2 w-full">
                     {!isTextAreaOpen && <h1

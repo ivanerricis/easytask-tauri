@@ -67,7 +67,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                     <div className="relative group flex items-start justify-between w-full px-1 py-1.5">
 
                         {/* Checkbox && text container */}
-                        <div className="flex items-start justify-between gap-2 ml-1 w-full">
+                        <div className="flex items-start justify-between gap-2 ml-2 w-full">
                             <Checkbox
                                 checked={!!task.completed}
                                 onCheckedChange={handleCheckedChange}
