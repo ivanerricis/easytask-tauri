@@ -143,7 +143,7 @@ export function DialogCreateWorkspace() {
                     className="flex items-center justify-center w-[280px] p-6 rounded-full gap-2 text-lg transition-all"
                 >
                     Crea un nuovo Workspace
-                    <ArrowRight className="!h-5 !w-5" />
+                    <ArrowRight className="h-5! w-5!" />
                 </Button>
             </TooltipCustom>
         </>

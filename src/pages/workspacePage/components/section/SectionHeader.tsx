@@ -65,9 +65,11 @@ export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderPr
         <div className="relative flex flex-col items-center justify-center">
 
             {/* Color Container */}
-            {section.color && <div className="w-full h-0.5 absolute top-0" style={{ backgroundColor: section.color }}></div>}
-            <div
-                className="group flex items-center w-full px-1 py-1 whitespace-nowrap"
+            {/* section.color && <div className="w-full h-1 absolute top-0" style={{ backgroundColor: section.color }}></div>} */}
+            
+            {section.color && <div
+                className="group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs"
+                style={{ backgroundColor: section.color }}
             >
                 {(section.tasks.length > 0) &&
                     <div role="button" onClick={handleOpen} className="shrink-0 cursor-pointer">
@@ -104,6 +106,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderPr
                     </div>
                 </div>
             </div>
+            }
         </div>
     )
 }

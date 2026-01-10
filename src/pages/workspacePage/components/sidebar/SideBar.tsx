@@ -9,7 +9,7 @@ type SideBarProps = {
     topContainer?: React.ReactNode
     bottomContainer?: React.ReactNode
     defaultOpen: boolean
-    updateOpen: (value: boolean) => void
+    updateOpen?: (value: boolean) => void
 }
 
 const DEFAULT_WIDTH = 260
@@ -52,7 +52,8 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
 
     const handleToggle = () => {
         setSidebarOpen(!sidebarOpen)
-        updateOpen(!defaultOpen)
+        if (updateOpen != null)
+            updateOpen(!defaultOpen)
     }
 
     const handleDoubleClick = () => {

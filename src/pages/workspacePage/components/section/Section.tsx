@@ -12,7 +12,6 @@ export const Section = ({ section }: SectionProps) => {
 
     const handleOpen = () => {
         setOpen(prev => !prev)
-
     }
 
     return (
