@@ -2,7 +2,10 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AddTask } from "./AddTask"
+import { toast } from "sonner"
 import { makeNote } from "@/test/ui-fixtures"
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 
 const ctx = {
     createTask: vi.fn(),
@@ -57,6 +60,17 @@ describe("AddTask", () => {
 
         await user.type(input, "   {Enter}")
         expect(ctx.createTask).not.toHaveBeenCalled()
+    })
+
+    it("reports creation errors with a toast and keeps the form open", async () => {
+        const user = userEvent.setup()
+        ctx.createTask.mockRejectedValue(new Error("duplicate"))
+        render(<AddTask sectionId={3} />)
+        await user.type(await open(user), "Task{Enter}")
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith("duplicate"))
+        expect(screen.getByPlaceholderText("Scrivi qualcosa...")).toBeInTheDocument()
+        expect(ctx.getNoteData).not.toHaveBeenCalled()
     })
 
     it("does not refresh the note when there is no current note", async () => {

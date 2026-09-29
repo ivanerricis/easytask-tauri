@@ -1,6 +1,8 @@
 import { Input } from "@/components/ui/input"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { getErrorMessage } from "@/lib/utils"
 import { Plus } from "lucide-react"
+import { toast } from "sonner"
 import { useState, useRef, useEffect } from "react"
 import type { FormEvent } from "react"
 import { PlusButton } from "../section/PlusButton"
@@ -36,10 +38,14 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
         if (text.trim()) {
-            await createTask(sectionId, text.trim());
-            handleOpen()
-            if (!currentNote) return
-            await getNoteData(currentNote.id)
+            try {
+                await createTask(sectionId, text.trim())
+                handleOpen()
+                if (!currentNote) return
+                await getNoteData(currentNote.id)
+            } catch (error: unknown) {
+                toast.error(getErrorMessage(error) || "Errore nella creazione del task")
+            }
         }
     }
 

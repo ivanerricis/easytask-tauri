@@ -88,6 +88,20 @@ describe("WorkspaceContext", () => {
         expect(result.current.isLoading).toBe(false)
     })
 
+    it("exposes the error message and clears it on the next operation", async () => {
+        vi.mocked(getDBWorkspaces).mockRejectedValueOnce(new Error("db down"))
+        const { result } = renderHook(() => useWorkspace(), { wrapper })
+
+        await act(async () => {
+            await expect(result.current.getWorkspaces()).rejects.toThrow("db down")
+        })
+        expect(result.current.error).toBe("db down")
+
+        vi.mocked(getDBWorkspaces).mockResolvedValueOnce([])
+        await act(() => result.current.getWorkspaces())
+        expect(result.current.error).toBeNull()
+    })
+
     it("creates a workspace with the color and refreshes the list", async () => {
         vi.mocked(createDBWorkspace).mockResolvedValue(undefined as never)
         vi.mocked(getDBWorkspaces).mockResolvedValue([makeWorkspace({ id: 7, name: "New" })])

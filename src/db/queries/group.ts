@@ -1,7 +1,7 @@
 import type { Group } from "@/types/types";
 import { getDB } from "../dbManager";
 import { createError } from "@/types/error";
-import { getErrorMessage } from "../errorMessage";
+import { getErrorMessage } from "@/lib/utils";
 
 /**
  * Updates the positions of multiple groups in the database.

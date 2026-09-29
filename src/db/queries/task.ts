@@ -1,6 +1,6 @@
 import { createError, handleDBError } from "@/types/error"
 import { getDB } from "../dbManager"
-import { getErrorMessage } from "../errorMessage"
+import { getErrorMessage } from "@/lib/utils"
 
 /**
  * Creates a new task in the database.

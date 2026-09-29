@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import type { Workspace } from '@/types/types'
 import { getDBWorkspaces, createDBWorkspace } from '@/db/queries/workspace'
+import { getErrorMessage } from '@/lib/utils'
 
 type WorkspaceContextType = {
     workspaces: Workspace[]
@@ -31,8 +32,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const withLoading = useCallback(async (operation: () => Promise<void>) => {
         pendingOps.current += 1
         setIsLoading(true)
+        setError(null)
         try {
             await operation()
+        } catch (err: unknown) {
+            setError(getErrorMessage(err))
+            throw err
         } finally {
             pendingOps.current -= 1
             setIsLoading(pendingOps.current > 0)
