@@ -7,66 +7,35 @@
   ],
   "permissions": [
     "core:default",
-    "core:window:default",
     "core:window:allow-start-dragging",
     "core:window:allow-minimize",
-    "core:window:allow-maximize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-close",
-    "core:window:allow-is-fullscreen",
     "window-state:default",
-    "fs:default",
-    "dialog:default",
-    "shell:allow-open",
-    "shell:allow-spawn",
-    "shell:allow-execute",
+    "dialog:allow-open",
     {
       "identifier": "fs:allow-exists",
       "allow": [
-        {
-          "path": "$DOCUMENT/**"
-        }
+        { "path": "$DOCUMENT/EasyTask" },
+        { "path": "$DOCUMENT/EasyTask/**" }
       ]
     },
     {
       "identifier": "fs:allow-mkdir",
       "allow": [
-        {
-          "path": "$DOCUMENT/**"
-        }
+        { "path": "$DOCUMENT/EasyTask" },
+        { "path": "$DOCUMENT/EasyTask/**" }
       ]
     },
-    {
-      "identifier": "sql:allow-load",
-      "allow": [
-        {
-          "path": "$DOCUMENT/**"
-        }
-      ]
-    },
-    {
-      "identifier": "sql:allow-execute",
-      "allow": [
-        {
-          "path": "$DOCUMENT/**"
-        }
-      ]
-    },
-    {
-      "identifier": "sql:allow-select",
-      "allow": [
-        {
-          "path": "$DOCUMENT/**"
-        }
-      ]
-    },
-    {
-      "identifier": "store:default",
-      "allow": [
-        {
-          "path": true
-        }
-      ]
-    }
+    "sql:allow-load",
+    "sql:allow-execute",
+    "sql:allow-select",
+    "sql:allow-close",
+    "store:allow-load",
+    "store:allow-get",
+    "store:allow-set",
+    "store:allow-has",
+    "store:allow-delete",
+    "store:allow-save"
   ]
 }

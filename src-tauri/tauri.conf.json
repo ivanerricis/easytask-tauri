@@ -2,10 +2,10 @@
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "easytask-tauri",
   "version": "0.1.0",
-  "identifier": "com.ivanerricis.dev",
+  "identifier": "com.ivanerricis.easytask",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:5173",
+    "devUrl": "http://localhost:1420",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
@@ -25,15 +25,12 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: asset: http://asset.localhost; media-src 'self' asset: http://asset.localhost; connect-src ipc: http://ipc.localhost ws://localhost:1420 http://localhost:1420"
     }
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "deb",
-      "appimage"
-    ],
+    "targets": ["nsis", "deb", "appimage"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -41,23 +38,5 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
-  },
-  "plugins": {
-    "tauri-plugin-fs": {
-      "scope": [
-        "$DOCUMENT/**"
-      ],
-      "allow": [
-        "exists",
-        "read",
-        "read-meta",
-        "mkdir"
-      ]
-    },
-    "tauri-plugin-store": {
-      "store": [
-        "settings"
-      ]
-    }
   }
 }
