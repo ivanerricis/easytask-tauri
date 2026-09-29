@@ -1,12 +1,14 @@
 import { Plus, X } from "lucide-react"
-import React, { useEffect, useState } from "react"
+import React, { useState } from "react"
 import { toast } from "sonner"
+import type { DBItemType } from "@/db/queries/shared_queries"
+import { getErrorMessage } from "@/lib/utils"
 
 type DialogAddColorProps<T> = {
     item: T
-    itemType: string
+    itemType: DBItemType
     getItemId?: number | undefined
-    addColorItem: (itemType: string, id: number, color?: string) => Promise<void>
+    addColorItem: (itemType: DBItemType, id: number, color?: string) => Promise<void>
     getItemData: (id: number) => Promise<void>
     setDropDownOpen?: (open: boolean) => void
     className?: string
@@ -29,11 +31,6 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
     const dialogRef = React.useRef<HTMLDivElement>(null);
     const [inputColor, setInputColor] = useState("#000000")
 
-    useEffect(() => {
-        if (item.color)
-            setColor(item.color)
-    }, [])
-
     const handleColorClick = async (colorValue: string, e: React.MouseEvent) => {
         setColor(colorValue)
         await handleSaveColor(e, colorValue)
@@ -48,8 +45,8 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
                 await addColorItem(itemType, item.id, colorToSave)
                 await getItemData(getItemId)
             }
-        } catch (err: any) {
-            toast.error(err.message)
+        } catch (err) {
+            toast.error(getErrorMessage(err))
         } finally {
             setInputColor("#000000")
         }
@@ -63,15 +60,15 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
                 await addColorItem(itemType, item.id)
                 await getItemData(getItemId)
             }
-        } catch (err: any) {
-            toast.error(err.message)
+        } catch (err) {
+            toast.error(getErrorMessage(err))
         }
     }
 
     return (
         <div
             ref={dialogRef}
-            className={`flex flex-col rounded-xs, ${className}`}
+            className={`flex flex-col rounded-xs ${className}`}
         >
             <div className="grid grid-cols-4">
                 {COLORS.map((colorValue) => (

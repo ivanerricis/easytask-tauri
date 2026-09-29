@@ -4,10 +4,12 @@ import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { DialogClose } from "@radix-ui/react-dialog"
 import React from "react"
 import { toast } from "sonner"
+import type { DBItemType } from "@/db/queries/shared_queries"
+import { getErrorMessage } from "@/lib/utils"
 
 type DialogDeleteProps<T> = {
     item: T
-    itemType: string
+    itemType: DBItemType
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     getItemId?: number | undefined
@@ -29,8 +31,8 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
                 await getItemData(getItemId)
             }
             onOpenChange(false)
-        } catch (error: any) {
-            toast.error('Impossibile eliminare l\'elemento: ' + error.message)
+        } catch (error) {
+            toast.error('Impossibile eliminare l\'elemento: ' + getErrorMessage(error))
         }
     }
 

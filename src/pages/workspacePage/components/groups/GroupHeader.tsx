@@ -2,10 +2,11 @@ import { usePreferences } from "@/contexts/preferences-context"
 import { Grip, LayoutList, SquareCheckBig } from "lucide-react"
 import { ButtonMenuGroup } from "./ButtonMenuGroup"
 import type { Group } from "@/types/types"
+import type { DraggableProvidedDragHandleProps } from "@hello-pangea/dnd"
 
 type GroupHeaderProps = {
     group: Group
-    dragHandleProps?: any
+    dragHandleProps?: DraggableProvidedDragHandleProps | null
 }
 
 export const GroupHeader = ({ group, dragHandleProps }: GroupHeaderProps) => {

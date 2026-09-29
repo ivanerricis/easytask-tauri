@@ -1,8 +1,9 @@
 import { Input } from "@/components/ui/input"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import type { FormEvent } from "react"
 import { toast } from "sonner"
+import { getErrorMessage } from "@/lib/utils"
 import { CloseButton } from "./CloseButton"
 import { PlusButton } from "./PlusButton"
 import { AddButton } from "./AddButton"
@@ -17,6 +18,11 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     const [name, setName] = useState("")
     const { createSection, createSectionInGroup, currentNote, getNoteData, groups } = useWorkspaceData()
     const formRef = useRef<HTMLFormElement>(null)
+
+    const handleOpen = useCallback(() => {
+        setOpen(prev => !prev)
+        setName("")
+    }, [])
 
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -44,12 +50,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                 document.removeEventListener("keydown", handleKeyDown)
             }
         }
-    }, [inGroup])
-
-    const handleOpen = () => {
-        setOpen(prev => !prev)
-        setName("")
-    }
+    }, [inGroup, handleOpen])
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
@@ -75,8 +76,8 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
 
             handleOpen()
             await getNoteData(currentNote.id)
-        } catch (error: any) {
-            toast.error(error?.message || "Errore nella creazione della sezione")
+        } catch (error) {
+            toast.error(getErrorMessage(error) || "Errore nella creazione della sezione")
         }
     }
 
@@ -86,7 +87,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
         <form
             ref={formRef}
             onSubmit={handleSubmit}
-            className={`flex flex-col items-center justify-center border border-1, ${inGroup ? 'w-full' : 'w-fit'}`}
+            className={`flex flex-col items-center justify-center border border-1 ${inGroup ? 'w-full' : 'w-fit'}`}
         >
             <div className="flex items-center justify-center w-full">
                 <Input
@@ -94,11 +95,11 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Scrivi qualcosa..."
                     autoFocus
-                    className={`rounded-none border-none !bg-background text-sm, ${inGroup ? 'w-full' : 'w-fit'}`}
+                    className={`rounded-none border-none !bg-background text-sm ${inGroup ? 'w-full' : 'w-fit'}`}
                 />
             </div>
             <div className="flex items-center w-full border-t bg-secondary divide-x">
-                <PlusButton disabled={!name.trim()} onClick={() => handleSubmit} />
+                <PlusButton disabled={!name.trim()} />
                 <CloseButton onClick={handleOpen} />
             </div>
         </form>

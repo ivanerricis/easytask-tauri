@@ -144,6 +144,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const usePreferences = () => {
     const context = useContext(PreferencesContext)
     if (!context) throw new Error("usePreferences must be used within a PreferencesProvider")

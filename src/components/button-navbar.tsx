@@ -5,7 +5,7 @@ import { TooltipCustom } from "./tooltip-custom"
 type ButtonNavbarProps = {
     children: React.ReactNode
     onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void
-    className?: String
+    className?: string
     window?: boolean
     textTooltip?: string
     textTooltipShortcut?: string

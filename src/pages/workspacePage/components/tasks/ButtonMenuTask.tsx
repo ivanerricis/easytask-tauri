@@ -1,4 +1,5 @@
 import { EllipsisVertical } from "lucide-react"
+import { getErrorMessage } from "@/lib/utils"
 import type { Task } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { toast } from "sonner"
@@ -25,7 +26,7 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
             await updateTaskPriority(task.id, !task.priority)
             if (currentNote)
                 await getNoteData(currentNote.id)
-        } catch (error: any) {
+        } catch {
             toast.error('Impossibile modificare la priorità')
         } finally {
             setDropDownOpen(false)
@@ -39,8 +40,8 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
                     await updateTaskDescription(task.id, undefined)
                     await getNoteData(currentNote.id)
                 }
-            } catch (err: any) {
-                toast.error(err.message)
+            } catch (err) {
+                toast.error(getErrorMessage(err))
             } finally {
                 setDropDownOpen(false)
             }

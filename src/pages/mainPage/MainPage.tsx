@@ -13,8 +13,8 @@ const MainPage = () => {
     const { workspaces, getWorkspaces, isLoading, error } = useWorkspace()
 
     useEffect(() => {
-        getWorkspaces()
-    }, [])
+        getWorkspaces().catch(console.error)
+    }, [getWorkspaces])
 
     const isInitialLoading = isLoading && workspaces.length === 0;
 
@@ -47,7 +47,7 @@ const MainPage = () => {
                             Apri un Workspace recente:
                         </h1>
                         <TooltipCustom text="Ricarica i Workspace">
-                            <Button onClick={getWorkspaces} variant="outline" size="icon" disabled={isLoading}>
+                            <Button onClick={() => getWorkspaces().catch(console.error)} variant="outline" size="icon" disabled={isLoading}>
                                 {isLoading ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
                             </Button>
                         </TooltipCustom>

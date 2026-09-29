@@ -2,7 +2,7 @@ import { Navbar } from "@/components/navbar"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { ArrowLeft } from "lucide-react"
-import React, { useEffect } from "react"
+import React, { useCallback, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { CommandMenu } from "./components/CommandMenu"
 import { ButtonNavbar } from "@/components/button-navbar"
@@ -17,6 +17,12 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
     const { resetData } = useWorkspaceData()
     const navigate = useNavigate()
 
+    const handleGoHome = useCallback(() => {
+        resetWorkspace()
+        resetData()
+        navigate("/")
+    }, [resetWorkspace, resetData, navigate])
+
     useEffect(() => {
         const handleShortcut = (e: KeyboardEvent) => {
             if (e.ctrlKey && e.key.toLowerCase() === "h") {
@@ -26,13 +32,7 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
         }
         window.addEventListener("keydown", handleShortcut)
         return () => window.removeEventListener("keydown", handleShortcut)
-    }, [])
-
-    const handleGoHome = () => {
-        resetWorkspace()
-        resetData()
-        navigate('/')
-    }
+    }, [handleGoHome])
 
     return (
         <div className="flex flex-col w-full h-full">

@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { ArrowRight, Palette, X } from "lucide-react"
 import { useEffect, useState } from "react"
+import { getErrorMessage } from "@/lib/utils"
 
 const defaultWorkspace = {
     name: "",
@@ -46,8 +47,8 @@ export function DialogCreateWorkspace() {
             setError(null)
             setIsOpen(false)
             setWorkspace(defaultWorkspace)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            setError(getErrorMessage(err))
         }
     }
 
@@ -103,7 +104,7 @@ export function DialogCreateWorkspace() {
                                     </div>
                                     <Button
                                         type="button"
-                                        onClick={(e) => { e.preventDefault(), setPaletteOpen(false) }}
+                                        onClick={(e) => { e.preventDefault(); setPaletteOpen(false) }}
                                         variant={"buttonIcon"}
                                         className="h-full"
                                     >
@@ -114,7 +115,7 @@ export function DialogCreateWorkspace() {
                                 <Button
                                     type="button"
                                     variant={"outline"}
-                                    onClick={(e) => { e.preventDefault(), setPaletteOpen(true) }}
+                                    onClick={(e) => { e.preventDefault(); setPaletteOpen(true) }}
                                     className="h-full">
                                     Aggiungi colore
                                     <Palette />

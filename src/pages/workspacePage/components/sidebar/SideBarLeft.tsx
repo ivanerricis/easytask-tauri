@@ -25,9 +25,9 @@ export const SideBarLeft = () => {
 
     useEffect(() => {
         if (currentWorkspace?.id) {
-            getWorkspaceData(currentWorkspace.id)
+            getWorkspaceData(currentWorkspace.id).catch(console.error)
         }
-    }, [currentWorkspace])
+    }, [currentWorkspace, getWorkspaceData])
 
     const FileSystemItem = ({ item }: { item: Folder | Note }) => {
         if (!item) return null;

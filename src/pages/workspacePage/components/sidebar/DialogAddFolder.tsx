@@ -1,4 +1,5 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -40,8 +41,8 @@ export function DialogAddFolder() {
             setIsOpen(false)
             setPaletteOpen(false)
             setFolder(defaultFolder)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            setError(getErrorMessage(err))
         }
     }
 

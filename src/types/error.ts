@@ -13,7 +13,7 @@ export function createError(code: string, message: string): Error {
     return { code, message }
 }
 
-export function handleDBError(error: any, codePrefix: string, messages: DBErrorMap = {}) {
+export function handleDBError(error: unknown, codePrefix: string, messages: DBErrorMap = {}) {
     const message = String(error)
     if (message.includes("UNIQUE")) {
         throw createError(`${codePrefix}_EXISTS`, messages.UNIQUE ?? "A record with this value already exists.")
@@ -22,6 +22,6 @@ export function handleDBError(error: any, codePrefix: string, messages: DBErrorM
     } else if (message.includes("NOT NULL")) {
         throw createError(`${codePrefix}_REQUIRED`, messages.NOT_NULL ?? "A required field is missing.")
     } else {
-        throw createError(`${codePrefix}_UNKNOWN_ERROR`, "An unknown error occurred: " + error.message)
+        throw createError(`${codePrefix}_UNKNOWN_ERROR`, "An unknown error occurred: " + (error instanceof Error ? error.message : String(error)))
     }
 }

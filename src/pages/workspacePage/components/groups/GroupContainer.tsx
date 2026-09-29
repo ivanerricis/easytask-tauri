@@ -6,23 +6,20 @@ import { Group } from "./Group"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 
 export const GroupContainer = () => {
-    const { getNoteData, updateGroupsPositions, currentNote, noteDataTree, setGroups } = useWorkspaceData()
+    const { getNoteData, updateGroupsPositions, currentNote, noteDataTree, setNoteDataTree } = useWorkspaceData()
 
     const groups = noteDataTree?.groups
 
     useEffect(() => {
-        const fetchNoteData = async () => {
-            if (!currentNote) return
-            await getNoteData(currentNote.id)
-        }
-        fetchNoteData()
-    }, [currentNote])
+        if (!currentNote) return
+        getNoteData(currentNote.id).catch(console.error)
+    }, [currentNote, getNoteData])
 
     const handleOnDragEnd = async (result: DropResult) => {
         if (!result.destination || !groups) return
         if (result.source.index === result.destination.index) return
 
-        const items = Array.from(groups)
+        const items = [...groups].sort((a, b) => a.position - b.position)
         const [reorderedItem] = items.splice(result.source.index, 1)
         items.splice(result.destination.index, 0, reorderedItem)
 
@@ -31,13 +28,13 @@ export const GroupContainer = () => {
             position: index
         }))
 
-        setGroups(updatedGroups)
+        setNoteDataTree({ groups: updatedGroups })
 
         try {
             await updateGroupsPositions(updatedGroups)
-        } catch (error: any) {
+        } catch (error) {
             console.error("Errore durante l'aggiornamento delle posizioni dei gruppi:", error)
-            setGroups(groups)
+            setNoteDataTree(noteDataTree)
         }
     }
 

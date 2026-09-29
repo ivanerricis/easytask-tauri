@@ -1,4 +1,5 @@
 import type { Folder } from "@/types/types"
+import { getErrorMessage } from "@/lib/utils"
 import { EllipsisVertical } from "lucide-react"
 import { DialogAddSubFolder } from "./DialogAddSubFolder"
 import { DialogAddNote } from "./DialogAddNote"
@@ -31,8 +32,8 @@ export const ButtonMenuFolder = ({ folder }: ButtonMenuFolderProps) => {
             await updateFolderColorContent(folder.id, folder.color ?? undefined)
             if (currentWorkspace)
                 await getWorkspaceData(currentWorkspace.id)
-        } catch (err: any) {
-            toast.error(err.messsage)
+        } catch (err) {
+            toast.error(getErrorMessage(err))
         }
     }
 

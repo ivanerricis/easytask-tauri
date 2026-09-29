@@ -8,19 +8,22 @@ import { useEffect, useState } from "react"
 
 const WorkSpacePage = () => {
     const { currentWorkspace } = useWorkspace()
-    const { error, getWorkspaceData, } = useWorkspaceData()
+    const { error, getWorkspaceData } = useWorkspaceData()
     const [isLoading, setIsLoading] = useState(true)
 
     useEffect(() => {
         const fetchData = async () => {
-            if (isLoading) {
+            try {
                 if (currentWorkspace)
                     await getWorkspaceData(currentWorkspace.id)
+            } catch (err) {
+                console.error(err)
+            } finally {
                 setIsLoading(false)
             }
         }
         fetchData()
-    }, [])
+    }, [currentWorkspace, getWorkspaceData])
 
     if (isLoading) {
         return (

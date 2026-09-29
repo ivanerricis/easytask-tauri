@@ -1,4 +1,5 @@
 import type { Task } from "@/types/types";
+import { getErrorMessage } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import TextareaAutosize from "react-textarea-autosize"
 import { Button } from "@/components/ui/button";
@@ -23,8 +24,8 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
             if (currentNote)
                 await getNoteData(currentNote?.id)
             onOpenChange(false)
-        } catch (err: any) {
-            toast.error(err.message)
+        } catch (err) {
+            toast.error(getErrorMessage(err))
         }
     }
 

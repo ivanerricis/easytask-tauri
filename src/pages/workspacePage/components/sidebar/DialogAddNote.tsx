@@ -1,4 +1,5 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -39,8 +40,8 @@ export function DialogAddNote() {
             setError(null)
             setIsOpen(false)
             setNote(defaultNote)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            setError(getErrorMessage(err))
         }
     }
 

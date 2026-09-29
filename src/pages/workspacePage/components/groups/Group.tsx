@@ -1,10 +1,11 @@
 import type { Group as GroupType } from "@/types/types"
+import type { DraggableProvidedDragHandleProps } from "@hello-pangea/dnd"
 import { Section } from "../section/Section"
 import { AddSection } from "../section/AddSection"
 import { GroupHeader } from "./GroupHeader"
 
 type GroupProps = {
-    dragHandleProps?: any
+    dragHandleProps?: DraggableProvidedDragHandleProps | null
     group: GroupType
 }
 

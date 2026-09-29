@@ -1,8 +1,9 @@
 import { useRef, useState, useEffect } from "react"
 import { Play, Pause, Volume2, GripVertical, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { SyntheticListenerMap } from "@dnd-kit/core/dist/hooks/utilities"
-import type { DraggableAttributes } from "@dnd-kit/core"
+import type { DraggableAttributes, useDraggable } from "@dnd-kit/core"
+
+type SyntheticListenerMap = ReturnType<typeof useDraggable>["listeners"]
 
 type Props = {
     src?: string
@@ -28,7 +29,6 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle }
 
         audio.addEventListener("timeupdate", updateTime)
         audio.addEventListener("loadedmetadata", setMeta)
-        audio.volume = volume
 
         return () => {
             audio.removeEventListener("timeupdate", updateTime)
@@ -42,7 +42,7 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle }
         if (isPlaying) {
             audio.pause()
         } else {
-            audio.play()
+            audio.play().catch(() => setIsPlaying(false))
         }
     }
 
@@ -76,10 +76,10 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle }
     }
 
     return (
-        <div className={`w-[350px] p-2 rounded-xs bg-background border shadow flex flex-col gap-2 text-muted-foreground, ${open ? '' : 'hidden'}`}>
+        <div className={`w-[350px] p-2 rounded-xs bg-background border shadow flex flex-col gap-2 text-muted-foreground ${open ? '' : 'hidden'}`}>
             <div className="w-full flex items-center justify-between gap-3 text-xs">
                 <div
-                    className="p-1 hover:bg-accent rounde-xs cursor-move text-muted-foreground hover:text-foreground"
+                    className="p-1 hover:bg-accent rounded-xs cursor-move text-muted-foreground hover:text-foreground"
                     {...listenersHandle} {...attributesHandle}
                 >
                     <GripVertical className="size-4" />
@@ -95,7 +95,7 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle }
                     className={cn("flex-1")}
                 />
                 <span>{formatTime(duration)}</span>
-                <div onClick={handleOpen} className="p-1 hover:bg-accent rounde-xs cursor-pointer">
+                <div onClick={handleOpen} className="p-1 hover:bg-accent rounded-xs cursor-pointer">
                     <X className="size-4" />
                 </div>
             </div>
@@ -127,6 +127,7 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle }
                 src={src}
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
+                onEnded={() => setIsPlaying(false)}
                 className="hidden"
             />
         </div>

@@ -3,10 +3,12 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import React, { useState } from "react"
+import type { DBItemType } from "@/db/queries/shared_queries"
+import { getErrorMessage } from "@/lib/utils"
 
 type DialogRenameProps<T> = {
     item: T
-    itemType: string
+    itemType: DBItemType
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     getItemId?: number | undefined
@@ -20,28 +22,28 @@ type defaultItemType = {
 }
 
 export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, isOpen, onOpenChange, getItemData, getItemId }: DialogRenameProps<T>) => {
-    const [name, setName] = useState(item.name)
-    const [title, setTitle] = useState(item.title)
+    const currentName = item.name ?? item.title ?? ""
+    const [value, setValue] = useState(currentName)
     const { renameItem } = useWorkspaceData()
     const [error, setError] = useState<string | null>(null)
 
     const handleEdit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            if ((name && name !== item.name) || (title && title !== item.title))
-                await renameItem(itemType, item.id, (name && !title) ? name.trim() : (title ?? "").trim())
+            if (value.trim() && value !== currentName)
+                await renameItem(itemType, item.id, value.trim())
             if (typeof getItemId === "number") {
                 await getItemData(getItemId)
             }
             setError(null)
             onOpenChange(false)
-        } catch (err: any) {
-            setError(err.message)
+        } catch (err) {
+            setError(getErrorMessage(err))
         }
     }
 
     const handleCancel = () => {
-        setName(item.name)
+        setValue(currentName)
         setError(null)
         onOpenChange(false)
     }
@@ -58,10 +60,10 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
                         <Input
                             id="name-1"
                             name="name"
-                            value={name ? name : title}
+                            value={value}
                             onChange={e => {
                                 setError(null)
-                                name ? setName(e.target.value) : setTitle(e.target.value)
+                                setValue(e.target.value)
                             }}
                         />
                         {error && <p className="text-sm text-destructive">{error}</p>}
@@ -76,7 +78,7 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
                         </Button>
                         <Button
                             type="submit"
-                            disabled={!(name || title)}
+                            disabled={!value.trim()}
                         >
                             Salva
                         </Button>

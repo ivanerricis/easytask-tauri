@@ -3,7 +3,7 @@ import type { Task as TaskType } from "@/types/types"
 import { ButtonMenuTask } from "./ButtonMenuTask"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { toast } from "sonner"
-import { cn } from "@/lib/utils"
+import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useEffect, useRef, useState } from "react"
 import TextareaAutosize from "react-textarea-autosize"
 import { AlignLeft } from "lucide-react"
@@ -35,8 +35,8 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
             await updateTaskCompletion(task.id, !task.completed)
             if (currentNote)
                 await getNoteData(currentNote.id)
-        } catch (err: any) {
-            toast.error('Impossibile modificare il task' + ' - ' + err.message)
+        } catch (err) {
+            toast.error('Impossibile modificare il task' + ' - ' + getErrorMessage(err))
         }
     }
 
@@ -47,8 +47,8 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                 if (currentNote)
                     await getNoteData(currentNote.id)
             }
-        } catch (err: any) {
-            toast.error('Impossibile cambiare il testo del task' + ' - ' + err.message)
+        } catch (err) {
+            toast.error('Impossibile cambiare il testo del task' + ' - ' + getErrorMessage(err))
         }
         setTextAreaOpen(false)
     }
@@ -74,7 +74,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                 className="mt-0.5"
                             />
                             {!isTextAreaOpen && <TextareaAutosize
-                                onClick={() => { setTextAreaOpen(true), setText(task.text) }}
+                                onClick={() => { setTextAreaOpen(true); setText(task.text) }}
                                 value={task.text}
                                 className={cn(
                                     "w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm",

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import type { Workspace } from '@/types/types'
 import { getDBWorkspaces, createDBWorkspace } from '@/db/queries/workspace'
 
@@ -21,62 +21,68 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
+    const pendingOps = useRef(0)
+
+    /**
+     * Runs an async operation and keeps isLoading true while any operation is in flight.
+     * @param operation The operation to run.
+     * @category Workspace Context
+     */
+    const withLoading = useCallback(async (operation: () => Promise<void>) => {
+        pendingOps.current += 1
+        setIsLoading(true)
+        try {
+            await operation()
+        } finally {
+            pendingOps.current -= 1
+            setIsLoading(pendingOps.current > 0)
+        }
+    }, [])
+
     /**
      * Retrieves the list of workspaces.
      * @throws Will throw an error if the workspaces cannot be retrieved.
      * @category Workspace Context
      */
-    const getWorkspaces = async () => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            const data = await getDBWorkspaces()
-            setWorkspaces(data ?? [])
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const getWorkspaces = useCallback(() => withLoading(async () => {
+        const data = await getDBWorkspaces()
+        setWorkspaces(data ?? [])
+    }), [withLoading])
 
-    const createWorkspace = async (name: string, color?: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await createDBWorkspace(name, color ?? null)
-            await getWorkspaces()
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const createWorkspace = useCallback((name: string, color?: string) => withLoading(async () => {
+        await createDBWorkspace(name, color ?? null)
+        const data = await getDBWorkspaces()
+        setWorkspaces(data ?? [])
+    }), [withLoading])
 
     /**
      * Resets the current workspace and clears any errors.
      * @category Workspace Context
      */
-    const resetWorkspace = () => {
+    const resetWorkspace = useCallback(() => {
         setCurrentWorkspace(null)
         setError(null)
-    }
+    }, [])
+
+    const value = useMemo(() => ({
+        workspaces,
+        currentWorkspace,
+        isLoading,
+        error,
+        getWorkspaces,
+        createWorkspace,
+        setCurrentWorkspace,
+        resetWorkspace
+    }), [workspaces, currentWorkspace, isLoading, error, getWorkspaces, createWorkspace, resetWorkspace])
 
     return (
-        <WorkspaceContext.Provider value={{
-            workspaces,
-            currentWorkspace,
-            isLoading,
-            error,
-            getWorkspaces,
-            createWorkspace,
-            setCurrentWorkspace,
-            resetWorkspace
-        }}>
+        <WorkspaceContext.Provider value={value}>
             {children}
         </WorkspaceContext.Provider>
     )
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useWorkspace = () => {
     const context = useContext(WorkspaceContext)
     if (!context) {

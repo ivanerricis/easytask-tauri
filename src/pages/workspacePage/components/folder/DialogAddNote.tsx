@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button"
+import { getErrorMessage } from "@/lib/utils"
 import {
     Dialog,
     DialogContent,
@@ -36,9 +37,9 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
             setError(null)
             onOpenChange(false)
             setName("")
-        } catch (err: any) {
-            setError(err.message)
-            toast.error(err.message)
+        } catch (err) {
+            setError(getErrorMessage(err))
+            toast.error(getErrorMessage(err))
         }
     }
 

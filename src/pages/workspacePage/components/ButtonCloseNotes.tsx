@@ -24,7 +24,7 @@ export const ButtonCloseNotes = () => {
         }
         document.addEventListener("keydown", handleKeyDown)
         return () => document.removeEventListener("keydown", handleKeyDown)
-    }, [])
+    }, [setCurrentNotes, setCurrentNote])
 
     return (
         <TooltipCustom text="Chiudi tutte le note" shortcut="(Ctrl + T)">

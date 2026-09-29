@@ -1,4 +1,5 @@
 import { Progress } from "@/components/ui/progress"
+import { getErrorMessage } from "@/lib/utils"
 import type { Section as SectionType, Task } from "@/types/types"
 import { ChevronDown } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
@@ -49,8 +50,8 @@ export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderPr
                 if (currentNote)
                     await getNoteData(currentNote.id)
             }
-        } catch (err: any) {
-            toast.error('Impossibile cambiare il titolo della sezione' + ' - ' + err.message)
+        } catch (err) {
+            toast.error('Impossibile cambiare il titolo della sezione' + ' - ' + getErrorMessage(err))
         }
         setTextAreaOpen(false)
     }

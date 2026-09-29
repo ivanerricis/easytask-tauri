@@ -1,16 +1,10 @@
-import React from "react"
 import { SideBar } from "./SideBar"
 import { SideBarContainer } from "./SideBarContainer"
 import { SideBarHeader } from "./SideBarHeader"
 import { TextareaWithLabel } from "@/components/textarea-label"
 import { useWorkspace } from "@/contexts/workspace-context"
 
-type SideBarLeftProps = {
-    children?: React.ReactNode
-    className?: string
-}
-
-export const SideBarRight = ({ }: SideBarLeftProps) => {
+export const SideBarRight = () => {
     const { currentWorkspace } = useWorkspace()
 
     return (

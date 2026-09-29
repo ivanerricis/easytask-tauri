@@ -19,7 +19,8 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (formRef.current && !formRef.current.contains(event.target as Node)) {
-                handleOpen()
+                setOpen(false)
+                setText("")
             }
         }
 
@@ -67,7 +68,7 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                     />
                 </div>
                 <div className="flex items-center w-full border-t divide-x">
-                    <PlusButton disabled={!text.trim()} onClick={() => handleSubmit} />
+                    <PlusButton disabled={!text.trim()} />
                     <CloseButton onClick={handleOpen} />
                 </div>
             </form>

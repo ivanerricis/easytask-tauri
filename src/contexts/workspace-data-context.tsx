@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react"
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react"
 import type { Folder, Group, Note, NoteDataTree, Section, Task, WorkspaceDataTree } from "@/types/types"
 import { getDBWorkspaceData } from "@/db/queries/workspace";
 import { createDBNoteInFolder, createDBWorkspaceNote, getDBNoteData } from "@/db/queries/note"
@@ -6,7 +6,7 @@ import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent 
 import { createDBSection, createDBSectionInGroup } from "@/db/queries/section";
 import { createDBSubTask, createDBTask, updateDBTaskCompletion, updateDBTaskDescription, updateDBTaskPriority } from "@/db/queries/task";
 import { updateDBGroupPositions } from "@/db/queries/group";
-import { renameDBItem, updateDBColor, deleteDBItem } from "@/db/queries/shared_queries";
+import { renameDBItem, updateDBColor, deleteDBItem, type DBItemType } from "@/db/queries/shared_queries";
 
 /* ------------------------------------------------------------------------------------ */
 
@@ -48,13 +48,102 @@ type WorkspaceDataContextType = {
     updateTaskPriority: (taskID: number, priority: boolean) => Promise<void>
     updateTaskCompletion: (taskID: number, isCompleted: boolean) => Promise<void>
     updateTaskDescription: (taskID: number, description?: string) => Promise<void>
-    renameItem: (itemType: string, itemId: number, name: string) => Promise<void>
-    updateItemColor: (itemType: string, itemId: number, color?: string) => Promise<void>
+    renameItem: (itemType: DBItemType, itemId: number, name: string) => Promise<void>
+    updateItemColor: (itemType: DBItemType, itemId: number, color?: string) => Promise<void>
     updateGroupsPositions: (groups: Group[]) => Promise<void>
     updateFolderColorContent: (folderID: number, color?: string) => Promise<void>
 
-    deleteItem: (itemType: string, itemID: number) => Promise<void>
+    deleteItem: (itemType: DBItemType, itemID: number) => Promise<void>
     resetData: () => void
+}
+
+/**
+ * Builds a tree structure for the workspace, organizing folders and notes.
+ * @param folders The list of folders to include in the tree.
+ * @param notes The list of notes to include in the tree.
+ * @returns The root folders and notes for the workspace.
+ * @category WorkspaceData Context
+ */
+function buildWorkspaceTree(folders: Folder[], notes: Note[]) {
+    const folderMap = new Map<number, Folder>()
+
+    folders.forEach(folder => {
+        folder.subfolders = []
+        folder.notes = []
+        folderMap.set(folder.id, folder)
+    })
+
+    folders.forEach(folder => {
+        if (folder.folderID != null) {
+            const parent = folderMap.get(folder.folderID)
+            if (parent) {
+                parent.subfolders.push(folder)
+            }
+        }
+    })
+
+    notes.forEach(note => {
+        if (note.folderID != null) {
+            const parent = folderMap.get(note.folderID)
+            if (parent) {
+                parent.notes.push(note)
+            }
+        }
+    })
+
+    const rootFolders = folders.filter(folder => folder.folderID == null)
+    const rootNotes = notes.filter(note => note.folderID == null)
+
+    return {
+        rootFolders,
+        rootNotes
+    }
+}
+
+/**
+ * Builds a tree structure for a note, organizing groups, sections, and tasks.
+ * @param groups The list of groups to include in the note tree.
+ * @param sections The list of sections to include in the note tree.
+ * @param tasks The list of tasks to include in the note tree.
+ * @returns The structured note data tree.
+ * @category WorkspaceData Context
+ */
+function buildNoteTree(groups: Group[], sections: Section[], tasks: Task[]): NoteDataTree {
+    const noteDataTree: NoteDataTree = { groups: [] }
+
+    noteDataTree.groups = groups.map(group => {
+        const sectionsOfGroup = sections
+            .filter(section => section.groupID === group.id)
+            .map(section => ({
+                ...section,
+                tasks: buildTasks(section.id),
+            }))
+
+        return {
+            ...group,
+            sections: sectionsOfGroup,
+        }
+    })
+
+    function buildTasks(sectionId: number): Task[] {
+        return tasks
+            .filter(task => task.sectionID === sectionId && task.taskID === null)
+            .map(task => ({
+                ...task,
+                subtasks: buildSubtasks(task.id),
+            }))
+    }
+
+    function buildSubtasks(taskId: number): Task[] {
+        return tasks
+            .filter(subtask => subtask.taskID === taskId)
+            .map(subtask => ({
+                ...subtask,
+                subtasks: buildSubtasks(subtask.id),
+            }))
+    }
+
+    return noteDataTree
 }
 
 /* ------------------------------------------------------------------------------------ */
@@ -77,97 +166,26 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const [currentNote, setCurrentNote] = useState<Note | null>(null)
     const [currentNotes, setCurrentNotes] = useState<Note[]>([])
 
+    const pendingOps = useRef(0)
+
+    /**
+     * Runs an async operation and keeps isLoading true while any operation is in flight.
+     * @param operation The operation to run.
+     * @returns The result of the operation.
+     * @category WorkspaceData Context
+     */
+    const withLoading = useCallback(async <T,>(operation: () => Promise<T>): Promise<T> => {
+        pendingOps.current += 1
+        setIsLoading(true)
+        try {
+            return await operation()
+        } finally {
+            pendingOps.current -= 1
+            setIsLoading(pendingOps.current > 0)
+        }
+    }, [])
+
     /* ------------------------------------------------------------------------------------ */
-
-    /**
-     * Builds a tree structure for the workspace, organizing folders and notes.
-     * @param folders The list of folders to include in the tree.
-     * @param notes The list of notes to include in the tree.
-     * @returns The root folders and notes for the workspace.
-     * @category WorkspaceData Context
-     */
-    function buildWorkspaceTree(folders: Folder[], notes: Note[]) {
-        const folderMap = new Map<number, Folder>()
-
-        folders.forEach(folder => {
-            folder.subfolders = []
-            folder.notes = []
-            folderMap.set(folder.id, folder)
-        })
-
-        folders.forEach(folder => {
-            if (folder.folderID != null) {
-                const parent = folderMap.get(folder.folderID)
-                if (parent) {
-                    parent.subfolders.push(folder)
-                }
-            }
-        })
-
-        notes.forEach(note => {
-            if (note.folderID != null) {
-                const parent = folderMap.get(note.folderID)
-                if (parent) {
-                    parent.notes.push(note)
-                }
-            }
-        })
-
-        const rootFolders = folders.filter(folder => folder.folderID == null)
-        const rootNotes = notes.filter(note => note.folderID == null)
-
-        return {
-            rootFolders,
-            rootNotes
-        }
-    }
-
-    /**
-     * Builds a tree structure for a note, organizing groups, sections, and tasks.
-     * @param groups The list of groups to include in the note tree.
-     * @param sections The list of sections to include in the note tree.
-     * @param tasks The list of tasks to include in the note tree.
-     * @returns The structured note data tree.
-     * @category WorkspaceData Context
-     */
-    function buildNoteTree(groups: Group[], sections: Section[], tasks: Task[]): NoteDataTree {
-        const noteDataTree: NoteDataTree = { groups: [] }
-
-        noteDataTree.groups = groups.map(group => {
-            const sectionsOfGroup = sections
-                .filter(section => section.groupID === group.id)
-                .map(section => ({
-                    ...section,
-                    tasks: buildTasks(section.id),
-                }))
-
-            return {
-                ...group,
-                sections: sectionsOfGroup,
-            }
-        })
-
-        function buildTasks(sectionId: number): Task[] {
-            return tasks
-                .filter(task => task.sectionID === sectionId && task.taskID === null)
-                .map(task => ({
-                    ...task,
-                    subtasks: buildSubtasks(task.id),
-                }))
-        }
-
-        function buildSubtasks(taskId: number): Task[] {
-            return tasks
-                .filter(subtask => subtask.taskID === taskId)
-                .map(subtask => ({
-                    ...subtask,
-                    subtasks: buildSubtasks(subtask.id),
-                }))
-        }
-
-        return noteDataTree
-    }
-
     // Getter methods
 
     /**
@@ -176,8 +194,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @throws Will throw an error if the workspace data cannot be retrieved.
      * @category Workspace Data Context
      */
-    const getWorkspaceData = async (workspaceID: number) => {
-        setIsLoading(true)
+    const getWorkspaceData = useCallback((workspaceID: number) => withLoading(async () => {
         try {
             const data = await getDBWorkspaceData(workspaceID)
             setFolders(data?.folders || [])
@@ -187,10 +204,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         } catch (error) {
             setError('Errore caricamento dati del Workspace')
             throw error
-        } finally {
-            setIsLoading(false)
         }
-    }
+    }), [withLoading])
 
     /**
      * Retrieves the note data for a given note ID.
@@ -198,9 +213,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @throws Will throw an error if the note data cannot be retrieved.
      * @category Workspace Data Context
      */
-    const getNoteData = async (noteID: number) => {
-        if (isLoading) return
-        setIsLoading(true)
+    const getNoteData = useCallback((noteID: number) => withLoading(async () => {
         try {
             const dataFlat = await getDBNoteData(noteID)
             const tree = buildNoteTree(dataFlat?.groups ?? [], dataFlat?.sections ?? [], dataFlat?.tasks ?? [])
@@ -211,109 +224,35 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         } catch (error) {
             setError('Errore caricamento dati nota')
             throw error
-        } finally {
-            setIsLoading(false)
         }
-    }
+    }), [withLoading])
 
     /* ------------------------------------------------------------------------------------ */
     // Create methods
 
-    const createWorkspaceFolder = async (workspaceID: number, name: string, color?: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await createDBWorkspaceFolder(workspaceID, name, color)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const createWorkspaceFolder = useCallback((workspaceID: number, name: string, color?: string) =>
+        withLoading(() => createDBWorkspaceFolder(workspaceID, name, color)), [withLoading])
 
-    const createWorkspaceNote = async (workspaceID: number, name: string, color?: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await createDBWorkspaceNote(workspaceID, name, color)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const createWorkspaceNote = useCallback((workspaceID: number, name: string, color?: string) =>
+        withLoading(() => createDBWorkspaceNote(workspaceID, name, color)), [withLoading])
 
-    const createSubFolder = async (workspaceID: number, folderID: number, name: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await createDBSubFolder(workspaceID, folderID, name)
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const createSubFolder = useCallback((workspaceID: number, folderID: number, name: string) =>
+        withLoading(() => createDBSubFolder(workspaceID, folderID, name)), [withLoading])
 
-    const createNoteInFolder = async (folderID: number, name: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await createDBNoteInFolder(folderID, name)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const createNoteInFolder = useCallback((folderID: number, name: string) =>
+        withLoading(() => createDBNoteInFolder(folderID, name)), [withLoading])
 
-    const createSection = async (noteID: number, title: string, position: number) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await createDBSection(noteID, title, position)
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const createSection = useCallback((noteID: number, title: string, position: number) =>
+        withLoading(() => createDBSection(noteID, title, position)), [withLoading])
 
-    const createSectionInGroup = async (groupID: number, title: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await createDBSectionInGroup(groupID, title)
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const createSectionInGroup = useCallback((groupID: number, title: string) =>
+        withLoading(() => createDBSectionInGroup(groupID, title)), [withLoading])
 
-    const createTask = async (sectionID: number, text: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await createDBTask(sectionID, text)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const createTask = useCallback((sectionID: number, text: string) =>
+        withLoading(() => createDBTask(sectionID, text)), [withLoading])
 
-    const createSubTask = async (taskID: number, text: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await createDBSubTask(taskID, text)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const createSubTask = useCallback((taskID: number, text: string) =>
+        withLoading(() => createDBSubTask(taskID, text)), [withLoading])
 
     /* ------------------------------------------------------------------------------------ */
     // Editing methods
@@ -325,17 +264,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @throws Will throw an error if the task cannot be edited.
      * @category Workspace Data Context
      */
-    const updateTaskPriority = async (taskID: number, priority: boolean) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await updateDBTaskPriority(taskID, priority)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const updateTaskPriority = useCallback((taskID: number, priority: boolean) =>
+        withLoading(() => updateDBTaskPriority(taskID, priority)), [withLoading])
 
     /**
      * Update the completion status of a task.
@@ -344,29 +274,11 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @throws Will throw an error if the task cannot be edited.
      * @category Workspace Data Context
      */
-    const updateTaskCompletion = async (taskID: number, isCompleted: boolean) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await updateDBTaskCompletion(taskID, isCompleted)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const updateTaskCompletion = useCallback((taskID: number, isCompleted: boolean) =>
+        withLoading(() => updateDBTaskCompletion(taskID, isCompleted)), [withLoading])
 
-    const updateTaskDescription = async (taskID: number, description?: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await updateDBTaskDescription(taskID, description)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const updateTaskDescription = useCallback((taskID: number, description?: string) =>
+        withLoading(() => updateDBTaskDescription(taskID, description)), [withLoading])
 
     /**
      * Rename an item in the workspace.
@@ -376,17 +288,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @throws Will throw an error if the item cannot be renamed.
      * @category Workspace Data Context
      */
-    const renameItem = async (itemType: string, itemID: number, name: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await renameDBItem(itemType, itemID, name)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const renameItem = useCallback((itemType: DBItemType, itemID: number, name: string) =>
+        withLoading(() => renameDBItem(itemType, itemID, name)), [withLoading])
 
     /**
      * Update the color of an item in the workspace.
@@ -396,38 +299,20 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @throws Will throw an error if the item color cannot be updated.
      * @category Workspace Data Context
      */
-    const updateItemColor = async (itemType: string, itemID: number, color?: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await updateDBColor(itemType, itemID, color)
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const updateItemColor = useCallback((itemType: DBItemType, itemID: number, color?: string) =>
+        withLoading(() => updateDBColor(itemType, itemID, color)), [withLoading])
 
     /**
      * Update the positions of multiple groups in the workspace.
-     * @param groups - The array of groups to update positions for.
+     * @param newGroups - The array of groups to update positions for.
      * @throws Will throw an error if the group positions cannot be updated.
      * @category Workspace Data Context
      */
-    const updateGroupsPositions = async (newGroups: Group[]) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await updateDBGroupPositions(newGroups)
-            setGroups(newGroups)
-            const tree = buildNoteTree(newGroups, sections, tasks)
-            setNoteDataTree(tree)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const updateGroupsPositions = useCallback((newGroups: Group[]) => withLoading(async () => {
+        await updateDBGroupPositions(newGroups)
+        setGroups(newGroups)
+        setNoteDataTree(buildNoteTree(newGroups, sections, tasks))
+    }), [withLoading, sections, tasks])
 
     /**
      * Update the color of a folder in the workspace.
@@ -436,17 +321,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @throws Will throw an error if the folder color cannot be updated.
      * @category Workspace Data Context
      */
-    const updateFolderColorContent = async (folderID: number, color?: string) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await updateDBFolderColorContent(folderID, color)
-        } catch (error) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const updateFolderColorContent = useCallback((folderID: number, color?: string) =>
+        withLoading(() => updateDBFolderColorContent(folderID, color)), [withLoading])
 
     /* ------------------------------------------------------------------------------------ */
     // Deleting methods
@@ -458,19 +334,10 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @throws Will throw an error if the item cannot be deleted.
      * @category Workspace Data Context
      */
-    const deleteItem = async (itemType: string, itemID: number) => {
-        if (isLoading) return
-        setIsLoading(true)
-        try {
-            await deleteDBItem(itemType, itemID)
-        } catch (error: any) {
-            throw error
-        } finally {
-            setIsLoading(false)
-        }
-    }
+    const deleteItem = useCallback((itemType: DBItemType, itemID: number) =>
+        withLoading(() => deleteDBItem(itemType, itemID)), [withLoading])
 
-    const resetData = () => {
+    const resetData = useCallback(() => {
         setCurrentFolder(null)
         setCurrentNote(null)
         setCurrentNotes([])
@@ -478,51 +345,61 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         setSections([])
         setTasks([])
         setNoteDataTree(null)
-    }
+    }, [])
 
     /* ------------------------------------------------------------------------------------ */
 
+    const value = useMemo(() => ({
+        folders,
+        notes,
+        groups,
+        sections,
+        tasks,
+        workspaceDataTree,
+        noteDataTree,
+        currentFolder,
+        currentNote,
+        currentNotes,
+        error,
+        isLoading,
+        setCurrentFolder,
+        setCurrentNote,
+        setCurrentNotes,
+        setGroups,
+        setSections,
+        setTasks,
+        setNoteDataTree,
+        getWorkspaceData,
+        getNoteData,
+        createWorkspaceFolder,
+        createWorkspaceNote,
+        createSubFolder,
+        createNoteInFolder,
+        createSection,
+        createSectionInGroup,
+        createTask,
+        createSubTask,
+        updateTaskPriority,
+        updateTaskCompletion,
+        updateTaskDescription,
+        renameItem,
+        updateItemColor,
+        updateGroupsPositions,
+        updateFolderColorContent,
+        deleteItem,
+        resetData
+    }), [
+        folders, notes, groups, sections, tasks, workspaceDataTree, noteDataTree,
+        currentFolder, currentNote, currentNotes, error, isLoading,
+        getWorkspaceData, getNoteData, createWorkspaceFolder, createWorkspaceNote,
+        createSubFolder, createNoteInFolder, createSection, createSectionInGroup,
+        createTask, createSubTask, updateTaskPriority, updateTaskCompletion,
+        updateTaskDescription, renameItem, updateItemColor, updateGroupsPositions,
+        updateFolderColorContent, deleteItem, resetData
+    ])
+
     return (
-        <WorkspaceDataContext.Provider value={{
-            folders,
-            notes,
-            groups,
-            sections,
-            tasks,
-            workspaceDataTree,
-            noteDataTree,
-            currentFolder,
-            currentNote,
-            currentNotes,
-            error,
-            isLoading,
-            setCurrentFolder,
-            setCurrentNote,
-            setCurrentNotes,
-            setGroups,
-            setSections,
-            setTasks,
-            setNoteDataTree,
-            getWorkspaceData,
-            getNoteData,
-            createWorkspaceFolder,
-            createWorkspaceNote,
-            createSubFolder,
-            createNoteInFolder,
-            createSection,
-            createSectionInGroup,
-            createTask,
-            createSubTask,
-            updateTaskPriority,
-            updateTaskCompletion,
-            updateTaskDescription,
-            renameItem,
-            updateItemColor,
-            updateGroupsPositions,
-            updateFolderColorContent,
-            deleteItem,
-            resetData
-        }}>
+        <WorkspaceDataContext.Provider value={value}>
             {children}
         </WorkspaceDataContext.Provider>
     )
@@ -530,6 +407,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
 /* ------------------------------------------------------------------------------------ */
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useWorkspaceData = () => {
     const context = useContext(WorkspaceDataContext)
     if (!context) {
