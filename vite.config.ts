@@ -11,10 +11,15 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  define: {
-    'process.env': {}
+  clearScreen: false,
+  server: {
+    port: 1420,
+    strictPort: true,
+    watch: {
+      ignored: ["**/src-tauri/**"],
+    },
   },
   build: {
-    sourcemap: true
+    sourcemap: !!process.env.TAURI_ENV_DEBUG
   }
 })

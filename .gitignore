@@ -25,3 +25,7 @@ gen
 *.njsproj
 *.sln
 *.sw?
+
+# Env and TS build info
+.env*
+*.tsbuildinfo

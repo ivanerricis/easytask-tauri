@@ -27,35 +27,43 @@ Each Workspace is fully customizable and supports hierarchical management of ele
 - [Vite](https://vite.dev/)
 - [Tailwind CSS](https://tailwindcss.com)
 - [shadcn](https://ui.shadcn.com/)
-- [hello-pangea/dnd](https://dnd.hellopangea.com/?path=/docs/welcome--docs) for drag & drop functionality
+- [@hello-pangea/dnd](https://dnd.hellopangea.com/?path=/docs/welcome--docs) and [@dnd-kit](https://dndkit.com/) for drag & drop functionality
 - [ESLint](https://eslint.org/) with TypeScript and React configurations
 
 ---
 
 ## Local Installation
 
+### Prerequisites
 
-# 1. Clone the repository
+- [Node.js](https://nodejs.org/) (LTS)
+- [Rust](https://www.rust-lang.org/tools/install) via `rustup`
+- On Windows: MSVC C++ build tools and WebView2 (see the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/))
+
+### Setup
+
 ```bash
-git clone https://github.com/ivanerricis/easytask-tauri.
-```
-
-
-# 2. Navigate to the project directory
-```bash
+git clone https://github.com/ivanerricis/easytask-tauri
 cd easytask-tauri
-```
-
-# 3. Install dependencies
-```bash
 npm install
 ```
 
-# 4. Start the development server
+### Development
+
 ```bash
-npm run tauri dev
+npm run tauri:dev
 ```
-Make sure you have Rust and Tauri prerequisites installed on your system.
+
+### Build
+
+```bash
+npm run tauri:build
+```
+
+### Data
+
+Data is stored in a local SQLite database inside the `Documents/EasyTask` folder.
+
 ---
 
 ## App Structure
