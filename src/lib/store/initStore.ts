@@ -15,7 +15,7 @@ async function loadStore(): Promise<Store> {
         try {
             return await Store.load("settings.dat")
         } catch (fallbackErr: unknown) {
-            throw new Error(`Unable to load the settings store: ${String(fallbackErr)}`)
+            throw new Error(`Unable to load the settings store: ${String(fallbackErr)}`, { cause: fallbackErr })
         }
     }
 }
