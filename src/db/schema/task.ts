@@ -18,18 +18,27 @@ export const createTaskTable = `
         edit_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
         edit_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
         FOREIGN KEY(sectionID) REFERENCES section(id) ON DELETE CASCADE,
-        FOREIGN KEY(taskID) REFERENCES task(id) ON DELETE CASCADE
+        FOREIGN KEY(taskID) REFERENCES task(id) ON DELETE CASCADE,
         UNIQUE(text, sectionID)
     );
+`
 
-    CREATE TRIGGER IF NOT EXISTS update_task_edit_timestamp
-    AFTER UPDATE ON task
+/**
+ * Recreates the trigger that updates the edit timestamp of the task table.
+ * It fires only when content columns change, so it never re-triggers itself.
+ * @category Database Schema
+ */
+export const createTaskTrigger = `
+    DROP TRIGGER IF EXISTS update_task_edit_timestamp;
+
+    CREATE TRIGGER update_task_edit_timestamp
+    AFTER UPDATE OF sectionID, taskID, text, description, completed, priority, archived, color ON task
     FOR EACH ROW
     BEGIN
         UPDATE task
         SET
             edit_date = DATE('now', 'localtime'),
             edit_time = strftime('%H:%M', 'now', 'localtime')
-    WHERE id = OLD.id;
+        WHERE id = OLD.id;
     END;
 `

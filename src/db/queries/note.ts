@@ -19,7 +19,7 @@ export async function getDBNoteData(noteId: number) {
             SELECT id FROM section WHERE groupID IN (
             SELECT id from section_group WHERE noteID=?))`, [noteId]);
         return { groups, sections, tasks }
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.log(error)
     }
 }
@@ -35,7 +35,7 @@ export async function createDBWorkspaceNote(workspaceId: number, name: string, c
     try {
         const db = await getDB()
         await db.execute('INSERT INTO note (workspaceID, name, color) VALUES (?, ?, ?)', [workspaceId, name, color ?? null]);
-    } catch (error: any) {
+    } catch (error: unknown) {
         handleDBError(error, "NOTE", {
             UNIQUE: "A note with this name already exists.",
             CHECK: "The note name cannot be empty.",
@@ -54,7 +54,7 @@ export async function createDBNoteInFolder(folderId: number, name: string) {
     try {
         const db = await getDB()
         await db.execute('INSERT INTO note (folderID, name) VALUES (?, ?)', [folderId, name]);
-    } catch (error: any) {
+    } catch (error: unknown) {
         handleDBError(error, "NOTE", {
             UNIQUE: "A note with this name already exists.",
             CHECK: "The note name cannot be empty.",

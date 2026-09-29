@@ -18,15 +18,24 @@ export const createNoteTable = `
         UNIQUE(name, workspaceID),
         UNIQUE(name, folderID)
     );
+`
 
-    CREATE TRIGGER IF NOT EXISTS update_note_edit_timestamp
-    AFTER UPDATE ON note
+/**
+ * Recreates the trigger that updates the edit timestamp of the note table.
+ * It fires only when content columns change, so it never re-triggers itself.
+ * @category Database Schema
+ */
+export const createNoteTrigger = `
+    DROP TRIGGER IF EXISTS update_note_edit_timestamp;
+
+    CREATE TRIGGER update_note_edit_timestamp
+    AFTER UPDATE OF workspaceID, folderID, name, color ON note
     FOR EACH ROW
     BEGIN
         UPDATE note
         SET
             edit_date = DATE('now', 'localtime'),
             edit_time = strftime('%H:%M', 'now', 'localtime')
-    WHERE id = OLD.id;
+        WHERE id = OLD.id;
     END;
 `

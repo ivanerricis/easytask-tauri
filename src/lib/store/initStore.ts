@@ -1,14 +1,23 @@
 import { Store } from "@tauri-apps/plugin-store"
-import { documentDir } from "@tauri-apps/api/path"
-import { exists, mkdir } from "@tauri-apps/plugin-fs"
-import { BaseDirectory } from "@tauri-apps/api/path"
+import { join } from "@tauri-apps/api/path"
+import { ensureAppFolder } from "@/db/appPaths"
 
-const documentPath = await documentDir();
-const folderPath = `${documentPath}/EasyTask/`;
-const filePath = `${folderPath}settings.dat`;
-
-if (!(await exists(folderPath, { baseDir: BaseDirectory.Document }))) {
-    await mkdir(folderPath, { recursive: true, baseDir: BaseDirectory.Document });
+/**
+ * Loads the settings store, falling back to the app data folder if the
+ * documents folder is not accessible, so a failure never blocks the UI.
+ */
+async function loadStore(): Promise<Store> {
+    try {
+        const folderPath = await ensureAppFolder()
+        return await Store.load(await join(folderPath, "settings.dat"))
+    } catch (err: unknown) {
+        console.error("Unable to load settings from the EasyTask folder, using the app data folder", err)
+        try {
+            return await Store.load("settings.dat")
+        } catch (fallbackErr: unknown) {
+            throw new Error(`Unable to load the settings store: ${String(fallbackErr)}`)
+        }
+    }
 }
 
-export const store = await Store.load(filePath);
+export const store = await loadStore()

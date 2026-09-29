@@ -14,19 +14,28 @@ export const createFolderTable = `
         edit_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
         edit_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
         FOREIGN KEY(workspaceID) REFERENCES workspace(id) ON DELETE CASCADE,
-        FOREIGN KEY(folderID) REFERENCES folder(id) ON DELETE CASCADE
-        UNIQUE(workspaceID, name)
+        FOREIGN KEY(folderID) REFERENCES folder(id) ON DELETE CASCADE,
+        UNIQUE(workspaceID, name),
         UNIQUE(folderID, name)
     );
+`
 
-    CREATE TRIGGER IF NOT EXISTS update_folder_edit_timestamp
-    AFTER UPDATE ON folder
+/**
+ * Recreates the trigger that updates the edit timestamp of the folder table.
+ * It fires only when content columns change, so it never re-triggers itself.
+ * @category Database Schema
+ */
+export const createFolderTrigger = `
+    DROP TRIGGER IF EXISTS update_folder_edit_timestamp;
+
+    CREATE TRIGGER update_folder_edit_timestamp
+    AFTER UPDATE OF workspaceID, folderID, name, color ON folder
     FOR EACH ROW
     BEGIN
         UPDATE folder
         SET
             edit_date = DATE('now', 'localtime'),
             edit_time = strftime('%H:%M', 'now', 'localtime')
-    WHERE id = OLD.id;
+        WHERE id = OLD.id;
     END;
-`;
+`

@@ -12,7 +12,7 @@ export async function createDBSectionInGroup(groupId: number, title: string) {
     try {
         const db = await getDB()
         await db.execute('INSERT INTO section (groupID, title) VALUES (?, ?)', [groupId, title]);
-    } catch (error: any) {
+    } catch (error: unknown) {
         handleDBError(error, "SECTION", {
             UNIQUE: "A section with this name already exists.",
             CHECK: "The section name cannot be empty.",
@@ -30,17 +30,18 @@ export async function createDBSectionInGroup(groupId: number, title: string) {
 export async function createDBSection(noteId: number, title: string, position: number) {
     try {
         const db = await getDB()
-        // await db.execute('BEGIN')
 
         const result = await db.execute('INSERT INTO section_group (noteID, position) VALUES (?, ?)', [noteId, position]);
         const groupId = result.lastInsertId
 
-        await db.execute('INSERT INTO section (groupID, title) VALUES (?, ?)', [groupId, title]);
-
-        // await db.execute('COMMIT')
-    } catch (error: any) {
-        // await db.execute('ROLLBACK')
-
+        try {
+            await db.execute('INSERT INTO section (groupID, title) VALUES (?, ?)', [groupId, title]);
+        } catch (innerError: unknown) {
+            // Remove the orphan group, transactions are unreliable with the connection pool
+            await db.execute('DELETE FROM section_group WHERE id=?', [groupId]).catch(() => undefined)
+            throw innerError
+        }
+    } catch (error: unknown) {
         handleDBError(error, "SECTION", {
             UNIQUE: "A section with this name already exists.",
             CHECK: "The section name cannot be empty.",

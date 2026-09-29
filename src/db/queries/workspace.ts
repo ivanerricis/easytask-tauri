@@ -31,7 +31,7 @@ export async function getDBWorkspaces() {
     try {
         const db = await getDB()
         return await db.select<Workspace[]>('SELECT * FROM workspace ORDER BY edit_date DESC, edit_time DESC')
-    } catch (error: any) {
+    } catch (error: unknown) {
         handleDBError(error, "ERROR_ON_GET_WORKSPACE", {
             UNIQUE: "A workspace with this name already exists.",
             CHECK: "The workspace name cannot be empty.",
@@ -49,7 +49,7 @@ export async function createDBWorkspace(name: string, color?: string | null) {
     try {
         const db = await getDB();
         await db.execute('INSERT INTO workspace (name, color) VALUES (?, ?)', [name, color ?? null])
-    } catch (error: any) {
+    } catch (error: unknown) {
         handleDBError(error, "WORKSPACE", {
             UNIQUE: "A workspace with this name already exists.",
             CHECK: "The workspace name cannot be empty.",

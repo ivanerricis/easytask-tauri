@@ -1,62 +1,43 @@
-import { documentDir } from "@tauri-apps/api/path";
-import { exists, mkdir } from "@tauri-apps/plugin-fs";
+import { join } from "@tauri-apps/api/path";
 import Database from "@tauri-apps/plugin-sql";
+import { ensureAppFolder } from "./appPaths";
 import { initDB } from "./initDb";
-import { BaseDirectory } from "@tauri-apps/api/path";
 
-let dbInstance: Database | null = null;
+let dbPromise: Promise<Database> | null = null;
 
 /**
- * Creates the database if it doesn't exist and initializes it with the schema.
+ * Creates the database if it doesn't exist and migrates it to the latest schema.
  * @returns Promise resolving to the Database instance.
  * @category Database
  */
 async function createDB(): Promise<Database> {
-    const documentPath = await documentDir();
-
-    const folderPath = `${documentPath}/EasyTask/`;
-    const filePath = `${folderPath}easytask.db`;
-
-    if (!(await exists(folderPath, { baseDir: BaseDirectory.Document }))) {
-        await mkdir(folderPath, { recursive: true, baseDir: BaseDirectory.Document });
-    }
+    const folderPath = await ensureAppFolder();
+    const filePath = await join(folderPath, "easytask.db");
 
     const db = await Database.load(`sqlite:${filePath}`);
 
-    const tablesExist = await checkIfTablesExist(db);
-
-    if (!tablesExist) {
+    try {
         await initDB(db);
+    } catch (err: unknown) {
+        await db.close().catch(() => false);
+        throw err;
     }
 
     return db;
 }
 
 /**
- * Checks if the necessary tables exist in the database.
- * @param db Database instance to check for table existence.
- * @returns Promise resolving to a boolean indicating if the tables exist.
- * @category Database
- */
-async function checkIfTablesExist(db: Database): Promise<boolean> {
-    try {
-        const result = await db.select<{ name: string }[]>(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='workspace'"
-        );
-        return result.length > 0;
-    } catch (error) {
-        return false;
-    }
-}
-
-/**
  * Gets the database instance, creating it if it doesn't exist.
+ * The creation is shared between concurrent callers and retried after a failure.
  * @returns Promise resolving to the Database instance.
  * @category Database
  */
-export async function getDB(): Promise<Database> {
-    if (!dbInstance) {
-        dbInstance = await createDB();
+export function getDB(): Promise<Database> {
+    if (!dbPromise) {
+        dbPromise = createDB().catch((err: unknown) => {
+            dbPromise = null;
+            throw err;
+        });
     }
-    return dbInstance;
+    return dbPromise;
 }

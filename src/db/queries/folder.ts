@@ -12,7 +12,7 @@ export async function createDBWorkspaceFolder(workspaceId: number, name: string,
     try {
         const db = await getDB()
         await db.execute('INSERT INTO folder (workspaceID, name, color) VALUES (?, ?, ?)', [workspaceId, name, color ?? null])
-    } catch (error: any) {
+    } catch (error: unknown) {
         handleDBError(error, "FOLDER", {
             UNIQUE: "A folder with this name already exists.",
             CHECK: "The folder name cannot be empty.",
@@ -31,7 +31,7 @@ export async function createDBSubFolder(workspaceID: number, folderId: number, n
     try {
         const db = await getDB()
         await db.execute('INSERT INTO folder (workspaceID, folderID, name) VALUES (?, ?, ?)', [workspaceID, folderId, name])
-    } catch (error: any) {
+    } catch (error: unknown) {
         handleDBError(error, "FOLDER", {
             UNIQUE: "A folder with this name already exists.",
             CHECK: "The folder name cannot be empty.",
@@ -76,7 +76,7 @@ export async function updateDBFolderColorContent(folderId: number, color?: strin
             [color, ...folderIds]
         )
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error(error)
         handleDBError(error, "FOLDER", {
             UNIQUE: "A folder with this name already exists.",

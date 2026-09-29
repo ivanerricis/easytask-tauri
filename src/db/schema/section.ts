@@ -16,15 +16,24 @@ export const createSectionTable = `
         FOREIGN KEY(groupID) REFERENCES section_group(id) ON DELETE CASCADE,
         UNIQUE(title, groupID)
     );
+`
 
-    CREATE TRIGGER IF NOT EXISTS update_section_edit_timestamp
-    AFTER UPDATE ON section
+/**
+ * Recreates the trigger that updates the edit timestamp of the section table.
+ * It fires only when content columns change, so it never re-triggers itself.
+ * @category Database Schema
+ */
+export const createSectionTrigger = `
+    DROP TRIGGER IF EXISTS update_section_edit_timestamp;
+
+    CREATE TRIGGER update_section_edit_timestamp
+    AFTER UPDATE OF groupID, title, color, archived ON section
     FOR EACH ROW
     BEGIN
         UPDATE section
         SET
             edit_date = DATE('now', 'localtime'),
             edit_time = strftime('%H:%M', 'now', 'localtime')
-    WHERE id = OLD.id;
+        WHERE id = OLD.id;
     END;
 `
