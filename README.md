@@ -1,5 +1,7 @@
 # EasyTask
 
+[![CI](https://github.com/ivanerricis/easytask-tauri/actions/workflows/ci.yml/badge.svg)](https://github.com/ivanerricis/easytask-tauri/actions/workflows/ci.yml)
+
 An **advanced todo list** based on **Workspaces**, inspired by systems like Notion, Obsidian, Trello and task management apps.
 
 Each Workspace is fully customizable and supports hierarchical management of elements with the ability to color any object.
@@ -63,6 +65,22 @@ npm run tauri:build
 ### Data
 
 Data is stored in a local SQLite database inside the `Documents/EasyTask` folder.
+
+---
+
+## Testing
+
+Unit tests run with [Vitest](https://vitest.dev/):
+
+```bash
+npm test
+```
+
+To generate a coverage report:
+
+```bash
+npm run test:coverage
+```
 
 ---
 
