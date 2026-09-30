@@ -44,7 +44,7 @@ struct Stmt {
 }
 
 /// Outcome of one statement of a `db_transaction` call (camelCase, like the JS side expects).
-#[derive(serde::Serialize)]
+#[derive(Debug, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 struct StmtResult {
     rows_affected: u64,
@@ -63,26 +63,19 @@ fn resolve_ref(value: &serde_json::Value, results: &[StmtResult]) -> Option<Resu
     let offset = object.get("offset").and_then(|v| v.as_i64()).unwrap_or(0);
     Some(match results.get(index) {
         Some(result) => Ok(result.last_insert_id - offset),
-        None => Err(format!("$ref {index} does not point to an earlier statement")),
+        None => Err(format!(
+            "$ref {index} does not point to an earlier statement"
+        )),
     })
 }
 
-/// Runs several statements atomically on the pool loaded by tauri-plugin-sql (same `db` key passed to
-/// `Database.load`). All statements share one connection inside a transaction: committed if every
-/// statement succeeds, rolled back (by dropping the transaction) on the first error.
-#[tauri::command]
-async fn db_transaction(
-    db_instances: tauri::State<'_, tauri_plugin_sql::DbInstances>,
-    db: String,
-    statements: Vec<Stmt>,
+/// Runs the statements atomically on `pool`: all share one connection inside a transaction, which is
+/// committed if every statement succeeds and rolled back (by dropping it) on the first error.
+async fn run_transaction(
+    pool: &sqlx::SqlitePool,
+    statements: &[Stmt],
 ) -> Result<Vec<StmtResult>, String> {
     use sqlx::Executor;
-
-    let instances = db_instances.0.read().await;
-    let pool = match instances.get(&db) {
-        Some(tauri_plugin_sql::DbPool::Sqlite(pool)) => pool,
-        None => return Err(format!("database {db} is not loaded")),
-    };
 
     let mut tx = pool
         .begin()
@@ -126,6 +119,22 @@ async fn db_transaction(
     Ok(results)
 }
 
+/// Runs several statements atomically on the pool loaded by tauri-plugin-sql (same `db` key passed to
+/// `Database.load`). See `run_transaction`.
+#[tauri::command]
+async fn db_transaction(
+    db_instances: tauri::State<'_, tauri_plugin_sql::DbInstances>,
+    db: String,
+    statements: Vec<Stmt>,
+) -> Result<Vec<StmtResult>, String> {
+    let instances = db_instances.0.read().await;
+    let pool = match instances.get(&db) {
+        Some(tauri_plugin_sql::DbPool::Sqlite(pool)) => pool,
+        None => return Err(format!("database {db} is not loaded")),
+    };
+    run_transaction(pool, &statements).await
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
@@ -153,4 +162,156 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+    use sqlx::sqlite::SqlitePoolOptions;
+
+    fn results(ids: &[i64]) -> Vec<StmtResult> {
+        ids.iter()
+            .map(|id| StmtResult {
+                rows_affected: 1,
+                last_insert_id: *id,
+            })
+            .collect()
+    }
+
+    #[test]
+    fn resolve_ref_valid() {
+        let out = resolve_ref(&json!({ "$ref": 1 }), &results(&[5, 9]));
+        assert_eq!(out, Some(Ok(9)));
+    }
+
+    #[test]
+    fn resolve_ref_with_offset() {
+        let out = resolve_ref(&json!({ "$ref": 0, "offset": 2 }), &results(&[10]));
+        assert_eq!(out, Some(Ok(8)));
+    }
+
+    #[test]
+    fn resolve_ref_index_out_of_range() {
+        let out = resolve_ref(&json!({ "$ref": 3 }), &results(&[1]));
+        assert!(matches!(out, Some(Err(_))));
+    }
+
+    #[test]
+    fn resolve_ref_non_integer() {
+        for value in [
+            json!({ "$ref": "0" }),
+            json!({ "$ref": -1 }),
+            json!({ "$ref": 1.5 }),
+        ] {
+            assert!(matches!(
+                resolve_ref(&value, &results(&[1, 2])),
+                Some(Err(_))
+            ));
+        }
+    }
+
+    #[test]
+    fn resolve_ref_non_reference_values() {
+        let r = results(&[1]);
+        assert_eq!(resolve_ref(&json!(3), &r), None);
+        assert_eq!(resolve_ref(&json!("x"), &r), None);
+        assert_eq!(resolve_ref(&json!({ "other": 1 }), &r), None);
+    }
+
+    fn temp_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("easytask-test-{}-{name}", std::process::id()));
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn is_audio_file_accepts_valid_extensions_case_insensitive() {
+        let dir = temp_dir("audio");
+        for name in ["a.mp3", "b.WAV", "c.Flac", "d.opus"] {
+            let file = dir.join(name);
+            std::fs::write(&file, b"x").unwrap();
+            assert!(is_audio_file(file.to_str().unwrap()), "{name}");
+        }
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn is_audio_file_rejects_wrong_missing_and_directories() {
+        let dir = temp_dir("reject");
+        let text = dir.join("notes.txt");
+        std::fs::write(&text, b"x").unwrap();
+        assert!(!is_audio_file(text.to_str().unwrap()));
+        assert!(!is_audio_file(dir.join("missing.mp3").to_str().unwrap()));
+        let audio_dir = dir.join("folder.mp3");
+        std::fs::create_dir_all(&audio_dir).unwrap();
+        assert!(!is_audio_file(audio_dir.to_str().unwrap()));
+        std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    async fn memory_pool() -> sqlx::SqlitePool {
+        // One connection only: every in-memory connection would otherwise be a separate database.
+        let pool = SqlitePoolOptions::new()
+            .max_connections(1)
+            .connect("sqlite::memory:")
+            .await
+            .unwrap();
+        sqlx::query("CREATE TABLE t (id INTEGER PRIMARY KEY, v TEXT NOT NULL, parent INTEGER)")
+            .execute(&pool)
+            .await
+            .unwrap();
+        pool
+    }
+
+    fn stmt(sql: &str, params: Vec<serde_json::Value>) -> Stmt {
+        Stmt {
+            sql: sql.to_string(),
+            params,
+        }
+    }
+
+    async fn count(pool: &sqlx::SqlitePool) -> i64 {
+        sqlx::query_scalar("SELECT COUNT(*) FROM t")
+            .fetch_one(pool)
+            .await
+            .unwrap()
+    }
+
+    #[test]
+    fn run_transaction_commits_and_resolves_refs() {
+        tauri::async_runtime::block_on(async {
+            let pool = memory_pool().await;
+            let statements = [
+                stmt("INSERT INTO t (v) VALUES (?)", vec![json!("a")]),
+                stmt(
+                    "INSERT INTO t (v, parent) VALUES (?, ?)",
+                    vec![json!("b"), json!({ "$ref": 0 })],
+                ),
+            ];
+            let out = run_transaction(&pool, &statements).await.unwrap();
+            assert_eq!(out.len(), 2);
+            assert_eq!(out[0].rows_affected, 1);
+            assert_eq!(count(&pool).await, 2);
+            let parent: i64 = sqlx::query_scalar("SELECT parent FROM t WHERE v = 'b'")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+            assert_eq!(parent, out[0].last_insert_id);
+        });
+    }
+
+    #[test]
+    fn run_transaction_rolls_back_on_error() {
+        tauri::async_runtime::block_on(async {
+            let pool = memory_pool().await;
+            let statements = [
+                stmt("INSERT INTO t (v) VALUES (?)", vec![json!("a")]),
+                // NOT NULL violation
+                stmt("INSERT INTO t (v) VALUES (?)", vec![json!(null)]),
+            ];
+            let error = run_transaction(&pool, &statements).await.unwrap_err();
+            assert!(error.contains("statement 1"), "{error}");
+            assert_eq!(count(&pool).await, 0);
+        });
+    }
 }
