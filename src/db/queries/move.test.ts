@@ -218,9 +218,10 @@ describe("moveDBSection", () => {
 describe("moveDBSectionToNewGroup", () => {
     it("creates a new group at the given position, shifting the others", async () => {
         await seedSections()
-        await moveDBSectionToNewGroup(sectionId("S2"), 1)
+        const newGroupId = await moveDBSectionToNewGroup(sectionId("S2"), 1)
         const ids = groupIds()
         expect(ids).toHaveLength(4)
+        expect(ids[1]).toBe(newGroupId)
         expect(ids[0]).toBe(1)
         expect(ids.slice(2)).toEqual([2, 3])
         expect(sectionsOf(ids[1] as number)).toEqual(["S2"])

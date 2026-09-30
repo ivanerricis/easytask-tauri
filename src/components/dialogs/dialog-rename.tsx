@@ -12,7 +12,10 @@ type DialogRenameProps<T> = {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     getItemId?: number | undefined
-    getItemData: (id: number) => Promise<void>
+    /** Reloads the data after the rename (when the change is not applied optimistically). */
+    getItemData?: (id: number) => Promise<void>
+    /** Applies the new name to the cached data before the write; returns the function that undoes it if the write fails. */
+    optimistic?: (name: string) => () => void
 }
 
 type defaultItemType = {
@@ -21,7 +24,7 @@ type defaultItemType = {
     title?: string
 }
 
-export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, isOpen, onOpenChange, getItemData, getItemId }: DialogRenameProps<T>) => {
+export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, isOpen, onOpenChange, getItemData, getItemId, optimistic }: DialogRenameProps<T>) => {
     const currentName = item.name ?? item.title ?? ""
     const [value, setValue] = useState(currentName)
     const { renameItem } = useWorkspaceData()
@@ -31,15 +34,19 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
 
     const handleEdit = async (e: React.FormEvent) => {
         e.preventDefault()
+        let rollback: (() => void) | undefined
         try {
-            if ((allowEmpty || value.trim()) && value.trim() !== currentName)
+            if ((allowEmpty || value.trim()) && value.trim() !== currentName) {
+                rollback = optimistic?.(value.trim())
                 await renameItem(itemType, item.id, value.trim())
+            }
             if (typeof getItemId === "number") {
-                await getItemData(getItemId)
+                await getItemData?.(getItemId)
             }
             setError(null)
             onOpenChange(false)
         } catch (err) {
+            rollback?.()
             setError(getErrorMessage(err))
         }
     }

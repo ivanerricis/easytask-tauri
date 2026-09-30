@@ -50,26 +50,27 @@ export function useNoteDrag(kind: NoteDragKind, id: number) {
 /**
  * Applies a computed move to the open note. Used by the drag & drop and by the "Sposta in…" menus.
  * The cached note data is updated at once and restored if the write fails (errors are shown with a toast (sonner)).
- * Only a section moved into a NEW group is reloaded in background, since the id of the new group is unknown.
+ * A section moved into a NEW group is applied once the write returns the id of the new group (background reload if it is missing).
  * @category Note DnD
  */
 export function useNoteMoves() {
     const { moveSection, moveSectionToNewGroup, moveTask } = useWorkspaceActions()
-    const { refreshActiveNote, applySectionMove, applyTaskMove } = useActiveNoteActions()
+    const { applySectionMove, applySectionMoveToNewGroup, applyTaskMove } = useActiveNoteActions()
 
     const moveSectionTo = useCallback(async (sectionId: number, target: SectionTarget) => {
         const rollback = target.type === "group" ? applySectionMove(sectionId, target.groupId, target.index) : null
         try {
             if (target.type === "group") await moveSection(sectionId, target.groupId, target.index)
             else {
-                await moveSectionToNewGroup(sectionId, target.index)
-                refreshActiveNote().catch(console.error)
+                // The new group only exists once the write is done; without its id the note is reloaded in background
+                const groupId = await moveSectionToNewGroup(sectionId, target.index)
+                applySectionMoveToNewGroup(sectionId, groupId, target.index)
             }
         } catch (err) {
             rollback?.()
             toast.error(getErrorMessage(err))
         }
-    }, [moveSection, moveSectionToNewGroup, applySectionMove, refreshActiveNote])
+    }, [moveSection, moveSectionToNewGroup, applySectionMove, applySectionMoveToNewGroup])
 
     const moveTaskTo = useCallback(async (taskId: number, target: TaskTarget) => {
         const destination = { sectionId: target.sectionId, parentTaskId: target.parentTaskId }

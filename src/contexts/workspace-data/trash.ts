@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react"
 import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "@/db/queries/trash"
 import { deleteDBItem, type DBItemType } from "@/db/queries/shared_queries"
+import { findTreeItem, insertTreeItem, removeTreeItem } from "../workspace-tree-ops"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type TrashActions = Pick<WorkspaceActionsType, "deleteItem" | "getTrash" | "restoreItem" | "purgeItem" | "emptyTrash">
@@ -9,23 +10,22 @@ type TrashActions = Pick<WorkspaceActionsType, "deleteItem" | "getTrash" | "rest
  * Delete (move to trash), restore, purge and empty. Every write that changes the trash bumps trashVersion.
  * @category WorkspaceData Context
  */
-export function useTrashActions({ withLoading, withTrashChange, latest, setCurrentFolder, setTemplatesVersion }: Runtime): TrashActions {
+export function useTrashActions({ withLoading, withTrashChange, latest, setCurrentFolder, setTemplatesVersion, applyTree, getTree }: Runtime): TrashActions {
     /**
-     * Delete an item from the workspace (moves it to the trash).
-     * The tabs of deleted notes (or of notes inside a deleted folder) are closed by the tabs module as soon as the
-     * caller reloads the workspace data (getWorkspaceData); deleting a folder clears the current folder if it was affected.
+     * Delete an item from the workspace (moves it to the trash). A folder or a note is removed from the sidebar tree
+     * at once and put back if the write fails; the tabs of deleted notes (or of notes inside a deleted folder) are
+     * closed by the tabs module as the tree changes. Deleting a folder clears the current folder if it was affected.
+     * Sections, groups and tasks are removed from the open note by the caller.
      * @param itemType - The type of the item to delete (e.g., "folder", "note", "section", "task").
      * @param itemID - The ID of the item to delete.
      * @throws Will throw an error if the item cannot be deleted.
      * @category Workspace Data Context
      */
     const deleteItem = useCallback((itemType: DBItemType, itemID: number) => withTrashChange(async () => {
-        await deleteDBItem(itemType, itemID)
-        if (itemType === "note_template") setTemplatesVersion(version => version + 1)
-
+        // The folders under the deleted one, taken before the optimistic removal drops them from the state
+        const folderIds = new Set<number>([itemID])
         if (itemType === "folder") {
-            const { folders, currentFolder } = latest.current
-            const folderIds = new Set<number>([itemID])
+            const { folders } = latest.current
             let added = true
             while (added) {
                 added = false
@@ -36,9 +36,29 @@ export function useTrashActions({ withLoading, withTrashChange, latest, setCurre
                     }
                 }
             }
+        }
+
+        // Folders and notes leave the sidebar tree at once (and their open tabs close with them); restored on failure
+        const tree = getTree()
+        const found = tree && (itemType === "folder" || itemType === "note") ? findTreeItem(tree, itemType, itemID) : undefined
+        const rollback = found && (itemType === "folder" || itemType === "note")
+            ? applyTree(
+                t => removeTreeItem(t, itemType, itemID),
+                t => insertTreeItem(t, itemType, found.item, found.parentId, found.index))
+            : null
+        try {
+            await deleteDBItem(itemType, itemID)
+        } catch (error) {
+            rollback?.()
+            throw error
+        }
+        if (itemType === "note_template") setTemplatesVersion(version => version + 1)
+
+        if (itemType === "folder") {
+            const { currentFolder } = latest.current
             if (currentFolder && folderIds.has(currentFolder.id)) setCurrentFolder(null)
         }
-    }), [withTrashChange, latest, setCurrentFolder, setTemplatesVersion])
+    }), [withTrashChange, applyTree, getTree, latest, setCurrentFolder, setTemplatesVersion])
 
     /**
      * Retrieves the trashed items of a workspace. Does not touch the context state.

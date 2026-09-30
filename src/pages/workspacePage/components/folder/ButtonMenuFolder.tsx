@@ -6,7 +6,6 @@ import { useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { toast } from "sonner"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
-import { useWorkspace } from "@/contexts/workspace-context"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
@@ -28,11 +27,8 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
     const [isRenameOpen, setRenameOpen] = useState(false);
     const [isDeleteFolderOpen, setDeleteFolderOpen] = useState(false);
     const menu = useItemMenuState()
-    const { updateFolderColorContent, getWorkspaceData, updateItemColor } = useWorkspaceData()
-    const { currentWorkspace } = useWorkspace()
-
-    // Rename and color are applied to the sidebar tree by the context: the dialogs need no reload
-    const noReload = async () => { }
+    // Rename, color and delete are applied to the sidebar tree by the context: the dialogs need no reload
+    const { updateFolderColorContent, updateItemColor } = useWorkspaceData()
 
     const handleColorContent = async () => {
         try {
@@ -77,8 +73,6 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
                         item={folder}
                         itemType="folder"
                         addColorItem={updateItemColor}
-                        getItemId={currentWorkspace?.id}
-                        getItemData={noReload}
                         setDropDownOpen={menu.close}
                     />
                 </MenuSubContent>
@@ -116,16 +110,12 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
                 itemType="folder"
                 isOpen={isRenameOpen}
                 onOpenChange={setRenameOpen}
-                getItemId={currentWorkspace?.id}
-                getItemData={noReload}
             />
             <DialogDeleteItem
                 item={folder}
                 itemType="folder"
                 isOpen={isDeleteFolderOpen}
                 onOpenChange={setDeleteFolderOpen}
-                getItemId={currentWorkspace?.id}
-                getItemData={getWorkspaceData}
             />
         </>
     )

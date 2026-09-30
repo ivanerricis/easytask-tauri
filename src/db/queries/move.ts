@@ -106,13 +106,14 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
  * Moves a section into a brand new group created at the given index among the groups of the note
  * (the section is pulled out into its own column; all the writes run in one transaction). The index refers to the groups as they are before the move
  * (the source group included); the other groups shift and the source group stays even when it ends up empty.
- * The caller is responsible for reloading the note data.
+ * The caller is responsible for updating the note data (the new group id is returned for that).
  * @param sectionId ID of the section to move.
  * @param groupPosition Index of the new group among the groups of the note (0 based, clamped).
+ * @returns The ID of the new group.
  * @throws SECTION_MOVE_INVALID when the section does not exist.
  * @category Database Queries
  */
-export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: number) {
+export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: number): Promise<number> {
     const db = await getDB()
 
     try {
@@ -147,7 +148,8 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
         }
         const groupUpdate = buildPositionUpdate("section_group", groupOrder)
         tx.add(groupUpdate.sql, groupUpdate.params)
-        await tx.run()
+        const results = await tx.run()
+        return results[created].lastInsertId
     } catch (error: unknown) {
         rethrow(error, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE })
     }

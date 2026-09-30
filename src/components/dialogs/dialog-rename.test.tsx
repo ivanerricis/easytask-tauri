@@ -98,6 +98,43 @@ describe("DialogRenameItem", () => {
         expect(screen.queryByText("db locked")).not.toBeInTheDocument()
     })
 
+    it("applies the optimistic hook before the write and needs no reload", async () => {
+        const user = userEvent.setup()
+        const rollback = vi.fn()
+        const optimistic = vi.fn(() => rollback)
+        renameItem.mockImplementation(async () => { expect(optimistic).toHaveBeenCalledWith("x") })
+        const { onOpenChange } = setup({ getItemData: undefined, getItemId: undefined, optimistic })
+        const input = screen.getByRole("textbox")
+        await user.clear(input)
+        await user.type(input, "x")
+        await user.click(screen.getByRole("button", { name: "Salva" }))
+
+        await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+        expect(renameItem).toHaveBeenCalledWith("task", 5, "x")
+        expect(rollback).not.toHaveBeenCalled()
+    })
+
+    it("undoes the optimistic change when the rename fails", async () => {
+        const user = userEvent.setup()
+        const rollback = vi.fn()
+        renameItem.mockRejectedValue(new Error("db locked"))
+        setup({ optimistic: () => rollback })
+        await user.type(screen.getByRole("textbox"), "x")
+        await user.click(screen.getByRole("button", { name: "Salva" }))
+
+        expect(await screen.findByText("db locked")).toBeInTheDocument()
+        expect(rollback).toHaveBeenCalledTimes(1)
+    })
+
+    it("does not apply the optimistic hook when the name is unchanged", async () => {
+        const user = userEvent.setup()
+        const optimistic = vi.fn(() => vi.fn())
+        const { onOpenChange } = setup({ optimistic })
+        await user.click(screen.getByRole("button", { name: "Salva" }))
+        await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+        expect(optimistic).not.toHaveBeenCalled()
+    })
+
     it("cancel closes without renaming", async () => {
         const user = userEvent.setup()
         const { onOpenChange } = setup()

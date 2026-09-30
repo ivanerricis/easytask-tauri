@@ -16,12 +16,14 @@ import { ButtonCloseNotes } from "../ButtonCloseNotes"
 import { ButtonCollapseItems } from "./ButtonCollapseItems"
 import { ButtonUpload } from "./ButtonUpload"
 import { usePreferences } from "@/contexts/preferences-context"
+import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
 
 export const SideBarLeft = () => {
 
     const { currentWorkspace } = useWorkspace()
     const { folders, getWorkspaceData } = useWorkspaceData()
     const { sidebarLeftOpen, setSideBarLeftOpen } = usePreferences()
+    const { exportWorkspace, isBusy: isTransferring } = useWorkspaceTransfer()
 
     useEffect(() => {
         if (currentWorkspace?.id) {
@@ -72,7 +74,12 @@ export const SideBarLeft = () => {
                 footer={<div className="flex flex-col gap-1 border-t p-1 w-full">
                     <ButtonTemplates />
                     <ButtonTrash />
-                    <ItemFooter type="download" text="Esporta Workspace" />
+                    <ItemFooter
+                        type="download"
+                        text="Esporta Workspace"
+                        disabled={!currentWorkspace || isTransferring}
+                        onClick={() => { if (currentWorkspace) void exportWorkspace(currentWorkspace) }}
+                    />
                     <ComboboxWorkspace />
                 </div>}
             >

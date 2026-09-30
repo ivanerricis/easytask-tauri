@@ -26,7 +26,7 @@ type FormProps = Omit<DialogNoteFromTemplateProps, "isOpen">
 // Mounted only while the dialog is open, so the fields always start from their defaults
 const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) => {
     const { workspaceDataTree } = useWorkspaceState()
-    const { createNoteFromTemplate, getWorkspaceData } = useWorkspaceActions()
+    const { createNoteFromTemplate } = useWorkspaceActions()
     const { openNote } = useTabsActions()
     const [name, setName] = useState(template.name)
     const [destination, setDestination] = useState(ROOT_VALUE)
@@ -41,8 +41,8 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
         setBusy(true)
         try {
             const folderID = destination === ROOT_VALUE ? null : Number(destination)
-            const noteID = await createNoteFromTemplate(template.id, template.workspaceID, folderID, name.trim())
-            await getWorkspaceData(template.workspaceID)
+            // The context adds the note to the sidebar tree
+            const noteID = await createNoteFromTemplate(template.id, template.workspaceID, folderID, name.trim(), template.color)
             openNote(noteID)
             toast.success("Nota creata")
             onOpenChange(false)

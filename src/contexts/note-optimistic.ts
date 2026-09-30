@@ -35,15 +35,22 @@ export type NoteOptimisticActions = {
     appendTask: (id: number, parent: TaskParent, text: string) => Rollback
     /** Same semantics as the database move: `index` counts the destination siblings without the moved item. */
     applySectionMove: (sectionId: number, targetGroupId: number, index: number) => Rollback
+    /**
+     * Moves a section into the new group the database just created (`groupId`) at `index` among the groups.
+     * When it cannot apply (id missing, section not in the cache) the note is reloaded in background.
+     */
+    applySectionMoveToNewGroup: (sectionId: number, groupId: number, index: number) => Rollback
     applyTaskMove: (taskId: number, target: { sectionId: number, parentTaskId: number | null }, index: number) => Rollback
 }
+
+type FallibleActions = "appendGroup" | "appendSection" | "appendTask" | "applySectionMoveToNewGroup"
 
 /**
  * The actions as built here: the appends return null when they could not apply (the provider then reloads the note).
  * @category ActiveNote Context
  */
-export type BaseNoteOptimisticActions = Omit<NoteOptimisticActions, "appendGroup" | "appendSection" | "appendTask"> & {
-    [K in "appendGroup" | "appendSection" | "appendTask"]: (...args: Parameters<NoteOptimisticActions[K]>) => Rollback | null
+export type BaseNoteOptimisticActions = Omit<NoteOptimisticActions, FallibleActions> & {
+    [K in FallibleActions]: (...args: Parameters<NoteOptimisticActions[K]>) => Rollback | null
 }
 
 /**
@@ -165,6 +172,18 @@ export function createNoteOptimisticActions(store: NoteTreeStore): BaseNoteOptim
             return apply(
                 t => moveSection(t, sectionId, targetGroupId, index),
                 t => moveSection(t, sectionId, found.groupId, found.index))
+        },
+        applySectionMoveToNewGroup: (sectionId, groupId, index) => {
+            const found = lookup(t => findSection(t, sectionId))
+            if (!found || !Number.isInteger(groupId)) return null
+            return tryApply(
+                t => {
+                    const origin = findGroup(t, found.groupId)
+                    if (!origin) return t
+                    const group: Group = { id: groupId, noteID: origin.group.noteID, position: index, name: null, sections: [] }
+                    return moveSection(insertGroup(t, group, index), sectionId, groupId, 0)
+                },
+                t => removeGroup(moveSection(t, sectionId, found.groupId, found.index), groupId))
         },
         applyTaskMove: (taskId, target, index) => {
             const found = lookup(t => findTask(t, taskId))

@@ -71,6 +71,30 @@ describe("DialogDeleteItem", () => {
         expect(onOpenChange).not.toHaveBeenCalledWith(false)
     })
 
+    it("removes the item optimistically before the write and keeps it removed on success", async () => {
+        const user = userEvent.setup()
+        const rollback = vi.fn()
+        const optimistic = vi.fn(() => rollback)
+        deleteItem.mockImplementation(async () => { expect(optimistic).toHaveBeenCalledTimes(1) })
+        const { onOpenChange, getItemData } = setup({ optimistic, getItemId: undefined, getItemData: undefined })
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
+
+        await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+        expect(rollback).not.toHaveBeenCalled()
+        expect(getItemData).not.toHaveBeenCalled()
+    })
+
+    it("restores the item and shows a toast when the delete fails", async () => {
+        const user = userEvent.setup()
+        const rollback = vi.fn()
+        deleteItem.mockRejectedValue(new Error("constraint"))
+        setup({ optimistic: () => rollback })
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("constraint")))
+        expect(rollback).toHaveBeenCalledTimes(1)
+    })
+
     it("cancel closes without deleting", async () => {
         const user = userEvent.setup()
         const { onOpenChange } = setup()

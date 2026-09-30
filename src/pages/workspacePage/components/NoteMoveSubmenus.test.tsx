@@ -8,12 +8,12 @@ import { SectionMoveSubmenu, TaskMoveSubmenu } from "./NoteMoveSubmenus"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 const moveSection = vi.fn().mockResolvedValue(undefined)
-const moveSectionToNewGroup = vi.fn().mockResolvedValue(undefined)
+const moveSectionToNewGroup = vi.fn().mockResolvedValue(9)
 const moveTask = vi.fn().mockResolvedValue(undefined)
-const refreshActiveNote = vi.fn().mockResolvedValue(undefined)
 const rollback = vi.fn()
 const applySectionMove = vi.fn(() => rollback)
 const applyTaskMove = vi.fn(() => rollback)
+const applySectionMoveToNewGroup = vi.fn(() => rollback)
 
 const noteDataTree: NoteDataTree = {
     groups: [
@@ -33,7 +33,7 @@ vi.mock("@/contexts/workspace-data-context", () => ({
 }))
 vi.mock("@/contexts/active-note-context", () => ({
     useActiveNote: () => ({ noteDataTree }),
-    useActiveNoteActions: () => ({ refreshActiveNote, applySectionMove, applyTaskMove }),
+    useActiveNoteActions: () => ({ applySectionMove, applySectionMoveToNewGroup, applyTaskMove }),
 }))
 
 async function openSubmenu(ui: React.ReactElement) {
@@ -56,6 +56,8 @@ beforeEach(() => {
     vi.clearAllMocks()
     applySectionMove.mockReturnValue(rollback)
     applyTaskMove.mockReturnValue(rollback)
+    applySectionMoveToNewGroup.mockReturnValue(rollback)
+    moveSectionToNewGroup.mockResolvedValue(9)
 })
 
 describe("SectionMoveSubmenu", () => {
@@ -68,7 +70,7 @@ describe("SectionMoveSubmenu", () => {
         await waitFor(() => expect(moveSection).toHaveBeenCalledWith(1, 2, expect.any(Number)))
         expect(moveSection.mock.calls[0][2]).toBeGreaterThan(1000)
         expect(applySectionMove).toHaveBeenCalledWith(1, 2, moveSection.mock.calls[0][2])
-        expect(refreshActiveNote).not.toHaveBeenCalled()
+        expect(applySectionMoveToNewGroup).not.toHaveBeenCalled()
         expect(rollback).not.toHaveBeenCalled()
     })
 
@@ -78,15 +80,23 @@ describe("SectionMoveSubmenu", () => {
         await user.click(await screen.findByText("Gruppo 2"))
         await waitFor(() => expect(rollback).toHaveBeenCalledTimes(1))
         expect(toast.error).toHaveBeenCalledWith("conflict")
-        expect(refreshActiveNote).not.toHaveBeenCalled()
     })
 
-    it("creates a new group at the end and reloads the note in background (the new group id is unknown)", async () => {
+    it("creates a new group at the end and applies it to the note with the id returned by the write", async () => {
         const user = await openSubmenu(<SectionMoveSubmenu sectionId={1} />)
         await user.click(await screen.findByText("Nuovo gruppo"))
         await waitFor(() => expect(moveSectionToNewGroup).toHaveBeenCalledWith(1, 2))
         expect(applySectionMove).not.toHaveBeenCalled()
-        await waitFor(() => expect(refreshActiveNote).toHaveBeenCalled())
+        await waitFor(() => expect(applySectionMoveToNewGroup).toHaveBeenCalledWith(1, 9, 2))
+        expect(rollback).not.toHaveBeenCalled()
+    })
+
+    it("shows a toast and does not touch the note when moving to a new group fails", async () => {
+        moveSectionToNewGroup.mockRejectedValueOnce(new Error("gone"))
+        const user = await openSubmenu(<SectionMoveSubmenu sectionId={1} />)
+        await user.click(await screen.findByText("Nuovo gruppo"))
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith("gone"))
+        expect(applySectionMoveToNewGroup).not.toHaveBeenCalled()
     })
 })
 
@@ -97,7 +107,6 @@ describe("TaskMoveSubmenu", () => {
         await user.click(await screen.findByText("↳ Due"))
         await waitFor(() => expect(moveTask).toHaveBeenCalledWith(1, { sectionId: 1, parentTaskId: 2 }, expect.any(Number)))
         expect(applyTaskMove).toHaveBeenCalledWith(1, { sectionId: 1, parentTaskId: 2 }, moveTask.mock.calls[0][2])
-        expect(refreshActiveNote).not.toHaveBeenCalled()
     })
 
     it("rolls the optimistic move back when the move fails", async () => {

@@ -206,7 +206,7 @@ describe("ActiveNoteProvider", () => {
         const before = { ...latest.current }
         act(() => latest.current.openNote(1))
         await waitFor(() => expect(shownGroup(latest)).toBe(10))
-        for (const key of ["refreshActiveNote", "getNoteData", "setNoteDataTree", "patchGroup", "patchSection", "patchTask", "appendGroup", "appendSection", "appendTask", "removeTask", "applyTaskMove"] as const)
+        for (const key of ["refreshActiveNote", "getNoteData", "setNoteDataTree", "patchGroup", "patchSection", "patchTask", "appendGroup", "appendSection", "appendTask", "removeTask", "applyTaskMove", "applySectionMoveToNewGroup"] as const)
             expect(latest.current[key]).toBe(before[key])
     })
 

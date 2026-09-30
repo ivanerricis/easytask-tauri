@@ -164,6 +164,26 @@ describe("note optimistic actions", () => {
         expect(tree).toEqual(original)
     })
 
+    it("applySectionMoveToNewGroup inserts the new group with the section and rolls back to the origin", () => {
+        const actions = createNoteOptimisticActions(store)
+        const original = tree
+
+        const undo = actions.applySectionMoveToNewGroup(10, 9, 1)!
+        expect(tree!.groups.map(g => g.id)).toEqual([1, 9, 2])
+        expect(tree!.groups[1]).toMatchObject({ noteID: tree!.groups[0].noteID, position: 1, name: null })
+        expect(tree!.groups[0].sections).toEqual([])
+        expect(tree!.groups[1].sections.map(s => s.id)).toEqual([10])
+        undo()
+        expect(tree).toEqual(original)
+    })
+
+    it("applySectionMoveToNewGroup returns null when it cannot apply", () => {
+        const actions = createNoteOptimisticActions(store)
+        expect(actions.applySectionMoveToNewGroup(10, undefined as unknown as number, 0)).toBeNull()
+        expect(actions.applySectionMoveToNewGroup(999, 9, 0)).toBeNull()
+        expect(commits).toBe(0)
+    })
+
     it("a rollback of a move of a subtask restores its parent", () => {
         const actions = createNoteOptimisticActions(store)
         const original = tree

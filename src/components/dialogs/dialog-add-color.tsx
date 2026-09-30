@@ -9,7 +9,8 @@ type DialogAddColorProps<T> = {
     itemType: DBItemType
     getItemId?: number | undefined
     addColorItem: (itemType: DBItemType, id: number, color?: string) => Promise<void>
-    getItemData: (id: number) => Promise<void>
+    /** Reloads the data after the change; not needed when `addColorItem` updates the cached data itself. */
+    getItemData?: (id: number) => Promise<void>
     setDropDownOpen?: (open: boolean) => void
     className?: string
 }
@@ -30,6 +31,8 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
     const [color, setColor] = useState(item.color)
     const dialogRef = React.useRef<HTMLDivElement>(null);
     const [inputColor, setInputColor] = useState("#000000")
+    // Reloading needs the id; without a reload hook the change is saved as is
+    const canSave = !getItemData || !!getItemId
 
     const handleColorClick = async (colorValue: string, e: React.MouseEvent) => {
         setColor(colorValue)
@@ -41,9 +44,9 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
         if (setDropDownOpen) setDropDownOpen(false)
         try {
             const colorToSave = selectedColor ?? color
-            if (item.color !== colorToSave && getItemId && colorToSave) {
+            if (item.color !== colorToSave && colorToSave && canSave) {
                 await addColorItem(itemType, item.id, colorToSave)
-                await getItemData(getItemId)
+                if (getItemData && getItemId) await getItemData(getItemId)
             }
         } catch (err) {
             toast.error(getErrorMessage(err))
@@ -56,9 +59,9 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
         e.stopPropagation()
         if (setDropDownOpen) setDropDownOpen(false)
         try {
-            if (item.color && getItemId) {
+            if (item.color && canSave) {
                 await addColorItem(itemType, item.id)
-                await getItemData(getItemId)
+                if (getItemData && getItemId) await getItemData(getItemId)
             }
         } catch (err) {
             toast.error(getErrorMessage(err))

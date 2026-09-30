@@ -13,25 +13,30 @@ type DialogDeleteProps<T> = {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     getItemId?: number | undefined
-    getItemData: (id: number) => Promise<void>
+    /** Reloads the data after the delete (when the removal is not applied optimistically). */
+    getItemData?: (id: number) => Promise<void>
+    /** Removes the item from the cached data before the write; returns the function that restores it if the write fails. */
+    optimistic?: () => () => void
 }
 
 type defaultItemType = {
     id: number
 }
 
-export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, getItemId, isOpen, onOpenChange, getItemData }: DialogDeleteProps<T>) => {
+export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, getItemId, isOpen, onOpenChange, getItemData, optimistic }: DialogDeleteProps<T>) => {
     const { deleteItem } = useWorkspaceData()
 
     const handleDelete = async (e: React.SyntheticEvent) => {
         e.stopPropagation()
+        const rollback = optimistic?.()
         try {
             await deleteItem(itemType, item.id)
             if (typeof getItemId === "number") {
-                await getItemData(getItemId)
+                await getItemData?.(getItemId)
             }
             onOpenChange(false)
         } catch (error) {
+            rollback?.()
             toast.error('Impossibile eliminare l\'elemento: ' + getErrorMessage(error))
         }
     }

@@ -33,7 +33,7 @@ export function DialogAddNote() {
     const [paletteIsOpen, setPaletteOpen] = useState(false)
     const [templateId, setTemplateId] = useState("")
     const { currentWorkspace } = useWorkspace()
-    const { createWorkspaceNote, createNoteFromTemplate, getWorkspaceData } = useWorkspaceData()
+    const { createWorkspaceNote, createNoteFromTemplate } = useWorkspaceData()
     const templates = useTemplates(isOpen)
     // A stale selection (template deleted meanwhile) behaves as "no template"
     const template = templates.find(t => String(t.id) === templateId)
@@ -43,11 +43,10 @@ export function DialogAddNote() {
         if (!currentWorkspace?.id) return
         if (note.name.trim() === "") return
         try {
-            // A plain note is added to the tree by createWorkspaceNote; a note from a template needs the reload
-            if (template) {
-                await createNoteFromTemplate(template.id, currentWorkspace.id, null, note.name.trim())
-                await getWorkspaceData(currentWorkspace.id)
-            } else
+            // Both are added to the sidebar tree by the context
+            if (template)
+                await createNoteFromTemplate(template.id, currentWorkspace.id, null, note.name.trim(), template.color)
+            else
                 await createWorkspaceNote(currentWorkspace.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
             setError(null)
             setIsOpen(false)

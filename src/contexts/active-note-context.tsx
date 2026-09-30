@@ -162,6 +162,7 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
             appendGroup: withReload(base.appendGroup),
             appendSection: withReload(base.appendSection),
             appendTask: withReload(base.appendTask),
+            applySectionMoveToNewGroup: withReload(base.applySectionMoveToNewGroup),
         }
         return {
             refreshActiveNote,

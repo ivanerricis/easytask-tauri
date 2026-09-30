@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from "react"
 import { countDBTemplates, createDBNoteFromTemplate, createDBTemplateFromNote, getDBTemplates, updateDBTemplateFromNote } from "@/db/queries/template"
+import { buildNote, getFolderNotes, insertTreeItem, removeTreeItem } from "../workspace-tree-ops"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type TemplateActions = Pick<WorkspaceActionsType,
@@ -9,7 +10,7 @@ type TemplateActions = Pick<WorkspaceActionsType,
  * Note templates. Every write bumps templatesVersion.
  * @category WorkspaceData Context
  */
-export function useTemplateActions({ withLoading, setTemplatesVersion }: Runtime): TemplateActions {
+export function useTemplateActions({ withLoading, setTemplatesVersion, applyTree, getWorkspaceData }: Runtime): TemplateActions {
     /**
      * Retrieves the templates of a workspace. Does not touch the context state.
      * @param workspaceID - The ID of the workspace.
@@ -52,8 +53,10 @@ export function useTemplateActions({ withLoading, setTemplatesVersion }: Runtime
     }), [withLoading, setTemplatesVersion])
 
     /**
-     * Creates a note from a template at the end of the destination. Does NOT reload the data:
-     * the caller must call getWorkspaceData and can then open the note.
+     * Creates a note from a template at the end of the destination and adds it to the sidebar tree (the content of
+     * the note is loaded when it is opened). When the destination folder is not in the tree, the tree is reloaded
+     * before resolving.
+     * @param color - The color of the template (the new note gets it).
      * @param templateID - The ID of the template.
      * @param workspaceID - The ID of the workspace.
      * @param folderID - The destination folder, null for the workspace root.
@@ -62,8 +65,15 @@ export function useTemplateActions({ withLoading, setTemplatesVersion }: Runtime
      * @throws Will throw an error on a name clash in the destination.
      * @category Workspace Data Context
      */
-    const createNoteFromTemplate = useCallback((templateID: number, workspaceID: number, folderID: number | null, name: string) =>
-        withLoading(() => createDBNoteFromTemplate(templateID, workspaceID, folderID, name)), [withLoading])
+    const createNoteFromTemplate = useCallback((templateID: number, workspaceID: number, folderID: number | null, name: string, color?: string | null) =>
+        withLoading(async () => {
+            const id = await createDBNoteFromTemplate(templateID, workspaceID, folderID, name)
+            const applied = Number.isInteger(id) && applyTree(
+                tree => insertTreeItem(tree, "note", buildNote(id, workspaceID, folderID, name.trim(), color ?? undefined, getFolderNotes(tree, folderID)), folderID),
+                tree => removeTreeItem(tree, "note", id))
+            if (!applied) await getWorkspaceData(workspaceID)
+            return id
+        }), [withLoading, applyTree, getWorkspaceData])
 
     return useMemo(() => ({ getTemplates, countTemplates, createTemplateFromNote, updateTemplateFromNote, createNoteFromTemplate }), [ getTemplates, countTemplates, createTemplateFromNote, updateTemplateFromNote, createNoteFromTemplate ])
 }

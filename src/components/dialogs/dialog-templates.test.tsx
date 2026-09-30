@@ -103,7 +103,7 @@ describe("DialogTemplates", () => {
         expect(screen.getByRole("button", { name: "Aggiorna Onboarding dalla nota" })).toBeDisabled()
     })
 
-    it("creates a note from a template in the chosen folder, reloads the workspace and opens the note", async () => {
+    it("creates a note from a template in the chosen folder (the context updates the tree) and opens the note", async () => {
         const user = userEvent.setup()
         const onOpenChange = vi.fn()
         render(<DialogTemplates isOpen onOpenChange={onOpenChange} />)
@@ -119,8 +119,8 @@ describe("DialogTemplates", () => {
         await user.selectOptions(destination, "8")
         await user.click(screen.getByRole("button", { name: "Crea nota" }))
 
-        await waitFor(() => expect(data.createNoteFromTemplate).toHaveBeenCalledWith(1, 4, 8, "Retro di settembre"))
-        await waitFor(() => expect(data.getWorkspaceData).toHaveBeenCalledWith(4))
+        await waitFor(() => expect(data.createNoteFromTemplate).toHaveBeenCalledWith(1, 4, 8, "Retro di settembre", null))
+        expect(data.getWorkspaceData).not.toHaveBeenCalled()
         expect(tabs.openNote).toHaveBeenCalledWith(55)
         expect(toast.success).toHaveBeenCalledWith("Nota creata")
         expect(onOpenChange).toHaveBeenCalledWith(false)
@@ -134,7 +134,7 @@ describe("DialogTemplates", () => {
         await user.click(screen.getByRole("button", { name: "Crea nota" }))
 
         expect(await screen.findByText("Esiste già una nota con questo nome nella cartella di destinazione.")).toBeInTheDocument()
-        expect(data.createNoteFromTemplate).toHaveBeenCalledWith(1, 4, null, "Retro")
+        expect(data.createNoteFromTemplate).toHaveBeenCalledWith(1, 4, null, "Retro", null)
         expect(tabs.openNote).not.toHaveBeenCalled()
     })
 

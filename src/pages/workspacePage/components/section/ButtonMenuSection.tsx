@@ -1,9 +1,9 @@
 import { useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
+import type { DBItemType } from "@/db/queries/shared_queries"
 import type { Section } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data-context"
-import { useActiveNoteId } from "@/contexts/tabs-context"
 import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
@@ -24,8 +24,18 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const menu = useItemMenuState()
     const { updateItemColor } = useWorkspaceActions()
-    const activeId = useActiveNoteId()
-    const { getNoteData } = useActiveNoteActions()
+    const { patchSection, removeSection } = useActiveNoteActions()
+
+    // The color is applied to the cached tree at once and restored if the write fails
+    const addColorItem = async (itemType: DBItemType, itemId: number, color?: string) => {
+        const rollback = patchSection(itemId, { color: color ?? null })
+        try {
+            await updateItemColor(itemType, itemId, color)
+        } catch (error) {
+            rollback()
+            throw error
+        }
+    }
 
     const items = (
         <MenuGroup className="flex flex-col gap-1">
@@ -48,9 +58,7 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
                     <DialogAddColor
                         item={section}
                         itemType="section"
-                        addColorItem={updateItemColor}
-                        getItemId={activeId ?? undefined}
-                        getItemData={getNoteData}
+                        addColorItem={addColorItem}
                         setDropDownOpen={menu.close}
                     />
                 </MenuSubContent>
@@ -76,16 +84,14 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
                 itemType="section"
                 isOpen={isRenameOpen}
                 onOpenChange={setRenameOpen}
-                getItemId={activeId ?? undefined}
-                getItemData={getNoteData}
+                optimistic={title => patchSection(section.id, { title })}
             />
             <DialogDeleteItem
                 item={section}
                 itemType="section"
                 isOpen={isDeleteOpen}
                 onOpenChange={setDeleteOpen}
-                getItemId={activeId ?? undefined}
-                getItemData={getNoteData}
+                optimistic={() => removeSection(section.id)}
             />
         </>
     )

@@ -84,7 +84,7 @@ export const NoteList = () => {
             onDragEnd={event => handleDragEnd(Number(event.active.id))}
             onDragCancel={() => updateHover(null)}
         >
-            <div className="flex w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1">
+            <div className="flex shrink-0 w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1">
                 {tabs.map(note => <Tab key={note.id} note={note} hover={hover} />)}
             </div>
         </DndContext>

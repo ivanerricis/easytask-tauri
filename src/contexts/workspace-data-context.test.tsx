@@ -15,6 +15,7 @@ import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent 
 import { moveDBTreeItem } from "@/db/queries/tree"
 import { moveDBSection, moveDBSectionToNewGroup, moveDBTask } from "@/db/queries/move"
 import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "@/db/queries/trash"
+import { createDBNoteFromTemplate } from "@/db/queries/template"
 import { deferred } from "@/test/ui-render"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { Folder } from "@/types/types"
@@ -51,6 +52,13 @@ vi.mock("@/db/queries/trash", () => ({
     restoreDBItem: vi.fn(),
     purgeDBItem: vi.fn(),
     emptyDBTrash: vi.fn(),
+}))
+vi.mock("@/db/queries/template", () => ({
+    countDBTemplates: vi.fn(),
+    createDBNoteFromTemplate: vi.fn(),
+    createDBTemplateFromNote: vi.fn(),
+    getDBTemplates: vi.fn(),
+    updateDBTemplateFromNote: vi.fn(),
 }))
 vi.mock("@/db/queries/shared_queries", () => ({
     renameDBItem: vi.fn(),
@@ -253,6 +261,59 @@ describe("WorkspaceDataContext", () => {
             expect(root.subfolders[0].color).toBe("#0f0")
             expect(root.subfolders[0].notes[0].color).toBe("#0f0")
             expect(result.current.workspaceDataTree!.rootNotes[0].color).toBeUndefined()
+        })
+
+        it("removes a deleted note or folder from the tree at once and restores it when the write fails", async () => {
+            const write = deferred()
+            vi.mocked(deleteDBItem).mockReturnValueOnce(write.promise as never)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+
+            let pending!: Promise<void>
+            act(() => { pending = result.current.deleteItem("note", 10) })
+            expect(result.current.workspaceDataTree!.rootFolders[0].subfolders[0].notes).toEqual([])
+            expect(result.current.notes.map(n => n.id)).toEqual([11])
+            await act(async () => {
+                write.reject(new Error("boom"))
+                await expect(pending).rejects.toThrow("boom")
+            })
+            expect(result.current.workspaceDataTree!.rootFolders[0].subfolders[0].notes.map(n => n.id)).toEqual([10])
+
+            await act(() => result.current.deleteItem("folder", 1))
+            expect(result.current.workspaceDataTree!.rootFolders).toEqual([])
+            expect(deleteDBItem).toHaveBeenLastCalledWith("folder", 1)
+            expect(getDBWorkspaceData).not.toHaveBeenCalled()
+        })
+
+        it("bumps trashVersion and clears the current folder when a folder with the current one inside is deleted", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+            act(() => result.current.setCurrentFolder(result.current.folders.find(f => f.id === 2)!))
+            await act(() => result.current.deleteItem("folder", 1))
+            expect(result.current.trashVersion).toBe(1)
+            expect(result.current.currentFolder).toBeNull()
+        })
+
+        it("adds a note created from a template to the tree without reloading", async () => {
+            vi.mocked(createDBNoteFromTemplate).mockResolvedValue(20 as never)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+
+            await act(async () => {
+                expect(await result.current.createNoteFromTemplate(3, 1, 2, " From tpl ", "#abc")).toBe(20)
+            })
+            const tree = result.current.workspaceDataTree!
+            expect(tree.rootFolders[0].subfolders[0].notes.map(n => n.id)).toEqual([10, 20])
+            expect(tree.rootFolders[0].subfolders[0].notes[1]).toMatchObject({ name: "From tpl", color: "#abc", folderID: 2, position: 1 })
+            expect(getDBWorkspaceData).not.toHaveBeenCalled()
+        })
+
+        it("reloads the tree when the folder of a note created from a template is not in it", async () => {
+            vi.mocked(createDBNoteFromTemplate).mockResolvedValue(20 as never)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+            await act(() => result.current.createNoteFromTemplate(3, 1, 99, "Lost"))
+            expect(getDBWorkspaceData).toHaveBeenCalledWith(1)
         })
 
         it("is not overwritten by a reload that started before the optimistic update", async () => {
@@ -537,7 +598,7 @@ describe("WorkspaceDataContext", () => {
             const { result } = renderHook(() => useAll(), { wrapper })
             expect(result.current.trashVersion).toBe(0)
             let expected = 0
-            const ops: Array<() => Promise<void>> = [
+            const ops: Array<() => Promise<unknown>> = [
                 () => result.current.deleteItem("task", 5),
                 () => result.current.restoreItem("note", 1),
                 () => result.current.purgeItem("folder", 2),

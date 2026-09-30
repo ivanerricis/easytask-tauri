@@ -4,7 +4,6 @@ import { DialogDeleteItem } from "@/components/dialogs/dialog-delete";
 import { MenuGroup } from "@/components/menu-kind";
 import { ItemMenu } from "@/components/item-menu";
 import { useItemMenuState } from "@/hooks/use-item-menu-state";
-import { useActiveNoteId } from "@/contexts/tabs-context";
 import { useActiveNoteActions } from "@/contexts/active-note-context";
 import { useAudio } from "@/contexts/audio-context";
 import type { Group } from "@/types/types";
@@ -20,8 +19,7 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const menu = useItemMenuState()
-    const activeId = useActiveNoteId()
-    const { getNoteData } = useActiveNoteActions()
+    const { patchGroup, removeGroup } = useActiveNoteActions()
     const { addFiles } = useAudio()
 
     const items = (
@@ -62,16 +60,14 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
                 itemType="section_group"
                 isOpen={isRenameOpen}
                 onOpenChange={setRenameOpen}
-                getItemId={activeId ?? undefined}
-                getItemData={getNoteData}
+                optimistic={name => patchGroup(group.id, { name: name || null })}
             />
             <DialogDeleteItem
                 item={group}
                 itemType="section_group"
                 isOpen={isDeleteOpen}
                 onOpenChange={setDeleteOpen}
-                getItemId={activeId ?? undefined}
-                getItemData={getNoteData}
+                optimistic={() => removeGroup(group.id)}
             />
         </>
     )

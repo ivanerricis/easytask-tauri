@@ -47,7 +47,8 @@ export type WorkspaceActionsType = {
     moveTreeItem: (itemType: "folder" | "note", itemId: number, targetFolderId: number | null, targetIndex: number) => Promise<void>
 
     moveSection: (sectionID: number, targetGroupID: number, targetIndex: number) => Promise<void>
-    moveSectionToNewGroup: (sectionID: number, groupPosition: number) => Promise<void>
+    /** Resolves with the id of the new group, so the caller can update the note without reloading. */
+    moveSectionToNewGroup: (sectionID: number, groupPosition: number) => Promise<number>
     moveTask: (taskID: number, target: TaskMoveTarget, targetIndex: number) => Promise<void>
 
     deleteItem: (itemType: DBItemType, itemID: number) => Promise<void>
@@ -61,7 +62,7 @@ export type WorkspaceActionsType = {
     countTemplates: (workspaceID: number) => Promise<number>
     createTemplateFromNote: (noteID: number, name: string) => Promise<number>
     updateTemplateFromNote: (templateID: number) => Promise<void>
-    createNoteFromTemplate: (templateID: number, workspaceID: number, folderID: number | null, name: string) => Promise<number>
+    createNoteFromTemplate: (templateID: number, workspaceID: number, folderID: number | null, name: string, color?: string | null) => Promise<number>
 }
 
 /**

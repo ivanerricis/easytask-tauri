@@ -4,7 +4,6 @@ import { useWorkspaceActions } from "@/contexts/workspace-data-context"
 import { useTabsActions } from "@/contexts/tabs-context"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
-import { useWorkspace } from "@/contexts/workspace-context"
 import { DialogCreateTemplate } from "@/components/dialogs/dialog-create-template"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { Separator } from "@/components/ui/separator"
@@ -25,8 +24,7 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [isTemplateOpen, setTemplateOpen] = useState(false);
     const menu = useItemMenuState()
-    const { currentWorkspace } = useWorkspace()
-    const { getWorkspaceData, updateItemColor } = useWorkspaceActions()
+    const { updateItemColor } = useWorkspaceActions()
     const { openNote } = useTabsActions()
 
     const items = (
@@ -53,8 +51,6 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                         item={note}
                         itemType="note"
                         addColorItem={updateItemColor}
-                        getItemId={currentWorkspace?.id}
-                        getItemData={getWorkspaceData}
                         setDropDownOpen={menu.close}
                     />
                 </MenuSubContent>
@@ -87,8 +83,6 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                 itemType="note"
                 isOpen={isRenameOpen}
                 onOpenChange={setRenameOpen}
-                getItemId={currentWorkspace?.id}
-                getItemData={getWorkspaceData}
             />
             <DialogCreateTemplate
                 note={note}
@@ -100,8 +94,6 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                 itemType="note"
                 isOpen={isDeleteOpen}
                 onOpenChange={setDeleteOpen}
-                getItemId={currentWorkspace?.id}
-                getItemData={getWorkspaceData}
             />
         </>
     )
