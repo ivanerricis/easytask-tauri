@@ -11,6 +11,9 @@ updates:
       # typescript-eslint requires typescript < 6.1
       - dependency-name: typescript
         update-types: [version-update:semver-major, version-update:semver-minor]
+      # Keep @types/node aligned with the Node major used by the project
+      - dependency-name: "@types/node"
+        update-types: [version-update:semver-major]
   - package-ecosystem: cargo
     directory: /src-tauri
     schedule:
