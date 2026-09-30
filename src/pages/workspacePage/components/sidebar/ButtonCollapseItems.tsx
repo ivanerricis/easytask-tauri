@@ -1,10 +1,19 @@
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
-import { ListCollapse } from "lucide-react"
+import { ListChevronsUpDown, ListCollapse } from "lucide-react"
 
-export const ButtonCollapseItems = () => {
+type ButtonCollapseItemsProps = {
+    allCollapsed: boolean
+    onToggle: () => void
+    disabled?: boolean
+}
+
+export const ButtonCollapseItems = ({ allCollapsed, onToggle, disabled }: ButtonCollapseItemsProps) => {
     return (
-        <Button variant={"buttonIcon"} size={"icon"}>
-            <ListCollapse />
-        </Button>
+        <TooltipCustom text={allCollapsed ? "Espandi tutte le cartelle" : "Comprimi tutte le cartelle"}>
+            <Button variant={"buttonIcon"} size={"icon"} disabled={disabled} onClick={onToggle}>
+                {allCollapsed ? <ListChevronsUpDown /> : <ListCollapse />}
+            </Button>
+        </TooltipCustom>
     )
 }

@@ -1,18 +1,24 @@
 import type { Workspace } from "@/types/types"
 import { WorkSpaceItem } from "./WorkSpace"
+import { cn } from "@/lib/utils"
 
 type WorkspacesContainerProps = {
     workspaces: Workspace[]
+    view?: "grid" | "list"
 }
 
-export const WorkspacesContainer = ({ workspaces }: WorkspacesContainerProps) => {
+export const WorkspacesContainer = ({ workspaces, view = "grid" }: WorkspacesContainerProps) => {
     return (
-        <div className="grid grid-cols-2 w-full overflow-y-auto h-[200px] lg:h-[350px] gap-1 transition- content-start">
+        <div className={cn(
+            "grid w-full overflow-y-auto h-[200px] lg:h-[350px] gap-1 content-start",
+            view === "grid" ? "grid-cols-2" : "grid-cols-1"
+        )}>
             {workspaces.length > 0 ? (
                 workspaces.map((ws) => (
                     <WorkSpaceItem
                         key={ws.id}
                         workspace={ws}
+                        view={view}
                     />
                 ))
             ) : (

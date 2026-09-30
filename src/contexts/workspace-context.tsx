@@ -1,6 +1,7 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
 import type { Workspace } from '@/types/types'
 import { getDBWorkspaces, createDBWorkspace } from '@/db/queries/workspace'
+import { getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from '@/db/queries/trash'
 import { getErrorMessage } from '@/lib/utils'
 
 type WorkspaceContextType = {
@@ -11,6 +12,9 @@ type WorkspaceContextType = {
     setCurrentWorkspace: React.Dispatch<React.SetStateAction<Workspace | null>>
     getWorkspaces: () => Promise<void>
     createWorkspace: (name: string, color?: string) => Promise<void>
+    getTrashedWorkspaces: () => Promise<Workspace[]>
+    restoreWorkspace: (id: number) => Promise<void>
+    purgeWorkspace: (id: number) => Promise<void>
     resetWorkspace: () => void
 }
 
@@ -29,12 +33,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
      * @param operation The operation to run.
      * @category Workspace Context
      */
-    const withLoading = useCallback(async (operation: () => Promise<void>) => {
+    const withLoading = useCallback(async <T,>(operation: () => Promise<T>): Promise<T> => {
         pendingOps.current += 1
         setIsLoading(true)
         setError(null)
         try {
-            await operation()
+            return await operation()
         } catch (err: unknown) {
             setError(getErrorMessage(err))
             throw err
@@ -61,6 +65,30 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     }), [withLoading])
 
     /**
+     * Retrieves the workspaces moved to the trash. Does not touch the `workspaces` state.
+     * @category Workspace Context
+     */
+    const getTrashedWorkspaces = useCallback(() => withLoading(() => getDBTrashedWorkspaces()), [withLoading])
+
+    /**
+     * Restores a trashed workspace and refreshes `workspaces`.
+     * @category Workspace Context
+     */
+    const restoreWorkspace = useCallback((id: number) => withLoading(async () => {
+        await restoreDBItem('workspace', id)
+        setWorkspaces((await getDBWorkspaces()) ?? [])
+    }), [withLoading])
+
+    /**
+     * Permanently deletes a trashed workspace and refreshes `workspaces`.
+     * @category Workspace Context
+     */
+    const purgeWorkspace = useCallback((id: number) => withLoading(async () => {
+        await purgeDBItem('workspace', id)
+        setWorkspaces((await getDBWorkspaces()) ?? [])
+    }), [withLoading])
+
+    /**
      * Resets the current workspace and clears any errors.
      * @category Workspace Context
      */
@@ -77,8 +105,12 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
         getWorkspaces,
         createWorkspace,
         setCurrentWorkspace,
+        getTrashedWorkspaces,
+        restoreWorkspace,
+        purgeWorkspace,
         resetWorkspace
-    }), [workspaces, currentWorkspace, isLoading, error, getWorkspaces, createWorkspace, resetWorkspace])
+    }), [workspaces, currentWorkspace, isLoading, error, getWorkspaces, createWorkspace,
+        getTrashedWorkspaces, restoreWorkspace, purgeWorkspace, resetWorkspace])
 
     return (
         <WorkspaceContext.Provider value={value}>

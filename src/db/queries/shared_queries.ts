@@ -11,7 +11,7 @@ const ITEM_TYPES = ["workspace", "folder", "note", "section", "section_group", "
 export type DBItemType = typeof ITEM_TYPES[number]
 
 // Guards the table name interpolated into the SQL strings
-function assertItemType(itemType: string): asserts itemType is DBItemType {
+export function assertItemType(itemType: string): asserts itemType is DBItemType {
     if (!(ITEM_TYPES as readonly string[]).includes(itemType))
         throw createError("INVALID_ITEM_TYPE", `Unsupported item type: ${itemType}`)
 }
@@ -63,8 +63,11 @@ export async function updateDBColor(itemType: DBItemType, itemID: number, color?
     }
 }
 
+const SOFT_DELETE = "SET deleted_at = datetime('now','localtime')"
+
 /**
- * Deletes an item from the database.
+ * Moves an item to the trash (soft delete: sets deleted_at, children are hidden by their parent).
+ * Deleting the last visible section of a group soft deletes the whole group.
  * @param itemType Type of item to delete (e.g., 'task', 'section').
  * @param itemID ID of the item to delete.
  * @category Database Queries
@@ -80,15 +83,15 @@ export async function deleteDBItem(itemType: DBItemType, itemID: number) {
                 return
 
             const groupID = groupQuery[0].groupID
-            const count = await db.select<{ count: number }[]>('SELECT COUNT(*) as count FROM section WHERE groupID=?', [groupID])
+            const count = await db.select<{ count: number }[]>('SELECT COUNT(*) as count FROM section WHERE groupID=? AND deleted_at IS NULL', [groupID])
 
             if (count[0].count !== 1)
-                await db.execute('DELETE FROM section WHERE id=?', [itemID])
+                await db.execute(`UPDATE section ${SOFT_DELETE} WHERE id=?`, [itemID])
             else
-                await db.execute('DELETE FROM section_group WHERE id=?', [groupID])
+                await db.execute(`UPDATE section_group ${SOFT_DELETE} WHERE id=?`, [groupID])
         }
         else
-            await db.execute('DELETE FROM ' + itemType + ' WHERE id=?', [itemID])
+            await db.execute(`UPDATE ${itemType} ${SOFT_DELETE} WHERE id=?`, [itemID])
     } catch (error: unknown) {
         throw createError(`${itemType.toUpperCase()}_DELETE_FAILED`, "Failed to delete item: " + getErrorMessage(error))
     }

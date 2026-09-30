@@ -18,6 +18,11 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
     const sidebarRef = useRef<HTMLDivElement>(null)
     const [isResizing, setIsResizing] = useState(false)
     const [sidebarOpen, setSidebarOpen] = useState(defaultOpen)
+    const [prevDefaultOpen, setPrevDefaultOpen] = useState(defaultOpen)
+    if (prevDefaultOpen !== defaultOpen) {
+        setPrevDefaultOpen(defaultOpen)
+        setSidebarOpen(defaultOpen)
+    }
     const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH)
 
     const startResizing = useCallback((e: React.MouseEvent) => {
@@ -51,9 +56,10 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
     }, [resize, stopResizing])
 
     const handleToggle = () => {
-        setSidebarOpen(!sidebarOpen)
+        const next = !sidebarOpen
+        setSidebarOpen(next)
         if (updateOpen != null)
-            updateOpen(!defaultOpen)
+            updateOpen(next)
     }
 
     const handleDoubleClick = () => {

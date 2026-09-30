@@ -1,14 +1,13 @@
-import type { Folder, Note } from "@/types/types"
-import { useEffect } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { DialogSettings } from "@/components/dialogs/dialog-settings"
 import { SideBar } from "./SideBar"
 import { SideBarContainer } from "./SideBarContainer"
 import { SideBarHeader } from "./SideBarHeader"
-import { ItemNote } from "../note/Note"
-import { ItemFolder } from "../folder/Folder"
+import { FileTree } from "./FileTree"
 import { ItemFooter } from "../items/ItemFooter"
+import { ButtonTrash } from "./ButtonTrash"
 import { DialogAddFolder } from "./DialogAddFolder"
 import { DialogAddNote } from "./DialogAddNote"
 import { ComboboxWorkspace } from "../combobox-workspace"
@@ -20,7 +19,7 @@ import { usePreferences } from "@/contexts/preferences-context"
 export const SideBarLeft = () => {
 
     const { currentWorkspace } = useWorkspace()
-    const { workspaceDataTree, getWorkspaceData } = useWorkspaceData()
+    const { folders, getWorkspaceData } = useWorkspaceData()
     const { sidebarLeftOpen, setSideBarLeftOpen } = usePreferences()
 
     useEffect(() => {
@@ -29,24 +28,30 @@ export const SideBarLeft = () => {
         }
     }, [currentWorkspace, getWorkspaceData])
 
-    const FileSystemItem = ({ item }: { item: Folder | Note }) => {
-        if (!item) return null;
+    // Folders are expanded by default; only the collapsed ones are tracked
+    const [collapsedIds, setCollapsedIds] = useState<Set<number>>(() => new Set())
 
-        if ("subfolders" in item) {
-            return (
-                <ItemFolder folder={item}>
-                    {item.subfolders?.map((child) => (
-                        <FileSystemItem key={`folder-${child.id}`} item={child} />
-                    ))}
-                    {item.notes?.map((note) => (
-                        <ItemNote key={`note-${note.id}`} note={note} />
-                    ))}
-                </ItemFolder>
-            );
-        }
+    const toggleFolder = useCallback((folderId: number) => {
+        setCollapsedIds(prev => {
+            const next = new Set(prev)
+            if (!next.delete(folderId)) next.add(folderId)
+            return next
+        })
+    }, [])
 
-        return <ItemNote note={item} />;
-    };
+    const expandFolder = useCallback((folderId: number) => {
+        setCollapsedIds(prev => {
+            if (!prev.has(folderId)) return prev
+            const next = new Set(prev)
+            next.delete(folderId)
+            return next
+        })
+    }, [])
+
+    const allCollapsed = folders.length > 0 && folders.every(folder => collapsedIds.has(folder.id))
+    const toggleAll = useCallback(() => {
+        setCollapsedIds(allCollapsed ? new Set() : new Set(folders.map(folder => folder.id)))
+    }, [allCollapsed, folders])
 
     return (
         <SideBar
@@ -60,31 +65,16 @@ export const SideBarLeft = () => {
                     <DialogAddFolder />
                     <DialogAddNote />
                     <ButtonUpload />
-                    <ButtonCollapseItems />
+                    <ButtonCollapseItems allCollapsed={allCollapsed} onToggle={toggleAll} disabled={folders.length === 0} />
                     <ButtonCloseNotes />
                 </SideBarHeader>}
                 footer={<div className="flex flex-col gap-1 border-t p-1 w-full">
-                    {/* <ItemFooter type="trash" text="Trash" /> */}
+                    <ButtonTrash />
                     <ItemFooter type="download" text="Esporta Workspace" />
                     <ComboboxWorkspace />
                 </div>}
             >
-                <div className="relative flex flex-col gap-1 p-1 w-full">
-                    {workspaceDataTree?.rootFolders.length || workspaceDataTree?.rootNotes.length ? (
-                        <>
-                            {workspaceDataTree?.rootFolders.map((folder) => (
-                                <FileSystemItem key={`folder-${folder.id}`} item={folder} />
-                            ))}
-                            {workspaceDataTree?.rootNotes.map((note) => (
-                                <FileSystemItem key={`note-${note.id}`} item={note} />
-                            ))}
-                        </>
-                    ) : (
-                        <h1 className="text-muted-foreground text-sm w-full">
-                            Nessuna cartella o file
-                        </h1>
-                    )}
-                </div>
+                <FileTree collapsedIds={collapsedIds} onToggleFolder={toggleFolder} onExpandFolder={expandFolder} />
             </SideBarContainer>
         </SideBar>
     )

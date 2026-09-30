@@ -61,7 +61,7 @@ describe("createDBSection", () => {
 describe("createDBSectionInGroup", () => {
     it("inserts the section", async () => {
         await createDBSectionInGroup(5, "S")
-        expect(db.execute).toHaveBeenCalledWith("INSERT INTO section (groupID, title) VALUES (?, ?)", [5, "S"])
+        expect(db.execute).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO section (groupID, title, position)"), [5, "S", 5])
     })
 
     it("maps errors", async () => {

@@ -49,10 +49,10 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             >
                 <DialogHeader>
                     <DialogTitle className="text-destructive">
-                        Stai per eliminare l'elemento
+                        Spostare nel cestino?
                     </DialogTitle>
                     <DialogDescription>
-                        Sei sicuro? Questa operazione non può essere annullata!
+                        L'elemento verrà spostato nel cestino. Potrai ripristinarlo in seguito.
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -65,7 +65,7 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
                         </Button>
                     </DialogClose>
                     <Button variant="destructive" onClick={handleDelete}>
-                        Elimina
+                        Sposta nel cestino
                     </Button>
                 </DialogFooter>
             </DialogContent>

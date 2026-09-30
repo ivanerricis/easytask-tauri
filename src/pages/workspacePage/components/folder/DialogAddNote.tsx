@@ -32,7 +32,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
         if (!currentWorkspace) return
         if (name.trim() === "") return
         try {
-            await createNoteInFolder(parentFolder.id, name.trim())
+            await createNoteInFolder(currentWorkspace.id, parentFolder.id, name.trim())
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             onOpenChange(false)

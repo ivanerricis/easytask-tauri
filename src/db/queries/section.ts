@@ -2,7 +2,7 @@ import { handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 
 /**
- * Creates a new section in a specific group.
+ * Creates a new section in a specific group, appended after its siblings.
  * @param groupId The ID of the group where the section will be created.
  * @param title The title of the section.
  * @param color The color of the section (optional).
@@ -11,7 +11,11 @@ import { getDB } from "../dbManager";
 export async function createDBSectionInGroup(groupId: number, title: string) {
     try {
         const db = await getDB()
-        await db.execute('INSERT INTO section (groupID, title) VALUES (?, ?)', [groupId, title]);
+        await db.execute(
+            `INSERT INTO section (groupID, title, position)
+             SELECT ?, ?, COALESCE(MAX(position) + 1, 0) FROM section
+             WHERE groupID = ? AND deleted_at IS NULL`,
+            [groupId, title, groupId]);
     } catch (error: unknown) {
         handleDBError(error, "SECTION", {
             UNIQUE: "A section with this name already exists.",

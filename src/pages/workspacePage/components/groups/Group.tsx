@@ -3,6 +3,8 @@ import type { DraggableProvidedDragHandleProps } from "@hello-pangea/dnd"
 import { Section } from "../section/Section"
 import { AddSection } from "../section/AddSection"
 import { GroupHeader } from "./GroupHeader"
+import { cn } from "@/lib/utils"
+import { useNoteDrop } from "../note-dnd-state"
 
 type GroupProps = {
     dragHandleProps?: DraggableProvidedDragHandleProps | null
@@ -10,9 +12,13 @@ type GroupProps = {
 }
 
 export const Group = ({ dragHandleProps, group }: GroupProps) => {
+    // The empty area of a group (and its header) accepts a dragged section: it is appended to the group
+    const { setNodeRef, zone } = useNoteDrop("group", group.id)
 
     return (
-        <div className="flex flex-col gap-1 h-full"
+        <div
+            ref={setNodeRef}
+            className={cn("flex flex-col gap-1 h-full rounded-xs", zone && "ring-2 ring-primary")}
         >
             <GroupHeader
                 group={group}

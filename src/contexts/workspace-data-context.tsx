@@ -1,11 +1,14 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react"
-import type { Folder, Group, Note, NoteDataTree, Section, Task, WorkspaceDataTree } from "@/types/types"
+import type { Folder, Group, Note, NoteDataTree, Section, Task, TrashItem, WorkspaceDataTree } from "@/types/types"
 import { getDBWorkspaceData } from "@/db/queries/workspace";
 import { createDBNoteInFolder, createDBWorkspaceNote, getDBNoteData } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder";
 import { createDBSection, createDBSectionInGroup } from "@/db/queries/section";
 import { createDBSubTask, createDBTask, updateDBTaskCompletion, updateDBTaskDescription, updateDBTaskPriority } from "@/db/queries/task";
 import { updateDBGroupPositions } from "@/db/queries/group";
+import { moveDBTreeItem } from "@/db/queries/tree";
+import { moveDBSection, moveDBSectionToNewGroup, moveDBTask, type TaskMoveTarget } from "@/db/queries/move";
+import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "@/db/queries/trash";
 import { renameDBItem, updateDBColor, deleteDBItem, type DBItemType } from "@/db/queries/shared_queries";
 
 /* ------------------------------------------------------------------------------------ */
@@ -39,7 +42,7 @@ type WorkspaceDataContextType = {
     createWorkspaceNote: (workspaceID: number, name: string, color?: string) => Promise<void>
 
     createSubFolder: (workspaceID: number, folderID: number, name: string) => Promise<void>
-    createNoteInFolder: (folderID: number, name: string) => Promise<void>
+    createNoteInFolder: (workspaceID: number, folderID: number, name: string) => Promise<void>
     createSection: (noteID: number, title: string, position: number) => Promise<void>
     createSectionInGroup: (groupId: number, title: string) => Promise<void>
     createTask: (sectionID: number, text: string) => Promise<void>
@@ -53,7 +56,17 @@ type WorkspaceDataContextType = {
     updateGroupsPositions: (groups: Group[]) => Promise<void>
     updateFolderColorContent: (folderID: number, color?: string) => Promise<void>
 
+    moveTreeItem: (itemType: "folder" | "note", itemId: number, targetFolderId: number | null, targetIndex: number) => Promise<void>
+
+    moveSection: (sectionID: number, targetGroupID: number, targetIndex: number) => Promise<void>
+    moveSectionToNewGroup: (sectionID: number, groupPosition: number) => Promise<void>
+    moveTask: (taskID: number, target: TaskMoveTarget, targetIndex: number) => Promise<void>
+
     deleteItem: (itemType: DBItemType, itemID: number) => Promise<void>
+    getTrash: (workspaceID: number) => Promise<TrashItem[]>
+    restoreItem: (itemType: DBItemType, itemID: number) => Promise<void>
+    purgeItem: (itemType: DBItemType, itemID: number) => Promise<void>
+    emptyTrash: (workspaceID: number) => Promise<void>
     resetData: () => void
 }
 
@@ -102,6 +115,7 @@ function buildWorkspaceTree(folders: Folder[], notes: Note[]) {
 
 /**
  * Builds a tree structure for a note, organizing groups, sections, and tasks.
+ * The input arrays are expected in position order (getDBNoteData sorts them), which the tree preserves.
  * @param groups The list of groups to include in the note tree.
  * @param sections The list of sections to include in the note tree.
  * @param tasks The list of tasks to include in the note tree.
@@ -239,8 +253,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const createSubFolder = useCallback((workspaceID: number, folderID: number, name: string) =>
         withLoading(() => createDBSubFolder(workspaceID, folderID, name)), [withLoading])
 
-    const createNoteInFolder = useCallback((folderID: number, name: string) =>
-        withLoading(() => createDBNoteInFolder(folderID, name)), [withLoading])
+    const createNoteInFolder = useCallback((workspaceID: number, folderID: number, name: string) =>
+        withLoading(() => createDBNoteInFolder(workspaceID, folderID, name)), [withLoading])
 
     const createSection = useCallback((noteID: number, title: string, position: number) =>
         withLoading(() => createDBSection(noteID, title, position)), [withLoading])
@@ -328,14 +342,136 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     // Deleting methods
 
     /**
-     * Delete an item from the workspace.
+     * Moves a folder or a note to another folder (null = workspace root) at the given index among its
+     * new siblings of the same type. It does NOT reload the data: the caller must call getWorkspaceData.
+     * @param itemType - "folder" or "note".
+     * @param itemId - The ID of the item to move.
+     * @param targetFolderId - The destination folder ID, or null for the workspace root.
+     * @param targetIndex - The index among the destination siblings (clamped).
+     * @throws Will throw an error if the move is invalid (e.g. folder into its own descendant) or a name conflict occurs.
+     * @category Workspace Data Context
+     */
+    const moveTreeItem = useCallback((itemType: "folder" | "note", itemId: number, targetFolderId: number | null, targetIndex: number) =>
+        withLoading(() => moveDBTreeItem(itemType, itemId, targetFolderId, targetIndex)), [withLoading])
+
+    /**
+     * Moves a section to a group of the open note at the given index among its sections. The section keeps all
+     * its tasks. A source group left empty is removed. It does NOT reload the data: the caller must call getNoteData.
+     * @param sectionID - The ID of the section to move.
+     * @param targetGroupID - The destination group ID (same note).
+     * @param targetIndex - The index among the destination sections (clamped).
+     * @throws Will throw an error if the move is invalid or the destination already has a section with the same title.
+     * @category Workspace Data Context
+     */
+    const moveSection = useCallback((sectionID: number, targetGroupID: number, targetIndex: number) =>
+        withLoading(() => moveDBSection(sectionID, targetGroupID, targetIndex)), [withLoading])
+
+    /**
+     * Moves a section into a new group created at the given index among the groups of the open note.
+     * It does NOT reload the data: the caller must call getNoteData.
+     * @param sectionID - The ID of the section to move.
+     * @param groupPosition - The index of the new group among the current groups (clamped).
+     * @category Workspace Data Context
+     */
+    const moveSectionToNewGroup = useCallback((sectionID: number, groupPosition: number) =>
+        withLoading(() => moveDBSectionToNewGroup(sectionID, groupPosition)), [withLoading])
+
+    /**
+     * Moves a task (with its whole subtree) to a section of the open note, at the top level or under another task,
+     * at the given index among its new siblings. It does NOT reload the data: the caller must call getNoteData.
+     * @param taskID - The ID of the task to move.
+     * @param target - The destination section and optional parent task.
+     * @param targetIndex - The index among the destination siblings (clamped).
+     * @throws Will throw an error if the target is invalid (e.g. the task itself or one of its descendants).
+     * @category Workspace Data Context
+     */
+    const moveTask = useCallback((taskID: number, target: TaskMoveTarget, targetIndex: number) =>
+        withLoading(() => moveDBTask(taskID, target, targetIndex)), [withLoading])
+
+    /* ------------------------------------------------------------------------------------ */
+    // Deleting methods
+
+    /**
+     * Closes the open tabs of the given notes, selecting the neighbour tab when the current one is closed
+     * (same behaviour as the close button of NoteHeader).
+     * @param noteIds The IDs of the notes whose tabs must be closed.
+     * @category Workspace Data Context
+     */
+    const closeNoteTabs = useCallback((noteIds: Set<number>) => {
+        if (!currentNotes.some(n => noteIds.has(n.id))) return
+        const updated = currentNotes.filter(n => !noteIds.has(n.id))
+        setCurrentNotes(updated)
+
+        if (currentNote && noteIds.has(currentNote.id)) {
+            const currentIndex = currentNotes.findIndex(n => n.id === currentNote.id)
+            const neighbourIndex = currentNotes.slice(0, currentIndex).filter(n => !noteIds.has(n.id)).length
+            setCurrentNote(updated[neighbourIndex] ?? updated[updated.length - 1] ?? null)
+        }
+    }, [currentNotes, currentNote])
+
+    /**
+     * Delete an item from the workspace (moves it to the trash).
+     * Deleting a note closes its tab; deleting a folder closes the tabs of every note inside it
+     * or inside its descendant folders and clears the current folder if it was affected.
      * @param itemType - The type of the item to delete (e.g., "folder", "note", "section", "task").
      * @param itemID - The ID of the item to delete.
      * @throws Will throw an error if the item cannot be deleted.
      * @category Workspace Data Context
      */
-    const deleteItem = useCallback((itemType: DBItemType, itemID: number) =>
-        withLoading(() => deleteDBItem(itemType, itemID)), [withLoading])
+    const deleteItem = useCallback((itemType: DBItemType, itemID: number) => withLoading(async () => {
+        await deleteDBItem(itemType, itemID)
+
+        if (itemType === "note") {
+            closeNoteTabs(new Set([itemID]))
+        } else if (itemType === "folder") {
+            const folderIds = new Set<number>([itemID])
+            let added = true
+            while (added) {
+                added = false
+                for (const folder of folders) {
+                    if (folder.folderID != null && folderIds.has(folder.folderID) && !folderIds.has(folder.id)) {
+                        folderIds.add(folder.id)
+                        added = true
+                    }
+                }
+            }
+            closeNoteTabs(new Set(notes.filter(n => n.folderID != null && folderIds.has(n.folderID)).map(n => n.id)))
+            if (currentFolder && folderIds.has(currentFolder.id)) setCurrentFolder(null)
+        }
+    }), [withLoading, closeNoteTabs, folders, notes, currentFolder])
+
+    /* ------------------------------------------------------------------------------------ */
+    // Trash methods
+
+    /**
+     * Retrieves the trashed items of a workspace. Does not touch the context state.
+     * @param workspaceID - The ID of the workspace.
+     * @category Workspace Data Context
+     */
+    const getTrash = useCallback((workspaceID: number) =>
+        withLoading(() => getDBTrash(workspaceID)), [withLoading])
+
+    /**
+     * Restores an item and its deleted ancestors. Does not reload the data: the caller must call
+     * getWorkspaceData (and getNoteData if the current note may be affected).
+     * @category Workspace Data Context
+     */
+    const restoreItem = useCallback((itemType: DBItemType, itemID: number) =>
+        withLoading(() => restoreDBItem(itemType, itemID)), [withLoading])
+
+    /**
+     * Permanently deletes a trashed item. Does not reload the data.
+     * @category Workspace Data Context
+     */
+    const purgeItem = useCallback((itemType: DBItemType, itemID: number) =>
+        withLoading(() => purgeDBItem(itemType, itemID)), [withLoading])
+
+    /**
+     * Permanently deletes every trashed item of a workspace. Does not reload the data.
+     * @category Workspace Data Context
+     */
+    const emptyTrash = useCallback((workspaceID: number) =>
+        withLoading(() => emptyDBTrash(workspaceID)), [withLoading])
 
     const resetData = useCallback(() => {
         setCurrentFolder(null)
@@ -386,7 +522,15 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         updateItemColor,
         updateGroupsPositions,
         updateFolderColorContent,
+        moveTreeItem,
+        moveSection,
+        moveSectionToNewGroup,
+        moveTask,
         deleteItem,
+        getTrash,
+        restoreItem,
+        purgeItem,
+        emptyTrash,
         resetData
     }), [
         folders, notes, groups, sections, tasks, workspaceDataTree, noteDataTree,
@@ -395,7 +539,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         createSubFolder, createNoteInFolder, createSection, createSectionInGroup,
         createTask, createSubTask, updateTaskPriority, updateTaskCompletion,
         updateTaskDescription, renameItem, updateItemColor, updateGroupsPositions,
-        updateFolderColorContent, deleteItem, resetData
+        updateFolderColorContent, moveTreeItem, moveSection, moveSectionToNewGroup, moveTask, deleteItem, getTrash, restoreItem, purgeItem,
+        emptyTrash, resetData
     ])
 
     return (

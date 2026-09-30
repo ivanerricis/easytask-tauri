@@ -33,7 +33,7 @@ export const AlertDialogCustom = ({ onDelete, children }: AlertDialogCustomProps
                     <AlertDialogFooter>
                         <AlertDialogCancel>Annulla</AlertDialogCancel>
                         <AlertDialogAction className={buttonVariants({ variant: "destructive" })} onClick={onDelete}>
-                            ELimina
+                            Elimina
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

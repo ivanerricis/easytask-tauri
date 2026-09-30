@@ -3,12 +3,19 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { WorkspaceProvider, useWorkspace } from "./workspace-context"
 import { createDBWorkspace, getDBWorkspaces } from "@/db/queries/workspace"
+import { getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from "@/db/queries/trash"
 import { deferred } from "@/test/ui-render"
 import { makeWorkspace } from "@/test/ui-fixtures"
 
 vi.mock("@/db/queries/workspace", () => ({
     getDBWorkspaces: vi.fn(),
     createDBWorkspace: vi.fn(),
+}))
+
+vi.mock("@/db/queries/trash", () => ({
+    getDBTrashedWorkspaces: vi.fn(),
+    restoreDBItem: vi.fn(),
+    purgeDBItem: vi.fn(),
 }))
 
 const wrapper = ({ children }: { children: ReactNode }) => <WorkspaceProvider>{children}</WorkspaceProvider>
@@ -40,6 +47,38 @@ describe("WorkspaceContext", () => {
         })
         expect(result.current.isLoading).toBe(false)
         expect(result.current.workspaces.map(w => w.id)).toEqual([1, 2])
+    })
+
+    it("lists trashed workspaces without touching the active list", async () => {
+        const trashed = [makeWorkspace({ id: 7 })]
+        vi.mocked(getDBTrashedWorkspaces).mockResolvedValue(trashed)
+        const { result } = renderHook(() => useWorkspace(), { wrapper })
+        await act(async () => {
+            expect(await result.current.getTrashedWorkspaces()).toBe(trashed)
+        })
+        expect(result.current.workspaces).toEqual([])
+    })
+
+    it("restores and purges a workspace, then refreshes the active list", async () => {
+        vi.mocked(getDBWorkspaces).mockResolvedValue([makeWorkspace({ id: 1 })])
+        const { result } = renderHook(() => useWorkspace(), { wrapper })
+        await act(() => result.current.restoreWorkspace(1))
+        expect(restoreDBItem).toHaveBeenCalledWith("workspace", 1)
+        expect(result.current.workspaces.map(w => w.id)).toEqual([1])
+
+        vi.mocked(getDBWorkspaces).mockResolvedValue([])
+        await act(() => result.current.purgeWorkspace(2))
+        expect(purgeDBItem).toHaveBeenCalledWith("workspace", 2)
+        expect(result.current.workspaces).toEqual([])
+    })
+
+    it("surfaces restore errors and skips the refresh", async () => {
+        vi.mocked(restoreDBItem).mockRejectedValueOnce({ code: "WORKSPACE_EXISTS", message: "dup" })
+        const { result } = renderHook(() => useWorkspace(), { wrapper })
+        await act(async () => {
+            await expect(result.current.restoreWorkspace(1)).rejects.toMatchObject({ code: "WORKSPACE_EXISTS" })
+        })
+        expect(getDBWorkspaces).not.toHaveBeenCalled()
     })
 
     it("falls back to an empty list when the query returns nothing", async () => {

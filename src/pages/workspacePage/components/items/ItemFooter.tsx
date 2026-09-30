@@ -7,6 +7,8 @@ type ItemFooterProps = {
     text: string
     type: IconType
     className?: string
+    onClick?: () => void
+    badge?: number
 }
 
 const iconMap: Record<IconType, LucideIcon> = {
@@ -14,17 +16,29 @@ const iconMap: Record<IconType, LucideIcon> = {
     download: Upload
 }
 
-export const ItemFooter = ({ text, type, className }: ItemFooterProps) => {
+export const ItemFooter = ({ text, type, className, onClick, badge }: ItemFooterProps) => {
 
     const Icon = iconMap[type]
 
     return (
-        <div className={`group gap-2 py-1 px-2 cursor-pointer relative w-full flex items-center rounded-xs border bg-background hover:bg-accent opacity-50 hover:opacity-100 overflow-x-hidden ${className}`}>
+        <button
+            type="button"
+            onClick={onClick}
+            className={`group gap-2 py-1 px-2 cursor-pointer relative w-full flex items-center rounded-xs border bg-background hover:bg-accent opacity-50 hover:opacity-100 focus-visible:opacity-100 overflow-x-hidden ${className ?? ""}`}
+        >
             {/* Text + Icon */}
             <Icon className="size-4 shrink-0" />
-            <h1 className="text-left text-sm w-full truncate pr-6">
+            <span className="text-left text-sm w-full truncate pr-6">
                 {text}
-            </h1>
-        </div>
+            </span>
+            {badge !== undefined && badge > 0 && (
+                <span
+                    aria-label={`${badge} elementi nel cestino`}
+                    className="absolute right-2 min-w-5 rounded-full bg-primary px-1 text-center text-xs text-primary-foreground"
+                >
+                    {badge}
+                </span>
+            )}
+        </button>
     )
 }

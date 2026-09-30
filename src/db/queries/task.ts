@@ -3,7 +3,7 @@ import { getDB } from "../dbManager"
 import { getErrorMessage } from "@/lib/utils"
 
 /**
- * Creates a new task in the database.
+ * Creates a new top level task in a section, appended after its siblings.
  * @param sectionId The ID of the section to which the task belongs.
  * @param text The text of the task.
  * @param color The color of the task (optional).
@@ -12,7 +12,11 @@ import { getErrorMessage } from "@/lib/utils"
 export async function createDBTask(sectionId: number, text: string) {
     try {
         const db = await getDB()
-        await db.execute('INSERT INTO task (sectionID, text) VALUES (?, ?)', [sectionId, text])
+        await db.execute(
+            `INSERT INTO task (sectionID, text, position)
+             SELECT ?, ?, COALESCE(MAX(position) + 1, 0) FROM task
+             WHERE sectionID = ? AND taskID IS NULL AND deleted_at IS NULL`,
+            [sectionId, text, sectionId])
     } catch (error: unknown) {
         handleDBError(error, "TASK", {
             UNIQUE: "A task with this name already exists.",
@@ -22,7 +26,7 @@ export async function createDBTask(sectionId: number, text: string) {
 }
 
 /**
- * Creates a new subtask in the database.
+ * Creates a new subtask, appended after its siblings and in the same section as the parent.
  * @param taskId The ID of the task to create a subtask for.
  * @param text The text of the subtask.
  * @param color The color of the subtask (optional).
@@ -31,7 +35,11 @@ export async function createDBTask(sectionId: number, text: string) {
 export async function createDBSubTask(taskId: number, text: string) {
     try {
         const db = await getDB()
-        await db.execute('INSERT INTO task (taskID, text) VALUES (?, ?)', [taskId, text])
+        await db.execute(
+            `INSERT INTO task (sectionID, taskID, text, position)
+             SELECT sectionID, id, ?, COALESCE((SELECT MAX(position) + 1 FROM task WHERE taskID = ? AND deleted_at IS NULL), 0)
+             FROM task WHERE id = ?`,
+            [text, taskId, taskId])
     } catch (error: unknown) {
         handleDBError(error, "TASK", {
             UNIQUE: "A task with this name already exists.",

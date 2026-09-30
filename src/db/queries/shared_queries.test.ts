@@ -96,7 +96,7 @@ describe("updateDBColor", () => {
 describe("deleteDBItem", () => {
     it("deletes non-section items directly", async () => {
         await deleteDBItem("task", 9)
-        expect(db.execute).toHaveBeenCalledWith("DELETE FROM task WHERE id=?", [9])
+        expect(db.execute).toHaveBeenCalledWith("UPDATE task SET deleted_at = datetime('now','localtime') WHERE id=?", [9])
         expect(db.select).not.toHaveBeenCalled()
     })
 
@@ -106,9 +106,9 @@ describe("deleteDBItem", () => {
             .mockResolvedValueOnce([{ count: 2 }])
         await deleteDBItem("section", 7)
         expect(db.select).toHaveBeenNthCalledWith(1, "SELECT groupID FROM section WHERE id=?", [7])
-        expect(db.select).toHaveBeenNthCalledWith(2, "SELECT COUNT(*) as count FROM section WHERE groupID=?", [5])
+        expect(db.select).toHaveBeenNthCalledWith(2, "SELECT COUNT(*) as count FROM section WHERE groupID=? AND deleted_at IS NULL", [5])
         expect(db.execute).toHaveBeenCalledTimes(1)
-        expect(db.execute).toHaveBeenCalledWith("DELETE FROM section WHERE id=?", [7])
+        expect(db.execute).toHaveBeenCalledWith("UPDATE section SET deleted_at = datetime('now','localtime') WHERE id=?", [7])
     })
 
     it("deletes the group when removing its last section", async () => {
@@ -117,7 +117,7 @@ describe("deleteDBItem", () => {
             .mockResolvedValueOnce([{ count: 1 }])
         await deleteDBItem("section", 7)
         expect(db.execute).toHaveBeenCalledTimes(1)
-        expect(db.execute).toHaveBeenCalledWith("DELETE FROM section_group WHERE id=?", [5])
+        expect(db.execute).toHaveBeenCalledWith("UPDATE section_group SET deleted_at = datetime('now','localtime') WHERE id=?", [5])
     })
 
     it("returns silently when the section does not exist", async () => {

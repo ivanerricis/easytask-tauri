@@ -6,7 +6,8 @@ const ensureAppFolder = vi.fn()
 const initDB = vi.fn()
 
 vi.mock("@tauri-apps/plugin-sql", () => ({ default: { load: (...a: unknown[]) => load(...a) } }))
-vi.mock("@tauri-apps/plugin-fs", () => ({ exists: vi.fn(), mkdir: vi.fn() }))
+const copyFile = vi.fn()
+vi.mock("@tauri-apps/plugin-fs", () => ({ exists: vi.fn(), mkdir: vi.fn(), copyFile: (...a: unknown[]) => copyFile(...a) }))
 vi.mock("@tauri-apps/api/path", () => ({
     BaseDirectory: { Document: 1 },
     documentDir: vi.fn(async () => "/docs"),
@@ -28,6 +29,36 @@ beforeEach(() => {
     load.mockReset().mockImplementation(async () => db)
     ensureAppFolder.mockReset().mockResolvedValue("/docs/EasyTask")
     initDB.mockReset().mockResolvedValue(undefined)
+    copyFile.mockReset().mockResolvedValue(undefined)
+})
+
+describe("backup before migration", () => {
+    async function runHook(currentVersion: number) {
+        const getDB = await freshGetDB()
+        await getDB()
+        const options = initDB.mock.calls[0][1] as { beforeMigrate: (v: number) => Promise<void> }
+        await options.beforeMigrate(currentVersion)
+    }
+
+    it("checkpoints the WAL and copies the db before migrating from v2", async () => {
+        await runHook(2)
+        expect(db.select).toHaveBeenCalledWith("PRAGMA wal_checkpoint(TRUNCATE)")
+        expect(copyFile).toHaveBeenCalledWith(
+            "EasyTask/easytask.db",
+            "EasyTask/easytask.backup-v2.db",
+            { fromPathBaseDir: 1, toPathBaseDir: 1 },
+        )
+    })
+
+    it("does not copy when the database is already at v3", async () => {
+        await runHook(3)
+        expect(copyFile).not.toHaveBeenCalled()
+    })
+
+    it("propagates a failing copy so the migration is aborted", async () => {
+        copyFile.mockRejectedValueOnce(new Error("disk full"))
+        await expect(runHook(2)).rejects.toThrow("disk full")
+    })
 })
 
 describe("getDB", () => {
@@ -36,7 +67,7 @@ describe("getDB", () => {
         const result = await getDB()
         expect(result).toBe(db)
         expect(load).toHaveBeenCalledWith("sqlite:/docs/EasyTask/easytask.db")
-        expect(initDB).toHaveBeenCalledWith(db)
+        expect(initDB).toHaveBeenCalledWith(db, expect.objectContaining({ beforeMigrate: expect.any(Function) }))
     })
 
     it("creates the database once for concurrent calls", async () => {

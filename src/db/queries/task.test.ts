@@ -29,12 +29,13 @@ async function thrown(p: Promise<unknown>): Promise<unknown> {
 describe("task queries SQL", () => {
     it("createDBTask", async () => {
         await createDBTask(1, "t")
-        expect(db.execute).toHaveBeenCalledWith("INSERT INTO task (sectionID, text) VALUES (?, ?)", [1, "t"])
+        expect(db.execute).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO task (sectionID, text, position)"), [1, "t", 1])
     })
 
     it("createDBSubTask", async () => {
         await createDBSubTask(2, "s")
-        expect(db.execute).toHaveBeenCalledWith("INSERT INTO task (taskID, text) VALUES (?, ?)", [2, "s"])
+        expect(db.execute).toHaveBeenCalledWith(
+            expect.stringContaining("INSERT INTO task (sectionID, taskID, text, position)"), ["s", 2, 2])
     })
 
     it("updateDBTaskPriority converts booleans to 0/1", async () => {

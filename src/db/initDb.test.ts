@@ -8,6 +8,8 @@ import { createSectionTable, createSectionTrigger } from "./schema/section"
 import { createSectionGroupTable } from "./schema/section_group"
 import { createTaskTable, createTaskTrigger } from "./schema/task"
 import { createWorkspaceTable, createWorkspaceTrigger } from "./schema/workspace"
+import { migrateToV3 } from "./schema/v3"
+import { migrateToV4 } from "./schema/v4"
 import { initDB } from "./initDb"
 
 const v1 = [
@@ -26,6 +28,9 @@ const v2 = [
     createSectionTrigger,
     createTaskTrigger,
 ]
+
+const v3 = [migrateToV3]
+const v4 = [migrateToV4]
 
 let db: MockDb
 
@@ -47,26 +52,66 @@ describe("initDB", () => {
         db.select.mockResolvedValueOnce([{ user_version: 0 }])
         await run()
         expect(db.select).toHaveBeenCalledWith("PRAGMA user_version")
-        expect(executed()).toEqual([...v1, "PRAGMA user_version = 1", ...v2, "PRAGMA user_version = 2"])
+        expect(executed()).toEqual([...v1, "PRAGMA user_version = 1", ...v2, "PRAGMA user_version = 2", ...v3, "PRAGMA user_version = 3", ...v4, "PRAGMA user_version = 4"])
     })
 
     it("treats an empty PRAGMA result as version 0", async () => {
         db.select.mockResolvedValueOnce([])
         await run()
-        expect(executed().at(-1)).toBe("PRAGMA user_version = 2")
-        expect(db.execute).toHaveBeenCalledTimes(v1.length + v2.length + 2)
+        expect(executed().at(-1)).toBe("PRAGMA user_version = 4")
+        expect(db.execute).toHaveBeenCalledTimes(v1.length + v2.length + v3.length + v4.length + 4)
     })
 
     it("does nothing when already at the latest version", async () => {
-        db.select.mockResolvedValueOnce([{ user_version: 2 }])
-        await run()
+        db.select.mockResolvedValueOnce([{ user_version: 4 }])
+        const beforeMigrate = vi.fn()
+        await initDB(db as unknown as Database, { beforeMigrate })
         expect(db.execute).not.toHaveBeenCalled()
+        expect(beforeMigrate).not.toHaveBeenCalled()
     })
 
     it("applies only the pending migrations", async () => {
         db.select.mockResolvedValueOnce([{ user_version: 1 }])
         await run()
-        expect(executed()).toEqual([...v2, "PRAGMA user_version = 2"])
+        expect(executed()).toEqual([...v2, "PRAGMA user_version = 2", ...v3, "PRAGMA user_version = 3", ...v4, "PRAGMA user_version = 4"])
+    })
+
+    it("runs the v3 rebuild as one script: foreign keys off before BEGIN, on again after COMMIT", () => {
+        expect(migrateToV3.indexOf("PRAGMA foreign_keys=OFF")).toBeLessThan(migrateToV3.indexOf("BEGIN"))
+        expect(migrateToV3.indexOf("COMMIT")).toBeLessThan(migrateToV3.lastIndexOf("PRAGMA foreign_keys=ON"))
+    })
+
+    it("calls beforeMigrate with the current version before migrating an existing database", async () => {
+        db.select.mockResolvedValueOnce([{ user_version: 2 }])
+        const beforeMigrate = vi.fn(async () => {
+            expect(db.execute).not.toHaveBeenCalled()
+        })
+        await initDB(db as unknown as Database, { beforeMigrate })
+        expect(beforeMigrate).toHaveBeenCalledWith(2, 4)
+    })
+
+    it("does not call beforeMigrate on a fresh database", async () => {
+        db.select.mockResolvedValueOnce([{ user_version: 0 }])
+        const beforeMigrate = vi.fn()
+        await initDB(db as unknown as Database, { beforeMigrate })
+        expect(beforeMigrate).not.toHaveBeenCalled()
+    })
+
+    it("does not migrate when beforeMigrate (the backup) fails", async () => {
+        db.select.mockResolvedValueOnce([{ user_version: 2 }])
+        await expect(initDB(db as unknown as Database, { beforeMigrate: async () => { throw new Error("no backup") } }))
+            .rejects.toThrow("no backup")
+        expect(db.execute).not.toHaveBeenCalled()
+    })
+
+    it("attempts a rollback and re-enables foreign keys when the v3 script fails", async () => {
+        db.select.mockResolvedValueOnce([{ user_version: 2 }])
+        db.execute.mockImplementation(async (q: unknown) => {
+            if (q === migrateToV3) throw new Error("boom")
+            return { rowsAffected: 0, lastInsertId: 0 }
+        })
+        await expect(run()).rejects.toThrow("boom")
+        expect(executed()).toEqual([migrateToV3, "ROLLBACK", "PRAGMA foreign_keys=ON"])
     })
 
     it("rethrows on failure and does not bump the version", async () => {

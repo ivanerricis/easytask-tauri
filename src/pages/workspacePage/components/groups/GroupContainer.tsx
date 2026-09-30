@@ -4,6 +4,8 @@ import { AddSection } from "../section/AddSection"
 import { useEffect } from "react"
 import { Group } from "./Group"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { NoteDndProvider } from "../NoteDndProvider"
+import { NewGroupEnd, NewGroupSlot } from "./NewGroupSlot"
 
 export const GroupContainer = () => {
     const { getNoteData, updateGroupsPositions, currentNote, noteDataTree, setNoteDataTree } = useWorkspaceData()
@@ -39,6 +41,7 @@ export const GroupContainer = () => {
     }
 
     return (
+        <NoteDndProvider>
         <DragDropContext onDragEnd={handleOnDragEnd}>
             <Droppable droppableId="groups" direction="horizontal">
                 {(provided) => (
@@ -54,23 +57,27 @@ export const GroupContainer = () => {
                                     <Draggable key={group.id} draggableId={String(group.id)} index={index}>
                                         {(provided) => (
                                             <div
-                                                className="h-full w-fit"
+                                                className="relative h-full w-fit"
                                                 ref={provided.innerRef}
                                                 {...provided.draggableProps}
                                                 style={{
                                                     ...provided.draggableProps.style
                                                 }}
                                             >
+                                                <NewGroupSlot index={index} />
                                                 <Group dragHandleProps={provided.dragHandleProps} group={group} />
                                             </div>
                                         )}
                                     </Draggable>
                                 ))}
                         {provided.placeholder}
-                        <AddSection />
+                        <NewGroupEnd index={groups?.length ?? 0}>
+                            <AddSection />
+                        </NewGroupEnd>
                     </div>
                 )}
             </Droppable>
         </DragDropContext>
+        </NoteDndProvider>
     )
 }

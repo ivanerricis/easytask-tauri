@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
+import { MoveToSubmenu } from "../MoveToSubmenu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type ButtonMenuFolderProps = {
@@ -93,6 +94,12 @@ export const ButtonMenuFolder = ({ folder }: ButtonMenuFolderProps) => {
                                 />
                             </DropdownMenuSubContent>
                         </DropdownMenuSub>
+                        <MoveToSubmenu
+                            itemType="folder"
+                            itemId={folder.id}
+                            folderID={folder.folderID}
+                            onDone={() => setDropDownOpen(false)}
+                        />
                         <Separator />
                         <ButtonInPopover
                             text="Elimina"

@@ -8,6 +8,9 @@ const SHOW_TASK_COUNT_KEY = "showTaskCount"
 const SIDEBAR_LEFT_OPEN_KEY = "sidebarLeftOpen"
 const SIDEBAR_RIGHT_OPEN_KEY = "sidebarRightOpen"
 const AUDIOPLAYER_POSITION_KEY = "audioPlayerPosition"
+const WORKSPACE_VIEW_KEY = "workspaceView"
+
+export type WorkspaceView = "grid" | "list"
 
 
 /**
@@ -165,5 +168,26 @@ export const saveAudioPlayerPosition = async (position: AudioPlayerPosition): Pr
  */
 export const resetAudioPlayerPosition = async (): Promise<void> => {
     await store.delete(AUDIOPLAYER_POSITION_KEY)
+    await store.save()
+}
+
+/**
+ * Gets the layout used to display the workspaces on the start page.
+ * @returns A promise that resolves to "grid" (default) or "list".
+ * @category Store
+ */
+export const getWorkspaceView = async (): Promise<WorkspaceView> => {
+    const value = await store.get<WorkspaceView>(WORKSPACE_VIEW_KEY)
+    return value === "list" ? "list" : "grid"
+}
+
+/**
+ * Saves the layout used to display the workspaces on the start page.
+ * @param value The view to save ("grid" or "list").
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveWorkspaceView = async (value: WorkspaceView): Promise<void> => {
+    await store.set(WORKSPACE_VIEW_KEY, value)
     await store.save()
 }

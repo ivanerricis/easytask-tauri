@@ -14,7 +14,10 @@ import {
     getSideBarRightOpen,
     saveAudioPlayerPosition,
     getAudioPlayerPosition,
-    resetAudioPlayerPosition
+    resetAudioPlayerPosition,
+    getWorkspaceView,
+    saveWorkspaceView,
+    type WorkspaceView
 } from "@/lib/store/preferences"
 import type { AudioPlayerPosition } from "@/types/types"
 
@@ -35,6 +38,8 @@ type PreferencesContextType = {
     audioPlayerContainerRef: React.RefObject<HTMLDivElement | null>
     setAudioPlayerPosition: (position: AudioPlayerPosition) => void
     resetPlayerPosition: () => void
+    workspaceView: WorkspaceView
+    setWorkspaceView: (value: WorkspaceView) => void
 }
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined)
@@ -47,7 +52,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [sidebarLeftOpen, setSidebarLeftOpenState] = useState(true)
     const [sidebarRightOpen, setSidebarRightOpenState] = useState(true)
     const [audioPlayerPosition, setAudioPlayerPositionState] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 })
-    const audioPlayerContainerRef = useRef<HTMLDivElement>(null)
+    const [workspaceView, setWorkspaceViewState] = useState<WorkspaceView>("grid")
+    const audioPlayerContainerRef =useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         getShowProgressBar().then(setShowProgressBarState)
@@ -56,6 +62,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         getSideBarLeftOpen().then(setSidebarLeftOpenState)
         getSideBarRightOpen().then(setSidebarRightOpenState)
         getAudioPlayerPosition().then(setAudioPlayerPositionState)
+        getWorkspaceView().then(setWorkspaceViewState)
         getPrimaryColor().then(hex => {
             setPrimaryColorState(hex)
             document.documentElement.style.setProperty('--primary', hex)
@@ -93,7 +100,12 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         saveSideBarRightOpen(value)
     }
 
-    const setAudioPlayerPosition = (position: AudioPlayerPosition) => {
+    const setWorkspaceView = (value: WorkspaceView) => {
+        setWorkspaceViewState(value)
+        saveWorkspaceView(value)
+    }
+
+    const setAudioPlayerPosition =(position: AudioPlayerPosition) => {
         setAudioPlayerPositionState(position)
         saveAudioPlayerPosition(position)
     }
@@ -137,7 +149,9 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             audioPlayerPosition,
             audioPlayerContainerRef,
             setAudioPlayerPosition,
-            resetPlayerPosition
+            resetPlayerPosition,
+            workspaceView,
+            setWorkspaceView
         }}>
             {children}
         </PreferencesContext.Provider>

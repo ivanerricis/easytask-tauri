@@ -27,6 +27,13 @@
         { "path": "$DOCUMENT/EasyTask/**" }
       ]
     },
+    {
+      "identifier": "fs:allow-copy-file",
+      "allow": [
+        { "path": "$DOCUMENT/EasyTask" },
+        { "path": "$DOCUMENT/EasyTask/**" }
+      ]
+    },
     "sql:allow-load",
     "sql:allow-execute",
     "sql:allow-select",

@@ -7,9 +7,10 @@ import { formatDate } from "@/lib/utils"
 
 type WorkSpaceItemProps = {
     workspace: Workspace
+    view?: "grid" | "list"
 }
 
-export const WorkSpaceItem = React.memo(({ workspace }: WorkSpaceItemProps) => {
+export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpaceItemProps) => {
     const { setCurrentWorkspace } = useWorkspace()
     const navigate = useNavigate()
 
@@ -19,6 +20,39 @@ export const WorkSpaceItem = React.memo(({ workspace }: WorkSpaceItemProps) => {
     const handleOpen = () => {
         setCurrentWorkspace(workspace)
         navigate(`/workspace/${workspace.id}`)
+    }
+
+    if (view === "list") {
+        return (
+            <div
+                role="button"
+                onClick={handleOpen}
+                className="group relative flex items-center w-full cursor-pointer h-11 shrink-0 bg-background hover:bg-secondary border rounded-xs">
+
+                {/* Color Container */}
+                {workspace.color && <div
+                    className="w-2 h-full absolute rounded-l-[0.5px] bg-background"
+                    style={{ backgroundColor: workspace.color }}
+                />}
+
+                {/* Workspace Info */}
+                <div className="flex items-center justify-between gap-2 pl-4 pr-2 w-full min-w-0">
+                    <h1 className="text-muted-foreground group-hover:text-foreground text-base truncate whitespace-nowrap min-w-0">
+                        {workspace.name}
+                    </h1>
+                    <span className="text-muted-foreground text-xs whitespace-nowrap shrink-0 mr-8">
+                        {formattedEditDate} - {workspace.edit_time}
+                    </span>
+                </div>
+
+                {/* Menu Button */}
+                <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <ButtonMenuWorkspace
+                        workspace={workspace}
+                    />
+                </div>
+            </div>
+        )
     }
 
     return (

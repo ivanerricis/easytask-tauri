@@ -36,7 +36,7 @@ describe("DialogDeleteItem", () => {
     it("deletes the item, refreshes data and closes", async () => {
         const user = userEvent.setup()
         const { onOpenChange, getItemData } = setup()
-        await user.click(screen.getByRole("button", { name: "Elimina" }))
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
 
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
         expect(deleteItem).toHaveBeenCalledWith("note", 3)
@@ -55,7 +55,7 @@ describe("DialogDeleteItem", () => {
     it("skips the refresh when getItemId is missing", async () => {
         const user = userEvent.setup()
         const { getItemData, onOpenChange } = setup({ getItemId: undefined })
-        await user.click(screen.getByRole("button", { name: "Elimina" }))
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
 
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
         expect(getItemData).not.toHaveBeenCalled()
@@ -65,7 +65,7 @@ describe("DialogDeleteItem", () => {
         const user = userEvent.setup()
         deleteItem.mockRejectedValue(new Error("constraint"))
         const { onOpenChange } = setup()
-        await user.click(screen.getByRole("button", { name: "Elimina" }))
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("constraint")))
         expect(onOpenChange).not.toHaveBeenCalledWith(false)

@@ -10,6 +10,7 @@ import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { DialogTaskDescription } from "./DialogTaskDescription"
+import { TaskMoveSubmenu } from "../NoteMoveSubmenus"
 
 type ButtonMenuFolderProps = {
     task: Task
@@ -93,6 +94,7 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
                                 />
                             </DropdownMenuSubContent>
                         </DropdownMenuSub>
+                        <TaskMoveSubmenu taskId={task.id} onDone={() => setDropDownOpen(false)} />
                         <Separator />
                         <ButtonInPopover
                             text="Elimina"

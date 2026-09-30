@@ -11,7 +11,11 @@ import { getDB } from "../dbManager";
 export async function createDBWorkspaceFolder(workspaceId: number, name: string, color?: string | null) {
     try {
         const db = await getDB()
-        await db.execute('INSERT INTO folder (workspaceID, name, color) VALUES (?, ?, ?)', [workspaceId, name, color ?? null])
+        await db.execute(
+            `INSERT INTO folder (workspaceID, name, color, position)
+             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM folder
+             WHERE workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL`,
+            [workspaceId, name, color ?? null, workspaceId])
     } catch (error: unknown) {
         handleDBError(error, "FOLDER", {
             UNIQUE: "A folder with this name already exists.",
@@ -30,7 +34,11 @@ export async function createDBWorkspaceFolder(workspaceId: number, name: string,
 export async function createDBSubFolder(workspaceID: number, folderId: number, name: string) {
     try {
         const db = await getDB()
-        await db.execute('INSERT INTO folder (workspaceID, folderID, name) VALUES (?, ?, ?)', [workspaceID, folderId, name])
+        await db.execute(
+            `INSERT INTO folder (workspaceID, folderID, name, position)
+             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM folder
+             WHERE folderID = ? AND deleted_at IS NULL`,
+            [workspaceID, folderId, name, folderId])
     } catch (error: unknown) {
         handleDBError(error, "FOLDER", {
             UNIQUE: "A folder with this name already exists.",

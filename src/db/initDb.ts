@@ -6,6 +6,8 @@ import { createSectionTable, createSectionTrigger } from "./schema/section";
 import { createSectionGroupTable } from "./schema/section_group";
 import { createTaskTable, createTaskTrigger } from "./schema/task";
 import { createWorkspaceTable, createWorkspaceTrigger } from "./schema/workspace";
+import { migrateToV3 } from "./schema/v3";
+import { migrateToV4 } from "./schema/v4";
 
 /**
  * Ordered list of migrations, applied once each and tracked with PRAGMA user_version.
@@ -31,17 +33,49 @@ const migrations: string[][] = [
         createSectionTrigger,
         createTaskTrigger,
     ],
+    // v3: soft delete, manual ordering, partial unique indexes (single script, single connection)
+    [migrateToV3],
+    // v4: manual ordering of sections and tasks (single script)
+    [migrateToV4],
 ];
+
+/**
+ * Best effort cleanup after a failed migration script: the script may have left a transaction open
+ * with foreign keys disabled on one pooled connection. The pool is closed by the caller anyway,
+ * which drops every connection (and so rolls back any open transaction).
+ * @param db Database instance.
+ * @category Database
+ */
+async function recoverFromFailedScript(db: Database) {
+    await db.execute("ROLLBACK").catch(() => undefined);
+    await db.execute("PRAGMA foreign_keys=ON").catch(() => undefined);
+}
+
+/**
+ * Options of initDB.
+ * @category Database
+ */
+export type InitDBOptions = {
+    /**
+     * Called once before the pending migrations run on an existing database (version > 0).
+     * If it throws, no migration is applied.
+     */
+    beforeMigrate?: (currentVersion: number, targetVersion: number) => Promise<void>
+}
 
 /**
  * Applies the pending migrations to the database.
  * Errors are rethrown, so a half-initialized database is retried on the next start.
  * @param db Database instance to migrate.
+ * @param options Optional hooks.
  * @category Database
  */
-export async function initDB(db: Database) {
+export async function initDB(db: Database, options: InitDBOptions = {}) {
     const rows = await db.select<{ user_version: number }[]>("PRAGMA user_version");
     const current = rows[0]?.user_version ?? 0;
+
+    if (current > 0 && current < migrations.length)
+        await options.beforeMigrate?.(current, migrations.length);
 
     for (let version = current; version < migrations.length; version++) {
         for (const query of migrations[version]) {
@@ -49,6 +83,7 @@ export async function initDB(db: Database) {
                 await db.execute(query);
             } catch (err: unknown) {
                 console.error(`Migration v${version + 1} failed on query: ${query}`, err);
+                await recoverFromFailedScript(db);
                 throw err;
             }
         }

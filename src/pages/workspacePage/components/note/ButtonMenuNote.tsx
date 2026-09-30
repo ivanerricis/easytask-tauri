@@ -8,6 +8,7 @@ import { useWorkspace } from "@/contexts/workspace-context"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { Separator } from "@/components/ui/separator"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
+import { MoveToSubmenu } from "../MoveToSubmenu"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type ButtonMenuNoteProps = {
@@ -75,6 +76,12 @@ export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
                                 />
                             </DropdownMenuSubContent>
                         </DropdownMenuSub>
+                        <MoveToSubmenu
+                            itemType="note"
+                            itemId={note.id}
+                            folderID={note.folderID}
+                            onDone={() => setDropDownOpen(false)}
+                        />
                         <Separator />
                         <ButtonInPopover
                             text="Elimina"

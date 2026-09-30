@@ -6,6 +6,7 @@ export type Workspace = {
     creation_time: string
     edit_date: string
     edit_time: string
+    deleted_at?: string | null
 }
 
 export type Folder = {
@@ -13,10 +14,12 @@ export type Folder = {
     workspaceID: number | null
     folderID: number | null
     name: string
+    position: number
     creation_date: string
     creation_time: string
     edit_date: string
     edit_time: string
+    deleted_at?: string | null
     color?: string
     subfolders: Folder[]
     notes: Note[]
@@ -28,10 +31,12 @@ export type Note = {
     workspaceID: number | null
     folderID: number | null
     name: string
+    position: number
     creation_date: string
     creation_time: string
     edit_date: string
     edit_time: string
+    deleted_at?: string | null
     color?: string
     groups: Group[]
 }
@@ -47,12 +52,14 @@ export type Section = {
     id: number
     groupID: number
     title: string
+    position: number
     creation_date: string
     creation_time: string
     edit_date: string
     edit_time: string
+    deleted_at?: string | null
     color?: string | null
-    isArchived: boolean
+    archived: boolean
     tasks: Task[]
 }
 
@@ -60,17 +67,31 @@ export type Task = {
     id: number
     sectionID: number | null
     taskID: number | null
+    position: number
     creation_date: string
     creation_time: string
     edit_date: string
     edit_time: string
+    deleted_at?: string | null
     color?: string | null
     text: string
     completed: boolean
-    isArchived: boolean
+    archived: boolean
     priority: boolean
     description: string
     subtasks: Task[]
+}
+
+/**
+ * An item moved to the trash, as returned by getDBTrash.
+ * `context` is the parent folder name or "Nota X › Sezione Y", empty string for root items.
+ */
+export type TrashItem = {
+    type: "workspace" | "folder" | "note" | "section_group" | "section" | "task"
+    id: number
+    name: string
+    context: string
+    deleted_at: string
 }
 
 export type WorkspaceDataTree = {

@@ -7,6 +7,7 @@ import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
+import { SectionMoveSubmenu } from "../NoteMoveSubmenus"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 type ButtonMenuSectionProps = {
@@ -58,6 +59,7 @@ export const ButtonMenuSection = ({ section }: ButtonMenuSectionProps) => {
                                 />
                             </DropdownMenuSubContent>
                         </DropdownMenuSub>
+                        <SectionMoveSubmenu sectionId={section.id} onDone={() => setDropDownOpen(false)} />
                         <Separator />
                         <ButtonInPopover
                             text="Elimina"

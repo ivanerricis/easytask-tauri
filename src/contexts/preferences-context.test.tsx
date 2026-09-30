@@ -21,6 +21,8 @@ vi.mock("@/lib/store/preferences", () => ({
     getAudioPlayerPosition: vi.fn(),
     saveAudioPlayerPosition: vi.fn(),
     resetAudioPlayerPosition: vi.fn(),
+    getWorkspaceView: vi.fn(),
+    saveWorkspaceView: vi.fn(),
 }))
 
 const wrapper = ({ children }: { children: ReactNode }) => <PreferencesProvider>{children}</PreferencesProvider>
@@ -35,6 +37,7 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getShowTaskCount).mockResolvedValue(false)
         vi.mocked(prefs.getSideBarLeftOpen).mockResolvedValue(false)
         vi.mocked(prefs.getSideBarRightOpen).mockResolvedValue(true)
+        vi.mocked(prefs.getWorkspaceView).mockResolvedValue("list")
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
     })
 
@@ -48,6 +51,7 @@ describe("PreferencesContext", () => {
         const { result } = renderHook(() => usePreferences(), { wrapper })
         expect(result.current.primaryColor).toBe("#ffb375")
         expect(result.current.showProgressBar).toBe(true)
+        expect(result.current.workspaceView).toBe("grid")
         await waitFor(() => expect(result.current.primaryColor).toBe("#123456"))
     })
 
@@ -58,6 +62,7 @@ describe("PreferencesContext", () => {
         expect(result.current.showProgressBar).toBe(false)
         expect(result.current.showTaskCount).toBe(false)
         expect(result.current.sidebarLeftOpen).toBe(false)
+        expect(result.current.workspaceView).toBe("list")
         expect(result.current.audioPlayerPosition).toEqual({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
         expect(document.documentElement.style.getPropertyValue("--primary")).toBe("#123456")
     })
@@ -70,6 +75,7 @@ describe("PreferencesContext", () => {
             result.current.setShowProgressBar(true)
             result.current.setSideBarLeftOpen(true)
             result.current.setPrimaryColor("#abcdef")
+            result.current.setWorkspaceView("grid")
         })
 
         expect(result.current.showProgressBar).toBe(true)
@@ -78,6 +84,8 @@ describe("PreferencesContext", () => {
         expect(prefs.saveShowProgressBar).toHaveBeenCalledWith(true)
         expect(prefs.saveSideBarLeftOpen).toHaveBeenCalledWith(true)
         expect(prefs.savePrimaryColor).toHaveBeenCalledWith("#abcdef")
+        expect(result.current.workspaceView).toBe("grid")
+        expect(prefs.saveWorkspaceView).toHaveBeenCalledWith("grid")
         expect(document.documentElement.style.getPropertyValue("--primary")).toBe("#abcdef")
     })
 

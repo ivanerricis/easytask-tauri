@@ -1,17 +1,21 @@
 import { Progress } from "@/components/ui/progress"
-import { getErrorMessage } from "@/lib/utils"
+import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import type { Section as SectionType, Task } from "@/types/types"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, GripVertical } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 import { useEffect, useRef, useState } from "react"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { toast } from "sonner"
 import { usePreferences } from "@/contexts/preferences-context"
+import type { HTMLAttributes } from "react"
 
 type SectionHeaderProps = {
     isOpen: boolean
     onOpenChange: (isOpen: boolean) => void
     section: SectionType
+    /** Drag handle of the section (drag & drop inside the open note); omitted when the section is not draggable. */
+    dragHandleRef?: (element: HTMLElement | null) => void
+    dragHandleProps?: HTMLAttributes<HTMLDivElement>
 }
 
 const calculateCompletionPercentage = (tasks: Task[]): number => {
@@ -27,7 +31,7 @@ const calculateCompletionPercentage = (tasks: Task[]): number => {
     return (completedTasks / totalTasks) * 100
 }
 
-export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderProps) => {
+export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dragHandleProps }: SectionHeaderProps) => {
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(section.title)
     const { getNoteData, renameItem, currentNote } = useWorkspaceData()
@@ -65,21 +69,28 @@ export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderPr
     return (
         <div className="relative flex flex-col items-center justify-center">
 
-            {/* Color Container */}
-            {/* section.color && <div className="w-full h-1 absolute top-0" style={{ backgroundColor: section.color }}></div>} */}
-            
-            {section.color && <div
-                className="group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs"
-                style={{ backgroundColor: section.color }}
+            <div
+                className={`group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs ${section.color ? "" : "bg-background border"}`}
+                style={section.color ? { backgroundColor: hexToRgba(0.4, section.color) } : undefined}
             >
+                {dragHandleProps &&
+                    <div
+                        ref={dragHandleRef}
+                        {...dragHandleProps}
+                        aria-label="Sposta sezione"
+                        title="Trascina per spostare la sezione"
+                        className="shrink-0 touch-none cursor-grab text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
+                        <GripVertical className="size-4" />
+                    </div>}
                 {(section.tasks.length > 0) &&
                     <div role="button" onClick={handleOpen} className="shrink-0 cursor-pointer">
                         <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1.5 size-5`} />
                     </div>}
-                <div className="flex items-center justify-between gap-2 w-full">
+                <div className="flex items-center justify-between gap-2 w-full min-w-0">
                     {!isTextAreaOpen && <h1
                         onClick={() => { setTextAreaOpen(true) }}
-                        className="text-sm ml-2">
+                        title={section.title}
+                        className="text-sm ml-2 min-w-0 flex-1 truncate cursor-text">
                         {section.title}
                     </h1>}
                     {isTextAreaOpen && <input
@@ -94,7 +105,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderPr
                                 handleChangeText();
                             }
                         }}
-                        className="w-auto px-1 ml-2 border border-primary resize-none text-sm rounded-xs"
+                        className="min-w-0 flex-1 px-1 ml-2 border border-primary resize-none text-sm rounded-xs"
                     />}
                     {showProgressBar && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
                         <Progress className="w-20" value={completionPercentage} />
@@ -102,12 +113,11 @@ export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderPr
                             {Math.round(completionPercentage)} %
                         </h1>
                     </div>}
-                    <div className="opacity-0 group-hover:opacity-100">
+                    <div className="shrink-0 opacity-0 group-hover:opacity-100">
                         <ButtonMenuSection section={section} />
                     </div>
                 </div>
             </div>
-            }
         </div>
     )
 }

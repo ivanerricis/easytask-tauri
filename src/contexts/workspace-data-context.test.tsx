@@ -8,6 +8,10 @@ import { updateDBGroupPositions } from "@/db/queries/group"
 import { createDBTask } from "@/db/queries/task"
 import { deleteDBItem, renameDBItem, updateDBColor } from "@/db/queries/shared_queries"
 import { createDBSection } from "@/db/queries/section"
+import { createDBNoteInFolder } from "@/db/queries/note"
+import { moveDBTreeItem } from "@/db/queries/tree"
+import { moveDBSection, moveDBSectionToNewGroup, moveDBTask } from "@/db/queries/move"
+import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "@/db/queries/trash"
 import { deferred } from "@/test/ui-render"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { Folder } from "@/types/types"
@@ -35,6 +39,14 @@ vi.mock("@/db/queries/task", () => ({
     updateDBTaskPriority: vi.fn(),
 }))
 vi.mock("@/db/queries/group", () => ({ updateDBGroupPositions: vi.fn() }))
+vi.mock("@/db/queries/tree", () => ({ moveDBTreeItem: vi.fn() }))
+vi.mock("@/db/queries/move", () => ({ moveDBSection: vi.fn(), moveDBSectionToNewGroup: vi.fn(), moveDBTask: vi.fn() }))
+vi.mock("@/db/queries/trash", () => ({
+    getDBTrash: vi.fn(),
+    restoreDBItem: vi.fn(),
+    purgeDBItem: vi.fn(),
+    emptyDBTrash: vi.fn(),
+}))
 vi.mock("@/db/queries/shared_queries", () => ({
     renameDBItem: vi.fn(),
     updateDBColor: vi.fn(),
@@ -48,6 +60,7 @@ const makeFolder = (over: Partial<Folder>): Folder => ({
     workspaceID: 1,
     folderID: null,
     name: "F",
+    position: 0,
     creation_date: "",
     creation_time: "",
     edit_date: "",
@@ -196,6 +209,129 @@ describe("WorkspaceDataContext", () => {
             })
             expect(deleteDBItem).toHaveBeenCalledWith("note", 9)
             expect(updateDBColor).toHaveBeenCalledWith("note", 9, "#000")
+        })
+    })
+
+    describe("deleteItem closes tabs", () => {
+        const setup = async (folders: Folder[], noteList: ReturnType<typeof makeNote>[], open: number[], current: number | null) => {
+            vi.mocked(getDBWorkspaceData).mockResolvedValue({ folders, notes: noteList } as never)
+            const hook = renderHook(() => useWorkspaceData(), { wrapper })
+            await act(() => hook.result.current.getWorkspaceData(1))
+            const tabs = open.map(id => noteList.find(n => n.id === id)!)
+            act(() => {
+                hook.result.current.setCurrentNotes(tabs)
+                hook.result.current.setCurrentNote(tabs.find(n => n.id === current) ?? null)
+            })
+            return hook.result
+        }
+        const n = (id: number, folderID: number | null = null) => makeNote({ id, folderID })
+
+        it("removes a deleted note from the tabs and selects the neighbour", async () => {
+            const result = await setup([], [n(1), n(2), n(3)], [1, 2, 3], 2)
+            await act(() => result.current.deleteItem("note", 2))
+            expect(result.current.currentNotes.map(x => x.id)).toEqual([1, 3])
+            expect(result.current.currentNote?.id).toBe(3)
+        })
+
+        it("selects the previous tab when the last tab is deleted, and null when none is left", async () => {
+            const result = await setup([], [n(1), n(2)], [1, 2], 2)
+            await act(() => result.current.deleteItem("note", 2))
+            expect(result.current.currentNote?.id).toBe(1)
+            await act(() => result.current.deleteItem("note", 1))
+            expect(result.current.currentNotes).toEqual([])
+            expect(result.current.currentNote).toBeNull()
+        })
+
+        it("keeps the current note when a background tab is deleted", async () => {
+            const result = await setup([], [n(1), n(2)], [1, 2], 1)
+            await act(() => result.current.deleteItem("note", 2))
+            expect(result.current.currentNotes.map(x => x.id)).toEqual([1])
+            expect(result.current.currentNote?.id).toBe(1)
+        })
+
+        it("closes the tabs of every note inside a deleted folder and its descendants", async () => {
+            const folders = [makeFolder({ id: 1 }), makeFolder({ id: 2, folderID: 1 }), makeFolder({ id: 3 })]
+            const result = await setup(folders, [n(10, 1), n(11, 2), n(12, 3), n(13)], [10, 12, 11, 13], 11)
+            act(() => result.current.setCurrentFolder(folders[1]))
+            await act(() => result.current.deleteItem("folder", 1))
+            expect(result.current.currentNotes.map(x => x.id)).toEqual([12, 13])
+            expect(result.current.currentNote?.id).toBe(13)
+            expect(result.current.currentFolder).toBeNull()
+        })
+
+        it("does not touch the tabs when the db delete fails", async () => {
+            const result = await setup([], [n(1)], [1], 1)
+            vi.mocked(deleteDBItem).mockRejectedValueOnce(new Error("nope"))
+            await act(async () => {
+                await expect(result.current.deleteItem("note", 1)).rejects.toThrow("nope")
+            })
+            expect(result.current.currentNotes).toHaveLength(1)
+        })
+
+        it("does not touch the tabs when deleting a task", async () => {
+            const result = await setup([], [n(1)], [1], 1)
+            await act(() => result.current.deleteItem("task", 5))
+            expect(result.current.currentNote?.id).toBe(1)
+        })
+    })
+
+    describe("move and trash", () => {
+        it("forwards moveTreeItem without reloading data", async () => {
+            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            await act(() => result.current.moveTreeItem("note", 3, null, 2))
+            expect(moveDBTreeItem).toHaveBeenCalledWith("note", 3, null, 2)
+            expect(getDBWorkspaceData).not.toHaveBeenCalled()
+        })
+
+        it("forwards the section and task moves without reloading data", async () => {
+            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            await act(() => result.current.moveSection(4, 2, 1))
+            await act(() => result.current.moveSectionToNewGroup(4, 0))
+            await act(() => result.current.moveTask(9, { sectionId: 4, parentTaskId: 7 }, 3))
+            expect(moveDBSection).toHaveBeenCalledWith(4, 2, 1)
+            expect(moveDBSectionToNewGroup).toHaveBeenCalledWith(4, 0)
+            expect(moveDBTask).toHaveBeenCalledWith(9, { sectionId: 4, parentTaskId: 7 }, 3)
+            expect(getDBNoteData).not.toHaveBeenCalled()
+        })
+
+        it("propagates task move errors", async () => {
+            vi.mocked(moveDBTask).mockRejectedValueOnce({ code: "TASK_MOVE_INVALID", message: "x" })
+            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            await act(async () => {
+                await expect(result.current.moveTask(1, { sectionId: 1, parentTaskId: 1 }, 0)).rejects.toMatchObject({ code: "TASK_MOVE_INVALID" })
+            })
+            expect(result.current.isLoading).toBe(false)
+        })
+
+        it("propagates move errors", async () => {
+            vi.mocked(moveDBTreeItem).mockRejectedValueOnce({ code: "FOLDER_MOVE_INVALID", message: "x" })
+            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            await act(async () => {
+                await expect(result.current.moveTreeItem("folder", 1, 1, 0)).rejects.toMatchObject({ code: "FOLDER_MOVE_INVALID" })
+            })
+            expect(result.current.isLoading).toBe(false)
+        })
+
+        it("forwards the trash methods", async () => {
+            const items = [{ type: "note", id: 1, name: "n", context: "", deleted_at: "2026-01-01" }]
+            vi.mocked(getDBTrash).mockResolvedValue(items as never)
+            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            await act(async () => {
+                expect(await result.current.getTrash(4)).toBe(items)
+                await result.current.restoreItem("note", 1)
+                await result.current.purgeItem("folder", 2)
+                await result.current.emptyTrash(4)
+            })
+            expect(getDBTrash).toHaveBeenCalledWith(4)
+            expect(restoreDBItem).toHaveBeenCalledWith("note", 1)
+            expect(purgeDBItem).toHaveBeenCalledWith("folder", 2)
+            expect(emptyDBTrash).toHaveBeenCalledWith(4)
+        })
+
+        it("forwards createNoteInFolder with the workspace id", async () => {
+            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            await act(() => result.current.createNoteInFolder(1, 2, "x"))
+            expect(createDBNoteInFolder).toHaveBeenCalledWith(1, 2, "x")
         })
     })
 
