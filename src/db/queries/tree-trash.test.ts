@@ -2,18 +2,7 @@
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DatabaseSync, type SQLInputValue } from "node:sqlite"
-import { createTableAudioFile } from "../schema/audio_file"
-import { createFolderTable, createFolderTrigger } from "../schema/folder"
-import { createNoteTable, createNoteTrigger } from "../schema/note"
-import { createSectionTable, createSectionTrigger } from "../schema/section"
-import { createSectionGroupTable } from "../schema/section_group"
-import { createTaskTable, createTaskTrigger } from "../schema/task"
-import { createWorkspaceTable, createWorkspaceTrigger } from "../schema/workspace"
-import { migrateToV3 } from "../schema/v3"
-import { migrateToV4 } from "../schema/v4"
-import { migrateToV6 } from "../schema/v6"
-import { migrateToV7 } from "../schema/v7"
-import { migrateToV8 } from "../schema/v8"
+import { initialSchema } from "../schema/initial"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v4)
 let sqlite: DatabaseSync
@@ -50,16 +39,7 @@ const one = (sql: string) => Object.values(rows(sql)[0])[0]
 beforeEach(() => {
     sqlite = new DatabaseSync(":memory:")
     sqlite.exec("PRAGMA foreign_keys=ON")
-    for (const sql of [
-        createWorkspaceTable, createFolderTable, createNoteTable, createSectionGroupTable,
-        createSectionTable, createTaskTable, createTableAudioFile,
-        createWorkspaceTrigger, createFolderTrigger, createNoteTrigger, createSectionTrigger, createTaskTrigger,
-    ]) sqlite.exec(sql)
-    sqlite.exec(migrateToV3)
-    sqlite.exec(migrateToV4)
-    sqlite.exec(migrateToV6)
-    sqlite.exec(migrateToV7)
-    sqlite.exec(migrateToV8)
+    for (const sql of initialSchema) sqlite.exec(sql)
     sqlite.exec(`
         INSERT INTO workspace (id, name) VALUES (1, 'WS'), (2, 'Other');
     `)

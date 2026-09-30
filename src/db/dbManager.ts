@@ -1,27 +1,9 @@
-import { BaseDirectory, join } from "@tauri-apps/api/path";
-import { copyFile } from "@tauri-apps/plugin-fs";
+import { join } from "@tauri-apps/api/path";
 import Database from "@tauri-apps/plugin-sql";
 import { ensureAppFolder } from "./appPaths";
 import { initDB } from "./initDb";
 
-const APP_FOLDER = "EasyTask";
 const DB_FILE = "easytask.db";
-
-/**
- * Copies the database file next to itself before the v3 migration rebuilds the tables.
- * The WAL is checkpointed first so the main file contains every committed change.
- * @param db Database instance already opened.
- * @param currentVersion user_version of the database before migrating.
- * @category Database
- */
-async function backupBeforeMigration(db: Database, currentVersion: number) {
-    if (currentVersion >= 3) return;
-    await db.select("PRAGMA wal_checkpoint(TRUNCATE)").catch(() => undefined);
-    await copyFile(`${APP_FOLDER}/${DB_FILE}`, `${APP_FOLDER}/easytask.backup-v${currentVersion}.db`, {
-        fromPathBaseDir: BaseDirectory.Document,
-        toPathBaseDir: BaseDirectory.Document,
-    });
-}
 
 let dbPromise: Promise<Database> | null = null;
 
@@ -37,7 +19,7 @@ async function createDB(): Promise<Database> {
     const db = await Database.load(`sqlite:${filePath}`);
 
     try {
-        await initDB(db, { beforeMigrate: (current) => backupBeforeMigration(db, current) });
+        await initDB(db);
     } catch (err: unknown) {
         await db.close().catch(() => false);
         throw err;

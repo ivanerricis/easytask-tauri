@@ -1,0 +1,48 @@
+import { createAudioFileIndexes, createTableAudioFile } from "./audio_file";
+import { createFolderIndexes, createFolderTable, createFolderTrigger } from "./folder";
+import { createNoteIndexes, createNoteTable, createNoteTrigger } from "./note";
+import { createNoteTemplateIndexes, createNoteTemplateTable, createNoteTemplateTrigger } from "./note_template";
+import { createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
+import { createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
+import { createTaskIndexes, createTaskTable, createTaskTrigger } from "./task";
+import { createWorkspaceIndexes, createWorkspaceTable, createWorkspaceTrigger } from "./workspace";
+
+/**
+ * Value stored in PRAGMA application_id by the initial schema ("EASY" in ASCII).
+ * It tells the current schema lineage apart from the legacy databases (which have user_version > 0
+ * but application_id = 0), because their user_version numbers overlap with the current ones.
+ * @category Database Schema
+ */
+export const APPLICATION_ID = 0x45415359;
+
+/**
+ * Statements that create the whole (final) schema on an empty database, in dependency order.
+ * Every statement is idempotent (IF NOT EXISTS / DROP TRIGGER IF EXISTS), so a run interrupted
+ * halfway can simply be retried.
+ * @category Database Schema
+ */
+export const initialSchema: string[] = [
+    createWorkspaceTable,
+    createWorkspaceIndexes,
+    createFolderTable,
+    createFolderIndexes,
+    createNoteTable,
+    createNoteIndexes,
+    createSectionGroupTable,
+    createSectionGroupIndexes,
+    createSectionTable,
+    createSectionIndexes,
+    createTaskTable,
+    createTaskIndexes,
+    createTableAudioFile,
+    createAudioFileIndexes,
+    createNoteTemplateTable,
+    createNoteTemplateIndexes,
+    createWorkspaceTrigger,
+    createFolderTrigger,
+    createNoteTrigger,
+    createSectionTrigger,
+    createTaskTrigger,
+    createNoteTemplateTrigger,
+    `PRAGMA application_id = ${APPLICATION_ID}`,
+];
