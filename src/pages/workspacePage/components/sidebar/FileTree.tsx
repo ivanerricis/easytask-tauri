@@ -244,9 +244,9 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         >
             <RootDropArea highlighted={hover.rootActive} rootRef={rootElRef}>
                 {isEmpty ? (
-                    <h1 className="text-muted-foreground text-sm w-full">
+                    <p className="text-muted-foreground text-sm w-full">
                         Nessuna cartella o file
-                    </h1>
+                    </p>
                 ) : virtualized ? (
                     <VirtualTree
                         rows={flatRows}

@@ -153,6 +153,7 @@ export function DialogAddFolder() {
                     onClick={() => setIsOpen(true)}
                     variant='buttonIcon'
                     size="icon"
+                    aria-label="Crea una cartella"
                 >
                     <FolderPlus />
                 </Button>

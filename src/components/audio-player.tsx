@@ -106,18 +106,21 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle, 
                     value={currentTime}
                     step={0.1}
                     onChange={handleSeek}
+                    aria-label="Posizione di riproduzione"
                     className={cn("flex-1")}
                 />
                 <span>{formatTime(duration)}</span>
-                <div onClick={handleClose} aria-label="Chiudi il player" className="p-1 hover:bg-accent rounded-xs cursor-pointer">
+                <button type="button" onClick={handleClose} aria-label="Chiudi il player" className="p-1 hover:bg-accent rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <X className="size-4" />
-                </div>
+                </button>
             </div>
             <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
                 <div className="flex items-center justify-start text-sm truncate w-full">{fileName ?? "Audio file title"}</div>
                 <button
+                    type="button"
                     onClick={togglePlay}
-                    className="w-fit p-2 bg-secondary rounded-full hover:bg-accent cursor-pointer"
+                    aria-label={isPlaying ? "Pausa" : "Riproduci"}
+                    className="w-fit p-2 bg-secondary rounded-full hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                     {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
                 </button>
@@ -130,9 +133,10 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle, 
                         step={0.01}
                         value={volume}
                         onChange={handleVolume}
+                        aria-label="Volume"
                         className="w-full"
                     />
-                    <h1 className="w-5">{Math.round(volume * 100)}</h1>
+                    <span className="w-5">{Math.round(volume * 100)}</span>
                 </div>
             </div>
 

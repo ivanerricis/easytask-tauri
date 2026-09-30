@@ -26,7 +26,7 @@ const collisionDetection: CollisionDetection = ({ droppableContainers, droppable
 
 const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {
     const { setNodeRef: setDropRef } = useDroppable({ id: note.id })
-    const { setNodeRef: setDragRef, attributes, listeners, transform, isDragging } = useDraggable({ id: note.id })
+    const { setNodeRef: setDragRef, listeners, transform, isDragging } = useDraggable({ id: note.id })
     const indicator = hover?.overId === note.id ? hover.zone : null
 
     return (
@@ -35,7 +35,6 @@ const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {
                 setDropRef(node)
                 setDragRef(node)
             }}
-            {...attributes}
             {...listeners}
             style={{ transform: CSS.Translate.toString(transform) }}
             className={cn("relative", isDragging && "z-10 opacity-70")}

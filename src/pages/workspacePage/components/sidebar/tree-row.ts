@@ -32,3 +32,22 @@ export const stopDragActivation = {
     onPointerDown: (e: React.PointerEvent) => e.stopPropagation(),
     onKeyDown: (e: React.KeyboardEvent) => e.stopPropagation(),
 }
+
+/**
+ * Keydown for a draggable tree row: Enter runs `onActivate`; every other key (Space starts a keyboard drag)
+ * still reaches the dnd-kit listeners.
+ */
+export function treeRowKeyDown(
+    listeners: Record<string, unknown> | undefined,
+    onActivate: () => void,
+) {
+    const dndKeyDown = listeners?.onKeyDown as ((e: React.KeyboardEvent) => void) | undefined
+    return (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && e.target === e.currentTarget) {
+            e.preventDefault()
+            onActivate()
+            return
+        }
+        dndKeyDown?.(e)
+    }
+}

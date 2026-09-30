@@ -22,9 +22,9 @@ export const WorkspacesContainer = ({ workspaces, view = "grid" }: WorkspacesCon
                     />
                 ))
             ) : (
-                <h1 className="text-muted-foreground text-sm w-full">
+                <p className="text-muted-foreground text-sm w-full">
                     Nessun workspace trovato
-                </h1>
+                </p>
             )}
         </div>
     )

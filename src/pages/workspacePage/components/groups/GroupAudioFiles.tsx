@@ -8,6 +8,7 @@ import { ItemMenu, ItemMenuButton } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
 import { useAudio, useGroupAudioFiles } from "@/contexts/audio-context"
 import { cn } from "@/lib/utils"
+import { focusRing, onActivateKey } from "@/lib/a11y"
 import type { AudioFile } from "@/types/types"
 
 type AudioFileRowProps = {
@@ -80,19 +81,14 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
         <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="p-1 rounded-xs">
             <div
                 className={cn(
-                    "group flex items-center gap-2 border px-2 py-1 bg-background hover:bg-secondary rounded-xs cursor-pointer text-xs",
+                    focusRing, "group flex items-center gap-2 border px-2 py-1 bg-background hover:bg-secondary rounded-xs cursor-pointer text-xs",
                     isCurrent && "border-primary"
                 )}
                 role="button"
                 tabIndex={0}
                 title={file.path}
                 onClick={() => void playFile(file)}
-                onKeyDown={(e) => {
-                    if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
-                        e.preventDefault()
-                        void playFile(file)
-                    }
-                }}
+                onKeyDown={onActivateKey(() => void playFile(file))}
             >
                 <Music className={cn("size-4 shrink-0", isCurrent ? "text-primary" : "text-muted-foreground")} />
                 <span className="flex-1 truncate">{file.name}</span>

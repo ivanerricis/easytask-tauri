@@ -46,13 +46,13 @@ export function CommandMenu() {
             </CommandDialog>
 
             <TooltipCustom text="Cerca una nota" shortcut={searchLabel}>
-                <div
-                    role="button"
+                <button
+                    type="button"
                     onClick={() => { setOpen(prev => !prev) }}
-                    className="relative flex items-center justify-center w-full">
+                    className="relative flex items-center justify-center w-full rounded-[4px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <SearchIcon className="absolute left-2 w-4 h-4 text-muted-foreground" />
-                    <h1 className="flex items-center app-no-drag rounded-[4px] h-6 pl-7 pr-16 md:text-xs border w-full text-left text-muted-foreground cursor-default">Cerca...</h1>
-                </div>
+                    <span className="flex items-center app-no-drag rounded-[4px] h-6 pl-7 pr-16 md:text-xs border w-full text-left text-muted-foreground cursor-default">Cerca...</span>
+                </button>
             </TooltipCustom>
         </>
     )

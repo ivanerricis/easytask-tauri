@@ -1,6 +1,7 @@
 import * as React from "react"
 import { EllipsisVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { focusRing } from "@/lib/a11y"
 import type { ItemMenuState } from "@/hooks/use-item-menu-state"
 import { MenuKindProvider } from "@/components/menu-kind"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -67,24 +68,22 @@ export const ItemMenu = ({ state, items, dialogs, contentClassName, onCloseAutoF
 type ItemMenuButtonProps = {
     className?: string
     iconClassName?: string
-    /** Renders a real <button> with this accessible name instead of the default role="button" element. */
+    /** Accessible name of the button. */
     label?: string
 }
 
 /** The "…" button of an item (inside an {@link ItemMenu}): opens the item menu below the button. */
-export const ItemMenuButton = ({ className, iconClassName = "size-4", label }: ItemMenuButtonProps) => {
+export const ItemMenuButton = ({ className, iconClassName = "size-4", label = "Apri menu" }: ItemMenuButtonProps) => {
     const menu = React.useContext(ItemMenuContext)
     if (!menu) return null
     const { state, items, contentClassName, onCloseAutoFocus } = menu
-    const triggerClass = cn("p-1 rounded-xs cursor-pointer", className)
+    const triggerClass = cn("p-1 rounded-xs cursor-pointer", focusRing, className)
     const icon = <EllipsisVertical className={iconClassName} />
 
     return (
         <DropdownMenu open={state.dropdownOpen} onOpenChange={state.setDropdownOpen}>
             <DropdownMenuTrigger asChild>
-                {label
-                    ? <button type="button" aria-label={label} onClick={(e) => e.stopPropagation()} className={triggerClass}>{icon}</button>
-                    : <div role="button" onClick={(e) => e.stopPropagation()} className={triggerClass}>{icon}</div>}
+                <button type="button" aria-label={label} onClick={(e) => e.stopPropagation()} className={triggerClass}>{icon}</button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 onClick={(e) => e.stopPropagation()}

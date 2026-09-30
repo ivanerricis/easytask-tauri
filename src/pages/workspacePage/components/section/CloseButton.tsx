@@ -8,8 +8,9 @@ export const CloseButton = ({onClick}: CloseButtonProps) => {
     return (
         <button
             type="button"
+            aria-label="Annulla"
             onClick={onClick}
-            className="group/close cursor-pointer flex items-center justify-center w-full h-8"
+            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group/close cursor-pointer flex items-center justify-center w-full h-8"
         >
             <X size={20} className="group-hover/close:text-foreground text-muted-foreground" />
         </button>

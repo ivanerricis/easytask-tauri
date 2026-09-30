@@ -63,7 +63,7 @@ export const ShortcutsSettings = () => {
                 if (items.length === 0) return null
                 return (
                     <section key={category} aria-label={category} className="flex flex-col gap-3">
-                        <h3 className="text-sm font-semibold">{category}</h3>
+                        <h4 className="text-sm font-semibold">{category}</h4>
                         {items.map(s => {
                             const isRecording = recordingId === s.id
                             return (

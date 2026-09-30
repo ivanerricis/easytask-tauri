@@ -158,13 +158,14 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
 
     return (
         !isOpen ? (
-            <div
-                role="button"
+            <button
+                type="button"
+                aria-label="Aggiungi task"
                 onClick={handleOpen}
-                className="cursor-pointer group/add flex items-center justify-center w-full h-9"
+                className="cursor-pointer group/add flex items-center justify-center w-full h-9 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
                 <Plus className="group-hover/add:text-foreground text-muted-foreground size-5" />
-            </div>
+            </button>
         ) : (
             <form
                 ref={formRef}

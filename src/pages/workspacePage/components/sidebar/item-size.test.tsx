@@ -22,6 +22,7 @@ vi.mock("./tree-row", () => ({
     isInsideZone: () => false,
     stopDragActivation: {},
     wasTreeJustDragged: () => false,
+    treeRowKeyDown: () => undefined,
 }))
 
 const folder = { id: 1, name: "Cartella", color: "#ff0000" } as unknown as Folder

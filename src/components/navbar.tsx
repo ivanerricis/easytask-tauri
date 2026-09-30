@@ -30,13 +30,13 @@ export const Navbar = React.memo(({ leftContainer, centerContainer, rightContain
             <div className="flex-1 text-center">{centerContainer}</div>
             <div className="flex-1 flex flex-row-reverse items-center justify-start text-right" data-tauri-drag-region>
                 <div className="flex items-center justify-end">
-                    <ButtonNavbar onClick={handleMinimize} window>
+                    <ButtonNavbar onClick={handleMinimize} label="Riduci a icona" window>
                         <Minus className="w-5 h-5" />
                     </ButtonNavbar>
-                    <ButtonNavbar onClick={handletoggleMaximize} className={"!p-2.5"} window>
+                    <ButtonNavbar onClick={handletoggleMaximize} className={"!p-2.5"} label="Ingrandisci o ripristina" window>
                         <Square className="w-4 h-4" />
                     </ButtonNavbar>
-                    <ButtonNavbar onClick={handleClose} window>
+                    <ButtonNavbar onClick={handleClose} label="Chiudi la finestra" window>
                         <X className="w-5 h-5" />
                     </ButtonNavbar>
                 </div>

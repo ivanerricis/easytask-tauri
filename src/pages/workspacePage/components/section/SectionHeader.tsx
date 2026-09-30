@@ -87,16 +87,22 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
                             <GripVertical className="size-4" />
                         </div>}
                     {(section.tasks.length > 0) &&
-                        <div role="button" onClick={handleOpen} className="shrink-0 cursor-pointer">
+                        <button
+                            type="button"
+                            onClick={handleOpen}
+                            aria-label={isOpen ? "Compatta sezione" : "Espandi sezione"}
+                            aria-expanded={isOpen}
+                            className="shrink-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1.5 size-5`} />
-                        </div>}
+                        </button>}
                     <div className="flex items-center justify-between gap-2 w-full min-w-0">
-                        {!isTextAreaOpen && <h1
+                        {!isTextAreaOpen && <button
+                            type="button"
                             onClick={() => { setTextAreaOpen(true) }}
                             title={section.title}
-                            className="text-sm ml-2 min-w-0 flex-1 truncate cursor-text">
+                            className="text-sm ml-2 min-w-0 flex-1 truncate cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             {section.title}
-                        </h1>}
+                        </button>}
                         {isTextAreaOpen && <input
                             ref={textareaRef}
                             type="text"
@@ -113,11 +119,11 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
                         />}
                         {showProgressBar && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
                             <Progress className="w-20" value={completionPercentage} />
-                            <h1 className="text-xs">
+                            <span className="text-xs">
                                 {Math.round(completionPercentage)} %
-                            </h1>
+                            </span>
                         </div>}
-                        <div className="shrink-0 opacity-0 group-hover:opacity-100">
+                        <div className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                             <ItemMenuButton iconClassName="!h-4 !w-4" />
                         </div>
                     </div>

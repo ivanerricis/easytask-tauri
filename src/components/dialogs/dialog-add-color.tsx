@@ -72,16 +72,17 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
         >
             <div className="grid grid-cols-4">
                 {COLORS.map((colorValue) => (
-                    <div
-                        role="button"
+                    <button
+                        type="button"
+                        aria-label={`Colore ${colorValue}`}
                         key={colorValue}
                         onClick={(e) => {
                             handleColorClick(colorValue, e);
                         }}
-                        className="cursor-pointer size-6"
+                        className="cursor-pointer size-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                         style={{ backgroundColor: colorValue }}
                     >
-                    </div>
+                    </button>
                 ))}
                 <div
                     className="relative flex items-center justify-center size-6"

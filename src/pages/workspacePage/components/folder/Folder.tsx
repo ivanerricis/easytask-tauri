@@ -2,11 +2,12 @@ import { ChevronDown, Folder as FolderIcon, FolderOpen } from "lucide-react"
 import React, { useState } from "react"
 import { DropLine } from "../sidebar/DropLine"
 import { useItemSize } from "../sidebar/item-size"
-import { isInsideZone, stopDragActivation, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { isInsideZone, stopDragActivation, treeRowKeyDown, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
 import type { DropZone } from "../sidebar/tree-dnd"
 import { ButtonMenuFolder } from "./ButtonMenuFolder"
 import { ItemMenuButton } from "@/components/item-menu"
 import type { Folder } from "@/types/types"
+import { focusRing } from "@/lib/a11y"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { formatDate, hexToRgba } from "@/lib/utils"
 
@@ -36,9 +37,10 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                     ref={ref}
                     role="button"
                     onClick={() => { if (!wasTreeJustDragged()) onToggle(folder.id) }}
+                    onKeyDown={treeRowKeyDown(listeners, () => onToggle(folder.id))}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
-                    className={`relative group cursor-pointer gap-1 w-full pl-1 ${size.row} flex items-center rounded-xs border border-accent bg-background opacity-85 hover:opacity-100 overflow-x-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
+                    className={`${focusRing} relative group cursor-pointer gap-1 w-full pl-1 ${size.row} flex items-center rounded-xs border border-accent bg-background opacity-85 hover:opacity-100 overflow-x-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
                     style={{ backgroundColor: `${hexToRgba(isHovered ? 0.5 : 0.3, folder.color)}` }}
                 >
 
@@ -57,12 +59,12 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                             ) : (
                                 <FolderIcon className={`${size.icon} shrink-0`} />
                             )}
-                            <h1 className={`w-full ${size.text} truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
+                            <span className={`w-full ${size.text} truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
                                 {folder.name}
-                            </h1>
+                            </span>
                         </div>
                     </TooltipCustom>
-                    <div className={`shrink-0 px-1 opacity-0 group-hover:opacity-100 ${size.menu}`} {...stopDragActivation}>
+                    <div className={`shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
                         <ItemMenuButton />
                     </div>
                 </div>

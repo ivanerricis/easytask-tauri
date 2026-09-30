@@ -26,10 +26,12 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
     if (view === "list") {
         return (
             <ButtonMenuWorkspace workspace={workspace}>
-                <div
-                    role="button"
-                    onClick={handleOpen}
-                    className="group relative flex items-center w-full cursor-pointer h-11 shrink-0 bg-background hover:bg-secondary border rounded-xs">
+                <div className="group relative flex items-center w-full h-11 shrink-0 bg-background hover:bg-secondary border rounded-xs">
+                    <button
+                        type="button"
+                        onClick={handleOpen}
+                        aria-label={`Apri il workspace ${workspace.name}`}
+                        className="absolute inset-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
 
                     {/* Color Container */}
                     {workspace.color && <div
@@ -38,17 +40,17 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                     />}
 
                     {/* Workspace Info */}
-                    <div className="flex items-center justify-between gap-2 pl-4 pr-2 w-full min-w-0">
-                        <h1 className="text-muted-foreground group-hover:text-foreground text-base truncate whitespace-nowrap min-w-0">
+                    <div className="pointer-events-none flex items-center justify-between gap-2 pl-4 pr-2 w-full min-w-0">
+                        <span className="text-muted-foreground group-hover:text-foreground text-base truncate whitespace-nowrap min-w-0">
                             {workspace.name}
-                        </h1>
+                        </span>
                         <span className="text-muted-foreground text-xs whitespace-nowrap shrink-0 mr-8">
                             {formattedEditDate} - {workspace.edit_time}
                         </span>
                     </div>
 
                     {/* Menu Button */}
-                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                         <ItemMenuButton className="hover:bg-accent" />
                     </div>
                 </div>
@@ -58,10 +60,12 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
 
     return (
         <ButtonMenuWorkspace workspace={workspace}>
-            <div
-                role="button"
-                onClick={handleOpen}
-                className="group relative flex items-center w-full cursor-pointer h-24 bg-background hover:bg-secondary border rounded-xs">
+            <div className="group relative flex items-center w-full h-24 bg-background hover:bg-secondary border rounded-xs">
+                <button
+                    type="button"
+                    onClick={handleOpen}
+                    aria-label={`Apri il workspace ${workspace.name}`}
+                    className="absolute inset-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
 
                 {/* Color Container */}
                 {workspace.color && <div
@@ -70,22 +74,22 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                 />}
 
                 {/* Workspace Info */}
-                <div className="flex flex-col justify-between p-2 ml-2 relative w-full">
-                    <h1 className="text-muted-foreground group-hover:text-foreground text-xl truncate overflow-hidden whitespace-nowrap mr-8">
+                <div className="pointer-events-none flex flex-col justify-between p-2 ml-2 relative w-full">
+                    <span className="text-muted-foreground group-hover:text-foreground text-xl truncate overflow-hidden whitespace-nowrap mr-8">
                         {workspace.name}
-                    </h1>
+                    </span>
                     <div className="flex flex-col items-start gap-1 w-full">
-                        <h1 className="text-muted-foreground text-sm">
+                        <span className="text-muted-foreground text-sm">
                             Creato il: {formattedCreationDate} - {workspace.creation_time}
-                        </h1>
-                        <h1 className="text-muted-foreground text-sm">
+                        </span>
+                        <span className="text-muted-foreground text-sm">
                             Modificato il: {formattedEditDate} - {workspace.edit_time}
-                        </h1>
+                        </span>
                     </div>
                 </div>
 
                 {/* Menu Button */}
-                <div className="absolute right-1 top-1 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <div className="absolute right-1 top-1 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                     <ItemMenuButton className="hover:bg-accent" />
                 </div>
             </div>

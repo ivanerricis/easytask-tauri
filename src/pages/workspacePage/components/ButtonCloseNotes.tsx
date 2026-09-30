@@ -18,6 +18,7 @@ export const ButtonCloseNotes = () => {
             <Button
                 variant={"buttonIcon"}
                 size={"icon"}
+                aria-label="Chiudi tutte le note"
                 disabled={openIds.length === 0}
                 onClick={closeNotes}
             >

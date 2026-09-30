@@ -75,14 +75,16 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
                     type="button"
                     onClick={toggleOpen}
                     aria-label={isOpen ? "Compatta gruppo" : "Espandi gruppo"}
-                    className="shrink-0 cursor-pointer mr-2">
+                    aria-expanded={isOpen}
+                    className="shrink-0 cursor-pointer mr-2 rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} size-5`} />
                 </button>
-                {!isEditing && <h2
+                {!isEditing && <button
+                    type="button"
                     onClick={startEditing}
-                    className={`text-sm font-semibold mr-3 min-w-0 flex-1 break-words cursor-text ${name ? "" : "text-muted-foreground"}`}>
+                    className={`text-sm font-semibold mr-3 min-w-0 flex-1 break-words cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${name ? "" : "text-muted-foreground"}`}>
                     {label}
-                </h2>}
+                </button>}
                 {isEditing && <input
                     ref={inputRef}
                     type="text"
@@ -105,25 +107,25 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
                 />}
                 {showGroupProgressBar && progress.total > 0 && <div className="flex items-center gap-2 shrink-0 mr-3">
                     <Progress className="w-16" value={progress.percent} />
-                    <h1 className="text-xs">
+                    <span className="text-xs">
                         {Math.round(progress.percent)} %
-                    </h1>
+                    </span>
                 </div>}
                 <div className="flex shrink-0 gap-3">
                     {showSectionCount && <div className="flex items-center gap-1">
                         <LayoutList className="size-4" />
-                        <h1 className="text-xs">
+                        <span className="text-xs">
                             {group.sections.length}
-                        </h1>
+                        </span>
                     </div>}
                     {showTaskCount && <div className="flex items-center gap-1">
                         <SquareCheckBig className="size-4" />
-                        <h1 className="text-xs">
+                        <span className="text-xs">
                             {group.sections.reduce((sum, section) => sum + section.tasks.length, 0)}
-                        </h1>
+                        </span>
                     </div>}
                 </div>
-                <div className="shrink-0 opacity-0 group-hover:opacity-100">
+                <div className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                     <ItemMenuButton iconClassName="!h-4 !w-4" />
                 </div>
             </div>

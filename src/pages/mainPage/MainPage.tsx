@@ -60,9 +60,9 @@ const MainPage = () => {
                 </div>
                 <div className="flex flex-col items-center justify-center w-full p-2 gap-2 border rounded-xs">
                     <div className="flex items-center justify-between w-full">
-                        <h1 className="text-lg w-full ml-2">
+                        <h2 className="text-lg w-full ml-2">
                             Apri un Workspace recente:
-                        </h1>
+                        </h2>
                         <div className="flex items-center gap-1">
                             <TooltipCustom text={isList ? "Visualizza come griglia" : "Visualizza come lista"}>
                                 <Button

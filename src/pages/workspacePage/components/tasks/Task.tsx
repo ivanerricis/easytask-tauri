@@ -112,6 +112,14 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                 />
                                 {!isTextAreaOpen && <TextareaAutosize
                                     onClick={() => { setTextAreaOpen(true); setText(task.text) }}
+                                    onKeyDown={e => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault()
+                                            setTextAreaOpen(true)
+                                            setText(task.text)
+                                        }
+                                    }}
+                                    aria-label="Modifica il testo del task"
                                     value={task.text}
                                     className={cn(
                                         "w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm",
@@ -138,13 +146,13 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                             <div className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-600 size-2 mx-2 mt-1.5 p-1`}></div>
 
                             {/* ButtonMenu */}
-                            <div className="flex items-center opacity-0 group-hover:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
+                            <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
                                 <button
                                     type="button"
                                     aria-label="Aggiungi sottotask"
                                     title="Aggiungi sottotask"
                                     onClick={() => setAddingSubtask(true)}
-                                    className="p-1 rounded-xs cursor-pointer">
+                                    className="p-1 rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                     <Plus className="size-4" />
                                 </button>
                                 <ItemMenuButton iconClassName="!h-4 !w-4" />
@@ -154,8 +162,10 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                     <div className="flex items-center justify-start w-full gap-1 px-2">
                         {task.description &&
                             <button
+                                type="button"
+                                aria-label="Mostra la descrizione"
                                 onClick={() => { onOpenChange(true) }}
-                                className="p-1 flex items-center justify-center hover:bg-accent rounded-xs cursor-pointer mb-1">
+                                className="p-1 flex items-center justify-center hover:bg-accent rounded-xs cursor-pointer mb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                 <AlignLeft className="size-4" />
                             </button>}
                         {open && <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />}

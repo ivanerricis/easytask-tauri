@@ -100,6 +100,7 @@ export function DialogCreateWorkspace() {
                                         type="button"
                                         onClick={(e) => { e.preventDefault(); setPaletteOpen(false) }}
                                         variant={"buttonIcon"}
+                                        aria-label="Chiudi la tavolozza"
                                         className="h-full"
                                     >
                                         <X />

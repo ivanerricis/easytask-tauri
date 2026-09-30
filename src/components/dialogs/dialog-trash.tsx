@@ -128,7 +128,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                                 if (groupItems.length === 0) return null
                                 return (
                                     <section key={type} className="flex flex-col gap-1" aria-label={label}>
-                                        <h2 className="text-xs font-semibold uppercase text-muted-foreground">{label}</h2>
+                                        <h3 className="text-xs font-semibold uppercase text-muted-foreground">{label}</h3>
                                         {groupItems.map(item => (
                                             <div key={`${item.type}-${item.id}`} className="flex items-center gap-2 rounded-xs border p-2">
                                                 <Icon className="size-4 shrink-0" />

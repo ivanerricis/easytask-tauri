@@ -179,6 +179,7 @@ export function DialogAddNote() {
                     onClick={() => setIsOpen(true)}
                     variant='buttonIcon'
                     size="icon"
+                    aria-label="Crea una nota"
                 >
                     <FilePlus />
                 </Button>

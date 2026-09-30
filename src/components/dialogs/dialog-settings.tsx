@@ -44,6 +44,7 @@ export const DialogSettings = ({ className }: DialogSettingsProps) => {
                     onClick={() => setIsOpen(true)}
                     variant="buttonIcon"
                     size="icon"
+                    aria-label="Impostazioni"
                     className={`absolute left-1 bottom-1 !hover:bg-accent ${className}`}
                 >
                     <Settings />

@@ -100,7 +100,7 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
                 <div className="h-full w-full flex flex-col">
                     <Button
                         onClick={handleToggle}
-                        aria-label="Toggle sidebar"
+                        aria-label="Mostra o nascondi la barra laterale"
                         size="icon"
                         variant="ghost"
                     >
