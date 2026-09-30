@@ -7,6 +7,7 @@ export const NotesSettings = () => {
         showProgressBar, setShowProgressBar,
         showSectionCount, setShowSectionCount,
         showTaskCount, setShowTaskCount,
+        reopenNotes, setReopenNotes,
     } = usePreferences()
 
     return (
@@ -32,6 +33,14 @@ export const NotesSettings = () => {
                     aria-label="Mostra numero di task"
                     checked={showTaskCount}
                     onCheckedChange={() => setShowTaskCount(!showTaskCount)}
+                    className="size-5"
+                />
+            </SettingsRow>
+            <SettingsRow label="Riapri le note all'avvio" description="Ripristina le note aperte e quella attiva quando riapri un workspace.">
+                <Checkbox
+                    aria-label="Riapri le note all'avvio"
+                    checked={reopenNotes}
+                    onCheckedChange={() => setReopenNotes(!reopenNotes)}
                     className="size-5"
                 />
             </SettingsRow>

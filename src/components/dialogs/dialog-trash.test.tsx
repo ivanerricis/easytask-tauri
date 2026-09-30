@@ -12,16 +12,16 @@ const data = {
     purgeItem: vi.fn(),
     emptyTrash: vi.fn(),
     getWorkspaceData: vi.fn(),
-    getNoteData: vi.fn(),
-    currentNote: { id: 9 } as { id: number } | null,
 }
+const note = { refreshActiveNote: vi.fn() }
 const ws = {
     currentWorkspace: makeWorkspace({ id: 4 }),
     getTrashedWorkspaces: vi.fn(),
     restoreWorkspace: vi.fn(),
     purgeWorkspace: vi.fn(),
 }
-vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceData: () => data }))
+vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceActions: () => data }))
+vi.mock("@/contexts/active-note-context", () => ({ useActiveNoteActions: () => note }))
 vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ws }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
@@ -34,13 +34,12 @@ const items: TrashItem[] = [
 describe("DialogTrash", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        data.currentNote = { id: 9 }
         data.getTrash.mockResolvedValue(items)
         data.restoreItem.mockResolvedValue(undefined)
         data.purgeItem.mockResolvedValue(undefined)
         data.emptyTrash.mockResolvedValue(undefined)
         data.getWorkspaceData.mockResolvedValue(undefined)
-        data.getNoteData.mockResolvedValue(undefined)
+        note.refreshActiveNote.mockResolvedValue(undefined)
     })
 
     it("renders items grouped by type with context and date", async () => {
@@ -68,7 +67,7 @@ describe("DialogTrash", () => {
 
         await waitFor(() => expect(data.restoreItem).toHaveBeenCalledWith("note", 2))
         await waitFor(() => expect(data.getWorkspaceData).toHaveBeenCalledWith(4))
-        expect(data.getNoteData).toHaveBeenCalledWith(9)
+        expect(note.refreshActiveNote).toHaveBeenCalled()
         expect(toast.success).toHaveBeenCalledWith("Elemento ripristinato")
         await waitFor(() => expect(data.getTrash).toHaveBeenCalledTimes(2))
     })

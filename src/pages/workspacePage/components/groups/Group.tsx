@@ -5,6 +5,7 @@ import { AddSection } from "../section/AddSection"
 import { GroupHeader } from "./GroupHeader"
 import { cn } from "@/lib/utils"
 import { useNoteDrop } from "../note-dnd-state"
+import { GroupAudioFiles } from "./GroupAudioFiles"
 
 type GroupProps = {
     dragHandleProps?: DraggableProvidedDragHandleProps | null
@@ -24,6 +25,7 @@ export const Group = ({ dragHandleProps, group }: GroupProps) => {
                 group={group}
                 dragHandleProps={dragHandleProps}
             />
+            <GroupAudioFiles groupId={group.id} />
             <div className="flex flex-col gap-1 overflow-y-auto">
                 {group.sections.map((section) => (
                     <Section

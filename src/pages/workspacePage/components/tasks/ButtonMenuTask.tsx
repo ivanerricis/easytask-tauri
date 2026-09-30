@@ -1,7 +1,9 @@
 import { EllipsisVertical } from "lucide-react"
 import { getErrorMessage } from "@/lib/utils"
 import type { Task } from "@/types/types"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useActiveNoteId } from "@/contexts/tabs-context"
+import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { toast } from "sonner"
 import { useRef, useState } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
@@ -23,14 +25,17 @@ export const ButtonMenuTask = ({ task, onAddSubtask }: ButtonMenuFolderProps) =>
     const [dropDownOpen, setDropDownOpen] = useState(false)
     const [isDescriptionOpen, setDescriptionOpen] = useState(false)
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
-    const { updateTaskPriority, updateTaskDescription, getNoteData, updateItemColor, currentNote } = useWorkspaceData()
+    const { updateTaskPriority, updateTaskDescription, updateItemColor } = useWorkspaceActions()
+    const activeId = useActiveNoteId()
+    const { getNoteData, refreshActiveNote, patchTask } = useActiveNoteActions()
 
     const handleEditPriority = async () => {
+        // Optimistic: the cached tree is updated at once and restored if the write fails
+        const rollback = patchTask(task.id, { priority: !task.priority })
         try {
             await updateTaskPriority(task.id, !task.priority)
-            if (currentNote)
-                await getNoteData(currentNote.id)
         } catch {
+            rollback()
             toast.error('Impossibile modificare la priorità')
         } finally {
             setDropDownOpen(false)
@@ -40,10 +45,8 @@ export const ButtonMenuTask = ({ task, onAddSubtask }: ButtonMenuFolderProps) =>
     const handleDescription = async () => {
         if (task.description) {
             try {
-                if (currentNote) {
-                    await updateTaskDescription(task.id, undefined)
-                    await getNoteData(currentNote.id)
-                }
+                await updateTaskDescription(task.id, undefined)
+                await refreshActiveNote()
             } catch (err) {
                 toast.error(getErrorMessage(err))
             } finally {
@@ -102,7 +105,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask }: ButtonMenuFolderProps) =>
                                     item={task}
                                     itemType="task"
                                     addColorItem={updateItemColor}
-                                    getItemId={currentNote?.id}
+                                    getItemId={activeId ?? undefined}
                                     getItemData={getNoteData}
                                     setDropDownOpen={setDropDownOpen}
                                 />
@@ -131,7 +134,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask }: ButtonMenuFolderProps) =>
                 itemType="task"
                 isOpen={isDeleteTaskOpen}
                 onOpenChange={setDeleteTaskOpen}
-                getItemId={currentNote?.id}
+                getItemId={activeId ?? undefined}
                 getItemData={getNoteData}
             />
         </>

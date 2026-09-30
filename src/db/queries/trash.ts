@@ -12,7 +12,8 @@ type TrashRow = { type: DBItemType, id: number, name: string, context: string | 
  * Retrieves the items moved to the trash that belong to a workspace.
  * Only the items deleted directly are listed (their children are removed with them).
  * Groups have the name "Gruppo di N sezioni" and the note name as context;
- * sections and tasks have "Nota X" / "Nota X › Sezione Y" as context.
+ * sections and tasks have "Nota X" / "Nota X › Sezione Y" as context,
+ * audio files "Nota X › Gruppo N" (N = position of the group in the note).
  * @param workspaceId The ID of the workspace.
  * @returns The trashed items, most recently deleted first.
  * @throws A createError('TRASH_LOAD_FAILED') error when a query fails.
@@ -49,7 +50,13 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
              INNER JOIN section_group g ON g.id = s.groupID
              INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND t.deleted_at IS NOT NULL
-             ORDER BY deleted_at DESC, kind, id`, [workspaceId, workspaceId, workspaceId, workspaceId, workspaceId])
+             UNION ALL
+             SELECT 'audio_file', 5, a.id, a.name, 'Nota ' || n.name || ' › Gruppo ' || (g.position + 1), a.deleted_at, 0
+             FROM audio_file a
+             INNER JOIN section_group g ON g.id = a.section_groupID
+             INNER JOIN note n ON n.id = g.noteID
+             WHERE n.workspaceID = ? AND a.deleted_at IS NOT NULL
+             ORDER BY deleted_at DESC, kind, id`, [workspaceId, workspaceId, workspaceId, workspaceId, workspaceId, workspaceId])
 
         return rows.map(row => ({
             type: row.type,
@@ -130,6 +137,16 @@ function buildRestoreStatements(itemType: DBItemType, id: number): Statement[] {
                 restoreRow("note", noteOfSection, [id]),
                 restoreRow("section_group", GROUP_OF_SECTION, [id]),
                 restoreRow("section", "SELECT ?", [id]),
+            ]
+        }
+        case "audio_file": {
+            const groupOfAudio = "SELECT section_groupID FROM audio_file WHERE id = ?"
+            const noteOfAudio = `SELECT noteID FROM section_group WHERE id = (${groupOfAudio})`
+            return [
+                folderChain(`SELECT folderID FROM note WHERE id = (${noteOfAudio})`, [id]),
+                restoreRow("note", noteOfAudio, [id]),
+                restoreRow("section_group", groupOfAudio, [id]),
+                restoreRow("audio_file", "SELECT ?", [id]),
             ]
         }
         case "task": {
@@ -215,6 +232,9 @@ export async function emptyDBTrash(workspaceId: number) {
                 SELECT s.id FROM section s
                 INNER JOIN section_group g ON g.id = s.groupID
                 INNER JOIN note n ON n.id = g.noteID WHERE n.workspaceID = ?)`, [workspaceId])
+        await db.execute(
+            `DELETE FROM audio_file WHERE deleted_at IS NOT NULL AND section_groupID IN (
+                SELECT g.id FROM section_group g INNER JOIN note n ON n.id = g.noteID WHERE n.workspaceID = ?)`, [workspaceId])
     } catch (error: unknown) {
         throw createError("TRASH_EMPTY_FAILED", "Failed to empty the trash: " + getErrorMessage(error))
     }

@@ -1,17 +1,19 @@
 import { SectionHeader } from "./SectionHeader"
 import { SectionBody } from "./SectionBody"
-import { useCallback, useState } from "react"
+import { useCallback } from "react"
 import type { HTMLAttributes } from "react"
 import type { Section as SectionType } from "@/types/types"
 import { cn } from "@/lib/utils"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
+import { useSectionOpen } from "@/contexts/tabs-context"
 
 type SectionProps = {
     section: SectionType
 }
 
 export const Section = ({ section }: SectionProps) => {
-    const [isOpen, setOpen] = useState(true)
+    // Kept per note, so it survives tab switches
+    const [isOpen, toggleOpen] = useSectionOpen(section.id)
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("section", section.id)
     const { setNodeRef: setDragRef, setActivatorNodeRef, attributes, listeners, isDragging } = useNoteDrag("section", section.id)
 
@@ -20,10 +22,6 @@ export const Section = ({ section }: SectionProps) => {
         setDropRef(node)
         setDragRef(node)
     }, [setDropRef, setDragRef])
-
-    const handleOpen = () => {
-        setOpen(prev => !prev)
-    }
 
     const draggingSection = active?.kind === "section"
 
@@ -40,7 +38,7 @@ export const Section = ({ section }: SectionProps) => {
                 <div className={cn("pointer-events-none absolute left-0 right-0 z-10 h-0.5 bg-primary", zone === "before" ? "-top-[3px]" : "-bottom-[3px]")} />}
             <SectionHeader
                 isOpen={isOpen}
-                onOpenChange={handleOpen}
+                onOpenChange={toggleOpen}
                 section={section}
                 dragHandleRef={setActivatorNodeRef}
                 dragHandleProps={{ ...attributes, ...listeners } as HTMLAttributes<HTMLDivElement>}

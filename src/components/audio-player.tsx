@@ -10,15 +10,22 @@ type Props = {
     fileName?: string
     listenersHandle: SyntheticListenerMap | undefined
     attributesHandle: DraggableAttributes
+    /** Controlled visibility (default: visible). */
+    open?: boolean
+    /** Called after the X button paused the playback. */
+    onClose?: () => void
+    /** Changes at every play request: when set, the track (re)starts from the beginning as soon as it changes. */
+    autoPlayKey?: number
+    /** Called when the media element reports an error (unsupported codec, file removed...). */
+    onError?: () => void
 }
 
-export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle }: Props) => {
+export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle, open = true, onClose, autoPlayKey, onError }: Props) => {
     const audioRef = useRef<HTMLAudioElement>(null)
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
     const [volume, setVolume] = useState(1)
-    const [open, setOpen] = useState(true)
 
     useEffect(() => {
         const audio = audioRef.current
@@ -35,6 +42,15 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle }
             audio.removeEventListener("loadedmetadata", setMeta)
         }
     }, [])
+
+    // A play request (new file or same file clicked again) starts the track from the beginning
+    useEffect(() => {
+        const audio = audioRef.current
+        if (!audio || autoPlayKey === undefined || !src) return
+        audio.currentTime = 0
+        setCurrentTime(0)
+        audio.play().catch(() => setIsPlaying(false))
+    }, [autoPlayKey, src])
 
     const togglePlay = () => {
         const audio = audioRef.current
@@ -68,11 +84,9 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle }
         return `${m}:${s < 10 ? "0" : ""}${s}`
     }
 
-    const handleOpen = () => {
-        setOpen(false)
-        const audio = audioRef.current
-        if (!audio) return
-        audio.pause()
+    const handleClose = () => {
+        audioRef.current?.pause()
+        onClose?.()
     }
 
     return (
@@ -95,7 +109,7 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle }
                     className={cn("flex-1")}
                 />
                 <span>{formatTime(duration)}</span>
-                <div onClick={handleOpen} className="p-1 hover:bg-accent rounded-xs cursor-pointer">
+                <div onClick={handleClose} aria-label="Chiudi il player" className="p-1 hover:bg-accent rounded-xs cursor-pointer">
                     <X className="size-4" />
                 </div>
             </div>
@@ -128,6 +142,7 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle }
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 onEnded={() => setIsPlaying(false)}
+                onError={() => { setIsPlaying(false); onError?.() }}
                 className="hidden"
             />
         </div>

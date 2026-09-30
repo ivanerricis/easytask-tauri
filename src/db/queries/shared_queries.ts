@@ -2,7 +2,7 @@ import { createError, handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 import { getErrorMessage } from "@/lib/utils";
 
-const ITEM_TYPES = ["workspace", "folder", "note", "section", "section_group", "task"] as const
+const ITEM_TYPES = ["workspace", "folder", "note", "section", "section_group", "task", "audio_file"] as const
 
 /**
  * Tables that the shared queries are allowed to operate on.

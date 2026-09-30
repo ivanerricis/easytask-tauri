@@ -5,9 +5,11 @@ import { DndContext, type DragEndEvent } from "@dnd-kit/core"
 import { restrictToParentElement } from "@dnd-kit/modifiers"
 import { DraggableAudioPlayer } from "@/components/draggable-audio-player"
 import { usePreferences } from "@/contexts/preferences-context"
+import { useTabShortcuts } from "@/hooks/use-tab-shortcuts"
 
 export const MainContainer = () => {
     const { audioPlayerPosition, audioPlayerContainerRef, setAudioPlayerPosition, resetPlayerPosition } = usePreferences()
+    useTabShortcuts()
 
     useEffect(() => {
         if (audioPlayerPosition.x === 0 && audioPlayerPosition.y === 0)

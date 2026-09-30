@@ -1,37 +1,24 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useTabs, useTabsActions } from "@/contexts/tabs-context"
 import { CopyMinus } from "lucide-react"
-import { useEffect } from "react"
 
 export const ButtonCloseNotes = () => {
 
-    const { currentNotes, setCurrentNotes, setCurrentNote } = useWorkspaceData()
+    const { openIds } = useTabs()
+    const { closeAllNotes } = useTabsActions()
 
-    const closeNotes = async (e: React.MouseEvent) => {
+    const closeNotes = (e: React.MouseEvent) => {
         e.stopPropagation()
-        setCurrentNotes([])
-        setCurrentNote(null)
+        closeAllNotes()
     }
-
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "t" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault()
-                setCurrentNotes([])
-                setCurrentNote(null)
-            }
-        }
-        document.addEventListener("keydown", handleKeyDown)
-        return () => document.removeEventListener("keydown", handleKeyDown)
-    }, [setCurrentNotes, setCurrentNote])
 
     return (
         <TooltipCustom text="Chiudi tutte le note" shortcut="(Ctrl + T)">
             <Button
                 variant={"buttonIcon"}
                 size={"icon"}
-                disabled={currentNotes.length === 0}
+                disabled={openIds.length === 0}
                 onClick={closeNotes}
             >
                 <CopyMinus className="scale-x-[-1]" />

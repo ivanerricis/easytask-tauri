@@ -5,6 +5,7 @@ import { LoadingPage } from "@/components/pages/loading-page"
 import { WorkSpaceLayout } from "./WorkSpacePageLayout"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { useEffect, useState } from "react"
+import { AudioProvider } from "@/contexts/audio-context"
 
 const WorkSpacePage = () => {
     const { currentWorkspace } = useWorkspace()
@@ -43,10 +44,13 @@ const WorkSpacePage = () => {
 
     if (!currentWorkspace) return null
 
+    // The audio provider wraps both the note view and the floating player (rendered by MainContainer)
     return (
-        <WorkSpaceLayout>
-            <MainContainer />
-        </WorkSpaceLayout>
+        <AudioProvider>
+            <WorkSpaceLayout>
+                <MainContainer />
+            </WorkSpaceLayout>
+        </AudioProvider>
     )
 }
 

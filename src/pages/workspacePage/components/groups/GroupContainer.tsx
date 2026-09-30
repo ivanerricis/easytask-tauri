@@ -1,21 +1,39 @@
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd"
 import type { DropResult } from "@hello-pangea/dnd"
 import { AddSection } from "../section/AddSection"
-import { useEffect } from "react"
+import { useLayoutEffect, useRef } from "react"
 import { Group } from "./Group"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useActiveNote, useActiveNoteActions } from "@/contexts/active-note-context"
+import { useActiveNoteId, useTabUiStore } from "@/contexts/tabs-context"
 import { NoteDndProvider } from "../NoteDndProvider"
 import { NewGroupEnd, NewGroupSlot } from "./NewGroupSlot"
 
 export const GroupContainer = () => {
-    const { getNoteData, updateGroupsPositions, currentNote, noteDataTree, setNoteDataTree } = useWorkspaceData()
+    const { updateGroupsPositions } = useWorkspaceActions()
+    const { noteDataTree } = useActiveNote()
+    const { setNoteDataTree } = useActiveNoteActions()
+    const activeId = useActiveNoteId()
+    const uiStore = useTabUiStore()
+    const scrollRef = useRef<HTMLDivElement | null>(null)
 
     const groups = noteDataTree?.groups
+    const hasData = groups !== undefined
 
-    useEffect(() => {
-        if (!currentNote) return
-        getNoteData(currentNote.id).catch(console.error)
-    }, [currentNote, getNoteData])
+    // The data is loaded by the active note provider. Here the scroll position of each note is restored
+    // (once its data is rendered) and saved while scrolling, so it survives tab switches.
+    useLayoutEffect(() => {
+        const element = scrollRef.current
+        if (!element || activeId === null || !hasData) return
+
+        const saved = uiStore.getScroll(activeId)
+        element.scrollLeft = saved?.left ?? 0
+        element.scrollTop = saved?.top ?? 0
+
+        const handleScroll = () => uiStore.setScroll(activeId, { left: element.scrollLeft, top: element.scrollTop })
+        element.addEventListener("scroll", handleScroll, { passive: true })
+        return () => element.removeEventListener("scroll", handleScroll)
+    }, [activeId, hasData, uiStore])
 
     const handleOnDragEnd = async (result: DropResult) => {
         if (!result.destination || !groups) return
@@ -47,7 +65,10 @@ export const GroupContainer = () => {
                 {(provided) => (
                     <div
                         {...provided.droppableProps}
-                        ref={provided.innerRef}
+                        ref={node => {
+                            provided.innerRef(node)
+                            scrollRef.current = node
+                        }}
                         className="flex w-full h-full items-start p-2 space-x-2 overflow-x-auto"
                     >
                         {Array.isArray(groups) && groups.length > 0 &&

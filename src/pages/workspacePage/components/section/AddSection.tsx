@@ -1,5 +1,7 @@
 import { Input } from "@/components/ui/input"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useActiveNoteId } from "@/contexts/tabs-context"
+import { useActiveNote, useActiveNoteActions } from "@/contexts/active-note-context"
 import { useState, useRef, useEffect, useCallback } from "react"
 import type { FormEvent } from "react"
 import { toast } from "sonner"
@@ -16,7 +18,10 @@ type AddSectionFormProps = {
 export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     const [isOpen, setOpen] = useState(false)
     const [name, setName] = useState("")
-    const { createSection, createSectionInGroup, currentNote, getNoteData, groups } = useWorkspaceData()
+    const { createSection, createSectionInGroup } = useWorkspaceActions()
+    const activeId = useActiveNoteId()
+    const { noteDataTree } = useActiveNote()
+    const { refreshActiveNote } = useActiveNoteActions()
     const formRef = useRef<HTMLFormElement>(null)
 
     const handleOpen = useCallback(() => {
@@ -57,7 +62,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
         if (!name.trim()) return
 
         try {
-            if (!currentNote) return
+            if (activeId === null) return
 
             if (inGroup) {
                 if (!groupId) {
@@ -67,15 +72,16 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                 await createSectionInGroup(groupId, name.trim())
             } else {
                 let position = 0
+                const groups = noteDataTree?.groups ?? []
                 if (groups.length > 0) {
                     const lastGroup = groups.at(-1)!
                     position = lastGroup.position + 1
                 }
-                await createSection(currentNote.id, name.trim(), position)
+                await createSection(activeId, name.trim(), position)
             }
 
             handleOpen()
-            await getNoteData(currentNote.id)
+            await refreshActiveNote()
         } catch (error) {
             toast.error(getErrorMessage(error) || "Errore nella creazione della sezione")
         }

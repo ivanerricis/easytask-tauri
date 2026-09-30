@@ -9,6 +9,7 @@ const SIDEBAR_LEFT_OPEN_KEY = "sidebarLeftOpen"
 const SIDEBAR_RIGHT_OPEN_KEY = "sidebarRightOpen"
 const AUDIOPLAYER_POSITION_KEY = "audioPlayerPosition"
 const WORKSPACE_VIEW_KEY = "workspaceView"
+const REOPEN_NOTES_KEY = "reopenNotes"
 
 export type WorkspaceView = "grid" | "list"
 
@@ -189,5 +190,26 @@ export const getWorkspaceView = async (): Promise<WorkspaceView> => {
  */
 export const saveWorkspaceView = async (value: WorkspaceView): Promise<void> => {
     await store.set(WORKSPACE_VIEW_KEY, value)
+    await store.save()
+}
+
+/**
+ * Gets the value of the "reopen the notes at startup" preference.
+ * @returns A promise that resolves to a boolean indicating whether the open notes must be restored (default true).
+ * @category Store
+ */
+export const getReopenNotes = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(REOPEN_NOTES_KEY)
+    return value ?? true
+}
+
+/**
+ * Saves the value of the "reopen the notes at startup" preference.
+ * @param value A boolean indicating whether the open notes must be restored at startup.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveReopenNotes = async (value: boolean): Promise<void> => {
+    await store.set(REOPEN_NOTES_KEY, value)
     await store.save()
 }

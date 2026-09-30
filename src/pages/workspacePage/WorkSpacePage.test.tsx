@@ -9,6 +9,7 @@ const dataCtx = { error: null as string | null, getWorkspaceData: vi.fn() }
 
 vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => workspaceCtx }))
 vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceData: () => dataCtx }))
+vi.mock("@/contexts/audio-context", () => ({ AudioProvider: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("./WorkSpacePageLayout", () => ({ WorkSpaceLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock("./components/MainContainer", () => ({ MainContainer: () => <div>main-container</div> }))
 vi.mock("@/components/pages/error-page", () => ({ ErrorPage: ({ error }: { error: string }) => <div>error:{error}</div> }))

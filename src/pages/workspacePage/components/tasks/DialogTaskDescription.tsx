@@ -4,7 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } f
 import TextareaAutosize from "react-textarea-autosize"
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useWorkspaceData } from "@/contexts/workspace-data-context";
+import { useWorkspaceActions } from "@/contexts/workspace-data-context";
+import { useActiveNoteActions } from "@/contexts/active-note-context";
 import { toast } from "sonner";
 
 type Props = {
@@ -15,14 +16,14 @@ type Props = {
 
 export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
     const [text, setText] = useState(task.description)
-    const { updateTaskDescription, getNoteData, currentNote } = useWorkspaceData()
+    const { updateTaskDescription } = useWorkspaceActions()
+    const { refreshActiveNote } = useActiveNoteActions()
 
     const handleSaveDecription = async (e: React.MouseEvent) => {
         e.stopPropagation()
         try {
             await updateTaskDescription(task.id, text !== "" ? text : undefined)
-            if (currentNote)
-                await getNoteData(currentNote?.id)
+            await refreshActiveNote()
             onOpenChange(false)
         } catch (err) {
             toast.error(getErrorMessage(err))

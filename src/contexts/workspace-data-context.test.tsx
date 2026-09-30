@@ -1,7 +1,9 @@
 import type { ReactNode } from "react"
-import { act, renderHook } from "@testing-library/react"
+import { act, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { WorkspaceDataProvider, useWorkspaceData } from "./workspace-data-context"
+import { WorkspaceDataProvider, useWorkspaceData, useWorkspaceLoading } from "./workspace-data-context"
+import { useActiveNote, useActiveNoteActions } from "./active-note-context"
+import { useTabs, useTabsActions } from "./tabs-context"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
 import { getDBNoteData } from "@/db/queries/note"
 import { updateDBGroupPositions } from "@/db/queries/group"
@@ -15,6 +17,8 @@ import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "@/db/queri
 import { deferred } from "@/test/ui-render"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { Folder } from "@/types/types"
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 
 vi.mock("@/db/queries/workspace", () => ({ getDBWorkspaceData: vi.fn() }))
 vi.mock("@/db/queries/note", () => ({
@@ -55,6 +59,16 @@ vi.mock("@/db/queries/shared_queries", () => ({
 
 const wrapper = ({ children }: { children: ReactNode }) => <WorkspaceDataProvider>{children}</WorkspaceDataProvider>
 
+/** Every context of the provider tree in one object, like the old single context. */
+const useAll = () => ({
+    ...useWorkspaceData(),
+    isLoading: useWorkspaceLoading(),
+    ...useTabs(),
+    ...useTabsActions(),
+    ...useActiveNote(),
+    ...useActiveNoteActions(),
+})
+
 const makeFolder = (over: Partial<Folder>): Folder => ({
     id: 1,
     workspaceID: 1,
@@ -77,7 +91,7 @@ describe("WorkspaceDataContext", () => {
 
     it("throws when used outside the provider", () => {
         const spy = vi.spyOn(console, "error").mockImplementation(() => {})
-        expect(() => renderHook(() => useWorkspaceData())).toThrow(/WorkspaceDataProvider/)
+        expect(() => renderHook(() => useAll())).toThrow(/WorkspaceDataProvider/)
         spy.mockRestore()
     })
 
@@ -91,7 +105,7 @@ describe("WorkspaceDataContext", () => {
                 folders: [root, child],
                 notes: [noteInChild, rootNote],
             } as never)
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
 
             await act(() => result.current.getWorkspaceData(1))
 
@@ -104,14 +118,14 @@ describe("WorkspaceDataContext", () => {
 
         it("handles an empty result", async () => {
             vi.mocked(getDBWorkspaceData).mockResolvedValue(undefined as never)
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             await act(() => result.current.getWorkspaceData(1))
             expect(result.current.workspaceDataTree).toEqual({ rootFolders: [], rootNotes: [] })
         })
 
         it("sets the error, rethrows and resets isLoading on failure", async () => {
             vi.mocked(getDBWorkspaceData).mockRejectedValue(new Error("boom"))
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
 
             await act(async () => {
                 await expect(result.current.getWorkspaceData(1)).rejects.toThrow("boom")
@@ -121,7 +135,12 @@ describe("WorkspaceDataContext", () => {
         })
     })
 
-    describe("getNoteData", () => {
+    describe("note data of the active note", () => {
+        const open = async (result: { current: ReturnType<typeof useAll> }, id = 1) => {
+            await act(async () => { result.current.openNote(id) })
+            await waitFor(() => expect(result.current.noteDataTree).not.toBeNull())
+        }
+
         it("builds the note tree with sections, tasks and subtasks", async () => {
             vi.mocked(getDBNoteData).mockResolvedValue({
                 groups: [makeGroup({ id: 1 })],
@@ -131,15 +150,13 @@ describe("WorkspaceDataContext", () => {
                     makeTask({ id: 101, sectionID: 5, taskID: 100 }),
                 ],
             } as never)
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
 
-            await act(() => result.current.getNoteData(1))
+            await open(result)
 
             const section = result.current.noteDataTree!.groups[0].sections[0]
             expect(section.tasks.map(t => t.id)).toEqual([100])
             expect(section.tasks[0].subtasks.map(t => t.id)).toEqual([101])
-            expect(result.current.groups).toHaveLength(1)
-            expect(result.current.tasks).toHaveLength(2)
         })
 
         it("keeps the input order and nests groups, sections, tasks and deep subtasks", async () => {
@@ -159,9 +176,9 @@ describe("WorkspaceDataContext", () => {
                     makeTask({ id: 40, sectionID: 7, taskID: null }),
                 ],
             } as never)
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
 
-            await act(() => result.current.getNoteData(1))
+            await open(result)
 
             const [first, second] = result.current.noteDataTree!.groups
             expect(first.id).toBe(2)
@@ -176,14 +193,17 @@ describe("WorkspaceDataContext", () => {
             expect(second.sections[0].tasks.map(t => t.id)).toEqual([40])
         })
 
-        it("sets the error and rethrows on failure", async () => {
-            vi.mocked(getDBNoteData).mockRejectedValue(new Error("nope"))
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+        it("rejects and keeps the cached data when a refresh fails", async () => {
+            vi.spyOn(console, "error").mockImplementation(() => {})
+            vi.mocked(getDBNoteData).mockResolvedValueOnce({ groups: [makeGroup({ id: 1 })], sections: [], tasks: [] } as never)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await open(result)
 
+            vi.mocked(getDBNoteData).mockRejectedValueOnce(new Error("nope"))
             await act(async () => {
-                await expect(result.current.getNoteData(1)).rejects.toThrow("nope")
+                await expect(result.current.refreshActiveNote()).rejects.toThrow("nope")
             })
-            expect(result.current.error).toBe("Errore caricamento dati nota")
+            expect(result.current.noteDataTree!.groups.map(g => g.id)).toEqual([1])
         })
     })
 
@@ -193,7 +213,7 @@ describe("WorkspaceDataContext", () => {
             const b = deferred()
             vi.mocked(createDBTask).mockReturnValueOnce(a.promise as never)
             vi.mocked(createDBSection).mockReturnValueOnce(b.promise as never)
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
 
             let pa!: Promise<void>
             let pb!: Promise<void>
@@ -219,14 +239,14 @@ describe("WorkspaceDataContext", () => {
 
     describe("create / rename / delete", () => {
         it("forwards createTask to the db layer", async () => {
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             await act(() => result.current.createTask(3, "hello"))
             expect(createDBTask).toHaveBeenCalledWith(3, "hello")
         })
 
         it("forwards renameItem and propagates errors", async () => {
             vi.mocked(renameDBItem).mockRejectedValueOnce(new Error("rename failed"))
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
 
             await act(async () => {
                 await expect(result.current.renameItem("task", 4, "new")).rejects.toThrow("rename failed")
@@ -236,7 +256,7 @@ describe("WorkspaceDataContext", () => {
         })
 
         it("forwards deleteItem and updateItemColor", async () => {
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             await act(async () => {
                 await result.current.deleteItem("note", 9)
                 await result.current.updateItemColor("note", 9, "#000")
@@ -246,49 +266,59 @@ describe("WorkspaceDataContext", () => {
         })
     })
 
-    describe("deleteItem closes tabs", () => {
+    describe("deleteItem and the tabs", () => {
+        // The tabs follow the notes list: a deleted note disappears from the tabs once the workspace data is reloaded
         const setup = async (folders: Folder[], noteList: ReturnType<typeof makeNote>[], open: number[], current: number | null) => {
+            vi.mocked(getDBNoteData).mockResolvedValue({ groups: [], sections: [], tasks: [] } as never)
             vi.mocked(getDBWorkspaceData).mockResolvedValue({ folders, notes: noteList } as never)
-            const hook = renderHook(() => useWorkspaceData(), { wrapper })
+            const hook = renderHook(() => useAll(), { wrapper })
             await act(() => hook.result.current.getWorkspaceData(1))
-            const tabs = open.map(id => noteList.find(n => n.id === id)!)
-            act(() => {
-                hook.result.current.setCurrentNotes(tabs)
-                hook.result.current.setCurrentNote(tabs.find(n => n.id === current) ?? null)
+            await act(async () => {
+                open.forEach(id => hook.result.current.openNote(id))
+                if (current !== null) hook.result.current.activateNote(current)
             })
             return hook.result
+        }
+        const reload = (result: { current: ReturnType<typeof useAll> }, folders: Folder[], noteList: ReturnType<typeof makeNote>[]) => {
+            vi.mocked(getDBWorkspaceData).mockResolvedValue({ folders, notes: noteList } as never)
+            return act(() => result.current.getWorkspaceData(1))
         }
         const n = (id: number, folderID: number | null = null) => makeNote({ id, folderID })
 
         it("removes a deleted note from the tabs and selects the neighbour", async () => {
             const result = await setup([], [n(1), n(2), n(3)], [1, 2, 3], 2)
             await act(() => result.current.deleteItem("note", 2))
-            expect(result.current.currentNotes.map(x => x.id)).toEqual([1, 3])
+            await reload(result, [], [n(1), n(3)])
+            expect(result.current.tabs.map(x => x.id)).toEqual([1, 3])
             expect(result.current.currentNote?.id).toBe(3)
         })
 
         it("selects the previous tab when the last tab is deleted, and null when none is left", async () => {
             const result = await setup([], [n(1), n(2)], [1, 2], 2)
             await act(() => result.current.deleteItem("note", 2))
+            await reload(result, [], [n(1)])
             expect(result.current.currentNote?.id).toBe(1)
             await act(() => result.current.deleteItem("note", 1))
-            expect(result.current.currentNotes).toEqual([])
+            await reload(result, [], [])
+            expect(result.current.tabs).toEqual([])
             expect(result.current.currentNote).toBeNull()
         })
 
         it("keeps the current note when a background tab is deleted", async () => {
             const result = await setup([], [n(1), n(2)], [1, 2], 1)
             await act(() => result.current.deleteItem("note", 2))
-            expect(result.current.currentNotes.map(x => x.id)).toEqual([1])
+            await reload(result, [], [n(1)])
+            expect(result.current.tabs.map(x => x.id)).toEqual([1])
             expect(result.current.currentNote?.id).toBe(1)
         })
 
-        it("closes the tabs of every note inside a deleted folder and its descendants", async () => {
+        it("closes the tabs of every note inside a deleted folder and clears the current folder", async () => {
             const folders = [makeFolder({ id: 1 }), makeFolder({ id: 2, folderID: 1 }), makeFolder({ id: 3 })]
             const result = await setup(folders, [n(10, 1), n(11, 2), n(12, 3), n(13)], [10, 12, 11, 13], 11)
             act(() => result.current.setCurrentFolder(folders[1]))
             await act(() => result.current.deleteItem("folder", 1))
-            expect(result.current.currentNotes.map(x => x.id)).toEqual([12, 13])
+            await reload(result, [makeFolder({ id: 3 })], [n(12, 3), n(13)])
+            expect(result.current.tabs.map(x => x.id)).toEqual([12, 13])
             expect(result.current.currentNote?.id).toBe(13)
             expect(result.current.currentFolder).toBeNull()
         })
@@ -299,26 +329,20 @@ describe("WorkspaceDataContext", () => {
             await act(async () => {
                 await expect(result.current.deleteItem("note", 1)).rejects.toThrow("nope")
             })
-            expect(result.current.currentNotes).toHaveLength(1)
-        })
-
-        it("does not touch the tabs when deleting a task", async () => {
-            const result = await setup([], [n(1)], [1], 1)
-            await act(() => result.current.deleteItem("task", 5))
-            expect(result.current.currentNote?.id).toBe(1)
+            expect(result.current.tabs).toHaveLength(1)
         })
     })
 
     describe("move and trash", () => {
         it("forwards moveTreeItem without reloading data", async () => {
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             await act(() => result.current.moveTreeItem("note", 3, null, 2))
             expect(moveDBTreeItem).toHaveBeenCalledWith("note", 3, null, 2)
             expect(getDBWorkspaceData).not.toHaveBeenCalled()
         })
 
         it("forwards the section and task moves without reloading data", async () => {
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             await act(() => result.current.moveSection(4, 2, 1))
             await act(() => result.current.moveSectionToNewGroup(4, 0))
             await act(() => result.current.moveTask(9, { sectionId: 4, parentTaskId: 7 }, 3))
@@ -330,7 +354,7 @@ describe("WorkspaceDataContext", () => {
 
         it("propagates task move errors", async () => {
             vi.mocked(moveDBTask).mockRejectedValueOnce({ code: "TASK_MOVE_INVALID", message: "x" })
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             await act(async () => {
                 await expect(result.current.moveTask(1, { sectionId: 1, parentTaskId: 1 }, 0)).rejects.toMatchObject({ code: "TASK_MOVE_INVALID" })
             })
@@ -339,7 +363,7 @@ describe("WorkspaceDataContext", () => {
 
         it("propagates move errors", async () => {
             vi.mocked(moveDBTreeItem).mockRejectedValueOnce({ code: "FOLDER_MOVE_INVALID", message: "x" })
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             await act(async () => {
                 await expect(result.current.moveTreeItem("folder", 1, 1, 0)).rejects.toMatchObject({ code: "FOLDER_MOVE_INVALID" })
             })
@@ -349,7 +373,7 @@ describe("WorkspaceDataContext", () => {
         it("forwards the trash methods", async () => {
             const items = [{ type: "note", id: 1, name: "n", context: "", deleted_at: "2026-01-01" }]
             vi.mocked(getDBTrash).mockResolvedValue(items as never)
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             await act(async () => {
                 expect(await result.current.getTrash(4)).toBe(items)
                 await result.current.restoreItem("note", 1)
@@ -363,7 +387,7 @@ describe("WorkspaceDataContext", () => {
         })
 
         it("increments trashVersion after every successful trash-changing operation", async () => {
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             expect(result.current.trashVersion).toBe(0)
             let expected = 0
             const ops: Array<() => Promise<void>> = [
@@ -384,7 +408,7 @@ describe("WorkspaceDataContext", () => {
 
         it("does not increment trashVersion when the operation fails or is unrelated", async () => {
             vi.mocked(deleteDBItem).mockRejectedValueOnce(new Error("nope"))
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             await act(async () => {
                 await expect(result.current.deleteItem("task", 1)).rejects.toThrow("nope")
             })
@@ -394,47 +418,45 @@ describe("WorkspaceDataContext", () => {
         })
 
         it("forwards createNoteInFolder with the workspace id", async () => {
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
             await act(() => result.current.createNoteInFolder(1, 2, "x"))
             expect(createDBNoteInFolder).toHaveBeenCalledWith(1, 2, "x")
         })
     })
 
     describe("updateGroupsPositions", () => {
-        it("persists and updates groups and the note tree", async () => {
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+        it("persists the new positions", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
             const newGroups = [makeGroup({ id: 2, position: 0 }), makeGroup({ id: 1, position: 1 })]
 
             await act(() => result.current.updateGroupsPositions(newGroups))
 
             expect(updateDBGroupPositions).toHaveBeenCalledWith(newGroups)
-            expect(result.current.groups.map(g => g.id)).toEqual([2, 1])
-            expect(result.current.noteDataTree!.groups.map(g => g.id)).toEqual([2, 1])
         })
 
-        it("leaves state untouched when the db update fails", async () => {
+        it("rejects when the db update fails", async () => {
             vi.mocked(updateDBGroupPositions).mockRejectedValue(new Error("fail"))
-            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            const { result } = renderHook(() => useAll(), { wrapper })
 
             await act(async () => {
                 await expect(result.current.updateGroupsPositions([makeGroup({ id: 1 })])).rejects.toThrow("fail")
             })
-            expect(result.current.groups).toEqual([])
-            expect(result.current.noteDataTree).toBeNull()
+            expect(result.current.isLoading).toBe(false)
         })
     })
 
-    it("resetData clears note related state", () => {
-        const { result } = renderHook(() => useWorkspaceData(), { wrapper })
-        act(() => {
-            result.current.setCurrentNote(makeNote())
-            result.current.setGroups([makeGroup()])
-        })
+    it("resetData closes every tab and clears the current folder", async () => {
+        vi.mocked(getDBNoteData).mockResolvedValue({ groups: [], sections: [], tasks: [] } as never)
+        vi.mocked(getDBWorkspaceData).mockResolvedValue({ folders: [], notes: [makeNote({ id: 1 })] } as never)
+        const { result } = renderHook(() => useAll(), { wrapper })
+        await act(() => result.current.getWorkspaceData(1))
+        await act(async () => { result.current.openNote(1) })
+        await waitFor(() => expect(result.current.noteDataTree).not.toBeNull())
         expect(result.current.currentNote).not.toBeNull()
 
         act(() => result.current.resetData())
         expect(result.current.currentNote).toBeNull()
-        expect(result.current.groups).toEqual([])
+        expect(result.current.tabs).toEqual([])
         expect(result.current.noteDataTree).toBeNull()
     })
 })

@@ -111,13 +111,38 @@ describe("AudioPlayer", () => {
         expect(screen.getByText("50")).toBeInTheDocument()
     })
 
-    it("hides the player and pauses when closed", async () => {
+    it("pauses and calls onClose when closed", async () => {
         const user = userEvent.setup()
-        const { container } = setup()
-        const closeIcon = container.querySelector("svg.lucide-x")!
-        await user.click(closeIcon.parentElement!)
+        const onClose = vi.fn()
+        render(<AudioPlayer src="a.mp3" fileName="song.mp3" listenersHandle={undefined} attributesHandle={attributes} onClose={onClose} />)
+        await user.click(screen.getByLabelText("Chiudi il player"))
 
         expect(pause).toHaveBeenCalled()
+        expect(onClose).toHaveBeenCalledTimes(1)
+    })
+
+    it("is hidden when open is false", () => {
+        const { container } = render(<AudioPlayer src="a.mp3" listenersHandle={undefined} attributesHandle={attributes} open={false} />)
         expect(container.firstElementChild).toHaveClass("hidden")
+    })
+
+    it("starts from the beginning when autoPlayKey changes, not otherwise", () => {
+        const props = { src: "a.mp3", listenersHandle: undefined, attributesHandle: attributes } as const
+        const { rerender } = render(<AudioPlayer {...props} />)
+        expect(play).not.toHaveBeenCalled()
+
+        rerender(<AudioPlayer {...props} autoPlayKey={1} />)
+        expect(play).toHaveBeenCalledTimes(1)
+        rerender(<AudioPlayer {...props} autoPlayKey={1} />)
+        expect(play).toHaveBeenCalledTimes(1)
+        rerender(<AudioPlayer {...props} autoPlayKey={2} />)
+        expect(play).toHaveBeenCalledTimes(2)
+    })
+
+    it("reports media errors", () => {
+        const onError = vi.fn()
+        const { container } = render(<AudioPlayer src="a.mp3" listenersHandle={undefined} attributesHandle={attributes} onError={onError} />)
+        fireEvent.error(container.querySelector("audio")!)
+        expect(onError).toHaveBeenCalledTimes(1)
     })
 })

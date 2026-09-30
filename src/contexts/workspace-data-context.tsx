@@ -1,7 +1,7 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react"
-import type { Folder, Group, Note, NoteDataTree, Section, Task, TrashItem, WorkspaceDataTree } from "@/types/types"
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
+import type { Folder, Group, Note, TrashItem, WorkspaceDataTree } from "@/types/types"
 import { getDBWorkspaceData } from "@/db/queries/workspace";
-import { createDBNoteInFolder, createDBWorkspaceNote, getDBNoteData } from "@/db/queries/note"
+import { createDBNoteInFolder, createDBWorkspaceNote } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder";
 import { createDBSection, createDBSectionInGroup } from "@/db/queries/section";
 import { createDBSubTask, createDBTask, updateDBTaskCompletion, updateDBTaskDescription, updateDBTaskPriority } from "@/db/queries/task";
@@ -10,35 +10,27 @@ import { moveDBTreeItem } from "@/db/queries/tree";
 import { moveDBSection, moveDBSectionToNewGroup, moveDBTask, type TaskMoveTarget } from "@/db/queries/move";
 import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "@/db/queries/trash";
 import { renameDBItem, updateDBColor, deleteDBItem, type DBItemType } from "@/db/queries/shared_queries";
+import { buildWorkspaceTree } from "./tree-builders"
+import { TabsProvider } from "./tabs-context"
+import { ActiveNoteProvider } from "./active-note-context"
 
 /* ------------------------------------------------------------------------------------ */
 
-type WorkspaceDataContextType = {
+type WorkspaceStateType = {
     folders: Folder[]
     notes: Note[]
-    groups: Group[]
-    sections: Section[]
-    tasks: Task[]
     workspaceDataTree: WorkspaceDataTree | null
-    noteDataTree: NoteDataTree | null
     currentFolder: Folder | null
-    currentNote: Note | null
-    currentNotes: Note[]
     error: string | null
-    isLoading: boolean
     /** Incremented after every operation that can change the trash content (delete, restore, purge, empty, moves). */
     trashVersion: number
+}
 
+/** Every action has a stable identity (it never changes), so consumers of the actions alone never re-render because of it. */
+type WorkspaceActionsType = {
     setCurrentFolder: (folder: Folder | null) => void
-    setCurrentNote: (note: Note | null) => void
-    setCurrentNotes: React.Dispatch<React.SetStateAction<Note[]>>
-    setGroups: React.Dispatch<React.SetStateAction<Group[]>>
-    setSections: React.Dispatch<React.SetStateAction<Section[]>>
-    setTasks: React.Dispatch<React.SetStateAction<Task[]>>
-    setNoteDataTree: React.Dispatch<React.SetStateAction<NoteDataTree | null>>
 
     getWorkspaceData: (workspaceID: number) => Promise<void>
-    getNoteData: (noteID: number) => Promise<void>
 
     createWorkspaceFolder: (workspaceID: number, name: string, color?: string) => Promise<void>
     createWorkspaceNote: (workspaceID: number, name: string, color?: string) => Promise<void>
@@ -72,103 +64,11 @@ type WorkspaceDataContextType = {
     resetData: () => void
 }
 
-/**
- * Builds a tree structure for the workspace, organizing folders and notes.
- * @param folders The list of folders to include in the tree.
- * @param notes The list of notes to include in the tree.
- * @returns The root folders and notes for the workspace.
- * @category WorkspaceData Context
- */
-function buildWorkspaceTree(folders: Folder[], notes: Note[]) {
-    const folderMap = new Map<number, Folder>()
-
-    folders.forEach(folder => {
-        folder.subfolders = []
-        folder.notes = []
-        folderMap.set(folder.id, folder)
-    })
-
-    folders.forEach(folder => {
-        if (folder.folderID != null) {
-            const parent = folderMap.get(folder.folderID)
-            if (parent) {
-                parent.subfolders.push(folder)
-            }
-        }
-    })
-
-    notes.forEach(note => {
-        if (note.folderID != null) {
-            const parent = folderMap.get(note.folderID)
-            if (parent) {
-                parent.notes.push(note)
-            }
-        }
-    })
-
-    const rootFolders = folders.filter(folder => folder.folderID == null)
-    const rootNotes = notes.filter(note => note.folderID == null)
-
-    return {
-        rootFolders,
-        rootNotes
-    }
-}
-
-/**
- * Builds a tree structure for a note, organizing groups, sections, and tasks.
- * The input arrays are expected in position order (getDBNoteData sorts them), which the tree preserves.
- * @param groups The list of groups to include in the note tree.
- * @param sections The list of sections to include in the note tree.
- * @param tasks The list of tasks to include in the note tree.
- * @returns The structured note data tree.
- * @category WorkspaceData Context
- */
-function buildNoteTree(groups: Group[], sections: Section[], tasks: Task[]): NoteDataTree {
-    // Grouped once (O(n)), the insertion order keeps the position order of the input
-    const sectionsByGroup = new Map<number, Section[]>()
-    for (const section of sections) {
-        const list = sectionsByGroup.get(section.groupID)
-        if (list) list.push(section)
-        else sectionsByGroup.set(section.groupID, [section])
-    }
-
-    const rootTasksBySection = new Map<number, Task[]>()
-    const childrenByTask = new Map<number, Task[]>()
-    for (const task of tasks) {
-        if (task.taskID === null) {
-            if (task.sectionID == null) continue
-            const list = rootTasksBySection.get(task.sectionID)
-            if (list) list.push(task)
-            else rootTasksBySection.set(task.sectionID, [task])
-        } else if (task.taskID != null) {
-            const list = childrenByTask.get(task.taskID)
-            if (list) list.push(task)
-            else childrenByTask.set(task.taskID, [task])
-        }
-    }
-
-    function buildTasks(list: Task[] | undefined): Task[] {
-        return (list ?? []).map(task => ({
-            ...task,
-            subtasks: buildTasks(childrenByTask.get(task.id)),
-        }))
-    }
-
-    return {
-        groups: groups.map(group => ({
-            ...group,
-            sections: (sectionsByGroup.get(group.id) ?? []).map(section => ({
-                ...section,
-                tasks: buildTasks(rootTasksBySection.get(section.id)),
-            })),
-        })),
-    }
-}
-
 /* ------------------------------------------------------------------------------------ */
 
-const WorkspaceDataContext = createContext<WorkspaceDataContextType | null>(null)
+const WorkspaceStateContext = createContext<WorkspaceStateType | null>(null)
+const WorkspaceActionsContext = createContext<WorkspaceActionsType | null>(null)
+const WorkspaceLoadingContext = createContext<boolean>(false)
 
 export function WorkspaceDataProvider({ children }: { children: React.ReactNode }) {
 
@@ -176,17 +76,18 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const [error, setError] = useState<string | null>(null)
     const [folders, setFolders] = useState<Folder[]>([])
     const [notes, setNotes] = useState<Note[]>([])
-    const [groups, setGroups] = useState<Group[]>([])
-    const [sections, setSections] = useState<Section[]>([])
-    const [tasks, setTasks] = useState<Task[]>([])
     const [workspaceDataTree, setWorkspaceDataTree] = useState<WorkspaceDataTree | null>(null)
-    const [noteDataTree, setNoteDataTree] = useState<NoteDataTree | null>(null)
+    const [loadedWorkspaceId, setLoadedWorkspaceId] = useState<number | null>(null)
 
     const [currentFolder, setCurrentFolder] = useState<Folder | null>(null)
-    const [currentNote, setCurrentNote] = useState<Note | null>(null)
-    const [currentNotes, setCurrentNotes] = useState<Note[]>([])
 
     const [trashVersion, setTrashVersion] = useState(0)
+
+    // Latest data for the stable actions (deleteItem) without making them depend on it
+    const latest = useRef({ folders, notes, currentFolder })
+    useEffect(() => {
+        latest.current = { folders, notes, currentFolder }
+    }, [folders, notes, currentFolder])
 
     const pendingOps = useRef(0)
 
@@ -235,28 +136,9 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             setNotes(data?.notes || [])
             const tree = buildWorkspaceTree(data?.folders || [], data?.notes || [])
             setWorkspaceDataTree(tree)
+            setLoadedWorkspaceId(workspaceID)
         } catch (error) {
             setError('Errore caricamento dati del Workspace')
-            throw error
-        }
-    }), [withLoading])
-
-    /**
-     * Retrieves the note data for a given note ID.
-     * @param noteID The ID of the note to get data for.
-     * @throws Will throw an error if the note data cannot be retrieved.
-     * @category Workspace Data Context
-     */
-    const getNoteData = useCallback((noteID: number) => withLoading(async () => {
-        try {
-            const dataFlat = await getDBNoteData(noteID)
-            const tree = buildNoteTree(dataFlat?.groups ?? [], dataFlat?.sections ?? [], dataFlat?.tasks ?? [])
-            setGroups(dataFlat?.groups ?? [])
-            setSections(dataFlat?.sections ?? [])
-            setTasks(dataFlat?.tasks ?? [])
-            setNoteDataTree(tree)
-        } catch (error) {
-            setError('Errore caricamento dati nota')
             throw error
         }
     }), [withLoading])
@@ -342,11 +224,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @throws Will throw an error if the group positions cannot be updated.
      * @category Workspace Data Context
      */
-    const updateGroupsPositions = useCallback((newGroups: Group[]) => withLoading(async () => {
-        await updateDBGroupPositions(newGroups)
-        setGroups(newGroups)
-        setNoteDataTree(buildNoteTree(newGroups, sections, tasks))
-    }), [withLoading, sections, tasks])
+    const updateGroupsPositions = useCallback((newGroups: Group[]) =>
+        withLoading(() => updateDBGroupPositions(newGroups)), [withLoading])
 
     /**
      * Update the color of a folder in the workspace.
@@ -376,7 +255,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
     /**
      * Moves a section to a group of the open note at the given index among its sections. The section keeps all
-     * its tasks. A source group left empty is removed. It does NOT reload the data: the caller must call getNoteData.
+     * its tasks. A source group left empty is removed. It does NOT reload the data: the caller must call refreshActiveNote.
      * @param sectionID - The ID of the section to move.
      * @param targetGroupID - The destination group ID (same note).
      * @param targetIndex - The index among the destination sections (clamped).
@@ -388,7 +267,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
     /**
      * Moves a section into a new group created at the given index among the groups of the open note.
-     * It does NOT reload the data: the caller must call getNoteData.
+     * It does NOT reload the data: the caller must call refreshActiveNote.
      * @param sectionID - The ID of the section to move.
      * @param groupPosition - The index of the new group among the current groups (clamped).
      * @category Workspace Data Context
@@ -398,7 +277,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
     /**
      * Moves a task (with its whole subtree) to a section of the open note, at the top level or under another task,
-     * at the given index among its new siblings. It does NOT reload the data: the caller must call getNoteData.
+     * at the given index among its new siblings. It does NOT reload the data: the caller must call refreshActiveNote.
      * @param taskID - The ID of the task to move.
      * @param target - The destination section and optional parent task.
      * @param targetIndex - The index among the destination siblings (clamped).
@@ -412,27 +291,9 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     // Deleting methods
 
     /**
-     * Closes the open tabs of the given notes, selecting the neighbour tab when the current one is closed
-     * (same behaviour as the close button of NoteHeader).
-     * @param noteIds The IDs of the notes whose tabs must be closed.
-     * @category Workspace Data Context
-     */
-    const closeNoteTabs = useCallback((noteIds: Set<number>) => {
-        if (!currentNotes.some(n => noteIds.has(n.id))) return
-        const updated = currentNotes.filter(n => !noteIds.has(n.id))
-        setCurrentNotes(updated)
-
-        if (currentNote && noteIds.has(currentNote.id)) {
-            const currentIndex = currentNotes.findIndex(n => n.id === currentNote.id)
-            const neighbourIndex = currentNotes.slice(0, currentIndex).filter(n => !noteIds.has(n.id)).length
-            setCurrentNote(updated[neighbourIndex] ?? updated[updated.length - 1] ?? null)
-        }
-    }, [currentNotes, currentNote])
-
-    /**
      * Delete an item from the workspace (moves it to the trash).
-     * Deleting a note closes its tab; deleting a folder closes the tabs of every note inside it
-     * or inside its descendant folders and clears the current folder if it was affected.
+     * The tabs of deleted notes (or of notes inside a deleted folder) are closed by the tabs module as soon as the
+     * caller reloads the workspace data (getWorkspaceData); deleting a folder clears the current folder if it was affected.
      * @param itemType - The type of the item to delete (e.g., "folder", "note", "section", "task").
      * @param itemID - The ID of the item to delete.
      * @throws Will throw an error if the item cannot be deleted.
@@ -441,9 +302,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const deleteItem = useCallback((itemType: DBItemType, itemID: number) => withTrashChange(async () => {
         await deleteDBItem(itemType, itemID)
 
-        if (itemType === "note") {
-            closeNoteTabs(new Set([itemID]))
-        } else if (itemType === "folder") {
+        if (itemType === "folder") {
+            const { folders, currentFolder } = latest.current
             const folderIds = new Set<number>([itemID])
             let added = true
             while (added) {
@@ -455,10 +315,9 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
                     }
                 }
             }
-            closeNoteTabs(new Set(notes.filter(n => n.folderID != null && folderIds.has(n.folderID)).map(n => n.id)))
             if (currentFolder && folderIds.has(currentFolder.id)) setCurrentFolder(null)
         }
-    }), [withTrashChange, closeNoteTabs, folders, notes, currentFolder])
+    }), [withTrashChange])
 
     /* ------------------------------------------------------------------------------------ */
     // Trash methods
@@ -493,41 +352,24 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const emptyTrash = useCallback((workspaceID: number) =>
         withTrashChange(() => emptyDBTrash(workspaceID)), [withTrashChange])
 
+    /**
+     * Clears the workspace state (this also closes every tab, since the tabs follow the loaded workspace).
+     * @category Workspace Data Context
+     */
     const resetData = useCallback(() => {
         setCurrentFolder(null)
-        setCurrentNote(null)
-        setCurrentNotes([])
-        setGroups([])
-        setSections([])
-        setTasks([])
-        setNoteDataTree(null)
+        setLoadedWorkspaceId(null)
     }, [])
 
     /* ------------------------------------------------------------------------------------ */
 
-    const value = useMemo(() => ({
-        folders,
-        notes,
-        groups,
-        sections,
-        tasks,
-        workspaceDataTree,
-        noteDataTree,
-        currentFolder,
-        currentNote,
-        currentNotes,
-        error,
-        isLoading,
-        trashVersion,
+    const state = useMemo<WorkspaceStateType>(() => ({
+        folders, notes, workspaceDataTree, currentFolder, error, trashVersion
+    }), [folders, notes, workspaceDataTree, currentFolder, error, trashVersion])
+
+    const actions = useMemo<WorkspaceActionsType>(() => ({
         setCurrentFolder,
-        setCurrentNote,
-        setCurrentNotes,
-        setGroups,
-        setSections,
-        setTasks,
-        setNoteDataTree,
         getWorkspaceData,
-        getNoteData,
         createWorkspaceFolder,
         createWorkspaceNote,
         createSubFolder,
@@ -554,9 +396,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         emptyTrash,
         resetData
     }), [
-        folders, notes, groups, sections, tasks, workspaceDataTree, noteDataTree,
-        currentFolder, currentNote, currentNotes, error, isLoading, trashVersion,
-        getWorkspaceData, getNoteData, createWorkspaceFolder, createWorkspaceNote,
+        getWorkspaceData, createWorkspaceFolder, createWorkspaceNote,
         createSubFolder, createNoteInFolder, createSection, createSectionInGroup,
         createTask, createSubTask, updateTaskPriority, updateTaskCompletion,
         updateTaskDescription, renameItem, updateItemColor, updateGroupsPositions,
@@ -565,19 +405,55 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     ])
 
     return (
-        <WorkspaceDataContext.Provider value={value}>
-            {children}
-        </WorkspaceDataContext.Provider>
+        <WorkspaceLoadingContext.Provider value={isLoading}>
+            <WorkspaceStateContext.Provider value={state}>
+                <WorkspaceActionsContext.Provider value={actions}>
+                    <TabsProvider notes={notes} workspaceId={loadedWorkspaceId}>
+                        <ActiveNoteProvider>
+                            {children}
+                        </ActiveNoteProvider>
+                    </TabsProvider>
+                </WorkspaceActionsContext.Provider>
+            </WorkspaceStateContext.Provider>
+        </WorkspaceLoadingContext.Provider>
     )
 }
 
 /* ------------------------------------------------------------------------------------ */
 
+/**
+ * The workspace data (folders, notes, trees, current folder, error, trashVersion).
+ * @category Workspace Data Context
+ */
 // eslint-disable-next-line react-refresh/only-export-components
-export const useWorkspaceData = () => {
-    const context = useContext(WorkspaceDataContext)
-    if (!context) {
-        throw new Error('useWorkspaceData must be used within a WorkspaceDataProvider')
-    }
+export const useWorkspaceState = () => {
+    const context = useContext(WorkspaceStateContext)
+    if (!context) throw new Error('useWorkspaceState must be used within a WorkspaceDataProvider')
     return context
 }
+
+/**
+ * The stable workspace actions (their identity never changes).
+ * @category Workspace Data Context
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export const useWorkspaceActions = () => {
+    const context = useContext(WorkspaceActionsContext)
+    if (!context) throw new Error('useWorkspaceActions must be used within a WorkspaceDataProvider')
+    return context
+}
+
+/**
+ * True while any workspace operation is in flight. Kept apart so the other consumers do not re-render when it toggles.
+ * @category Workspace Data Context
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export const useWorkspaceLoading = () => useContext(WorkspaceLoadingContext)
+
+/**
+ * Workspace data and actions together. Tabs and active note data have their own hooks
+ * (useTabs, useTabsActions, useActiveNote, useActiveNoteActions).
+ * @category Workspace Data Context
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export const useWorkspaceData = () => ({ ...useWorkspaceState(), ...useWorkspaceActions() })

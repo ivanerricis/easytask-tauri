@@ -9,7 +9,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/compon
 const moveSection = vi.fn().mockResolvedValue(undefined)
 const moveSectionToNewGroup = vi.fn().mockResolvedValue(undefined)
 const moveTask = vi.fn().mockResolvedValue(undefined)
-const getNoteData = vi.fn().mockResolvedValue(undefined)
+const refreshActiveNote = vi.fn().mockResolvedValue(undefined)
 
 const noteDataTree: NoteDataTree = {
     groups: [
@@ -25,9 +25,11 @@ const noteDataTree: NoteDataTree = {
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 vi.mock("@/contexts/workspace-data-context", () => ({
-    useWorkspaceData: () => ({
-        noteDataTree, currentNote: { id: 7 }, getNoteData, moveSection, moveSectionToNewGroup, moveTask,
-    }),
+    useWorkspaceActions: () => ({ moveSection, moveSectionToNewGroup, moveTask }),
+}))
+vi.mock("@/contexts/active-note-context", () => ({
+    useActiveNote: () => ({ noteDataTree }),
+    useActiveNoteActions: () => ({ refreshActiveNote }),
 }))
 
 async function openSubmenu(ui: React.ReactElement) {
@@ -57,14 +59,14 @@ describe("SectionMoveSubmenu", () => {
 
         await waitFor(() => expect(moveSection).toHaveBeenCalledWith(1, 2, expect.any(Number)))
         expect(moveSection.mock.calls[0][2]).toBeGreaterThan(1000)
-        await waitFor(() => expect(getNoteData).toHaveBeenCalledWith(7))
+        await waitFor(() => expect(refreshActiveNote).toHaveBeenCalled())
     })
 
     it("creates a new group at the end", async () => {
         const user = await openSubmenu(<SectionMoveSubmenu sectionId={1} />)
         await user.click(await screen.findByText("Nuovo gruppo"))
         await waitFor(() => expect(moveSectionToNewGroup).toHaveBeenCalledWith(1, 2))
-        await waitFor(() => expect(getNoteData).toHaveBeenCalledWith(7))
+        await waitFor(() => expect(refreshActiveNote).toHaveBeenCalled())
     })
 })
 
@@ -74,7 +76,7 @@ describe("TaskMoveSubmenu", () => {
         expect(screen.queryByText("Sezione Alpha")).not.toBeInTheDocument() // already top level there
         await user.click(await screen.findByText("↳ Due"))
         await waitFor(() => expect(moveTask).toHaveBeenCalledWith(1, { sectionId: 1, parentTaskId: 2 }, expect.any(Number)))
-        await waitFor(() => expect(getNoteData).toHaveBeenCalledWith(7))
+        await waitFor(() => expect(refreshActiveNote).toHaveBeenCalled())
     })
 
     it("moves the task to a section as top level task", async () => {

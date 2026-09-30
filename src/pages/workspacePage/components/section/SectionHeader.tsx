@@ -4,7 +4,8 @@ import type { Section as SectionType, Task } from "@/types/types"
 import { ChevronDown, GripVertical } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 import { useEffect, useRef, useState } from "react"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { toast } from "sonner"
 import { usePreferences } from "@/contexts/preferences-context"
 import type { HTMLAttributes } from "react"
@@ -34,7 +35,8 @@ const calculateCompletionPercentage = (tasks: Task[]): number => {
 export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dragHandleProps }: SectionHeaderProps) => {
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(section.title)
-    const { getNoteData, renameItem, currentNote } = useWorkspaceData()
+    const { renameItem } = useWorkspaceActions()
+    const { refreshActiveNote } = useActiveNoteActions()
     const { showProgressBar } = usePreferences()
     const textareaRef = useRef<HTMLInputElement>(null)
 
@@ -51,8 +53,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
         try {
             if (section.title !== text && text.trim() !== "") {
                 await renameItem("section", section.id, text.trim())
-                if (currentNote)
-                    await getNoteData(currentNote.id)
+                await refreshActiveNote()
             }
         } catch (err) {
             toast.error('Impossibile cambiare il titolo della sezione' + ' - ' + getErrorMessage(err))

@@ -22,6 +22,7 @@ vi.mock("@/contexts/preferences-context", () => ({
         showProgressBar: true, setShowProgressBar: vi.fn(),
         showSectionCount: true, setShowSectionCount: vi.fn(),
         showTaskCount: true, setShowTaskCount: vi.fn(),
+        reopenNotes: true, setReopenNotes: vi.fn(),
         resetPlayerPosition: vi.fn(),
     }),
 }))
@@ -47,6 +48,7 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("button", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
+        expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()
 
         await user.click(screen.getByRole("button", { name: "Audio" }))
         expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument()

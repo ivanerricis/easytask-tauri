@@ -1,7 +1,8 @@
 import { EllipsisVertical } from "lucide-react"
 import { useState } from "react"
 import type { Note } from "@/types/types"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useTabsActions } from "@/contexts/tabs-context"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { useWorkspace } from "@/contexts/workspace-context"
@@ -20,16 +21,8 @@ export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [dropDownOpen, setDropDownOpen] = useState(false);
     const { currentWorkspace } = useWorkspace()
-    const { setCurrentNotes, setCurrentNote, getNoteData, getWorkspaceData, updateItemColor } = useWorkspaceData()
-
-    const openNote = async () => {
-        await getNoteData(note.id)
-        setCurrentNotes((prev: Note[]) => {
-            const alreadyExists = prev.some(n => n.id === note.id)
-            return alreadyExists ? prev : [...prev, note]
-        })
-        setCurrentNote(note)
-    }
+    const { getWorkspaceData, updateItemColor } = useWorkspaceActions()
+    const { openNote } = useTabsActions()
 
     return (
         <>
@@ -51,7 +44,7 @@ export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
                         <ButtonInPopover
                             text="Apri"
                             type="open"
-                            onClick={() => { openNote(); setDropDownOpen(false) }}
+                            onClick={() => { openNote(note.id); setDropDownOpen(false) }}
                         />
                         <ButtonInPopover
                             text="Rinomina"

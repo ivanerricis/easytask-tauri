@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Briefcase, FileText, Folder, Layers, LayoutList, Loader2, RotateCcw, SquareCheck, Trash2 } from "lucide-react"
+import { Briefcase, FileText, Music, Folder, Layers, LayoutList, Loader2, RotateCcw, SquareCheck, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspace } from "@/contexts/workspace-context"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { formatDate, getErrorMessage } from "@/lib/utils"
 import type { TrashItem } from "@/types/types"
 
@@ -34,6 +35,7 @@ const groups: { type: TrashItem["type"], label: string, icon: LucideIcon }[] = [
     { type: "section_group", label: "Gruppi", icon: Layers },
     { type: "section", label: "Sezioni", icon: LayoutList },
     { type: "task", label: "Task", icon: SquareCheck },
+    { type: "audio_file", label: "File audio", icon: Music },
 ]
 
 // "YYYY-MM-DD HH:MM:SS" -> "DD-MM-YYYY HH:MM"
@@ -206,14 +208,14 @@ type DialogTrashProps = {
 /** Trash of the current workspace (folders, notes, sections, tasks...). */
 export const DialogTrash = ({ isOpen, onOpenChange }: DialogTrashProps) => {
     const { currentWorkspace } = useWorkspace()
-    const { getTrash, restoreItem, purgeItem, emptyTrash, getWorkspaceData, getNoteData, currentNote } = useWorkspaceData()
+    const { getTrash, restoreItem, purgeItem, emptyTrash, getWorkspaceData } = useWorkspaceActions()
+    const { refreshActiveNote } = useActiveNoteActions()
     const workspaceID = currentWorkspace?.id
-    const noteID = currentNote?.id
 
     const refresh = async () => {
         if (workspaceID === undefined) return
         await getWorkspaceData(workspaceID)
-        if (noteID !== undefined) await getNoteData(noteID)
+        await refreshActiveNote()
     }
 
     const source: TrashSource = {

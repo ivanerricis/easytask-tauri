@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext } from "react"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { toast } from "sonner"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { getErrorMessage } from "@/lib/utils"
 import {
     ACCEPTS,
@@ -48,21 +49,21 @@ export function useNoteDrag(kind: NoteDragKind, id: number) {
 
 /**
  * Applies a computed move to the open note. Used by the drag & drop and by the "Sposta in…" menus.
- * Every move calls the context method and then ALWAYS reloads the note data (`getNoteData`), also on error,
+ * Every move calls the context method and then ALWAYS reloads the note data (`refreshActiveNote`), also on error,
  * so the UI reflects the database; errors are shown with a toast (sonner).
  * @category Note DnD
  */
 export function useNoteMoves() {
-    const { currentNote, getNoteData, moveSection, moveSectionToNewGroup, moveTask } = useWorkspaceData()
+    const { moveSection, moveSectionToNewGroup, moveTask } = useWorkspaceActions()
+    const { refreshActiveNote } = useActiveNoteActions()
 
     const reload = useCallback(async () => {
-        if (!currentNote) return
         try {
-            await getNoteData(currentNote.id)
+            await refreshActiveNote()
         } catch (err) {
             console.error(err)
         }
-    }, [currentNote, getNoteData])
+    }, [refreshActiveNote])
 
     const moveSectionTo = useCallback(async (sectionId: number, target: SectionTarget) => {
         try {

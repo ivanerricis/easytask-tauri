@@ -1,5 +1,5 @@
 import type { Note } from "@/types/types"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useTabsActions } from "@/contexts/tabs-context"
 import { File } from "lucide-react"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import React, { useCallback, useState } from "react"
@@ -19,15 +19,13 @@ type ItemNoteProps = {
 export const ItemNote = React.memo(({ note, className, dropZone = null }: ItemNoteProps) => {
     const { ref, attributes, listeners, isDragging } = useTreeRow("note", note.id)
     const [isHovered, setIsHovered] = useState(false)
-    const { setCurrentNotes, setCurrentNote, getNoteData } = useWorkspaceData()
+    const { openNote } = useTabsActions()
 
-    const handleOpenFile = useCallback(async (e: React.MouseEvent) => {
+    const handleOpenFile = useCallback((e: React.MouseEvent) => {
         e.stopPropagation()
         if (wasTreeJustDragged()) return
-        await getNoteData(note.id)
-        setCurrentNotes(prev => prev.some(n => n.id === note.id) ? prev : [...prev, note])
-        setCurrentNote(note)
-    }, [note, getNoteData, setCurrentNotes, setCurrentNote])
+        openNote(note.id)
+    }, [note.id, openNote])
 
     return (
         <div

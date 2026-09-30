@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { getErrorMessage } from "@/lib/utils"
 import { Plus } from "lucide-react"
 import { toast } from "sonner"
@@ -21,7 +22,8 @@ export const AddTask = ({ sectionId, parentTaskId, onClose }: AddTaskProps) => {
     const isSubtask = parentTaskId !== undefined
     const [isOpen, setOpen] = useState(isSubtask)
     const [text, setText] = useState("")
-    const { createTask, createSubTask, currentNote, getNoteData } = useWorkspaceData()
+    const { createTask, createSubTask } = useWorkspaceActions()
+    const { refreshActiveNote } = useActiveNoteActions()
     const formRef = useRef<HTMLFormElement>(null)
     const onCloseRef = useRef(onClose)
 
@@ -60,8 +62,7 @@ export const AddTask = ({ sectionId, parentTaskId, onClose }: AddTaskProps) => {
                     await createTask(sectionId, text.trim())
                     handleOpen()
                 }
-                if (!currentNote) return
-                await getNoteData(currentNote.id)
+                await refreshActiveNote()
             } catch (error: unknown) {
                 toast.error(getErrorMessage(error) || `Errore nella creazione del ${isSubtask ? "sottotask" : "task"}`)
             }

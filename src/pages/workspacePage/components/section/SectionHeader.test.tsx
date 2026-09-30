@@ -6,7 +6,10 @@ import { makeSection } from "@/test/ui-fixtures"
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 vi.mock("./ButtonMenuSection", () => ({ ButtonMenuSection: () => null }))
 vi.mock("@/contexts/workspace-data-context", () => ({
-    useWorkspaceData: () => ({ getNoteData: vi.fn(), renameItem: vi.fn(), currentNote: null }),
+    useWorkspaceActions: () => ({ renameItem: vi.fn() }),
+}))
+vi.mock("@/contexts/active-note-context", () => ({
+    useActiveNoteActions: () => ({ refreshActiveNote: vi.fn() }),
 }))
 vi.mock("@/contexts/preferences-context", () => ({
     usePreferences: () => ({ showProgressBar: false }),

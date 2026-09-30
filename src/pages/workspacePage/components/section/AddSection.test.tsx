@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { AddSection } from "./AddSection"
-import { makeGroup, makeNote } from "@/test/ui-fixtures"
+import { makeGroup } from "@/test/ui-fixtures"
 
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
@@ -11,12 +11,15 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 const ctx = {
     createSection: vi.fn(),
     createSectionInGroup: vi.fn(),
-    getNoteData: vi.fn(),
-    currentNote: null as ReturnType<typeof makeNote> | null,
+    refreshActiveNote: vi.fn(),
+    activeId: null as number | null,
     groups: [] as ReturnType<typeof makeGroup>[],
 }
-vi.mock("@/contexts/workspace-data-context", () => ({
-    useWorkspaceData: () => ctx,
+vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceActions: () => ctx }))
+vi.mock("@/contexts/tabs-context", () => ({ useActiveNoteId: () => ctx.activeId }))
+vi.mock("@/contexts/active-note-context", () => ({
+    useActiveNote: () => ({ noteDataTree: { groups: ctx.groups } }),
+    useActiveNoteActions: () => ctx,
 }))
 
 const PLACEHOLDER = "Scrivi qualcosa..."
@@ -31,8 +34,8 @@ describe("AddSection", () => {
         vi.resetAllMocks()
         ctx.createSection.mockResolvedValue(undefined)
         ctx.createSectionInGroup.mockResolvedValue(undefined)
-        ctx.getNoteData.mockResolvedValue(undefined)
-        ctx.currentNote = makeNote({ id: 20 })
+        ctx.refreshActiveNote.mockResolvedValue(undefined)
+        ctx.activeId = 20
         ctx.groups = []
     })
 
@@ -41,7 +44,7 @@ describe("AddSection", () => {
         render(<AddSection />)
         await user.type(await openForm(user), "  Todo  {Enter}")
 
-        await waitFor(() => expect(ctx.getNoteData).toHaveBeenCalledWith(20))
+        await waitFor(() => expect(ctx.refreshActiveNote).toHaveBeenCalled())
         expect(ctx.createSection).toHaveBeenCalledWith(20, "Todo", 0)
         expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument()
     })
@@ -83,7 +86,7 @@ describe("AddSection", () => {
 
     it("does nothing without a current note", async () => {
         const user = userEvent.setup()
-        ctx.currentNote = null
+        ctx.activeId = null
         render(<AddSection />)
         await user.type(await openForm(user), "X{Enter}")
 
@@ -98,7 +101,7 @@ describe("AddSection", () => {
         await user.type(await openForm(user), "X{Enter}")
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("insert failed"))
-        expect(ctx.getNoteData).not.toHaveBeenCalled()
+        expect(ctx.refreshActiveNote).not.toHaveBeenCalled()
         expect(screen.getByPlaceholderText(PLACEHOLDER)).toBeInTheDocument()
     })
 

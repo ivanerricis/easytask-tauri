@@ -6,13 +6,15 @@ import { makeTask } from "@/test/ui-fixtures"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 vi.mock("@/contexts/workspace-data-context", () => ({
-    useWorkspaceData: () => ({
+    useWorkspaceActions: () => ({
         updateTaskPriority: vi.fn(),
         updateTaskDescription: vi.fn(),
         updateItemColor: vi.fn(),
-        getNoteData: vi.fn(),
-        currentNote: null,
     }),
+}))
+vi.mock("@/contexts/tabs-context", () => ({ useActiveNoteId: () => null }))
+vi.mock("@/contexts/active-note-context", () => ({
+    useActiveNoteActions: () => ({ getNoteData: vi.fn(), refreshActiveNote: vi.fn(), patchTask: vi.fn(() => () => {}) }),
 }))
 vi.mock("../NoteMoveSubmenus", () => ({ TaskMoveSubmenu: () => null }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => null }))

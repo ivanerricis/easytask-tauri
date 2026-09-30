@@ -3,7 +3,9 @@ import { useState } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 import type { Section } from "@/types/types"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useActiveNoteId } from "@/contexts/tabs-context"
+import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
@@ -18,7 +20,9 @@ export const ButtonMenuSection = ({ section }: ButtonMenuSectionProps) => {
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const [dropDownOpen, setDropDownOpen] = useState(false)
-    const { updateItemColor, getNoteData, currentNote } = useWorkspaceData()
+    const { updateItemColor } = useWorkspaceActions()
+    const activeId = useActiveNoteId()
+    const { getNoteData } = useActiveNoteActions()
 
     return (
         <>
@@ -53,7 +57,7 @@ export const ButtonMenuSection = ({ section }: ButtonMenuSectionProps) => {
                                     item={section}
                                     itemType="section"
                                     addColorItem={updateItemColor}
-                                    getItemId={currentNote?.id}
+                                    getItemId={activeId ?? undefined}
                                     getItemData={getNoteData}
                                     setDropDownOpen={setDropDownOpen}
                                 />
@@ -79,7 +83,7 @@ export const ButtonMenuSection = ({ section }: ButtonMenuSectionProps) => {
                 itemType="section"
                 isOpen={isRenameOpen}
                 onOpenChange={setRenameOpen}
-                getItemId={currentNote?.id}
+                getItemId={activeId ?? undefined}
                 getItemData={getNoteData}
             />
             <DialogDeleteItem
@@ -87,7 +91,7 @@ export const ButtonMenuSection = ({ section }: ButtonMenuSectionProps) => {
                 itemType="section"
                 isOpen={isDeleteOpen}
                 onOpenChange={setDeleteOpen}
-                getItemId={currentNote?.id}
+                getItemId={activeId ?? undefined}
                 getItemData={getNoteData}
             />
         </>

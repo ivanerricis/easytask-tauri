@@ -1,12 +1,14 @@
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
 import { AudioPlayer } from "./audio-player"
+import { useAudio } from "@/contexts/audio-context"
 
 type Props = {
     position: { x: number; y: number, scaleX: number, scaleY: number }
 }
 
 export const DraggableAudioPlayer = ({ position }: Props) => {
+    const { track, closePlayer, reportPlaybackError } = useAudio()
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: "audio-player",
     })
@@ -19,10 +21,20 @@ export const DraggableAudioPlayer = ({ position }: Props) => {
         zIndex: 50,
     }
 
+    // Nothing is shown until the user clicks an audio file (nothing autoplays)
+    if (!track) return null
 
     return (
         <div ref={setNodeRef} style={style}>
-            <AudioPlayer listenersHandle={listeners} attributesHandle={attributes} />
+            <AudioPlayer
+                src={track.src}
+                fileName={track.name}
+                autoPlayKey={track.playId}
+                onClose={closePlayer}
+                onError={reportPlaybackError}
+                listenersHandle={listeners}
+                attributesHandle={attributes}
+            />
         </div>
     )
 }

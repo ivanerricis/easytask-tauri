@@ -1,7 +1,8 @@
 import { Checkbox } from "@/components/ui/checkbox"
 import type { Task as TaskType } from "@/types/types"
 import { ButtonMenuTask } from "./ButtonMenuTask"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { toast } from "sonner"
 import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
@@ -21,7 +22,8 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
     const [text, setText] = useState(task.text)
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
-    const { updateTaskCompletion, renameItem, getNoteData, currentNote } = useWorkspaceData()
+    const { updateTaskCompletion, renameItem } = useWorkspaceActions()
+    const { refreshActiveNote, patchTask } = useActiveNoteActions()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("task", task.id)
     const { setNodeRef: setDragRef, setActivatorNodeRef, attributes, listeners, isDragging } = useNoteDrag("task", task.id)
@@ -43,11 +45,12 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
     }, [isTextAreaOpen])
 
     const handleCheckedChange = async () => {
+        // Optimistic: the cached tree is updated at once and restored if the write fails
+        const rollback = patchTask(task.id, { completed: !task.completed })
         try {
             await updateTaskCompletion(task.id, !task.completed)
-            if (currentNote)
-                await getNoteData(currentNote.id)
         } catch (err) {
+            rollback()
             toast.error('Impossibile modificare il task' + ' - ' + getErrorMessage(err))
         }
     }
@@ -56,8 +59,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
         try {
             if (task.text !== text && text.trim() !== "") {
                 await renameItem("task", task.id, text.trim())
-                if (currentNote)
-                    await getNoteData(currentNote.id)
+                await refreshActiveNote()
             }
         } catch (err) {
             toast.error('Impossibile cambiare il testo del task' + ' - ' + getErrorMessage(err))

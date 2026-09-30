@@ -5,7 +5,7 @@ import {
     DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
     type Collision, type CollisionDetection, type DragMoveEvent, type DragStartEvent,
 } from "@dnd-kit/core"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useActiveNote } from "@/contexts/active-note-context"
 import {
     computeDropZone, computeSectionTarget, computeTaskTarget, findSection, findTask,
     type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverRef, type SectionTarget, type TaskTarget,
@@ -56,7 +56,7 @@ const getPointerY = (event: DragMoveEvent): number | null => {
  * @category Note DnD
  */
 export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
-    const { noteDataTree } = useWorkspaceData()
+    const { noteDataTree } = useActiveNote()
     const { moveSectionTo, moveTaskTo } = useNoteMoves()
     const [active, setActive] = useState<NoteDragRef | null>(null)
     const [hover, setHover] = useState<NoteHover>(NO_HOVER)

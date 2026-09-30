@@ -23,6 +23,8 @@ vi.mock("@/lib/store/preferences", () => ({
     resetAudioPlayerPosition: vi.fn(),
     getWorkspaceView: vi.fn(),
     saveWorkspaceView: vi.fn(),
+    getReopenNotes: vi.fn(),
+    saveReopenNotes: vi.fn(),
 }))
 
 const wrapper = ({ children }: { children: ReactNode }) => <PreferencesProvider>{children}</PreferencesProvider>
@@ -38,6 +40,7 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getSideBarLeftOpen).mockResolvedValue(false)
         vi.mocked(prefs.getSideBarRightOpen).mockResolvedValue(true)
         vi.mocked(prefs.getWorkspaceView).mockResolvedValue("list")
+        vi.mocked(prefs.getReopenNotes).mockResolvedValue(false)
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
     })
 
@@ -87,6 +90,17 @@ describe("PreferencesContext", () => {
         expect(result.current.workspaceView).toBe("grid")
         expect(prefs.saveWorkspaceView).toHaveBeenCalledWith("grid")
         expect(document.documentElement.style.getPropertyValue("--primary")).toBe("#abcdef")
+    })
+
+    it("loads and persists the reopen notes preference (default on)", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.reopenNotes).toBe(true)
+        await waitFor(() => expect(result.current.reopenNotes).toBe(false))
+
+        act(() => result.current.setReopenNotes(true))
+
+        expect(result.current.reopenNotes).toBe(true)
+        expect(prefs.saveReopenNotes).toHaveBeenCalledWith(true)
     })
 
     it("resetPlayerPosition resets the store but skips the state update without a container", async () => {

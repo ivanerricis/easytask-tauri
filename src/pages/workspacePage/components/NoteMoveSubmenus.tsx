@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu"
 import { ButtonInPopover } from "@/components/button-in-popover"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useActiveNote } from "@/contexts/active-note-context"
 import { END_INDEX, getSectionMoveDestinations, getTaskMoveDestinations } from "./note-dnd"
 import { useNoteMoves } from "./note-dnd-state"
 
@@ -18,7 +18,7 @@ type SectionMoveSubmenuProps = {
  * @category Note DnD
  */
 export const SectionMoveSubmenu = ({ sectionId, onDone }: SectionMoveSubmenuProps) => {
-    const { noteDataTree } = useWorkspaceData()
+    const { noteDataTree } = useActiveNote()
     const { moveSectionTo } = useNoteMoves()
 
     const destinations = useMemo(
@@ -72,7 +72,7 @@ type TaskMoveSubmenuProps = {
  * @category Note DnD
  */
 export const TaskMoveSubmenu = ({ taskId, onDone }: TaskMoveSubmenuProps) => {
-    const { noteDataTree } = useWorkspaceData()
+    const { noteDataTree } = useActiveNote()
     const { moveTaskTo } = useNoteMoves()
 
     const destinations = useMemo(

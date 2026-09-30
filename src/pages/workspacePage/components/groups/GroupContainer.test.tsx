@@ -4,11 +4,11 @@ import { act, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { DropResult } from "@hello-pangea/dnd"
 import { GroupContainer } from "./GroupContainer"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useTabsActions } from "@/contexts/tabs-context"
 import { getDBNoteData } from "@/db/queries/note"
 import { updateDBGroupPositions } from "@/db/queries/group"
 import { deferred, renderWithProviders } from "@/test/ui-render"
-import { makeGroup, makeNote } from "@/test/ui-fixtures"
+import { makeGroup } from "@/test/ui-fixtures"
 
 vi.mock("@/db/queries/workspace", () => ({ getDBWorkspaces: vi.fn(), createDBWorkspace: vi.fn(), getDBWorkspaceData: vi.fn() }))
 vi.mock("@/db/queries/note", () => ({ getDBNoteData: vi.fn(), createDBNoteInFolder: vi.fn(), createDBWorkspaceNote: vi.fn() }))
@@ -39,8 +39,8 @@ vi.mock("./Group", () => ({
 vi.mock("../section/AddSection", () => ({ AddSection: () => null }))
 
 function SelectNote({ children }: { children: ReactNode }) {
-    const { setCurrentNote } = useWorkspaceData()
-    useEffect(() => { setCurrentNote(makeNote({ id: 1 })) }, [setCurrentNote])
+    const { openNote } = useTabsActions()
+    useEffect(() => { openNote(1) }, [openNote])
     return <>{children}</>
 }
 

@@ -87,7 +87,7 @@ export type Task = {
  * `context` is the parent folder name or "Nota X › Sezione Y", empty string for root items.
  */
 export type TrashItem = {
-    type: "workspace" | "folder" | "note" | "section_group" | "section" | "task"
+    type: "workspace" | "folder" | "note" | "section_group" | "section" | "task" | "audio_file"
     id: number
     name: string
     context: string
@@ -101,6 +101,19 @@ export type WorkspaceDataTree = {
 
 export type NoteDataTree = {
     groups: Group[]
+}
+
+/**
+ * An audio file attached to a group. Only its path is stored: the file itself stays where the user keeps it.
+ */
+export type AudioFile = {
+    id: number
+    section_groupID: number
+    name: string
+    path: string
+    position: number
+    creation_date: string
+    creation_time: string
 }
 
 export type AudioPlayerPosition = {

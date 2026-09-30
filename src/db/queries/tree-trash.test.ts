@@ -11,6 +11,7 @@ import { createTaskTable, createTaskTrigger } from "../schema/task"
 import { createWorkspaceTable, createWorkspaceTrigger } from "../schema/workspace"
 import { migrateToV3 } from "../schema/v3"
 import { migrateToV4 } from "../schema/v4"
+import { migrateToV6 } from "../schema/v6"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v4)
 let sqlite: DatabaseSync
@@ -48,6 +49,7 @@ beforeEach(() => {
     ]) sqlite.exec(sql)
     sqlite.exec(migrateToV3)
     sqlite.exec(migrateToV4)
+    sqlite.exec(migrateToV6)
     sqlite.exec(`
         INSERT INTO workspace (id, name) VALUES (1, 'WS'), (2, 'Other');
     `)

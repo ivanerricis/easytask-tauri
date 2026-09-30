@@ -1,11 +1,12 @@
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useTabs, useTabsActions } from "@/contexts/tabs-context"
 import { NoteHeader } from "./NoteHeader"
 import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd"
 import type { DropResult } from "@hello-pangea/dnd"
 
 export const NoteList = () => {
 
-    const { currentNotes, setCurrentNotes, setCurrentNote } = useWorkspaceData()
+    const { tabs } = useTabs()
+    const { reorderTabs } = useTabsActions()
 
     const handleOnDragEnd = (result: DropResult) => {
         const { destination, source } = result;
@@ -14,13 +15,7 @@ export const NoteList = () => {
 
         if (destination.index === source.index) return;
 
-        const updatedNotes = Array.from(currentNotes);
-        const [removed] = updatedNotes.splice(source.index, 1);
-        updatedNotes.splice(destination.index, 0, removed);
-
-        setCurrentNotes(updatedNotes);
-        const newCurrentNote = updatedNotes[destination.index]
-        setCurrentNote(newCurrentNote)
+        reorderTabs(source.index, destination.index)
     }
 
     return (
@@ -32,7 +27,7 @@ export const NoteList = () => {
                         {...provided.droppableProps}
                         className="flex w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1"
                     >
-                        {currentNotes.map((note, index) => (
+                        {tabs.map((note, index) => (
                             <Draggable key={note.id} draggableId={note.id.toString()} index={index}>
                                 {(provided) => (
                                     <div

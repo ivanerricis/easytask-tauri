@@ -17,6 +17,8 @@ import {
     resetAudioPlayerPosition,
     getWorkspaceView,
     saveWorkspaceView,
+    getReopenNotes,
+    saveReopenNotes,
     type WorkspaceView
 } from "@/lib/store/preferences"
 import type { AudioPlayerPosition } from "@/types/types"
@@ -40,6 +42,8 @@ type PreferencesContextType = {
     resetPlayerPosition: () => void
     workspaceView: WorkspaceView
     setWorkspaceView: (value: WorkspaceView) => void
+    reopenNotes: boolean
+    setReopenNotes: (value: boolean) => void
 }
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined)
@@ -53,6 +57,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [sidebarRightOpen, setSidebarRightOpenState] = useState(true)
     const [audioPlayerPosition, setAudioPlayerPositionState] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 })
     const [workspaceView, setWorkspaceViewState] = useState<WorkspaceView>("grid")
+    const [reopenNotes, setReopenNotesState] = useState(true)
     const audioPlayerContainerRef =useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -63,6 +68,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         getSideBarRightOpen().then(setSidebarRightOpenState)
         getAudioPlayerPosition().then(setAudioPlayerPositionState)
         getWorkspaceView().then(setWorkspaceViewState)
+        getReopenNotes().then(setReopenNotesState)
         getPrimaryColor().then(hex => {
             setPrimaryColorState(hex)
             document.documentElement.style.setProperty('--primary', hex)
@@ -103,6 +109,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const setWorkspaceView = (value: WorkspaceView) => {
         setWorkspaceViewState(value)
         saveWorkspaceView(value)
+    }
+
+    const setReopenNotes = (value: boolean) => {
+        setReopenNotesState(value)
+        saveReopenNotes(value)
     }
 
     const setAudioPlayerPosition =(position: AudioPlayerPosition) => {
@@ -151,7 +162,9 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             setAudioPlayerPosition,
             resetPlayerPosition,
             workspaceView,
-            setWorkspaceView
+            setWorkspaceView,
+            reopenNotes,
+            setReopenNotes
         }}>
             {children}
         </PreferencesContext.Provider>

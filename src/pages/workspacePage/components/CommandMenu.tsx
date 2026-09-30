@@ -1,13 +1,15 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceState } from "@/contexts/workspace-data-context"
+import { useTabsActions } from "@/contexts/tabs-context"
 import type { Note } from "@/types/types"
 import { SearchIcon } from "lucide-react"
 import { useEffect, useState } from "react"
 
 export function CommandMenu() {
     const [open, setOpen] = useState(false)
-    const { notes, setCurrentNote, getNoteData, setCurrentNotes, folders } = useWorkspaceData()
+    const { notes, folders } = useWorkspaceState()
+    const { openNote } = useTabsActions()
 
     useEffect(() => {
         const down = (e: KeyboardEvent) => {
@@ -38,14 +40,9 @@ export function CommandMenu() {
                             <CommandItem
                                 className="!p-2"
                                 key={note.id}
-                                onSelect={async () => {
+                                onSelect={() => {
                                     setOpen(prev => !prev)
-                                    setCurrentNotes((prev: Note[]) => {
-                                        const alreadyExists = prev.some(n => n.id === note.id)
-                                        return alreadyExists ? prev : [...prev, note]
-                                    })
-                                    setCurrentNote(note)
-                                    await getNoteData(note.id)
+                                    openNote(note.id)
                                 }}
                             >
                                 {note.name}

@@ -9,6 +9,7 @@ import { createWorkspaceTable, createWorkspaceTrigger } from "./schema/workspace
 import { migrateToV3 } from "./schema/v3";
 import { migrateToV4 } from "./schema/v4";
 import { migrateToV5 } from "./schema/v5";
+import { migrateToV6 } from "./schema/v6";
 
 /**
  * Ordered list of migrations, applied once each and tracked with PRAGMA user_version.
@@ -40,6 +41,8 @@ const migrations: string[][] = [
     [migrateToV4],
     // v5: indexes on foreign key and hierarchy columns (single script)
     [migrateToV5],
+    // v6: audio files soft delete and ordering (single script)
+    [migrateToV6],
 ];
 
 /**
