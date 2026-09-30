@@ -10,9 +10,11 @@ import { GroupAudioFiles } from "./GroupAudioFiles"
 type GroupProps = {
     dragHandleProps?: DraggableProvidedDragHandleProps | null
     group: GroupType
+    /** Position of the group in the note (0-based), used for the default label "Gruppo N". */
+    index?: number
 }
 
-export const Group = ({ dragHandleProps, group }: GroupProps) => {
+export const Group = ({ dragHandleProps, group, index = 0 }: GroupProps) => {
     // The empty area of a group (and its header) accepts a dragged section: it is appended to the group
     const { setNodeRef, zone } = useNoteDrop("group", group.id)
 
@@ -23,6 +25,7 @@ export const Group = ({ dragHandleProps, group }: GroupProps) => {
         >
             <GroupHeader
                 group={group}
+                index={index}
                 dragHandleProps={dragHandleProps}
             />
             <GroupAudioFiles groupId={group.id} />

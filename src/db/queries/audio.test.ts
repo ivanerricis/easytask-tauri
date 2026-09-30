@@ -12,6 +12,7 @@ import { createWorkspaceTable, createWorkspaceTrigger } from "../schema/workspac
 import { migrateToV3 } from "../schema/v3"
 import { migrateToV4 } from "../schema/v4"
 import { migrateToV6 } from "../schema/v6"
+import { migrateToV7 } from "../schema/v7"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v6)
 let sqlite: DatabaseSync
@@ -31,7 +32,7 @@ import {
     renameDBAudioFile, updateDBAudioFilePath,
 } from "./audio"
 import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "./trash"
-import { deleteDBItem } from "./shared_queries"
+import { deleteDBItem, renameDBItem } from "./shared_queries"
 
 const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
 
@@ -46,6 +47,7 @@ beforeEach(() => {
     sqlite.exec(migrateToV3)
     sqlite.exec(migrateToV4)
     sqlite.exec(migrateToV6)
+    sqlite.exec(migrateToV7)
     sqlite.exec(`
         INSERT INTO workspace (id, name) VALUES (1, 'WS');
         INSERT INTO folder (id, workspaceID, folderID, name) VALUES (1, 1, NULL, 'F');
@@ -129,6 +131,13 @@ describe("audio files in the trash", () => {
         const trash = await getDBTrash(1)
         expect(trash).toHaveLength(1)
         expect(trash[0]).toMatchObject({ type: "audio_file", id: a.id, name: "a.mp3", context: "Nota N › Gruppo 2" })
+    })
+
+    it("uses the group name in the context when the group is named", async () => {
+        const a = await createDBAudioFile(2, "/m/a.mp3")
+        await renameDBItem("section_group", 2, "Sigla")
+        await deleteDBItem("audio_file", a.id)
+        expect((await getDBTrash(1))[0]).toMatchObject({ context: "Nota N › Sigla" })
     })
 
     it("restore brings back the file with its deleted ancestors (group, note, folders)", async () => {

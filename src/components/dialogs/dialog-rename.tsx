@@ -17,7 +17,7 @@ type DialogRenameProps<T> = {
 
 type defaultItemType = {
     id: number
-    name?: string
+    name?: string | null
     title?: string
 }
 
@@ -26,11 +26,13 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
     const [value, setValue] = useState(currentName)
     const { renameItem } = useWorkspaceData()
     const [error, setError] = useState<string | null>(null)
+    // A group may be unnamed: saving an empty name clears it
+    const allowEmpty = itemType === "section_group"
 
     const handleEdit = async (e: React.FormEvent) => {
         e.preventDefault()
         try {
-            if (value.trim() && value !== currentName)
+            if ((allowEmpty || value.trim()) && value.trim() !== currentName)
                 await renameItem(itemType, item.id, value.trim())
             if (typeof getItemId === "number") {
                 await getItemData(getItemId)
@@ -78,7 +80,7 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
                         </Button>
                         <Button
                             type="submit"
-                            disabled={!value.trim()}
+                            disabled={!allowEmpty && !value.trim()}
                         >
                             Salva
                         </Button>

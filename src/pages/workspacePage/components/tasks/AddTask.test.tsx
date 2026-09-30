@@ -95,7 +95,7 @@ describe("AddTask", () => {
     })
 
     describe("subtask mode", () => {
-        const placeholder = "Scrivi un sottotask..."
+        const placeholder = "Nuovo sottotask…"
 
         it("starts open and focused, and creates a subtask instead of a task", async () => {
             const user = userEvent.setup()

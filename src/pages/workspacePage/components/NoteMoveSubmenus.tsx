@@ -13,7 +13,7 @@ type SectionMoveSubmenuProps = {
 
 /**
  * "Sposta in…" submenu of a section: accessible alternative to drag & drop.
- * Lists the other groups of the note ("Gruppo N", with the titles of their sections as hint) and a new group.
+ * Lists the other groups of the note (name or "Gruppo N", with the titles of their sections as hint) and a new group.
  * The section is appended at the end of the chosen group.
  * @category Note DnD
  */

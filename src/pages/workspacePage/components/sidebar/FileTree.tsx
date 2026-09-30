@@ -15,6 +15,7 @@ import {
     computeDropTarget, computeDropZone, findTreeItem,
     type DropTarget, type DropZone, type TreeRef,
 } from "./tree-dnd"
+import { useItemSize } from "./item-size"
 import { markTreeDragEnd, treeRowKey } from "./tree-row"
 
 const ROOT_ID = "root"
@@ -64,12 +65,16 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, over
     return <ItemNote note={item} dropZone={overKey === treeRowKey("note", item.id) ? overZone : null} />
 }
 
-const DragPreview = ({ item, isFolder }: { item: Folder | Note, isFolder: boolean }) => (
-    <div className="flex items-center gap-1 h-7 px-1 rounded-xs border border-accent bg-background shadow-md opacity-90 w-48">
-        {isFolder ? <FolderIcon className="size-4 shrink-0" /> : <File className="size-4 shrink-0" />}
-        <span className="text-sm truncate">{item.name}</span>
-    </div>
-)
+const DragPreview = ({ item, isFolder }: { item: Folder | Note, isFolder: boolean }) => {
+    const size = useItemSize()
+    const Icon = isFolder ? FolderIcon : File
+    return (
+        <div className={`flex items-center gap-1 ${size.row} px-1 rounded-xs border border-accent bg-background shadow-md opacity-90 w-48`}>
+            <Icon className={`${size.icon} shrink-0`} />
+            <span className={`${size.text} truncate`}>{item.name}</span>
+        </div>
+    )
+}
 
 const RootDropArea = ({ highlighted, children }: { highlighted: boolean, children: React.ReactNode }) => {
     const { setNodeRef } = useDroppable({ id: ROOT_ID })

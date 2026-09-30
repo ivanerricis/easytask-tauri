@@ -2,6 +2,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { Input } from "@/components/ui/input"
 import { usePreferences } from "@/contexts/preferences-context"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
+import { SidebarItemSizeSetting } from "./SidebarItemSizeSetting"
 
 export const AppearanceSettings = () => {
     const { primaryColor, setPrimaryColor } = usePreferences()
@@ -25,6 +26,7 @@ export const AppearanceSettings = () => {
                     />
                 </div>
             </SettingsRow>
+            <SidebarItemSizeSetting />
         </SettingsPanel>
     )
 }

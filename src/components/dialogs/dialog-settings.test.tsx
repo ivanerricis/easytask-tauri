@@ -1,8 +1,9 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { openUrl } from "@tauri-apps/plugin-opener"
 import { toast } from "sonner"
+const setSidebarItemSize = vi.fn()
 import { DialogSettings } from "./dialog-settings"
 
 vi.mock("@tauri-apps/api/app", () => ({
@@ -24,6 +25,7 @@ vi.mock("@/contexts/preferences-context", () => ({
         showTaskCount: true, setShowTaskCount: vi.fn(),
         reopenNotes: true, setReopenNotes: vi.fn(),
         resetPlayerPosition: vi.fn(),
+        sidebarItemSize: "normal", setSidebarItemSize: (value: string) => setSidebarItemSize(value),
     }),
 }))
 
@@ -36,6 +38,7 @@ const open = async () => {
 
 describe("DialogSettings", () => {
     beforeEach(() => {
+        setSidebarItemSize.mockReset()
         vi.mocked(openUrl).mockReset().mockResolvedValue(undefined)
         vi.mocked(toast.error).mockReset()
     })
@@ -52,6 +55,16 @@ describe("DialogSettings", () => {
 
         await user.click(screen.getByRole("button", { name: "Audio" }))
         expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument()
+    })
+
+    it("sets the sidebar item size from the segmented control and previews it", async () => {
+        await open()
+        const group = screen.getByRole("radiogroup", { name: "Dimensione di cartelle e note" })
+        expect(within(group).getByRole("radio", { name: "Normale" })).toBeChecked()
+        expect(screen.getByTestId("sidebar-size-preview").firstElementChild).toHaveClass("h-7")
+
+        await userEvent.click(within(group).getByRole("radio", { name: "Grande" }))
+        expect(setSidebarItemSize).toHaveBeenCalledWith("large")
     })
 
     it("Informazioni is last and shows the app version", async () => {

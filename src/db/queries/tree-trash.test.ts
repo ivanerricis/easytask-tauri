@@ -12,6 +12,7 @@ import { createWorkspaceTable, createWorkspaceTrigger } from "../schema/workspac
 import { migrateToV3 } from "../schema/v3"
 import { migrateToV4 } from "../schema/v4"
 import { migrateToV6 } from "../schema/v6"
+import { migrateToV7 } from "../schema/v7"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v4)
 let sqlite: DatabaseSync
@@ -28,7 +29,7 @@ vi.mock("../dbManager", () => ({
 
 import { moveDBTreeItem } from "./tree"
 import { emptyDBTrash, getDBTrash, getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from "./trash"
-import { deleteDBItem } from "./shared_queries"
+import { deleteDBItem, renameDBItem } from "./shared_queries"
 import { createDBSubFolder, createDBWorkspaceFolder } from "./folder"
 import { createDBNoteInFolder, createDBWorkspaceNote, getDBNoteData } from "./note"
 import { createDBSubTask } from "./task"
@@ -50,6 +51,7 @@ beforeEach(() => {
     sqlite.exec(migrateToV3)
     sqlite.exec(migrateToV4)
     sqlite.exec(migrateToV6)
+    sqlite.exec(migrateToV7)
     sqlite.exec(`
         INSERT INTO workspace (id, name) VALUES (1, 'WS'), (2, 'Other');
     `)
@@ -221,6 +223,15 @@ describe("soft delete, trash and restore", () => {
         expect(trash[0]).toMatchObject({ name: "S2", context: "Nota deep" })
         expect(trash[1]).toMatchObject({ name: "A1", context: "A" })
         expect(trash[2]).toMatchObject({ name: "T", context: "Nota deep › Sezione S1" })
+    })
+
+    it("names deleted groups by their name, falling back to the section count", async () => {
+        await seedNote()
+        await renameDBItem("section_group", 1, "Idee")
+        sqlite.exec("UPDATE section_group SET deleted_at = datetime('now')")
+        expect(await getDBTrash(1)).toEqual([expect.objectContaining({ type: "section_group", name: "Idee", context: "deep" })])
+        await renameDBItem("section_group", 1, "")
+        expect(await getDBTrash(1)).toEqual([expect.objectContaining({ name: "Gruppo di 2 sezioni" })])
     })
 
     it("names deleted groups by their section count", async () => {

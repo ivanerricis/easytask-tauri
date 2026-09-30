@@ -19,6 +19,9 @@ import {
     saveWorkspaceView,
     getReopenNotes,
     saveReopenNotes,
+    getSidebarItemSize,
+    saveSidebarItemSize,
+    type SidebarItemSize,
     type WorkspaceView
 } from "@/lib/store/preferences"
 import type { AudioPlayerPosition } from "@/types/types"
@@ -44,6 +47,8 @@ type PreferencesContextType = {
     setWorkspaceView: (value: WorkspaceView) => void
     reopenNotes: boolean
     setReopenNotes: (value: boolean) => void
+    sidebarItemSize: SidebarItemSize
+    setSidebarItemSize: (value: SidebarItemSize) => void
 }
 
 const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined)
@@ -58,6 +63,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [audioPlayerPosition, setAudioPlayerPositionState] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 })
     const [workspaceView, setWorkspaceViewState] = useState<WorkspaceView>("grid")
     const [reopenNotes, setReopenNotesState] = useState(true)
+    const [sidebarItemSize, setSidebarItemSizeState] = useState<SidebarItemSize>("normal")
     const audioPlayerContainerRef =useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -69,6 +75,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         getAudioPlayerPosition().then(setAudioPlayerPositionState)
         getWorkspaceView().then(setWorkspaceViewState)
         getReopenNotes().then(setReopenNotesState)
+        getSidebarItemSize().then(setSidebarItemSizeState)
         getPrimaryColor().then(hex => {
             setPrimaryColorState(hex)
             document.documentElement.style.setProperty('--primary', hex)
@@ -114,6 +121,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const setReopenNotes = (value: boolean) => {
         setReopenNotesState(value)
         saveReopenNotes(value)
+    }
+
+    const setSidebarItemSize = (value: SidebarItemSize) => {
+        setSidebarItemSizeState(value)
+        saveSidebarItemSize(value)
     }
 
     const setAudioPlayerPosition =(position: AudioPlayerPosition) => {
@@ -164,7 +176,9 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             workspaceView,
             setWorkspaceView,
             reopenNotes,
-            setReopenNotes
+            setReopenNotes,
+            sidebarItemSize,
+            setSidebarItemSize
         }}>
             {children}
         </PreferencesContext.Provider>

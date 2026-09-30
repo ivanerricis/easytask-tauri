@@ -170,6 +170,13 @@ describe("getSectionMoveDestinations", () => {
         expect(result.newGroupIndex).toBe(3)
     })
 
+    it("labels a named group with its name and the others with 'Gruppo N'", () => {
+        const named = buildTree()
+        named.groups[1].name = "Da fare"
+        expect(getSectionMoveDestinations(named, 1).groups.map(g => g.label)).toEqual(["Da fare", "Gruppo 3"])
+        expect(getTaskMoveDestinations(named, 1).find(d => d.key === "section-3")?.hint).toBe("Da fare")
+    })
+
     it("does not offer a new group for the only section of a group", () => {
         expect(getSectionMoveDestinations(tree, 3).canCreateGroup).toBe(false)
     })

@@ -45,6 +45,15 @@ describe("item type whitelist", () => {
 })
 
 describe("renameDBItem", () => {
+    it("stores the name of a group, and NULL for an empty or blank name", async () => {
+        await renameDBItem("section_group", 1, "  Idee ")
+        expect(db.execute).toHaveBeenLastCalledWith("UPDATE section_group SET name=? WHERE id=?", ["Idee", 1])
+        await renameDBItem("section_group", 1, "")
+        expect(db.execute).toHaveBeenLastCalledWith("UPDATE section_group SET name=? WHERE id=?", [null, 1])
+        await renameDBItem("section_group", 1, "   ")
+        expect(db.execute).toHaveBeenLastCalledWith("UPDATE section_group SET name=? WHERE id=?", [null, 1])
+    })
+
     it("uses title for section", async () => {
         await renameDBItem("section", 3, "T")
         expect(db.execute).toHaveBeenCalledWith("UPDATE section SET title=? WHERE id=?", ["T", 3])
@@ -56,7 +65,7 @@ describe("renameDBItem", () => {
     })
 
     it("uses name for the other types", async () => {
-        for (const type of ["workspace", "folder", "note", "section_group"] as const) {
+        for (const type of ["workspace", "folder", "note"] as const) {
             await renameDBItem(type, 1, "N")
             expect(db.execute).toHaveBeenLastCalledWith(`UPDATE ${type} SET name=? WHERE id=?`, ["N", 1])
         }

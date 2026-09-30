@@ -30,6 +30,9 @@ export async function renameDBItem(itemType: DBItemType, itemID: number, name: s
     try {
         if (itemType === "section")
             await db.execute('UPDATE ' + itemType + ' SET title=? WHERE id=?', [name, itemID])
+        else if (itemType === "section_group")
+            // A group may be unnamed: a blank name clears it
+            await db.execute('UPDATE ' + itemType + ' SET name=? WHERE id=?', [name.trim() || null, itemID])
         else if (itemType === "task")
             await db.execute('UPDATE ' + itemType + ' SET text=? WHERE id=?', [name, itemID])
         else

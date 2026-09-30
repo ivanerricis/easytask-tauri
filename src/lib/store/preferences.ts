@@ -10,8 +10,10 @@ const SIDEBAR_RIGHT_OPEN_KEY = "sidebarRightOpen"
 const AUDIOPLAYER_POSITION_KEY = "audioPlayerPosition"
 const WORKSPACE_VIEW_KEY = "workspaceView"
 const REOPEN_NOTES_KEY = "reopenNotes"
+const SIDEBAR_ITEM_SIZE_KEY = "sidebarItemSize"
 
 export type WorkspaceView = "grid" | "list"
+export type SidebarItemSize = "compact" | "normal" | "large"
 
 
 /**
@@ -211,5 +213,26 @@ export const getReopenNotes = async (): Promise<boolean> => {
  */
 export const saveReopenNotes = async (value: boolean): Promise<void> => {
     await store.set(REOPEN_NOTES_KEY, value)
+    await store.save()
+}
+
+/**
+ * Gets the size of the folder and note rows in the left sidebar.
+ * @returns A promise that resolves to "compact", "normal" (default) or "large"; unknown stored values fall back to "normal".
+ * @category Store
+ */
+export const getSidebarItemSize = async (): Promise<SidebarItemSize> => {
+    const value = await store.get<SidebarItemSize>(SIDEBAR_ITEM_SIZE_KEY)
+    return value === "compact" || value === "large" ? value : "normal"
+}
+
+/**
+ * Saves the size of the folder and note rows in the left sidebar.
+ * @param value The size to save ("compact", "normal" or "large").
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveSidebarItemSize = async (value: SidebarItemSize): Promise<void> => {
+    await store.set(SIDEBAR_ITEM_SIZE_KEY, value)
     await store.save()
 }

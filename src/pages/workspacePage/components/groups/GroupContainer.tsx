@@ -86,7 +86,7 @@ export const GroupContainer = () => {
                                                 }}
                                             >
                                                 <NewGroupSlot index={index} />
-                                                <Group dragHandleProps={provided.dragHandleProps} group={group} />
+                                                <Group dragHandleProps={provided.dragHandleProps} group={group} index={index} />
                                             </div>
                                         )}
                                     </Draggable>

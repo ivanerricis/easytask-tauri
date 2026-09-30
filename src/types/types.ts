@@ -45,6 +45,8 @@ export type Group = {
     id: number
     noteID: number
     position: number
+    /** Optional name of the group; null/undefined = unnamed (shown as "Gruppo N"). */
+    name?: string | null
     sections: Section[]
 }
 

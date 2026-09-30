@@ -1,4 +1,5 @@
 import { ButtonInPopover } from "@/components/button-in-popover";
+import { DialogRenameItem } from "@/components/dialogs/dialog-rename";
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useActiveNoteId } from "@/contexts/tabs-context";
@@ -13,6 +14,7 @@ type Props = {
 }
 
 export const ButtonMenuGroup = ({ group }: Props) => {
+    const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const [dropDownOpen, setDropDownOpen] = useState(false)
     const activeId = useActiveNoteId()
@@ -32,6 +34,14 @@ export const ButtonMenuGroup = ({ group }: Props) => {
                     className="p-1 rounded-xs"
                 >
                     <DropdownMenuGroup className="flex flex-col gap-1">
+                        <ButtonInPopover
+                            text="Rinomina"
+                            type="rename"
+                            onClick={() => {
+                                setRenameOpen(true)
+                                setDropDownOpen(false)
+                            }}
+                        />
                         <ButtonInPopover
                             text="Aggiungi file audio"
                             type="addAudio"
@@ -53,6 +63,15 @@ export const ButtonMenuGroup = ({ group }: Props) => {
                 </DropdownMenuContent>
             </DropdownMenu>
 
+            <DialogRenameItem
+                key={group.name ?? ""}
+                item={group}
+                itemType="section_group"
+                isOpen={isRenameOpen}
+                onOpenChange={setRenameOpen}
+                getItemId={activeId ?? undefined}
+                getItemData={getNoteData}
+            />
             <DialogDeleteItem
                 item={group}
                 itemType="section_group"

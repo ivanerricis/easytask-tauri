@@ -11,9 +11,9 @@ type TrashRow = { type: DBItemType, id: number, name: string, context: string | 
 /**
  * Retrieves the items moved to the trash that belong to a workspace.
  * Only the items deleted directly are listed (their children are removed with them).
- * Groups have the name "Gruppo di N sezioni" and the note name as context;
+ * Groups have their name (or "Gruppo di N sezioni" when unnamed) and the note name as context;
  * sections and tasks have "Nota X" / "Nota X › Sezione Y" as context,
- * audio files "Nota X › Gruppo N" (N = position of the group in the note).
+ * audio files "Nota X › <group name>" ("Gruppo N", N = position of the group in the note, when unnamed).
  * @param workspaceId The ID of the workspace.
  * @returns The trashed items, most recently deleted first.
  * @throws A createError('TRASH_LOAD_FAILED') error when a query fails.
@@ -33,7 +33,7 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
                     (SELECT p.name FROM folder p WHERE p.id = n.folderID), n.deleted_at, 0
              FROM note n WHERE n.workspaceID = ? AND n.deleted_at IS NOT NULL
              UNION ALL
-             SELECT 'section_group', 2, g.id, '', n.name, g.deleted_at,
+             SELECT 'section_group', 2, g.id, COALESCE(NULLIF(TRIM(g.name), ''), ''), n.name, g.deleted_at,
                     (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id)
              FROM section_group g INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND g.deleted_at IS NOT NULL
@@ -51,7 +51,7 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
              INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND t.deleted_at IS NOT NULL
              UNION ALL
-             SELECT 'audio_file', 5, a.id, a.name, 'Nota ' || n.name || ' › Gruppo ' || (g.position + 1), a.deleted_at, 0
+             SELECT 'audio_file', 5, a.id, a.name, 'Nota ' || n.name || ' › ' || COALESCE(NULLIF(TRIM(g.name), ''), 'Gruppo ' || (g.position + 1)), a.deleted_at, 0
              FROM audio_file a
              INNER JOIN section_group g ON g.id = a.section_groupID
              INNER JOIN note n ON n.id = g.noteID
@@ -61,7 +61,7 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
         return rows.map(row => ({
             type: row.type,
             id: row.id,
-            name: row.type === "section_group"
+            name: row.type === "section_group" && !row.name
                 ? `Gruppo di ${row.extra} ${row.extra === 1 ? "sezione" : "sezioni"}`
                 : row.name,
             context: row.context ?? "",

@@ -1,3 +1,4 @@
+import { getGroupLabel } from "./groups/group-label"
 import type { NoteDataTree, Section, Task } from "@/types/types"
 
 /**
@@ -232,7 +233,7 @@ export type SectionMoveDestinations = {
 }
 
 /**
- * Destinations offered by the "Sposta in…" menu of a section: every other group ("Gruppo N") plus a new group.
+ * Destinations offered by the "Sposta in…" menu of a section: every other group (its name or "Gruppo N") plus a new group.
  * @category Note DnD
  */
 export function getSectionMoveDestinations(tree: NoteDataTree, sectionId: number): SectionMoveDestinations {
@@ -241,7 +242,7 @@ export function getSectionMoveDestinations(tree: NoteDataTree, sectionId: number
         groups: tree.groups
             .map((group, index) => ({
                 id: group.id,
-                label: `Gruppo ${index + 1}`,
+                label: getGroupLabel(group, index),
                 hint: group.sections.map(section => section.title).join(", "),
             }))
             .filter(group => group.id !== currentGroup?.id),
@@ -257,7 +258,7 @@ export type TaskMoveDestination = {
     sectionId: number
     parentTaskId: number | null
     label: string
-    /** Group label ("Gruppo N") shown next to a section entry. */
+    /** Group label (name or "Gruppo N") shown next to a section entry. */
     hint?: string
     depth: number
 }
@@ -289,7 +290,7 @@ export function getTaskMoveDestinations(tree: NoteDataTree, taskId: number): Tas
             if (!(active.parentId == null && active.sectionId === section.id))
                 result.push({
                     key: `section-${section.id}`, type: "section", sectionId: section.id, parentTaskId: null,
-                    label: section.title, hint: `Gruppo ${groupIndex + 1}`, depth: 0,
+                    label: section.title, hint: getGroupLabel(group, groupIndex), depth: 0,
                 })
             visit(section.tasks ?? [], section.id, 1)
         }

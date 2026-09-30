@@ -10,6 +10,7 @@ import { migrateToV3 } from "./schema/v3";
 import { migrateToV4 } from "./schema/v4";
 import { migrateToV5 } from "./schema/v5";
 import { migrateToV6 } from "./schema/v6";
+import { migrateToV7 } from "./schema/v7";
 
 /**
  * Ordered list of migrations, applied once each and tracked with PRAGMA user_version.
@@ -43,6 +44,8 @@ const migrations: string[][] = [
     [migrateToV5],
     // v6: audio files soft delete and ordering (single script)
     [migrateToV6],
+    // v7: optional name of a section group (single script)
+    [migrateToV7],
 ];
 
 /**

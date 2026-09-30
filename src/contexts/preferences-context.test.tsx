@@ -25,6 +25,8 @@ vi.mock("@/lib/store/preferences", () => ({
     saveWorkspaceView: vi.fn(),
     getReopenNotes: vi.fn(),
     saveReopenNotes: vi.fn(),
+    getSidebarItemSize: vi.fn(),
+    saveSidebarItemSize: vi.fn(),
 }))
 
 const wrapper = ({ children }: { children: ReactNode }) => <PreferencesProvider>{children}</PreferencesProvider>
@@ -41,6 +43,7 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getSideBarRightOpen).mockResolvedValue(true)
         vi.mocked(prefs.getWorkspaceView).mockResolvedValue("list")
         vi.mocked(prefs.getReopenNotes).mockResolvedValue(false)
+        vi.mocked(prefs.getSidebarItemSize).mockResolvedValue("large")
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
     })
 
@@ -101,6 +104,17 @@ describe("PreferencesContext", () => {
 
         expect(result.current.reopenNotes).toBe(true)
         expect(prefs.saveReopenNotes).toHaveBeenCalledWith(true)
+    })
+
+    it("loads and persists the sidebar item size (default normal)", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.sidebarItemSize).toBe("normal")
+        await waitFor(() => expect(result.current.sidebarItemSize).toBe("large"))
+
+        act(() => result.current.setSidebarItemSize("compact"))
+
+        expect(result.current.sidebarItemSize).toBe("compact")
+        expect(prefs.saveSidebarItemSize).toHaveBeenCalledWith("compact")
     })
 
     it("resetPlayerPosition resets the store but skips the state update without a container", async () => {
