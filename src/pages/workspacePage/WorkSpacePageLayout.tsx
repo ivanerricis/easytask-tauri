@@ -2,11 +2,13 @@ import { Navbar } from "@/components/navbar"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { ArrowLeft } from "lucide-react"
-import React, { useCallback, useEffect } from "react"
+import React, { useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { CommandMenu } from "./components/CommandMenu"
 import { ButtonNavbar } from "@/components/button-navbar"
 import { clearLastWorkspaceId } from "@/lib/store/preferences"
+import { useShortcut } from "@/hooks/use-shortcut"
+import { useShortcutLabel } from "@/contexts/shortcuts-context"
 
 type WorkSpaceLayoutProps = {
     children: React.ReactNode
@@ -25,16 +27,8 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
         navigate("/")
     }, [resetWorkspace, resetData, navigate])
 
-    useEffect(() => {
-        const handleShortcut = (e: KeyboardEvent) => {
-            if (e.ctrlKey && e.key.toLowerCase() === "h") {
-                e.preventDefault()
-                handleGoHome()
-            }
-        }
-        window.addEventListener("keydown", handleShortcut)
-        return () => window.removeEventListener("keydown", handleShortcut)
-    }, [handleGoHome])
+    useShortcut("go-home", handleGoHome, { allowInInputs: true })
+    const homeLabel = useShortcutLabel("go-home")
 
     return (
         <div className="flex flex-col w-full h-full">
@@ -45,7 +39,7 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
                             onClick={handleGoHome}
                             className={"text-foreground pr-1"}
                             textTooltip="Torna alla Home"
-                            textTooltipShortcut="(Ctrl + H)"
+                            textTooltipShortcut={homeLabel}
                         >
                             <ArrowLeft className="w-5 h-5" />
                         </ButtonNavbar>

@@ -23,13 +23,18 @@ let failOn: string | null = null
 vi.mock("../dbManager", () => ({
     getDB: vi.fn(async () => ({
         execute: async (sql: string, params: unknown[] = []) => {
-            if (failOn && sql.includes(failOn)) throw new Error("boom")
             const r = sqlite.prepare(sql).run(...(params as SQLInputValue[]))
             return { rowsAffected: Number(r.changes), lastInsertId: Number(r.lastInsertRowid) }
         },
         select: async (sql: string, params: unknown[] = []) => sqlite.prepare(sql).all(...(params as SQLInputValue[])),
     })),
 }))
+
+// db_transaction runs on the same in-memory database, with real BEGIN/COMMIT/ROLLBACK
+vi.mock("@tauri-apps/api/core", async () => {
+    const { createSqliteInvoke } = await import("@/test/db-mock")
+    return { invoke: createSqliteInvoke(() => sqlite, { shouldFail: sql => failOn !== null && sql.includes(failOn) }) }
+})
 
 vi.mock("@tauri-apps/plugin-fs", () => ({ exists: vi.fn(async () => true) }))
 
@@ -188,11 +193,19 @@ describe("importDBWorkspace", () => {
         expect(files).toEqual([{ name: "song.mp3" }])
     })
 
-    it("deletes the partial workspace when the import fails", async () => {
+    it("rolls the whole import back when a statement fails (nothing is created)", async () => {
         const data = await exportOf()
-        failOn = "INSERT INTO task"
-        expect(await thrown(importDBWorkspace(data))).toMatchObject({ code: "TRANSFER_IMPORT_FAILED" })
-        expect(rows("SELECT id FROM workspace")).toEqual([{ id: 1 }, { id: 2 }])
-        expect(rows("SELECT id FROM note WHERE workspaceID > 2")).toEqual([])
+        const counts = () => ["workspace", "folder", "note", "section_group", "section", "task", "audio_file", "note_template"]
+            .map(table => rows(`SELECT COUNT(*) AS c FROM ${table}`)[0].c)
+        const before = counts()
+        // The workspace is the first statement: fail at later stages
+        for (const stage of ["INSERT INTO folder", "INSERT INTO task", "INSERT INTO audio_file"]) {
+            failOn = stage
+            expect(await thrown(importDBWorkspace(data))).toMatchObject({ code: "TRANSFER_IMPORT_FAILED" })
+            expect(counts()).toEqual(before)
+        }
+        failOn = null
+        // The database is still usable
+        await expect(importDBWorkspace(data)).resolves.toMatchObject({ workspaceId: expect.any(Number) })
     })
 })

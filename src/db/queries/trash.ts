@@ -4,6 +4,7 @@ import { createError, handleDBError } from "@/types/error";
 import { getErrorMessage, plural } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { assertItemType, type DBItemType } from "./shared_queries";
+import { Transaction } from "../transaction";
 
 const RESTORE_UNIQUE_MESSAGE = "Esiste già un elemento con questo nome: rinominalo prima di ripristinare."
 
@@ -346,16 +347,18 @@ function buildRestoreStatements(itemType: DBItemType, id: number): Statement[] {
  * Restoring an item that is not deleted is a no-op.
  * @param itemType Type of the item to restore.
  * @param itemID ID of the item to restore.
+ * All the statements run in one transaction: on a name conflict nothing is restored.
  * @throws A "<TYPE>_EXISTS" error when an active item with the same name exists.
  * @category Database Queries
  */
 export async function restoreDBItem(itemType: DBItemType, itemID: number) {
     assertItemType(itemType)
-    const db = await getDB()
 
     try {
+        const tx = new Transaction()
         for (const statement of buildRestoreStatements(itemType, itemID))
-            await db.execute(statement.sql, statement.params)
+            tx.add(statement.sql, statement.params)
+        await tx.run()
     } catch (error: unknown) {
         handleDBError(error, itemType.toUpperCase(), { UNIQUE: RESTORE_UNIQUE_MESSAGE })
     }
@@ -380,31 +383,32 @@ export async function purgeDBItem(itemType: DBItemType, itemID: number) {
 }
 
 /**
- * Permanently deletes every trashed item of a workspace (top-level items first, children cascade).
+ * Permanently deletes every trashed item of a workspace (top-level items first, children cascade),
+ * all in one transaction.
  * @param workspaceId The ID of the workspace.
  * @category Database Queries
  */
 export async function emptyDBTrash(workspaceId: number) {
-    const db = await getDB()
-
     try {
-        await db.execute('DELETE FROM folder WHERE workspaceID = ? AND deleted_at IS NOT NULL', [workspaceId])
-        await db.execute('DELETE FROM note WHERE workspaceID = ? AND deleted_at IS NOT NULL', [workspaceId])
-        await db.execute(
+        const tx = new Transaction()
+        tx.add('DELETE FROM folder WHERE workspaceID = ? AND deleted_at IS NOT NULL', [workspaceId])
+        tx.add('DELETE FROM note WHERE workspaceID = ? AND deleted_at IS NOT NULL', [workspaceId])
+        tx.add(
             `DELETE FROM section_group WHERE deleted_at IS NOT NULL
              AND noteID IN (SELECT id FROM note WHERE workspaceID = ?)`, [workspaceId])
-        await db.execute(
+        tx.add(
             `DELETE FROM section WHERE deleted_at IS NOT NULL AND groupID IN (
                 SELECT g.id FROM section_group g INNER JOIN note n ON n.id = g.noteID WHERE n.workspaceID = ?)`, [workspaceId])
-        await db.execute(
+        tx.add(
             `DELETE FROM task WHERE deleted_at IS NOT NULL AND sectionID IN (
                 SELECT s.id FROM section s
                 INNER JOIN section_group g ON g.id = s.groupID
                 INNER JOIN note n ON n.id = g.noteID WHERE n.workspaceID = ?)`, [workspaceId])
-        await db.execute(
+        tx.add(
             `DELETE FROM audio_file WHERE deleted_at IS NOT NULL AND section_groupID IN (
                 SELECT g.id FROM section_group g INNER JOIN note n ON n.id = g.noteID WHERE n.workspaceID = ?)`, [workspaceId])
-        await db.execute('DELETE FROM note_template WHERE workspaceID = ? AND deleted_at IS NOT NULL', [workspaceId])
+        tx.add('DELETE FROM note_template WHERE workspaceID = ? AND deleted_at IS NOT NULL', [workspaceId])
+        await tx.run()
     } catch (error: unknown) {
         throw createError("TRASH_EMPTY_FAILED", "Failed to empty the trash: " + getErrorMessage(error))
     }

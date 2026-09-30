@@ -17,6 +17,8 @@ import { migrateToV8 } from "../schema/v8"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v4)
 let sqlite: DatabaseSync
+// Substring of a statement that must fail (to check that a multi-statement move is rolled back)
+let failOn: string | null = null
 
 vi.mock("../dbManager", () => ({
     getDB: vi.fn(async () => ({
@@ -27,6 +29,12 @@ vi.mock("../dbManager", () => ({
         select: async (sql: string, params: unknown[] = []) => sqlite.prepare(sql).all(...(params as SQLInputValue[])),
     })),
 }))
+
+// db_transaction runs on the same in-memory database, with real BEGIN/COMMIT/ROLLBACK
+vi.mock("@tauri-apps/api/core", async () => {
+    const { createSqliteInvoke } = await import("@/test/db-mock")
+    return { invoke: createSqliteInvoke(() => sqlite, { shouldFail: sql => failOn !== null && sql.includes(failOn) }) }
+})
 
 import { moveDBSection, moveDBSectionToNewGroup, moveDBTask } from "./move"
 import { createDBSectionInGroup } from "./section"
@@ -48,6 +56,7 @@ const groupIds = () =>
 const positions = (sql: string) => rows(sql).map(r => r.position)
 
 beforeEach(() => {
+    failOn = null
     sqlite = new DatabaseSync(":memory:")
     sqlite.exec("PRAGMA foreign_keys=ON")
     for (const sql of [
@@ -355,5 +364,56 @@ describe("moveDBTask", () => {
             while (root.taskID != null) root = byId.get(root.taskID)!
             expect(t.sectionID).toBe(root.sectionID)
         }
+    })
+})
+
+describe("atomicity of the moves", () => {
+    const snapshot = () => ({
+        groups: rows("SELECT id, position FROM section_group ORDER BY id"),
+        sections: rows("SELECT id, groupID, position FROM section ORDER BY id"),
+        tasks: rows("SELECT id, sectionID, taskID, position FROM task ORDER BY id"),
+    })
+
+    it("moveDBSectionToNewGroup leaves no orphan group when a later statement fails", async () => {
+        await seedSections()
+        const before = snapshot()
+        failOn = "UPDATE section SET groupID = ?, position = 0"
+        await expect(moveDBSectionToNewGroup(sectionId("S2"), 1)).rejects.toMatchObject({ code: "SECTION_UNKNOWN_ERROR" })
+        failOn = null
+        expect(snapshot()).toEqual(before)
+    })
+
+    it("moveDBSectionToNewGroup rolls back the new group when the renumbering fails", async () => {
+        await seedSections()
+        const before = snapshot()
+        failOn = "UPDATE section_group SET position"
+        await expect(moveDBSectionToNewGroup(sectionId("S2"), 1)).rejects.toMatchObject({ code: "SECTION_UNKNOWN_ERROR" })
+        failOn = null
+        expect(snapshot()).toEqual(before)
+    })
+
+    it("moveDBSection does not renumber the destination when the source renumbering fails", async () => {
+        await seedSections()
+        const before = snapshot()
+        // The destination UPDATE is statement 0, the source renumbering (a positions-only UPDATE) is statement 1
+        failOn = "UPDATE section SET position = CASE"
+        await expect(moveDBSection(sectionId("S1"), 2, 0)).rejects.toMatchObject({ code: "SECTION_UNKNOWN_ERROR" })
+        failOn = null
+        expect(snapshot()).toEqual(before)
+    })
+
+    it("moveDBTask does not apply the move when the old siblings renumbering fails", async () => {
+        await seedSections()
+        const s1 = sectionId("S1")
+        const s2 = sectionId("S2")
+        await createDBTask(s1, "A")
+        await createDBTask(s1, "B")
+        await createDBTask(s2, "C")
+        const before = snapshot()
+        failOn = "UPDATE task SET position = CASE"
+        await expect(moveDBTask(rows("SELECT id FROM task WHERE text = 'A'")[0].id as number, { sectionId: s2, parentTaskId: null }, 0))
+            .rejects.toMatchObject({ code: "TASK_UNKNOWN_ERROR" })
+        failOn = null
+        expect(snapshot()).toEqual(before)
     })
 })

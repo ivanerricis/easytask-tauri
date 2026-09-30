@@ -3,6 +3,7 @@ import type { ReactElement, ReactNode } from "react"
 import { render } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { WorkspaceProvider } from "@/contexts/workspace-context"
+import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 import { WorkspaceDataProvider } from "@/contexts/workspace-data-context"
 
 // Callers must vi.mock the "@/db/queries/*" modules used by the providers.
@@ -10,7 +11,7 @@ export function AllProviders({ children }: { children: ReactNode }) {
     return (
         <MemoryRouter>
             <WorkspaceProvider>
-                <WorkspaceDataProvider>{children}</WorkspaceDataProvider>
+                <WorkspaceDataProvider><ShortcutsProvider>{children}</ShortcutsProvider></WorkspaceDataProvider>
             </WorkspaceProvider>
         </MemoryRouter>
     )

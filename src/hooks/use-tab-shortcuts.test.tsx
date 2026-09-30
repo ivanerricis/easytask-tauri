@@ -5,6 +5,7 @@ import { TabsProvider, useTabs, useTabsActions } from "@/contexts/tabs-context"
 import { NoteHeader } from "@/pages/workspacePage/components/note/NoteHeader"
 import { useTabShortcuts } from "./use-tab-shortcuts"
 import { makeNote } from "@/test/ui-fixtures"
+import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn().mockResolvedValue(false) }))
 vi.mock("@/pages/workspacePage/components/note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
@@ -38,30 +39,30 @@ describe("useTabShortcuts", () => {
     const setup = (withShortcuts = true) => {
         const latest: { current: Api } = { current: undefined as never }
         const view = render(
-            <TabsProvider notes={notes} workspaceId={null}>
+            <ShortcutsProvider><TabsProvider notes={notes} workspaceId={null}>
                 <Host withShortcuts={withShortcuts} onRender={api => { latest.current = api }} />
-            </TabsProvider>
+            </TabsProvider></ShortcutsProvider>
         )
         act(() => { latest.current.openNote(1); latest.current.openNote(2); latest.current.openNote(3) })
         return { latest, view }
     }
 
-    it("registers one keydown listener no matter how many tabs are open", () => {
-        const spy = vi.spyOn(document, "addEventListener")
+    it("registers one keydown listener (the provider's) no matter how many tabs are open", () => {
+        const spy = vi.spyOn(window, "addEventListener")
         const { latest } = setup()
 
         expect(latest.current.tabs).toHaveLength(3)
         expect(keydownRegistrations(spy)).toBe(1)
     })
 
-    it("the tab headers register no global listener by themselves", () => {
-        const spy = vi.spyOn(document, "addEventListener")
+    it("the tab headers add no global listener beyond the provider one", () => {
+        const spy = vi.spyOn(window, "addEventListener")
         setup(false)
-        expect(keydownRegistrations(spy)).toBe(0)
+        expect(keydownRegistrations(spy)).toBe(1)
     })
 
     it("removes the listener on unmount", () => {
-        const spy = vi.spyOn(document, "removeEventListener")
+        const spy = vi.spyOn(window, "removeEventListener")
         const { view } = setup()
         view.unmount()
         expect(keydownRegistrations(spy)).toBe(1)

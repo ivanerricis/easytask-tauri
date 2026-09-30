@@ -23,13 +23,18 @@ let failOn: string | null = null
 vi.mock("../dbManager", () => ({
     getDB: vi.fn(async () => ({
         execute: async (sql: string, params: unknown[] = []) => {
-            if (failOn && sql.includes(failOn)) throw new Error("boom")
             const r = sqlite.prepare(sql).run(...(params as SQLInputValue[]))
             return { rowsAffected: Number(r.changes), lastInsertId: Number(r.lastInsertRowid) }
         },
         select: async (sql: string, params: unknown[] = []) => sqlite.prepare(sql).all(...(params as SQLInputValue[])),
     })),
 }))
+
+// db_transaction runs on the same in-memory database, with real BEGIN/COMMIT/ROLLBACK
+vi.mock("@tauri-apps/api/core", async () => {
+    const { createSqliteInvoke } = await import("@/test/db-mock")
+    return { invoke: createSqliteInvoke(() => sqlite, { shouldFail: sql => failOn !== null && sql.includes(failOn) }) }
+})
 
 import {
     countDBTemplates, createDBNoteFromTemplate, createDBTemplateFromNote, getDBTemplates, renameDBTemplate, updateDBTemplateFromNote,
@@ -322,7 +327,7 @@ describe("createDBNoteFromTemplate", () => {
         await expect(createDBNoteFromTemplate(id, 1, 1, "Sorgente")).resolves.toBeTypeOf("number")
     })
 
-    it("hard deletes the created note (and all its children) when an insert fails midway", async () => {
+    it("rolls back the whole creation (note and all its children) when an insert fails midway", async () => {
         const id = await createDBTemplateFromNote(1, "T")
         const counts = () => ["note", "section_group", "section", "task"].map(t => rows(`SELECT COUNT(*) AS c FROM ${t}`)[0].c)
         const before = counts()

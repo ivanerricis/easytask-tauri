@@ -5,6 +5,7 @@ import { WorkspaceDataProvider } from './contexts/workspace-data-context'
 import { PreferencesProvider } from './contexts/preferences-context'
 import { ThemeProvider } from './components/theme-provider'
 import { Toaster } from './components/ui/sonner'
+import { ShortcutsProvider } from './contexts/shortcuts-context'
 import { DialogShortcuts } from './components/dialogs/dialog-shortcuts'
 
 import MainPage from './pages/mainPage/MainPage'
@@ -28,6 +29,7 @@ function App() {
 
   return (
     <PreferencesProvider>
+      <ShortcutsProvider>
       <ThemeProvider>
         <WorkspaceProvider>
           <WorkspaceDataProvider>
@@ -42,6 +44,7 @@ function App() {
           </WorkspaceDataProvider>
         </WorkspaceProvider>
       </ThemeProvider>
+      </ShortcutsProvider>
     </PreferencesProvider >
   )
 }

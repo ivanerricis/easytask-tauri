@@ -1,9 +1,9 @@
-import type Database from "@tauri-apps/plugin-sql";
 import type { NoteTemplate, NoteTemplateContent, TemplateGroup, TemplateSection, TemplateTask } from "@/types/template";
 import type { Task } from "@/types/types";
 import { createError, handleDBError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
+import { Transaction, TransactionError, type TxRef } from "../transaction";
 import { getDBNoteData } from "./note";
 
 const TEMPLATE_UNIQUE_MESSAGE = "Esiste già un template con questo nome."
@@ -12,16 +12,13 @@ const NOTE_UNIQUE_MESSAGE = "Esiste già una nota con questo nome nella cartella
 const NOTE_CHECK_MESSAGE = "Il nome della nota non può essere vuoto."
 const SOURCE_MISSING_MESSAGE = "La nota di origine non esiste più."
 
-// Rows per multi-row INSERT (keeps the number of bound parameters far below the SQLite limit)
-const INSERT_CHUNK = 500
-
 type TemplateRow = Omit<NoteTemplate, "content"> & { content: string }
 
 const EMPTY_CONTENT: NoteTemplateContent = { version: 1, groups: [] }
 
-// Errors built with createError (plain objects); driver errors are Error instances (or strings) and must not match
+// Errors built with createError are plain objects; driver errors (Error instances of any realm, or strings) must not match
 const isAppError = (error: unknown): error is { code: string, message: string } =>
-    typeof error === "object" && error !== null && !(error instanceof Error) && "code" in error && "message" in error
+    typeof error === "object" && error !== null && Object.getPrototypeOf(error) === Object.prototype && "code" in error && "message" in error
 
 const toTemplate = ({ content, ...row }: TemplateRow): NoteTemplate => {
     let parsed: NoteTemplateContent = EMPTY_CONTENT
@@ -185,86 +182,59 @@ export async function updateDBTemplateFromNote(templateId: number) {
     }
 }
 
-/**
- * Inserts rows with multi-row INSERT statements and returns their ids in order.
- * A single INSERT runs under the SQLite write lock, so the rows of a statement get consecutive rowids
- * and lastInsertId is the id of the last one.
- * @param db Database instance.
- * @param table Table name.
- * @param columns Column names.
- * @param rows Values of every row.
- * @category Database Queries
- */
-export async function insertRows(db: Database, table: string, columns: string[], rows: unknown[][]): Promise<number[]> {
-    const ids: number[] = []
-    const placeholders = `(${columns.map(() => "?").join(", ")})`
-    for (let start = 0; start < rows.length; start += INSERT_CHUNK) {
-        const chunk = rows.slice(start, start + INSERT_CHUNK)
-        const result = await db.execute(
-            `INSERT INTO ${table} (${columns.join(", ")}) VALUES ${chunk.map(() => placeholders).join(", ")}`,
-            chunk.flat())
-        if (result.rowsAffected !== chunk.length || result.lastInsertId === undefined)
-            throw new Error(`Unexpected result inserting into ${table}`)
-        const last = result.lastInsertId
-        for (let i = chunk.length - 1; i >= 0; i--) ids.push(last - i)
-    }
-    return ids
-}
-
-type PendingTask = { sectionID: number, parentID: number | null, task: TemplateTask }
+type PendingTask = { sectionRef: TxRef, parentRef: TxRef | null, task: TemplateTask }
 
 /**
- * Inserts the groups, sections and tasks of a content snapshot into a note, with one multi-row INSERT per level.
- * Not atomic: the caller must clean up the note on failure.
- * @param db Database instance.
- * @param noteId The ID of the (existing) note.
+ * Adds to a transaction the statements that insert the groups, sections and tasks of a content snapshot
+ * into a note, with one multi-row INSERT per level. Nothing runs until the transaction is run.
+ * @param tx The transaction collecting the statements.
+ * @param noteRef The note: its id or a reference to the statement that creates it.
  * @param content The content to insert.
- * @returns The IDs of the created groups, in the order of `content.groups`.
+ * @returns References to the created groups, in the order of `content.groups`.
  * @category Database Queries
  */
-export async function insertNoteContent(db: Database, noteId: number, content: NoteTemplateContent): Promise<number[]> {
+export function addNoteContent(tx: Transaction, noteRef: number | TxRef, content: NoteTemplateContent): TxRef[] {
     const { groups } = content
-    const groupIds = await insertRows(db, "section_group", ["noteID", "position", "name"],
-        groups.map(group => [noteId, group.position, group.name ?? null]))
+    const groupRefs = tx.insertRows("section_group", ["noteID", "position", "name"],
+        groups.map(group => [noteRef, group.position, group.name ?? null]))
 
-    const sectionSources = groups.flatMap((group, i) => group.sections.map(section => ({ groupID: groupIds[i], section })))
-    const sectionIds = await insertRows(db, "section", ["groupID", "title", "color", "archived", "position"],
-        sectionSources.map(({ groupID, section }) => [groupID, section.title, section.color ?? null, section.archived ? 1 : 0, section.position]))
+    const sectionSources = groups.flatMap((group, i) => group.sections.map(section => ({ groupRef: groupRefs[i], section })))
+    const sectionRefs = tx.insertRows("section", ["groupID", "title", "color", "archived", "position"],
+        sectionSources.map(({ groupRef, section }) => [groupRef, section.title, section.color ?? null, section.archived ? 1 : 0, section.position]))
 
-    // Tasks level by level: the subtasks of a level need the ids of their parents
+    // Tasks level by level: the subtasks of a level reference the ids of their parents
     let level: PendingTask[] = sectionSources.flatMap(({ section }, i) =>
-        section.tasks.map(task => ({ sectionID: sectionIds[i], parentID: null, task })))
+        section.tasks.map(task => ({ sectionRef: sectionRefs[i], parentRef: null, task })))
     while (level.length > 0) {
-        const ids = await insertRows(db, "task",
+        const refs = tx.insertRows("task",
             ["sectionID", "taskID", "text", "description", "completed", "priority", "archived", "color", "position"],
-            level.map(({ sectionID, parentID, task }) => [
-                sectionID, parentID, task.text, task.description ?? null, task.completed ? 1 : 0,
+            level.map(({ sectionRef, parentRef, task }) => [
+                sectionRef, parentRef, task.text, task.description ?? null, task.completed ? 1 : 0,
                 task.priority ? 1 : 0, task.archived ? 1 : 0, task.color ?? null, task.position,
             ]))
-        level = level.flatMap(({ sectionID, task }, i) =>
-            task.subtasks.map(subtask => ({ sectionID, parentID: ids[i], task: subtask })))
+        level = level.flatMap(({ sectionRef, task }, i) =>
+            task.subtasks.map(subtask => ({ sectionRef, parentRef: refs[i], task: subtask })))
     }
-    return groupIds
+    return groupRefs
 }
 
 /**
  * Creates a note from a template, appended at the end of the destination (workspace root or folder).
- * Groups, sections and tasks are inserted with one multi-row INSERT per level. The connection pool gives no
- * reliable multi-call transactions, so on any failure the created note is hard deleted (foreign keys cascade
- * to its children) and the error is rethrown.
+ * The note and all its groups, sections and tasks (one multi-row INSERT per level) are written in ONE database
+ * transaction: on any failure nothing is created.
  * @param templateId The ID of the template.
  * @param workspaceId The ID of the workspace of the new note.
  * @param folderId The destination folder, null for the workspace root.
  * @param name The name of the new note.
  * @returns The ID of the new note.
- * @throws "NOTE_EXISTS" on a name clash in the destination, "TEMPLATE_NOT_FOUND" when the template does not exist.
+ * @throws "NOTE_EXISTS" on a name clash in the destination, "TEMPLATE_NOT_FOUND" when the template does not exist,
+ * "TEMPLATE_APPLY_FAILED" when the content cannot be inserted.
  * @category Database Queries
  */
 export async function createDBNoteFromTemplate(templateId: number, workspaceId: number, folderId: number | null, name: string): Promise<number> {
-    let db: Database
     let template: NoteTemplate
     try {
-        db = await getDB()
+        const db = await getDB()
         const rows = await db.select<TemplateRow[]>(
             `${TEMPLATE_SELECT} WHERE t.id = ? AND t.workspaceID = ? AND t.deleted_at IS NULL`, [templateId, workspaceId])
         if (rows.length === 0)
@@ -275,30 +245,27 @@ export async function createDBNoteFromTemplate(templateId: number, workspaceId: 
         throw createError("TEMPLATE_LOAD_FAILED", "Failed to load the template: " + getErrorMessage(error))
     }
 
-    let noteId: number
-    try {
-        const result = folderId === null
-            ? await db.execute(
-                `INSERT INTO note (workspaceID, name, color, position)
-                 SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
-                 WHERE workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL`,
-                [workspaceId, name.trim(), template.color, workspaceId])
-            : await db.execute(
-                `INSERT INTO note (workspaceID, folderID, name, color, position)
-                 SELECT ?, ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
-                 WHERE folderID = ? AND deleted_at IS NULL`,
-                [workspaceId, folderId, name.trim(), template.color, folderId])
-        noteId = result.lastInsertId as number
-    } catch (error: unknown) {
-        handleDBError(error, "NOTE", { UNIQUE: NOTE_UNIQUE_MESSAGE, CHECK: NOTE_CHECK_MESSAGE })
-    }
+    const tx = new Transaction()
+    const note = folderId === null
+        ? tx.add(
+            `INSERT INTO note (workspaceID, name, color, position)
+             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
+             WHERE workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL`,
+            [workspaceId, name.trim(), template.color, workspaceId])
+        : tx.add(
+            `INSERT INTO note (workspaceID, folderID, name, color, position)
+             SELECT ?, ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
+             WHERE folderID = ? AND deleted_at IS NULL`,
+            [workspaceId, folderId, name.trim(), template.color, folderId])
+    addNoteContent(tx, tx.idOf(note), template.content)
 
     try {
-        await insertNoteContent(db, noteId, template.content)
-        return noteId
+        const results = await tx.run()
+        return results[note].lastInsertId
     } catch (error: unknown) {
-        // Remove the partial note, transactions are unreliable with the connection pool
-        await db.execute('DELETE FROM note WHERE id = ?', [noteId]).catch(() => undefined)
+        // Statement 0 is the note itself: its failures are name clashes / invalid names
+        if (error instanceof TransactionError && error.statementIndex === note)
+            handleDBError(error, "NOTE", { UNIQUE: NOTE_UNIQUE_MESSAGE, CHECK: NOTE_CHECK_MESSAGE })
         throw createError("TEMPLATE_APPLY_FAILED", "Failed to create the note from the template: " + getErrorMessage(error))
     }
 }

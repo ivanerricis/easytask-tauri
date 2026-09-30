@@ -15,7 +15,46 @@ const REOPEN_LAST_WORKSPACE_KEY = "reopenLastWorkspace"
 const LAST_WORKSPACE_ID_KEY = "lastWorkspaceId"
 const SIDEBAR_ITEM_SIZE_KEY = "sidebarItemSize"
 
-export type WorkspaceView = "grid" | "list"
+const SAVE_DEBOUNCE_MS = 500
+
+let saveTimer: ReturnType<typeof setTimeout> | null = null
+let pendingResolvers: { resolve: () => void; reject: (e: unknown) => void }[] = []
+
+const runSave = async (): Promise<void> => {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = null
+    const waiting = pendingResolvers
+    pendingResolvers = []
+    try {
+        await store.save()
+        waiting.forEach(w => w.resolve())
+    } catch (e) {
+        waiting.forEach(w => w.reject(e))
+    }
+}
+
+/**
+ * Schedules a debounced save of the store; values already set stay in memory immediately.
+ * @returns A promise that resolves when the save has actually happened.
+ * @category Store
+ */
+const persist = (): Promise<void> =>
+    new Promise<void>((resolve, reject) => {
+        pendingResolvers.push({ resolve, reject })
+        if (saveTimer) clearTimeout(saveTimer)
+        saveTimer = setTimeout(() => { void runSave() }, SAVE_DEBOUNCE_MS)
+    })
+
+/**
+ * Saves immediately any pending preference change (call before the app closes).
+ * @returns A promise that resolves when nothing is left to save.
+ * @category Store
+ */
+export const flushPreferences = async (): Promise<void> => {
+    if (saveTimer) await runSave()
+}
+
+export type WorkspaceView ="grid" | "list"
 export type SidebarItemSize = "compact" | "normal" | "large"
 
 
@@ -37,7 +76,7 @@ export const getShowProgressBar = async (): Promise<boolean> => {
  */
 export const saveShowProgressBar = async (value: boolean): Promise<void> => {
     await store.set(SHOW_PROGRESSBAR_KEY, value)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -58,7 +97,7 @@ export const getShowGroupProgressBar = async (): Promise<boolean> => {
  */
 export const saveShowGroupProgressBar = async (value: boolean): Promise<void> => {
     await store.set(SHOW_GROUP_PROGRESSBAR_KEY, value)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -80,7 +119,7 @@ export const getPrimaryColor = async (): Promise<string> => {
  */
 export const savePrimaryColor = async (hex: string): Promise<void> => {
     await store.set(PRIMARY_COLOR_KEY, { hex })
-    await store.save()
+    await persist()
 }
 
 /**
@@ -100,7 +139,7 @@ export const getShowSectionCount = async (): Promise<boolean> => {
  */
 export const saveShowSectionCount = async (value: boolean): Promise<void> => {
     await store.set(SHOW_SECTION_COUNT_KEY, value)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -121,7 +160,7 @@ export const getShowTaskCount = async (): Promise<boolean> => {
  */
 export const saveShowTaskCount = async (value: boolean): Promise<void> => {
     await store.set(SHOW_TASK_COUNT_KEY, value)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -142,7 +181,7 @@ export const getSideBarLeftOpen = async (): Promise<boolean> => {
  */
 export const saveSideBarLeftOpen = async (value: boolean): Promise<void> => {
     await store.set(SIDEBAR_LEFT_OPEN_KEY, value)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -163,7 +202,7 @@ export const getSideBarRightOpen = async (): Promise<boolean> => {
  */
 export const saveSideBarRightOpen = async (value: boolean): Promise<void> => {
     await store.set(SIDEBAR_RIGHT_OPEN_KEY, value)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -185,7 +224,7 @@ export const getAudioPlayerPosition = async (): Promise<AudioPlayerPosition> => 
  */
 export const saveAudioPlayerPosition = async (position: AudioPlayerPosition): Promise<void> => {
     await store.set(AUDIOPLAYER_POSITION_KEY, position)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -195,7 +234,7 @@ export const saveAudioPlayerPosition = async (position: AudioPlayerPosition): Pr
  */
 export const resetAudioPlayerPosition = async (): Promise<void> => {
     await store.delete(AUDIOPLAYER_POSITION_KEY)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -216,7 +255,7 @@ export const getWorkspaceView = async (): Promise<WorkspaceView> => {
  */
 export const saveWorkspaceView = async (value: WorkspaceView): Promise<void> => {
     await store.set(WORKSPACE_VIEW_KEY, value)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -237,7 +276,7 @@ export const getReopenNotes = async (): Promise<boolean> => {
  */
 export const saveReopenNotes = async (value: boolean): Promise<void> => {
     await store.set(REOPEN_NOTES_KEY, value)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -258,7 +297,7 @@ export const getReopenLastWorkspace = async (): Promise<boolean> => {
  */
 export const saveReopenLastWorkspace = async (value: boolean): Promise<void> => {
     await store.set(REOPEN_LAST_WORKSPACE_KEY, value)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -279,7 +318,7 @@ export const getLastWorkspaceId = async (): Promise<number | null> => {
  */
 export const saveLastWorkspaceId = async (id: number): Promise<void> => {
     await store.set(LAST_WORKSPACE_ID_KEY, id)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -289,7 +328,7 @@ export const saveLastWorkspaceId = async (id: number): Promise<void> => {
  */
 export const clearLastWorkspaceId = async (): Promise<void> => {
     await store.delete(LAST_WORKSPACE_ID_KEY)
-    await store.save()
+    await persist()
 }
 
 /**
@@ -310,5 +349,5 @@ export const getSidebarItemSize = async (): Promise<SidebarItemSize> => {
  */
 export const saveSidebarItemSize = async (value: SidebarItemSize): Promise<void> => {
     await store.set(SIDEBAR_ITEM_SIZE_KEY, value)
-    await store.save()
+    await persist()
 }

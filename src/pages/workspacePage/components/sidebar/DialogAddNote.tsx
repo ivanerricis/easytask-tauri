@@ -1,4 +1,6 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { useShortcut } from "@/hooks/use-shortcut"
+import { useShortcutLabel } from "@/contexts/shortcuts-context"
 import { getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -16,7 +18,7 @@ import { useTemplates } from "@/hooks/use-templates"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { FilePlus, Palette, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 const defaultNote = {
     name: "",
@@ -63,29 +65,14 @@ export function DialogAddNote() {
         setIsOpen(false)
     }
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            const isTyping = document.activeElement && (
-                document.activeElement.tagName === 'INPUT' ||
-                document.activeElement.tagName === 'TEXTAREA' ||
-                (document.activeElement as HTMLElement).isContentEditable
-            )
-
-            if (isTyping) return
-
-            if (e.key === "n" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault()
-                setNote(defaultNote)
-                setError(null)
-                setPaletteOpen(false)
-                setTemplateId("")
-                setIsOpen(true)
-            }
-        }
-
-        window.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [])
+    useShortcut("new-note", () => {
+        setNote(defaultNote)
+        setError(null)
+        setPaletteOpen(false)
+        setTemplateId("")
+        setIsOpen(true)
+    })
+    const shortcutLabel = useShortcutLabel("new-note")
 
     return (
         <>
@@ -186,7 +173,7 @@ export function DialogAddNote() {
                 </DialogContent>
             </Dialog>
 
-            <TooltipCustom text="Crea una nota" shortcut="(Ctrl + N)">
+            <TooltipCustom text="Crea una nota" shortcut={shortcutLabel}>
                 <Button
                     onClick={() => setIsOpen(true)}
                     variant='buttonIcon'

@@ -1,5 +1,6 @@
 import { handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
+import { Transaction } from "../transaction";
 
 /**
  * Creates a new section in a specific group, appended after its siblings.
@@ -33,18 +34,11 @@ export async function createDBSectionInGroup(groupId: number, title: string) {
  */
 export async function createDBSection(noteId: number, title: string, position: number) {
     try {
-        const db = await getDB()
-
-        const result = await db.execute('INSERT INTO section_group (noteID, position) VALUES (?, ?)', [noteId, position]);
-        const groupId = result.lastInsertId
-
-        try {
-            await db.execute('INSERT INTO section (groupID, title) VALUES (?, ?)', [groupId, title]);
-        } catch (innerError: unknown) {
-            // Remove the orphan group, transactions are unreliable with the connection pool
-            await db.execute('DELETE FROM section_group WHERE id=?', [groupId]).catch(() => undefined)
-            throw innerError
-        }
+        // One transaction: a failing section leaves no orphan group behind
+        const tx = new Transaction()
+        const group = tx.add('INSERT INTO section_group (noteID, position) VALUES (?, ?)', [noteId, position])
+        tx.add('INSERT INTO section (groupID, title) VALUES (?, ?)', [tx.idOf(group), title])
+        await tx.run()
     } catch (error: unknown) {
         handleDBError(error, "SECTION", {
             UNIQUE: "A section with this name already exists.",

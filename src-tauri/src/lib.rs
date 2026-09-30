@@ -35,6 +35,97 @@ fn allow_audio_file(app: tauri::AppHandle, path: String) -> Result<(), String> {
         .map_err(|error| error.to_string())
 }
 
+/// One statement of a `db_transaction` call.
+#[derive(serde::Deserialize)]
+struct Stmt {
+    sql: String,
+    #[serde(default)]
+    params: Vec<serde_json::Value>,
+}
+
+/// Outcome of one statement of a `db_transaction` call (camelCase, like the JS side expects).
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct StmtResult {
+    rows_affected: u64,
+    last_insert_id: i64,
+}
+
+/// Resolves a `{ "$ref": n, "offset": k }` parameter to `results[n].lastInsertId - k`.
+/// Returns None when the value is not a reference object.
+fn resolve_ref(value: &serde_json::Value, results: &[StmtResult]) -> Option<Result<i64, String>> {
+    let object = value.as_object()?;
+    let reference = object.get("$ref")?;
+    let index = match reference.as_u64() {
+        Some(index) => index as usize,
+        None => return Some(Err("$ref must be a non-negative integer".to_string())),
+    };
+    let offset = object.get("offset").and_then(|v| v.as_i64()).unwrap_or(0);
+    Some(match results.get(index) {
+        Some(result) => Ok(result.last_insert_id - offset),
+        None => Err(format!("$ref {index} does not point to an earlier statement")),
+    })
+}
+
+/// Runs several statements atomically on the pool loaded by tauri-plugin-sql (same `db` key passed to
+/// `Database.load`). All statements share one connection inside a transaction: committed if every
+/// statement succeeds, rolled back (by dropping the transaction) on the first error.
+#[tauri::command]
+async fn db_transaction(
+    db_instances: tauri::State<'_, tauri_plugin_sql::DbInstances>,
+    db: String,
+    statements: Vec<Stmt>,
+) -> Result<Vec<StmtResult>, String> {
+    use sqlx::Executor;
+
+    let instances = db_instances.0.read().await;
+    let pool = match instances.get(&db) {
+        Some(tauri_plugin_sql::DbPool::Sqlite(pool)) => pool,
+        None => return Err(format!("database {db} is not loaded")),
+    };
+
+    let mut tx = pool
+        .begin()
+        .await
+        .map_err(|error| format!("cannot start the transaction: {error}"))?;
+    let mut results: Vec<StmtResult> = Vec::with_capacity(statements.len());
+
+    for (index, statement) in statements.iter().enumerate() {
+        let mut query = sqlx::query(&statement.sql);
+        for value in &statement.params {
+            if let Some(resolved) = resolve_ref(value, &results) {
+                let id = resolved.map_err(|error| format!("statement {index}: {error}"))?;
+                query = query.bind(id);
+                continue;
+            }
+            query = match value {
+                serde_json::Value::Null => query.bind(None::<i64>),
+                serde_json::Value::Bool(flag) => query.bind(*flag),
+                serde_json::Value::String(text) => query.bind(text.clone()),
+                serde_json::Value::Number(number) => match number.as_i64() {
+                    Some(integer) => query.bind(integer),
+                    None => query.bind(number.as_f64().unwrap_or_default()),
+                },
+                other => query.bind(other.to_string()),
+            };
+        }
+        // On error `tx` is dropped, which rolls the transaction back.
+        let outcome = tx
+            .execute(query)
+            .await
+            .map_err(|error| format!("statement {index} failed: {error}"))?;
+        results.push(StmtResult {
+            rows_affected: outcome.rows_affected(),
+            last_insert_id: outcome.last_insert_rowid(),
+        });
+    }
+
+    tx.commit()
+        .await
+        .map_err(|error| format!("commit failed: {error}"))?;
+    Ok(results)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default()
@@ -54,7 +145,11 @@ pub fn run() {
     }
 
     builder
-        .invoke_handler(tauri::generate_handler![audio_file_exists, allow_audio_file])
+        .invoke_handler(tauri::generate_handler![
+            audio_file_exists,
+            allow_audio_file,
+            db_transaction
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

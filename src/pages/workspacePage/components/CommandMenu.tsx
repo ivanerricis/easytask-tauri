@@ -4,23 +4,17 @@ import { useWorkspaceState } from "@/contexts/workspace-data-context"
 import { useTabsActions } from "@/contexts/tabs-context"
 import type { Note } from "@/types/types"
 import { SearchIcon } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
+import { useShortcut } from "@/hooks/use-shortcut"
+import { useShortcutLabel } from "@/contexts/shortcuts-context"
 
 export function CommandMenu() {
     const [open, setOpen] = useState(false)
     const { notes, folders } = useWorkspaceState()
     const { openNote } = useTabsActions()
 
-    useEffect(() => {
-        const down = (e: KeyboardEvent) => {
-            if (e.key === "o" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault()
-                setOpen((open) => !open)
-            }
-        }
-        document.addEventListener("keydown", down)
-        return () => document.removeEventListener("keydown", down)
-    }, [])
+    useShortcut("search-notes", () => setOpen(open => !open), { allowInInputs: true })
+    const searchLabel = useShortcutLabel("search-notes")
 
     const allNotesMap = new Map<number, Note>()
     notes.forEach(note => allNotesMap.set(note.id, note))
@@ -51,7 +45,7 @@ export function CommandMenu() {
                 </CommandList>
             </CommandDialog>
 
-            <TooltipCustom text="Cerca una nota" shortcut="(Ctrl + O)">
+            <TooltipCustom text="Cerca una nota" shortcut={searchLabel}>
                 <div
                     role="button"
                     onClick={() => { setOpen(prev => !prev) }}

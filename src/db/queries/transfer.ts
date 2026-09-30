@@ -9,14 +9,15 @@ import {
 import { createError, handleDBError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
-import { buildContent, insertNoteContent, insertRows } from "./template";
+import { addNoteContent, buildContent } from "./template";
+import { Transaction, TransactionError, type TxRef } from "../transaction";
 
 const INVALID_FILE_MESSAGE = "Il file non è un export di EasyTask."
 const MALFORMED_MESSAGE = "Il file di export è danneggiato o incompleto."
 
-// Errors built with createError (plain objects); driver errors are Error instances (or strings) and must not match
+// Errors built with createError are plain objects; driver errors (Error instances of any realm, or strings) must not match
 const isAppError = (error: unknown): error is { code: string, message: string } =>
-    typeof error === "object" && error !== null && !(error instanceof Error) && "code" in error && "message" in error
+    typeof error === "object" && error !== null && Object.getPrototypeOf(error) === Object.prototype && "code" in error && "message" in error
 
 /**
  * Builds the export of a workspace: folders, notes (with content and audio paths) and templates, without any trashed item.
@@ -221,12 +222,11 @@ async function uniqueWorkspaceName(db: Database, name: string): Promise<string> 
     }
 }
 
-type PendingFolder = { folder: ExportFolder, parentID: number | null }
+type PendingFolder = { folder: ExportFolder, parentRef: TxRef | null }
 
 /**
  * Imports an export as a new workspace. The name is made unique ("name (importato)", "name (importato 2)"...).
- * The connection pool gives no reliable multi-call transactions, so the workspace row is created first and on any
- * later failure it is hard deleted (foreign keys cascade to everything created) and an error is thrown.
+ * The workspace and everything in it are written in ONE database transaction: on any failure nothing is created.
  * @param data A validated export (see validateWorkspaceExport).
  * @param options `audioExists` decides whether an audio file is kept (files for which it returns false or throws are skipped).
  * @returns The ID of the new workspace and the number of skipped audio files.
@@ -237,13 +237,12 @@ export async function importDBWorkspace(
     options: { audioExists?: (path: string) => Promise<boolean> } = {},
 ): Promise<{ workspaceId: number, skippedAudio: number }> {
     const audioExists = options.audioExists ?? defaultAudioExists
-    let db: Database
-    let workspaceId: number
+    const tx = new Transaction()
+    let workspace: number
     try {
-        db = await getDB()
+        const db = await getDB()
         const name = await uniqueWorkspaceName(db, data.workspace.name.trim())
-        const result = await db.execute('INSERT INTO workspace (name, color) VALUES (?, ?)', [name, data.workspace.color ?? null])
-        workspaceId = result.lastInsertId as number
+        workspace = tx.add('INSERT INTO workspace (name, color) VALUES (?, ?)', [name, data.workspace.color ?? null])
     } catch (error: unknown) {
         handleDBError(error, "WORKSPACE", {
             UNIQUE: "Esiste già un workspace con questo nome.",
@@ -251,32 +250,33 @@ export async function importDBWorkspace(
         })
     }
 
+    let skippedAudio = 0
     try {
-        // Folders level by level: children need the ids of their parents
-        const folderIds = new Map<string, number>()
-        let level: PendingFolder[] = data.folders.filter(folder => folder.parentRef === null).map(folder => ({ folder, parentID: null }))
+        const workspaceRef = tx.idOf(workspace)
+        // Folders level by level: children reference the ids of their parents
+        const folderRefs = new Map<string, TxRef>()
+        let level: PendingFolder[] = data.folders.filter(folder => folder.parentRef === null).map(folder => ({ folder, parentRef: null }))
         let imported = 0
         while (level.length > 0) {
-            const ids = await insertRows(db, "folder", ["workspaceID", "folderID", "name", "color", "position"],
-                level.map(({ folder, parentID }) => [workspaceId, parentID, folder.name.trim(), folder.color ?? null, folder.position]))
-            level.forEach(({ folder }, i) => folderIds.set(folder.ref, ids[i]))
+            const refs = tx.insertRows("folder", ["workspaceID", "folderID", "name", "color", "position"],
+                level.map(({ folder, parentRef }) => [workspaceRef, parentRef, folder.name.trim(), folder.color ?? null, folder.position]))
+            level.forEach(({ folder }, i) => folderRefs.set(folder.ref, refs[i]))
             imported += level.length
             level = level.flatMap(({ folder }, i) =>
-                data.folders.filter(child => child.parentRef === folder.ref).map(child => ({ folder: child, parentID: ids[i] })))
+                data.folders.filter(child => child.parentRef === folder.ref).map(child => ({ folder: child, parentRef: refs[i] })))
         }
         // Folders left out are part of a parent cycle
         if (imported !== data.folders.length) throw new Error("Invalid folder tree")
 
-        let skippedAudio = 0
         if (data.notes.length > 0) {
-            const noteIds = await insertRows(db, "note", ["workspaceID", "folderID", "name", "color", "position"],
+            const noteRefs = tx.insertRows("note", ["workspaceID", "folderID", "name", "color", "position"],
                 data.notes.map(note => [
-                    workspaceId, note.folderRef === null ? null : folderIds.get(note.folderRef) ?? null,
+                    workspaceRef, note.folderRef === null ? null : folderRefs.get(note.folderRef) ?? null,
                     note.name.trim(), note.color ?? null, note.position,
                 ]))
 
             for (const [i, note] of data.notes.entries()) {
-                const groupIds = await insertNoteContent(db, noteIds[i], note.content)
+                const groupRefs = addNoteContent(tx, noteRefs[i], note.content)
                 const rows: unknown[][] = []
                 const taken = new Set<string>()
                 for (const file of note.audio) {
@@ -287,26 +287,32 @@ export async function importDBWorkspace(
                         keep = false
                     }
                     // UNIQUE(name, section_groupID): a duplicated name in the file is skipped instead of failing the import
-                    const key = `${file.groupIndex}\u0000${file.name.toLowerCase()}`
+                    const key = `${file.groupIndex} ${file.name.toLowerCase()}`
                     if (!keep || taken.has(key)) {
                         skippedAudio += 1
                         continue
                     }
                     taken.add(key)
-                    rows.push([groupIds[file.groupIndex], file.name, file.path, file.position])
+                    rows.push([groupRefs[file.groupIndex], file.name, file.path, file.position])
                 }
-                if (rows.length > 0) await insertRows(db, "audio_file", ["section_groupID", "name", "path", "position"], rows)
+                if (rows.length > 0) tx.insertRows("audio_file", ["section_groupID", "name", "path", "position"], rows)
             }
         }
 
         if (data.templates.length > 0) {
-            await insertRows(db, "note_template", ["workspaceID", "sourceNoteID", "name", "color", "content"],
-                data.templates.map(template => [workspaceId, null, template.name.trim(), template.color ?? null, JSON.stringify(template.content)]))
+            tx.insertRows("note_template", ["workspaceID", "sourceNoteID", "name", "color", "content"],
+                data.templates.map(template => [workspaceRef, null, template.name.trim(), template.color ?? null, JSON.stringify(template.content)]))
         }
-        return { workspaceId, skippedAudio }
+
+        const results = await tx.run()
+        return { workspaceId: results[workspace].lastInsertId, skippedAudio }
     } catch (error: unknown) {
-        // Remove the partial workspace, transactions are unreliable with the connection pool
-        await db.execute('DELETE FROM workspace WHERE id = ?', [workspaceId]).catch(() => undefined)
+        // Statement 0 is the workspace row itself: a name clash (race with another writer) or an invalid name
+        if (error instanceof TransactionError && error.statementIndex === workspace)
+            handleDBError(error, "WORKSPACE", {
+                UNIQUE: "Esiste già un workspace con questo nome.",
+                CHECK: "Il nome del workspace non può essere vuoto.",
+            })
         throw createError("TRANSFER_IMPORT_FAILED", "Importazione non riuscita: " + getErrorMessage(error))
     }
 }

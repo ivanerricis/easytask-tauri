@@ -1,5 +1,6 @@
 import { createError, handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
+import { Transaction } from "../transaction";
 
 type TreeItemType = "folder" | "note"
 
@@ -31,7 +32,7 @@ function buildReorderUpdate(table: TreeItemType, ids: number[], parentId: number
  * Moves a folder or a note to a folder (or to the workspace root) at a given index among its new siblings.
  * The index refers to the siblings of the same type (folders and notes are ordered separately)
  * and is clamped to the valid range. The destination siblings are renumbered with one UPDATE,
- * and so are the siblings of the old parent when the parent changes.
+ * and so are the siblings of the old parent when the parent changes (both in one transaction).
  * The caller is responsible for reloading the workspace data.
  * @param itemType "folder" or "note".
  * @param itemId ID of the item to move.
@@ -93,20 +94,19 @@ export async function moveDBTreeItem(itemType: TreeItemType, itemId: number, tar
         const index = Math.max(0, Math.min(Math.trunc(targetIndex) || 0, order.length))
         order.splice(index, 0, itemId)
 
+        const tx = new Transaction()
         const destination = buildReorderUpdate(table, order, targetFolderId)
-        try {
-            await db.execute(destination.sql, destination.params)
-        } catch (error: unknown) {
-            handleDBError(error, itemType.toUpperCase(), { UNIQUE: MOVE_UNIQUE_MESSAGE })
-        }
+        tx.add(destination.sql, destination.params)
 
         if ((item.folderID ?? null) !== targetFolderId) {
+            // The moved item is excluded by loadSiblings: it already belongs to the destination
             const remaining = await loadSiblings(item.folderID ?? null)
             if (remaining.length > 0) {
                 const source = buildReorderUpdate(table, remaining, item.folderID ?? null)
-                await db.execute(source.sql, source.params)
+                tx.add(source.sql, source.params)
             }
         }
+        await tx.run()
     } catch (error: unknown) {
         // createError objects are already user facing, only unexpected failures are wrapped
         if (typeof error === "object" && error !== null && "code" in error && "message" in error)

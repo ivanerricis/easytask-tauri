@@ -1,8 +1,12 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import type { ReactElement } from "react"
+import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { AddSection } from "./AddSection"
+import { ShortcutsProvider } from "@/contexts/shortcuts-context"
+
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: ShortcutsProvider })
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 

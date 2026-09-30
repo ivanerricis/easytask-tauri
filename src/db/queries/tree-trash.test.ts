@@ -28,6 +28,12 @@ vi.mock("../dbManager", () => ({
     })),
 }))
 
+// db_transaction runs on the same in-memory database, with real BEGIN/COMMIT/ROLLBACK
+vi.mock("@tauri-apps/api/core", async () => {
+    const { createSqliteInvoke } = await import("@/test/db-mock")
+    return { invoke: createSqliteInvoke(() => sqlite) }
+})
+
 import { moveDBTreeItem } from "./tree"
 import { emptyDBTrash, formatTrashSummary, getDBTrash, getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from "./trash"
 import { deleteDBItem, renameDBItem } from "./shared_queries"
@@ -343,13 +349,14 @@ describe("soft delete, trash and restore", () => {
         expect(one("SELECT deleted_at IS NOT NULL FROM note WHERE id=1")).toBe(1)
     })
 
-    it("on a name conflict the ancestors are already restored and the item stays in the trash", async () => {
+    it("on a name conflict the whole restore is rolled back: ancestors stay in the trash too", async () => {
         await seedNote()
         await deleteDBItem("folder", 1)
         await deleteDBItem("note", 1)
         sqlite.exec("INSERT INTO note (workspaceID, folderID, name) VALUES (1, 2, 'deep')")
         await expect(restoreDBItem("note", 1)).rejects.toMatchObject({ code: "NOTE_EXISTS" })
-        expect((await getDBTrash(1)).map(t => t.type)).toContain("note")
+        expect((await getDBTrash(1)).map(t => t.type)).toEqual(expect.arrayContaining(["folder", "note"]))
+        expect(one("SELECT deleted_at IS NOT NULL FROM folder WHERE id=1")).toBe(1)
     })
 
     it("purge deletes only trashed items and cascades to children", async () => {

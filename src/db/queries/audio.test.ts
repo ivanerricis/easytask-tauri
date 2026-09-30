@@ -28,6 +28,11 @@ vi.mock("../dbManager", () => ({
     })),
 }))
 
+vi.mock("@tauri-apps/api/core", async () => {
+    const { createSqliteInvoke } = await import("@/test/db-mock")
+    return { invoke: createSqliteInvoke(() => sqlite) }
+})
+
 import {
     createDBAudioFile, getDBAudioFile, getDBGroupAudioFiles, getDBNoteAudioFiles, getFileName, makeUniqueName,
     renameDBAudioFile, updateDBAudioFilePath,

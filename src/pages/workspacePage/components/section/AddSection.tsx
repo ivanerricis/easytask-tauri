@@ -9,6 +9,7 @@ import { getErrorMessage } from "@/lib/utils"
 import { CloseButton } from "./CloseButton"
 import { PlusButton } from "./PlusButton"
 import { AddButton } from "./AddButton"
+import { useShortcut } from "@/hooks/use-shortcut"
 
 type AddSectionFormProps = {
     inGroup?: boolean
@@ -28,14 +29,9 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
         setName("")
     }, [])
 
-    useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (!inGroup && event.altKey && event.key.toLowerCase() === 'n') {
-                event.preventDefault()
-                handleOpen()
-            }
-        }
+    useShortcut("new-group", handleOpen, { enabled: !inGroup, allowInInputs: true })
 
+    useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (formRef.current && !formRef.current.contains(event.target as Node)) {
                 setOpen(false)
@@ -44,17 +40,8 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
         }
 
         document.addEventListener("mousedown", handleClickOutside)
-        if (!inGroup) {
-            document.addEventListener("keydown", handleKeyDown)
-        }
-
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside)
-            if (!inGroup) {
-                document.removeEventListener("keydown", handleKeyDown)
-            }
-        }
-    }, [inGroup, handleOpen])
+        return () => document.removeEventListener("mousedown", handleClickOutside)
+    }, [])
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()

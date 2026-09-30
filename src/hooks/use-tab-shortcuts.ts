@@ -1,25 +1,13 @@
-import { useEffect } from "react"
 import { useTabsActions } from "@/contexts/tabs-context"
+import { useShortcut } from "@/hooks/use-shortcut"
 
 /**
- * Registers the global tab shortcuts once: Ctrl/Cmd + L closes the active note, Ctrl/Cmd + T closes all the notes.
+ * Registers the global tab shortcuts once: close the active note and close all the notes (Ctrl/Cmd + L and Ctrl/Cmd + T by default).
  * @category Tabs
  */
 export function useTabShortcuts() {
     const { closeActiveNote, closeAllNotes } = useTabsActions()
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (!(e.metaKey || e.ctrlKey)) return
-            if (e.key === "l") {
-                e.preventDefault()
-                closeActiveNote()
-            } else if (e.key === "t") {
-                e.preventDefault()
-                closeAllNotes()
-            }
-        }
-        document.addEventListener("keydown", handleKeyDown)
-        return () => document.removeEventListener("keydown", handleKeyDown)
-    }, [closeActiveNote, closeAllNotes])
+    useShortcut("close-note", closeActiveNote, { allowInInputs: true })
+    useShortcut("close-all-notes", closeAllNotes, { allowInInputs: true })
 }

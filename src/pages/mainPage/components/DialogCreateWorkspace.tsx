@@ -1,4 +1,6 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { useShortcut } from "@/hooks/use-shortcut"
+import { useShortcutLabel } from "@/contexts/shortcuts-context"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -12,7 +14,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { ArrowRight, Palette, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { getErrorMessage } from "@/lib/utils"
 
 const defaultWorkspace = {
@@ -27,16 +29,8 @@ export function DialogCreateWorkspace() {
     const [paletteIsOpen, setPaletteOpen] = useState(false);
     const { createWorkspace, getWorkspaces } = useWorkspace()
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.ctrlKey && e.key === "n") {
-                e.preventDefault()
-                setIsOpen(true)
-            }
-        }
-        window.addEventListener("keydown", handleKeyDown)
-        return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [])
+    useShortcut("new-workspace", () => setIsOpen(true), { allowInInputs: true })
+    const shortcutLabel = useShortcutLabel("new-workspace")
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -138,7 +132,7 @@ export function DialogCreateWorkspace() {
                 </DialogContent>
             </Dialog >
 
-            <TooltipCustom text="Crea Workspace" shortcut="(Ctrl + N)">
+            <TooltipCustom text="Crea Workspace" shortcut={shortcutLabel}>
                 <Button
                     onClick={() => setIsOpen(true)}
                     className="flex items-center justify-center w-[280px] p-6 rounded-full gap-2 text-lg transition-all"

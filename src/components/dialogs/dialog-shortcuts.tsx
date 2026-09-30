@@ -1,26 +1,21 @@
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { KbdKeys } from "@/components/kbd"
-import { SHORTCUTS, SHORTCUT_CATEGORIES } from "@/lib/shortcuts"
+import { SHORTCUTS, SHORTCUT_CATEGORIES, formatBinding, type Binding } from "@/lib/shortcuts"
+import { useShortcut } from "@/hooks/use-shortcut"
+import { useShortcutsContext } from "@/contexts/shortcuts-context"
 
-const isEditable = (target: EventTarget | null) => {
-    if (!(target instanceof HTMLElement)) return false
-    return target.closest("input, textarea, select, [contenteditable]:not([contenteditable='false'])") !== null
+const shortcutKeys = (id: string, docKeys: string[] | undefined, getBinding: (id: string) => Binding | undefined) => {
+    const binding = getBinding(id)
+    return binding ? formatBinding(binding) : docKeys ?? []
 }
 
 export const DialogShortcuts = () => {
     const [open, setOpen] = useState(false)
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key !== "?" || e.ctrlKey || e.metaKey || e.altKey) return
-            if (isEditable(e.target)) return
-            e.preventDefault()
-            setOpen(true)
-        }
-        window.addEventListener("keydown", handleKeyDown)
-        return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [])
+    const { getBinding } = useShortcutsContext()
+
+    useShortcut("show-shortcuts", () => setOpen(true))
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -37,7 +32,7 @@ export const DialogShortcuts = () => {
                                 {SHORTCUTS.filter(s => s.category === category).map(s => (
                                     <li key={s.id} className="flex items-center justify-between gap-4 text-sm">
                                         <span>{s.description}</span>
-                                        <KbdKeys keys={s.keys} className="shrink-0" />
+                                        <KbdKeys keys={shortcutKeys(s.id, s.keys, getBinding)} className="shrink-0" />
                                     </li>
                                 ))}
                             </ul>

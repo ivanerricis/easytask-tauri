@@ -1,8 +1,12 @@
-import { render, screen } from "@testing-library/react"
+import type { ReactElement } from "react"
+import { render as rtlRender, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 import { DialogShortcuts } from "./dialog-shortcuts"
 import { SHORTCUT_CATEGORIES } from "@/lib/shortcuts"
+import { ShortcutsProvider } from "@/contexts/shortcuts-context"
+
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: ShortcutsProvider })
 
 describe("DialogShortcuts", () => {
     it("is closed until ? is pressed, then lists every category", async () => {

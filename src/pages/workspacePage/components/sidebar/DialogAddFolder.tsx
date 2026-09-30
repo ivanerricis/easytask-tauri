@@ -1,4 +1,6 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { useShortcut } from "@/hooks/use-shortcut"
+import { useShortcutLabel } from "@/contexts/shortcuts-context"
 import { getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,7 +16,7 @@ import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { FolderPlus, Palette, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 const defaultFolder = {
     name: "",
@@ -53,28 +55,13 @@ export function DialogAddFolder() {
         setIsOpen(false)
     }
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            const isTyping = document.activeElement && (
-                document.activeElement.tagName === 'INPUT' ||
-                document.activeElement.tagName === 'TEXTAREA' ||
-                (document.activeElement as HTMLElement).isContentEditable
-            )
-
-            if (isTyping) return
-
-            if (e.key === "m" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault()
-                setError(null)
-                setPaletteOpen(false)
-                setFolder(defaultFolder)
-                setIsOpen(true)
-            }
-        }
-
-        window.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [])
+    useShortcut("new-folder", () => {
+        setError(null)
+        setPaletteOpen(false)
+        setFolder(defaultFolder)
+        setIsOpen(true)
+    })
+    const shortcutLabel = useShortcutLabel("new-folder")
 
     return (
         <>
@@ -162,7 +149,7 @@ export function DialogAddFolder() {
                 </DialogContent>
             </Dialog>
 
-            <TooltipCustom text="Crea una cartella" shortcut="(Ctrl + M)">
+            <TooltipCustom text="Crea una cartella" shortcut={shortcutLabel}>
                 <Button
                     onClick={() => setIsOpen(true)}
                     variant='buttonIcon'

@@ -1,5 +1,6 @@
 import { handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
+import { Transaction } from "../transaction";
 
 /**
  * Creates a new task in the database.
@@ -74,15 +75,10 @@ export async function updateDBFolderColorContent(folderId: number, color?: strin
 
         const placeholders = folderIds.map(() => '?').join(',')
 
-        await db.execute(
-            `UPDATE folder SET color = ? WHERE id IN (${placeholders})`,
-            [color, ...folderIds]
-        )
-
-        await db.execute(
-            `UPDATE note SET color = ? WHERE folderID IN (${placeholders})`,
-            [color, ...folderIds]
-        )
+        const tx = new Transaction()
+        tx.add(`UPDATE folder SET color = ? WHERE id IN (${placeholders})`, [color, ...folderIds])
+        tx.add(`UPDATE note SET color = ? WHERE folderID IN (${placeholders})`, [color, ...folderIds])
+        await tx.run()
 
     } catch (error: unknown) {
         console.error(error)
