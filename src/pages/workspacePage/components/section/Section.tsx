@@ -5,7 +5,7 @@ import type { HTMLAttributes } from "react"
 import type { Section as SectionType } from "@/types/types"
 import { cn } from "@/lib/utils"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
-import { useSectionOpen } from "@/contexts/tabs-context"
+import { useSectionOpen } from "@/contexts/use-tabs"
 
 type SectionProps = {
     section: SectionType

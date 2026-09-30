@@ -1,7 +1,7 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
-import { useActiveNote } from "@/contexts/active-note-context"
-import { useAudio } from "@/contexts/audio-context"
+import { useActiveNote } from "@/contexts/use-active-note"
+import { useAudio } from "@/contexts/use-audio"
 import { Music } from "lucide-react"
 
 /**

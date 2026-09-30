@@ -29,13 +29,13 @@ const data = {
     workspaceDataTree: tree as WorkspaceDataTree | null,
 }
 const tabs = { openNote: vi.fn() }
-vi.mock("@/contexts/workspace-data-context", () => ({
+vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => data,
     useWorkspaceState: () => data,
     useWorkspaceData: () => data,
 }))
-vi.mock("@/contexts/tabs-context", () => ({ useTabsActions: () => tabs }))
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
+vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => tabs }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
 const content: NoteTemplateContent = {

@@ -1,6 +1,6 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useShortcut } from "@/hooks/use-shortcut"
-import { useShortcutLabel } from "@/contexts/shortcuts-context"
+import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useWorkspace } from "@/contexts/workspace-context"
+import { useWorkspace } from "@/contexts/use-workspace"
 import { ArrowRight, Palette, X } from "lucide-react"
 import { useState } from "react"
 import { getErrorMessage } from "@/lib/utils"

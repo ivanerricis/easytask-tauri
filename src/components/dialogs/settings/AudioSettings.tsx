@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { usePreferences } from "@/contexts/preferences-context"
+import { usePreferences } from "@/contexts/use-preferences"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 
 export const AudioSettings = () => {

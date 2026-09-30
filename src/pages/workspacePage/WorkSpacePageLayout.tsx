@@ -1,6 +1,6 @@
 import { Navbar } from "@/components/navbar"
-import { useWorkspace } from "@/contexts/workspace-context"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspace } from "@/contexts/use-workspace"
+import { useWorkspaceData } from "@/contexts/workspace-data"
 import { ArrowLeft } from "lucide-react"
 import React, { useCallback } from "react"
 import { useNavigate } from "react-router-dom"
@@ -9,7 +9,7 @@ import { ButtonNavbar } from "@/components/button-navbar"
 import { clearLastWorkspaceId } from "@/lib/store/preferences"
 import { reportError } from "@/lib/report-error"
 import { useShortcut } from "@/hooks/use-shortcut"
-import { useShortcutLabel } from "@/contexts/shortcuts-context"
+import { useShortcutLabel } from "@/contexts/use-shortcuts"
 
 type WorkSpaceLayoutProps = {
     children: React.ReactNode

@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { MenuItem, MenuSeparator, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ButtonInPopover } from "@/components/button-in-popover"
-import { useActiveNote } from "@/contexts/active-note-context"
+import { useActiveNote } from "@/contexts/use-active-note"
 import { END_INDEX, getSectionMoveDestinations, getTaskMoveDestinations } from "./note-dnd"
 import { useNoteMoves } from "./note-dnd-state"
 

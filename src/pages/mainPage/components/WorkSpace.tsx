@@ -1,5 +1,5 @@
 import type { Workspace } from "@/types/types"
-import { useWorkspace } from "@/contexts/workspace-context"
+import { useWorkspace } from "@/contexts/use-workspace"
 import { useNavigate } from "react-router-dom"
 import { ButtonMenuWorkspace } from "./ButtonMenuWorkspace"
 import { ItemMenuButton } from "@/components/item-menu"

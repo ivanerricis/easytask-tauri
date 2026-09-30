@@ -4,7 +4,7 @@ import { SideBarLeft } from "./sidebar/SideBarLeft"
 import { DndContext, type DragEndEvent } from "@dnd-kit/core"
 import { restrictToParentElement } from "@dnd-kit/modifiers"
 import { DraggableAudioPlayer } from "@/components/draggable-audio-player"
-import { usePreferences } from "@/contexts/preferences-context"
+import { usePreferences } from "@/contexts/use-preferences"
 import { useTabShortcuts } from "@/hooks/use-tab-shortcuts"
 
 export const MainContainer = () => {

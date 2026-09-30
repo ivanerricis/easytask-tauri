@@ -11,19 +11,19 @@ const rollback = vi.fn()
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 vi.mock("./ButtonMenuGroup", () => ({ ButtonMenuGroup: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
-vi.mock("@/contexts/workspace-data-context", () => ({
+vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ renameItem }),
 }))
-vi.mock("@/contexts/active-note-context", () => ({
+vi.mock("@/contexts/use-active-note", () => ({
     useActiveNoteActions: () => ({ patchGroup }),
 }))
 const prefs = { showSectionCount: true, showTaskCount: true, showGroupProgressBar: true }
-vi.mock("@/contexts/preferences-context", () => ({
+vi.mock("@/contexts/use-preferences", () => ({
     usePreferences: () => prefs,
 }))
 const toggleOpen = vi.fn()
 let isOpen = true
-vi.mock("@/contexts/tabs-context", () => ({
+vi.mock("@/contexts/use-tabs", () => ({
     useGroupOpen: () => [isOpen, toggleOpen],
 }))
 

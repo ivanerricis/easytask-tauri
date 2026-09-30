@@ -6,8 +6,8 @@ import { makeGroup } from "@/test/ui-fixtures"
 
 const patchGroup = vi.fn()
 const removeGroup = vi.fn()
-vi.mock("@/contexts/active-note-context", () => ({ useActiveNoteActions: () => ({ patchGroup, removeGroup }) }))
-vi.mock("@/contexts/audio-context", () => ({ useAudio: () => ({ addFiles: vi.fn() }) }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchGroup, removeGroup }) }))
+vi.mock("@/contexts/use-audio", () => ({ useAudio: () => ({ addFiles: vi.fn() }) }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({
     DialogDeleteItem: ({ isOpen, optimistic }: { isOpen: boolean, optimistic: () => () => void }) =>
         isOpen ? <button onClick={() => optimistic()}>Dialog elimina</button> : null,

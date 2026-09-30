@@ -1,5 +1,5 @@
 import type { Note } from "@/types/types"
-import { useTabsActions } from "@/contexts/tabs-context"
+import { useTabsActions } from "@/contexts/use-tabs"
 import { File } from "lucide-react"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import { ItemMenuButton } from "@/components/item-menu"

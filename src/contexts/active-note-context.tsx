@@ -1,26 +1,13 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { reportError } from "@/lib/report-error"
 import type { NoteDataTree } from "@/types/types"
 import { getDBNoteData } from "@/db/queries/note"
-import { useActiveNoteId, useTabs } from "./tabs-context"
+import { useActiveNoteId, useTabs } from "./use-tabs"
+import { ActiveNoteActionsContext, ActiveNoteContext, type ActiveNoteActionsType } from "./active-note-context-object"
 import { buildNoteTree } from "./tree-builders"
 import { createNoteOptimisticActions, type NoteOptimisticActions, type Rollback } from "./note-optimistic"
 
 /* ------------------------------------------------------------------------------------ */
-
-type ActiveNoteContextType = {
-    /** Data of the active note (null while it is loaded for the first time, or without active note). */
-    noteDataTree: NoteDataTree | null
-}
-
-type ActiveNoteActionsType = NoteOptimisticActions & {
-    /** Reloads the data of the active note from the database (rejects if the query fails). */
-    refreshActiveNote: () => Promise<void>
-    /** Reloads the data of an open note from the database and updates its cache entry (rejects if the query fails). */
-    getNoteData: (noteId: number) => Promise<void>
-    /** Replaces the cached data of the active note (optimistic updates). */
-    setNoteDataTree: (tree: NoteDataTree | null) => void
-}
 
 /**
  * External store with the note data of the open tabs, so that a switch to a cached tab is instant
@@ -68,9 +55,6 @@ function createNoteCache(): NoteCache {
         },
     }
 }
-
-const ActiveNoteContext = createContext<ActiveNoteContextType | null>(null)
-const ActiveNoteActionsContext = createContext<ActiveNoteActionsType | null>(null)
 
 /* ------------------------------------------------------------------------------------ */
 
@@ -180,28 +164,4 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
             </ActiveNoteContext.Provider>
         </ActiveNoteActionsContext.Provider>
     )
-}
-
-/* ------------------------------------------------------------------------------------ */
-
-/**
- * The data of the active note.
- * @category ActiveNote Context
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useActiveNote = () => {
-    const context = useContext(ActiveNoteContext)
-    if (!context) throw new Error("useActiveNote must be used within an ActiveNoteProvider")
-    return context
-}
-
-/**
- * The stable actions on the active note (their identity never changes).
- * @category ActiveNote Context
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useActiveNoteActions = () => {
-    const context = useContext(ActiveNoteActionsContext)
-    if (!context) throw new Error("useActiveNoteActions must be used within an ActiveNoteProvider")
-    return context
 }

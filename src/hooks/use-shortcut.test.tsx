@@ -1,7 +1,8 @@
 import { useEffect, type ReactNode } from "react"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
-import { ShortcutsProvider, useShortcutsContext } from "@/contexts/shortcuts-context"
+import { ShortcutsProvider } from "@/contexts/shortcuts-context"
+import { useShortcutsContext } from "@/contexts/use-shortcuts"
 import { store } from "@/lib/store/initStore"
 import { useShortcut } from "./use-shortcut"
 

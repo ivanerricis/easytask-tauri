@@ -8,10 +8,10 @@ import { ITEM_SIZES } from "./item-size"
 
 let size: SidebarItemSize = "normal"
 
-vi.mock("@/contexts/preferences-context", () => ({
+vi.mock("@/contexts/use-preferences", () => ({
     usePreferences: () => ({ sidebarItemSize: size }),
 }))
-vi.mock("@/contexts/tabs-context", () => ({ useTabsActions: () => ({ openNote: vi.fn() }) }))
+vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn() }) }))
 vi.mock("../folder/ButtonMenuFolder", () => ({ ButtonMenuFolder: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("../note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("@/components/tooltip-custom", () => ({

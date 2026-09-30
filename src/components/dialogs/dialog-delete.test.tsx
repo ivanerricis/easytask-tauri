@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { DialogDeleteItem } from "./dialog-delete"
 
 const deleteItem = vi.fn()
-vi.mock("@/contexts/workspace-data-context", () => ({
+vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceData: () => ({ deleteItem }),
 }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))

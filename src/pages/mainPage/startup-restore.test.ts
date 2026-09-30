@@ -5,7 +5,7 @@ import { getLastWorkspaceId, getReopenLastWorkspace } from "@/lib/store/preferen
 import { makeWorkspace } from "@/test/ui-fixtures"
 
 const ctx = { workspaces: [] as ReturnType<typeof makeWorkspace>[], setCurrentWorkspace: vi.fn() }
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ctx }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ctx }))
 const navigate = vi.fn()
 vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }))
 vi.mock("@/lib/store/preferences", () => ({ getReopenLastWorkspace: vi.fn(), getLastWorkspaceId: vi.fn() }))

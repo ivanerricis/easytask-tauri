@@ -20,9 +20,9 @@ const ws = {
     restoreWorkspace: vi.fn(),
     purgeWorkspace: vi.fn(),
 }
-vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceActions: () => data }))
-vi.mock("@/contexts/active-note-context", () => ({ useActiveNoteActions: () => note }))
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ws }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => data }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => note }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ws }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
 const items: TrashItem[] = [

@@ -9,7 +9,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger
 } from "./ui/alert-dialog"
-import { buttonVariants } from "./ui/button"
+import { buttonVariants } from "./ui/button-variants"
 
 type AlertDialogCustomProps = {
     onDelete: () => void

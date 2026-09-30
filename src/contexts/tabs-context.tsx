@@ -1,58 +1,15 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react"
+import { useEffect, useMemo, useReducer, useRef, useState } from "react"
 import type { Note } from "@/types/types"
+import {
+    ActiveIdContext, TabUiContext, TabsActionsContext, TabsContext,
+    type ScrollPosition, type TabUiStore, type TabsActionsType, type TabsContextType,
+} from "./tabs-context-object"
 import { initialTabsState, tabsReducer } from "./tabs-reducer"
 import { reportError } from "@/lib/report-error"
 import { getReopenNotes } from "@/lib/store/preferences"
 import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
 
 /* ------------------------------------------------------------------------------------ */
-
-type TabsContextType = {
-    /** Ids of the open notes, in tab order. */
-    openIds: number[]
-    /** Id of the active tab, if any. */
-    activeId: number | null
-    /** The open notes, derived from the live notes list (ids not found are dropped). */
-    tabs: Note[]
-    /** The active note, derived from the live notes list. */
-    currentNote: Note | null
-}
-
-type TabsActionsType = {
-    /** Opens the note in a tab (if not already open) and makes it the active one. */
-    openNote: (noteId: number) => void
-    /** Closes a tab; when it is the active one the neighbour tab becomes active. */
-    closeNote: (noteId: number) => void
-    /** Closes several tabs at once. */
-    closeNotes: (noteIds: readonly number[]) => void
-    /** Closes the active tab. */
-    closeActiveNote: () => void
-    /** Closes every tab. */
-    closeAllNotes: () => void
-    /** Moves a tab from an index to another one and activates it. */
-    reorderTabs: (from: number, to: number) => void
-    /** Makes an open tab the active one. */
-    activateNote: (noteId: number) => void
-}
-
-type ScrollPosition = { left: number, top: number }
-
-/**
- * Per-note UI state that must survive tab switches (collapsed sections, scroll position).
- * It is a plain external store: it never triggers a re-render of the whole tabs tree.
- * @category Tabs
- */
-export type TabUiStore = {
-    isSectionCollapsed: (noteId: number, sectionId: number) => boolean
-    setSectionCollapsed: (noteId: number, sectionId: number, collapsed: boolean) => void
-    isGroupCollapsed: (noteId: number, groupId: number) => boolean
-    setGroupCollapsed: (noteId: number, groupId: number, collapsed: boolean) => void
-    getScroll: (noteId: number) => ScrollPosition | undefined
-    setScroll: (noteId: number, position: ScrollPosition) => void
-    /** Drops the UI state of the notes that are not in `keep` (closed tabs). */
-    retain: (keep: readonly number[]) => void
-    subscribe: (listener: () => void) => () => void
-}
 
 /**
  * Creates the store of the per-note UI state.
@@ -99,11 +56,6 @@ function createTabUiStore(): TabUiStore {
         },
     }
 }
-
-const TabsContext = createContext<TabsContextType | null>(null)
-const TabsActionsContext = createContext<TabsActionsType | null>(null)
-const ActiveIdContext = createContext<number | null>(null)
-const TabUiContext = createContext<TabUiStore | null>(null)
 
 /* ------------------------------------------------------------------------------------ */
 
@@ -220,86 +172,4 @@ export function TabsProvider({ notes, workspaceId, children }: TabsProviderProps
             </TabUiContext.Provider>
         </TabsActionsContext.Provider>
     )
-}
-
-/* ------------------------------------------------------------------------------------ */
-
-/**
- * The open tabs, the active one and the derived Note objects. Re-renders when tabs or notes change.
- * @category Tabs
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useTabs = () => {
-    const context = useContext(TabsContext)
-    if (!context) throw new Error("useTabs must be used within a TabsProvider")
-    return context
-}
-
-/**
- * The stable tab actions (their identity never changes).
- * @category Tabs
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useTabsActions = () => {
-    const context = useContext(TabsActionsContext)
-    if (!context) throw new Error("useTabsActions must be used within a TabsProvider")
-    return context
-}
-
-/**
- * The id of the active note only: re-renders just when the active tab changes.
- * @category Tabs
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useActiveNoteId = () => useContext(ActiveIdContext)
-
-/**
- * The store of the per-note UI state.
- * @category Tabs
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useTabUiStore = () => {
-    const context = useContext(TabUiContext)
-    if (!context) throw new Error("useTabUiStore must be used within a TabsProvider")
-    return context
-}
-
-/**
- * Open/closed state of a section, kept per note so it survives tab switches.
- * @param sectionId The ID of the section.
- * @returns The open flag and a toggle function.
- * @category Tabs
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useSectionOpen(sectionId: number): [boolean, () => void] {
-    const store = useTabUiStore()
-    const noteId = useActiveNoteId()
-    const collapsed = useSyncExternalStore(
-        store.subscribe,
-        () => noteId !== null && store.isSectionCollapsed(noteId, sectionId),
-    )
-    const toggle = useCallback(() => {
-        if (noteId !== null) store.setSectionCollapsed(noteId, sectionId, !store.isSectionCollapsed(noteId, sectionId))
-    }, [store, noteId, sectionId])
-    return [!collapsed, toggle]
-}
-
-/**
- * Open/closed state of a group, kept per note so it survives tab switches.
- * @param groupId The ID of the group.
- * @returns The open flag and a toggle function.
- * @category Tabs
- */
-// eslint-disable-next-line react-refresh/only-export-components
-export function useGroupOpen(groupId: number): [boolean, () => void] {
-    const store = useTabUiStore()
-    const noteId = useActiveNoteId()
-    const collapsed = useSyncExternalStore(
-        store.subscribe,
-        () => noteId !== null && store.isGroupCollapsed(noteId, groupId),
-    )
-    const toggle = useCallback(() => {
-        if (noteId !== null) store.setGroupCollapsed(noteId, groupId, !store.isGroupCollapsed(noteId, groupId))
-    }, [store, noteId, groupId])
-    return [!collapsed, toggle]
 }

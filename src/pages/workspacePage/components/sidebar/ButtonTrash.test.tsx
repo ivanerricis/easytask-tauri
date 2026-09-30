@@ -10,8 +10,8 @@ const data = {
     getTrash: vi.fn(),
     trashVersion: 0,
 }
-vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceData: () => data }))
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => data }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
 vi.mock("@/components/dialogs/dialog-trash", () => ({ DialogTrash: () => null }))
 
 // Simulates a delete elsewhere in the app: the trash grows and trashVersion is bumped

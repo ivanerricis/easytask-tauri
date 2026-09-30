@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { Briefcase, FileText, Music, Folder, Layers, LayoutList, LayoutTemplate, Loader2, RotateCcw, SquareCheck, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button-variants"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import {
     AlertDialog,
@@ -15,9 +16,9 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { useWorkspace } from "@/contexts/workspace-context"
-import { useWorkspaceActions } from "@/contexts/workspace-data-context"
-import { useActiveNoteActions } from "@/contexts/active-note-context"
+import { useWorkspace } from "@/contexts/use-workspace"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { formatDate, getErrorMessage } from "@/lib/utils"
 import type { TrashItem } from "@/types/types"
 

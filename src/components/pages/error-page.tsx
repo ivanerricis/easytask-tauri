@@ -1,8 +1,8 @@
-import { useWorkspace } from "@/contexts/workspace-context"
+import { useWorkspace } from "@/contexts/use-workspace"
 import { Button } from "../ui/button"
 import { ArrowLeft } from "lucide-react"
 import { useNavigate } from "react-router-dom"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceData } from "@/contexts/workspace-data"
 
 type ErrorPageProps = {
     error: string | null

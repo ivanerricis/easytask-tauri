@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { KbdKeys } from "@/components/kbd"
-import { useShortcutsContext } from "@/contexts/shortcuts-context"
+import { useShortcutsContext } from "@/contexts/use-shortcuts"
 import { SHORTCUTS, SHORTCUT_CATEGORIES, bindingFromEvent, findConflictsFor, formatBinding, getShortcut, isValidBinding } from "@/lib/shortcuts"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 

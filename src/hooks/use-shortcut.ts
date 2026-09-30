@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react"
-import { useShortcutsContext, type ShortcutEntry } from "@/contexts/shortcuts-context"
+import { useShortcutsContext } from "@/contexts/use-shortcuts"
+import { type ShortcutEntry } from "@/contexts/shortcuts-context-object"
 
 type UseShortcutOptions = {
     enabled?: boolean

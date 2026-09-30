@@ -7,8 +7,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/compon
 const moveTreeItem = vi.fn().mockResolvedValue(undefined)
 const getWorkspaceData = vi.fn().mockResolvedValue(undefined)
 
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 7 } }) }))
-vi.mock("@/contexts/workspace-data-context", () => {
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 7 } }) }))
+vi.mock("@/contexts/workspace-data", () => {
     const workspaceDataTree = {
         rootFolders: [
             { id: 1, name: "Docs", folderID: null, subfolders: [{ id: 2, name: "Sub", folderID: 1, subfolders: [], notes: [] }], notes: [] },

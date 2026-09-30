@@ -1,4 +1,4 @@
-import { useActiveNoteId } from "@/contexts/tabs-context"
+import { useActiveNoteId } from "@/contexts/use-tabs"
 import { GroupContainer } from "../groups/GroupContainer"
 import { NoteList } from "../note/NoteList"
 import { BlankNote } from "../BlankNote"

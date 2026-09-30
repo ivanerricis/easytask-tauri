@@ -9,8 +9,8 @@ const workspaceCtx = { currentWorkspace: null as ReturnType<typeof makeWorkspace
 const dataCtx = { error: null as string | null, getWorkspaceData: vi.fn() }
 
 vi.mock("@/lib/store/preferences", () => ({ saveLastWorkspaceId: vi.fn() }))
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => workspaceCtx }))
-vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceData: () => dataCtx }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => workspaceCtx }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => dataCtx }))
 vi.mock("@/contexts/audio-context", () => ({ AudioProvider: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("./WorkSpacePageLayout", () => ({ WorkSpaceLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock("./components/MainContainer", () => ({ MainContainer: () => <div>main-container</div> }))

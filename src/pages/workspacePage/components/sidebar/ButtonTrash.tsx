@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { useWorkspace } from "@/contexts/workspace-context"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspace } from "@/contexts/use-workspace"
+import { useWorkspaceData } from "@/contexts/workspace-data"
 import { reportError } from "@/lib/report-error"
 import { DialogTrash } from "@/components/dialogs/dialog-trash"
 import { ItemFooter } from "../items/ItemFooter"
