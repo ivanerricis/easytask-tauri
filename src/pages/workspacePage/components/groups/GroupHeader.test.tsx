@@ -25,10 +25,11 @@ beforeEach(() => {
 })
 
 describe("GroupHeader name", () => {
-    it("shows the name with the full name as tooltip", () => {
+    it("shows the full name, wrapping instead of truncating", () => {
         render(<GroupHeader group={makeGroup({ name: "Da fare" })} index={2} />)
         const name = screen.getByText("Da fare")
-        expect(name).toHaveAttribute("title", "Da fare")
+        expect(name).toHaveClass("break-words")
+        expect(name).not.toHaveClass("truncate")
         expect(name).not.toHaveClass("text-muted-foreground")
     })
 

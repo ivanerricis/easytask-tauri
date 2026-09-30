@@ -125,14 +125,14 @@ describe("reading", () => {
             INSERT INTO task (id, sectionID, text) VALUES (1, 1, 'T1'), (2, 2, 'T2');
         `)
         await deleteDBItem("section", 2)
-        await deleteDBItem("section", 3) // last section of group 2: the group is soft deleted
+        await deleteDBItem("section", 3) // last section of group 2: the group stays, empty
         await deleteDBItem("task", 1)
         const data = await getDBNoteData(1)
-        expect(data?.groups.map(g => g.id)).toEqual([1])
+        expect(data?.groups.map(g => g.id)).toEqual([1, 2])
         expect(data?.sections.map(s => s.id)).toEqual([1])
         expect(data?.tasks).toEqual([])
-        expect(one("SELECT deleted_at IS NOT NULL FROM section_group WHERE id=2")).toBe(1)
-        expect(one("SELECT deleted_at IS NULL FROM section WHERE id=3")).toBe(1)
+        expect(one("SELECT deleted_at IS NULL FROM section_group WHERE id=2")).toBe(1)
+        expect(one("SELECT deleted_at IS NOT NULL FROM section WHERE id=3")).toBe(1)
     })
 })
 

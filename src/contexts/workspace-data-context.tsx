@@ -5,7 +5,7 @@ import { createDBNoteInFolder, createDBWorkspaceNote } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder";
 import { createDBSection, createDBSectionInGroup } from "@/db/queries/section";
 import { createDBSubTask, createDBTask, updateDBTaskCompletion, updateDBTaskDescription, updateDBTaskPriority } from "@/db/queries/task";
-import { updateDBGroupPositions } from "@/db/queries/group";
+import { createDBGroup, updateDBGroupPositions } from "@/db/queries/group";
 import { moveDBTreeItem } from "@/db/queries/tree";
 import { moveDBSection, moveDBSectionToNewGroup, moveDBTask, type TaskMoveTarget } from "@/db/queries/move";
 import { countDBTemplates, createDBNoteFromTemplate, createDBTemplateFromNote, getDBTemplates, updateDBTemplateFromNote } from "@/db/queries/template";
@@ -41,6 +41,7 @@ type WorkspaceActionsType = {
 
     createSubFolder: (workspaceID: number, folderID: number, name: string) => Promise<void>
     createNoteInFolder: (workspaceID: number, folderID: number, name: string) => Promise<void>
+    createGroup: (noteID: number, name: string) => Promise<void>
     createSection: (noteID: number, title: string, position: number) => Promise<void>
     createSectionInGroup: (groupId: number, title: string) => Promise<void>
     createTask: (sectionID: number, text: string) => Promise<void>
@@ -168,6 +169,9 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
     const createNoteInFolder = useCallback((workspaceID: number, folderID: number, name: string) =>
         withLoading(() => createDBNoteInFolder(workspaceID, folderID, name)), [withLoading])
+
+    const createGroup = useCallback((noteID: number, name: string) =>
+        withLoading(() => createDBGroup(noteID, name)), [withLoading])
 
     const createSection = useCallback((noteID: number, title: string, position: number) =>
         withLoading(() => createDBSection(noteID, title, position)), [withLoading])
@@ -453,6 +457,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         createWorkspaceNote,
         createSubFolder,
         createNoteInFolder,
+        createGroup,
         createSection,
         createSectionInGroup,
         createTask,
@@ -481,7 +486,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         createNoteFromTemplate
     }), [
         getWorkspaceData, createWorkspaceFolder, createWorkspaceNote,
-        createSubFolder, createNoteInFolder, createSection, createSectionInGroup,
+        createSubFolder, createNoteInFolder, createGroup, createSection, createSectionInGroup,
         createTask, createSubTask, updateTaskPriority, updateTaskCompletion,
         updateTaskDescription, renameItem, updateItemColor, updateGroupsPositions,
         updateFolderColorContent, moveTreeItem, moveSection, moveSectionToNewGroup, moveTask, deleteItem, getTrash, restoreItem, purgeItem,

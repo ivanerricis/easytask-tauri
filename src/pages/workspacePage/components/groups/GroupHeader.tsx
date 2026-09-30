@@ -66,8 +66,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleProps }: GroupHeaderPr
                 </div>}
                 {!isEditing && <h2
                     onClick={startEditing}
-                    title={name || undefined}
-                    className={`text-xs mr-3 min-w-0 max-w-40 truncate cursor-text ${name ? "" : "text-muted-foreground"}`}>
+                    className={`text-xs mr-3 min-w-0 flex-1 break-words cursor-text ${name ? "" : "text-muted-foreground"}`}>
                     {label}
                 </h2>}
                 {isEditing && <input
@@ -88,9 +87,9 @@ export const GroupHeader = ({ group, index = 0, dragHandleProps }: GroupHeaderPr
                             setEditing(false)
                         }
                     }}
-                    className="min-w-0 w-32 mr-3 px-1 border border-primary text-xs rounded-xs"
+                    className="min-w-0 flex-1 mr-3 px-1 border border-primary text-xs rounded-xs"
                 />}
-                <div className="flex w-full gap-3">
+                <div className="flex shrink-0 gap-3">
                     {showSectionCount && <div className="flex items-center gap-1">
                         <LayoutList className="size-4" />
                         <h1 className="text-xs">
@@ -104,7 +103,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleProps }: GroupHeaderPr
                         </h1>
                     </div>}
                 </div>
-                <div className="opacity-0 group-hover:opacity-100">
+                <div className="shrink-0 opacity-0 group-hover:opacity-100">
                     <ItemMenuButton iconClassName="!h-4 !w-4" />
                 </div>
             </div>

@@ -57,33 +57,10 @@ async function renumberGroups(db: Db, noteId: number, order: number[]) {
 }
 
 /**
- * Removes a group left without visible sections after a move. A group that never contained anything else
- * (no section row at all, no audio file) is deleted for good; otherwise it is moved to the trash, so its
- * trashed sections (and their tasks) can still be restored instead of being lost by the cascade.
- * @returns true when the group was removed (hard or soft) from the note.
- * @category Database Queries
- */
-async function removeGroupIfEmpty(db: Db, groupId: number) {
-    const visible = await db.select<{ c: number }[]>(
-        'SELECT COUNT(*) AS c FROM section WHERE groupID = ? AND deleted_at IS NULL', [groupId])
-    if ((visible[0]?.c ?? 0) > 0) return false
-
-    await db.execute(
-        `DELETE FROM section_group WHERE id = ?
-         AND NOT EXISTS (SELECT 1 FROM section WHERE groupID = ?)
-         AND NOT EXISTS (SELECT 1 FROM audio_file WHERE section_groupID = ?)`,
-        [groupId, groupId, groupId])
-    await db.execute(
-        "UPDATE section_group SET deleted_at = datetime('now','localtime') WHERE id = ? AND deleted_at IS NULL",
-        [groupId])
-    return true
-}
-
-/**
  * Moves a section to a group of the same note, at a given index among the sections of that group.
  * The section keeps everything it owns (tasks, subtasks and trashed tasks reference it by id, so they follow it).
  * Destination siblings are renumbered with one UPDATE, and so are the source siblings when the group changes.
- * When the source group is left without sections it is removed and the remaining groups are renumbered.
+ * A source group left without sections stays in the note (groups are removed only explicitly).
  * The caller is responsible for reloading the note data.
  * @param sectionId ID of the section to move.
  * @param targetGroupId ID of the destination group (same note, not deleted).
@@ -133,10 +110,6 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
             if (remaining.length > 0) {
                 const update = buildPositionUpdate("section", remaining.map(row => row.id))
                 await db.execute(update.sql, update.params)
-            } else if (await removeGroupIfEmpty(db, section.groupID)) {
-                const groups = await db.select<{ id: number }[]>(
-                    'SELECT id FROM section_group WHERE noteID = ? AND deleted_at IS NULL ORDER BY position, id', [section.noteID])
-                await renumberGroups(db, section.noteID, groups.map(row => row.id))
             }
         }
     } catch (error: unknown) {
@@ -147,7 +120,7 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
 /**
  * Moves a section into a brand new group created at the given index among the groups of the note
  * (the section is pulled out into its own column). The index refers to the groups as they are before the move
- * (the source group included); the other groups shift and, when the source group ends up empty, it is removed.
+ * (the source group included); the other groups shift and the source group stays even when it ends up empty.
  * The caller is responsible for reloading the note data.
  * @param sectionId ID of the section to move.
  * @param groupPosition Index of the new group among the groups of the note (0 based, clamped).
@@ -188,8 +161,6 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
         if (remaining.length > 0) {
             const update = buildPositionUpdate("section", remaining.map(row => row.id))
             await db.execute(update.sql, update.params)
-        } else {
-            await removeGroupIfEmpty(db, section.groupID)
         }
         await renumberGroups(db, section.noteID, order)
     } catch (error: unknown) {

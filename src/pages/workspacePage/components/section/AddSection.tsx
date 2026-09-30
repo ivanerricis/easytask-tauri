@@ -1,7 +1,7 @@
 import { Input } from "@/components/ui/input"
 import { useWorkspaceActions } from "@/contexts/workspace-data-context"
 import { useActiveNoteId } from "@/contexts/tabs-context"
-import { useActiveNote, useActiveNoteActions } from "@/contexts/active-note-context"
+import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { useState, useRef, useEffect, useCallback } from "react"
 import type { FormEvent } from "react"
 import { toast } from "sonner"
@@ -18,9 +18,8 @@ type AddSectionFormProps = {
 export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     const [isOpen, setOpen] = useState(false)
     const [name, setName] = useState("")
-    const { createSection, createSectionInGroup } = useWorkspaceActions()
+    const { createGroup, createSectionInGroup } = useWorkspaceActions()
     const activeId = useActiveNoteId()
-    const { noteDataTree } = useActiveNote()
     const { refreshActiveNote } = useActiveNoteActions()
     const formRef = useRef<HTMLFormElement>(null)
 
@@ -59,7 +58,8 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
-        if (!name.trim()) return
+        // A section needs a title, a group may stay unnamed ("Gruppo N")
+        if (inGroup && !name.trim()) return
 
         try {
             if (activeId === null) return
@@ -71,19 +71,13 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                 }
                 await createSectionInGroup(groupId, name.trim())
             } else {
-                let position = 0
-                const groups = noteDataTree?.groups ?? []
-                if (groups.length > 0) {
-                    const lastGroup = groups.at(-1)!
-                    position = lastGroup.position + 1
-                }
-                await createSection(activeId, name.trim(), position)
+                await createGroup(activeId, name.trim())
             }
 
             handleOpen()
             await refreshActiveNote()
         } catch (error) {
-            toast.error(getErrorMessage(error) || "Errore nella creazione della sezione")
+            toast.error(getErrorMessage(error) || (inGroup ? "Errore nella creazione della sezione" : "Errore nella creazione del gruppo"))
         }
     }
 
@@ -99,13 +93,14 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                 <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Scrivi qualcosa..."
+                    placeholder={inGroup ? "Titolo della sezione..." : "Nome del gruppo (facoltativo)..."}
+                    aria-label={inGroup ? "Titolo della sezione" : "Nome del gruppo"}
                     autoFocus
                     className={`rounded-none border-none !bg-background text-sm ${inGroup ? 'w-full' : 'w-fit'}`}
                 />
             </div>
             <div className="flex items-center w-full border-t bg-secondary divide-x">
-                <PlusButton disabled={!name.trim()} />
+                <PlusButton disabled={!!inGroup && !name.trim()} />
                 <CloseButton onClick={handleOpen} />
             </div>
         </form>

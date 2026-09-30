@@ -73,7 +73,7 @@ const SOFT_DELETE = "SET deleted_at = datetime('now','localtime')"
 
 /**
  * Moves an item to the trash (soft delete: sets deleted_at, children are hidden by their parent).
- * Deleting the last visible section of a group soft deletes the whole group.
+ * Deleting the last section of a group leaves the (empty) group in the note.
  * @param itemType Type of item to delete (e.g., 'task', 'section').
  * @param itemID ID of the item to delete.
  * @category Database Queries
@@ -83,21 +83,7 @@ export async function deleteDBItem(itemType: DBItemType, itemID: number) {
     const db = await getDB()
 
     try {
-        if (itemType === 'section') {
-            const groupQuery = await db.select<{ groupID: number }[]>('SELECT groupID FROM section WHERE id=?', [itemID])
-            if (groupQuery.length === 0)
-                return
-
-            const groupID = groupQuery[0].groupID
-            const count = await db.select<{ count: number }[]>('SELECT COUNT(*) as count FROM section WHERE groupID=? AND deleted_at IS NULL', [groupID])
-
-            if (count[0].count !== 1)
-                await db.execute(`UPDATE section ${SOFT_DELETE} WHERE id=?`, [itemID])
-            else
-                await db.execute(`UPDATE section_group ${SOFT_DELETE} WHERE id=?`, [groupID])
-        }
-        else
-            await db.execute(`UPDATE ${itemType} ${SOFT_DELETE} WHERE id=?`, [itemID])
+        await db.execute(`UPDATE ${itemType} ${SOFT_DELETE} WHERE id=?`, [itemID])
     } catch (error: unknown) {
         throw createError(`${itemType.toUpperCase()}_DELETE_FAILED`, "Failed to delete item: " + getErrorMessage(error))
     }

@@ -34,6 +34,7 @@ import { createDBSubTask, createDBTask } from "./task"
 import { getDBNoteData } from "./note"
 import { deleteDBItem } from "./shared_queries"
 import { restoreDBItem } from "./trash"
+import { createDBGroup } from "./group"
 
 const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
 const sectionsOf = (groupId: number) =>
@@ -78,6 +79,22 @@ async function seedSections() {
 
 const sectionId = (title: string) => rows(`SELECT id FROM section WHERE title = '${title}'`)[0].id as number
 
+describe("createDBGroup", () => {
+    it("appends an empty named group after the visible groups of the note", async () => {
+        sqlite.exec("UPDATE section_group SET deleted_at = '2026-01-01' WHERE id = 3")
+        await createDBGroup(1, "  Sprint  ")
+        const created = rows("SELECT name, position FROM section_group WHERE noteID = 1 AND deleted_at IS NULL ORDER BY position")
+        expect(created.at(-1)).toEqual({ name: "Sprint", position: 2 })
+        expect(rows("SELECT COUNT(*) AS c FROM section WHERE groupID = (SELECT MAX(id) FROM section_group)")[0].c).toBe(0)
+    })
+
+    it("stores a blank name as NULL and starts at 0 in an empty note", async () => {
+        sqlite.exec("INSERT INTO note (id, workspaceID, name) VALUES (3, 1, 'Empty')")
+        await createDBGroup(3, "   ")
+        expect(rows("SELECT name, position FROM section_group WHERE noteID = 3")).toEqual([{ name: null, position: 0 }])
+    })
+})
+
 describe("creation appends after the siblings", () => {
     it("sections, tasks and subtasks get increasing positions", async () => {
         await seedSections()
@@ -121,24 +138,22 @@ describe("moveDBSection", () => {
         expect(positions("SELECT position FROM section WHERE groupID = 2 ORDER BY position")).toEqual([0, 1])
     })
 
-    it("removes the source group when it becomes empty and renumbers the groups", async () => {
+    it("keeps the source group, empty, when its last section is moved away", async () => {
         await seedSections()
         await moveDBSection(sectionId("S4"), 1, 1)
         expect(sectionsOf(1)).toEqual(["S1", "S4", "S2", "S3"])
-        expect(groupIds()).toEqual([1, 3])
-        expect(rows("SELECT id FROM section_group WHERE id = 2")).toEqual([]) // hard deleted
-        expect(positions("SELECT position FROM section_group WHERE noteID = 1 ORDER BY position")).toEqual([0, 1])
+        expect(groupIds()).toEqual([1, 2, 3])
+        expect(sectionsOf(2)).toEqual([])
+        expect(positions("SELECT position FROM section_group WHERE noteID = 1 ORDER BY position")).toEqual([0, 1, 2])
     })
 
-    it("soft deletes an emptied group that still holds trashed sections (they stay restorable)", async () => {
+    it("a trashed section of an emptied group stays restorable into it", async () => {
         await seedSections()
         await createDBSectionInGroup(2, "S4b")
         await deleteDBItem("section", sectionId("S4b"))
         await moveDBSection(sectionId("S4"), 1, 0)
-        expect(groupIds()).toEqual([1, 3])
-        expect(rows("SELECT deleted_at FROM section_group WHERE id = 2")[0].deleted_at).not.toBeNull()
+        expect(groupIds()).toEqual([1, 2, 3])
         await restoreDBItem("section", sectionId("S4b"))
-        expect(groupIds()).toContain(2)
         expect(sectionsOf(2)).toEqual(["S4b"])
     })
 
@@ -212,15 +227,15 @@ describe("moveDBSectionToNewGroup", () => {
         expect(sectionsOf(ids[3] as number)).toEqual(["S1"])
     })
 
-    it("removes the source group when its only section is pulled out (it becomes a reorder)", async () => {
+    it("keeps the source group, empty, when its only section is pulled out", async () => {
         await seedSections()
         await moveDBSectionToNewGroup(sectionId("S4"), 0)
         const ids = groupIds()
-        expect(ids).toHaveLength(3)
+        expect(ids).toHaveLength(4)
         expect(sectionsOf(ids[0] as number)).toEqual(["S4"])
-        expect(ids.slice(1)).toEqual([1, 3])
-        expect(rows("SELECT id FROM section_group WHERE id = 2")).toEqual([])
-        expect(positions("SELECT position FROM section_group WHERE noteID = 1 ORDER BY position")).toEqual([0, 1, 2])
+        expect(ids.slice(1)).toEqual([1, 2, 3])
+        expect(sectionsOf(2)).toEqual([])
+        expect(positions("SELECT position FROM section_group WHERE noteID = 1 ORDER BY position")).toEqual([0, 1, 2, 3])
     })
 
     it("keeps the tasks of the section", async () => {

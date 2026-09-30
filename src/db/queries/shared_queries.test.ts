@@ -109,31 +109,11 @@ describe("deleteDBItem", () => {
         expect(db.select).not.toHaveBeenCalled()
     })
 
-    it("deletes only the section when the group has other sections", async () => {
-        db.select
-            .mockResolvedValueOnce([{ groupID: 5 }])
-            .mockResolvedValueOnce([{ count: 2 }])
+    it("deletes only the section, never its group (an emptied group stays)", async () => {
         await deleteDBItem("section", 7)
-        expect(db.select).toHaveBeenNthCalledWith(1, "SELECT groupID FROM section WHERE id=?", [7])
-        expect(db.select).toHaveBeenNthCalledWith(2, "SELECT COUNT(*) as count FROM section WHERE groupID=? AND deleted_at IS NULL", [5])
+        expect(db.select).not.toHaveBeenCalled()
         expect(db.execute).toHaveBeenCalledTimes(1)
         expect(db.execute).toHaveBeenCalledWith("UPDATE section SET deleted_at = datetime('now','localtime') WHERE id=?", [7])
-    })
-
-    it("deletes the group when removing its last section", async () => {
-        db.select
-            .mockResolvedValueOnce([{ groupID: 5 }])
-            .mockResolvedValueOnce([{ count: 1 }])
-        await deleteDBItem("section", 7)
-        expect(db.execute).toHaveBeenCalledTimes(1)
-        expect(db.execute).toHaveBeenCalledWith("UPDATE section_group SET deleted_at = datetime('now','localtime') WHERE id=?", [5])
-    })
-
-    it("returns silently when the section does not exist", async () => {
-        db.select.mockResolvedValueOnce([])
-        await expect(deleteDBItem("section", 1)).resolves.toBeUndefined()
-        expect(db.select).toHaveBeenCalledTimes(1)
-        expect(db.execute).not.toHaveBeenCalled()
     })
 
     it("throws a DELETE_FAILED error when the DB fails", async () => {
@@ -144,8 +124,8 @@ describe("deleteDBItem", () => {
         })
     })
 
-    it("throws when a select fails for a section", async () => {
-        db.select.mockRejectedValueOnce("locked")
+    it("throws a DELETE_FAILED error for a section too", async () => {
+        db.execute.mockRejectedValueOnce("locked")
         expect(await thrown(deleteDBItem("section", 1))).toEqual({
             code: "SECTION_DELETE_FAILED",
             message: "Failed to delete item: locked",
