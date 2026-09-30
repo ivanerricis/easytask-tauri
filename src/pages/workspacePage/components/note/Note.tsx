@@ -2,6 +2,7 @@ import type { Note } from "@/types/types"
 import { useTabsActions } from "@/contexts/tabs-context"
 import { File } from "lucide-react"
 import { ButtonMenuNote } from "./ButtonMenuNote"
+import { ItemMenuButton } from "@/components/item-menu"
 import React, { useCallback, useState } from "react"
 import { formatDate, hexToRgba } from "@/lib/utils"
 import { useItemSize } from "../sidebar/item-size"
@@ -30,36 +31,38 @@ export const ItemNote = React.memo(({ note, className, dropZone = null }: ItemNo
     }, [note.id, openNote])
 
     return (
-        <div
-            {...attributes}
-            {...listeners}
-            ref={ref}
-            role="button"
-            onClick={handleOpenFile}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`relative group cursor-pointer w-full ${size.row} flex items-center opacity-85 bg-background hover:opacity-100 rounded-xs border border-accent overflow-x-hidden ${isDragging ? "opacity-40" : ""} ${className ?? ""}`}
-            style={{ backgroundColor: `${hexToRgba(isHovered ? 0.5 : 0.3, note.color)}` }}
-        >
-            <DropLine zone={dropZone} />
-            {/* Icon + Text */}
-            <TooltipCustom
-                side="right"
-                sideOffset={size.noteTooltipOffset}
-                text={[
-                    "Data creazione: " + formatDate(note.creation_date) + " " + note.creation_time,
-                    "Data modifica: " + formatDate(note.edit_date) + " " + note.edit_time
-                ]}>
-                <div className="flex items-center gap-1 px-1 overflow-hidden w-full">
-                    <File className={`${size.icon} shrink-0 text-foreground`} />
-                    <h1 className={`${size.text} text-foreground truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
-                        {note.name}
-                    </h1>
+        <ButtonMenuNote note={note}>
+            <div
+                {...attributes}
+                {...listeners}
+                ref={ref}
+                role="button"
+                onClick={handleOpenFile}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                className={`relative group cursor-pointer w-full ${size.row} flex items-center opacity-85 bg-background hover:opacity-100 rounded-xs border border-accent overflow-x-hidden ${isDragging ? "opacity-40" : ""} ${className ?? ""}`}
+                style={{ backgroundColor: `${hexToRgba(isHovered ? 0.5 : 0.3, note.color)}` }}
+            >
+                <DropLine zone={dropZone} />
+                {/* Icon + Text */}
+                <TooltipCustom
+                    side="right"
+                    sideOffset={size.noteTooltipOffset}
+                    text={[
+                        "Data creazione: " + formatDate(note.creation_date) + " " + note.creation_time,
+                        "Data modifica: " + formatDate(note.edit_date) + " " + note.edit_time
+                    ]}>
+                    <div className="flex items-center gap-1 px-1 overflow-hidden w-full">
+                        <File className={`${size.icon} shrink-0 text-foreground`} />
+                        <h1 className={`${size.text} text-foreground truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
+                            {note.name}
+                        </h1>
+                    </div>
+                </TooltipCustom>
+                <div className={`shrink-0 px-1 opacity-0 group-hover:opacity-100 ${size.menu}`} {...stopDragActivation}>
+                    <ItemMenuButton />
                 </div>
-            </TooltipCustom>
-            <div className={`shrink-0 px-1 opacity-0 group-hover:opacity-100 ${size.menu}`} {...stopDragActivation}>
-                <ButtonMenuNote note={note} />
             </div>
-        </div>
+        </ButtonMenuNote>
     )
 })

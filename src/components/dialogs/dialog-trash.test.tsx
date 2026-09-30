@@ -31,6 +31,22 @@ const items: TrashItem[] = [
     { type: "task", id: 3, name: "Task C", context: "Nota B › Sezione 1", deleted_at: "2026-09-03 12:00:00" },
 ]
 
+describe("DialogTrash templates", () => {
+    it("shows a deleted template in its own group and restores it as a template", async () => {
+        const user = userEvent.setup()
+        vi.resetAllMocks()
+        data.getTrash.mockResolvedValue([{ type: "note_template", id: 5, name: "Retro", context: "Da: Sprint", deleted_at: "2026-09-04 09:00:00" }])
+        data.restoreItem.mockResolvedValue(undefined)
+        data.getWorkspaceData.mockResolvedValue(undefined)
+        note.refreshActiveNote.mockResolvedValue(undefined)
+        render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        expect(await screen.findByRole("region", { name: "Template" })).toBeInTheDocument()
+        expect(screen.getByText(/Da: Sprint · Eliminato il 04-09-2026 09:00/)).toBeInTheDocument()
+        await user.click(screen.getByRole("button", { name: "Ripristina Retro" }))
+        await waitFor(() => expect(data.restoreItem).toHaveBeenCalledWith("note_template", 5))
+    })
+})
+
 describe("DialogTrash", () => {
     beforeEach(() => {
         vi.resetAllMocks()

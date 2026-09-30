@@ -1,6 +1,7 @@
 import { Checkbox } from "@/components/ui/checkbox"
 import type { Task as TaskType } from "@/types/types"
 import { ButtonMenuTask } from "./ButtonMenuTask"
+import { ItemMenuButton } from "@/components/item-menu"
 import { useWorkspaceActions } from "@/contexts/workspace-data-context"
 import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { toast } from "sonner"
@@ -72,95 +73,94 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
             "relative flex flex-col items-center w-full border border-transparent transition-none",
             isTextAreaOpen && "border border-primary rounded-xs"
         )}>
-            <div
-                ref={setRowRef}
-                className={cn(
-                    "relative flex flex-col items-center w-full border-b",
-                    isDragging && "opacity-40",
-                    draggingTask && (zone === "inside" || zone === "inside-start") && "bg-primary/15 ring-1 ring-inset ring-primary",
-                )}
-            >
-                {draggingTask && (zone === "before" || zone === "after") &&
-                    <div className={cn("pointer-events-none absolute left-0 right-0 z-10 h-0.5 bg-primary", zone === "before" ? "-top-px" : "-bottom-px")} />}
-                <div className="flex flex-col w-full">
-                    {/* Color Container */}
-                    {task.color && <div className="w-0.5 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
+            <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)}>
+                <div
+                    ref={setRowRef}
+                    className={cn(
+                        "relative flex flex-col items-center w-full border-b",
+                        isDragging && "opacity-40",
+                        draggingTask && (zone === "inside" || zone === "inside-start") && "bg-primary/15 ring-1 ring-inset ring-primary",
+                    )}
+                >
+                    {draggingTask && (zone === "before" || zone === "after") &&
+                        <div className={cn("pointer-events-none absolute left-0 right-0 z-10 h-0.5 bg-primary", zone === "before" ? "-top-px" : "-bottom-px")} />}
+                    <div className="flex flex-col w-full">
+                        {/* Color Container */}
+                        {task.color && <div className="w-0.5 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
 
-                    {/* Task items container */}
-                    <div className="relative group flex items-start justify-between w-full px-1 py-1.5">
+                        {/* Task items container */}
+                        <div className="relative group flex items-start justify-between w-full px-1 py-1.5">
 
-                        {/* Drag handle */}
-                        <div
-                            ref={setActivatorNodeRef}
-                            {...attributes}
-                            {...listeners}
-                            aria-label="Sposta task"
-                            title="Trascina per spostare il task"
-                            className="absolute left-0.5 top-2 z-10 touch-none cursor-grab text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
-                            <GripVertical className="size-3.5" />
-                        </div>
+                            {/* Drag handle */}
+                            <div
+                                ref={setActivatorNodeRef}
+                                {...attributes}
+                                {...listeners}
+                                aria-label="Sposta task"
+                                title="Trascina per spostare il task"
+                                className="absolute left-0.5 top-2 z-10 touch-none cursor-grab text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
+                                <GripVertical className="size-3.5" />
+                            </div>
 
-                        {/* Checkbox && text container */}
-                        <div className="flex items-start justify-between gap-2 ml-4 w-full">
-                            <Checkbox
-                                checked={!!task.completed}
-                                onCheckedChange={handleCheckedChange}
-                                className="mt-0.5"
-                            />
-                            {!isTextAreaOpen && <TextareaAutosize
-                                onClick={() => { setTextAreaOpen(true); setText(task.text) }}
-                                value={task.text}
-                                className={cn(
-                                    "w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm",
-                                    task.completed && "line-through text-muted-foreground"
-                                )}
-                            />}
-                            {isTextAreaOpen && <TextareaAutosize
-                                ref={textareaRef}
-                                minRows={1}
-                                value={text}
-                                onChange={e => setText(e.target.value)}
-                                onBlur={handleChangeText}
-                                onKeyDown={e => {
-                                    if (e.key === "Enter" && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleChangeText();
-                                    }
-                                }}
-                                className="w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm mt-[1px]"
-                            />}
-                        </div>
+                            {/* Checkbox && text container */}
+                            <div className="flex items-start justify-between gap-2 ml-4 w-full">
+                                <Checkbox
+                                    checked={!!task.completed}
+                                    onCheckedChange={handleCheckedChange}
+                                    className="mt-0.5"
+                                />
+                                {!isTextAreaOpen && <TextareaAutosize
+                                    onClick={() => { setTextAreaOpen(true); setText(task.text) }}
+                                    value={task.text}
+                                    className={cn(
+                                        "w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm",
+                                        task.completed && "line-through text-muted-foreground"
+                                    )}
+                                />}
+                                {isTextAreaOpen && <TextareaAutosize
+                                    ref={textareaRef}
+                                    minRows={1}
+                                    value={text}
+                                    onChange={e => setText(e.target.value)}
+                                    onBlur={handleChangeText}
+                                    onKeyDown={e => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleChangeText();
+                                        }
+                                    }}
+                                    className="w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm mt-[1px]"
+                                />}
+                            </div>
 
-                        {/* Priority circle */}
-                        <div className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-600 size-2 mx-2 mt-1.5 p-1`}></div>
+                            {/* Priority circle */}
+                            <div className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-600 size-2 mx-2 mt-1.5 p-1`}></div>
 
-                        {/* ButtonMenu */}
-                        <div className="flex items-center opacity-0 group-hover:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
-                            <button
-                                type="button"
-                                aria-label="Aggiungi sottotask"
-                                title="Aggiungi sottotask"
-                                onClick={() => setAddingSubtask(true)}
-                                className="p-1 rounded-xs cursor-pointer">
-                                <Plus className="size-4" />
-                            </button>
-                            <ButtonMenuTask
-                                task={task}
-                                onAddSubtask={() => setAddingSubtask(true)}
-                            />
+                            {/* ButtonMenu */}
+                            <div className="flex items-center opacity-0 group-hover:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
+                                <button
+                                    type="button"
+                                    aria-label="Aggiungi sottotask"
+                                    title="Aggiungi sottotask"
+                                    onClick={() => setAddingSubtask(true)}
+                                    className="p-1 rounded-xs cursor-pointer">
+                                    <Plus className="size-4" />
+                                </button>
+                                <ItemMenuButton iconClassName="!h-4 !w-4" />
+                            </div>
                         </div>
                     </div>
+                    <div className="flex items-center justify-start w-full gap-1 px-2">
+                        {task.description &&
+                            <button
+                                onClick={() => { onOpenChange(true) }}
+                                className="p-1 flex items-center justify-center hover:bg-accent rounded-xs cursor-pointer mb-1">
+                                <AlignLeft className="size-4" />
+                            </button>}
+                        {open && <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />}
+                    </div>
                 </div>
-                <div className="flex items-center justify-start w-full gap-1 px-2">
-                    {task.description &&
-                        <button
-                            onClick={() => { onOpenChange(true) }}
-                            className="p-1 flex items-center justify-center hover:bg-accent rounded-xs cursor-pointer mb-1">
-                            <AlignLeft className="size-4" />
-                        </button>}
-                    {open && <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />}
-                </div>
-            </div>
+            </ButtonMenuTask>
             {(task.subtasks.length > 0 || isAddingSubtask) && <div className="flex flex-col w-full pl-6">
                 {children}
                 {isAddingSubtask &&

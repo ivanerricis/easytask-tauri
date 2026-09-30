@@ -1,8 +1,9 @@
 import { createError, handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 import { getErrorMessage } from "@/lib/utils";
+import { renameDBTemplate } from "./template";
 
-const ITEM_TYPES = ["workspace", "folder", "note", "section", "section_group", "task", "audio_file"] as const
+const ITEM_TYPES = ["workspace", "folder", "note", "section", "section_group", "task", "audio_file", "note_template"] as const
 
 /**
  * Tables that the shared queries are allowed to operate on.
@@ -25,6 +26,8 @@ export function assertItemType(itemType: string): asserts itemType is DBItemType
  */
 export async function renameDBItem(itemType: DBItemType, itemID: number, name: string) {
     assertItemType(itemType)
+    if (itemType === "note_template")
+        return renameDBTemplate(itemID, name)
     const db = await getDB()
 
     try {

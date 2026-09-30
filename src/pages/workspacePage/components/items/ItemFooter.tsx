@@ -1,7 +1,7 @@
-import { Trash2, Upload } from "lucide-react"
+import { LayoutTemplate, Trash2, Upload } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
-type IconType = 'trash' | 'download'
+type IconType = 'trash' | 'download' | 'template'
 
 type ItemFooterProps = {
     text: string
@@ -9,14 +9,17 @@ type ItemFooterProps = {
     className?: string
     onClick?: () => void
     badge?: number
+    /** Accessible label of the badge (default: "N elementi nel cestino"). */
+    badgeLabel?: string
 }
 
 const iconMap: Record<IconType, LucideIcon> = {
     trash: Trash2,
-    download: Upload
+    download: Upload,
+    template: LayoutTemplate
 }
 
-export const ItemFooter = ({ text, type, className, onClick, badge }: ItemFooterProps) => {
+export const ItemFooter = ({ text, type, className, onClick, badge, badgeLabel }: ItemFooterProps) => {
 
     const Icon = iconMap[type]
 
@@ -33,7 +36,7 @@ export const ItemFooter = ({ text, type, className, onClick, badge }: ItemFooter
             </span>
             {badge !== undefined && badge > 0 && (
                 <span
-                    aria-label={`${badge} elementi nel cestino`}
+                    aria-label={badgeLabel ?? `${badge} elementi nel cestino`}
                     className="absolute right-2 min-w-5 rounded-full bg-primary px-1 text-center text-xs text-primary-foreground"
                 >
                     {badge}

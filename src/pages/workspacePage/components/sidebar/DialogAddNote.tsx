@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { NativeSelect } from "@/components/native-select"
+import { useTemplates } from "@/hooks/use-templates"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { FilePlus, Palette, X } from "lucide-react"
@@ -27,19 +29,27 @@ export function DialogAddNote() {
     const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
     const [paletteIsOpen, setPaletteOpen] = useState(false)
+    const [templateId, setTemplateId] = useState("")
     const { currentWorkspace } = useWorkspace()
-    const { createWorkspaceNote, getWorkspaceData } = useWorkspaceData()
+    const { createWorkspaceNote, createNoteFromTemplate, getWorkspaceData } = useWorkspaceData()
+    const templates = useTemplates(isOpen)
+    // A stale selection (template deleted meanwhile) behaves as "no template"
+    const template = templates.find(t => String(t.id) === templateId)
 
     const handleCreateNote = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentWorkspace?.id) return
         if (note.name.trim() === "") return
         try {
-            await createWorkspaceNote(currentWorkspace.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
+            if (template)
+                await createNoteFromTemplate(template.id, currentWorkspace.id, null, note.name.trim())
+            else
+                await createWorkspaceNote(currentWorkspace.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             setIsOpen(false)
             setNote(defaultNote)
+            setTemplateId("")
         } catch (err) {
             setError(getErrorMessage(err))
         }
@@ -49,6 +59,7 @@ export function DialogAddNote() {
         setNote(defaultNote)
         setError(null)
         setPaletteOpen(false)
+        setTemplateId("")
         setIsOpen(false)
     }
 
@@ -67,6 +78,7 @@ export function DialogAddNote() {
                 setNote(defaultNote)
                 setError(null)
                 setPaletteOpen(false)
+                setTemplateId("")
                 setIsOpen(true)
             }
         }
@@ -100,8 +112,21 @@ export function DialogAddNote() {
                                     }}
                                 />
                             </div>
+                            {templates.length > 0 && (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="template-1">Da template</Label>
+                                    <NativeSelect
+                                        id="template-1"
+                                        value={template ? templateId : ""}
+                                        onChange={e => setTemplateId(e.target.value)}
+                                    >
+                                        <option value="">Nessun template</option>
+                                        {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                    </NativeSelect>
+                                </div>
+                            )}
                             {error && (<p className="text-xs text-destructive">{error}</p>)}
-                            {paletteIsOpen ?
+                            {template ? null : paletteIsOpen ?
                                 <div className="flex items-center justify-between gap-1">
                                     <div
                                         className="flex items-center justify-center h-full w-full border rounded-xs"

@@ -8,6 +8,8 @@ import { createDBSubTask, createDBTask, updateDBTaskCompletion, updateDBTaskDesc
 import { updateDBGroupPositions } from "@/db/queries/group";
 import { moveDBTreeItem } from "@/db/queries/tree";
 import { moveDBSection, moveDBSectionToNewGroup, moveDBTask, type TaskMoveTarget } from "@/db/queries/move";
+import { countDBTemplates, createDBNoteFromTemplate, createDBTemplateFromNote, getDBTemplates, updateDBTemplateFromNote } from "@/db/queries/template";
+import type { NoteTemplate } from "@/types/template"
 import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "@/db/queries/trash";
 import { renameDBItem, updateDBColor, deleteDBItem, type DBItemType } from "@/db/queries/shared_queries";
 import { buildWorkspaceTree } from "./tree-builders"
@@ -24,6 +26,8 @@ type WorkspaceStateType = {
     error: string | null
     /** Incremented after every operation that can change the trash content (delete, restore, purge, empty, moves). */
     trashVersion: number
+    /** Incremented after every operation that can change the templates of the workspace (create, update, delete, restore, purge). */
+    templatesVersion: number
 }
 
 /** Every action has a stable identity (it never changes), so consumers of the actions alone never re-render because of it. */
@@ -62,6 +66,12 @@ type WorkspaceActionsType = {
     purgeItem: (itemType: DBItemType, itemID: number) => Promise<void>
     emptyTrash: (workspaceID: number) => Promise<void>
     resetData: () => void
+
+    getTemplates: (workspaceID: number) => Promise<NoteTemplate[]>
+    countTemplates: (workspaceID: number) => Promise<number>
+    createTemplateFromNote: (noteID: number, name: string) => Promise<number>
+    updateTemplateFromNote: (templateID: number) => Promise<void>
+    createNoteFromTemplate: (templateID: number, workspaceID: number, folderID: number | null, name: string) => Promise<number>
 }
 
 /* ------------------------------------------------------------------------------------ */
@@ -82,6 +92,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const [currentFolder, setCurrentFolder] = useState<Folder | null>(null)
 
     const [trashVersion, setTrashVersion] = useState(0)
+    const [templatesVersion, setTemplatesVersion] = useState(0)
 
     // Latest data for the stable actions (deleteItem) without making them depend on it
     const latest = useRef({ folders, notes, currentFolder })
@@ -301,6 +312,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      */
     const deleteItem = useCallback((itemType: DBItemType, itemID: number) => withTrashChange(async () => {
         await deleteDBItem(itemType, itemID)
+        if (itemType === "note_template") setTemplatesVersion(version => version + 1)
 
         if (itemType === "folder") {
             const { folders, currentFolder } = latest.current
@@ -336,21 +348,88 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @category Workspace Data Context
      */
     const restoreItem = useCallback((itemType: DBItemType, itemID: number) =>
-        withTrashChange(() => restoreDBItem(itemType, itemID)), [withTrashChange])
+        withTrashChange(async () => {
+            await restoreDBItem(itemType, itemID)
+            if (itemType === "note_template") setTemplatesVersion(version => version + 1)
+        }), [withTrashChange])
 
     /**
      * Permanently deletes a trashed item. Does not reload the data.
      * @category Workspace Data Context
      */
     const purgeItem = useCallback((itemType: DBItemType, itemID: number) =>
-        withTrashChange(() => purgeDBItem(itemType, itemID)), [withTrashChange])
+        withTrashChange(async () => {
+            await purgeDBItem(itemType, itemID)
+            if (itemType === "note_template") setTemplatesVersion(version => version + 1)
+        }), [withTrashChange])
 
     /**
      * Permanently deletes every trashed item of a workspace. Does not reload the data.
      * @category Workspace Data Context
      */
     const emptyTrash = useCallback((workspaceID: number) =>
-        withTrashChange(() => emptyDBTrash(workspaceID)), [withTrashChange])
+        withTrashChange(async () => {
+            await emptyDBTrash(workspaceID)
+            setTemplatesVersion(version => version + 1)
+        }), [withTrashChange])
+
+    /* ------------------------------------------------------------------------------------ */
+    // Template methods
+
+    /**
+     * Retrieves the templates of a workspace. Does not touch the context state.
+     * @param workspaceID - The ID of the workspace.
+     * @category Workspace Data Context
+     */
+    const getTemplates = useCallback((workspaceID: number) =>
+        withLoading(() => getDBTemplates(workspaceID)), [withLoading])
+
+    /**
+     * Counts the templates of a workspace (for the footer badge).
+     * @param workspaceID - The ID of the workspace.
+     * @category Workspace Data Context
+     */
+    const countTemplates = useCallback((workspaceID: number) =>
+        withLoading(() => countDBTemplates(workspaceID)), [withLoading])
+
+    /**
+     * Creates a template from a note (an exact snapshot of its current content).
+     * @param noteID - The ID of the source note.
+     * @param name - The template name (unique in the workspace).
+     * @returns The ID of the new template.
+     * @throws Will throw an error on a name clash or when the note no longer exists.
+     * @category Workspace Data Context
+     */
+    const createTemplateFromNote = useCallback((noteID: number, name: string) => withLoading(async () => {
+        const id = await createDBTemplateFromNote(noteID, name)
+        setTemplatesVersion(version => version + 1)
+        return id
+    }), [withLoading])
+
+    /**
+     * Refreshes the snapshot of a template from its source note.
+     * @param templateID - The ID of the template.
+     * @throws Will throw an error when the source note no longer exists.
+     * @category Workspace Data Context
+     */
+    const updateTemplateFromNote = useCallback((templateID: number) => withLoading(async () => {
+        await updateDBTemplateFromNote(templateID)
+        setTemplatesVersion(version => version + 1)
+    }), [withLoading])
+
+    /**
+     * Creates a note from a template at the end of the destination. Does NOT reload the data:
+     * the caller must call getWorkspaceData and can then open the note.
+     * @param templateID - The ID of the template.
+     * @param workspaceID - The ID of the workspace.
+     * @param folderID - The destination folder, null for the workspace root.
+     * @param name - The name of the new note.
+     * @returns The ID of the new note.
+     * @throws Will throw an error on a name clash in the destination.
+     * @category Workspace Data Context
+     */
+    const createNoteFromTemplate = useCallback((templateID: number, workspaceID: number, folderID: number | null, name: string) =>
+        withLoading(() => createDBNoteFromTemplate(templateID, workspaceID, folderID, name)), [withLoading])
 
     /**
      * Clears the workspace state (this also closes every tab, since the tabs follow the loaded workspace).
@@ -364,8 +443,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     /* ------------------------------------------------------------------------------------ */
 
     const state = useMemo<WorkspaceStateType>(() => ({
-        folders, notes, workspaceDataTree, currentFolder, error, trashVersion
-    }), [folders, notes, workspaceDataTree, currentFolder, error, trashVersion])
+        folders, notes, workspaceDataTree, currentFolder, error, trashVersion, templatesVersion
+    }), [folders, notes, workspaceDataTree, currentFolder, error, trashVersion, templatesVersion])
 
     const actions = useMemo<WorkspaceActionsType>(() => ({
         setCurrentFolder,
@@ -394,14 +473,19 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         restoreItem,
         purgeItem,
         emptyTrash,
-        resetData
+        resetData,
+        getTemplates,
+        countTemplates,
+        createTemplateFromNote,
+        updateTemplateFromNote,
+        createNoteFromTemplate
     }), [
         getWorkspaceData, createWorkspaceFolder, createWorkspaceNote,
         createSubFolder, createNoteInFolder, createSection, createSectionInGroup,
         createTask, createSubTask, updateTaskPriority, updateTaskCompletion,
         updateTaskDescription, renameItem, updateItemColor, updateGroupsPositions,
         updateFolderColorContent, moveTreeItem, moveSection, moveSectionToNewGroup, moveTask, deleteItem, getTrash, restoreItem, purgeItem,
-        emptyTrash, resetData
+        emptyTrash, resetData, getTemplates, countTemplates, createTemplateFromNote, updateTemplateFromNote, createNoteFromTemplate
     ])
 
     return (
@@ -422,7 +506,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 /* ------------------------------------------------------------------------------------ */
 
 /**
- * The workspace data (folders, notes, trees, current folder, error, trashVersion).
+ * The workspace data (folders, notes, trees, current folder, error, trashVersion, templatesVersion).
  * @category Workspace Data Context
  */
 // eslint-disable-next-line react-refresh/only-export-components

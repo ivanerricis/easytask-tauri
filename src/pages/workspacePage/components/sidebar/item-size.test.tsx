@@ -12,8 +12,8 @@ vi.mock("@/contexts/preferences-context", () => ({
     usePreferences: () => ({ sidebarItemSize: size }),
 }))
 vi.mock("@/contexts/tabs-context", () => ({ useTabsActions: () => ({ openNote: vi.fn() }) }))
-vi.mock("../folder/ButtonMenuFolder", () => ({ ButtonMenuFolder: () => <div /> }))
-vi.mock("../note/ButtonMenuNote", () => ({ ButtonMenuNote: () => <div /> }))
+vi.mock("../folder/ButtonMenuFolder", () => ({ ButtonMenuFolder: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
+vi.mock("../note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("@/components/tooltip-custom", () => ({
     TooltipCustom: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }))

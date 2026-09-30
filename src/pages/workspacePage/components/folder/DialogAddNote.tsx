@@ -9,6 +9,9 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { NativeSelect } from "@/components/native-select"
+import { useTemplates } from "@/hooks/use-templates"
 import { useWorkspace } from "@/contexts/workspace-context"
 import type { Folder } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
@@ -24,7 +27,11 @@ type ParentFolderProps = {
 export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFolderProps) {
     const [name, setName] = useState("")
     const [error, setError] = useState<string | null>(null)
-    const { createNoteInFolder, getWorkspaceData } = useWorkspaceData()
+    const [templateId, setTemplateId] = useState("")
+    const { createNoteInFolder, createNoteFromTemplate, getWorkspaceData } = useWorkspaceData()
+    const templates = useTemplates(isOpen)
+    // A stale selection (template deleted meanwhile) behaves as "no template"
+    const template = templates.find(t => String(t.id) === templateId)
     const { currentWorkspace } = useWorkspace()
 
     const handleCreateNote = async (e: React.FormEvent) => {
@@ -32,11 +39,15 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
         if (!currentWorkspace) return
         if (name.trim() === "") return
         try {
-            await createNoteInFolder(currentWorkspace.id, parentFolder.id, name.trim())
+            if (template)
+                await createNoteFromTemplate(template.id, currentWorkspace.id, parentFolder.id, name.trim())
+            else
+                await createNoteInFolder(currentWorkspace.id, parentFolder.id, name.trim())
             await getWorkspaceData(currentWorkspace.id)
             setError(null)
             onOpenChange(false)
             setName("")
+            setTemplateId("")
         } catch (err) {
             setError(getErrorMessage(err))
             toast.error(getErrorMessage(err))
@@ -47,6 +58,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
         e.stopPropagation()
         setName("")
         setError(null)
+        setTemplateId("")
         onOpenChange(false)
     }
 
@@ -67,6 +79,19 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                             setName(e.target.value)
                         }}
                     />
+                    {templates.length > 0 && (
+                        <>
+                            <Label htmlFor="template-1">Da template</Label>
+                            <NativeSelect
+                                id="template-1"
+                                value={template ? templateId : ""}
+                                onChange={e => setTemplateId(e.target.value)}
+                            >
+                                <option value="">Nessun template</option>
+                                {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                            </NativeSelect>
+                        </>
+                    )}
                     {error && <p className="text-xs text-destructive">{error}</p>}
                     <DialogFooter className="mt-4">
                         <Button

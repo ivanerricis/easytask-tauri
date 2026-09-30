@@ -13,7 +13,7 @@ export function createError(code: string, message: string): Error {
     return { code, message }
 }
 
-export function handleDBError(error: unknown, codePrefix: string, messages: DBErrorMap = {}) {
+export function handleDBError(error: unknown, codePrefix: string, messages: DBErrorMap = {}): never {
     const message = String(error)
     if (message.includes("UNIQUE")) {
         throw createError(`${codePrefix}_EXISTS`, messages.UNIQUE ?? "A record with this value already exists.")

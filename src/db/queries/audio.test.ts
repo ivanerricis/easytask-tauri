@@ -13,6 +13,7 @@ import { migrateToV3 } from "../schema/v3"
 import { migrateToV4 } from "../schema/v4"
 import { migrateToV6 } from "../schema/v6"
 import { migrateToV7 } from "../schema/v7"
+import { migrateToV8 } from "../schema/v8"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v6)
 let sqlite: DatabaseSync
@@ -48,6 +49,7 @@ beforeEach(() => {
     sqlite.exec(migrateToV4)
     sqlite.exec(migrateToV6)
     sqlite.exec(migrateToV7)
+    sqlite.exec(migrateToV8)
     sqlite.exec(`
         INSERT INTO workspace (id, name) VALUES (1, 'WS');
         INSERT INTO folder (id, workspaceID, folderID, name) VALUES (1, 1, NULL, 'F');

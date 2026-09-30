@@ -151,6 +151,21 @@ export function getMoveDestinations(tree: TreeData, item: TreeRef & { folderID: 
     return result
 }
 
+/**
+ * Every possible destination of a new note: the workspace root followed by every folder (depth-first, with its depth).
+ */
+export function getFolderDestinations(tree: TreeData): MoveDestination[] {
+    const result: MoveDestination[] = [{ id: null, name: null, depth: 0 }]
+    const visit = (items: Folder[], depth: number) => {
+        for (const folder of items) {
+            result.push({ id: folder.id, name: folder.name, depth })
+            visit(folder.subfolders ?? [], depth + 1)
+        }
+    }
+    visit(tree.rootFolders, 0)
+    return result
+}
+
 /** Finds a folder or note in the tree. */
 export function findTreeItem(tree: TreeData, ref: TreeRef): Folder | Note | undefined {
     const { folders, notes } = lists(tree)

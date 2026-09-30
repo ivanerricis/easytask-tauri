@@ -89,7 +89,7 @@ export type Task = {
  * `context` is the parent folder name or "Nota X › Sezione Y", empty string for root items.
  */
 export type TrashItem = {
-    type: "workspace" | "folder" | "note" | "section_group" | "section" | "task" | "audio_file"
+    type: "workspace" | "folder" | "note" | "section_group" | "section" | "task" | "audio_file" | "note_template"
     id: number
     name: string
     context: string

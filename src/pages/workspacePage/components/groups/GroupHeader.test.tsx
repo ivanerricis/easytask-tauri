@@ -8,7 +8,7 @@ const renameItem = vi.fn()
 const refreshActiveNote = vi.fn()
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-vi.mock("./ButtonMenuGroup", () => ({ ButtonMenuGroup: () => null }))
+vi.mock("./ButtonMenuGroup", () => ({ ButtonMenuGroup: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("@/contexts/workspace-data-context", () => ({
     useWorkspaceActions: () => ({ renameItem }),
 }))

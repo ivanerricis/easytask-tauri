@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { DropdownMenuItem, DropdownMenuSeparator, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu"
+import { MenuItem, MenuSeparator, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { useActiveNote } from "@/contexts/active-note-context"
 import { END_INDEX, getSectionMoveDestinations, getTaskMoveDestinations } from "./note-dnd"
@@ -29,32 +29,32 @@ export const SectionMoveSubmenu = ({ sectionId, onDone }: SectionMoveSubmenuProp
     if (!destinations || (destinations.groups.length === 0 && !destinations.canCreateGroup)) return null
 
     return (
-        <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
+        <MenuSub>
+            <MenuSubTrigger>
                 <ButtonInPopover text="Sposta in…" type="move" />
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="max-h-64 min-w-40 overflow-y-auto">
+            </MenuSubTrigger>
+            <MenuSubContent className="max-h-64 min-w-40 overflow-y-auto">
                 {destinations.groups.map(group => (
-                    <DropdownMenuItem
+                    <MenuItem
                         key={group.id}
                         className="text-xs"
                         onSelect={() => { onDone?.(); void moveSectionTo(sectionId, { type: "group", groupId: group.id, index: END_INDEX }) }}
                     >
                         <span className="shrink-0">{group.label}</span>
                         <span className="max-w-48 truncate text-muted-foreground">{group.hint}</span>
-                    </DropdownMenuItem>
+                    </MenuItem>
                 ))}
                 {destinations.canCreateGroup && <>
-                    {destinations.groups.length > 0 && <DropdownMenuSeparator />}
-                    <DropdownMenuItem
+                    {destinations.groups.length > 0 && <MenuSeparator />}
+                    <MenuItem
                         className="text-xs"
                         onSelect={() => { onDone?.(); void moveSectionTo(sectionId, { type: "new-group", index: destinations.newGroupIndex }) }}
                     >
                         Nuovo gruppo
-                    </DropdownMenuItem>
+                    </MenuItem>
                 </>}
-            </DropdownMenuSubContent>
-        </DropdownMenuSub>
+            </MenuSubContent>
+        </MenuSub>
     )
 }
 
@@ -83,13 +83,13 @@ export const TaskMoveSubmenu = ({ taskId, onDone }: TaskMoveSubmenuProps) => {
     if (destinations.length === 0) return null
 
     return (
-        <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
+        <MenuSub>
+            <MenuSubTrigger>
                 <ButtonInPopover text="Sposta in…" type="move" />
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="max-h-72 min-w-48 max-w-80 overflow-y-auto">
+            </MenuSubTrigger>
+            <MenuSubContent className="max-h-72 min-w-48 max-w-80 overflow-y-auto">
                 {destinations.map(destination => (
-                    <DropdownMenuItem
+                    <MenuItem
                         key={destination.key}
                         className="text-xs"
                         style={{ paddingLeft: `${0.5 + destination.depth * 0.75}rem` }}
@@ -108,9 +108,9 @@ export const TaskMoveSubmenu = ({ taskId, onDone }: TaskMoveSubmenuProps) => {
                                 {destination.hint && <span className="ml-auto shrink-0 text-muted-foreground">{destination.hint}</span>}
                             </>
                             : <span className="truncate" title={`Sotto il task ${destination.label}`}>↳ {destination.label}</span>}
-                    </DropdownMenuItem>
+                    </MenuItem>
                 ))}
-            </DropdownMenuSubContent>
-        </DropdownMenuSub>
+            </MenuSubContent>
+        </MenuSub>
     )
 }

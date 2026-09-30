@@ -3,6 +3,7 @@ import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import type { Section as SectionType, Task } from "@/types/types"
 import { ChevronDown, GripVertical } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
+import { ItemMenuButton } from "@/components/item-menu"
 import { useEffect, useRef, useState } from "react"
 import { useWorkspaceActions } from "@/contexts/workspace-data-context"
 import { useActiveNoteActions } from "@/contexts/active-note-context"
@@ -70,55 +71,57 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
     return (
         <div className="relative flex flex-col items-center justify-center">
 
-            <div
-                className={`group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs ${section.color ? "" : "bg-background border"}`}
-                style={section.color ? { backgroundColor: hexToRgba(0.4, section.color) } : undefined}
-            >
-                {dragHandleProps &&
-                    <div
-                        ref={dragHandleRef}
-                        {...dragHandleProps}
-                        aria-label="Sposta sezione"
-                        title="Trascina per spostare la sezione"
-                        className="shrink-0 touch-none cursor-grab text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
-                        <GripVertical className="size-4" />
-                    </div>}
-                {(section.tasks.length > 0) &&
-                    <div role="button" onClick={handleOpen} className="shrink-0 cursor-pointer">
-                        <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1.5 size-5`} />
-                    </div>}
-                <div className="flex items-center justify-between gap-2 w-full min-w-0">
-                    {!isTextAreaOpen && <h1
-                        onClick={() => { setTextAreaOpen(true) }}
-                        title={section.title}
-                        className="text-sm ml-2 min-w-0 flex-1 truncate cursor-text">
-                        {section.title}
-                    </h1>}
-                    {isTextAreaOpen && <input
-                        ref={textareaRef}
-                        type="text"
-                        value={text}
-                        onChange={e => setText(e.target.value)}
-                        onBlur={handleChangeText}
-                        onKeyDown={e => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleChangeText();
-                            }
-                        }}
-                        className="min-w-0 flex-1 px-1 ml-2 border border-primary resize-none text-sm rounded-xs"
-                    />}
-                    {showProgressBar && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
-                        <Progress className="w-20" value={completionPercentage} />
-                        <h1 className="text-xs">
-                            {Math.round(completionPercentage)} %
-                        </h1>
-                    </div>}
-                    <div className="shrink-0 opacity-0 group-hover:opacity-100">
-                        <ButtonMenuSection section={section} />
+            <ButtonMenuSection section={section}>
+                <div
+                    className={`group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs ${section.color ? "" : "bg-background border"}`}
+                    style={section.color ? { backgroundColor: hexToRgba(0.4, section.color) } : undefined}
+                >
+                    {dragHandleProps &&
+                        <div
+                            ref={dragHandleRef}
+                            {...dragHandleProps}
+                            aria-label="Sposta sezione"
+                            title="Trascina per spostare la sezione"
+                            className="shrink-0 touch-none cursor-grab text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
+                            <GripVertical className="size-4" />
+                        </div>}
+                    {(section.tasks.length > 0) &&
+                        <div role="button" onClick={handleOpen} className="shrink-0 cursor-pointer">
+                            <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1.5 size-5`} />
+                        </div>}
+                    <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                        {!isTextAreaOpen && <h1
+                            onClick={() => { setTextAreaOpen(true) }}
+                            title={section.title}
+                            className="text-sm ml-2 min-w-0 flex-1 truncate cursor-text">
+                            {section.title}
+                        </h1>}
+                        {isTextAreaOpen && <input
+                            ref={textareaRef}
+                            type="text"
+                            value={text}
+                            onChange={e => setText(e.target.value)}
+                            onBlur={handleChangeText}
+                            onKeyDown={e => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleChangeText();
+                                }
+                            }}
+                            className="min-w-0 flex-1 px-1 ml-2 border border-primary resize-none text-sm rounded-xs"
+                        />}
+                        {showProgressBar && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
+                            <Progress className="w-20" value={completionPercentage} />
+                            <h1 className="text-xs">
+                                {Math.round(completionPercentage)} %
+                            </h1>
+                        </div>}
+                        <div className="shrink-0 opacity-0 group-hover:opacity-100">
+                            <ItemMenuButton iconClassName="!h-4 !w-4" />
+                        </div>
                     </div>
                 </div>
-            </div>
+            </ButtonMenuSection>
         </div>
     )
 }

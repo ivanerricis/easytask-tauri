@@ -5,6 +5,7 @@ import { useItemSize } from "../sidebar/item-size"
 import { isInsideZone, stopDragActivation, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
 import type { DropZone } from "../sidebar/tree-dnd"
 import { ButtonMenuFolder } from "./ButtonMenuFolder"
+import { ItemMenuButton } from "@/components/item-menu"
 import type { Folder } from "@/types/types"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { formatDate, hexToRgba } from "@/lib/utils"
@@ -28,42 +29,44 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
 
     return (
         <div className="relative flex flex-col gap-1 w-full">
-            <div
-                {...attributes}
-                {...listeners}
-                ref={ref}
-                role="button"
-                onClick={() => { if (!wasTreeJustDragged()) onToggle(folder.id) }}
-                onMouseEnter={() => setIsHovered(true)}
-                onMouseLeave={() => setIsHovered(false)}
-                className={`relative group cursor-pointer gap-1 w-full pl-1 ${size.row} flex items-center rounded-xs border border-accent bg-background opacity-85 hover:opacity-100 overflow-x-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
-                style={{ backgroundColor: `${hexToRgba(isHovered ? 0.5 : 0.3, folder.color)}` }}
-            >
+            <ButtonMenuFolder folder={folder}>
+                <div
+                    {...attributes}
+                    {...listeners}
+                    ref={ref}
+                    role="button"
+                    onClick={() => { if (!wasTreeJustDragged()) onToggle(folder.id) }}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    className={`relative group cursor-pointer gap-1 w-full pl-1 ${size.row} flex items-center rounded-xs border border-accent bg-background opacity-85 hover:opacity-100 overflow-x-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
+                    style={{ backgroundColor: `${hexToRgba(isHovered ? 0.5 : 0.3, folder.color)}` }}
+                >
 
-                <DropLine zone={dropZone} />
-                <TooltipCustom
-                    side="right"
-                    sideOffset={size.folderTooltipOffset}
-                    text={[
-                        "Data creazione: " + formatDate(folder.creation_date) + " " + folder.creation_time,
-                        "Data modifica: " + formatDate(folder.edit_date) + " " + folder.edit_time
-                    ]}>
-                    <div className="flex items-center gap-1 w-full h-full">
-                        <ChevronDown className={`${isOpen ? 'rotate-0' : '-rotate-90'} ${size.icon} shrink-0 opacity-85 group-hover:opacity-100`} />
-                        {isOpen ? (
-                            <FolderOpen className={`${size.icon} shrink-0`} />
-                        ) : (
-                            <FolderIcon className={`${size.icon} shrink-0`} />
-                        )}
-                        <h1 className={`w-full ${size.text} truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
-                            {folder.name}
-                        </h1>
+                    <DropLine zone={dropZone} />
+                    <TooltipCustom
+                        side="right"
+                        sideOffset={size.folderTooltipOffset}
+                        text={[
+                            "Data creazione: " + formatDate(folder.creation_date) + " " + folder.creation_time,
+                            "Data modifica: " + formatDate(folder.edit_date) + " " + folder.edit_time
+                        ]}>
+                        <div className="flex items-center gap-1 w-full h-full">
+                            <ChevronDown className={`${isOpen ? 'rotate-0' : '-rotate-90'} ${size.icon} shrink-0 opacity-85 group-hover:opacity-100`} />
+                            {isOpen ? (
+                                <FolderOpen className={`${size.icon} shrink-0`} />
+                            ) : (
+                                <FolderIcon className={`${size.icon} shrink-0`} />
+                            )}
+                            <h1 className={`w-full ${size.text} truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
+                                {folder.name}
+                            </h1>
+                        </div>
+                    </TooltipCustom>
+                    <div className={`shrink-0 px-1 opacity-0 group-hover:opacity-100 ${size.menu}`} {...stopDragActivation}>
+                        <ItemMenuButton />
                     </div>
-                </TooltipCustom>
-                <div className={`shrink-0 px-1 opacity-0 group-hover:opacity-100 ${size.menu}`} {...stopDragActivation}>
-                    <ButtonMenuFolder folder={folder} />
                 </div>
-            </div>
+            </ButtonMenuFolder>
 
             {
                 isOpen && hasContent && (

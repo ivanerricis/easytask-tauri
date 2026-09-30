@@ -7,6 +7,7 @@ import { useTabShortcuts } from "./use-tab-shortcuts"
 import { makeNote } from "@/test/ui-fixtures"
 
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn().mockResolvedValue(false) }))
+vi.mock("@/pages/workspacePage/components/note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("@/lib/store/tabs", () => ({ getWorkspaceTabs: vi.fn(), saveWorkspaceTabs: vi.fn() }))
 
 const notes = [1, 2, 3].map(id => makeNote({ id, name: `Nota ${id}` }))

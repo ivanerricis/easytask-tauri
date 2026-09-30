@@ -8,6 +8,7 @@ import { SideBarHeader } from "./SideBarHeader"
 import { FileTree } from "./FileTree"
 import { ItemFooter } from "../items/ItemFooter"
 import { ButtonTrash } from "./ButtonTrash"
+import { ButtonTemplates } from "./ButtonTemplates"
 import { DialogAddFolder } from "./DialogAddFolder"
 import { DialogAddNote } from "./DialogAddNote"
 import { ComboboxWorkspace } from "../combobox-workspace"
@@ -69,6 +70,7 @@ export const SideBarLeft = () => {
                     <ButtonCloseNotes />
                 </SideBarHeader>}
                 footer={<div className="flex flex-col gap-1 border-t p-1 w-full">
+                    <ButtonTemplates />
                     <ButtonTrash />
                     <ItemFooter type="download" text="Esporta Workspace" />
                     <ComboboxWorkspace />

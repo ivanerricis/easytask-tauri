@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Briefcase, FileText, Music, Folder, Layers, LayoutList, Loader2, RotateCcw, SquareCheck, Trash2 } from "lucide-react"
+import { Briefcase, FileText, Music, Folder, Layers, LayoutList, LayoutTemplate, Loader2, RotateCcw, SquareCheck, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Button, buttonVariants } from "@/components/ui/button"
@@ -36,6 +36,7 @@ const groups: { type: TrashItem["type"], label: string, icon: LucideIcon }[] = [
     { type: "section", label: "Sezioni", icon: LayoutList },
     { type: "task", label: "Task", icon: SquareCheck },
     { type: "audio_file", label: "File audio", icon: Music },
+    { type: "note_template", label: "Template", icon: LayoutTemplate },
 ]
 
 // "YYYY-MM-DD HH:MM:SS" -> "DD-MM-YYYY HH:MM"

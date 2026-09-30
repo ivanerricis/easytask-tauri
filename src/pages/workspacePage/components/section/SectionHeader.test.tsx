@@ -4,7 +4,7 @@ import { SectionHeader } from "./SectionHeader"
 import { makeSection } from "@/test/ui-fixtures"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-vi.mock("./ButtonMenuSection", () => ({ ButtonMenuSection: () => null }))
+vi.mock("./ButtonMenuSection", () => ({ ButtonMenuSection: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("@/contexts/workspace-data-context", () => ({
     useWorkspaceActions: () => ({ renameItem: vi.fn() }),
 }))

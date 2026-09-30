@@ -1,7 +1,7 @@
 import { useMemo } from "react"
 import { toast } from "sonner"
 import { Folder as FolderIcon, FolderInput } from "lucide-react"
-import { DropdownMenuItem, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from "@/components/ui/dropdown-menu"
+import { MenuItem, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
@@ -44,13 +44,13 @@ export const MoveToSubmenu = ({ itemType, itemId, folderID, onDone }: MoveToSubm
     }
 
     return (
-        <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
+        <MenuSub>
+            <MenuSubTrigger>
                 <ButtonInPopover text="Sposta in…" type="move" />
-            </DropdownMenuSubTrigger>
-            <DropdownMenuSubContent className="max-h-64 overflow-y-auto">
+            </MenuSubTrigger>
+            <MenuSubContent className="max-h-64 overflow-y-auto">
                 {destinations.map(destination => (
-                    <DropdownMenuItem
+                    <MenuItem
                         key={destination.id ?? "root"}
                         className="text-xs"
                         style={{ paddingLeft: `${0.5 + destination.depth * 0.75}rem` }}
@@ -58,9 +58,9 @@ export const MoveToSubmenu = ({ itemType, itemId, folderID, onDone }: MoveToSubm
                     >
                         {destination.id == null ? <FolderInput className="size-4" /> : <FolderIcon className="size-4" />}
                         <span className="truncate">{destination.name ?? "Radice del workspace"}</span>
-                    </DropdownMenuItem>
+                    </MenuItem>
                 ))}
-            </DropdownMenuSubContent>
-        </DropdownMenuSub>
+            </MenuSubContent>
+        </MenuSub>
     )
 }
