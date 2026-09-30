@@ -17,9 +17,9 @@ const ctx = {
     appendSection: vi.fn(),
     activeId: null as number | null,
 }
-vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceActions: () => ctx }))
-vi.mock("@/contexts/tabs-context", () => ({ useActiveNoteId: () => ctx.activeId }))
-vi.mock("@/contexts/active-note-context", () => ({ useActiveNoteActions: () => ctx }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ctx }))
+vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => ctx.activeId }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }))
 
 const GROUP_PLACEHOLDER = "Nome del gruppo (facoltativo)..."
 const SECTION_PLACEHOLDER = "Titolo della sezione..."

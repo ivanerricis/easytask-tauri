@@ -1,5 +1,5 @@
 import { File, Folder as FolderIcon } from "lucide-react"
-import { usePreferences } from "@/contexts/preferences-context"
+import { usePreferences } from "@/contexts/use-preferences"
 import type { SidebarItemSize } from "@/lib/store/preferences"
 import { ITEM_SIZES } from "@/pages/workspacePage/components/sidebar/item-size"
 import { SettingsRow } from "./SettingsRow"

@@ -1,8 +1,8 @@
 import { createContext, useCallback, useContext } from "react"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { reportError } from "@/lib/report-error"
-import { useWorkspaceActions } from "@/contexts/workspace-data-context"
-import { useActiveNote, useActiveNoteActions } from "@/contexts/active-note-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { useActiveNote, useActiveNoteActions } from "@/contexts/use-active-note"
 import { getErrorMessage } from "@/lib/utils"
 import {
     ACCEPTS, moveGroupInList,

@@ -9,8 +9,8 @@ const data = {
     countTemplates: vi.fn(),
     templatesVersion: 0,
 }
-vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceData: () => data }))
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => data }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
 vi.mock("@/components/dialogs/dialog-templates", () => ({
     DialogTemplates: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div>Dialog template</div> : null,
 }))

@@ -1,7 +1,8 @@
 import type { ReactNode } from "react"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { PreferencesProvider, usePreferences } from "./preferences-context"
+import { PreferencesProvider } from "./preferences-context"
+import { usePreferences } from "./use-preferences"
 import * as prefs from "@/lib/store/preferences"
 
 vi.mock("@/lib/store/initStore", () => ({ store: {} }))

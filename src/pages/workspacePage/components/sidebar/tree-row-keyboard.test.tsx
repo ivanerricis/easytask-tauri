@@ -6,10 +6,10 @@ import { ItemNote } from "../note/Note"
 
 const openNote = vi.fn()
 
-vi.mock("@/contexts/preferences-context", () => ({
+vi.mock("@/contexts/use-preferences", () => ({
     usePreferences: () => ({ sidebarItemSize: "normal" }),
 }))
-vi.mock("@/contexts/tabs-context", () => ({ useTabsActions: () => ({ openNote }) }))
+vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote }) }))
 vi.mock("../note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("@/components/tooltip-custom", () => ({
     TooltipCustom: ({ children }: { children: React.ReactNode }) => <>{children}</>,

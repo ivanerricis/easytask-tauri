@@ -1,5 +1,5 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { useActiveNoteId, useTabsActions } from "@/contexts/tabs-context"
+import { useActiveNoteId, useTabsActions } from "@/contexts/use-tabs"
 import type { Note } from "@/types/types"
 import { X } from "lucide-react"
 import React from "react"

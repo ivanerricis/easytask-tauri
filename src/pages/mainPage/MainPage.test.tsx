@@ -11,7 +11,7 @@ const ctx = {
     isLoading: false,
     error: null as string | null,
 }
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ctx }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ctx }))
 
 const startup = { pending: false }
 vi.mock("./startup-restore", () => ({ useStartupRestore: () => startup }))
@@ -19,7 +19,7 @@ const prefs = {
     workspaceView: "grid" as "grid" | "list",
     setWorkspaceView: vi.fn(),
 }
-vi.mock("@/contexts/preferences-context", () => ({ usePreferences: () => prefs }))
+vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("./MainPageLayout", () => ({ MainPageLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock("./components/DialogCreateWorkspace", () => ({ DialogCreateWorkspace: () => <div>create-dialog</div> }))
 vi.mock("./components/WorkspacesContainer", () => ({

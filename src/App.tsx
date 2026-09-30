@@ -1,7 +1,7 @@
 import { HashRouter, Route, Routes } from 'react-router-dom'
 
 import { WorkspaceProvider } from './contexts/workspace-context'
-import { WorkspaceDataProvider } from './contexts/workspace-data-context'
+import { WorkspaceDataProvider } from './contexts/workspace-data'
 import { PreferencesProvider } from './contexts/preferences-context'
 import { ThemeProvider } from './components/theme-provider'
 import { Toaster } from './components/ui/sonner'

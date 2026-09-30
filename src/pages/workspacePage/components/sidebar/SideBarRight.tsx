@@ -2,7 +2,7 @@ import { SideBar } from "./SideBar"
 import { SideBarContainer } from "./SideBarContainer"
 import { SideBarHeader } from "./SideBarHeader"
 import { TextareaWithLabel } from "@/components/textarea-label"
-import { useWorkspace } from "@/contexts/workspace-context"
+import { useWorkspace } from "@/contexts/use-workspace"
 
 export const SideBarRight = () => {
     const { currentWorkspace } = useWorkspace()

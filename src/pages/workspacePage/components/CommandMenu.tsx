@@ -1,12 +1,12 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { useWorkspaceState } from "@/contexts/workspace-data-context"
-import { useTabsActions } from "@/contexts/tabs-context"
+import { useWorkspaceState } from "@/contexts/workspace-data"
+import { useTabsActions } from "@/contexts/use-tabs"
 import type { Note } from "@/types/types"
 import { SearchIcon } from "lucide-react"
 import { useState } from "react"
 import { useShortcut } from "@/hooks/use-shortcut"
-import { useShortcutLabel } from "@/contexts/shortcuts-context"
+import { useShortcutLabel } from "@/contexts/use-shortcuts"
 
 export function CommandMenu() {
     const [open, setOpen] = useState(false)

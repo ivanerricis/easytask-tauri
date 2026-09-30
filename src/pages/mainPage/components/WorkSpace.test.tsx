@@ -8,7 +8,7 @@ const navigate = vi.fn()
 const setCurrentWorkspace = vi.fn()
 
 vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }))
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ({ setCurrentWorkspace }) }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ setCurrentWorkspace }) }))
 vi.mock("./ButtonMenuWorkspace", () => ({ ButtonMenuWorkspace: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 
 const workspace = {

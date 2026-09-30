@@ -1,6 +1,6 @@
 import { BoxIcon } from "@/components/box-icon"
 import { KbdKeys } from "@/components/kbd"
-import { useShortcutKeys } from "@/contexts/shortcuts-context"
+import { useShortcutKeys } from "@/contexts/use-shortcuts"
 import { getShortcut } from "@/lib/shortcuts"
 
 const HINTS = ["search-notes", "new-note", "new-folder", "show-shortcuts"].map(getShortcut)

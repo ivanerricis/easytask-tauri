@@ -28,10 +28,10 @@ const noteDataTree: NoteDataTree = {
 }
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-vi.mock("@/contexts/workspace-data-context", () => ({
+vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ moveSection, moveSectionToNewGroup, moveTask }),
 }))
-vi.mock("@/contexts/active-note-context", () => ({
+vi.mock("@/contexts/use-active-note", () => ({
     useActiveNote: () => ({ noteDataTree }),
     useActiveNoteActions: () => ({ applySectionMove, applySectionMoveToNewGroup, applyTaskMove }),
 }))

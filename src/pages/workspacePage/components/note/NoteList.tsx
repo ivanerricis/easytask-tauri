@@ -5,7 +5,7 @@ import {
 } from "@dnd-kit/core"
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
 import { CSS } from "@dnd-kit/utilities"
-import { useTabs, useTabsActions } from "@/contexts/tabs-context"
+import { useTabs, useTabsActions } from "@/contexts/use-tabs"
 import { cn } from "@/lib/utils"
 import { NoteHeader } from "./NoteHeader"
 import { computeTabMove, computeTabZone, type TabZone } from "./tab-reorder"

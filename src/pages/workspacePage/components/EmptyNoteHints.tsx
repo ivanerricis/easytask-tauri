@@ -1,5 +1,5 @@
 import { KbdKeys } from "@/components/kbd"
-import { useShortcutKeys } from "@/contexts/shortcuts-context"
+import { useShortcutKeys } from "@/contexts/use-shortcuts"
 
 const HINTS = [
     { id: "new-group", label: "Nuovo gruppo o sezione" },

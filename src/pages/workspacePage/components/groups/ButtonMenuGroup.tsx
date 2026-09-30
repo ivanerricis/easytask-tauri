@@ -4,8 +4,8 @@ import { DialogDeleteItem } from "@/components/dialogs/dialog-delete";
 import { MenuGroup } from "@/components/menu-kind";
 import { ItemMenu } from "@/components/item-menu";
 import { useItemMenuState } from "@/hooks/use-item-menu-state";
-import { useActiveNoteActions } from "@/contexts/active-note-context";
-import { useAudio } from "@/contexts/audio-context";
+import { useActiveNoteActions } from "@/contexts/use-active-note";
+import { useAudio } from "@/contexts/use-audio";
 import type { Group } from "@/types/types";
 import { useState, type ReactElement } from "react";
 

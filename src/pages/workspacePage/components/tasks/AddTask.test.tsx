@@ -11,8 +11,8 @@ const ctx = {
     createSubTask: vi.fn(),
     appendTask: vi.fn(),
 }
-vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceActions: () => ctx }))
-vi.mock("@/contexts/active-note-context", () => ({ useActiveNoteActions: () => ctx }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ctx }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }))
 
 const open = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.click(screen.getByRole("button"))

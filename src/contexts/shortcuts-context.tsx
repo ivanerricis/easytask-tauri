@@ -1,27 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { reportError } from "@/lib/report-error"
 import { getShortcutOverrides, saveShortcutOverrides } from "@/lib/store/shortcuts"
-import { bindingEquals, formatBinding, getDefaultBindings, getShortcut, matchBinding, type Binding } from "@/lib/shortcuts"
-
-export type ShortcutEntry = {
-    handler: (e: KeyboardEvent) => void
-    enabled: boolean
-    allowInInputs: boolean
-}
-
-type ShortcutsContextType = {
-    bindings: Record<string, Binding>
-    overrides: Record<string, Binding>
-    getBinding: (id: string) => Binding | undefined
-    setBinding: (id: string, binding: Binding) => void
-    resetBinding: (id: string) => void
-    resetAll: () => void
-    // While true no shortcut fires (the settings recorder is capturing keys)
-    setRecording: (recording: boolean) => void
-    register: (id: string, entry: { current: ShortcutEntry }) => () => void
-}
-
-const ShortcutsContext = createContext<ShortcutsContextType | undefined>(undefined)
+import { bindingEquals, getDefaultBindings, getShortcut, matchBinding, type Binding } from "@/lib/shortcuts"
+import { ShortcutsContext, type ShortcutEntry } from "./shortcuts-context-object"
 
 const isEditableTarget = (target: EventTarget | null) => {
     if (!(target instanceof HTMLElement)) return false
@@ -108,36 +89,4 @@ export const ShortcutsProvider = ({ children }: { children: React.ReactNode }) =
     )
 
     return <ShortcutsContext.Provider value={value}>{children}</ShortcutsContext.Provider>
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const useShortcutsContext = () => {
-    const context = useContext(ShortcutsContext)
-    if (!context) throw new Error("useShortcutsContext must be used within a ShortcutsProvider")
-    return context
-}
-
-/** Like useShortcutsContext, but null outside a provider (hints then fall back to the defaults). */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useOptionalShortcutsContext = () => useContext(ShortcutsContext)
-
-/** The effective binding of a shortcut (the default one outside a provider). */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useBinding = (id: string): Binding | undefined => {
-    const context = useContext(ShortcutsContext)
-    return context ? context.getBinding(id) : getShortcut(id).defaultBinding
-}
-
-/** Tooltip text such as "(Ctrl + N)" for the effective binding of a shortcut. */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useShortcutLabel = (id: string): string | undefined => {
-    const binding = useBinding(id)
-    return binding ? `(${formatBinding(binding).join(" + ")})` : undefined
-}
-
-/** Key labels of a shortcut for the hints, following the effective binding. */
-// eslint-disable-next-line react-refresh/only-export-components
-export const useShortcutKeys = (id: string): string[] => {
-    const binding = useBinding(id)
-    return binding ? formatBinding(binding) : getShortcut(id).keys ?? []
 }

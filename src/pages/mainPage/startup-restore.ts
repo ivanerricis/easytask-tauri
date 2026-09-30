@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
-import { useWorkspace } from "@/contexts/workspace-context"
+import { useWorkspace } from "@/contexts/use-workspace"
 import { reportError } from "@/lib/report-error"
 import { getLastWorkspaceId, getReopenLastWorkspace } from "@/lib/store/preferences"
 

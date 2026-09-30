@@ -4,8 +4,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } f
 import TextareaAutosize from "react-textarea-autosize"
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useWorkspaceActions } from "@/contexts/workspace-data-context";
-import { useActiveNoteActions } from "@/contexts/active-note-context";
+import { useWorkspaceActions } from "@/contexts/workspace-data";
+import { useActiveNoteActions } from "@/contexts/use-active-note";
 import { toast } from "sonner";
 
 type Props = {

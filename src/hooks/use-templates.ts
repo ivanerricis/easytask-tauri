@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react"
-import { useWorkspace } from "@/contexts/workspace-context"
-import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useWorkspace } from "@/contexts/use-workspace"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { reportError } from "@/lib/report-error"
 import type { NoteTemplate } from "@/types/template"
 

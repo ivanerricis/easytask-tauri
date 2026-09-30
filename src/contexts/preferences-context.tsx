@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
     getPrimaryColor,
     savePrimaryColor,
@@ -29,37 +29,7 @@ import {
     type WorkspaceView
 } from "@/lib/store/preferences"
 import type { AudioPlayerPosition } from "@/types/types"
-
-type PreferencesContextType = {
-    showProgressBar: boolean
-    setShowProgressBar: (value: boolean) => void
-    showGroupProgressBar: boolean
-    setShowGroupProgressBar: (value: boolean) => void
-    showSectionCount: boolean
-    setShowSectionCount: (value: boolean) => void
-    showTaskCount: boolean
-    setShowTaskCount: (value: boolean) => void
-    primaryColor: string
-    setPrimaryColor: (value: string) => void
-    sidebarLeftOpen: boolean
-    setSideBarLeftOpen: (value: boolean) => void
-    sidebarRightOpen: boolean
-    setSideBarRightOpen: (value: boolean) => void
-    audioPlayerPosition: AudioPlayerPosition
-    audioPlayerContainerRef: React.RefObject<HTMLDivElement | null>
-    setAudioPlayerPosition: (position: AudioPlayerPosition) => void
-    resetPlayerPosition: () => void
-    workspaceView: WorkspaceView
-    setWorkspaceView: (value: WorkspaceView) => void
-    reopenNotes: boolean
-    setReopenNotes: (value: boolean) => void
-    reopenLastWorkspace: boolean
-    setReopenLastWorkspace: (value: boolean) => void
-    sidebarItemSize: SidebarItemSize
-    setSidebarItemSize: (value: SidebarItemSize) => void
-}
-
-const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined)
+import { PreferencesContext } from "./preferences-context-object"
 
 export const PreferencesProvider = ({ children }: { children: React.ReactNode }) => {
     const [showProgressBar, setShowProgressBarState] = useState(true)
@@ -209,11 +179,4 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             {children}
         </PreferencesContext.Provider>
     )
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const usePreferences = () => {
-    const context = useContext(PreferencesContext)
-    if (!context) throw new Error("usePreferences must be used within a PreferencesProvider")
-    return context
 }

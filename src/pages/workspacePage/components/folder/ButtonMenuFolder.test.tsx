@@ -9,10 +9,10 @@ import type { Folder } from "@/types/types"
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 const updateFolderColorContent = vi.fn()
 const getWorkspaceData = vi.fn()
-vi.mock("@/contexts/workspace-data-context", () => ({
+vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceData: () => ({ updateFolderColorContent, getWorkspaceData, updateItemColor: vi.fn() }),
 }))
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
 vi.mock("../MoveToSubmenu", () => ({ MoveToSubmenu: () => null }))
 vi.mock("./DialogAddNote", () => ({ DialogAddNote: () => null }))
 vi.mock("./DialogAddSubFolder", () => ({ DialogAddSubFolder: () => null }))

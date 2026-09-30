@@ -1,4 +1,4 @@
-import { usePreferences } from "@/contexts/preferences-context"
+import { usePreferences } from "@/contexts/use-preferences"
 import type { SidebarItemSize } from "@/lib/store/preferences"
 
 /**

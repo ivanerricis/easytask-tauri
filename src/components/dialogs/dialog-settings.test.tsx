@@ -17,7 +17,7 @@ vi.mock("@/db/appPaths", () => ({
     ensureAppFolder: vi.fn().mockResolvedValue("C:\\Docs\\EasyTask"),
 }))
 vi.mock("@/components/mode-toggle", () => ({ ModeToggle: () => <div>mode-toggle</div> }))
-vi.mock("@/contexts/preferences-context", () => ({
+vi.mock("@/contexts/use-preferences", () => ({
     usePreferences: () => ({
         primaryColor: "#000000", setPrimaryColor: vi.fn(),
         showProgressBar: true, setShowProgressBar: vi.fn(),

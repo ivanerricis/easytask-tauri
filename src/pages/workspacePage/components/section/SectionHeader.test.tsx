@@ -5,9 +5,9 @@ import { SectionHeader } from "./SectionHeader"
 import { makeSection, makeTask } from "@/test/ui-fixtures"
 
 vi.mock("./ButtonMenuSection", () => ({ ButtonMenuSection: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
-vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceActions: () => ({ renameItem: vi.fn() }) }))
-vi.mock("@/contexts/active-note-context", () => ({ useActiveNoteActions: () => ({ patchSection: vi.fn() }) }))
-vi.mock("@/contexts/preferences-context", () => ({ usePreferences: () => ({ showProgressBar: true }) }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ renameItem: vi.fn() }) }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchSection: vi.fn() }) }))
+vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ showProgressBar: true }) }))
 
 describe("SectionHeader keyboard", () => {
     it("toggles the section with Enter and Space on the chevron button", async () => {

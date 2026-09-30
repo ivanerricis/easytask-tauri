@@ -1,4 +1,4 @@
-import { useTabsActions } from "@/contexts/tabs-context"
+import { useTabsActions } from "@/contexts/use-tabs"
 import { useShortcut } from "@/hooks/use-shortcut"
 
 /**

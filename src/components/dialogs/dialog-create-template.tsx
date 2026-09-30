@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { getErrorMessage } from "@/lib/utils"
 
 type DialogCreateTemplateProps = {

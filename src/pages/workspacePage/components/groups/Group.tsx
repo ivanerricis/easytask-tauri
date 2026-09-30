@@ -6,7 +6,7 @@ import { GroupHeader } from "./GroupHeader"
 import { cn } from "@/lib/utils"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { GroupAudioFiles } from "./GroupAudioFiles"
-import { useGroupOpen } from "@/contexts/tabs-context"
+import { useGroupOpen } from "@/contexts/use-tabs"
 
 type GroupProps = {
     group: GroupType

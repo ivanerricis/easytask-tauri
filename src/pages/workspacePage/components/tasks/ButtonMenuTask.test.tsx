@@ -13,11 +13,11 @@ const updateItemColor = vi.fn()
 const patchTask = vi.fn()
 const removeTask = vi.fn()
 const rollback = vi.fn()
-vi.mock("@/contexts/workspace-data-context", () => ({
+vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ updateTaskPriority, updateTaskDescription, updateItemColor }),
 }))
-vi.mock("@/contexts/tabs-context", () => ({ useActiveNoteId: () => 9 }))
-vi.mock("@/contexts/active-note-context", () => ({
+vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => 9 }))
+vi.mock("@/contexts/use-active-note", () => ({
     useActiveNoteActions: () => ({ patchTask, removeTask }),
 }))
 vi.mock("../NoteMoveSubmenus", () => ({ TaskMoveSubmenu: () => null }))

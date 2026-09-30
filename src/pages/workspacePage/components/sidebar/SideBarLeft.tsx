@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
-import { useWorkspace } from "@/contexts/workspace-context"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspace } from "@/contexts/use-workspace"
+import { useWorkspaceData } from "@/contexts/workspace-data"
 import { DialogSettings } from "@/components/dialogs/dialog-settings"
 import { reportError } from "@/lib/report-error"
 import { SideBar } from "./SideBar"
@@ -16,7 +16,7 @@ import { ComboboxWorkspace } from "../combobox-workspace"
 import { ButtonCloseNotes } from "../ButtonCloseNotes"
 import { ButtonCollapseItems } from "./ButtonCollapseItems"
 import { ButtonUpload } from "./ButtonUpload"
-import { usePreferences } from "@/contexts/preferences-context"
+import { usePreferences } from "@/contexts/use-preferences"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
 
 export const SideBarLeft = () => {

@@ -1,6 +1,6 @@
 import { ModeToggle } from "@/components/mode-toggle"
 import { Input } from "@/components/ui/input"
-import { usePreferences } from "@/contexts/preferences-context"
+import { usePreferences } from "@/contexts/use-preferences"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 import { SidebarItemSizeSetting } from "./SidebarItemSizeSetting"
 

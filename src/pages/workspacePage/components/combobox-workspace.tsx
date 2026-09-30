@@ -16,8 +16,8 @@ import {
     PopoverContent,
     PopoverTrigger,
 } from "@/components/ui/popover"
-import { useWorkspace } from "@/contexts/workspace-context"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspace } from "@/contexts/use-workspace"
+import { useWorkspaceData } from "@/contexts/workspace-data"
 
 export function ComboboxWorkspace() {
     const [open, setOpen] = React.useState(false)

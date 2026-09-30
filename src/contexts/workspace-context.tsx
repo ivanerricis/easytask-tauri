@@ -1,24 +1,9 @@
-import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
-import type { TrashedWorkspace, Workspace } from '@/types/types'
+import React, { useCallback, useMemo, useRef, useState } from 'react'
+import type { Workspace } from '@/types/types'
 import { getDBWorkspaces, createDBWorkspace } from '@/db/queries/workspace'
 import { getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from '@/db/queries/trash'
 import { getErrorMessage } from '@/lib/utils'
-
-type WorkspaceContextType = {
-    workspaces: Workspace[]
-    currentWorkspace: Workspace | null
-    isLoading: boolean
-    error: string | null
-    setCurrentWorkspace: React.Dispatch<React.SetStateAction<Workspace | null>>
-    getWorkspaces: () => Promise<void>
-    createWorkspace: (name: string, color?: string) => Promise<void>
-    getTrashedWorkspaces: () => Promise<TrashedWorkspace[]>
-    restoreWorkspace: (id: number) => Promise<void>
-    purgeWorkspace: (id: number) => Promise<void>
-    resetWorkspace: () => void
-}
-
-const WorkspaceContext = createContext<WorkspaceContextType | null>(null)
+import { WorkspaceContext } from './workspace-context-object'
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -117,13 +102,4 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
             {children}
         </WorkspaceContext.Provider>
     )
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const useWorkspace = () => {
-    const context = useContext(WorkspaceContext)
-    if (!context) {
-        throw new Error('useWorkspace must be used within a WorkspaceProvider')
-    }
-    return context
 }

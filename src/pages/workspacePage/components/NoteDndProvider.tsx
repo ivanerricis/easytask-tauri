@@ -6,7 +6,7 @@ import {
     type Collision, type CollisionDetection, type DragMoveEvent, type DragStartEvent,
 } from "@dnd-kit/core"
 import { getGroupLabel } from "./groups/group-label"
-import { useActiveNote } from "@/contexts/active-note-context"
+import { useActiveNote } from "@/contexts/use-active-note"
 import {
     computeDropZone, computeGroupDropZone, computeGroupTarget, computeSectionTarget, findGroup, computeTaskTarget, findSection, findTask,
     type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverRef, type SectionTarget, type TaskTarget,

@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DialogRenameItem } from "./dialog-rename"
 
 const renameItem = vi.fn()
-vi.mock("@/contexts/workspace-data-context", () => ({
+vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceData: () => ({ renameItem }),
 }))
 

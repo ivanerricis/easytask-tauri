@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react"
 import { toast } from "sonner"
-import { useWorkspace } from "@/contexts/workspace-context"
+import { useWorkspace } from "@/contexts/use-workspace"
 import { exportWorkspaceToFile, importWorkspaceFromFile } from "@/lib/workspace-transfer"
 import { getErrorMessage } from "@/lib/utils"
 

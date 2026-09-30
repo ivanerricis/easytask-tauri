@@ -10,8 +10,8 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 const updateItemColor = vi.fn()
 const patchSection = vi.fn()
 const removeSection = vi.fn()
-vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceActions: () => ({ updateItemColor }) }))
-vi.mock("@/contexts/active-note-context", () => ({ useActiveNoteActions: () => ({ patchSection, removeSection }) }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor }) }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchSection, removeSection }) }))
 vi.mock("../NoteMoveSubmenus", () => ({ SectionMoveSubmenu: () => null }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({
     DialogDeleteItem: ({ isOpen, optimistic }: { isOpen: boolean, optimistic: () => () => void }) =>

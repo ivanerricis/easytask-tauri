@@ -5,10 +5,10 @@ import { ChevronDown, GripVertical } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 import { ItemMenuButton } from "@/components/item-menu"
 import { useEffect, useRef, useState } from "react"
-import { useWorkspaceActions } from "@/contexts/workspace-data-context"
-import { useActiveNoteActions } from "@/contexts/active-note-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { toast } from "sonner"
-import { usePreferences } from "@/contexts/preferences-context"
+import { usePreferences } from "@/contexts/use-preferences"
 import type { HTMLAttributes } from "react"
 
 type SectionHeaderProps = {

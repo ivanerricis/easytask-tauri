@@ -4,7 +4,7 @@ import { KbdKeys } from "@/components/kbd"
 import { Separator } from "@/components/ui/separator"
 import { SHORTCUTS, SHORTCUT_CATEGORIES, formatBinding, type Binding } from "@/lib/shortcuts"
 import { useShortcut } from "@/hooks/use-shortcut"
-import { useShortcutsContext } from "@/contexts/shortcuts-context"
+import { useShortcutsContext } from "@/contexts/use-shortcuts"
 
 const shortcutKeys = (id: string, docKeys: string[] | undefined, getBinding: (id: string) => Binding | undefined) => {
     const binding = getBinding(id)

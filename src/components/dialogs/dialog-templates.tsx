@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { FilePlus, LayoutTemplate, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button-variants"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import {
@@ -15,8 +16,8 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { useWorkspace } from "@/contexts/workspace-context"
-import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { useWorkspace } from "@/contexts/use-workspace"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogNoteFromTemplate } from "@/components/dialogs/dialog-note-from-template"

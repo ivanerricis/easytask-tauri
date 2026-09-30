@@ -1,7 +1,7 @@
 import { useDraggable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
 import { AudioPlayer } from "./audio-player"
-import { useAudio } from "@/contexts/audio-context"
+import { useAudio } from "@/contexts/use-audio"
 
 type Props = {
     position: { x: number; y: number, scaleX: number, scaleY: number }

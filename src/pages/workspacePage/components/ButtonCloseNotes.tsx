@@ -1,6 +1,6 @@
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
-import { useTabs, useTabsActions } from "@/contexts/tabs-context"
+import { useTabs, useTabsActions } from "@/contexts/use-tabs"
 import { CopyMinus } from "lucide-react"
 
 export const ButtonCloseNotes = () => {

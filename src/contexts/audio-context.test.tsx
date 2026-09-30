@@ -6,7 +6,8 @@ import { toast } from "sonner"
 import { invoke } from "@tauri-apps/api/core"
 import { open } from "@tauri-apps/plugin-dialog"
 import type { AudioFile } from "@/types/types"
-import { AudioProvider, useAudio } from "./audio-context"
+import { AudioProvider } from "./audio-context"
+import { useAudio } from "./use-audio"
 import { GroupAudioFiles } from "@/pages/workspacePage/components/groups/GroupAudioFiles"
 import { DraggableAudioPlayer } from "@/components/draggable-audio-player"
 import { createDBAudioFile, getDBAudioFile, getDBGroupAudioFiles, updateDBAudioFilePath } from "@/db/queries/audio"
@@ -30,7 +31,7 @@ const workspaceActions = {
     renameItem: vi.fn(),
 }
 const workspaceState = { trashVersion: 0 }
-vi.mock("./workspace-data-context", () => ({
+vi.mock("./workspace-data", () => ({
     useWorkspaceState: () => workspaceState,
     useWorkspaceActions: () => workspaceActions,
     useWorkspaceData: () => ({ ...workspaceState, ...workspaceActions }),
