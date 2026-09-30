@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react"
 import type { Note } from "@/types/types"
 import { initialTabsState, tabsReducer } from "./tabs-reducer"
+import { reportError } from "@/lib/report-error"
 import { getReopenNotes } from "@/lib/store/preferences"
 import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
 
@@ -164,7 +165,7 @@ export function TabsProvider({ notes, workspaceId, children }: TabsProviderProps
                 const activeId = saved.activeId !== null && openIds.includes(saved.activeId) ? saved.activeId : (openIds[0] ?? null)
                 dispatch({ type: "hydrate", state: { openIds, activeId } })
             } catch (error) {
-                console.error("Impossibile ripristinare le note aperte", error)
+                reportError(error)
             } finally {
                 if (token === restoreToken.current) {
                     restoredRef.current = true
@@ -179,7 +180,7 @@ export function TabsProvider({ notes, workspaceId, children }: TabsProviderProps
     useEffect(() => {
         if (workspaceId === null || !restoredRef.current) return
         saveWorkspaceTabs(workspaceId, { openIds: state.openIds, activeId: state.activeId })
-            .catch(error => console.error("Impossibile salvare le note aperte", error))
+            .catch(error => reportError(error))
     }, [state.openIds, state.activeId, workspaceId, restoredTick])
 
     // The UI state of closed tabs is dropped

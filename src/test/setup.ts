@@ -17,7 +17,9 @@ vi.mock("@/lib/store/initStore", () => {
     }
 })
 
-afterEach(() => {
+afterEach(async () => {
     cleanup()
+    // Imported lazily so a test's own vi.mock("sonner") applies to the module
+    ;(await import("@/lib/report-error")).resetReportErrorDedupe()
     ;(store as unknown as { clear?: () => void }).clear?.()
 })

@@ -1,5 +1,5 @@
 import { useMemo } from "react"
-import { toast } from "sonner"
+import { reportError } from "@/lib/report-error"
 import { Folder as FolderIcon, FolderInput } from "lucide-react"
 import { MenuItem, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ButtonInPopover } from "@/components/button-in-popover"
@@ -32,13 +32,13 @@ export const MoveToSubmenu = ({ itemType, itemId, folderID, onDone }: MoveToSubm
         try {
             await moveTreeItem(itemType, itemId, targetFolderId, END_INDEX)
         } catch (err) {
-            toast.error(getErrorMessage(err))
+            reportError(err, getErrorMessage(err))
         }
         if (currentWorkspace) {
             try {
                 await getWorkspaceData(currentWorkspace.id)
             } catch (err) {
-                console.error(err)
+                reportError(err, "Impossibile aggiornare l'elenco di cartelle e note. Riprova.")
             }
         }
     }

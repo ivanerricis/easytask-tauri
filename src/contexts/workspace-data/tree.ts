@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react"
 import { createDBNoteInFolder, createDBWorkspaceNote } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder"
+import { reportError } from "@/lib/report-error"
 import { moveDBTreeItem } from "@/db/queries/tree"
 import { renameDBItem, updateDBColor, type DBItemType } from "@/db/queries/shared_queries"
 import {
@@ -33,7 +34,7 @@ export function useTreeActions(rt: Runtime): TreeActions {
                     : buildNote(id, workspaceID, parentId, name, color, getFolderNotes(tree, parentId)),
                 parentId),
             tree => removeTreeItem(tree, type, id))
-        if (!applied) getWorkspaceData(workspaceID).catch(console.error)
+        if (!applied) getWorkspaceData(workspaceID).catch(error => reportError(error, "Impossibile aggiornare l'elenco di cartelle e note. Riprova."))
     }, [applyTree, getWorkspaceData])
 
     const createWorkspaceFolder = useCallback((workspaceID: number, name: string, color?: string) =>

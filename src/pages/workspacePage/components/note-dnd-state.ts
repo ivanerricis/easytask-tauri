@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext } from "react"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
-import { toast } from "sonner"
+import { reportError } from "@/lib/report-error"
 import { useWorkspaceActions } from "@/contexts/workspace-data-context"
 import { useActiveNote, useActiveNoteActions } from "@/contexts/active-note-context"
 import { getErrorMessage } from "@/lib/utils"
@@ -68,7 +68,7 @@ export function useNoteMoves() {
             }
         } catch (err) {
             rollback?.()
-            toast.error(getErrorMessage(err))
+            reportError(err, getErrorMessage(err))
         }
     }, [moveSection, moveSectionToNewGroup, applySectionMove, applySectionMoveToNewGroup])
 
@@ -79,7 +79,7 @@ export function useNoteMoves() {
             await moveTask(taskId, destination, target.index)
         } catch (err) {
             rollback()
-            toast.error(getErrorMessage(err))
+            reportError(err, getErrorMessage(err))
         }
     }, [moveTask, applyTaskMove])
 
@@ -105,7 +105,7 @@ export function useGroupMoves() {
         try {
             await updateGroupsPositions(updatedGroups)
         } catch (error) {
-            console.error("Errore durante l'aggiornamento delle posizioni dei gruppi:", error)
+            reportError(error, "Impossibile spostare il gruppo. Riprova.")
             setNoteDataTree(noteDataTree)
         }
     }, [noteDataTree, setNoteDataTree, updateGroupsPositions])

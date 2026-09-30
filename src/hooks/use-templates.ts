@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceActions } from "@/contexts/workspace-data-context"
+import { reportError } from "@/lib/report-error"
 import type { NoteTemplate } from "@/types/template"
 
 /**
  * Loads the templates of the current workspace while `enabled` is true (e.g. while a dialog is open).
- * Loading errors are ignored: the templates are an optional feature of the calling dialog.
+ * Loading errors are reported to the user; the list stays empty.
  * @param enabled Whether to load the templates.
  * @returns The templates, ordered by name.
  * @category Hooks
@@ -21,7 +22,7 @@ export function useTemplates(enabled: boolean): NoteTemplate[] {
         let cancelled = false
         getTemplates(workspaceID)
             .then(list => { if (!cancelled) setTemplates(list) })
-            .catch(console.error)
+            .catch(error => reportError(error, "Impossibile caricare i template."))
         return () => { cancelled = true }
     }, [enabled, workspaceID, getTemplates])
 

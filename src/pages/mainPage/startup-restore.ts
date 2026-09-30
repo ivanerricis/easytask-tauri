@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { useWorkspace } from "@/contexts/workspace-context"
+import { reportError } from "@/lib/report-error"
 import { getLastWorkspaceId, getReopenLastWorkspace } from "@/lib/store/preferences"
 
 // The last workspace is restored at most once per app session
@@ -32,7 +33,7 @@ export const useStartupRestore = (loaded: boolean): { pending: boolean } => {
             setCurrentWorkspace(ws)
             navigate(`/workspace/${ws.id}`)
         }
-        restore().catch(console.error).finally(() => setPending(false))
+        restore().catch(error => reportError(error)).finally(() => setPending(false))
     }, [loaded, workspaces, setCurrentWorkspace, navigate])
 
     return { pending }

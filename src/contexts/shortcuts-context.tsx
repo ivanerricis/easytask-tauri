@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react"
+import { reportError } from "@/lib/report-error"
 import { getShortcutOverrides, saveShortcutOverrides } from "@/lib/store/shortcuts"
 import { bindingEquals, formatBinding, getDefaultBindings, getShortcut, matchBinding, type Binding } from "@/lib/shortcuts"
 
@@ -36,7 +37,7 @@ export const ShortcutsProvider = ({ children }: { children: React.ReactNode }) =
 
     useEffect(() => {
         let cancelled = false
-        getShortcutOverrides().then(saved => { if (!cancelled && !changedRef.current) setOverrides(saved) }).catch(console.error)
+        getShortcutOverrides().then(saved => { if (!cancelled && !changedRef.current) setOverrides(saved) }).catch(error => reportError(error))
         return () => { cancelled = true }
     }, [])
 
@@ -68,7 +69,7 @@ export const ShortcutsProvider = ({ children }: { children: React.ReactNode }) =
     const persist = useCallback((next: Record<string, Binding>) => {
         changedRef.current = true
         setOverrides(next)
-        saveShortcutOverrides(next).catch(console.error)
+        saveShortcutOverrides(next).catch(error => reportError(error, "Impossibile salvare le scorciatoie. Riprova."))
     }, [])
 
     const setBinding = useCallback((id: string, binding: Binding) => {

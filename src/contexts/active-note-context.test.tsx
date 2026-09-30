@@ -194,7 +194,7 @@ describe("ActiveNoteProvider", () => {
 
         vi.mocked(getDBNoteData).mockRejectedValueOnce(new Error("nope"))
         act(() => latest.current.openNote(2))
-        await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Errore caricamento dati nota"))
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Impossibile caricare la nota. Riprova."))
         expect(latest.current.noteDataTree).toBeNull()
 
         act(() => latest.current.activateNote(1))

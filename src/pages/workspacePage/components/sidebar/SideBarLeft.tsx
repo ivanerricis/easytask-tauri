@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { DialogSettings } from "@/components/dialogs/dialog-settings"
+import { reportError } from "@/lib/report-error"
 import { SideBar } from "./SideBar"
 import { SideBarContainer } from "./SideBarContainer"
 import { SideBarHeader } from "./SideBarHeader"
@@ -27,7 +28,7 @@ export const SideBarLeft = () => {
 
     useEffect(() => {
         if (currentWorkspace?.id) {
-            getWorkspaceData(currentWorkspace.id).catch(console.error)
+            getWorkspaceData(currentWorkspace.id).catch(error => reportError(error, "Impossibile caricare il workspace. Riprova."))
         }
     }, [currentWorkspace, getWorkspaceData])
 

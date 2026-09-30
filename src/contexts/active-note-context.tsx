@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
-import { toast } from "sonner"
+import { reportError } from "@/lib/report-error"
 import type { NoteDataTree } from "@/types/types"
 import { getDBNoteData } from "@/db/queries/note"
 import { useActiveNoteId, useTabs } from "./tabs-context"
@@ -117,8 +117,7 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
     useEffect(() => {
         if (activeId === null) return
         loadNote(activeId).catch(error => {
-            console.error(error)
-            toast.error("Errore caricamento dati nota")
+            reportError(error, "Impossibile caricare la nota. Riprova.")
         })
     }, [activeId, loadNote])
 
@@ -154,7 +153,7 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
         // A creation that cannot be applied locally falls back to a background reload (never awaited by the UI)
         const withReload = <A extends unknown[]>(append: (...args: A) => Rollback | null) => (...args: A): Rollback => {
             const rollback = append(...args)
-            if (!rollback) refreshActiveNote().catch(console.error)
+            if (!rollback) refreshActiveNote().catch(error => reportError(error, "Impossibile aggiornare la nota. Riprova."))
             return rollback ?? (() => {})
         }
         const optimistic: NoteOptimisticActions = {

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { Folder, Note, WorkspaceDataTree } from "@/types/types"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
+import { reportError } from "@/lib/report-error"
 import { buildWorkspaceTree } from "../tree-builders"
 import { flattenTree } from "../workspace-tree-ops"
 import { TabsProvider } from "../tabs-context"
@@ -125,7 +126,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             optimisticSeq.current += 1
             if (current === next) setWorkspaceDataTree(previous)
             else if (current && inverse) setWorkspaceDataTree(inverse(current))
-            else if (loadedWorkspaceRef.current !== null) getWorkspaceData(loadedWorkspaceRef.current).catch(console.error)
+            else if (loadedWorkspaceRef.current !== null) getWorkspaceData(loadedWorkspaceRef.current).catch(error => reportError(error, "Impossibile aggiornare i dati del workspace. Riprova."))
         }
     }, [setWorkspaceDataTree, getWorkspaceData])
 

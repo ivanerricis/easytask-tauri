@@ -4,7 +4,7 @@ import {
     type CollisionDetection, type DragEndEvent, type DragMoveEvent, type DragStartEvent,
 } from "@dnd-kit/core"
 import { File, Folder as FolderIcon } from "lucide-react"
-import { toast } from "sonner"
+import { reportError } from "@/lib/report-error"
 import type { Folder, Note } from "@/types/types"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
@@ -198,13 +198,13 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
             await moveTreeItem(active.type, active.id, target.folderId, target.index)
             if (target.folderId != null) onExpandFolder(target.folderId)
         } catch (err) {
-            toast.error(getErrorMessage(err))
+            reportError(err, getErrorMessage(err))
         }
         if (currentWorkspace) {
             try {
                 await getWorkspaceData(currentWorkspace.id)
             } catch (err) {
-                console.error(err)
+                reportError(err, "Impossibile aggiornare l'elenco di cartelle e note. Riprova.")
             }
         }
     }

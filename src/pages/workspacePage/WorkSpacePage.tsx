@@ -7,6 +7,7 @@ import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { useEffect, useState } from "react"
 import { AudioProvider } from "@/contexts/audio-context"
 import { saveLastWorkspaceId } from "@/lib/store/preferences"
+import { reportError } from "@/lib/report-error"
 
 const WorkSpacePage = () => {
     const { currentWorkspace } = useWorkspace()
@@ -19,7 +20,8 @@ const WorkSpacePage = () => {
                 if (currentWorkspace)
                     await getWorkspaceData(currentWorkspace.id)
             } catch (err) {
-                console.error(err)
+                // The failure is shown by the error page (context `error`), so no toast
+                reportError(err)
             } finally {
                 setIsLoading(false)
             }
@@ -29,7 +31,7 @@ const WorkSpacePage = () => {
 
     // Remember the open workspace so it can be restored at the next startup
     useEffect(() => {
-        if (currentWorkspace) saveLastWorkspaceId(currentWorkspace.id).catch(console.error)
+        if (currentWorkspace) saveLastWorkspaceId(currentWorkspace.id).catch(error => reportError(error))
     }, [currentWorkspace])
 
     if (isLoading) {
