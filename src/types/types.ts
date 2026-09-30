@@ -87,14 +87,19 @@ export type Task = {
 /**
  * An item moved to the trash, as returned by getDBTrash.
  * `context` is the parent folder name or "Nota X › Sezione Y", empty string for root items.
+ * `summary` describes what the item contained ("2 gruppi · 3 sezioni · 5 task"), empty when there is nothing to say.
  */
 export type TrashItem = {
     type: "workspace" | "folder" | "note" | "section_group" | "section" | "task" | "audio_file" | "note_template"
     id: number
     name: string
     context: string
+    summary: string
     deleted_at: string
 }
+
+/** A trashed workspace with the summary of what it contains (see TrashItem.summary). */
+export type TrashedWorkspace = Workspace & { summary: string }
 
 export type WorkspaceDataTree = {
     rootFolders: Folder[]

@@ -9,6 +9,7 @@ import { useWorkspaceData } from "@/contexts/workspace-data-context";
 import { MenuGroup, MenuSeparator, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind";
 import { ItemMenu } from "@/components/item-menu";
 import { useItemMenuState } from "@/hooks/use-item-menu-state";
+import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer";
 
 type ButtonMenuProps = {
     workspace: Workspace
@@ -20,6 +21,7 @@ export const ButtonMenuWorkspace = ({ workspace, children }: ButtonMenuProps) =>
     const [isRenameOpen, setRenameOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const menu = useItemMenuState();
+    const { exportWorkspace } = useWorkspaceTransfer();
 
     const { getWorkspaces } = useWorkspace();
     const { updateItemColor } = useWorkspaceData();
@@ -53,6 +55,14 @@ export const ButtonMenuWorkspace = ({ workspace, children }: ButtonMenuProps) =>
                     />
                 </MenuSubContent>
             </MenuSub>
+            <ButtonInPopover
+                text="Esporta"
+                type="export"
+                onClick={() => {
+                    menu.close();
+                    void exportWorkspace(workspace);
+                }}
+            />
             <MenuSeparator />
             <ButtonInPopover
                 text="Elimina"

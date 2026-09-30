@@ -8,6 +8,7 @@ import { useActiveNote, useActiveNoteActions } from "@/contexts/active-note-cont
 import { useActiveNoteId, useTabUiStore } from "@/contexts/tabs-context"
 import { NoteDndProvider } from "../NoteDndProvider"
 import { NewGroupEnd, NewGroupSlot } from "./NewGroupSlot"
+import { EmptyNoteHints } from "../EmptyNoteHints"
 
 export const GroupContainer = () => {
     const { updateGroupsPositions } = useWorkspaceActions()
@@ -60,6 +61,8 @@ export const GroupContainer = () => {
 
     return (
         <NoteDndProvider>
+        <div className="relative w-full h-full">
+        {hasData && groups.length === 0 && <EmptyNoteHints />}
         <DragDropContext onDragEnd={handleOnDragEnd}>
             <Droppable droppableId="groups" direction="horizontal">
                 {(provided) => (
@@ -99,6 +102,7 @@ export const GroupContainer = () => {
                 )}
             </Droppable>
         </DragDropContext>
+        </div>
         </NoteDndProvider>
     )
 }

@@ -40,7 +40,7 @@ const toTemplate = ({ content, ...row }: TemplateRow): NoteTemplate => {
  * @param noteId The ID of the note.
  * @category Database Queries
  */
-async function buildContent(noteId: number): Promise<NoteTemplateContent> {
+export async function buildContent(noteId: number): Promise<NoteTemplateContent> {
     const { groups, sections, tasks } = await getDBNoteData(noteId)
 
     const childrenOf = new Map<number, Task[]>()
@@ -195,7 +195,7 @@ export async function updateDBTemplateFromNote(templateId: number) {
  * @param rows Values of every row.
  * @category Database Queries
  */
-async function insertRows(db: Database, table: string, columns: string[], rows: unknown[][]): Promise<number[]> {
+export async function insertRows(db: Database, table: string, columns: string[], rows: unknown[][]): Promise<number[]> {
     const ids: number[] = []
     const placeholders = `(${columns.map(() => "?").join(", ")})`
     for (let start = 0; start < rows.length; start += INSERT_CHUNK) {
@@ -212,6 +212,40 @@ async function insertRows(db: Database, table: string, columns: string[], rows: 
 }
 
 type PendingTask = { sectionID: number, parentID: number | null, task: TemplateTask }
+
+/**
+ * Inserts the groups, sections and tasks of a content snapshot into a note, with one multi-row INSERT per level.
+ * Not atomic: the caller must clean up the note on failure.
+ * @param db Database instance.
+ * @param noteId The ID of the (existing) note.
+ * @param content The content to insert.
+ * @returns The IDs of the created groups, in the order of `content.groups`.
+ * @category Database Queries
+ */
+export async function insertNoteContent(db: Database, noteId: number, content: NoteTemplateContent): Promise<number[]> {
+    const { groups } = content
+    const groupIds = await insertRows(db, "section_group", ["noteID", "position", "name"],
+        groups.map(group => [noteId, group.position, group.name ?? null]))
+
+    const sectionSources = groups.flatMap((group, i) => group.sections.map(section => ({ groupID: groupIds[i], section })))
+    const sectionIds = await insertRows(db, "section", ["groupID", "title", "color", "archived", "position"],
+        sectionSources.map(({ groupID, section }) => [groupID, section.title, section.color ?? null, section.archived ? 1 : 0, section.position]))
+
+    // Tasks level by level: the subtasks of a level need the ids of their parents
+    let level: PendingTask[] = sectionSources.flatMap(({ section }, i) =>
+        section.tasks.map(task => ({ sectionID: sectionIds[i], parentID: null, task })))
+    while (level.length > 0) {
+        const ids = await insertRows(db, "task",
+            ["sectionID", "taskID", "text", "description", "completed", "priority", "archived", "color", "position"],
+            level.map(({ sectionID, parentID, task }) => [
+                sectionID, parentID, task.text, task.description ?? null, task.completed ? 1 : 0,
+                task.priority ? 1 : 0, task.archived ? 1 : 0, task.color ?? null, task.position,
+            ]))
+        level = level.flatMap(({ sectionID, task }, i) =>
+            task.subtasks.map(subtask => ({ sectionID, parentID: ids[i], task: subtask })))
+    }
+    return groupIds
+}
 
 /**
  * Creates a note from a template, appended at the end of the destination (workspace root or folder).
@@ -260,27 +294,7 @@ export async function createDBNoteFromTemplate(templateId: number, workspaceId: 
     }
 
     try {
-        const { groups } = template.content
-        const groupIds = await insertRows(db, "section_group", ["noteID", "position", "name"],
-            groups.map(group => [noteId, group.position, group.name ?? null]))
-
-        const sectionSources = groups.flatMap((group, i) => group.sections.map(section => ({ groupID: groupIds[i], section })))
-        const sectionIds = await insertRows(db, "section", ["groupID", "title", "color", "archived", "position"],
-            sectionSources.map(({ groupID, section }) => [groupID, section.title, section.color ?? null, section.archived ? 1 : 0, section.position]))
-
-        // Tasks level by level: the subtasks of a level need the ids of their parents
-        let level: PendingTask[] = sectionSources.flatMap(({ section }, i) =>
-            section.tasks.map(task => ({ sectionID: sectionIds[i], parentID: null, task })))
-        while (level.length > 0) {
-            const ids = await insertRows(db, "task",
-                ["sectionID", "taskID", "text", "description", "completed", "priority", "archived", "color", "position"],
-                level.map(({ sectionID, parentID, task }) => [
-                    sectionID, parentID, task.text, task.description ?? null, task.completed ? 1 : 0,
-                    task.priority ? 1 : 0, task.archived ? 1 : 0, task.color ?? null, task.position,
-                ]))
-            level = level.flatMap(({ sectionID, task }, i) =>
-                task.subtasks.map(subtask => ({ sectionID, parentID: ids[i], task: subtask })))
-        }
+        await insertNoteContent(db, noteId, template.content)
         return noteId
     } catch (error: unknown) {
         // Remove the partial note, transactions are unreliable with the connection pool

@@ -6,6 +6,7 @@ import { GroupHeader } from "./GroupHeader"
 import { cn } from "@/lib/utils"
 import { useNoteDrop } from "../note-dnd-state"
 import { GroupAudioFiles } from "./GroupAudioFiles"
+import { useGroupOpen } from "@/contexts/tabs-context"
 
 type GroupProps = {
     dragHandleProps?: DraggableProvidedDragHandleProps | null
@@ -17,6 +18,7 @@ type GroupProps = {
 export const Group = ({ dragHandleProps, group, index = 0 }: GroupProps) => {
     // The empty area of a group (and its header) accepts a dragged section: it is appended to the group
     const { setNodeRef, zone } = useNoteDrop("group", group.id)
+    const [isOpen] = useGroupOpen(group.id)
 
     return (
         <div
@@ -28,16 +30,18 @@ export const Group = ({ dragHandleProps, group, index = 0 }: GroupProps) => {
                 index={index}
                 dragHandleProps={dragHandleProps}
             />
-            <GroupAudioFiles groupId={group.id} />
-            <div className="flex flex-col gap-1 overflow-y-auto">
-                {group.sections.map((section) => (
-                    <Section
-                        key={section.id}
-                        section={section}
-                    />
-                ))}
-            </div>
-            <AddSection inGroup groupId={group.id} />
+            {isOpen && <>
+                <GroupAudioFiles groupId={group.id} />
+                <div className="flex flex-col gap-1 overflow-y-auto">
+                    {group.sections.map((section) => (
+                        <Section
+                            key={section.id}
+                            section={section}
+                        />
+                    ))}
+                </div>
+                <AddSection inGroup groupId={group.id} />
+            </>}
         </div>
     )
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { cn, getErrorMessage } from "./utils"
+import { cn, getErrorMessage, plural } from "./utils"
 
 describe("getErrorMessage", () => {
     it("returns the message of an Error", () => {
@@ -38,5 +38,13 @@ describe("cn", () => {
     it("resolves tailwind conflicts keeping the last one", () => {
         expect(cn("p-2", "p-4")).toBe("p-4")
         expect(cn("text-red-500", "text-blue-500")).toBe("text-blue-500")
+    })
+})
+
+describe("plural", () => {
+    it("uses the singular only for 1", () => {
+        expect(plural(1, "gruppo", "gruppi")).toBe("1 gruppo")
+        expect(plural(0, "gruppo", "gruppi")).toBe("0 gruppi")
+        expect(plural(3, "task", "task")).toBe("3 task")
     })
 })

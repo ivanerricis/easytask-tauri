@@ -44,6 +44,8 @@ type ScrollPosition = { left: number, top: number }
 export type TabUiStore = {
     isSectionCollapsed: (noteId: number, sectionId: number) => boolean
     setSectionCollapsed: (noteId: number, sectionId: number, collapsed: boolean) => void
+    isGroupCollapsed: (noteId: number, groupId: number) => boolean
+    setGroupCollapsed: (noteId: number, groupId: number, collapsed: boolean) => void
     getScroll: (noteId: number) => ScrollPosition | undefined
     setScroll: (noteId: number, position: ScrollPosition) => void
     /** Drops the UI state of the notes that are not in `keep` (closed tabs). */
@@ -58,6 +60,7 @@ export type TabUiStore = {
  */
 function createTabUiStore(): TabUiStore {
     const collapsed = new Map<number, Set<number>>()
+    const collapsedGroups = new Map<number, Set<number>>()
     const scroll = new Map<number, ScrollPosition>()
     const listeners = new Set<() => void>()
     const emit = () => listeners.forEach(listener => listener())
@@ -72,11 +75,21 @@ function createTabUiStore(): TabUiStore {
             collapsed.set(noteId, set)
             emit()
         },
+        isGroupCollapsed: (noteId, groupId) => collapsedGroups.get(noteId)?.has(groupId) ?? false,
+        setGroupCollapsed: (noteId, groupId, value) => {
+            const set = collapsedGroups.get(noteId) ?? new Set<number>()
+            if (set.has(groupId) === value) return
+            if (value) set.add(groupId)
+            else set.delete(groupId)
+            collapsedGroups.set(noteId, set)
+            emit()
+        },
         getScroll: noteId => scroll.get(noteId),
         setScroll: (noteId, position) => { scroll.set(noteId, position) },
         retain: keep => {
             const keepSet = new Set(keep)
             for (const id of [...collapsed.keys()]) if (!keepSet.has(id)) collapsed.delete(id)
+            for (const id of [...collapsedGroups.keys()]) if (!keepSet.has(id)) collapsedGroups.delete(id)
             for (const id of [...scroll.keys()]) if (!keepSet.has(id)) scroll.delete(id)
         },
         subscribe: listener => {
@@ -267,5 +280,25 @@ export function useSectionOpen(sectionId: number): [boolean, () => void] {
     const toggle = useCallback(() => {
         if (noteId !== null) store.setSectionCollapsed(noteId, sectionId, !store.isSectionCollapsed(noteId, sectionId))
     }, [store, noteId, sectionId])
+    return [!collapsed, toggle]
+}
+
+/**
+ * Open/closed state of a group, kept per note so it survives tab switches.
+ * @param groupId The ID of the group.
+ * @returns The open flag and a toggle function.
+ * @category Tabs
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function useGroupOpen(groupId: number): [boolean, () => void] {
+    const store = useTabUiStore()
+    const noteId = useActiveNoteId()
+    const collapsed = useSyncExternalStore(
+        store.subscribe,
+        () => noteId !== null && store.isGroupCollapsed(noteId, groupId),
+    )
+    const toggle = useCallback(() => {
+        if (noteId !== null) store.setGroupCollapsed(noteId, groupId, !store.isGroupCollapsed(noteId, groupId))
+    }, [store, noteId, groupId])
     return [!collapsed, toggle]
 }

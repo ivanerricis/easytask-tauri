@@ -20,13 +20,11 @@ import { useWorkspaceActions } from "@/contexts/workspace-data-context"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogNoteFromTemplate } from "@/components/dialogs/dialog-note-from-template"
-import { formatDate, getErrorMessage } from "@/lib/utils"
+import { formatDate, getErrorMessage, plural } from "@/lib/utils"
 import { countTemplateContent, type NoteTemplate } from "@/types/template"
 
 // The search box is shown only when the list gets long
 const SEARCH_THRESHOLD = 8
-
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`
 
 type DialogTemplatesProps = {
     isOpen: boolean

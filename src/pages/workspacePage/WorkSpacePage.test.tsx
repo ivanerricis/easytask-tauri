@@ -2,11 +2,13 @@ import { render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import WorkSpacePage from "./WorkSpacePage"
 import { deferred } from "@/test/ui-render"
+import { saveLastWorkspaceId } from "@/lib/store/preferences"
 import { makeWorkspace } from "@/test/ui-fixtures"
 
 const workspaceCtx = { currentWorkspace: null as ReturnType<typeof makeWorkspace> | null }
 const dataCtx = { error: null as string | null, getWorkspaceData: vi.fn() }
 
+vi.mock("@/lib/store/preferences", () => ({ saveLastWorkspaceId: vi.fn() }))
 vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => workspaceCtx }))
 vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceData: () => dataCtx }))
 vi.mock("@/contexts/audio-context", () => ({ AudioProvider: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
@@ -20,6 +22,12 @@ describe("WorkSpacePage", () => {
         workspaceCtx.currentWorkspace = makeWorkspace({ id: 4 })
         dataCtx.error = null
         dataCtx.getWorkspaceData.mockResolvedValue(undefined)
+        vi.mocked(saveLastWorkspaceId).mockResolvedValue(undefined)
+    })
+
+    it("remembers the open workspace id", async () => {
+        render(<WorkSpacePage />)
+        await waitFor(() => expect(saveLastWorkspaceId).toHaveBeenCalledWith(4))
     })
 
     it("shows the loading page until the data is loaded, then the main container", async () => {

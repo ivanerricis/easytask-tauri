@@ -13,10 +13,20 @@
     "core:window:allow-close",
     "window-state:default",
     "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:allow-write-text-file",
+    "fs:allow-read-text-file",
     {
       "identifier": "opener:allow-open-url",
       "allow": [
         { "url": "https://github.com/ivanerricis/easytask-tauri" }
+      ]
+    },
+    {
+      "identifier": "opener:allow-open-path",
+      "allow": [
+        { "path": "$DOCUMENT/EasyTask" },
+        { "path": "$DOCUMENT/EasyTask/**" }
       ]
     },
     {

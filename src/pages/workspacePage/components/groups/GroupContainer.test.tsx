@@ -121,4 +121,15 @@ describe("GroupContainer reorder", () => {
         expect(updateDBGroupPositions).not.toHaveBeenCalled()
         expect(order()).toEqual(["1", "2", "3"])
     })
+
+    it("shows the empty note hints only when the note has no groups", async () => {
+        vi.mocked(getDBNoteData).mockResolvedValue({ groups: [], sections: [], tasks: [] } as never)
+        renderWithProviders(<SelectNote><GroupContainer /></SelectNote>)
+        expect(await screen.findByText("Nota vuota")).toBeTruthy()
+    })
+
+    it("does not show the empty note hints when there are groups", async () => {
+        await renderLoaded()
+        expect(screen.queryByText("Nota vuota")).toBeNull()
+    })
 })

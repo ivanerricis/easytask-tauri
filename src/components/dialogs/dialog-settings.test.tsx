@@ -21,9 +21,11 @@ vi.mock("@/contexts/preferences-context", () => ({
     usePreferences: () => ({
         primaryColor: "#000000", setPrimaryColor: vi.fn(),
         showProgressBar: true, setShowProgressBar: vi.fn(),
+        showGroupProgressBar: true, setShowGroupProgressBar: vi.fn(),
         showSectionCount: true, setShowSectionCount: vi.fn(),
         showTaskCount: true, setShowTaskCount: vi.fn(),
         reopenNotes: true, setReopenNotes: vi.fn(),
+        reopenLastWorkspace: false, setReopenLastWorkspace: vi.fn(),
         resetPlayerPosition: vi.fn(),
         sidebarItemSize: "normal", setSidebarItemSize: (value: string) => setSidebarItemSize(value),
     }),
@@ -51,6 +53,8 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("button", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
+        expect(screen.getAllByRole("switch")).toHaveLength(6)
+        expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()
 
         await user.click(screen.getByRole("button", { name: "Audio" }))

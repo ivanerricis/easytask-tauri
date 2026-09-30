@@ -1,47 +1,59 @@
-import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import { usePreferences } from "@/contexts/preferences-context"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 
 export const NotesSettings = () => {
     const {
         showProgressBar, setShowProgressBar,
+        showGroupProgressBar, setShowGroupProgressBar,
         showSectionCount, setShowSectionCount,
         showTaskCount, setShowTaskCount,
         reopenNotes, setReopenNotes,
+        reopenLastWorkspace, setReopenLastWorkspace,
     } = usePreferences()
 
     return (
         <SettingsPanel title="Note e sezioni">
             <SettingsRow label="Mostra barra d'avanzamento nelle sezioni" description="Indica la percentuale di task completati.">
-                <Checkbox
+                <Switch
                     aria-label="Mostra barra d'avanzamento nelle sezioni"
                     checked={showProgressBar}
                     onCheckedChange={() => setShowProgressBar(!showProgressBar)}
-                    className="size-5"
+                />
+            </SettingsRow>
+            <SettingsRow label="Mostra barra d'avanzamento nei gruppi" description="Conta tutti i task e i sottotask del gruppo.">
+                <Switch
+                    aria-label="Mostra barra d'avanzamento nei gruppi"
+                    checked={showGroupProgressBar}
+                    onCheckedChange={() => setShowGroupProgressBar(!showGroupProgressBar)}
                 />
             </SettingsRow>
             <SettingsRow label="Mostra numero di sezioni">
-                <Checkbox
+                <Switch
                     aria-label="Mostra numero di sezioni"
                     checked={showSectionCount}
                     onCheckedChange={() => setShowSectionCount(!showSectionCount)}
-                    className="size-5"
                 />
             </SettingsRow>
             <SettingsRow label="Mostra numero di task">
-                <Checkbox
+                <Switch
                     aria-label="Mostra numero di task"
                     checked={showTaskCount}
                     onCheckedChange={() => setShowTaskCount(!showTaskCount)}
-                    className="size-5"
+                />
+            </SettingsRow>
+            <SettingsRow label="Riapri l'ultimo workspace all'avvio" description="Se chiudi l'app dentro un workspace, lo riapre al prossimo avvio.">
+                <Switch
+                    aria-label="Riapri l'ultimo workspace all'avvio"
+                    checked={reopenLastWorkspace}
+                    onCheckedChange={() => setReopenLastWorkspace(!reopenLastWorkspace)}
                 />
             </SettingsRow>
             <SettingsRow label="Riapri le note all'avvio" description="Ripristina le note aperte e quella attiva quando riapri un workspace.">
-                <Checkbox
+                <Switch
                     aria-label="Riapri le note all'avvio"
                     checked={reopenNotes}
                     onCheckedChange={() => setReopenNotes(!reopenNotes)}
-                    className="size-5"
                 />
             </SettingsRow>
         </SettingsPanel>

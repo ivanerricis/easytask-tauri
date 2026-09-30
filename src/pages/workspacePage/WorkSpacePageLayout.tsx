@@ -6,6 +6,7 @@ import React, { useCallback, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { CommandMenu } from "./components/CommandMenu"
 import { ButtonNavbar } from "@/components/button-navbar"
+import { clearLastWorkspaceId } from "@/lib/store/preferences"
 
 type WorkSpaceLayoutProps = {
     children: React.ReactNode
@@ -20,6 +21,7 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
     const handleGoHome = useCallback(() => {
         resetWorkspace()
         resetData()
+        clearLastWorkspaceId().catch(console.error)
         navigate("/")
     }, [resetWorkspace, resetData, navigate])
 

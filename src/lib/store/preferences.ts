@@ -2,6 +2,7 @@ import type { AudioPlayerPosition } from "@/types/types"
 import { store } from "./initStore"
 
 const SHOW_PROGRESSBAR_KEY = "showProgressBar"
+const SHOW_GROUP_PROGRESSBAR_KEY = "showGroupProgressBar"
 const PRIMARY_COLOR_KEY = "primaryColor"
 const SHOW_SECTION_COUNT_KEY = "showSectionCount"
 const SHOW_TASK_COUNT_KEY = "showTaskCount"
@@ -10,6 +11,8 @@ const SIDEBAR_RIGHT_OPEN_KEY = "sidebarRightOpen"
 const AUDIOPLAYER_POSITION_KEY = "audioPlayerPosition"
 const WORKSPACE_VIEW_KEY = "workspaceView"
 const REOPEN_NOTES_KEY = "reopenNotes"
+const REOPEN_LAST_WORKSPACE_KEY = "reopenLastWorkspace"
+const LAST_WORKSPACE_ID_KEY = "lastWorkspaceId"
 const SIDEBAR_ITEM_SIZE_KEY = "sidebarItemSize"
 
 export type WorkspaceView = "grid" | "list"
@@ -34,6 +37,27 @@ export const getShowProgressBar = async (): Promise<boolean> => {
  */
 export const saveShowProgressBar = async (value: boolean): Promise<void> => {
     await store.set(SHOW_PROGRESSBAR_KEY, value)
+    await store.save()
+}
+
+/**
+ * Gets the value of the show group progress bar preference.
+ * @returns A boolean indicating whether the group progress bar should be shown.
+ * @category Store
+ */
+export const getShowGroupProgressBar = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(SHOW_GROUP_PROGRESSBAR_KEY)
+    return value ?? true
+}
+
+/**
+ * Saves the value of the show group progress bar preference.
+ * @param value A boolean indicating whether to show the group progress bar.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveShowGroupProgressBar = async (value: boolean): Promise<void> => {
+    await store.set(SHOW_GROUP_PROGRESSBAR_KEY, value)
     await store.save()
 }
 
@@ -213,6 +237,58 @@ export const getReopenNotes = async (): Promise<boolean> => {
  */
 export const saveReopenNotes = async (value: boolean): Promise<void> => {
     await store.set(REOPEN_NOTES_KEY, value)
+    await store.save()
+}
+
+/**
+ * Gets the value of the "reopen the last workspace at startup" preference.
+ * @returns A promise that resolves to a boolean indicating whether the last open workspace must be restored (default false).
+ * @category Store
+ */
+export const getReopenLastWorkspace = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(REOPEN_LAST_WORKSPACE_KEY)
+    return value ?? false
+}
+
+/**
+ * Saves the value of the "reopen the last workspace at startup" preference.
+ * @param value A boolean indicating whether the last open workspace must be restored at startup.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveReopenLastWorkspace = async (value: boolean): Promise<void> => {
+    await store.set(REOPEN_LAST_WORKSPACE_KEY, value)
+    await store.save()
+}
+
+/**
+ * Gets the id of the workspace that was open when the app was last used.
+ * @returns A promise that resolves to the id, or null when none is stored.
+ * @category Store
+ */
+export const getLastWorkspaceId = async (): Promise<number | null> => {
+    const value = await store.get<number>(LAST_WORKSPACE_ID_KEY)
+    return typeof value === "number" ? value : null
+}
+
+/**
+ * Remembers the workspace currently open.
+ * @param id The id of the workspace.
+ * @returns A promise that resolves when the id is saved.
+ * @category Store
+ */
+export const saveLastWorkspaceId = async (id: number): Promise<void> => {
+    await store.set(LAST_WORKSPACE_ID_KEY, id)
+    await store.save()
+}
+
+/**
+ * Forgets the last open workspace (e.g. after going back to the home).
+ * @returns A promise that resolves when the id is removed.
+ * @category Store
+ */
+export const clearLastWorkspaceId = async (): Promise<void> => {
+    await store.delete(LAST_WORKSPACE_ID_KEY)
     await store.save()
 }
 

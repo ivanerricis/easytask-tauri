@@ -1,5 +1,8 @@
 import { usePreferences } from "@/contexts/preferences-context"
-import { Grip, LayoutList, SquareCheckBig } from "lucide-react"
+import { ChevronDown, Grip, LayoutList, SquareCheckBig } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { useGroupOpen } from "@/contexts/tabs-context"
+import { getGroupProgress } from "./group-progress"
 import { ButtonMenuGroup } from "./ButtonMenuGroup"
 import { ItemMenuButton } from "@/components/item-menu"
 import type { Group } from "@/types/types"
@@ -19,7 +22,9 @@ type GroupHeaderProps = {
 }
 
 export const GroupHeader = ({ group, index = 0, dragHandleProps }: GroupHeaderProps) => {
-    const { showSectionCount, showTaskCount } = usePreferences()
+    const { showSectionCount, showTaskCount, showGroupProgressBar } = usePreferences()
+    const [isOpen, toggleOpen] = useGroupOpen(group.id)
+    const progress = getGroupProgress(group)
     const { renameItem } = useWorkspaceActions()
     const { refreshActiveNote } = useActiveNoteActions()
     const [isEditing, setEditing] = useState(false)
@@ -64,9 +69,16 @@ export const GroupHeader = ({ group, index = 0, dragHandleProps }: GroupHeaderPr
                 {dragHandleProps && <div className="group flex items-center justify-center" {...dragHandleProps}>
                     <Grip className="text-muted-foreground group-hover:text-foreground w-4 h-4 mr-3" />
                 </div>}
+                <button
+                    type="button"
+                    onClick={toggleOpen}
+                    aria-label={isOpen ? "Compatta gruppo" : "Espandi gruppo"}
+                    className="shrink-0 cursor-pointer mr-2">
+                    <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} size-5`} />
+                </button>
                 {!isEditing && <h2
                     onClick={startEditing}
-                    className={`text-xs mr-3 min-w-0 flex-1 break-words cursor-text ${name ? "" : "text-muted-foreground"}`}>
+                    className={`text-sm font-semibold mr-3 min-w-0 flex-1 break-words cursor-text ${name ? "" : "text-muted-foreground"}`}>
                     {label}
                 </h2>}
                 {isEditing && <input
@@ -87,8 +99,14 @@ export const GroupHeader = ({ group, index = 0, dragHandleProps }: GroupHeaderPr
                             setEditing(false)
                         }
                     }}
-                    className="min-w-0 flex-1 mr-3 px-1 border border-primary text-xs rounded-xs"
+                    className="min-w-0 flex-1 mr-3 px-1 border border-primary text-sm font-semibold rounded-xs"
                 />}
+                {showGroupProgressBar && progress.total > 0 && <div className="flex items-center gap-2 shrink-0 mr-3">
+                    <Progress className="w-16" value={progress.percent} />
+                    <h1 className="text-xs">
+                        {Math.round(progress.percent)} %
+                    </h1>
+                </div>}
                 <div className="flex shrink-0 gap-3">
                     {showSectionCount && <div className="flex items-center gap-1">
                         <LayoutList className="size-4" />

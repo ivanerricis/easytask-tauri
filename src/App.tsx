@@ -5,6 +5,7 @@ import { WorkspaceDataProvider } from './contexts/workspace-data-context'
 import { PreferencesProvider } from './contexts/preferences-context'
 import { ThemeProvider } from './components/theme-provider'
 import { Toaster } from './components/ui/sonner'
+import { DialogShortcuts } from './components/dialogs/dialog-shortcuts'
 
 import MainPage from './pages/mainPage/MainPage'
 import WorkSpacePage from './pages/workspacePage/WorkSpacePage'
@@ -37,6 +38,7 @@ function App() {
               </Routes>
             </HashRouter>
             <Toaster richColors position='top-center' />
+            <DialogShortcuts />
           </WorkspaceDataProvider>
         </WorkspaceProvider>
       </ThemeProvider>

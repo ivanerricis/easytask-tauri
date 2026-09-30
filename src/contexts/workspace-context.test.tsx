@@ -50,7 +50,7 @@ describe("WorkspaceContext", () => {
     })
 
     it("lists trashed workspaces without touching the active list", async () => {
-        const trashed = [makeWorkspace({ id: 7 })]
+        const trashed = [{ ...makeWorkspace({ id: 7 }), summary: "" }]
         vi.mocked(getDBTrashedWorkspaces).mockResolvedValue(trashed)
         const { result } = renderHook(() => useWorkspace(), { wrapper })
         await act(async () => {

@@ -1,5 +1,5 @@
 import React, { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react'
-import type { Workspace } from '@/types/types'
+import type { TrashedWorkspace, Workspace } from '@/types/types'
 import { getDBWorkspaces, createDBWorkspace } from '@/db/queries/workspace'
 import { getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from '@/db/queries/trash'
 import { getErrorMessage } from '@/lib/utils'
@@ -12,7 +12,7 @@ type WorkspaceContextType = {
     setCurrentWorkspace: React.Dispatch<React.SetStateAction<Workspace | null>>
     getWorkspaces: () => Promise<void>
     createWorkspace: (name: string, color?: string) => Promise<void>
-    getTrashedWorkspaces: () => Promise<Workspace[]>
+    getTrashedWorkspaces: () => Promise<TrashedWorkspace[]>
     restoreWorkspace: (id: number) => Promise<void>
     purgeWorkspace: (id: number) => Promise<void>
     resetWorkspace: () => void

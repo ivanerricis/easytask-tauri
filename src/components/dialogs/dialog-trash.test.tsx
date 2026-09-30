@@ -26,22 +26,22 @@ vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ws }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
 const items: TrashItem[] = [
-    { type: "folder", id: 1, name: "Cartella A", context: "", deleted_at: "2026-09-01 10:30:00" },
-    { type: "note", id: 2, name: "Nota B", context: "Cartella A", deleted_at: "2026-09-02 08:05:00" },
-    { type: "task", id: 3, name: "Task C", context: "Nota B › Sezione 1", deleted_at: "2026-09-03 12:00:00" },
+    { type: "folder", id: 1, name: "Cartella A", context: "", summary: "1 sottocartella · 2 note", deleted_at: "2026-09-01 10:30:00" },
+    { type: "note", id: 2, name: "Nota B", context: "Cartella A", summary: "", deleted_at: "2026-09-02 08:05:00" },
+    { type: "task", id: 3, name: "Task C", context: "Nota B › Sezione 1", summary: "Vuoto", deleted_at: "2026-09-03 12:00:00" },
 ]
 
 describe("DialogTrash templates", () => {
     it("shows a deleted template in its own group and restores it as a template", async () => {
         const user = userEvent.setup()
         vi.resetAllMocks()
-        data.getTrash.mockResolvedValue([{ type: "note_template", id: 5, name: "Retro", context: "Da: Sprint", deleted_at: "2026-09-04 09:00:00" }])
+        data.getTrash.mockResolvedValue([{ type: "note_template", id: 5, name: "Retro", context: "Da: Sprint", summary: "2 gruppi · 3 sezioni · 6 task", deleted_at: "2026-09-04 09:00:00" }])
         data.restoreItem.mockResolvedValue(undefined)
         data.getWorkspaceData.mockResolvedValue(undefined)
         note.refreshActiveNote.mockResolvedValue(undefined)
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
         expect(await screen.findByRole("region", { name: "Template" })).toBeInTheDocument()
-        expect(screen.getByText(/Da: Sprint · Eliminato il 04-09-2026 09:00/)).toBeInTheDocument()
+        expect(screen.getByText(/Da: Sprint · 2 gruppi · 3 sezioni · 6 task · Eliminato il 04-09-2026 09:00/)).toBeInTheDocument()
         await user.click(screen.getByRole("button", { name: "Ripristina Retro" }))
         await waitFor(() => expect(data.restoreItem).toHaveBeenCalledWith("note_template", 5))
     })
@@ -67,6 +67,13 @@ describe("DialogTrash", () => {
         expect(screen.getByRole("region", { name: "Task" })).toBeInTheDocument()
         expect(screen.queryByRole("region", { name: "Sezioni" })).not.toBeInTheDocument()
         expect(screen.getByText(/Cartella A · Eliminato il 02-09-2026 08:05/)).toBeInTheDocument()
+    })
+
+    it("shows what a deleted item contained between context and date, with the full text as title", async () => {
+        render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        const folderLine = await screen.findByText("1 sottocartella · 2 note · Eliminato il 01-09-2026 10:30")
+        expect(folderLine).toHaveAttribute("title", "1 sottocartella · 2 note · Eliminato il 01-09-2026 10:30")
+        expect(screen.getByText("Nota B › Sezione 1 · Vuoto · Eliminato il 03-09-2026 12:00")).toBeInTheDocument()
     })
 
     it("shows the empty state and disables emptying", async () => {
@@ -147,6 +154,12 @@ describe("DialogTrashWorkspaces", () => {
         expect(await screen.findByText("Vecchio")).toBeInTheDocument()
         await user.click(screen.getByRole("button", { name: "Ripristina Vecchio" }))
         await waitFor(() => expect(ws.restoreWorkspace).toHaveBeenCalledWith(7))
+    })
+
+    it("shows the summary of a trashed workspace", async () => {
+        ws.getTrashedWorkspaces.mockResolvedValue([{ ...makeWorkspace({ id: 7, name: "Vecchio", deleted_at: "2026-09-05 09:00:00" }), summary: "3 cartelle · 12 note" }])
+        render(<DialogTrashWorkspaces isOpen onOpenChange={vi.fn()} />)
+        expect(await screen.findByText("3 cartelle · 12 note · Eliminato il 05-09-2026 09:00")).toBeInTheDocument()
     })
 
     it("purges all workspaces when emptying", async () => {

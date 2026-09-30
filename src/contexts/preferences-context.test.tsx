@@ -10,6 +10,8 @@ vi.mock("@/lib/store/preferences", () => ({
     savePrimaryColor: vi.fn(),
     getShowProgressBar: vi.fn(),
     saveShowProgressBar: vi.fn(),
+    getShowGroupProgressBar: vi.fn(),
+    saveShowGroupProgressBar: vi.fn(),
     getShowSectionCount: vi.fn(),
     saveShowSectionCount: vi.fn(),
     getShowTaskCount: vi.fn(),
@@ -25,6 +27,8 @@ vi.mock("@/lib/store/preferences", () => ({
     saveWorkspaceView: vi.fn(),
     getReopenNotes: vi.fn(),
     saveReopenNotes: vi.fn(),
+    getReopenLastWorkspace: vi.fn(),
+    saveReopenLastWorkspace: vi.fn(),
     getSidebarItemSize: vi.fn(),
     saveSidebarItemSize: vi.fn(),
 }))
@@ -37,12 +41,14 @@ describe("PreferencesContext", () => {
         document.documentElement.style.removeProperty("--primary")
         vi.mocked(prefs.getPrimaryColor).mockResolvedValue("#123456")
         vi.mocked(prefs.getShowProgressBar).mockResolvedValue(false)
+        vi.mocked(prefs.getShowGroupProgressBar).mockResolvedValue(false)
         vi.mocked(prefs.getShowSectionCount).mockResolvedValue(true)
         vi.mocked(prefs.getShowTaskCount).mockResolvedValue(false)
         vi.mocked(prefs.getSideBarLeftOpen).mockResolvedValue(false)
         vi.mocked(prefs.getSideBarRightOpen).mockResolvedValue(true)
         vi.mocked(prefs.getWorkspaceView).mockResolvedValue("list")
         vi.mocked(prefs.getReopenNotes).mockResolvedValue(false)
+        vi.mocked(prefs.getReopenLastWorkspace).mockResolvedValue(true)
         vi.mocked(prefs.getSidebarItemSize).mockResolvedValue("large")
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
     })
@@ -57,6 +63,7 @@ describe("PreferencesContext", () => {
         const { result } = renderHook(() => usePreferences(), { wrapper })
         expect(result.current.primaryColor).toBe("#ffb375")
         expect(result.current.showProgressBar).toBe(true)
+        expect(result.current.showGroupProgressBar).toBe(true)
         expect(result.current.workspaceView).toBe("grid")
         await waitFor(() => expect(result.current.primaryColor).toBe("#123456"))
     })
@@ -66,6 +73,7 @@ describe("PreferencesContext", () => {
 
         await waitFor(() => expect(result.current.primaryColor).toBe("#123456"))
         expect(result.current.showProgressBar).toBe(false)
+        expect(result.current.showGroupProgressBar).toBe(false)
         expect(result.current.showTaskCount).toBe(false)
         expect(result.current.sidebarLeftOpen).toBe(false)
         expect(result.current.workspaceView).toBe("list")
@@ -79,6 +87,7 @@ describe("PreferencesContext", () => {
 
         act(() => {
             result.current.setShowProgressBar(true)
+            result.current.setShowGroupProgressBar(true)
             result.current.setSideBarLeftOpen(true)
             result.current.setPrimaryColor("#abcdef")
             result.current.setWorkspaceView("grid")
@@ -88,6 +97,8 @@ describe("PreferencesContext", () => {
         expect(result.current.sidebarLeftOpen).toBe(true)
         expect(result.current.primaryColor).toBe("#abcdef")
         expect(prefs.saveShowProgressBar).toHaveBeenCalledWith(true)
+        expect(result.current.showGroupProgressBar).toBe(true)
+        expect(prefs.saveShowGroupProgressBar).toHaveBeenCalledWith(true)
         expect(prefs.saveSideBarLeftOpen).toHaveBeenCalledWith(true)
         expect(prefs.savePrimaryColor).toHaveBeenCalledWith("#abcdef")
         expect(result.current.workspaceView).toBe("grid")
@@ -104,6 +115,17 @@ describe("PreferencesContext", () => {
 
         expect(result.current.reopenNotes).toBe(true)
         expect(prefs.saveReopenNotes).toHaveBeenCalledWith(true)
+    })
+
+    it("loads and persists the reopen last workspace preference (default off)", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.reopenLastWorkspace).toBe(false)
+        await waitFor(() => expect(result.current.reopenLastWorkspace).toBe(true))
+
+        act(() => result.current.setReopenLastWorkspace(false))
+
+        expect(result.current.reopenLastWorkspace).toBe(false)
+        expect(prefs.saveReopenLastWorkspace).toHaveBeenCalledWith(false)
     })
 
     it("loads and persists the sidebar item size (default normal)", async () => {

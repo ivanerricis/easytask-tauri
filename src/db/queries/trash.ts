@@ -1,12 +1,149 @@
-import type { TrashItem, Workspace } from "@/types/types";
+import type { TrashItem, TrashedWorkspace, Workspace } from "@/types/types";
+import { countTemplateContent, type NoteTemplateContent } from "@/types/template";
 import { createError, handleDBError } from "@/types/error";
-import { getErrorMessage } from "@/lib/utils";
+import { getErrorMessage, plural } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { assertItemType, type DBItemType } from "./shared_queries";
 
 const RESTORE_UNIQUE_MESSAGE = "Esiste già un elemento con questo nome: rinominalo prima di ripristinare."
 
 type TrashRow = { type: DBItemType, id: number, name: string, context: string | null, deleted_at: string, extra: number }
+
+/** What a trashed item contained; a missing key counts as zero. */
+export type TrashCounts = Partial<Record<"folders" | "notes" | "groups" | "sections" | "tasks" | "audio", number>>
+
+// [key, singular, plural] of each counter
+const COUNT_LABELS: [keyof TrashCounts, string, string][] = [
+    ["folders", "cartella", "cartelle"],
+    ["notes", "nota", "note"],
+    ["groups", "gruppo", "gruppi"],
+    ["sections", "sezione", "sezioni"],
+    ["tasks", "task", "task"],
+    ["audio", "audio", "audio"],
+]
+
+// Counters shown for each type, in display order (audio files have no content)
+const SUMMARY_FIELDS: Partial<Record<DBItemType, (keyof TrashCounts)[]>> = {
+    workspace: ["folders", "notes"],
+    folder: ["folders", "notes"],
+    note: ["groups", "sections", "tasks"],
+    section_group: ["sections", "tasks", "audio"],
+    section: ["tasks"],
+    task: ["tasks"],
+    note_template: ["groups", "sections", "tasks"],
+}
+
+// A folder contains "sottocartelle" and a task "sottotask"
+const SUBITEM_LABELS: Partial<Record<DBItemType, Partial<Record<keyof TrashCounts, [string, string]>>>> = {
+    folder: { folders: ["sottocartella", "sottocartelle"] },
+    task: { tasks: ["sottotask", "sottotask"] },
+}
+
+/**
+ * Describes what a trashed item contained, e.g. "2 gruppi · 3 sezioni · 5 task".
+ * Zero counts are omitted, "Vuoto" is returned when nothing is left, and audio files (no content) give "".
+ * @param type The type of the trashed item.
+ * @param counts The number of children that come back with the item.
+ * @category Database Queries
+ */
+export function formatTrashSummary(type: DBItemType, counts: TrashCounts): string {
+    const fields = SUMMARY_FIELDS[type]
+    if (!fields) return ""
+    const parts = fields
+        .filter(field => (counts[field] ?? 0) > 0)
+        .map(field => {
+            const [, one, many] = COUNT_LABELS.find(([key]) => key === field)!
+            const [subOne, subMany] = SUBITEM_LABELS[type]?.[field] ?? [one, many]
+            return plural(counts[field]!, subOne, subMany)
+        })
+    return parts.length > 0 ? parts.join(" · ") : "Vuoto"
+}
+
+type CountRow = { id: number } & Record<string, number>
+const toCountMap = (rows: CountRow[]) => new Map(rows.map(({ id, ...counts }) => [id, counts as TrashCounts]))
+
+// Sections of the workspace, to scope the task queries
+const WORKSPACE_SECTIONS = `SELECT s.id FROM section s
+    INNER JOIN section_group g ON g.id = s.groupID
+    INNER JOIN note n ON n.id = g.noteID WHERE n.workspaceID = ?`
+
+// Live tasks (subtasks at any depth) of the sections returned by sectionsSql; a task hidden by a deleted ancestor is not reached
+const liveTasks = (sectionsSql: string) => `tt(sec, id) AS (
+        SELECT sectionID, id FROM task WHERE taskID IS NULL AND deleted_at IS NULL AND sectionID IN (${sectionsSql})
+        UNION ALL
+        SELECT tt.sec, t.id FROM task t INNER JOIN tt ON t.taskID = tt.id WHERE t.deleted_at IS NULL)`
+
+/**
+ * Counts the children that come back with each trashed item.
+ * Soft delete only marks the item itself: its children keep deleted_at NULL and are hidden through the parent,
+ * so a child counts when neither it nor any ancestor up to the trashed item is deleted
+ * (anything deleted separately earlier stays in the trash on restore and is not counted).
+ * One query per type of trashed item, never one per item.
+ */
+async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, workspaceId: number, types: Set<DBItemType>) {
+    const counts = new Map<DBItemType, Map<number, TrashCounts>>()
+    const load = async (type: DBItemType, sql: string, params: number[]) => {
+        if (types.has(type)) counts.set(type, toCountMap(await db.select<CountRow[]>(sql, params)))
+    }
+
+    await load("folder",
+        `WITH RECURSIVE tree(root, id) AS (
+            SELECT id, id FROM folder WHERE workspaceID = ? AND deleted_at IS NOT NULL
+            UNION ALL
+            SELECT tree.root, f.id FROM folder f INNER JOIN tree ON f.folderID = tree.id WHERE f.deleted_at IS NULL)
+         SELECT tree.root AS id, COUNT(*) - 1 AS folders,
+                (SELECT COUNT(*) FROM note n WHERE n.deleted_at IS NULL
+                   AND n.folderID IN (SELECT t2.id FROM tree t2 WHERE t2.root = tree.root)) AS notes
+         FROM tree GROUP BY tree.root`, [workspaceId])
+
+    await load("note",
+        `WITH RECURSIVE ${liveTasks(`SELECT s.id FROM section s
+                INNER JOIN section_group g ON g.id = s.groupID
+                INNER JOIN note n ON n.id = g.noteID
+                WHERE n.deleted_at IS NOT NULL AND n.workspaceID = ? AND s.deleted_at IS NULL AND g.deleted_at IS NULL`)}
+         SELECT n.id,
+                (SELECT COUNT(*) FROM section_group g WHERE g.noteID = n.id AND g.deleted_at IS NULL) AS groups,
+                (SELECT COUNT(*) FROM section s INNER JOIN section_group g ON g.id = s.groupID
+                  WHERE g.noteID = n.id AND g.deleted_at IS NULL AND s.deleted_at IS NULL) AS sections,
+                (SELECT COUNT(*) FROM tt INNER JOIN section s ON s.id = tt.sec INNER JOIN section_group g ON g.id = s.groupID
+                  WHERE g.noteID = n.id) AS tasks
+         FROM note n WHERE n.workspaceID = ? AND n.deleted_at IS NOT NULL`, [workspaceId, workspaceId])
+
+    await load("section_group",
+        `WITH RECURSIVE ${liveTasks(`SELECT s.id FROM section s
+                INNER JOIN section_group g ON g.id = s.groupID
+                INNER JOIN note n ON n.id = g.noteID
+                WHERE g.deleted_at IS NOT NULL AND n.workspaceID = ? AND s.deleted_at IS NULL`)}
+         SELECT g.id,
+                (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id AND s.deleted_at IS NULL) AS sections,
+                (SELECT COUNT(*) FROM tt INNER JOIN section s ON s.id = tt.sec WHERE s.groupID = g.id) AS tasks,
+                (SELECT COUNT(*) FROM audio_file a WHERE a.section_groupID = g.id AND a.deleted_at IS NULL) AS audio
+         FROM section_group g INNER JOIN note n ON n.id = g.noteID
+         WHERE g.deleted_at IS NOT NULL AND n.workspaceID = ?`, [workspaceId, workspaceId])
+
+    await load("section",
+        `WITH RECURSIVE ${liveTasks(`SELECT id FROM section WHERE deleted_at IS NOT NULL AND id IN (${WORKSPACE_SECTIONS})`)}
+         SELECT sec AS id, COUNT(*) AS tasks FROM tt GROUP BY sec`, [workspaceId])
+
+    await load("task",
+        `WITH RECURSIVE tree(root, id) AS (
+            SELECT id, id FROM task WHERE deleted_at IS NOT NULL AND sectionID IN (${WORKSPACE_SECTIONS})
+            UNION ALL
+            SELECT tree.root, t.id FROM task t INNER JOIN tree ON t.taskID = tree.id WHERE t.deleted_at IS NULL)
+         SELECT root AS id, COUNT(*) - 1 AS tasks FROM tree GROUP BY root`, [workspaceId])
+
+    return counts
+}
+
+/** Counts of a trashed template, read from its JSON snapshot (a corrupted one counts as empty). */
+function countTemplateJson(content: string): TrashCounts {
+    try {
+        const value = JSON.parse(content) as NoteTemplateContent
+        return Array.isArray(value?.groups) ? countTemplateContent(value) : {}
+    } catch {
+        return {}
+    }
+}
 
 /**
  * Retrieves the items moved to the trash that belong to a workspace.
@@ -15,6 +152,7 @@ type TrashRow = { type: DBItemType, id: number, name: string, context: string | 
  * sections and tasks have "Nota X" / "Nota X › Sezione Y" as context,
  * audio files "Nota X › <group name>" ("Gruppo N", N = position of the group in the note, when unnamed),
  * templates "Da: <source note>" (empty when the source note no longer exists).
+ * Every item also has a `summary` of what it contained (see formatTrashSummary).
  * @param workspaceId The ID of the workspace.
  * @returns The trashed items, most recently deleted first.
  * @throws A createError('TRASH_LOAD_FAILED') error when a query fails.
@@ -63,6 +201,13 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
              FROM note_template t WHERE t.workspaceID = ? AND t.deleted_at IS NOT NULL
              ORDER BY deleted_at DESC, kind, id`, [workspaceId, workspaceId, workspaceId, workspaceId, workspaceId, workspaceId, workspaceId])
 
+        const counts = await loadTrashCounts(db, workspaceId, new Set(rows.map(row => row.type)))
+        if (rows.some(row => row.type === "note_template")) {
+            const contents = await db.select<{ id: number, content: string }[]>(
+                'SELECT id, content FROM note_template WHERE workspaceID = ? AND deleted_at IS NOT NULL', [workspaceId])
+            counts.set("note_template", new Map(contents.map(({ id, content }) => [id, countTemplateJson(content)])))
+        }
+
         return rows.map(row => ({
             type: row.type,
             id: row.id,
@@ -70,6 +215,7 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
                 ? `Gruppo di ${row.extra} ${row.extra === 1 ? "sezione" : "sezioni"}`
                 : row.name,
             context: row.context ?? "",
+            summary: formatTrashSummary(row.type, counts.get(row.type)?.get(row.id) ?? {}),
             deleted_at: row.deleted_at,
         }))
     } catch (error: unknown) {
@@ -78,14 +224,30 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
 }
 
 /**
- * Retrieves the workspaces moved to the trash.
- * @returns The deleted workspaces, most recently deleted first.
+ * Retrieves the workspaces moved to the trash, each with a `summary` ("3 cartelle · 12 note", "Vuoto" when empty)
+ * counting the folders (recursively) and notes that come back with it.
+ * @returns The deleted workspaces (as TrashedWorkspace), most recently deleted first.
  * @category Database Queries
  */
-export async function getDBTrashedWorkspaces(): Promise<Workspace[]> {
+export async function getDBTrashedWorkspaces(): Promise<TrashedWorkspace[]> {
     try {
         const db = await getDB()
-        return await db.select<Workspace[]>('SELECT * FROM workspace WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC')
+        const workspaces = await db.select<Workspace[]>('SELECT * FROM workspace WHERE deleted_at IS NOT NULL ORDER BY deleted_at DESC')
+        if (workspaces.length === 0) return []
+
+        // Live folders reachable from the root folders (a folder deleted separately hides its whole subtree)
+        const counts = toCountMap(await db.select<CountRow[]>(
+            `WITH RECURSIVE tree(ws, id) AS (
+                SELECT workspaceID, id FROM folder WHERE folderID IS NULL AND deleted_at IS NULL
+                  AND workspaceID IN (SELECT id FROM workspace WHERE deleted_at IS NOT NULL)
+                UNION ALL
+                SELECT tree.ws, f.id FROM folder f INNER JOIN tree ON f.folderID = tree.id WHERE f.deleted_at IS NULL)
+             SELECT w.id,
+                    (SELECT COUNT(*) FROM tree WHERE tree.ws = w.id) AS folders,
+                    (SELECT COUNT(*) FROM note n WHERE n.workspaceID = w.id AND n.deleted_at IS NULL
+                       AND (n.folderID IS NULL OR n.folderID IN (SELECT id FROM tree WHERE tree.ws = w.id))) AS notes
+             FROM workspace w WHERE w.deleted_at IS NOT NULL`))
+        return workspaces.map((w): TrashedWorkspace => ({ ...w, summary: formatTrashSummary("workspace", counts.get(w.id) ?? {}) }))
     } catch (error: unknown) {
         throw createError("TRASH_LOAD_FAILED", "Failed to load the trashed workspaces: " + getErrorMessage(error))
     }

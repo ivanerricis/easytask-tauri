@@ -2,7 +2,7 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { GroupHeader } from "./GroupHeader"
-import { makeGroup } from "@/test/ui-fixtures"
+import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 
 const renameItem = vi.fn()
 const refreshActiveNote = vi.fn()
@@ -15,11 +15,20 @@ vi.mock("@/contexts/workspace-data-context", () => ({
 vi.mock("@/contexts/active-note-context", () => ({
     useActiveNoteActions: () => ({ refreshActiveNote }),
 }))
+const prefs = { showSectionCount: true, showTaskCount: true, showGroupProgressBar: true }
 vi.mock("@/contexts/preferences-context", () => ({
-    usePreferences: () => ({ showSectionCount: true, showTaskCount: true }),
+    usePreferences: () => prefs,
+}))
+const toggleOpen = vi.fn()
+let isOpen = true
+vi.mock("@/contexts/tabs-context", () => ({
+    useGroupOpen: () => [isOpen, toggleOpen],
 }))
 
 beforeEach(() => {
+    prefs.showGroupProgressBar = true
+    isOpen = true
+    toggleOpen.mockReset()
     renameItem.mockReset().mockResolvedValue(undefined)
     refreshActiveNote.mockReset().mockResolvedValue(undefined)
 })
@@ -83,5 +92,39 @@ describe("GroupHeader name", () => {
         await user.click(screen.getByText("A"))
         await user.keyboard("{Enter}")
         expect(renameItem).not.toHaveBeenCalled()
+    })
+})
+
+describe("GroupHeader progress and collapse", () => {
+    const withTasks = makeGroup({
+        sections: [makeSection({ tasks: [makeTask({ completed: true }), makeTask({ id: 2 })] })],
+    })
+
+    it("shows the progress bar with the percentage", () => {
+        render(<GroupHeader group={withTasks} />)
+        expect(screen.getByText("50 %")).toBeInTheDocument()
+    })
+
+    it("hides the bar when the preference is off or the group has no tasks", () => {
+        prefs.showGroupProgressBar = false
+        const { unmount } = render(<GroupHeader group={withTasks} />)
+        expect(screen.queryByText("50 %")).not.toBeInTheDocument()
+        unmount()
+        prefs.showGroupProgressBar = true
+        render(<GroupHeader group={makeGroup()} />)
+        expect(screen.queryByText(/ %$/)).not.toBeInTheDocument()
+    })
+
+    it("toggles the collapse state from the chevron", async () => {
+        const user = userEvent.setup()
+        render(<GroupHeader group={withTasks} />)
+        await user.click(screen.getByLabelText("Compatta gruppo"))
+        expect(toggleOpen).toHaveBeenCalled()
+    })
+
+    it("labels the chevron 'Espandi gruppo' when collapsed", () => {
+        isOpen = false
+        render(<GroupHeader group={withTasks} />)
+        expect(screen.getByLabelText("Espandi gruppo")).toBeInTheDocument()
     })
 })

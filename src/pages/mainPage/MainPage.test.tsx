@@ -1,16 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import MainPage from "./MainPage"
+import MainPage, { resetStartupHandled } from "./MainPage"
+import { getLastWorkspaceId, getReopenLastWorkspace } from "@/lib/store/preferences"
 import { makeWorkspace } from "@/test/ui-fixtures"
 
 const ctx = {
     workspaces: [] as ReturnType<typeof makeWorkspace>[],
     getWorkspaces: vi.fn(),
+    setCurrentWorkspace: vi.fn(),
     isLoading: false,
     error: null as string | null,
 }
 vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ctx }))
+const navigate = vi.fn()
+vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }))
+vi.mock("@/lib/store/preferences", () => ({ getReopenLastWorkspace: vi.fn(), getLastWorkspaceId: vi.fn() }))
 const prefs = {
     workspaceView: "grid" as "grid" | "list",
     setWorkspaceView: vi.fn(),
@@ -33,6 +38,60 @@ describe("MainPage", () => {
         ctx.error = null
         prefs.workspaceView = "grid"
         ctx.getWorkspaces.mockResolvedValue(undefined)
+        resetStartupHandled()
+        vi.mocked(getReopenLastWorkspace).mockResolvedValue(false)
+        vi.mocked(getLastWorkspaceId).mockResolvedValue(null)
+    })
+
+    describe("reopen last workspace", () => {
+        it("opens the stored workspace when enabled", async () => {
+            const ws = makeWorkspace({ id: 9, name: "Nine" })
+            ctx.workspaces = [makeWorkspace({ id: 1 }), ws]
+            vi.mocked(getReopenLastWorkspace).mockResolvedValue(true)
+            vi.mocked(getLastWorkspaceId).mockResolvedValue(9)
+            render(<MainPage />)
+
+            await waitFor(() => expect(navigate).toHaveBeenCalledWith("/workspace/9"))
+            expect(ctx.setCurrentWorkspace).toHaveBeenCalledWith(ws)
+        })
+
+        it("does nothing when the preference is disabled", async () => {
+            ctx.workspaces = [makeWorkspace({ id: 9 })]
+            vi.mocked(getLastWorkspaceId).mockResolvedValue(9)
+            render(<MainPage />)
+
+            await waitFor(() => expect(getReopenLastWorkspace).toHaveBeenCalled())
+            expect(navigate).not.toHaveBeenCalled()
+        })
+
+        it("does nothing when the stored id is missing or not in the list", async () => {
+            ctx.workspaces = [makeWorkspace({ id: 1 })]
+            vi.mocked(getReopenLastWorkspace).mockResolvedValue(true)
+            vi.mocked(getLastWorkspaceId).mockResolvedValue(42)
+            const { unmount } = render(<MainPage />)
+            await waitFor(() => expect(getLastWorkspaceId).toHaveBeenCalled())
+            expect(navigate).not.toHaveBeenCalled()
+            unmount()
+
+            resetStartupHandled()
+            vi.mocked(getLastWorkspaceId).mockResolvedValue(null)
+            render(<MainPage />)
+            await waitFor(() => expect(getLastWorkspaceId).toHaveBeenCalledTimes(2))
+            expect(navigate).not.toHaveBeenCalled()
+        })
+
+        it("only runs once per session", async () => {
+            ctx.workspaces = [makeWorkspace({ id: 9 })]
+            vi.mocked(getReopenLastWorkspace).mockResolvedValue(true)
+            vi.mocked(getLastWorkspaceId).mockResolvedValue(9)
+            const { unmount } = render(<MainPage />)
+            await waitFor(() => expect(navigate).toHaveBeenCalledTimes(1))
+            unmount()
+
+            render(<MainPage />)
+            await waitFor(() => expect(ctx.getWorkspaces).toHaveBeenCalledTimes(2))
+            expect(navigate).toHaveBeenCalledTimes(1)
+        })
     })
 
     it("requests the workspaces on mount", () => {

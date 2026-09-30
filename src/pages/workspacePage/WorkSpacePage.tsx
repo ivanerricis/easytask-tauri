@@ -6,6 +6,7 @@ import { WorkSpaceLayout } from "./WorkSpacePageLayout"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { useEffect, useState } from "react"
 import { AudioProvider } from "@/contexts/audio-context"
+import { saveLastWorkspaceId } from "@/lib/store/preferences"
 
 const WorkSpacePage = () => {
     const { currentWorkspace } = useWorkspace()
@@ -25,6 +26,11 @@ const WorkSpacePage = () => {
         }
         fetchData()
     }, [currentWorkspace, getWorkspaceData])
+
+    // Remember the open workspace so it can be restored at the next startup
+    useEffect(() => {
+        if (currentWorkspace) saveLastWorkspaceId(currentWorkspace.id).catch(console.error)
+    }, [currentWorkspace])
 
     if (isLoading) {
         return (

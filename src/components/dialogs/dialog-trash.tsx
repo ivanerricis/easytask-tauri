@@ -46,6 +46,10 @@ const formatTrashDate = (value: string) => {
     return time ? `${formatDate(date)} ${time.slice(0, 5)}` : formatDate(date)
 }
 
+// Second line of a row: where it was, what it contained and when it was deleted
+const details = (item: TrashItem) =>
+    [item.context, item.summary, `Eliminato il ${formatTrashDate(item.deleted_at)}`].filter(Boolean).join(" · ")
+
 type Confirm = { kind: "purge", item: TrashItem } | { kind: "empty" } | null
 
 type DialogTrashViewProps = {
@@ -130,8 +134,8 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                                                 <Icon className="size-4 shrink-0" />
                                                 <div className="flex flex-col min-w-0 flex-1">
                                                     <span className="truncate text-sm" title={item.name}>{item.name}</span>
-                                                    <span className="truncate text-xs text-muted-foreground">
-                                                        {[item.context, `Eliminato il ${formatTrashDate(item.deleted_at)}`].filter(Boolean).join(" · ")}
+                                                    <span className="truncate text-xs text-muted-foreground" title={details(item)}>
+                                                        {details(item)}
                                                     </span>
                                                 </div>
                                                 <TooltipCustom text="Ripristina">
@@ -239,6 +243,7 @@ export const DialogTrashWorkspaces = ({ isOpen, onOpenChange }: DialogTrashProps
             id: w.id,
             name: w.name,
             context: "",
+            summary: w.summary,
             deleted_at: w.deleted_at ?? "",
         })),
         restore: (item) => restoreWorkspace(item.id),

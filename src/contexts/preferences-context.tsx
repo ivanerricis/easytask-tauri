@@ -4,6 +4,8 @@ import {
     savePrimaryColor,
     getShowProgressBar,
     saveShowProgressBar,
+    getShowGroupProgressBar,
+    saveShowGroupProgressBar,
     getShowSectionCount,
     saveShowSectionCount,
     getShowTaskCount,
@@ -19,6 +21,8 @@ import {
     saveWorkspaceView,
     getReopenNotes,
     saveReopenNotes,
+    getReopenLastWorkspace,
+    saveReopenLastWorkspace,
     getSidebarItemSize,
     saveSidebarItemSize,
     type SidebarItemSize,
@@ -29,6 +33,8 @@ import type { AudioPlayerPosition } from "@/types/types"
 type PreferencesContextType = {
     showProgressBar: boolean
     setShowProgressBar: (value: boolean) => void
+    showGroupProgressBar: boolean
+    setShowGroupProgressBar: (value: boolean) => void
     showSectionCount: boolean
     setShowSectionCount: (value: boolean) => void
     showTaskCount: boolean
@@ -47,6 +53,8 @@ type PreferencesContextType = {
     setWorkspaceView: (value: WorkspaceView) => void
     reopenNotes: boolean
     setReopenNotes: (value: boolean) => void
+    reopenLastWorkspace: boolean
+    setReopenLastWorkspace: (value: boolean) => void
     sidebarItemSize: SidebarItemSize
     setSidebarItemSize: (value: SidebarItemSize) => void
 }
@@ -55,6 +63,7 @@ const PreferencesContext = createContext<PreferencesContextType | undefined>(und
 
 export const PreferencesProvider = ({ children }: { children: React.ReactNode }) => {
     const [showProgressBar, setShowProgressBarState] = useState(true)
+    const [showGroupProgressBar, setShowGroupProgressBarState] = useState(true)
     const [showSectionCount, setShowSectionCountState] = useState(true)
     const [showTaskCount, setShowTaskCountState] = useState(true)
     const [primaryColor, setPrimaryColorState] = useState("#ffb375")
@@ -63,11 +72,13 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [audioPlayerPosition, setAudioPlayerPositionState] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 })
     const [workspaceView, setWorkspaceViewState] = useState<WorkspaceView>("grid")
     const [reopenNotes, setReopenNotesState] = useState(true)
+    const [reopenLastWorkspace, setReopenLastWorkspaceState] = useState(false)
     const [sidebarItemSize, setSidebarItemSizeState] = useState<SidebarItemSize>("normal")
     const audioPlayerContainerRef =useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         getShowProgressBar().then(setShowProgressBarState)
+        getShowGroupProgressBar().then(setShowGroupProgressBarState)
         getShowSectionCount().then(setShowSectionCountState)
         getShowTaskCount().then(setShowTaskCountState)
         getSideBarLeftOpen().then(setSidebarLeftOpenState)
@@ -75,6 +86,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         getAudioPlayerPosition().then(setAudioPlayerPositionState)
         getWorkspaceView().then(setWorkspaceViewState)
         getReopenNotes().then(setReopenNotesState)
+        getReopenLastWorkspace().then(setReopenLastWorkspaceState)
         getSidebarItemSize().then(setSidebarItemSizeState)
         getPrimaryColor().then(hex => {
             setPrimaryColorState(hex)
@@ -85,6 +97,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const setShowProgressBar = (value: boolean) => {
         setShowProgressBarState(value)
         saveShowProgressBar(value)
+    }
+
+    const setShowGroupProgressBar = (value: boolean) => {
+        setShowGroupProgressBarState(value)
+        saveShowGroupProgressBar(value)
     }
 
     const setShowSectionCount = (value: boolean) => {
@@ -123,6 +140,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         saveReopenNotes(value)
     }
 
+    const setReopenLastWorkspace = (value: boolean) => {
+        setReopenLastWorkspaceState(value)
+        saveReopenLastWorkspace(value)
+    }
+
     const setSidebarItemSize = (value: SidebarItemSize) => {
         setSidebarItemSizeState(value)
         saveSidebarItemSize(value)
@@ -159,6 +181,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         <PreferencesContext.Provider value={{
             showProgressBar,
             setShowProgressBar,
+            showGroupProgressBar,
+            setShowGroupProgressBar,
             showSectionCount,
             setShowSectionCount,
             showTaskCount,
@@ -177,6 +201,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             setWorkspaceView,
             reopenNotes,
             setReopenNotes,
+            reopenLastWorkspace,
+            setReopenLastWorkspace,
             sidebarItemSize,
             setSidebarItemSize
         }}>

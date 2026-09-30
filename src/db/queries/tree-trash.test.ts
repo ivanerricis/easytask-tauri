@@ -29,7 +29,7 @@ vi.mock("../dbManager", () => ({
 }))
 
 import { moveDBTreeItem } from "./tree"
-import { emptyDBTrash, getDBTrash, getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from "./trash"
+import { emptyDBTrash, formatTrashSummary, getDBTrash, getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from "./trash"
 import { deleteDBItem, renameDBItem } from "./shared_queries"
 import { createDBSubFolder, createDBWorkspaceFolder } from "./folder"
 import { createDBNoteInFolder, createDBWorkspaceNote, getDBNoteData } from "./note"
@@ -241,6 +241,56 @@ describe("soft delete, trash and restore", () => {
         sqlite.exec("UPDATE section_group SET deleted_at = datetime('now')")
         const trash = await getDBTrash(1)
         expect(trash).toEqual([expect.objectContaining({ type: "section_group", name: "Gruppo di 2 sezioni", context: "deep" })])
+    })
+
+    it("summarizes what each trashed item contained, ignoring children deleted separately", async () => {
+        await seedNote()
+        sqlite.exec(`
+            INSERT INTO folder (id, workspaceID, folderID, name) VALUES (3, 1, 1, 'A2');
+            INSERT INTO note (id, workspaceID, folderID, name) VALUES (2, 1, 1, 'top');
+            INSERT INTO section_group (id, noteID, position) VALUES (2, 1, 1);
+            INSERT INTO task (id, sectionID, taskID, text) VALUES (3, 1, 2, 'subsub'), (4, 2, NULL, 'T2');
+            INSERT INTO audio_file (section_groupID, name, path) VALUES (1, 'a.mp3', '/a.mp3');
+        `)
+        // subsub was deleted earlier: it does not come back with anything above it
+        sqlite.exec("UPDATE task SET deleted_at='2026-01-01 00:00:00' WHERE id=3")
+        const summaryOf = async (type: "folder" | "note" | "section_group" | "section" | "task", id: number) => {
+            await deleteDBItem(type, id)
+            const item = (await getDBTrash(1)).find(t => t.type === type && t.id === id)
+            sqlite.exec(`UPDATE ${type} SET deleted_at = NULL WHERE id = ${id}`)
+            return item?.summary
+        }
+        expect(await summaryOf("folder", 1)).toBe("2 sottocartelle · 2 note")
+        expect(await summaryOf("note", 1)).toBe("2 gruppi · 2 sezioni · 3 task")
+        expect(await summaryOf("section_group", 1)).toBe("2 sezioni · 3 task · 1 audio")
+        expect(await summaryOf("section_group", 2)).toBe("Vuoto")
+        expect(await summaryOf("section", 1)).toBe("2 task")
+        expect(await summaryOf("task", 1)).toBe("1 sottotask")
+        expect((await getDBTrash(1)).find(t => t.type === "task" && t.id === 3)?.summary).toBe("Vuoto")
+    })
+
+    it("formats summaries: singular forms, omitted zeros, empty and content-less items", () => {
+        expect(formatTrashSummary("workspace", { folders: 1, notes: 0 })).toBe("1 cartella")
+        expect(formatTrashSummary("folder", { folders: 1, notes: 1 })).toBe("1 sottocartella · 1 nota")
+        expect(formatTrashSummary("task", { tasks: 3 })).toBe("3 sottotask")
+        expect(formatTrashSummary("note", {})).toBe("Vuoto")
+        expect(formatTrashSummary("audio_file", {})).toBe("")
+    })
+
+    it("summarizes trashed templates, audio files and workspaces", async () => {
+        const content = { version: 1, groups: [{ sections: [{ tasks: [{ subtasks: [{ subtasks: [] }] }] }, { tasks: [] }] }] }
+        sqlite.exec(`
+            INSERT INTO note_template (workspaceID, name, content, deleted_at) VALUES (1, 'T', '${JSON.stringify(content)}', datetime('now')), (1, 'Broken', 'not json', datetime('now'));
+        `)
+        expect((await getDBTrash(1)).map(t => t.summary).sort()).toEqual(["1 gruppo · 2 sezioni · 2 task", "Vuoto"])
+
+        sqlite.exec(`
+            INSERT INTO folder (id, workspaceID, folderID, name) VALUES (1, 2, NULL, 'R'), (2, 2, 1, 'S'), (3, 2, 1, 'gone');
+            INSERT INTO note (workspaceID, folderID, name) VALUES (2, NULL, 'n'), (2, 2, 'm'), (2, 3, 'hidden');
+            UPDATE folder SET deleted_at='2026-01-01 00:00:00' WHERE id=3;
+        `)
+        await deleteDBItem("workspace", 2)
+        expect(await getDBTrashedWorkspaces()).toEqual([expect.objectContaining({ id: 2, summary: "2 cartelle · 2 note" })])
     })
 
     it("restoring a note restores its deleted folder chain", async () => {
