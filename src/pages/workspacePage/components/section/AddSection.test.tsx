@@ -13,7 +13,8 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 const ctx = {
     createGroup: vi.fn(),
     createSectionInGroup: vi.fn(),
-    refreshActiveNote: vi.fn(),
+    appendGroup: vi.fn(),
+    appendSection: vi.fn(),
     activeId: null as number | null,
 }
 vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceActions: () => ctx }))
@@ -36,9 +37,8 @@ const openSectionForm = async (user: ReturnType<typeof userEvent.setup>) => {
 describe("AddSection", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        ctx.createGroup.mockResolvedValue(undefined)
-        ctx.createSectionInGroup.mockResolvedValue(undefined)
-        ctx.refreshActiveNote.mockResolvedValue(undefined)
+        ctx.createGroup.mockResolvedValue(31)
+        ctx.createSectionInGroup.mockResolvedValue(41)
         ctx.activeId = 20
     })
 
@@ -47,7 +47,7 @@ describe("AddSection", () => {
         render(<AddSection />)
         await user.type(await openGroupForm(user), "  Sprint  {Enter}")
 
-        await waitFor(() => expect(ctx.refreshActiveNote).toHaveBeenCalled())
+        await waitFor(() => expect(ctx.appendGroup).toHaveBeenCalledWith(31, 20, "Sprint"))
         expect(ctx.createGroup).toHaveBeenCalledWith(20, "Sprint")
         expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
         expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
@@ -67,6 +67,7 @@ describe("AddSection", () => {
         await user.type(await openSectionForm(user), "Inner{Enter}")
 
         await waitFor(() => expect(ctx.createSectionInGroup).toHaveBeenCalledWith(7, "Inner"))
+        expect(ctx.appendSection).toHaveBeenCalledWith(41, 7, "Inner")
         expect(ctx.createGroup).not.toHaveBeenCalled()
     })
 
@@ -104,7 +105,7 @@ describe("AddSection", () => {
         await user.type(await openGroupForm(user), "X{Enter}")
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("insert failed"))
-        expect(ctx.refreshActiveNote).not.toHaveBeenCalled()
+        expect(ctx.appendGroup).not.toHaveBeenCalled()
         expect(screen.getByPlaceholderText(GROUP_PLACEHOLDER)).toBeInTheDocument()
     })
 

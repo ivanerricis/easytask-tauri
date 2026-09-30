@@ -10,7 +10,8 @@ import { updateDBGroupPositions } from "@/db/queries/group"
 import { createDBTask } from "@/db/queries/task"
 import { deleteDBItem, renameDBItem, updateDBColor } from "@/db/queries/shared_queries"
 import { createDBSection } from "@/db/queries/section"
-import { createDBNoteInFolder } from "@/db/queries/note"
+import { createDBNoteInFolder, createDBWorkspaceNote } from "@/db/queries/note"
+import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder"
 import { moveDBTreeItem } from "@/db/queries/tree"
 import { moveDBSection, moveDBSectionToNewGroup, moveDBTask } from "@/db/queries/move"
 import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "@/db/queries/trash"
@@ -135,6 +136,152 @@ describe("WorkspaceDataContext", () => {
         })
     })
 
+    describe("optimistic sidebar tree", () => {
+        const load = async (result: { current: ReturnType<typeof useAll> }) => {
+            const root = makeFolder({ id: 1, name: "Root" })
+            const child = makeFolder({ id: 2, folderID: 1, name: "Child" })
+            vi.mocked(getDBWorkspaceData).mockResolvedValue({
+                folders: [root, child],
+                notes: [makeNote({ id: 10, folderID: 2, name: "In child" }), makeNote({ id: 11, folderID: null, name: "Root note" })],
+            } as never)
+            await act(() => result.current.getWorkspaceData(1))
+            vi.mocked(getDBWorkspaceData).mockClear()
+        }
+
+        it("adds a created subfolder to the tree and to the flat folders without reloading", async () => {
+            vi.mocked(createDBSubFolder).mockResolvedValue(5 as never)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+
+            await act(() => result.current.createSubFolder(1, 1, "New"))
+
+            const root = result.current.workspaceDataTree!.rootFolders[0]
+            expect(root.subfolders.map(f => f.id)).toEqual([2, 5])
+            expect(root.subfolders[1]).toMatchObject({ name: "New", folderID: 1, workspaceID: 1, position: 1 })
+            expect(result.current.folders.map(f => f.id).sort()).toEqual([1, 2, 5])
+            expect(getDBWorkspaceData).not.toHaveBeenCalled()
+        })
+
+        it("adds created notes and folders at the workspace root and in a folder", async () => {
+            vi.mocked(createDBWorkspaceFolder).mockResolvedValue(6 as never)
+            vi.mocked(createDBWorkspaceNote).mockResolvedValue(12 as never)
+            vi.mocked(createDBNoteInFolder).mockResolvedValue(13 as never)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+
+            await act(() => result.current.createWorkspaceFolder(1, "Top", "#fff"))
+            await act(() => result.current.createWorkspaceNote(1, "Loose"))
+            await act(() => result.current.createNoteInFolder(1, 2, "Inner"))
+
+            const tree = result.current.workspaceDataTree!
+            expect(tree.rootFolders.map(f => f.id)).toEqual([1, 6])
+            expect(tree.rootFolders[1].color).toBe("#fff")
+            expect(tree.rootNotes.map(n => n.id)).toEqual([11, 12])
+            expect(tree.rootFolders[0].subfolders[0].notes.map(n => n.id)).toEqual([10, 13])
+            expect(result.current.notes.map(n => n.id).sort()).toEqual([10, 11, 12, 13])
+            expect(getDBWorkspaceData).not.toHaveBeenCalled()
+        })
+
+        it("reloads in background when the created id is unknown", async () => {
+            vi.mocked(createDBWorkspaceNote).mockResolvedValue(undefined as never)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+
+            await act(() => result.current.createWorkspaceNote(1, "Loose"))
+            await waitFor(() => expect(getDBWorkspaceData).toHaveBeenCalledWith(1))
+        })
+
+        it("renames a folder or a note at once and restores the name when the write fails", async () => {
+            const write = deferred()
+            vi.mocked(renameDBItem).mockReturnValueOnce(write.promise as never)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+
+            let pending!: Promise<void>
+            act(() => { pending = result.current.renameItem("folder", 2, "Renamed") })
+            expect(result.current.workspaceDataTree!.rootFolders[0].subfolders[0].name).toBe("Renamed")
+            expect(result.current.folders.find(f => f.id === 2)!.name).toBe("Renamed")
+
+            await act(async () => {
+                write.reject(new Error("boom"))
+                await expect(pending).rejects.toThrow("boom")
+            })
+            expect(result.current.workspaceDataTree!.rootFolders[0].subfolders[0].name).toBe("Child")
+
+            await act(() => result.current.renameItem("note", 11, "Renamed note"))
+            expect(result.current.workspaceDataTree!.rootNotes[0].name).toBe("Renamed note")
+            expect(result.current.notes.find(n => n.id === 11)!.name).toBe("Renamed note")
+        })
+
+        it("does not touch the tree when renaming items that are not in it", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+            const before = result.current.workspaceDataTree
+            await act(() => result.current.renameItem("task", 3, "x"))
+            expect(renameDBItem).toHaveBeenCalledWith("task", 3, "x")
+            expect(result.current.workspaceDataTree).toBe(before)
+        })
+
+        it("changes the color of a note at once and restores it on failure", async () => {
+            vi.mocked(updateDBColor).mockRejectedValueOnce(new Error("boom"))
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+
+            await act(async () => {
+                await expect(result.current.updateItemColor("note", 11, "#f00")).rejects.toThrow("boom")
+            })
+            expect(result.current.workspaceDataTree!.rootNotes[0].color).toBeUndefined()
+
+            await act(() => result.current.updateItemColor("note", 11, "#f00"))
+            expect(result.current.workspaceDataTree!.rootNotes[0].color).toBe("#f00")
+        })
+
+        it("colors a folder with its whole content and restores the previous tree on failure", async () => {
+            vi.mocked(updateDBFolderColorContent).mockRejectedValueOnce(new Error("boom"))
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+            const before = result.current.workspaceDataTree
+
+            await act(async () => {
+                await expect(result.current.updateFolderColorContent(1, "#0f0")).rejects.toThrow("boom")
+            })
+            expect(result.current.workspaceDataTree).toBe(before)
+
+            await act(() => result.current.updateFolderColorContent(1, "#0f0"))
+            const root = result.current.workspaceDataTree!.rootFolders[0]
+            expect(root.color).toBe("#0f0")
+            expect(root.subfolders[0].color).toBe("#0f0")
+            expect(root.subfolders[0].notes[0].color).toBe("#0f0")
+            expect(result.current.workspaceDataTree!.rootNotes[0].color).toBeUndefined()
+        })
+
+        it("is not overwritten by a reload that started before the optimistic update", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+            const slow = deferred<unknown>()
+            vi.mocked(getDBWorkspaceData).mockReturnValueOnce(slow.promise as never)
+            vi.mocked(createDBWorkspaceFolder).mockResolvedValue(6 as never)
+
+            let reload!: Promise<void>
+            act(() => { reload = result.current.getWorkspaceData(1) })
+            await act(() => result.current.createWorkspaceFolder(1, "Top"))
+            await act(async () => {
+                slow.resolve({ folders: [makeFolder({ id: 1 })], notes: [] })
+                await reload
+            })
+
+            expect(result.current.workspaceDataTree!.rootFolders.map(f => f.id)).toEqual([1, 6])
+        })
+
+        it("setWorkspaceDataTree replaces the tree and the derived flat lists", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+            act(() => result.current.setWorkspaceDataTree({ rootFolders: [makeFolder({ id: 9 })], rootNotes: [makeNote({ id: 90 })] }))
+            expect(result.current.folders.map(f => f.id)).toEqual([9])
+            expect(result.current.notes.map(n => n.id)).toEqual([90])
+        })
+    })
+
     describe("note data of the active note", () => {
         const open = async (result: { current: ReturnType<typeof useAll> }, id = 1) => {
             await act(async () => { result.current.openNote(id) })
@@ -215,8 +362,8 @@ describe("WorkspaceDataContext", () => {
             vi.mocked(createDBSection).mockReturnValueOnce(b.promise as never)
             const { result } = renderHook(() => useAll(), { wrapper })
 
-            let pa!: Promise<void>
-            let pb!: Promise<void>
+            let pa!: Promise<unknown>
+            let pb!: Promise<unknown>
             act(() => {
                 pa = result.current.createTask(1, "t")
                 pb = result.current.createSection(1, "s", 0)

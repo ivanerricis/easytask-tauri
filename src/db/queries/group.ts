@@ -13,10 +13,11 @@ import { getErrorMessage } from "@/lib/utils";
 export async function createDBGroup(noteId: number, name: string) {
     try {
         const db = await getDB()
-        await db.execute(
+        const result = await db.execute(
             `INSERT INTO section_group (noteID, name, position)
              SELECT ?, ?, COALESCE(MAX(position) + 1, 0) FROM section_group WHERE noteID = ? AND deleted_at IS NULL`,
             [noteId, name.trim() || null, noteId])
+        return result.lastInsertId as number
     } catch (error: unknown) {
         throw createError('GROUP_CREATE_ERROR', 'Impossibile creare il gruppo: ' + getErrorMessage(error))
     }

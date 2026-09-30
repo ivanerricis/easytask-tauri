@@ -24,7 +24,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
     const { updateTaskCompletion, renameItem } = useWorkspaceActions()
-    const { refreshActiveNote, patchTask } = useActiveNoteActions()
+    const { patchTask } = useActiveNoteActions()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("task", task.id)
     const { setNodeRef: setDragRef, setActivatorNodeRef, attributes, listeners, isDragging } = useNoteDrag("task", task.id)
@@ -57,12 +57,13 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
     }
 
     const handleChangeText = async () => {
+        // Optimistic: the cached tree is updated at once and restored if the write fails
+        const changed = task.text !== text && text.trim() !== ""
+        const rollback = changed ? patchTask(task.id, { text: text.trim() }) : null
         try {
-            if (task.text !== text && text.trim() !== "") {
-                await renameItem("task", task.id, text.trim())
-                await refreshActiveNote()
-            }
+            if (changed) await renameItem("task", task.id, text.trim())
         } catch (err) {
+            rollback?.()
             toast.error('Impossibile cambiare il testo del task' + ' - ' + getErrorMessage(err))
         }
         setTextAreaOpen(false)

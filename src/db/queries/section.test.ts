@@ -43,6 +43,11 @@ describe("createDBSection", () => {
         expect(db.execute).not.toHaveBeenCalled()
     })
 
+    it("returns the ids of the new group and section", async () => {
+        mockTransaction({ results: [{ rowsAffected: 1, lastInsertId: 11 }, { rowsAffected: 1, lastInsertId: 22 }] })
+        expect(await createDBSection(3, "Title", 2)).toEqual({ groupId: 11, sectionId: 22 })
+    })
+
     it("maps a failure of the section insert (nothing is left behind: no cleanup statement is needed)", async () => {
         mockTransaction({ error: "statement 1 failed: UNIQUE constraint failed" })
         expect(await thrown(createDBSection(3, "Title", 0))).toEqual({

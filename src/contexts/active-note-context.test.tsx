@@ -206,7 +206,7 @@ describe("ActiveNoteProvider", () => {
         const before = { ...latest.current }
         act(() => latest.current.openNote(1))
         await waitFor(() => expect(shownGroup(latest)).toBe(10))
-        for (const key of ["refreshActiveNote", "getNoteData", "setNoteDataTree", "patchTask"] as const)
+        for (const key of ["refreshActiveNote", "getNoteData", "setNoteDataTree", "patchGroup", "patchSection", "patchTask", "appendGroup", "appendSection", "appendTask", "removeTask", "applyTaskMove"] as const)
             expect(latest.current[key]).toBe(before[key])
     })
 
@@ -259,6 +259,58 @@ describe("ActiveNoteProvider", () => {
             expect(latest.current.noteDataTree).toBe(before)
             rollback()
             expect(latest.current.noteDataTree).toBe(before)
+        })
+    })
+
+    describe("optimistic creations and removals", () => {
+        const opened = async () => {
+            const latest = setup()
+            act(() => latest.current.openNote(1))
+            await waitFor(() => expect(shownGroup(latest)).toBe(10))
+            return latest
+        }
+
+        it("appends a created task without reloading, and the rollback removes it", async () => {
+            const latest = await opened()
+            let rollback!: () => void
+            act(() => { rollback = latest.current.appendTask(5000, { sectionId: 100 }, "New") })
+            expect(latest.current.noteDataTree!.groups[0].sections[0].tasks.map(t => t.id)).toEqual([1000, 5000])
+            expect(getDBNoteData).toHaveBeenCalledTimes(1)
+
+            act(() => rollback())
+            expect(latest.current.noteDataTree!.groups[0].sections[0].tasks.map(t => t.id)).toEqual([1000])
+        })
+
+        it("falls back to a background reload when the created row cannot be applied", async () => {
+            const latest = await opened()
+            act(() => { latest.current.appendTask(5000, { sectionId: 999 }, "Orphan") })
+            await waitFor(() => expect(getDBNoteData).toHaveBeenCalledTimes(2))
+        })
+
+        it("is not overwritten by a reload that started before the created row was appended", async () => {
+            const latest = await opened()
+            const slow = deferred<ReturnType<typeof dataOf>>()
+            vi.mocked(getDBNoteData).mockReturnValueOnce(slow.promise as never)
+            let reload!: Promise<void>
+            act(() => { reload = latest.current.refreshActiveNote() })
+            act(() => { latest.current.appendGroup(30, 1, "Late") })
+
+            await act(async () => { slow.resolve(dataOf(1)); await reload })
+            expect(latest.current.noteDataTree!.groups.map(g => g.id)).toEqual([10, 30])
+        })
+
+        it("patches groups and sections, removes tasks and moves them", async () => {
+            const latest = await opened()
+            act(() => { latest.current.patchGroup(10, { name: "Named" }) })
+            act(() => { latest.current.patchSection(100, { title: "Renamed" }) })
+            expect(latest.current.noteDataTree!.groups[0]).toMatchObject({ name: "Named" })
+            expect(latest.current.noteDataTree!.groups[0].sections[0].title).toBe("Renamed")
+
+            let undo!: () => void
+            act(() => { undo = latest.current.removeTask(1000) })
+            expect(latest.current.noteDataTree!.groups[0].sections[0].tasks).toEqual([])
+            act(() => undo())
+            expect(latest.current.noteDataTree!.groups[0].sections[0].tasks.map(t => t.id)).toEqual([1000])
         })
     })
 })

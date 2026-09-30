@@ -42,11 +42,12 @@ export async function getDBNoteData(noteId: number) {
 export async function createDBWorkspaceNote(workspaceId: number, name: string, color?: string | null) {
     try {
         const db = await getDB()
-        await db.execute(
+        const result = await db.execute(
             `INSERT INTO note (workspaceID, name, color, position)
              SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
              WHERE workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL`,
             [workspaceId, name, color ?? null, workspaceId]);
+        return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "NOTE", {
             UNIQUE: "A note with this name already exists.",
@@ -66,11 +67,12 @@ export async function createDBWorkspaceNote(workspaceId: number, name: string, c
 export async function createDBNoteInFolder(workspaceId: number, folderId: number, name: string) {
     try {
         const db = await getDB()
-        await db.execute(
+        const result = await db.execute(
             `INSERT INTO note (workspaceID, folderID, name, position)
              SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
              WHERE folderID = ? AND deleted_at IS NULL`,
             [workspaceId, folderId, name, folderId]);
+        return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "NOTE", {
             UNIQUE: "A note with this name already exists.",

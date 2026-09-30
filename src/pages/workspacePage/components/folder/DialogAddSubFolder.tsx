@@ -25,7 +25,7 @@ type ParentFolderProps = {
 export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: ParentFolderProps) {
     const [name, setName] = useState("")
     const [error, setError] = useState<string | null>(null)
-    const { createSubFolder, getWorkspaceData } = useWorkspaceData()
+    const { createSubFolder } = useWorkspaceData()
     const { currentWorkspace } = useWorkspace()
 
     const handleCreateFolder = async (e: React.FormEvent) => {
@@ -33,8 +33,7 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
         if (!currentWorkspace?.id) return
         if (name.trim() === "") return
         try {
-            await createSubFolder(currentWorkspace?.id, parentFolder.id, name.trim())
-            await getWorkspaceData(currentWorkspace.id)
+            await createSubFolder(currentWorkspace.id, parentFolder.id, name.trim())
             setError(null)
             onOpenChange(false)
             setName("")

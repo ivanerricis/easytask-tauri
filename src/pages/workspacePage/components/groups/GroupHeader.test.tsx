@@ -1,11 +1,13 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
+import { toast } from "sonner"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { GroupHeader } from "./GroupHeader"
 import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 
 const renameItem = vi.fn()
-const refreshActiveNote = vi.fn()
+const patchGroup = vi.fn()
+const rollback = vi.fn()
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 vi.mock("./ButtonMenuGroup", () => ({ ButtonMenuGroup: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
@@ -13,7 +15,7 @@ vi.mock("@/contexts/workspace-data-context", () => ({
     useWorkspaceActions: () => ({ renameItem }),
 }))
 vi.mock("@/contexts/active-note-context", () => ({
-    useActiveNoteActions: () => ({ refreshActiveNote }),
+    useActiveNoteActions: () => ({ patchGroup }),
 }))
 const prefs = { showSectionCount: true, showTaskCount: true, showGroupProgressBar: true }
 vi.mock("@/contexts/preferences-context", () => ({
@@ -30,7 +32,8 @@ beforeEach(() => {
     isOpen = true
     toggleOpen.mockReset()
     renameItem.mockReset().mockResolvedValue(undefined)
-    refreshActiveNote.mockReset().mockResolvedValue(undefined)
+    rollback.mockReset()
+    patchGroup.mockReset().mockReturnValue(rollback)
 })
 
 describe("GroupHeader name", () => {
@@ -49,13 +52,14 @@ describe("GroupHeader name", () => {
         expect(label).not.toHaveAttribute("title")
     })
 
-    it("renames inline on Enter and reloads the note", async () => {
+    it("renames inline on Enter and patches the note without reloading it", async () => {
         const user = userEvent.setup()
         render(<GroupHeader group={makeGroup({ id: 7, name: null })} index={0} />)
         await user.click(screen.getByText("Gruppo 1"))
         await user.type(screen.getByLabelText("Nome del gruppo"), "Idee{Enter}")
+        expect(patchGroup).toHaveBeenCalledWith(7, { name: "Idee" })
         expect(renameItem).toHaveBeenCalledWith("section_group", 7, "Idee")
-        expect(refreshActiveNote).toHaveBeenCalled()
+        expect(rollback).not.toHaveBeenCalled()
         expect(screen.queryByLabelText("Nome del gruppo")).not.toBeInTheDocument()
     })
 
@@ -66,6 +70,16 @@ describe("GroupHeader name", () => {
         await user.type(screen.getByLabelText("Nome del gruppo"), "B")
         await user.tab()
         expect(renameItem).toHaveBeenCalledWith("section_group", 7, "AB")
+    })
+
+    it("rolls the optimistic name back and shows a toast when the write fails", async () => {
+        const user = userEvent.setup()
+        renameItem.mockRejectedValue(new Error("boom"))
+        render(<GroupHeader group={makeGroup({ id: 7, name: "A" })} />)
+        await user.click(screen.getByText("A"))
+        await user.type(screen.getByLabelText("Nome del gruppo"), "B{Enter}")
+        await waitFor(() => expect(rollback).toHaveBeenCalledTimes(1))
+        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Impossibile cambiare il nome del gruppo"))
     })
 
     it("cancels on Escape without saving", async () => {
@@ -83,6 +97,7 @@ describe("GroupHeader name", () => {
         await user.click(screen.getByText("A"))
         await user.clear(screen.getByLabelText("Nome del gruppo"))
         await user.keyboard("{Enter}")
+        expect(patchGroup).toHaveBeenCalledWith(7, { name: null })
         expect(renameItem).toHaveBeenCalledWith("section_group", 7, "")
     })
 

@@ -39,11 +39,12 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
         if (!currentWorkspace) return
         if (name.trim() === "") return
         try {
-            if (template)
+            // A plain note is added to the tree by createNoteInFolder; a note from a template needs the reload
+            if (template) {
                 await createNoteFromTemplate(template.id, currentWorkspace.id, parentFolder.id, name.trim())
-            else
+                await getWorkspaceData(currentWorkspace.id)
+            } else
                 await createNoteInFolder(currentWorkspace.id, parentFolder.id, name.trim())
-            await getWorkspaceData(currentWorkspace.id)
             setError(null)
             onOpenChange(false)
             setName("")

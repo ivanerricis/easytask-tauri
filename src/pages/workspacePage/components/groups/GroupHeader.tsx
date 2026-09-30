@@ -26,7 +26,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
     const [isOpen, toggleOpen] = useGroupOpen(group.id)
     const progress = getGroupProgress(group)
     const { renameItem } = useWorkspaceActions()
-    const { refreshActiveNote } = useActiveNoteActions()
+    const { patchGroup } = useActiveNoteActions()
     const [isEditing, setEditing] = useState(false)
     const [text, setText] = useState(group.name ?? "")
     const inputRef = useRef<HTMLInputElement>(null)
@@ -55,10 +55,12 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
         done.current = true
         setEditing(false)
         if (text.trim() === name) return
+        // Optimistic: the cached tree is updated at once and restored if the write fails
+        const rollback = patchGroup(group.id, { name: text.trim() || null })
         try {
             await renameItem("section_group", group.id, text.trim())
-            await refreshActiveNote()
         } catch (err) {
+            rollback()
             toast.error('Impossibile cambiare il nome del gruppo' + ' - ' + getErrorMessage(err))
         }
     }

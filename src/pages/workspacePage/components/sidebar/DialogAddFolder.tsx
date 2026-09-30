@@ -30,7 +30,7 @@ export function DialogAddFolder() {
     const [isOpen, setIsOpen] = useState(false)
     const [paletteIsOpen, setPaletteOpen] = useState(false)
     const { currentWorkspace } = useWorkspace()
-    const { createWorkspaceFolder, getWorkspaceData } = useWorkspaceData()
+    const { createWorkspaceFolder } = useWorkspaceData()
 
     const handleCreateFolder = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -38,7 +38,6 @@ export function DialogAddFolder() {
         if (folder.name.trim() === "") return
         try {
             await createWorkspaceFolder(currentWorkspace.id, folder.name.trim(), paletteIsOpen ? folder.color : undefined)
-            await getWorkspaceData(currentWorkspace.id)
             setError(null)
             setIsOpen(false)
             setPaletteOpen(false)

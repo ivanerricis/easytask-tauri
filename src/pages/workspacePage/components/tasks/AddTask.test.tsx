@@ -9,7 +9,7 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 const ctx = {
     createTask: vi.fn(),
     createSubTask: vi.fn(),
-    refreshActiveNote: vi.fn(),
+    appendTask: vi.fn(),
 }
 vi.mock("@/contexts/workspace-data-context", () => ({ useWorkspaceActions: () => ctx }))
 vi.mock("@/contexts/active-note-context", () => ({ useActiveNoteActions: () => ctx }))
@@ -22,9 +22,8 @@ const open = async (user: ReturnType<typeof userEvent.setup>) => {
 describe("AddTask", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        ctx.createTask.mockResolvedValue(undefined)
-        ctx.createSubTask.mockResolvedValue(undefined)
-        ctx.refreshActiveNote.mockResolvedValue(undefined)
+        ctx.createTask.mockResolvedValue(50)
+        ctx.createSubTask.mockResolvedValue(60)
     })
 
     it("starts collapsed and opens the input on click", async () => {
@@ -36,14 +35,14 @@ describe("AddTask", () => {
         expect(screen.getByPlaceholderText("Scrivi qualcosa...")).toHaveFocus()
     })
 
-    it("creates the trimmed task, refreshes the note and collapses", async () => {
+    it("creates the trimmed task, appends it to the note without reloading and collapses", async () => {
         const user = userEvent.setup()
         render(<AddTask sectionId={3} />)
         const input = await open(user)
 
         await user.type(input, "  Buy milk  {Enter}")
 
-        await waitFor(() => expect(ctx.refreshActiveNote).toHaveBeenCalled())
+        await waitFor(() => expect(ctx.appendTask).toHaveBeenCalledWith(50, { sectionId: 3 }, "Buy milk"))
         expect(ctx.createTask).toHaveBeenCalledWith(3, "Buy milk")
         expect(screen.queryByPlaceholderText("Scrivi qualcosa...")).not.toBeInTheDocument()
     })
@@ -68,7 +67,7 @@ describe("AddTask", () => {
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("duplicate"))
         expect(screen.getByPlaceholderText("Scrivi qualcosa...")).toBeInTheDocument()
-        expect(ctx.refreshActiveNote).not.toHaveBeenCalled()
+        expect(ctx.appendTask).not.toHaveBeenCalled()
     })
 
     it("closes and clears the text on outside mousedown", async () => {
@@ -105,7 +104,7 @@ describe("AddTask", () => {
 
             await user.type(input, "  Step one  {Enter}")
 
-            await waitFor(() => expect(ctx.refreshActiveNote).toHaveBeenCalled())
+            await waitFor(() => expect(ctx.appendTask).toHaveBeenCalledWith(60, { parentTaskId: 7 }, "Step one"))
             expect(ctx.createSubTask).toHaveBeenCalledWith(7, "Step one")
             expect(ctx.createTask).not.toHaveBeenCalled()
         })
@@ -115,7 +114,7 @@ describe("AddTask", () => {
             const onClose = vi.fn()
             render(<AddTask sectionId={3} parentTaskId={7} onClose={onClose} />)
             await user.type(screen.getByPlaceholderText(placeholder), "One{Enter}")
-            await waitFor(() => expect(ctx.refreshActiveNote).toHaveBeenCalled())
+            await waitFor(() => expect(ctx.appendTask).toHaveBeenCalled())
 
             const input = screen.getByPlaceholderText(placeholder)
             expect(input).toHaveValue("")
@@ -153,7 +152,7 @@ describe("AddTask", () => {
             render(<AddTask sectionId={3} parentTaskId={7} />)
             await user.type(screen.getByPlaceholderText(placeholder), "x{Enter}")
             await waitFor(() => expect(toast.error).toHaveBeenCalledWith("boom"))
-            expect(ctx.refreshActiveNote).not.toHaveBeenCalled()
+            expect(ctx.appendTask).not.toHaveBeenCalled()
         })
     })
 })

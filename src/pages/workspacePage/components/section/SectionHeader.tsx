@@ -37,7 +37,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(section.title)
     const { renameItem } = useWorkspaceActions()
-    const { refreshActiveNote } = useActiveNoteActions()
+    const { patchSection } = useActiveNoteActions()
     const { showProgressBar } = usePreferences()
     const textareaRef = useRef<HTMLInputElement>(null)
 
@@ -51,12 +51,13 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
     }, [isTextAreaOpen])
 
     const handleChangeText = async () => {
+        // Optimistic: the cached tree is updated at once and restored if the write fails
+        const changed = section.title !== text && text.trim() !== ""
+        const rollback = changed ? patchSection(section.id, { title: text.trim() }) : null
         try {
-            if (section.title !== text && text.trim() !== "") {
-                await renameItem("section", section.id, text.trim())
-                await refreshActiveNote()
-            }
+            if (changed) await renameItem("section", section.id, text.trim())
         } catch (err) {
+            rollback?.()
             toast.error('Impossibile cambiare il titolo della sezione' + ' - ' + getErrorMessage(err))
         }
         setTextAreaOpen(false)

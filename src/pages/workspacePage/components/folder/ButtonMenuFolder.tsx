@@ -31,11 +31,13 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
     const { updateFolderColorContent, getWorkspaceData, updateItemColor } = useWorkspaceData()
     const { currentWorkspace } = useWorkspace()
 
+    // Rename and color are applied to the sidebar tree by the context: the dialogs need no reload
+    const noReload = async () => { }
+
     const handleColorContent = async () => {
         try {
+            // Applied to the sidebar tree by the context
             await updateFolderColorContent(folder.id, folder.color ?? undefined)
-            if (currentWorkspace)
-                await getWorkspaceData(currentWorkspace.id)
         } catch (err) {
             toast.error(getErrorMessage(err))
         }
@@ -76,7 +78,7 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
                         itemType="folder"
                         addColorItem={updateItemColor}
                         getItemId={currentWorkspace?.id}
-                        getItemData={getWorkspaceData}
+                        getItemData={noReload}
                         setDropDownOpen={menu.close}
                     />
                 </MenuSubContent>
@@ -115,7 +117,7 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
                 isOpen={isRenameOpen}
                 onOpenChange={setRenameOpen}
                 getItemId={currentWorkspace?.id}
-                getItemData={getWorkspaceData}
+                getItemData={noReload}
             />
             <DialogDeleteItem
                 item={folder}

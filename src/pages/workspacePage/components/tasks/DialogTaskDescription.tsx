@@ -17,15 +17,17 @@ type Props = {
 export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
     const [text, setText] = useState(task.description)
     const { updateTaskDescription } = useWorkspaceActions()
-    const { refreshActiveNote } = useActiveNoteActions()
+    const { patchTask } = useActiveNoteActions()
 
     const handleSaveDecription = async (e: React.MouseEvent) => {
         e.stopPropagation()
+        // Optimistic: the cached tree is updated at once and restored if the write fails
+        const rollback = patchTask(task.id, { description: text })
         try {
             await updateTaskDescription(task.id, text !== "" ? text : undefined)
-            await refreshActiveNote()
             onOpenChange(false)
         } catch (err) {
+            rollback()
             toast.error(getErrorMessage(err))
         }
     }

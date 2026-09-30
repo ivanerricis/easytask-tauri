@@ -1,9 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { toast } from "sonner"
-import type { NoteDataTree, Task } from "@/types/types"
+import type { NoteDataTree } from "@/types/types"
 import { getDBNoteData } from "@/db/queries/note"
 import { useActiveNoteId, useTabs } from "./tabs-context"
 import { buildNoteTree } from "./tree-builders"
+import { createNoteOptimisticActions, type NoteOptimisticActions, type Rollback } from "./note-optimistic"
 
 /* ------------------------------------------------------------------------------------ */
 
@@ -12,18 +13,13 @@ type ActiveNoteContextType = {
     noteDataTree: NoteDataTree | null
 }
 
-type ActiveNoteActionsType = {
+type ActiveNoteActionsType = NoteOptimisticActions & {
     /** Reloads the data of the active note from the database (rejects if the query fails). */
     refreshActiveNote: () => Promise<void>
     /** Reloads the data of an open note from the database and updates its cache entry (rejects if the query fails). */
     getNoteData: (noteId: number) => Promise<void>
     /** Replaces the cached data of the active note (optimistic updates). */
     setNoteDataTree: (tree: NoteDataTree | null) => void
-    /**
-     * Optimistically patches a task of the active note.
-     * @returns A function that restores the previous values (to call if the persist fails).
-     */
-    patchTask: (taskId: number, patch: Partial<Task>) => () => void
 }
 
 /**
@@ -71,33 +67,6 @@ function createNoteCache(): NoteCache {
             return () => { listeners.delete(listener) }
         },
     }
-}
-
-/**
- * Applies a change to a task (at any depth) of a note tree.
- * @param tree The note tree.
- * @param taskId The ID of the task.
- * @param change Returns the changed copy of the task.
- * @returns A new tree, or the same one if the task was not found.
- * @category ActiveNote Context
- */
-function mapTask(tree: NoteDataTree, taskId: number, change: (task: Task) => Task): NoteDataTree {
-    let found = false
-    const visit = (tasks: Task[]): Task[] => tasks.map(task => {
-        if (task.id === taskId) {
-            found = true
-            return change(task)
-        }
-        const subtasks = visit(task.subtasks)
-        return subtasks.some((sub, i) => sub !== task.subtasks[i]) ? { ...task, subtasks } : task
-    })
-    const next = {
-        groups: tree.groups.map(group => ({
-            ...group,
-            sections: group.sections.map(section => ({ ...section, tasks: visit(section.tasks) })),
-        })),
-    }
-    return found ? next : tree
 }
 
 const ActiveNoteContext = createContext<ActiveNoteContextType | null>(null)
@@ -158,44 +127,49 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
         () => activeId !== null ? cache.get(activeId) ?? null : null,
     )
 
+    const getActive = useCallback(() => {
+        const id = activeIdRef.current
+        const tree = id !== null ? cache.get(id) : undefined
+        return id !== null && tree ? { id, tree } : null
+    }, [cache])
+
+    const commit = useCallback((noteId: number, tree: NoteDataTree) => {
+        nextSeq(noteId) // an in-flight reload would overwrite this newer data
+        cache.set(noteId, tree)
+    }, [cache, nextSeq])
+
+    const refreshActiveNote = useCallback(async () => {
+        if (activeIdRef.current !== null) await loadNote(activeIdRef.current)
+    }, [loadNote])
+
     const actions = useMemo<ActiveNoteActionsType>(() => {
         const setNoteDataTree = (tree: NoteDataTree | null) => {
             const id = activeIdRef.current
             if (id === null || !tree) return
-            nextSeq(id) // an in-flight reload would overwrite this newer data
-            cache.set(id, tree)
+            commit(id, tree)
+        }
+        // The store only reads the ref when an action runs (never during render)
+        // eslint-disable-next-line react-hooks/refs
+        const base = createNoteOptimisticActions({ active: getActive, get: cache.get, commit })
+        // A creation that cannot be applied locally falls back to a background reload (never awaited by the UI)
+        const withReload = <A extends unknown[]>(append: (...args: A) => Rollback | null) => (...args: A): Rollback => {
+            const rollback = append(...args)
+            if (!rollback) refreshActiveNote().catch(console.error)
+            return rollback ?? (() => {})
+        }
+        const optimistic: NoteOptimisticActions = {
+            ...base,
+            appendGroup: withReload(base.appendGroup),
+            appendSection: withReload(base.appendSection),
+            appendTask: withReload(base.appendTask),
         }
         return {
-            refreshActiveNote: async () => {
-                if (activeIdRef.current !== null) await loadNote(activeIdRef.current)
-            },
+            refreshActiveNote,
             getNoteData: loadNote,
             setNoteDataTree,
-            patchTask: (taskId, patch) => {
-                const id = activeIdRef.current
-                const current = id !== null ? cache.get(id) : undefined
-                if (id === null || !current) return () => {}
-
-                const previous: Partial<Task> = {}
-                let touched = false
-                const patched = mapTask(current, taskId, task => {
-                    touched = true
-                    for (const key of Object.keys(patch) as (keyof Task)[]) (previous as Record<string, unknown>)[key] = task[key]
-                    return { ...task, ...patch }
-                })
-                if (!touched) return () => {}
-                setNoteDataTree(patched)
-
-                return () => {
-                    const latest = cache.get(id)
-                    if (latest) {
-                        nextSeq(id)
-                        cache.set(id, mapTask(latest, taskId, task => ({ ...task, ...previous })))
-                    }
-                }
-            },
+            ...optimistic,
         }
-    }, [cache, loadNote, nextSeq])
+    }, [cache, loadNote, refreshActiveNote, getActive, commit])
 
     const value = useMemo(() => ({ noteDataTree }), [noteDataTree])
 

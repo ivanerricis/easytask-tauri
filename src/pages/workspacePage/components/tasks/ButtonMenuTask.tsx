@@ -1,4 +1,5 @@
 import { getErrorMessage } from "@/lib/utils"
+import type { DBItemType } from "@/db/queries/shared_queries"
 import type { Task } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data-context"
 import { useActiveNoteId } from "@/contexts/tabs-context"
@@ -30,7 +31,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
     const { updateTaskPriority, updateTaskDescription, updateItemColor } = useWorkspaceActions()
     const activeId = useActiveNoteId()
-    const { getNoteData, refreshActiveNote, patchTask } = useActiveNoteActions()
+    const { patchTask, removeTask } = useActiveNoteActions()
 
     const handleEditPriority = async () => {
         // Optimistic: the cached tree is updated at once and restored if the write fails
@@ -47,10 +48,11 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
 
     const handleDescription = async () => {
         if (task.description) {
+            const rollback = patchTask(task.id, { description: "" })
             try {
                 await updateTaskDescription(task.id, undefined)
-                await refreshActiveNote()
             } catch (err) {
+                rollback()
                 toast.error(getErrorMessage(err))
             } finally {
                 menu.close()
@@ -61,6 +63,20 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
             setDescriptionOpen(true)
         }
     }
+
+    // The color is applied to the cached tree at once and restored if the write fails
+    const addColorItem = async (itemType: DBItemType, itemId: number, color?: string) => {
+        const rollback = patchTask(itemId, { color: color ?? null })
+        try {
+            await updateItemColor(itemType, itemId, color)
+        } catch (error) {
+            rollback()
+            throw error
+        }
+    }
+
+    // The dialogs call it after their write succeeded: the cached tree needs no reload
+    const noReload = async () => { }
 
     const items = (
         <MenuGroup className="flex flex-col gap-1">
@@ -90,9 +106,9 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
                     <DialogAddColor
                         item={task}
                         itemType="task"
-                        addColorItem={updateItemColor}
+                        addColorItem={addColorItem}
                         getItemId={activeId ?? undefined}
-                        getItemData={getNoteData}
+                        getItemData={noReload}
                         setDropDownOpen={menu.close}
                     />
                 </MenuSubContent>
@@ -122,7 +138,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
                 isOpen={isDeleteTaskOpen}
                 onOpenChange={setDeleteTaskOpen}
                 getItemId={activeId ?? undefined}
-                getItemData={getNoteData}
+                getItemData={async () => { removeTask(task.id) }}
             />
         </>
     )

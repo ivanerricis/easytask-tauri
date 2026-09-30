@@ -32,6 +32,13 @@ describe("task queries SQL", () => {
         expect(db.execute).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO task (sectionID, text, position)"), [1, "t", 1])
     })
 
+    it("createDBTask and createDBSubTask return the id of the new row", async () => {
+        db.execute.mockResolvedValueOnce({ rowsAffected: 1, lastInsertId: 42 })
+        expect(await createDBTask(1, "t")).toBe(42)
+        db.execute.mockResolvedValueOnce({ rowsAffected: 1, lastInsertId: 43 })
+        expect(await createDBSubTask(2, "s")).toBe(43)
+    })
+
     it("createDBSubTask", async () => {
         await createDBSubTask(2, "s")
         expect(db.execute).toHaveBeenCalledWith(

@@ -21,7 +21,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     const [name, setName] = useState("")
     const { createGroup, createSectionInGroup } = useWorkspaceActions()
     const activeId = useActiveNoteId()
-    const { refreshActiveNote } = useActiveNoteActions()
+    const { appendGroup, appendSection } = useActiveNoteActions()
     const formRef = useRef<HTMLFormElement>(null)
 
     const handleOpen = useCallback(() => {
@@ -56,13 +56,14 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                     toast.error("ID gruppo mancante")
                     return
                 }
-                await createSectionInGroup(groupId, name.trim())
+                const id = await createSectionInGroup(groupId, name.trim())
+                appendSection(id, groupId, name.trim())
             } else {
-                await createGroup(activeId, name.trim())
+                const id = await createGroup(activeId, name.trim())
+                appendGroup(id, activeId, name.trim())
             }
 
             handleOpen()
-            await refreshActiveNote()
         } catch (error) {
             toast.error(getErrorMessage(error) || (inGroup ? "Errore nella creazione della sezione" : "Errore nella creazione del gruppo"))
         }

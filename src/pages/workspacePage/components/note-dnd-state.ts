@@ -49,40 +49,38 @@ export function useNoteDrag(kind: NoteDragKind, id: number) {
 
 /**
  * Applies a computed move to the open note. Used by the drag & drop and by the "Sposta in…" menus.
- * Every move calls the context method and then ALWAYS reloads the note data (`refreshActiveNote`), also on error,
- * so the UI reflects the database; errors are shown with a toast (sonner).
+ * The cached note data is updated at once and restored if the write fails (errors are shown with a toast (sonner)).
+ * Only a section moved into a NEW group is reloaded in background, since the id of the new group is unknown.
  * @category Note DnD
  */
 export function useNoteMoves() {
     const { moveSection, moveSectionToNewGroup, moveTask } = useWorkspaceActions()
-    const { refreshActiveNote } = useActiveNoteActions()
-
-    const reload = useCallback(async () => {
-        try {
-            await refreshActiveNote()
-        } catch (err) {
-            console.error(err)
-        }
-    }, [refreshActiveNote])
+    const { refreshActiveNote, applySectionMove, applyTaskMove } = useActiveNoteActions()
 
     const moveSectionTo = useCallback(async (sectionId: number, target: SectionTarget) => {
+        const rollback = target.type === "group" ? applySectionMove(sectionId, target.groupId, target.index) : null
         try {
             if (target.type === "group") await moveSection(sectionId, target.groupId, target.index)
-            else await moveSectionToNewGroup(sectionId, target.index)
+            else {
+                await moveSectionToNewGroup(sectionId, target.index)
+                refreshActiveNote().catch(console.error)
+            }
         } catch (err) {
+            rollback?.()
             toast.error(getErrorMessage(err))
         }
-        await reload()
-    }, [moveSection, moveSectionToNewGroup, reload])
+    }, [moveSection, moveSectionToNewGroup, applySectionMove, refreshActiveNote])
 
     const moveTaskTo = useCallback(async (taskId: number, target: TaskTarget) => {
+        const destination = { sectionId: target.sectionId, parentTaskId: target.parentTaskId }
+        const rollback = applyTaskMove(taskId, destination, target.index)
         try {
-            await moveTask(taskId, { sectionId: target.sectionId, parentTaskId: target.parentTaskId }, target.index)
+            await moveTask(taskId, destination, target.index)
         } catch (err) {
+            rollback()
             toast.error(getErrorMessage(err))
         }
-        await reload()
-    }, [moveTask, reload])
+    }, [moveTask, applyTaskMove])
 
     return { moveSectionTo, moveTaskTo }
 }

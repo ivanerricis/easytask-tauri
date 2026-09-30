@@ -12,11 +12,12 @@ import { getErrorMessage } from "@/lib/utils"
 export async function createDBTask(sectionId: number, text: string) {
     try {
         const db = await getDB()
-        await db.execute(
+        const result = await db.execute(
             `INSERT INTO task (sectionID, text, position)
              SELECT ?, ?, COALESCE(MAX(position) + 1, 0) FROM task
              WHERE sectionID = ? AND taskID IS NULL AND deleted_at IS NULL`,
             [sectionId, text, sectionId])
+        return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "TASK", {
             UNIQUE: "A task with this name already exists.",
@@ -35,11 +36,12 @@ export async function createDBTask(sectionId: number, text: string) {
 export async function createDBSubTask(taskId: number, text: string) {
     try {
         const db = await getDB()
-        await db.execute(
+        const result = await db.execute(
             `INSERT INTO task (sectionID, taskID, text, position)
              SELECT sectionID, id, ?, COALESCE((SELECT MAX(position) + 1 FROM task WHERE taskID = ? AND deleted_at IS NULL), 0)
              FROM task WHERE id = ?`,
             [text, taskId, taskId])
+        return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "TASK", {
             UNIQUE: "A task with this name already exists.",

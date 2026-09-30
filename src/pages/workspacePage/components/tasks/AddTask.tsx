@@ -31,7 +31,7 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
     const [saving, setSaving] = useState(false)
     const [focused, setFocused] = useState(true)
     const { createSubTask } = useWorkspaceActions()
-    const { refreshActiveNote } = useActiveNoteActions()
+    const { appendTask } = useActiveNoteActions()
     const inputRef = useRef<HTMLInputElement>(null)
     const savingRef = useRef(false)
 
@@ -42,9 +42,9 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
         savingRef.current = true
         setSaving(true)
         try {
-            await createSubTask(parentTaskId, value)
+            const id = await createSubTask(parentTaskId, value)
             setText("")
-            await refreshActiveNote()
+            appendTask(id, { parentTaskId }, value)
         } catch (error: unknown) {
             toast.error(getErrorMessage(error) || "Errore nella creazione del sottotask")
         } finally {
@@ -122,7 +122,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
     const [isOpen, setOpen] = useState(false)
     const [text, setText] = useState("")
     const { createTask } = useWorkspaceActions()
-    const { refreshActiveNote } = useActiveNoteActions()
+    const { appendTask } = useActiveNoteActions()
     const formRef = useRef<HTMLFormElement>(null)
 
     useEffect(() => {
@@ -146,9 +146,10 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
         e.preventDefault()
         if (text.trim() && sectionId !== null) {
             try {
-                await createTask(sectionId, text.trim())
+                const value = text.trim()
+                const id = await createTask(sectionId, value)
                 handleOpen()
-                await refreshActiveNote()
+                appendTask(id, { sectionId }, value)
             } catch (error: unknown) {
                 toast.error(getErrorMessage(error) || "Errore nella creazione del task")
             }
