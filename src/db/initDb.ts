@@ -1,93 +1,50 @@
 import type Database from "@tauri-apps/plugin-sql";
-import { createTableAudioFile } from "./schema/audio_file";
-import { createFolderTable, createFolderTrigger } from "./schema/folder";
-import { createNoteTable, createNoteTrigger } from "./schema/note";
-import { createSectionTable, createSectionTrigger } from "./schema/section";
-import { createSectionGroupTable } from "./schema/section_group";
-import { createTaskTable, createTaskTrigger } from "./schema/task";
-import { createWorkspaceTable, createWorkspaceTrigger } from "./schema/workspace";
-import { migrateToV3 } from "./schema/v3";
-import { migrateToV4 } from "./schema/v4";
-import { migrateToV5 } from "./schema/v5";
-import { migrateToV6 } from "./schema/v6";
-import { migrateToV7 } from "./schema/v7";
-import { migrateToV8 } from "./schema/v8";
+import { APPLICATION_ID, initialSchema } from "./schema/initial";
 
 /**
  * Ordered list of migrations, applied once each and tracked with PRAGMA user_version.
+ * The first one creates the whole initial schema (the previous v1-v8 migrations were squashed into it).
  * Every migration must be idempotent and additive: never edit an applied one, append a new one.
  * @category Database
  */
 const migrations: string[][] = [
-    // v1: tables
-    [
-        createWorkspaceTable,
-        createFolderTable,
-        createNoteTable,
-        createSectionGroupTable,
-        createSectionTable,
-        createTaskTable,
-        createTableAudioFile,
-    ],
-    // v2: recreate the edit timestamp triggers restricted to content columns
-    [
-        createWorkspaceTrigger,
-        createFolderTrigger,
-        createNoteTrigger,
-        createSectionTrigger,
-        createTaskTrigger,
-    ],
-    // v3: soft delete, manual ordering, partial unique indexes (single script, single connection)
-    [migrateToV3],
-    // v4: manual ordering of sections and tasks (single script)
-    [migrateToV4],
-    // v5: indexes on foreign key and hierarchy columns (single script)
-    [migrateToV5],
-    // v6: audio files soft delete and ordering (single script)
-    [migrateToV6],
-    // v7: optional name of a section group (single script)
-    [migrateToV7],
-    // v8: note templates (single script)
-    [migrateToV8],
+    // v1: initial schema
+    initialSchema,
 ];
 
 /**
- * Best effort cleanup after a failed migration script: the script may have left a transaction open
- * with foreign keys disabled on one pooled connection. The pool is closed by the caller anyway,
- * which drops every connection (and so rolls back any open transaction).
- * @param db Database instance.
+ * Error thrown when the database file was created by an older, incompatible version of the app.
  * @category Database
  */
-async function recoverFromFailedScript(db: Database) {
-    await db.execute("ROLLBACK").catch(() => undefined);
-    await db.execute("PRAGMA foreign_keys=ON").catch(() => undefined);
-}
+export const LEGACY_DB_MESSAGE =
+    "Database di una versione precedente non compatibile: elimina il file Documents/EasyTask/easytask.db e riavvia l'app.";
 
 /**
- * Options of initDB.
+ * Error thrown when the database file was created by a newer version of the app.
  * @category Database
  */
-export type InitDBOptions = {
-    /**
-     * Called once before the pending migrations run on an existing database (version > 0).
-     * If it throws, no migration is applied.
-     */
-    beforeMigrate?: (currentVersion: number, targetVersion: number) => Promise<void>
-}
+export const NEWER_DB_MESSAGE =
+    "Database creato da una versione più recente dell'app: aggiorna EasyTask oppure elimina il file Documents/EasyTask/easytask.db.";
 
 /**
  * Applies the pending migrations to the database.
+ * Databases created before the migrations were squashed (user_version > 0 without the EasyTask
+ * application_id) are rejected with a clear error instead of being touched.
  * Errors are rethrown, so a half-initialized database is retried on the next start.
  * @param db Database instance to migrate.
- * @param options Optional hooks.
  * @category Database
  */
-export async function initDB(db: Database, options: InitDBOptions = {}) {
-    const rows = await db.select<{ user_version: number }[]>("PRAGMA user_version");
-    const current = rows[0]?.user_version ?? 0;
+export async function initDB(db: Database) {
+    const versionRows = await db.select<{ user_version: number }[]>("PRAGMA user_version");
+    const current = versionRows[0]?.user_version ?? 0;
 
-    if (current > 0 && current < migrations.length)
-        await options.beforeMigrate?.(current, migrations.length);
+    if (current > 0) {
+        const idRows = await db.select<{ application_id: number }[]>("PRAGMA application_id");
+        if ((idRows[0]?.application_id ?? 0) !== APPLICATION_ID)
+            throw new Error(LEGACY_DB_MESSAGE);
+    }
+    if (current > migrations.length)
+        throw new Error(NEWER_DB_MESSAGE);
 
     for (let version = current; version < migrations.length; version++) {
         for (const query of migrations[version]) {
@@ -95,7 +52,6 @@ export async function initDB(db: Database, options: InitDBOptions = {}) {
                 await db.execute(query);
             } catch (err: unknown) {
                 console.error(`Migration v${version + 1} failed on query: ${query}`, err);
-                await recoverFromFailedScript(db);
                 throw err;
             }
         }

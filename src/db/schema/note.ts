@@ -1,5 +1,5 @@
 /**
- * Creates the note table in the database.
+ * Creates the note table in the database (soft delete through deleted_at, manual order through position).
  * @category Database Schema
  */
 export const createNoteTable = `
@@ -13,15 +13,26 @@ export const createNoteTable = `
         creation_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
         edit_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
         edit_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
+        position INTEGER NOT NULL DEFAULT 0,
+        deleted_at TEXT DEFAULT NULL,
         FOREIGN KEY(workspaceID) REFERENCES workspace(id) ON DELETE CASCADE,
-        FOREIGN KEY(folderID) REFERENCES folder(id) ON DELETE CASCADE,
-        UNIQUE(name, workspaceID),
-        UNIQUE(name, folderID)
+        FOREIGN KEY(folderID) REFERENCES folder(id) ON DELETE CASCADE
     );
 `
 
 /**
- * Recreates the trigger that updates the edit timestamp of the note table.
+ * Indexes of the note table: the name is unique among the non deleted siblings
+ * (a note in the trash does not block its name), the others serve the hierarchy lookups.
+ * @category Database Schema
+ */
+export const createNoteIndexes = `
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_note_name ON note(workspaceID, IFNULL(folderID, 0), name) WHERE deleted_at IS NULL;
+    CREATE INDEX IF NOT EXISTS idx_note_parent ON note(folderID);
+    CREATE INDEX IF NOT EXISTS idx_note_workspace_parent ON note(workspaceID, folderID, position);
+`
+
+/**
+ * Creates the trigger that updates the edit timestamp of the note table.
  * It fires only when content columns change, so it never re-triggers itself.
  * @category Database Schema
  */

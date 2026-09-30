@@ -66,6 +66,13 @@ npm run tauri:build
 
 Data is stored in a local SQLite database inside the `Documents/EasyTask` folder.
 
+> **Database from an older version.** The database migrations were squashed into a single initial schema.
+> A database file created before that change is not compatible: at startup the app stops with the message
+> "Database di una versione precedente non compatibile" instead of touching it. To start over,
+> close the app and delete `Documents/EasyTask/easytask.db` (also `easytask.db-wal` and `easytask.db-shm` if present;
+> the `easytask.backup-v*.db` copies are no longer created), then start the app again: a new empty database is created.
+> This permanently deletes the data stored in the old database.
+
 ---
 
 ## Testing
