@@ -8,6 +8,7 @@ import {
 } from "@/db/queries/audio"
 import { useWorkspaceActions, useWorkspaceState } from "./workspace-data-context"
 import { getErrorMessage } from "@/lib/utils"
+import { reportError } from "@/lib/report-error"
 import {
     AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
     AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -160,7 +161,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
                         ? { ...latest, name: file.name } : latest)
                 }
             })
-            .catch(error => console.error(error))
+            .catch(error => reportError(error))
         return () => { stale = true }
     }, [version])
 
@@ -245,7 +246,7 @@ export function useGroupAudioFiles(groupId: number): AudioFile[] {
         let stale = false
         getDBGroupAudioFiles(groupId)
             .then(rows => { if (!stale) setFiles(rows) })
-            .catch(error => console.error(error))
+            .catch(error => reportError(error, "Impossibile caricare i file audio."))
         return () => { stale = true }
     }, [groupId, version])
 

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { reportError } from "@/lib/report-error"
 import { DialogTrash } from "@/components/dialogs/dialog-trash"
 import { ItemFooter } from "../items/ItemFooter"
 
@@ -17,7 +18,7 @@ export const ButtonTrash = () => {
         let cancelled = false
         getTrash(workspaceID)
             .then(items => { if (!cancelled) setCount(items.length) })
-            .catch(console.error)
+            .catch(error => reportError(error))
         return () => { cancelled = true }
     }, [workspaceID, workspaceDataTree, trashVersion, isOpen, getTrash])
 

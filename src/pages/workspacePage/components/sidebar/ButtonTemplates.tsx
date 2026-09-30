@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/workspace-context"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { reportError } from "@/lib/report-error"
 import { DialogTemplates } from "@/components/dialogs/dialog-templates"
 import { ItemFooter } from "../items/ItemFooter"
 
@@ -21,7 +22,7 @@ export const ButtonTemplates = () => {
         let cancelled = false
         countTemplates(workspaceID)
             .then(value => { if (!cancelled) setCount(value) })
-            .catch(console.error)
+            .catch(error => reportError(error))
         return () => { cancelled = true }
     }, [workspaceID, templatesVersion, isOpen, countTemplates])
 

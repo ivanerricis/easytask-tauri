@@ -10,6 +10,7 @@ import { WorkspacesContainer } from "./components/WorkspacesContainer"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { usePreferences } from "@/contexts/preferences-context"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
+import { reportError } from "@/lib/report-error"
 import { useStartupRestore } from "./startup-restore"
 
 const MainPage = () => {
@@ -21,7 +22,7 @@ const MainPage = () => {
     const { pending: restorePending } = useStartupRestore(loaded)
 
     useEffect(() => {
-        getWorkspaces().catch(console.error).finally(() => setLoaded(true))
+        getWorkspaces().catch(error => reportError(error)).finally(() => setLoaded(true))
     }, [getWorkspaces])
 
     const isInitialLoading = (isLoading && workspaces.length === 0) || restorePending
@@ -74,7 +75,7 @@ const MainPage = () => {
                                 </Button>
                             </TooltipCustom>
                             <TooltipCustom text="Ricarica i Workspace">
-                                <Button onClick={() => getWorkspaces().catch(console.error)} variant="outline" size="icon" aria-label="Ricarica i Workspace" disabled={isLoading}>
+                                <Button onClick={() => getWorkspaces().catch(error => reportError(error, "Impossibile ricaricare i Workspace. Riprova."))} variant="outline" size="icon" aria-label="Ricarica i Workspace" disabled={isLoading}>
                                     {isLoading ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
                                 </Button>
                             </TooltipCustom>

@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom"
 import { CommandMenu } from "./components/CommandMenu"
 import { ButtonNavbar } from "@/components/button-navbar"
 import { clearLastWorkspaceId } from "@/lib/store/preferences"
+import { reportError } from "@/lib/report-error"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { useShortcutLabel } from "@/contexts/shortcuts-context"
 
@@ -23,7 +24,7 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
     const handleGoHome = useCallback(() => {
         resetWorkspace()
         resetData()
-        clearLastWorkspaceId().catch(console.error)
+        clearLastWorkspaceId().catch(error => reportError(error))
         navigate("/")
     }, [resetWorkspace, resetData, navigate])
 
