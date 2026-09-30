@@ -6,8 +6,7 @@ import { getGroupProgress } from "./group-progress"
 import { ButtonMenuGroup } from "./ButtonMenuGroup"
 import { ItemMenuButton } from "@/components/item-menu"
 import type { Group } from "@/types/types"
-import type { DraggableProvidedDragHandleProps } from "@hello-pangea/dnd"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type HTMLAttributes } from "react"
 import { useWorkspaceActions } from "@/contexts/workspace-data-context"
 import { useActiveNoteActions } from "@/contexts/active-note-context"
 import { toast } from "sonner"
@@ -18,10 +17,11 @@ type GroupHeaderProps = {
     group: Group
     /** Position of the group in the note (0-based), used for the default label "Gruppo N". */
     index?: number
-    dragHandleProps?: DraggableProvidedDragHandleProps | null
+    dragHandleRef?: (element: HTMLElement | null) => void
+    dragHandleProps?: HTMLAttributes<HTMLDivElement>
 }
 
-export const GroupHeader = ({ group, index = 0, dragHandleProps }: GroupHeaderProps) => {
+export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }: GroupHeaderProps) => {
     const { showSectionCount, showTaskCount, showGroupProgressBar } = usePreferences()
     const [isOpen, toggleOpen] = useGroupOpen(group.id)
     const progress = getGroupProgress(group)
@@ -66,7 +66,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleProps }: GroupHeaderPr
     return (
         <ButtonMenuGroup group={group}>
             <div className="group flex items-center justify-between border px-2 py-1 bg-background hover:bg-secondary w-full rounded-xs">
-                {dragHandleProps && <div className="group flex items-center justify-center" {...dragHandleProps}>
+                {dragHandleProps && <div ref={dragHandleRef} className="group flex items-center justify-center touch-none" {...dragHandleProps}>
                     <Grip className="text-muted-foreground group-hover:text-foreground w-4 h-4 mr-3" />
                 </div>}
                 <button

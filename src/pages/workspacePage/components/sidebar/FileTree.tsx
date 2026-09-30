@@ -17,6 +17,8 @@ import {
 } from "./tree-dnd"
 import { useItemSize } from "./item-size"
 import { markTreeDragEnd, treeRowKey } from "./tree-row"
+import { VIRTUALIZE_THRESHOLD, flattenTree } from "./flat-tree"
+import { VirtualTree } from "./VirtualTree"
 
 const ROOT_ID = "root"
 const AUTO_EXPAND_DELAY = 600
@@ -76,11 +78,15 @@ const DragPreview = ({ item, isFolder }: { item: Folder | Note, isFolder: boolea
     )
 }
 
-const RootDropArea = ({ highlighted, children }: { highlighted: boolean, children: React.ReactNode }) => {
+const RootDropArea = ({ highlighted, children, rootRef }: { highlighted: boolean, children: React.ReactNode, rootRef?: React.RefObject<HTMLDivElement | null> }) => {
     const { setNodeRef } = useDroppable({ id: ROOT_ID })
+    const setRefs = useCallback((node: HTMLDivElement | null) => {
+        setNodeRef(node)
+        if (rootRef) rootRef.current = node
+    }, [setNodeRef, rootRef])
     return (
         <div
-            ref={setNodeRef}
+            ref={setRefs}
             className={`relative flex flex-col gap-1 p-1 w-full min-h-full ${highlighted ? "bg-primary/10" : ""}`}
         >
             {children}
@@ -217,6 +223,13 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
     }, [hoveredFolderId, collapsedIds, onExpandFolder])
 
     const activeItem = activeRef ? findTreeItem(tree, activeRef) : undefined
+    const rootElRef = useRef<HTMLDivElement | null>(null)
+    const flatRows = useMemo(() => flattenTree(tree, collapsedIds), [tree, collapsedIds])
+    const virtualized = flatRows.length > VIRTUALIZE_THRESHOLD
+    const getScrollElement = useCallback(
+        () => rootElRef.current?.closest<HTMLElement>("[data-tree-scroll]") ?? rootElRef.current?.parentElement ?? null,
+        [],
+    )
     const isEmpty = tree.rootFolders.length === 0 && tree.rootNotes.length === 0
 
     return (
@@ -227,12 +240,23 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
             onDragMove={handleDragMove}
             onDragEnd={handleDragEnd}
             onDragCancel={handleDragCancel}
+            autoScroll
         >
-            <RootDropArea highlighted={hover.rootActive}>
+            <RootDropArea highlighted={hover.rootActive} rootRef={rootElRef}>
                 {isEmpty ? (
                     <h1 className="text-muted-foreground text-sm w-full">
                         Nessuna cartella o file
                     </h1>
+                ) : virtualized ? (
+                    <VirtualTree
+                        rows={flatRows}
+                        collapsedIds={collapsedIds}
+                        onToggleFolder={onToggleFolder}
+                        overKey={hover.overKey}
+                        overZone={hover.zone}
+                        activeKey={activeRef ? treeRowKey(activeRef.type, activeRef.id) : null}
+                        getScrollElement={getScrollElement}
+                    />
                 ) : (
                     <>
                         {tree.rootFolders.map((folder) => (

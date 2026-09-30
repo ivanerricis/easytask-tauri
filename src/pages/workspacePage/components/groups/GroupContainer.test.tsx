@@ -2,9 +2,9 @@ import { useEffect } from "react"
 import type { ReactNode } from "react"
 import { act, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import type { DropResult } from "@hello-pangea/dnd"
 import { GroupContainer } from "./GroupContainer"
 import { useTabsActions } from "@/contexts/tabs-context"
+import { useGroupMoves } from "../note-dnd-state"
 import { getDBNoteData } from "@/db/queries/note"
 import { updateDBGroupPositions } from "@/db/queries/group"
 import { deferred, renderWithProviders } from "@/test/ui-render"
@@ -21,20 +21,13 @@ vi.mock("@/db/queries/task", () => ({
 vi.mock("@/db/queries/group", () => ({ updateDBGroupPositions: vi.fn() }))
 vi.mock("@/db/queries/shared_queries", () => ({ renameDBItem: vi.fn(), updateDBColor: vi.fn(), deleteDBItem: vi.fn() }))
 
-// Capture the drag end handler so the tests can drive it directly
-let onDragEnd: (result: DropResult) => Promise<void>
-vi.mock("@hello-pangea/dnd", () => ({
-    DragDropContext: ({ children, onDragEnd: handler }: { children: ReactNode, onDragEnd: typeof onDragEnd }) => {
-        onDragEnd = handler
-        return <>{children}</>
-    },
-    Droppable: ({ children }: { children: (p: unknown) => ReactNode }) =>
-        <>{children({ droppableProps: {}, innerRef: () => {}, placeholder: null })}</>,
-    Draggable: ({ children }: { children: (p: unknown) => ReactNode }) =>
-        <>{children({ draggableProps: {}, dragHandleProps: {}, innerRef: () => {} })}</>,
-}))
+// The group stub exposes the move the drag & drop runs on drop (the real dnd-kit drag is not drivable in jsdom)
+let moveGroupTo: (groupId: number, index: number) => Promise<void>
 vi.mock("./Group", () => ({
-    Group: ({ group }: { group: { id: number } }) => <div data-testid="group">{group.id}</div>,
+    Group: function GroupStub({ group }: { group: { id: number } }) {
+        moveGroupTo = useGroupMoves().moveGroupTo
+        return <div data-testid="group">{group.id}</div>
+    },
 }))
 vi.mock("../section/AddSection", () => ({ AddSection: () => null }))
 
@@ -45,14 +38,6 @@ function SelectNote({ children }: { children: ReactNode }) {
 }
 
 const order = () => screen.getAllByTestId("group").map(el => el.textContent)
-
-const drag = (from: number, to: number) => {
-    const result = {
-        source: { index: from, droppableId: "groups" },
-        destination: { index: to, droppableId: "groups" },
-    } as DropResult
-    return act(() => onDragEnd(result))
-}
 
 describe("GroupContainer reorder", () => {
     beforeEach(() => {
@@ -82,7 +67,7 @@ describe("GroupContainer reorder", () => {
         await renderLoaded()
 
         let done!: Promise<void>
-        await act(async () => { done = onDragEnd({ source: { index: 0, droppableId: "groups" }, destination: { index: 2, droppableId: "groups" } } as DropResult) })
+        await act(async () => { done = moveGroupTo(1, 2) })
 
         // Optimistic: visible while the write is still pending
         expect(order()).toEqual(["2", "3", "1"])
@@ -102,23 +87,13 @@ describe("GroupContainer reorder", () => {
         await renderLoaded()
 
         let done!: Promise<void>
-        await act(async () => { done = onDragEnd({ source: { index: 0, droppableId: "groups" }, destination: { index: 1, droppableId: "groups" } } as DropResult) })
+        await act(async () => { done = moveGroupTo(1, 1) })
         expect(order()).toEqual(["2", "1", "3"])
 
         await act(async () => {
             pending.reject(new Error("db error"))
             await done
         })
-        expect(order()).toEqual(["1", "2", "3"])
-    })
-
-    it("ignores drops without destination or onto the same index", async () => {
-        await renderLoaded()
-
-        await act(() => onDragEnd({ source: { index: 0, droppableId: "groups" }, destination: null } as DropResult))
-        await drag(1, 1)
-
-        expect(updateDBGroupPositions).not.toHaveBeenCalled()
         expect(order()).toEqual(["1", "2", "3"])
     })
 

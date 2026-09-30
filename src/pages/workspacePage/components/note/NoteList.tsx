@@ -1,49 +1,93 @@
+import { useRef, useState } from "react"
+import {
+    DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors,
+    type CollisionDetection, type DragMoveEvent,
+} from "@dnd-kit/core"
+import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
+import { CSS } from "@dnd-kit/utilities"
 import { useTabs, useTabsActions } from "@/contexts/tabs-context"
+import { cn } from "@/lib/utils"
 import { NoteHeader } from "./NoteHeader"
-import { DragDropContext, Draggable, Droppable } from "@hello-pangea/dnd"
-import type { DropResult } from "@hello-pangea/dnd"
+import { computeTabMove, computeTabZone, type TabZone } from "./tab-reorder"
+import type { Note } from "@/types/types"
+
+type Hover = { overId: number, zone: TabZone } | null
+
+// Only the horizontal position matters: the tab under the pointer's x wins, whatever the y
+const collisionDetection: CollisionDetection = ({ droppableContainers, droppableRects, pointerCoordinates }) => {
+    if (!pointerCoordinates) return []
+    for (const container of droppableContainers) {
+        const rect = droppableRects.get(container.id)
+        if (rect && pointerCoordinates.x >= rect.left && pointerCoordinates.x <= rect.right)
+            return [{ id: container.id }]
+    }
+    return []
+}
+
+const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {
+    const { setNodeRef: setDropRef } = useDroppable({ id: note.id })
+    const { setNodeRef: setDragRef, attributes, listeners, transform, isDragging } = useDraggable({ id: note.id })
+    const indicator = hover?.overId === note.id ? hover.zone : null
+
+    return (
+        <div
+            ref={node => {
+                setDropRef(node)
+                setDragRef(node)
+            }}
+            {...attributes}
+            {...listeners}
+            style={{ transform: CSS.Translate.toString(transform) }}
+            className={cn("relative", isDragging && "z-10 opacity-70")}
+        >
+            {indicator && !isDragging &&
+                <div className={cn("pointer-events-none absolute inset-y-0 z-20 w-0.5 bg-primary", indicator === "before" ? "left-0" : "right-0")} />}
+            <NoteHeader note={note} />
+        </div>
+    )
+}
 
 export const NoteList = () => {
-
     const { tabs } = useTabs()
     const { reorderTabs } = useTabsActions()
+    const [hover, setHover] = useState<Hover>(null)
+    const hoverRef = useRef<Hover>(null)
 
-    const handleOnDragEnd = (result: DropResult) => {
-        const { destination, source } = result;
+    // A small distance keeps plain clicks (open / close tab) working
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
-        if (!destination) return;
+    const updateHover = (next: Hover) => {
+        hoverRef.current = next
+        setHover(prev => prev?.overId === next?.overId && prev?.zone === next?.zone ? prev : next)
+    }
 
-        if (destination.index === source.index) return;
+    const handleDragMove = (event: DragMoveEvent) => {
+        const { over, active, activatorEvent, delta } = event
+        const origin = activatorEvent as { clientX?: number } | null
+        if (!over || over.id === active.id || typeof origin?.clientX !== "number") return updateHover(null)
+        updateHover({ overId: Number(over.id), zone: computeTabZone(over.rect, origin.clientX + delta.x) })
+    }
 
-        reorderTabs(source.index, destination.index)
+    const handleDragEnd = (activeId: number) => {
+        const current = hoverRef.current
+        updateHover(null)
+        if (!current) return
+        const move = computeTabMove(tabs.map(tab => tab.id), activeId, current.overId, current.zone)
+        if (move) reorderTabs(move.from, move.to)
     }
 
     return (
-        <DragDropContext onDragEnd={handleOnDragEnd}>
-            <Droppable droppableId="notes" direction="horizontal">
-                {(provided) => (
-                    <div
-                        ref={provided.innerRef}
-                        {...provided.droppableProps}
-                        className="flex w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1"
-                    >
-                        {tabs.map((note, index) => (
-                            <Draggable key={note.id} draggableId={note.id.toString()} index={index}>
-                                {(provided) => (
-                                    <div
-                                        ref={provided.innerRef}
-                                        {...provided.draggableProps}
-                                        {...provided.dragHandleProps}
-                                    >
-                                        <NoteHeader note={note} />
-                                    </div>
-                                )}
-                            </Draggable>
-                        ))}
-                        {provided.placeholder}
-                    </div>
-                )}
-            </Droppable>
-        </DragDropContext>
+        <DndContext
+            sensors={sensors}
+            modifiers={[restrictToHorizontalAxis]}
+            collisionDetection={collisionDetection}
+            onDragMove={handleDragMove}
+            onDragEnd={event => handleDragEnd(Number(event.active.id))}
+            onDragCancel={() => updateHover(null)}
+        >
+            <div className="flex w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1">
+                {tabs.map(note => <Tab key={note.id} note={note} hover={hover} />)}
+            </div>
+        </DndContext>
     )
 }

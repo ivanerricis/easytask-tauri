@@ -2,10 +2,10 @@ import { createContext, useCallback, useContext } from "react"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { toast } from "sonner"
 import { useWorkspaceActions } from "@/contexts/workspace-data-context"
-import { useActiveNoteActions } from "@/contexts/active-note-context"
+import { useActiveNote, useActiveNoteActions } from "@/contexts/active-note-context"
 import { getErrorMessage } from "@/lib/utils"
 import {
-    ACCEPTS,
+    ACCEPTS, moveGroupInList,
     type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverKind, type SectionTarget, type TaskTarget,
 } from "./note-dnd"
 
@@ -85,4 +85,31 @@ export function useNoteMoves() {
     }, [moveTask, reload])
 
     return { moveSectionTo, moveTaskTo }
+}
+
+/**
+ * Moves a group to a new index among the groups: optimistic update of the note data, rolled back when
+ * saving the positions fails.
+ * @category Note DnD
+ */
+export function useGroupMoves() {
+    const { updateGroupsPositions } = useWorkspaceActions()
+    const { noteDataTree } = useActiveNote()
+    const { setNoteDataTree } = useActiveNoteActions()
+
+    const moveGroupTo = useCallback(async (groupId: number, index: number) => {
+        if (!noteDataTree) return
+        const updatedGroups = moveGroupInList(noteDataTree.groups, groupId, index)
+        if (!updatedGroups) return
+
+        setNoteDataTree({ groups: updatedGroups })
+        try {
+            await updateGroupsPositions(updatedGroups)
+        } catch (error) {
+            console.error("Errore durante l'aggiornamento delle posizioni dei gruppi:", error)
+            setNoteDataTree(noteDataTree)
+        }
+    }, [noteDataTree, setNoteDataTree, updateGroupsPositions])
+
+    return { moveGroupTo }
 }

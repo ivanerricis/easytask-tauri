@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import type { NoteDataTree } from "@/types/types"
 import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import {
-    computeDropZone, computeSectionTarget, computeTaskTarget, findSection, findTask,
+    computeDropZone, computeGroupDropZone, computeGroupTarget, computeSectionTarget, moveGroupInList, computeTaskTarget, findSection, findTask,
     getSectionMoveDestinations, getTaskMoveDestinations,
 } from "./note-dnd"
 
@@ -206,5 +206,44 @@ describe("getTaskMoveDestinations", () => {
 
     it("returns nothing for an unknown task", () => {
         expect(keys(99)).toEqual([])
+    })
+})
+
+describe("group reorder", () => {
+    const ids = (groups: NoteDataTree["groups"]) => groups.map(group => group.id)
+
+    it("splits a group horizontally in before / after", () => {
+        expect(computeGroupDropZone({ left: 100, width: 200 }, 120)).toBe("before")
+        expect(computeGroupDropZone({ left: 100, width: 200 }, 250)).toBe("after")
+    })
+
+    it("computes the final index before / after another group", () => {
+        const tree = buildTree()
+        expect(computeGroupTarget(tree, 1, { kind: "group", id: 3 }, "after")).toEqual({ index: 2 })
+        expect(computeGroupTarget(tree, 1, { kind: "group", id: 3 }, "before")).toEqual({ index: 1 })
+        expect(computeGroupTarget(tree, 3, { kind: "group", id: 1 }, "before")).toEqual({ index: 0 })
+        expect(computeGroupTarget(tree, 3, { kind: "group", id: 2 }, "after")).toBeNull()
+    })
+
+    it("returns null for no-ops and invalid targets", () => {
+        const tree = buildTree()
+        expect(computeGroupTarget(tree, 1, { kind: "group", id: 1 }, "after")).toBeNull()
+        expect(computeGroupTarget(tree, 1, { kind: "group", id: 2 }, "before")).toBeNull()
+        expect(computeGroupTarget(tree, 2, { kind: "group", id: 1 }, "after")).toBeNull()
+        expect(computeGroupTarget(tree, 1, { kind: "section", id: 3 }, "after")).toBeNull()
+        expect(computeGroupTarget(tree, 1, { kind: "group", id: 99 }, "after")).toBeNull()
+        expect(computeGroupTarget(tree, 99, { kind: "group", id: 1 }, "after")).toBeNull()
+    })
+
+    it("reorders and renumbers the positions", () => {
+        const moved = moveGroupInList(buildTree().groups, 1, 2)!
+        expect(ids(moved)).toEqual([2, 3, 1])
+        expect(moved.map(group => group.position)).toEqual([0, 1, 2])
+        expect(moveGroupInList(buildTree().groups, 99, 0)).toBeNull()
+    })
+
+    it("does not offer groups as a drop target for a section or task in a group-only way", () => {
+        expect(computeSectionTarget(buildTree(), 4, { kind: "group", id: 1 }, "inside")).toEqual({ type: "group", groupId: 1, index: 2 })
+        expect(computeTaskTarget(buildTree(), 4, { kind: "group", id: 1 }, "inside")).toBeNull()
     })
 })

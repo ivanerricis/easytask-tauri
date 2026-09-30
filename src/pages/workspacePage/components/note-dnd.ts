@@ -1,5 +1,5 @@
 import { getGroupLabel } from "./groups/group-label"
-import type { NoteDataTree, Section, Task } from "@/types/types"
+import type { Group, NoteDataTree, Section, Task } from "@/types/types"
 
 /**
  * Pure logic of the drag & drop of sections and tasks inside the open note.
@@ -7,14 +7,14 @@ import type { NoteDataTree, Section, Task } from "@/types/types"
  * @category Note DnD
  */
 
-export type NoteDragKind = "section" | "task"
+export type NoteDragKind = "section" | "task" | "group"
 export type NoteDragRef = { kind: NoteDragKind, id: number }
 
 /**
  * What the pointer is over:
  * - section: a section card (drop of a section = before/after it, drop of a task = last top level task)
  * - task: a task row (before / after / inside it)
- * - group: the empty area of a group (a section is appended to it)
+ * - group: the empty area of a group (a section is appended to it; a dragged group goes before / after it)
  * - new-group: an insertion slot between groups (id = index in the list of groups) that creates a new group
  */
 export type NoteOverKind = "section" | "task" | "group" | "new-group"
@@ -29,7 +29,7 @@ export type DropZone = "before" | "after" | "inside" | "inside-start"
 export const ACCEPTS: Record<NoteOverKind, NoteDragKind[]> = {
     section: ["section", "task"],
     task: ["task"],
-    group: ["section"],
+    group: ["section", "group"],
     "new-group": ["section"],
 }
 
@@ -69,6 +69,14 @@ export function computeDropZone(
     }
     if (overKind === "section" && dragKind === "section") return ratio < 0.5 ? "before" : "after"
     return "inside"
+}
+
+/**
+ * Drop zone of a group dragged over another group: left half = before, right half = after.
+ * @category Note DnD
+ */
+export function computeGroupDropZone(rect: { left: number, width: number }, pointerX: number): DropZone {
+    return (pointerX - rect.left) / (rect.width || 1) < 0.5 ? "before" : "after"
 }
 
 type TaskInfo = { task: Task, sectionId: number, parentId: number | null }
@@ -221,6 +229,42 @@ export function computeTaskTarget(
         if (currentIndex === index) return null
     }
     return { sectionId, parentTaskId, index }
+}
+
+const sortGroups = (groups: Group[]) => [...groups].sort((a, b) => a.position - b.position)
+
+/** Finds a group in the tree and its index in the list sorted by position. */
+export function findGroup(tree: NoteDataTree, id: number): { group: Group, index: number } | undefined {
+    const sorted = sortGroups(tree.groups)
+    const index = sorted.findIndex(group => group.id === id)
+    return index < 0 ? undefined : { group: sorted[index], index }
+}
+
+/**
+ * Computes the destination of a dragged group over another group: the final index among the groups (sorted by
+ * position) once it has been moved. Returns null when the drop is invalid or would not change anything.
+ * @category Note DnD
+ */
+export function computeGroupTarget(tree: NoteDataTree, activeId: number, over: NoteOverRef, zone: DropZone): { index: number } | null {
+    if (over.kind !== "group" || over.id === activeId) return null
+    const sorted = sortGroups(tree.groups)
+    const activeIndex = sorted.findIndex(group => group.id === activeId)
+    if (activeIndex < 0) return null
+    const without = sorted.filter(group => group.id !== activeId)
+    const overIndex = without.findIndex(group => group.id === over.id)
+    if (overIndex < 0) return null
+    const index = zone === "after" ? overIndex + 1 : overIndex
+    return index === activeIndex ? null : { index }
+}
+
+/** Groups with the given one moved to `index`, positions renumbered from 0. Null when the group is unknown. */
+export function moveGroupInList(groups: Group[], groupId: number, index: number): Group[] | null {
+    const items = sortGroups(groups)
+    const from = items.findIndex(group => group.id === groupId)
+    if (from < 0) return null
+    const [moved] = items.splice(from, 1)
+    items.splice(index, 0, moved)
+    return items.map((group, position) => ({ ...group, position }))
 }
 
 export type SectionMoveDestinations = {

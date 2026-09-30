@@ -27,6 +27,7 @@ tauri-plugin-fs = "2"
 tauri-plugin-store = "2.4.1"
 tauri-plugin-dialog = "2.4.2"
 tauri-plugin-opener = "2"
+tauri-plugin-clipboard-manager = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 # Same major/minor as the one used by tauri-plugin-sql, so its Pool<Sqlite> type is shared.

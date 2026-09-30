@@ -9,6 +9,10 @@ import type { SidebarItemSize } from "@/lib/store/preferences"
 export type ItemSizeClasses = {
     /** Row height. */
     row: string
+    /** Row height in px (matches `row`), for virtualization. */
+    rowPx: number
+    /** Indent per depth level in px (matches `indent`). */
+    indentPx: number
     /** Row label. */
     text: string
     /** Row icons (chevron, folder, note). */
@@ -27,6 +31,8 @@ export type ItemSizeClasses = {
 export const ITEM_SIZES: Record<SidebarItemSize, ItemSizeClasses> = {
     compact: {
         row: "h-6",
+        rowPx: 24,
+        indentPx: 16,
         text: "text-xs",
         icon: "size-3.5",
         menu: "[&_svg]:size-3.5",
@@ -37,6 +43,8 @@ export const ITEM_SIZES: Record<SidebarItemSize, ItemSizeClasses> = {
     },
     normal: {
         row: "h-7",
+        rowPx: 28,
+        indentPx: 17,
         text: "text-sm",
         icon: "size-4",
         menu: "",
@@ -47,6 +55,8 @@ export const ITEM_SIZES: Record<SidebarItemSize, ItemSizeClasses> = {
     },
     large: {
         row: "h-9",
+        rowPx: 36,
+        indentPx: 19,
         text: "text-base",
         icon: "size-5",
         menu: "[&_svg]:size-5",

@@ -5,15 +5,17 @@ import {
     DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
     type Collision, type CollisionDetection, type DragMoveEvent, type DragStartEvent,
 } from "@dnd-kit/core"
+import { getGroupLabel } from "./groups/group-label"
 import { useActiveNote } from "@/contexts/active-note-context"
 import {
-    computeDropZone, computeSectionTarget, computeTaskTarget, findSection, findTask,
+    computeDropZone, computeGroupDropZone, computeGroupTarget, computeSectionTarget, findGroup, computeTaskTarget, findSection, findTask,
     type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverRef, type SectionTarget, type TaskTarget,
 } from "./note-dnd"
-import { NO_HOVER, NoteDndContext, noteKey, useNoteMoves, type NoteHover } from "./note-dnd-state"
+import { NO_HOVER, NoteDndContext, noteKey, useGroupMoves, useNoteMoves, type NoteHover } from "./note-dnd-state"
 
 type PendingDrop =
     | { kind: "section", id: number, target: SectionTarget }
+    | { kind: "group", id: number, index: number }
     | { kind: "task", id: number, target: TaskTarget }
 
 /**
@@ -35,17 +37,21 @@ const collisionDetection: CollisionDetection = ({ active, droppableContainers, d
     return hits.sort((a, b) => (a.data?.value as number) - (b.data?.value as number))
 }
 
-const getPointerY = (event: DragMoveEvent): number | null => {
-    const origin = event.activatorEvent as { clientY?: number } | null
-    if (origin && typeof origin.clientY === "number") return origin.clientY + event.delta.y
+const getPointer = (event: DragMoveEvent): { x: number, y: number } | null => {
+    const origin = event.activatorEvent as { clientX?: number, clientY?: number } | null
+    if (origin && typeof origin.clientX === "number" && typeof origin.clientY === "number")
+        return { x: origin.clientX + event.delta.x, y: origin.clientY + event.delta.y }
     const translated = event.active.rect.current.translated
-    return translated ? translated.top + translated.height / 2 : null
+    return translated
+        ? { x: translated.left + translated.width / 2, y: translated.top + translated.height / 2 }
+        : null
 }
 
 /**
- * Drag & drop of sections and tasks inside the open note (dnd-kit), independent from the horizontal
- * reordering of the groups (@hello-pangea/dnd, its handle is the grip of the group header).
+ * Drag & drop of groups, sections and tasks inside the open note (dnd-kit).
  * Drop zones, from the pointer position on the hovered element:
+ * - group (dragged by the grip of its header) over another group: left half = before, right half = after,
+ *   persisted with an optimistic update of the group positions;
  * - section dragged over a section card: top half = before, bottom half = after (any group);
  * - section dragged over the empty area of a group (or its header): appended to the group;
  * - section dragged over a slot between two groups / the "Nuovo gruppo" column at the end: new group;
@@ -60,6 +66,7 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
     const { moveSectionTo, moveTaskTo } = useNoteMoves()
     const [active, setActive] = useState<NoteDragRef | null>(null)
     const [hover, setHover] = useState<NoteHover>(NO_HOVER)
+    const { moveGroupTo } = useGroupMoves()
     const pendingRef = useRef<PendingDrop | null>(null)
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -87,15 +94,22 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         const overData = over.data.current as NoteOverRef
         const overRef: NoteOverRef = { kind: overData.kind, id: overData.id }
         let zone: DropZone = "inside"
-        if (overRef.kind === "task" || overRef.kind === "section") {
-            const pointerY = getPointerY(event)
+        if (dragged.kind === "group") {
+            const pointer = getPointer(event)
+            if (!pointer) return
+            zone = computeGroupDropZone(over.rect, pointer.x)
+        } else if (overRef.kind === "task" || overRef.kind === "section") {
+            const pointerY = getPointer(event)?.y
             if (pointerY == null) return
             const overTask = overRef.kind === "task" ? findTask(noteDataTree, overRef.id) : undefined
             zone = computeDropZone(dragged.kind, overRef.kind, over.rect, pointerY, { hasSubtasks: (overTask?.subtasks.length ?? 0) > 0 })
         }
 
         let pending: PendingDrop | null = null
-        if (dragged.kind === "section") {
+        if (dragged.kind === "group") {
+            const target = computeGroupTarget(noteDataTree, dragged.id, overRef, zone)
+            if (target) pending = { kind: "group", id: dragged.id, index: target.index }
+        } else if (dragged.kind === "section") {
             const target = computeSectionTarget(noteDataTree, dragged.id, overRef, zone)
             if (target) pending = { kind: "section", id: dragged.id, target }
         } else {
@@ -112,7 +126,8 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         const pending = pendingRef.current
         reset()
         if (!pending) return
-        if (pending.kind === "section") await moveSectionTo(pending.id, pending.target)
+        if (pending.kind === "group") await moveGroupTo(pending.id, pending.index)
+        else if (pending.kind === "section") await moveSectionTo(pending.id, pending.target)
         else await moveTaskTo(pending.id, pending.target)
     }
 
@@ -120,6 +135,14 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
 
     const preview = useMemo(() => {
         if (!active || !noteDataTree) return null
+        if (active.kind === "group") {
+            const found = findGroup(noteDataTree, active.id)
+            return found ? (
+                <div className="min-w-[200px] max-w-[320px] truncate rounded-xs border bg-background p-2 text-sm font-semibold shadow-lg">
+                    {getGroupLabel(found.group, found.index)}
+                </div>
+            ) : null
+        }
         if (active.kind === "section") {
             const section = findSection(noteDataTree, active.id)
             return section ? (

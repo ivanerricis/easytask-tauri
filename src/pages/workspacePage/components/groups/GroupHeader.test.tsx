@@ -128,3 +128,14 @@ describe("GroupHeader progress and collapse", () => {
         expect(screen.getByLabelText("Espandi gruppo")).toBeInTheDocument()
     })
 })
+
+describe("GroupHeader drag handle", () => {
+    it("renders the grip only when a drag handle is given and forwards its props", () => {
+        const { rerender } = render(<GroupHeader group={makeGroup()} />)
+        expect(document.querySelector("[data-drag-handle]")).toBeNull()
+        const ref = vi.fn()
+        rerender(<GroupHeader group={makeGroup()} dragHandleRef={ref} dragHandleProps={{ "data-drag-handle": "" } as never} />)
+        expect(document.querySelector("[data-drag-handle]")).not.toBeNull()
+        expect(ref).toHaveBeenCalled()
+    })
+})
