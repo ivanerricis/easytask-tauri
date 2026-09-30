@@ -59,14 +59,16 @@ export async function moveDBTreeItem(itemType: TreeItemType, itemId: number, tar
 
         if (targetFolderId != null) {
             if (itemType === "folder") {
-                const subtree = await db.select<{ id: number }[]>(
-                    `WITH RECURSIVE folder_tree AS (
-                        SELECT id FROM folder WHERE id = ?
-                        UNION ALL
-                        SELECT f.id FROM folder f INNER JOIN folder_tree ft ON f.folderID = ft.id
+                // Walk up from the target through the primary key: the moved folder is among its ancestors
+                // (or is the target itself) exactly when the target lies in the moved subtree
+                const ancestors = await db.select<{ found: number }[]>(
+                    `WITH RECURSIVE anc(id, parent) AS (
+                        SELECT id, folderID FROM folder WHERE id = ?
+                        UNION
+                        SELECT f.id, f.folderID FROM folder f INNER JOIN anc ON f.id = anc.parent
                     )
-                    SELECT id FROM folder_tree`, [itemId])
-                if (subtree.some(row => row.id === targetFolderId))
+                    SELECT EXISTS (SELECT 1 FROM anc WHERE id = ?) AS found`, [targetFolderId, itemId])
+                if (ancestors[0]?.found)
                     throw createError("FOLDER_MOVE_INVALID", "Non puoi spostare una cartella dentro sé stessa o una sua sottocartella.")
             }
 

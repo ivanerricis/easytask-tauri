@@ -8,6 +8,7 @@ import { createTaskTable, createTaskTrigger } from "./schema/task";
 import { createWorkspaceTable, createWorkspaceTrigger } from "./schema/workspace";
 import { migrateToV3 } from "./schema/v3";
 import { migrateToV4 } from "./schema/v4";
+import { migrateToV5 } from "./schema/v5";
 
 /**
  * Ordered list of migrations, applied once each and tracked with PRAGMA user_version.
@@ -37,6 +38,8 @@ const migrations: string[][] = [
     [migrateToV3],
     // v4: manual ordering of sections and tasks (single script)
     [migrateToV4],
+    // v5: indexes on foreign key and hierarchy columns (single script)
+    [migrateToV5],
 ];
 
 /**

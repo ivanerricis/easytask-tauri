@@ -26,6 +26,8 @@ type WorkspaceDataContextType = {
     currentNotes: Note[]
     error: string | null
     isLoading: boolean
+    /** Incremented after every operation that can change the trash content (delete, restore, purge, empty, moves). */
+    trashVersion: number
 
     setCurrentFolder: (folder: Folder | null) => void
     setCurrentNote: (note: Note | null) => void
@@ -123,41 +125,45 @@ function buildWorkspaceTree(folders: Folder[], notes: Note[]) {
  * @category WorkspaceData Context
  */
 function buildNoteTree(groups: Group[], sections: Section[], tasks: Task[]): NoteDataTree {
-    const noteDataTree: NoteDataTree = { groups: [] }
+    // Grouped once (O(n)), the insertion order keeps the position order of the input
+    const sectionsByGroup = new Map<number, Section[]>()
+    for (const section of sections) {
+        const list = sectionsByGroup.get(section.groupID)
+        if (list) list.push(section)
+        else sectionsByGroup.set(section.groupID, [section])
+    }
 
-    noteDataTree.groups = groups.map(group => {
-        const sectionsOfGroup = sections
-            .filter(section => section.groupID === group.id)
-            .map(section => ({
-                ...section,
-                tasks: buildTasks(section.id),
-            }))
-
-        return {
-            ...group,
-            sections: sectionsOfGroup,
+    const rootTasksBySection = new Map<number, Task[]>()
+    const childrenByTask = new Map<number, Task[]>()
+    for (const task of tasks) {
+        if (task.taskID === null) {
+            if (task.sectionID == null) continue
+            const list = rootTasksBySection.get(task.sectionID)
+            if (list) list.push(task)
+            else rootTasksBySection.set(task.sectionID, [task])
+        } else if (task.taskID != null) {
+            const list = childrenByTask.get(task.taskID)
+            if (list) list.push(task)
+            else childrenByTask.set(task.taskID, [task])
         }
-    })
-
-    function buildTasks(sectionId: number): Task[] {
-        return tasks
-            .filter(task => task.sectionID === sectionId && task.taskID === null)
-            .map(task => ({
-                ...task,
-                subtasks: buildSubtasks(task.id),
-            }))
     }
 
-    function buildSubtasks(taskId: number): Task[] {
-        return tasks
-            .filter(subtask => subtask.taskID === taskId)
-            .map(subtask => ({
-                ...subtask,
-                subtasks: buildSubtasks(subtask.id),
-            }))
+    function buildTasks(list: Task[] | undefined): Task[] {
+        return (list ?? []).map(task => ({
+            ...task,
+            subtasks: buildTasks(childrenByTask.get(task.id)),
+        }))
     }
 
-    return noteDataTree
+    return {
+        groups: groups.map(group => ({
+            ...group,
+            sections: (sectionsByGroup.get(group.id) ?? []).map(section => ({
+                ...section,
+                tasks: buildTasks(rootTasksBySection.get(section.id)),
+            })),
+        })),
+    }
 }
 
 /* ------------------------------------------------------------------------------------ */
@@ -180,6 +186,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const [currentNote, setCurrentNote] = useState<Note | null>(null)
     const [currentNotes, setCurrentNotes] = useState<Note[]>([])
 
+    const [trashVersion, setTrashVersion] = useState(0)
+
     const pendingOps = useRef(0)
 
     /**
@@ -198,6 +206,18 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             setIsLoading(pendingOps.current > 0)
         }
     }, [])
+
+    /**
+     * Runs an operation that can change the trash content and bumps trashVersion once it succeeds.
+     * @param operation The operation to run.
+     * @returns The result of the operation.
+     * @category WorkspaceData Context
+     */
+    const withTrashChange = useCallback(<T,>(operation: () => Promise<T>): Promise<T> => withLoading(async () => {
+        const result = await operation()
+        setTrashVersion(version => version + 1)
+        return result
+    }), [withLoading])
 
     /* ------------------------------------------------------------------------------------ */
     // Getter methods
@@ -364,7 +384,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @category Workspace Data Context
      */
     const moveSection = useCallback((sectionID: number, targetGroupID: number, targetIndex: number) =>
-        withLoading(() => moveDBSection(sectionID, targetGroupID, targetIndex)), [withLoading])
+        withTrashChange(() => moveDBSection(sectionID, targetGroupID, targetIndex)), [withTrashChange])
 
     /**
      * Moves a section into a new group created at the given index among the groups of the open note.
@@ -374,7 +394,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @category Workspace Data Context
      */
     const moveSectionToNewGroup = useCallback((sectionID: number, groupPosition: number) =>
-        withLoading(() => moveDBSectionToNewGroup(sectionID, groupPosition)), [withLoading])
+        withTrashChange(() => moveDBSectionToNewGroup(sectionID, groupPosition)), [withTrashChange])
 
     /**
      * Moves a task (with its whole subtree) to a section of the open note, at the top level or under another task,
@@ -386,7 +406,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @category Workspace Data Context
      */
     const moveTask = useCallback((taskID: number, target: TaskMoveTarget, targetIndex: number) =>
-        withLoading(() => moveDBTask(taskID, target, targetIndex)), [withLoading])
+        withTrashChange(() => moveDBTask(taskID, target, targetIndex)), [withTrashChange])
 
     /* ------------------------------------------------------------------------------------ */
     // Deleting methods
@@ -418,7 +438,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @throws Will throw an error if the item cannot be deleted.
      * @category Workspace Data Context
      */
-    const deleteItem = useCallback((itemType: DBItemType, itemID: number) => withLoading(async () => {
+    const deleteItem = useCallback((itemType: DBItemType, itemID: number) => withTrashChange(async () => {
         await deleteDBItem(itemType, itemID)
 
         if (itemType === "note") {
@@ -438,7 +458,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             closeNoteTabs(new Set(notes.filter(n => n.folderID != null && folderIds.has(n.folderID)).map(n => n.id)))
             if (currentFolder && folderIds.has(currentFolder.id)) setCurrentFolder(null)
         }
-    }), [withLoading, closeNoteTabs, folders, notes, currentFolder])
+    }), [withTrashChange, closeNoteTabs, folders, notes, currentFolder])
 
     /* ------------------------------------------------------------------------------------ */
     // Trash methods
@@ -457,21 +477,21 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
      * @category Workspace Data Context
      */
     const restoreItem = useCallback((itemType: DBItemType, itemID: number) =>
-        withLoading(() => restoreDBItem(itemType, itemID)), [withLoading])
+        withTrashChange(() => restoreDBItem(itemType, itemID)), [withTrashChange])
 
     /**
      * Permanently deletes a trashed item. Does not reload the data.
      * @category Workspace Data Context
      */
     const purgeItem = useCallback((itemType: DBItemType, itemID: number) =>
-        withLoading(() => purgeDBItem(itemType, itemID)), [withLoading])
+        withTrashChange(() => purgeDBItem(itemType, itemID)), [withTrashChange])
 
     /**
      * Permanently deletes every trashed item of a workspace. Does not reload the data.
      * @category Workspace Data Context
      */
     const emptyTrash = useCallback((workspaceID: number) =>
-        withLoading(() => emptyDBTrash(workspaceID)), [withLoading])
+        withTrashChange(() => emptyDBTrash(workspaceID)), [withTrashChange])
 
     const resetData = useCallback(() => {
         setCurrentFolder(null)
@@ -498,6 +518,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         currentNotes,
         error,
         isLoading,
+        trashVersion,
         setCurrentFolder,
         setCurrentNote,
         setCurrentNotes,
@@ -534,7 +555,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         resetData
     }), [
         folders, notes, groups, sections, tasks, workspaceDataTree, noteDataTree,
-        currentFolder, currentNote, currentNotes, error, isLoading,
+        currentFolder, currentNote, currentNotes, error, isLoading, trashVersion,
         getWorkspaceData, getNoteData, createWorkspaceFolder, createWorkspaceNote,
         createSubFolder, createNoteInFolder, createSection, createSectionInGroup,
         createTask, createSubTask, updateTaskPriority, updateTaskCompletion,

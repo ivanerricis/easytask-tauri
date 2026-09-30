@@ -142,6 +142,40 @@ describe("WorkspaceDataContext", () => {
             expect(result.current.tasks).toHaveLength(2)
         })
 
+        it("keeps the input order and nests groups, sections, tasks and deep subtasks", async () => {
+            vi.mocked(getDBNoteData).mockResolvedValue({
+                groups: [makeGroup({ id: 2 }), makeGroup({ id: 1 })],
+                sections: [
+                    makeSection({ id: 7, groupID: 1 }),
+                    makeSection({ id: 6, groupID: 2 }),
+                    makeSection({ id: 5, groupID: 2 }),
+                ],
+                tasks: [
+                    makeTask({ id: 12, sectionID: 5, taskID: null }),
+                    makeTask({ id: 11, sectionID: 5, taskID: null }),
+                    makeTask({ id: 21, sectionID: 5, taskID: 11 }),
+                    makeTask({ id: 20, sectionID: 5, taskID: 11 }),
+                    makeTask({ id: 30, sectionID: 5, taskID: 20 }),
+                    makeTask({ id: 40, sectionID: 7, taskID: null }),
+                ],
+            } as never)
+            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+
+            await act(() => result.current.getNoteData(1))
+
+            const [first, second] = result.current.noteDataTree!.groups
+            expect(first.id).toBe(2)
+            expect(first.sections.map(s => s.id)).toEqual([6, 5])
+            expect(first.sections[0].tasks).toEqual([])
+            const tasks = first.sections[1].tasks
+            expect(tasks.map(t => t.id)).toEqual([12, 11])
+            expect(tasks[0].subtasks).toEqual([])
+            expect(tasks[1].subtasks.map(t => t.id)).toEqual([21, 20])
+            expect(tasks[1].subtasks[1].subtasks.map(t => t.id)).toEqual([30])
+            expect(second.sections.map(s => s.id)).toEqual([7])
+            expect(second.sections[0].tasks.map(t => t.id)).toEqual([40])
+        })
+
         it("sets the error and rethrows on failure", async () => {
             vi.mocked(getDBNoteData).mockRejectedValue(new Error("nope"))
             const { result } = renderHook(() => useWorkspaceData(), { wrapper })
@@ -326,6 +360,37 @@ describe("WorkspaceDataContext", () => {
             expect(restoreDBItem).toHaveBeenCalledWith("note", 1)
             expect(purgeDBItem).toHaveBeenCalledWith("folder", 2)
             expect(emptyDBTrash).toHaveBeenCalledWith(4)
+        })
+
+        it("increments trashVersion after every successful trash-changing operation", async () => {
+            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            expect(result.current.trashVersion).toBe(0)
+            let expected = 0
+            const ops: Array<() => Promise<void>> = [
+                () => result.current.deleteItem("task", 5),
+                () => result.current.restoreItem("note", 1),
+                () => result.current.purgeItem("folder", 2),
+                () => result.current.emptyTrash(4),
+                () => result.current.moveSection(4, 2, 1),
+                () => result.current.moveSectionToNewGroup(4, 0),
+                () => result.current.moveTask(9, { sectionId: 4, parentTaskId: null }, 0),
+            ]
+            for (const op of ops) {
+                await act(() => op())
+                expected += 1
+                expect(result.current.trashVersion).toBe(expected)
+            }
+        })
+
+        it("does not increment trashVersion when the operation fails or is unrelated", async () => {
+            vi.mocked(deleteDBItem).mockRejectedValueOnce(new Error("nope"))
+            const { result } = renderHook(() => useWorkspaceData(), { wrapper })
+            await act(async () => {
+                await expect(result.current.deleteItem("task", 1)).rejects.toThrow("nope")
+            })
+            await act(() => result.current.createTask(1, "x"))
+            await act(() => result.current.renameItem("task", 1, "y"))
+            expect(result.current.trashVersion).toBe(0)
         })
 
         it("forwards createNoteInFolder with the workspace id", async () => {

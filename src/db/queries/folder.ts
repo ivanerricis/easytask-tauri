@@ -60,7 +60,7 @@ export async function updateDBFolderColorContent(folderId: number, color?: strin
             `
             WITH RECURSIVE folder_tree AS (
                 SELECT id FROM folder WHERE id = ?
-                UNION ALL
+                UNION
                 SELECT f.id FROM folder f
                 INNER JOIN folder_tree ft ON f.folderID = ft.id
             )

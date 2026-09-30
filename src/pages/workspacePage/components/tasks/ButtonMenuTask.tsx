@@ -3,7 +3,7 @@ import { getErrorMessage } from "@/lib/utils"
 import type { Task } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data-context"
 import { toast } from "sonner"
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
@@ -14,9 +14,12 @@ import { TaskMoveSubmenu } from "../NoteMoveSubmenus"
 
 type ButtonMenuFolderProps = {
     task: Task
+    onAddSubtask?: () => void
 }
 
-export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
+export const ButtonMenuTask = ({ task, onAddSubtask }: ButtonMenuFolderProps) => {
+    // The inline input is opened once the menu has given the focus back, otherwise the input would lose it
+    const addSubtaskRequested = useRef(false)
     const [dropDownOpen, setDropDownOpen] = useState(false)
     const [isDescriptionOpen, setDescriptionOpen] = useState(false)
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
@@ -64,8 +67,19 @@ export const ButtonMenuTask = ({ task }: ButtonMenuFolderProps) => {
                 <DropdownMenuContent
                     onClick={(e) => e.stopPropagation()}
                     className="p-1 rounded-xs"
+                    onCloseAutoFocus={(e) => {
+                        if (!addSubtaskRequested.current) return
+                        e.preventDefault()
+                        addSubtaskRequested.current = false
+                        onAddSubtask?.()
+                    }}
                 >
                     <DropdownMenuGroup className="flex flex-col gap-1">
+                        <ButtonInPopover
+                            text="Aggiungi sottotask"
+                            type="addSubtask"
+                            onClick={() => { addSubtaskRequested.current = true; setDropDownOpen(false) }}
+                        />
                         <ButtonInPopover
                             text={task.description ? 'Rimuovi descrizione' : 'Aggiungi descrizione'}
                             type={task.description ? 'removeDescription' : 'addDescription'}

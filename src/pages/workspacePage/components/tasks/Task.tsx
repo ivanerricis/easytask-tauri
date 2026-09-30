@@ -6,7 +6,8 @@ import { toast } from "sonner"
 import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import TextareaAutosize from "react-textarea-autosize"
-import { AlignLeft, GripVertical } from "lucide-react"
+import { AlignLeft, GripVertical, Plus } from "lucide-react"
+import { AddTask } from "./AddTask"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 
@@ -19,6 +20,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(task.text)
     const [open, onOpenChange] = useState(false)
+    const [isAddingSubtask, setAddingSubtask] = useState(false)
     const { updateTaskCompletion, renameItem, getNoteData, currentNote } = useWorkspaceData()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("task", task.id)
@@ -131,9 +133,18 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                         <div className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-600 size-2 mx-2 mt-1.5 p-1`}></div>
 
                         {/* ButtonMenu */}
-                        <div className="opacity-0 group-hover:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
+                        <div className="flex items-center opacity-0 group-hover:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
+                            <button
+                                type="button"
+                                aria-label="Aggiungi sottotask"
+                                title="Aggiungi sottotask"
+                                onClick={() => setAddingSubtask(true)}
+                                className="p-1 rounded-xs cursor-pointer">
+                                <Plus className="size-4" />
+                            </button>
                             <ButtonMenuTask
                                 task={task}
+                                onAddSubtask={() => setAddingSubtask(true)}
                             />
                         </div>
                     </div>
@@ -148,8 +159,10 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                     {open && <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />}
                 </div>
             </div>
-            {task.subtasks.length > 0 && <div className="flex flex-col w-full pl-6">
+            {(task.subtasks.length > 0 || isAddingSubtask) && <div className="flex flex-col w-full pl-6">
                 {children}
+                {isAddingSubtask &&
+                    <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}
             </div>}
         </div >
     )

@@ -9,20 +9,32 @@ import { PlusButton } from "../section/PlusButton"
 import { CloseButton } from "../section/CloseButton"
 
 type AddTaskProps = {
-    sectionId: number
+    /** Section of the new task; ignored for subtasks, which inherit the section of their parent. */
+    sectionId: number | null
+    /** When set, the input creates a subtask of this task and starts open (no "+" placeholder). */
+    parentTaskId?: number
+    /** Called when the input is dismissed (only meaningful with parentTaskId). */
+    onClose?: () => void
 }
 
-export const AddTask = ({ sectionId }: AddTaskProps) => {
-    const [isOpen, setOpen] = useState(false)
+export const AddTask = ({ sectionId, parentTaskId, onClose }: AddTaskProps) => {
+    const isSubtask = parentTaskId !== undefined
+    const [isOpen, setOpen] = useState(isSubtask)
     const [text, setText] = useState("")
-    const { createTask, currentNote, getNoteData } = useWorkspaceData()
+    const { createTask, createSubTask, currentNote, getNoteData } = useWorkspaceData()
     const formRef = useRef<HTMLFormElement>(null)
+    const onCloseRef = useRef(onClose)
+
+    useEffect(() => {
+        onCloseRef.current = onClose
+    }, [onClose])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (formRef.current && !formRef.current.contains(event.target as Node)) {
                 setOpen(false)
                 setText("")
+                onCloseRef.current?.()
             }
         }
 
@@ -31,6 +43,7 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
     }, [])
 
     const handleOpen = () => {
+        if (isOpen) onClose?.()
         setOpen(prev => !prev)
         setText("")
     }
@@ -39,12 +52,18 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
         e.preventDefault()
         if (text.trim()) {
             try {
-                await createTask(sectionId, text.trim())
-                handleOpen()
+                if (isSubtask) {
+                    // Keep the input open (and focused) to add the next subtask
+                    await createSubTask(parentTaskId, text.trim())
+                    setText("")
+                } else if (sectionId !== null) {
+                    await createTask(sectionId, text.trim())
+                    handleOpen()
+                }
                 if (!currentNote) return
                 await getNoteData(currentNote.id)
             } catch (error: unknown) {
-                toast.error(getErrorMessage(error) || "Errore nella creazione del task")
+                toast.error(getErrorMessage(error) || `Errore nella creazione del ${isSubtask ? "sottotask" : "task"}`)
             }
         }
     }
@@ -68,8 +87,10 @@ export const AddTask = ({ sectionId }: AddTaskProps) => {
                     <Input
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        placeholder="Scrivi qualcosa..."
+                        placeholder={isSubtask ? "Scrivi un sottotask..." : "Scrivi qualcosa..."}
                         autoFocus
+                        onKeyDown={(e) => { if (isSubtask && e.key === "Escape") handleOpen() }}
+                        onBlur={() => { if (isSubtask && !text.trim()) handleOpen() }}
                         className="rounded-none border-none text-sm"
                     />
                 </div>

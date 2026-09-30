@@ -10,6 +10,7 @@ import { createTaskTable, createTaskTrigger } from "./schema/task"
 import { createWorkspaceTable, createWorkspaceTrigger } from "./schema/workspace"
 import { migrateToV3 } from "./schema/v3"
 import { migrateToV4 } from "./schema/v4"
+import { migrateToV5 } from "./schema/v5"
 import { initDB } from "./initDb"
 
 const v1 = [
@@ -31,6 +32,7 @@ const v2 = [
 
 const v3 = [migrateToV3]
 const v4 = [migrateToV4]
+const v5 = [migrateToV5]
 
 let db: MockDb
 
@@ -52,18 +54,18 @@ describe("initDB", () => {
         db.select.mockResolvedValueOnce([{ user_version: 0 }])
         await run()
         expect(db.select).toHaveBeenCalledWith("PRAGMA user_version")
-        expect(executed()).toEqual([...v1, "PRAGMA user_version = 1", ...v2, "PRAGMA user_version = 2", ...v3, "PRAGMA user_version = 3", ...v4, "PRAGMA user_version = 4"])
+        expect(executed()).toEqual([...v1, "PRAGMA user_version = 1", ...v2, "PRAGMA user_version = 2", ...v3, "PRAGMA user_version = 3", ...v4, "PRAGMA user_version = 4", ...v5, "PRAGMA user_version = 5"])
     })
 
     it("treats an empty PRAGMA result as version 0", async () => {
         db.select.mockResolvedValueOnce([])
         await run()
-        expect(executed().at(-1)).toBe("PRAGMA user_version = 4")
-        expect(db.execute).toHaveBeenCalledTimes(v1.length + v2.length + v3.length + v4.length + 4)
+        expect(executed().at(-1)).toBe("PRAGMA user_version = 5")
+        expect(db.execute).toHaveBeenCalledTimes(v1.length + v2.length + v3.length + v4.length + v5.length + 5)
     })
 
     it("does nothing when already at the latest version", async () => {
-        db.select.mockResolvedValueOnce([{ user_version: 4 }])
+        db.select.mockResolvedValueOnce([{ user_version: 5 }])
         const beforeMigrate = vi.fn()
         await initDB(db as unknown as Database, { beforeMigrate })
         expect(db.execute).not.toHaveBeenCalled()
@@ -73,7 +75,7 @@ describe("initDB", () => {
     it("applies only the pending migrations", async () => {
         db.select.mockResolvedValueOnce([{ user_version: 1 }])
         await run()
-        expect(executed()).toEqual([...v2, "PRAGMA user_version = 2", ...v3, "PRAGMA user_version = 3", ...v4, "PRAGMA user_version = 4"])
+        expect(executed()).toEqual([...v2, "PRAGMA user_version = 2", ...v3, "PRAGMA user_version = 3", ...v4, "PRAGMA user_version = 4", ...v5, "PRAGMA user_version = 5"])
     })
 
     it("runs the v3 rebuild as one script: foreign keys off before BEGIN, on again after COMMIT", () => {
@@ -87,7 +89,7 @@ describe("initDB", () => {
             expect(db.execute).not.toHaveBeenCalled()
         })
         await initDB(db as unknown as Database, { beforeMigrate })
-        expect(beforeMigrate).toHaveBeenCalledWith(2, 4)
+        expect(beforeMigrate).toHaveBeenCalledWith(2, 5)
     })
 
     it("does not call beforeMigrate on a fresh database", async () => {

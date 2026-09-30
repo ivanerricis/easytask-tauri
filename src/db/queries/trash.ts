@@ -6,7 +6,7 @@ import { assertItemType, type DBItemType } from "./shared_queries";
 
 const RESTORE_UNIQUE_MESSAGE = "Esiste già un elemento con questo nome: rinominalo prima di ripristinare."
 
-type TrashRow = { id: number, name: string, context: string | null, deleted_at: string, extra?: number }
+type TrashRow = { type: DBItemType, id: number, name: string, context: string | null, deleted_at: string, extra: number }
 
 /**
  * Retrieves the items moved to the trash that belong to a workspace.
@@ -22,52 +22,44 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
     try {
         const db = await getDB()
 
-        const folders = await db.select<TrashRow[]>(
-            `SELECT f.id, f.name, (SELECT p.name FROM folder p WHERE p.id = f.folderID) AS context, f.deleted_at
-             FROM folder f WHERE f.workspaceID = ? AND f.deleted_at IS NOT NULL`, [workspaceId])
-
-        const notes = await db.select<TrashRow[]>(
-            `SELECT n.id, n.name, (SELECT p.name FROM folder p WHERE p.id = n.folderID) AS context, n.deleted_at
-             FROM note n WHERE n.workspaceID = ? AND n.deleted_at IS NOT NULL`, [workspaceId])
-
-        const groups = await db.select<TrashRow[]>(
-            `SELECT g.id, '' AS name, n.name AS context, g.deleted_at,
-                    (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id) AS extra
+        // One UNION ALL query; `kind` keeps the historical order among items deleted at the same time
+        const rows = await db.select<TrashRow[]>(
+            `SELECT 'folder' AS type, 0 AS kind, f.id, f.name,
+                    (SELECT p.name FROM folder p WHERE p.id = f.folderID) AS context, f.deleted_at, 0 AS extra
+             FROM folder f WHERE f.workspaceID = ? AND f.deleted_at IS NOT NULL
+             UNION ALL
+             SELECT 'note', 1, n.id, n.name,
+                    (SELECT p.name FROM folder p WHERE p.id = n.folderID), n.deleted_at, 0
+             FROM note n WHERE n.workspaceID = ? AND n.deleted_at IS NOT NULL
+             UNION ALL
+             SELECT 'section_group', 2, g.id, '', n.name, g.deleted_at,
+                    (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id)
              FROM section_group g INNER JOIN note n ON n.id = g.noteID
-             WHERE n.workspaceID = ? AND g.deleted_at IS NOT NULL`, [workspaceId])
-
-        const sections = await db.select<TrashRow[]>(
-            `SELECT s.id, s.title AS name, 'Nota ' || n.name AS context, s.deleted_at
+             WHERE n.workspaceID = ? AND g.deleted_at IS NOT NULL
+             UNION ALL
+             SELECT 'section', 3, s.id, s.title, 'Nota ' || n.name, s.deleted_at, 0
              FROM section s
              INNER JOIN section_group g ON g.id = s.groupID
              INNER JOIN note n ON n.id = g.noteID
-             WHERE n.workspaceID = ? AND s.deleted_at IS NOT NULL`, [workspaceId])
-
-        const tasks = await db.select<TrashRow[]>(
-            `SELECT t.id, t.text AS name, 'Nota ' || n.name || ' › Sezione ' || s.title AS context, t.deleted_at
+             WHERE n.workspaceID = ? AND s.deleted_at IS NOT NULL
+             UNION ALL
+             SELECT 'task', 4, t.id, t.text, 'Nota ' || n.name || ' › Sezione ' || s.title, t.deleted_at, 0
              FROM task t
              INNER JOIN section s ON s.id = t.sectionID
              INNER JOIN section_group g ON g.id = s.groupID
              INNER JOIN note n ON n.id = g.noteID
-             WHERE n.workspaceID = ? AND t.deleted_at IS NOT NULL`, [workspaceId])
+             WHERE n.workspaceID = ? AND t.deleted_at IS NOT NULL
+             ORDER BY deleted_at DESC, kind, id`, [workspaceId, workspaceId, workspaceId, workspaceId, workspaceId])
 
-        const toItems = (type: DBItemType, rows: TrashRow[]): TrashItem[] => rows.map(row => ({
-            type,
+        return rows.map(row => ({
+            type: row.type,
             id: row.id,
-            name: type === "section_group"
-                ? `Gruppo di ${row.extra ?? 0} ${row.extra === 1 ? "sezione" : "sezioni"}`
+            name: row.type === "section_group"
+                ? `Gruppo di ${row.extra} ${row.extra === 1 ? "sezione" : "sezioni"}`
                 : row.name,
             context: row.context ?? "",
             deleted_at: row.deleted_at,
         }))
-
-        return [
-            ...toItems("folder", folders),
-            ...toItems("note", notes),
-            ...toItems("section_group", groups),
-            ...toItems("section", sections),
-            ...toItems("task", tasks),
-        ].sort((a, b) => b.deleted_at.localeCompare(a.deleted_at))
     } catch (error: unknown) {
         throw createError("TRASH_LOAD_FAILED", "Failed to load the trash: " + getErrorMessage(error))
     }
@@ -94,7 +86,7 @@ const folderChain = (startSql: string, params: number[]): Statement => ({
     sql: `UPDATE folder SET deleted_at = NULL WHERE deleted_at IS NOT NULL AND id IN (
             WITH RECURSIVE anc(id, parent) AS (
                 SELECT id, folderID FROM folder WHERE id = (${startSql})
-                UNION ALL
+                UNION
                 SELECT f.id, f.folderID FROM folder f INNER JOIN anc ON f.id = anc.parent
             ) SELECT id FROM anc)`,
     params,
@@ -152,7 +144,7 @@ function buildRestoreStatements(itemType: DBItemType, id: number): Statement[] {
                     sql: `UPDATE task SET deleted_at = NULL WHERE deleted_at IS NOT NULL AND id IN (
                             WITH RECURSIVE anc(id, parent) AS (
                                 SELECT id, taskID FROM task WHERE id = ?
-                                UNION ALL
+                                UNION
                                 SELECT t.id, t.taskID FROM task t INNER JOIN anc ON t.id = anc.parent
                             ) SELECT id FROM anc)`,
                     params: [id],

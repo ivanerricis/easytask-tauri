@@ -247,14 +247,16 @@ export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetI
             if (!parents[0] || parents[0].sectionID !== target.sectionId)
                 throw createError("TASK_MOVE_INVALID", "Il task di destinazione non è valido.")
 
-            const subtree = await db.select<{ id: number }[]>(
-                `WITH RECURSIVE task_tree AS (
-                    SELECT id FROM task WHERE id = ?
-                    UNION ALL
-                    SELECT t.id FROM task t INNER JOIN task_tree tt ON t.taskID = tt.id
+            // Walk up from the new parent: the moved task is among its ancestors (or is the parent itself)
+            // exactly when the parent lies in the moved subtree
+            const ancestors = await db.select<{ found: number }[]>(
+                `WITH RECURSIVE anc(id, parent) AS (
+                    SELECT id, taskID FROM task WHERE id = ?
+                    UNION
+                    SELECT t.id, t.taskID FROM task t INNER JOIN anc ON t.id = anc.parent
                 )
-                SELECT id FROM task_tree`, [taskId])
-            if (subtree.some(row => row.id === parentId))
+                SELECT EXISTS (SELECT 1 FROM anc WHERE id = ?) AS found`, [parentId, taskId])
+            if (ancestors[0]?.found)
                 throw createError("TASK_MOVE_INVALID", "Non puoi spostare un task dentro sé stesso o un suo sottotask.")
         }
 
@@ -277,7 +279,7 @@ export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetI
         await db.execute(
             `WITH RECURSIVE subtree AS (
                 SELECT id FROM task WHERE taskID = ?
-                UNION ALL
+                UNION
                 SELECT t.id FROM task t INNER JOIN subtree s ON t.taskID = s.id
             )
             UPDATE task SET
