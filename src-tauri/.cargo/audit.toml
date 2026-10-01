@@ -9,6 +9,9 @@
 [advisories]
 ignore = [
     # "RUSTSEC-0000-0000", # reason, link to the tracking issue, review date
+    # rsa (Marvin attack, no fix available) is only reached through sqlx-mysql, which is in Cargo.lock because of
+    # sqlx-macros-core but is never compiled: the app uses SQLite only. Revisit when sqlx drops the lockfile entry.
+    "RUSTSEC-2023-0071",
 ]
 # Informational advisories (unmaintained, unsound, notice) are reported as warnings and do not fail the job;
 # vulnerabilities and yanked crates do.
