@@ -1,6 +1,9 @@
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { getItemName, isUndoableType } from "@/contexts/undo/commands"
 import { DialogClose } from "@radix-ui/react-dialog"
 import React from "react"
 import { toast } from "sonner"
@@ -13,26 +16,34 @@ type DialogDeleteProps<T> = {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     getItemId?: number | undefined
-    getItemData: (id: number) => Promise<void>
+    /** Reloads the data after the delete (when the removal is not applied optimistically). */
+    getItemData?: (id: number) => Promise<void>
+    /** Removes the item from the cached data before the write; returns the function that restores it if the write fails. */
+    optimistic?: () => () => void
 }
 
 type defaultItemType = {
     id: number
 }
 
-export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, getItemId, isOpen, onOpenChange, getItemData }: DialogDeleteProps<T>) => {
+export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, getItemId, isOpen, onOpenChange, getItemData, optimistic }: DialogDeleteProps<T>) => {
+    const { t } = useTranslation()
     const { deleteItem } = useWorkspaceData()
+    const recorder = useUndoRecorder()
 
     const handleDelete = async (e: React.SyntheticEvent) => {
         e.stopPropagation()
+        const rollback = optimistic?.()
         try {
             await deleteItem(itemType, item.id)
             if (typeof getItemId === "number") {
-                await getItemData(getItemId)
+                await getItemData?.(getItemId)
             }
+            if (isUndoableType(itemType)) recorder.remove(itemType, item.id, getItemName(item))
             onOpenChange(false)
         } catch (error) {
-            toast.error('Impossibile eliminare l\'elemento: ' + getErrorMessage(error))
+            rollback?.()
+            toast.error(t("dialogs.delete.error", { message: getErrorMessage(error) }))
         }
     }
 
@@ -49,10 +60,10 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             >
                 <DialogHeader>
                     <DialogTitle className="text-destructive">
-                        Stai per eliminare l'elemento
+                        {t("dialogs.delete.title")}
                     </DialogTitle>
                     <DialogDescription>
-                        Sei sicuro? Questa operazione non può essere annullata!
+                        {t("dialogs.delete.description")}
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -61,11 +72,11 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
                             onClick={(e) => { e.stopPropagation() }}
                             variant="outline"
                         >
-                            Annulla
+                            {t("common.cancel")}
                         </Button>
                     </DialogClose>
                     <Button variant="destructive" onClick={handleDelete}>
-                        Elimina
+                        {t("dialogs.delete.confirm")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

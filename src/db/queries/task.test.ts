@@ -29,12 +29,20 @@ async function thrown(p: Promise<unknown>): Promise<unknown> {
 describe("task queries SQL", () => {
     it("createDBTask", async () => {
         await createDBTask(1, "t")
-        expect(db.execute).toHaveBeenCalledWith("INSERT INTO task (sectionID, text) VALUES (?, ?)", [1, "t"])
+        expect(db.execute).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO task (sectionID, text, position)"), [1, "t", 1])
+    })
+
+    it("createDBTask and createDBSubTask return the id of the new row", async () => {
+        db.execute.mockResolvedValueOnce({ rowsAffected: 1, lastInsertId: 42 })
+        expect(await createDBTask(1, "t")).toBe(42)
+        db.execute.mockResolvedValueOnce({ rowsAffected: 1, lastInsertId: 43 })
+        expect(await createDBSubTask(2, "s")).toBe(43)
     })
 
     it("createDBSubTask", async () => {
         await createDBSubTask(2, "s")
-        expect(db.execute).toHaveBeenCalledWith("INSERT INTO task (taskID, text) VALUES (?, ?)", [2, "s"])
+        expect(db.execute).toHaveBeenCalledWith(
+            expect.stringContaining("INSERT INTO task (sectionID, taskID, text, position)"), ["s", 2, 2])
     })
 
     it("updateDBTaskPriority converts booleans to 0/1", async () => {
@@ -64,12 +72,12 @@ describe("task queries errors", () => {
         db.execute.mockRejectedValueOnce(new Error("UNIQUE constraint failed"))
         expect(await thrown(createDBTask(1, "t"))).toEqual({
             code: "TASK_EXISTS",
-            message: "A task with this name already exists.",
+            message: "Esiste già un task con questo nome.",
         })
         db.execute.mockRejectedValueOnce(new Error("CHECK constraint failed"))
         expect(await thrown(createDBSubTask(1, ""))).toEqual({
             code: "TASK_CHECK_FAILED",
-            message: "The task name cannot be empty.",
+            message: "Il nome del task non può essere vuoto.",
         })
     })
 
@@ -84,7 +92,7 @@ describe("task queries errors", () => {
         db.execute.mockRejectedValueOnce(new Error("locked"))
         expect(await thrown(updateDBTaskDescription(1, "d"))).toEqual({
             code: "TASK_DESCRIPTION_UPDATE_FAILED",
-            message: "Failed to update task description: locked",
+            message: "Impossibile aggiornare la descrizione del task: locked",
         })
     })
 
@@ -93,7 +101,7 @@ describe("task queries errors", () => {
         vi.mocked(getDB).mockRejectedValueOnce(new Error("no db"))
         expect(await thrown(createDBTask(1, "t"))).toEqual({
             code: "TASK_UNKNOWN_ERROR",
-            message: "An unknown error occurred: no db",
+            message: "Si è verificato un errore sconosciuto: no db",
         })
     })
 })

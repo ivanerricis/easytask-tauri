@@ -1,5 +1,7 @@
+import i18n from "@/i18n"
 import { handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
+import { Transaction } from "../transaction";
 
 /**
  * Creates a new task in the database.
@@ -11,11 +13,16 @@ import { getDB } from "../dbManager";
 export async function createDBWorkspaceFolder(workspaceId: number, name: string, color?: string | null) {
     try {
         const db = await getDB()
-        await db.execute('INSERT INTO folder (workspaceID, name, color) VALUES (?, ?, ?)', [workspaceId, name, color ?? null])
+        const result = await db.execute(
+            `INSERT INTO folder (workspaceID, name, color, position)
+             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM folder
+             WHERE workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL`,
+            [workspaceId, name, color ?? null, workspaceId])
+        return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "FOLDER", {
-            UNIQUE: "A folder with this name already exists.",
-            CHECK: "The folder name cannot be empty.",
+            UNIQUE: i18n.t("errors.folder.unique"),
+            CHECK: i18n.t("errors.folder.check"),
         })
     }
 }
@@ -30,11 +37,16 @@ export async function createDBWorkspaceFolder(workspaceId: number, name: string,
 export async function createDBSubFolder(workspaceID: number, folderId: number, name: string) {
     try {
         const db = await getDB()
-        await db.execute('INSERT INTO folder (workspaceID, folderID, name) VALUES (?, ?, ?)', [workspaceID, folderId, name])
+        const result = await db.execute(
+            `INSERT INTO folder (workspaceID, folderID, name, position)
+             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM folder
+             WHERE folderID = ? AND deleted_at IS NULL`,
+            [workspaceID, folderId, name, folderId])
+        return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "FOLDER", {
-            UNIQUE: "A folder with this name already exists.",
-            CHECK: "The folder name cannot be empty.",
+            UNIQUE: i18n.t("errors.folder.unique"),
+            CHECK: i18n.t("errors.folder.check"),
         })
     }
 }
@@ -52,7 +64,7 @@ export async function updateDBFolderColorContent(folderId: number, color?: strin
             `
             WITH RECURSIVE folder_tree AS (
                 SELECT id FROM folder WHERE id = ?
-                UNION ALL
+                UNION
                 SELECT f.id FROM folder f
                 INNER JOIN folder_tree ft ON f.folderID = ft.id
             )
@@ -66,21 +78,16 @@ export async function updateDBFolderColorContent(folderId: number, color?: strin
 
         const placeholders = folderIds.map(() => '?').join(',')
 
-        await db.execute(
-            `UPDATE folder SET color = ? WHERE id IN (${placeholders})`,
-            [color, ...folderIds]
-        )
-
-        await db.execute(
-            `UPDATE note SET color = ? WHERE folderID IN (${placeholders})`,
-            [color, ...folderIds]
-        )
+        const tx = new Transaction()
+        tx.add(`UPDATE folder SET color = ? WHERE id IN (${placeholders})`, [color, ...folderIds])
+        tx.add(`UPDATE note SET color = ? WHERE folderID IN (${placeholders})`, [color, ...folderIds])
+        await tx.run()
 
     } catch (error: unknown) {
         console.error(error)
         handleDBError(error, "FOLDER", {
-            UNIQUE: "A folder with this name already exists.",
-            CHECK: "The folder name cannot be empty.",
+            UNIQUE: i18n.t("errors.folder.unique"),
+            CHECK: i18n.t("errors.folder.check"),
         })
     }
 }

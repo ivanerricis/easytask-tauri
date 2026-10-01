@@ -11,20 +11,27 @@
     "core:window:allow-minimize",
     "core:window:allow-toggle-maximize",
     "core:window:allow-close",
+    "core:window:allow-destroy",
     "window-state:default",
     "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:allow-write-text-file",
+    "fs:allow-read-text-file",
+    "fs:allow-exists",
+    "fs:allow-mkdir",
+    "fs:allow-copy-file",
+    "fs:allow-read-dir",
+    "fs:allow-remove",
+    "fs:allow-stat",
     {
-      "identifier": "fs:allow-exists",
+      "identifier": "opener:allow-open-url",
       "allow": [
-        { "path": "$DOCUMENT/EasyTask" },
-        { "path": "$DOCUMENT/EasyTask/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-mkdir",
-      "allow": [
-        { "path": "$DOCUMENT/EasyTask" },
-        { "path": "$DOCUMENT/EasyTask/**" }
+        {
+          "url": "https://github.com/ivanerricis/easytask-tauri"
+        },
+        {
+          "url": "https://github.com/ivanerricis/easytask-tauri/releases*"
+        }
       ]
     },
     "sql:allow-load",
@@ -36,6 +43,10 @@
     "store:allow-set",
     "store:allow-has",
     "store:allow-delete",
-    "store:allow-save"
+    "store:allow-save",
+    "clipboard-manager:allow-read-text",
+    "clipboard-manager:allow-write-text",
+    "process:allow-restart",
+    "updater:default"
   ]
 }

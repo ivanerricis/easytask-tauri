@@ -1,10 +1,23 @@
+import { useTranslation } from "react-i18next"
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
-import { ListCollapse } from "lucide-react"
+import { ListChevronsUpDown, ListCollapse } from "lucide-react"
 
-export const ButtonCollapseItems = () => {
+type ButtonCollapseItemsProps = {
+    allCollapsed: boolean
+    onToggle: () => void
+    disabled?: boolean
+}
+
+export const ButtonCollapseItems = ({ allCollapsed, onToggle, disabled }: ButtonCollapseItemsProps) => {
+    const { t } = useTranslation()
+    const label = allCollapsed ? t("sidebar.expandAll") : t("sidebar.collapseAll")
     return (
-        <Button variant={"buttonIcon"} size={"icon"}>
-            <ListCollapse />
-        </Button>
+        <TooltipCustom text={label}>
+            <Button variant={"buttonIcon"} size={"icon"} disabled={disabled} onClick={onToggle}
+                aria-label={label}>
+                {allCollapsed ? <ListChevronsUpDown /> : <ListCollapse />}
+            </Button>
+        </TooltipCustom>
     )
 }

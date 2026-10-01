@@ -1,37 +1,28 @@
+import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useTabs, useTabsActions } from "@/contexts/use-tabs"
+import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { CopyMinus } from "lucide-react"
-import { useEffect } from "react"
 
 export const ButtonCloseNotes = () => {
+    const { t } = useTranslation()
+    const { openIds } = useTabs()
+    const { closeAllNotes } = useTabsActions()
+    const shortcutLabel = useShortcutLabel("close-all-notes")
 
-    const { currentNotes, setCurrentNotes, setCurrentNote } = useWorkspaceData()
-
-    const closeNotes = async (e: React.MouseEvent) => {
+    const closeNotes = (e: React.MouseEvent) => {
         e.stopPropagation()
-        setCurrentNotes([])
-        setCurrentNote(null)
+        closeAllNotes()
     }
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === "t" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault()
-                setCurrentNotes([])
-                setCurrentNote(null)
-            }
-        }
-        document.addEventListener("keydown", handleKeyDown)
-        return () => document.removeEventListener("keydown", handleKeyDown)
-    }, [setCurrentNotes, setCurrentNote])
-
     return (
-        <TooltipCustom text="Chiudi tutte le note" shortcut="(Ctrl + T)">
+        <TooltipCustom text={t("notes.closeAll")} shortcut={shortcutLabel}>
             <Button
                 variant={"buttonIcon"}
                 size={"icon"}
-                disabled={currentNotes.length === 0}
+                aria-label={t("notes.closeAll")}
+                disabled={openIds.length === 0}
                 onClick={closeNotes}
             >
                 <CopyMinus className="scale-x-[-1]" />

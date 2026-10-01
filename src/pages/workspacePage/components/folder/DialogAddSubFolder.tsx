@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { getErrorMessage } from "@/lib/utils"
 import {
@@ -10,9 +11,10 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { useWorkspace } from "@/contexts/workspace-context"
+import { useWorkspace } from "@/contexts/use-workspace"
 import type { Folder } from "@/types/types"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import React, { useState } from "react"
 import { toast } from "sonner"
 
@@ -23,9 +25,11 @@ type ParentFolderProps = {
 }
 
 export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: ParentFolderProps) {
+    const { t } = useTranslation()
     const [name, setName] = useState("")
     const [error, setError] = useState<string | null>(null)
-    const { createSubFolder, getWorkspaceData } = useWorkspaceData()
+    const { createSubFolder } = useWorkspaceData()
+    const recorder = useUndoRecorder()
     const { currentWorkspace } = useWorkspace()
 
     const handleCreateFolder = async (e: React.FormEvent) => {
@@ -33,8 +37,8 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
         if (!currentWorkspace?.id) return
         if (name.trim() === "") return
         try {
-            await createSubFolder(currentWorkspace?.id, parentFolder.id, name.trim())
-            await getWorkspaceData(currentWorkspace.id)
+            const id = await createSubFolder(currentWorkspace.id, parentFolder.id, name.trim())
+            if (typeof id === "number") recorder.create("folder", id, name.trim())
             setError(null)
             onOpenChange(false)
             setName("")
@@ -55,7 +59,7 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px]" onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
-                    <DialogTitle>Crea una cartella</DialogTitle>
+                    <DialogTitle>{t("dialogs.addFolder.title")}</DialogTitle>
                     <DialogDescription />
                 </DialogHeader>
                 <form onSubmit={handleCreateFolder} className="grid gap-3">
@@ -76,13 +80,13 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
                                 type="button"
                                 onClick={handleCancel}
                             >
-                                Annulla
+                                {t("common.cancel")}
                             </Button>
                         </DialogClose>
                         <Button
                             type="submit"
                             disabled={!name.trim()}>
-                            Crea cartella
+                            {t("dialogs.addFolder.submit")}
                         </Button>
                     </DialogFooter>
                 </form>

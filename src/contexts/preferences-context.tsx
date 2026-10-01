@@ -1,9 +1,11 @@
-import { createContext, useContext, useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
     getPrimaryColor,
     savePrimaryColor,
     getShowProgressBar,
     saveShowProgressBar,
+    getShowGroupProgressBar,
+    saveShowGroupProgressBar,
     getShowSectionCount,
     saveShowSectionCount,
     getShowTaskCount,
@@ -14,48 +16,61 @@ import {
     getSideBarRightOpen,
     saveAudioPlayerPosition,
     getAudioPlayerPosition,
-    resetAudioPlayerPosition
+    resetAudioPlayerPosition,
+    getWorkspaceView,
+    saveWorkspaceView,
+    getReopenNotes,
+    saveReopenNotes,
+    getReopenLastWorkspace,
+    saveReopenLastWorkspace,
+    getSidebarItemSize,
+    saveSidebarItemSize,
+    getSidebarLeftWidth,
+    saveSidebarLeftWidth,
+    getLanguage,
+    saveLanguage,
+    type SidebarItemSize,
+    type WorkspaceView
 } from "@/lib/store/preferences"
+import { applyLanguagePreference, type LanguagePreference } from "@/i18n"
 import type { AudioPlayerPosition } from "@/types/types"
-
-type PreferencesContextType = {
-    showProgressBar: boolean
-    setShowProgressBar: (value: boolean) => void
-    showSectionCount: boolean
-    setShowSectionCount: (value: boolean) => void
-    showTaskCount: boolean
-    setShowTaskCount: (value: boolean) => void
-    primaryColor: string
-    setPrimaryColor: (value: string) => void
-    sidebarLeftOpen: boolean
-    setSideBarLeftOpen: (value: boolean) => void
-    sidebarRightOpen: boolean
-    setSideBarRightOpen: (value: boolean) => void
-    audioPlayerPosition: AudioPlayerPosition
-    audioPlayerContainerRef: React.RefObject<HTMLDivElement | null>
-    setAudioPlayerPosition: (position: AudioPlayerPosition) => void
-    resetPlayerPosition: () => void
-}
-
-const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined)
+import { SIDEBAR_DEFAULT_WIDTH, clampSidebarWidth } from "@/lib/sidebar-layout"
+import { PreferencesContext } from "./preferences-context-object"
 
 export const PreferencesProvider = ({ children }: { children: React.ReactNode }) => {
     const [showProgressBar, setShowProgressBarState] = useState(true)
+    const [showGroupProgressBar, setShowGroupProgressBarState] = useState(true)
     const [showSectionCount, setShowSectionCountState] = useState(true)
     const [showTaskCount, setShowTaskCountState] = useState(true)
     const [primaryColor, setPrimaryColorState] = useState("#ffb375")
     const [sidebarLeftOpen, setSidebarLeftOpenState] = useState(true)
     const [sidebarRightOpen, setSidebarRightOpenState] = useState(true)
     const [audioPlayerPosition, setAudioPlayerPositionState] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 })
-    const audioPlayerContainerRef = useRef<HTMLDivElement>(null)
+    const [workspaceView, setWorkspaceViewState] = useState<WorkspaceView>("grid")
+    const [reopenNotes, setReopenNotesState] = useState(true)
+    const [reopenLastWorkspace, setReopenLastWorkspaceState] = useState(false)
+    const [sidebarItemSize, setSidebarItemSizeState] = useState<SidebarItemSize>("normal")
+    const [sidebarLeftWidth, setSidebarLeftWidthState] = useState(SIDEBAR_DEFAULT_WIDTH)
+    const [language, setLanguageState] = useState<LanguagePreference>("system")
+    const audioPlayerContainerRef =useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         getShowProgressBar().then(setShowProgressBarState)
+        getShowGroupProgressBar().then(setShowGroupProgressBarState)
         getShowSectionCount().then(setShowSectionCountState)
         getShowTaskCount().then(setShowTaskCountState)
         getSideBarLeftOpen().then(setSidebarLeftOpenState)
         getSideBarRightOpen().then(setSidebarRightOpenState)
         getAudioPlayerPosition().then(setAudioPlayerPositionState)
+        getWorkspaceView().then(setWorkspaceViewState)
+        getReopenNotes().then(setReopenNotesState)
+        getReopenLastWorkspace().then(setReopenLastWorkspaceState)
+        getSidebarItemSize().then(setSidebarItemSizeState)
+        getSidebarLeftWidth().then(setSidebarLeftWidthState)
+        getLanguage().then(value => {
+            setLanguageState(value)
+            void applyLanguagePreference(value)
+        })
         getPrimaryColor().then(hex => {
             setPrimaryColorState(hex)
             document.documentElement.style.setProperty('--primary', hex)
@@ -65,6 +80,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const setShowProgressBar = (value: boolean) => {
         setShowProgressBarState(value)
         saveShowProgressBar(value)
+    }
+
+    const setShowGroupProgressBar = (value: boolean) => {
+        setShowGroupProgressBarState(value)
+        saveShowGroupProgressBar(value)
     }
 
     const setShowSectionCount = (value: boolean) => {
@@ -93,7 +113,39 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         saveSideBarRightOpen(value)
     }
 
-    const setAudioPlayerPosition = (position: AudioPlayerPosition) => {
+    const setWorkspaceView = (value: WorkspaceView) => {
+        setWorkspaceViewState(value)
+        saveWorkspaceView(value)
+    }
+
+    const setReopenNotes = (value: boolean) => {
+        setReopenNotesState(value)
+        saveReopenNotes(value)
+    }
+
+    const setReopenLastWorkspace = (value: boolean) => {
+        setReopenLastWorkspaceState(value)
+        saveReopenLastWorkspace(value)
+    }
+
+    const setSidebarItemSize = (value: SidebarItemSize) => {
+        setSidebarItemSizeState(value)
+        saveSidebarItemSize(value)
+    }
+
+    const setSidebarLeftWidth = (value: number) => {
+        const width = clampSidebarWidth(value)
+        setSidebarLeftWidthState(width)
+        saveSidebarLeftWidth(width)
+    }
+
+    const setLanguage = (value: LanguagePreference) => {
+        setLanguageState(value)
+        void applyLanguagePreference(value)
+        saveLanguage(value)
+    }
+
+    const setAudioPlayerPosition =(position: AudioPlayerPosition) => {
         setAudioPlayerPositionState(position)
         saveAudioPlayerPosition(position)
     }
@@ -124,6 +176,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         <PreferencesContext.Provider value={{
             showProgressBar,
             setShowProgressBar,
+            showGroupProgressBar,
+            setShowGroupProgressBar,
             showSectionCount,
             setShowSectionCount,
             showTaskCount,
@@ -137,16 +191,21 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             audioPlayerPosition,
             audioPlayerContainerRef,
             setAudioPlayerPosition,
-            resetPlayerPosition
+            resetPlayerPosition,
+            workspaceView,
+            setWorkspaceView,
+            reopenNotes,
+            setReopenNotes,
+            reopenLastWorkspace,
+            setReopenLastWorkspace,
+            sidebarItemSize,
+            setSidebarItemSize,
+            sidebarLeftWidth,
+            setSidebarLeftWidth,
+            language,
+            setLanguage
         }}>
             {children}
         </PreferencesContext.Provider>
     )
-}
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const usePreferences = () => {
-    const context = useContext(PreferencesContext)
-    if (!context) throw new Error("usePreferences must be used within a PreferencesProvider")
-    return context
 }

@@ -7,15 +7,24 @@ import { makeWorkspace } from "@/test/ui-fixtures"
 const ctx = {
     workspaces: [] as ReturnType<typeof makeWorkspace>[],
     getWorkspaces: vi.fn(),
+    setCurrentWorkspace: vi.fn(),
     isLoading: false,
     error: null as string | null,
 }
-vi.mock("@/contexts/workspace-context", () => ({ useWorkspace: () => ctx }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ctx }))
+
+const startup = { pending: false }
+vi.mock("./startup-restore", () => ({ useStartupRestore: () => startup }))
+const prefs = {
+    workspaceView: "grid" as "grid" | "list",
+    setWorkspaceView: vi.fn(),
+}
+vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("./MainPageLayout", () => ({ MainPageLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock("./components/DialogCreateWorkspace", () => ({ DialogCreateWorkspace: () => <div>create-dialog</div> }))
 vi.mock("./components/WorkspacesContainer", () => ({
-    WorkspacesContainer: ({ workspaces }: { workspaces: { name: string }[] }) => (
-        <ul>{workspaces.map(w => <li key={w.name}>{w.name}</li>)}</ul>
+    WorkspacesContainer: ({ workspaces, view }: { workspaces: { name: string }[]; view: string }) => (
+        <ul data-view={view}>{workspaces.map(w => <li key={w.name}>{w.name}</li>)}</ul>
     ),
 }))
 vi.mock("@/components/pages/error-page", () => ({ ErrorPage: ({ error }: { error: string }) => <div>error:{error}</div> }))
@@ -26,7 +35,24 @@ describe("MainPage", () => {
         ctx.workspaces = []
         ctx.isLoading = false
         ctx.error = null
+        startup.pending = false
+        prefs.workspaceView = "grid"
         ctx.getWorkspaces.mockResolvedValue(undefined)
+    })
+
+
+    it("shows the loading page while the startup restore is pending", () => {
+        startup.pending = true
+        ctx.workspaces = [makeWorkspace({ name: "Alpha" })]
+        render(<MainPage />)
+        expect(screen.getByText("Caricamento dei Workspace...")).toBeInTheDocument()
+        expect(screen.queryByText("Bentornato!")).not.toBeInTheDocument()
+        expect(screen.queryByText("Alpha")).not.toBeInTheDocument()
+    })
+
+    it("offers the import button next to the create dialog", () => {
+        render(<MainPage />)
+        expect(screen.getByRole("button", { name: "Importa un Workspace" })).toBeEnabled()
     })
 
     it("requests the workspaces on mount", () => {
@@ -47,7 +73,7 @@ describe("MainPage", () => {
         render(<MainPage />)
         expect(screen.getByText("Alpha")).toBeInTheDocument()
         expect(screen.queryByText("Caricamento dei Workspace...")).not.toBeInTheDocument()
-        expect(screen.getByRole("button")).toBeDisabled()
+        expect(screen.getByRole("button", { name: "Ricarica i Workspace" })).toBeDisabled()
     })
 
     it("shows the error page when loading failed and nothing is cached", () => {
@@ -70,9 +96,31 @@ describe("MainPage", () => {
         render(<MainPage />)
         ctx.getWorkspaces.mockRejectedValueOnce(new Error("fail"))
 
-        await user.click(screen.getByRole("button"))
+        await user.click(screen.getByRole("button", { name: "Ricarica i Workspace" }))
 
         await waitFor(() => expect(ctx.getWorkspaces).toHaveBeenCalledTimes(2))
         await waitFor(() => expect(spy).toHaveBeenCalled())
+    })
+
+    it("passes the persisted view to the container", () => {
+        prefs.workspaceView = "list"
+        ctx.workspaces = [makeWorkspace({ name: "Alpha" })]
+        const { container } = render(<MainPage />)
+        expect(container.querySelector("ul")).toHaveAttribute("data-view", "list")
+    })
+
+    it("switches from grid to list through the toggle", async () => {
+        const user = userEvent.setup()
+        render(<MainPage />)
+        await user.click(screen.getByRole("button", { name: "Visualizza come lista" }))
+        expect(prefs.setWorkspaceView).toHaveBeenCalledWith("list")
+    })
+
+    it("switches from list back to grid through the toggle", async () => {
+        const user = userEvent.setup()
+        prefs.workspaceView = "list"
+        render(<MainPage />)
+        await user.click(screen.getByRole("button", { name: "Visualizza come griglia" }))
+        expect(prefs.setWorkspaceView).toHaveBeenCalledWith("grid")
     })
 })

@@ -1,10 +1,31 @@
+import { useTranslation } from "react-i18next"
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
-import { Download } from "lucide-react"
+import { useActiveNote } from "@/contexts/use-active-note"
+import { useAudio } from "@/contexts/use-audio"
+import { Music } from "lucide-react"
 
+/**
+ * Adds audio files to the first group of the open note (each group also has its own "Aggiungi file audio" menu item).
+ * @category Sidebar
+ */
 export const ButtonUpload = () => {
+    const { t } = useTranslation()
+    const { noteDataTree } = useActiveNote()
+    const { addFiles } = useAudio()
+    const firstGroup = noteDataTree?.groups[0]
+
     return (
-        <Button variant={"buttonIcon"} size={"icon"}>
-            <Download />
-        </Button>
+        <TooltipCustom text={t("sidebar.addAudioFirstGroup")}>
+            <Button
+                variant={"buttonIcon"}
+                size={"icon"}
+                disabled={!firstGroup}
+                aria-label={t("audio.add")}
+                onClick={() => { if (firstGroup) void addFiles(firstGroup.id) }}
+            >
+                <Music />
+            </Button>
+        </TooltipCustom>
     )
 }

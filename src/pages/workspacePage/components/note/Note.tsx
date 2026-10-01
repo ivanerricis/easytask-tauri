@@ -1,54 +1,72 @@
+import { useTranslation } from "react-i18next"
 import type { Note } from "@/types/types"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useTabsActions } from "@/contexts/use-tabs"
 import { File } from "lucide-react"
 import { ButtonMenuNote } from "./ButtonMenuNote"
+import { ItemMenuButton } from "@/components/item-menu"
 import React, { useCallback, useState } from "react"
 import { formatDate, hexToRgba } from "@/lib/utils"
+import { useItemSize } from "../sidebar/item-size"
+import { DropLine } from "../sidebar/DropLine"
+import { stopDragActivation, treeRowKeyDown, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import type { DropZone } from "../sidebar/tree-dnd"
+import { focusRing } from "@/lib/a11y"
 import { TooltipCustom } from "@/components/tooltip-custom"
 
 type ItemNoteProps = {
     note: Note
     className?: string
+    /** Drop feedback while another item is dragged over this row. */
+    dropZone?: DropZone | null
 }
 
-export const ItemNote = React.memo(({ note, className }: ItemNoteProps) => {
+export const ItemNote = React.memo(({ note, className, dropZone = null }: ItemNoteProps) => {
+    const { t } = useTranslation()
+    const { ref, attributes, listeners, isDragging } = useTreeRow("note", note.id)
     const [isHovered, setIsHovered] = useState(false)
-    const { setCurrentNotes, setCurrentNote, getNoteData } = useWorkspaceData()
+    const size = useItemSize()
+    const { openNote } = useTabsActions()
 
-    const handleOpenFile = useCallback(async (e: React.MouseEvent) => {
+    const handleOpenFile = useCallback((e: React.MouseEvent) => {
         e.stopPropagation()
-        await getNoteData(note.id)
-        setCurrentNotes(prev => prev.some(n => n.id === note.id) ? prev : [...prev, note])
-        setCurrentNote(note)
-    }, [note, getNoteData, setCurrentNotes, setCurrentNote])
+        if (wasTreeJustDragged()) return
+        openNote(note.id)
+    }, [note.id, openNote])
 
     return (
-        <div
-            role="button"
-            onClick={handleOpenFile}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
-            className={`relative group cursor-pointer w-full h-7 flex items-center opacity-85 bg-background hover:opacity-100 rounded-xs border border-accent overflow-x-hidden ${className}`}
-            style={{ backgroundColor: `${hexToRgba(isHovered ? 0.5 : 0.3, note.color)}` }}
-        >
-            {/* Icon + Text */}
-            <TooltipCustom
-                side="right"
-                sideOffset={33}
-                text={[
-                    "Data creazione: " + formatDate(note.creation_date) + " " + note.creation_time,
-                    "Data modifica: " + formatDate(note.edit_date) + " " + note.edit_time
-                ]}>
-                <div className="flex items-center gap-1 px-1 overflow-hidden w-full">
-                    <File className="size-4 shrink-0 text-foreground" />
-                    <h1 className="text-sm text-foreground truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]">
-                        {note.name}
-                    </h1>
+        <ButtonMenuNote note={note}>
+            <div
+                {...attributes}
+                {...listeners}
+                ref={ref}
+                role="button"
+                onClick={handleOpenFile}
+                onKeyDown={treeRowKeyDown(listeners, () => openNote(note.id))}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                className={`${focusRing} relative group cursor-pointer w-full ${size.row} flex items-center opacity-85 bg-background hover:opacity-100 rounded-xs border border-accent overflow-x-hidden ${isDragging ? "opacity-40" : ""} ${className ?? ""}`}
+                style={{ backgroundColor: `${hexToRgba(isHovered ? 0.5 : 0.3, note.color)}` }}
+            >
+                <DropLine zone={dropZone} />
+                {/* Icon + Text */}
+                <TooltipCustom
+                    side="right"
+                    sideOffset={size.noteTooltipOffset}
+                    text={[
+                        t("common.creationDate", { date: formatDate(note.creation_date), time: note.creation_time }),
+                        t("common.editDate", { date: formatDate(note.edit_date), time: note.edit_time })
+                    ]}>
+                    <div className="flex items-center gap-1 px-1 overflow-hidden w-full">
+                        <File className={`${size.icon} shrink-0 text-foreground`} />
+                        <span className={`${size.text} text-foreground truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
+                            {note.name}
+                        </span>
+                    </div>
+                </TooltipCustom>
+                <div className={`shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
+                    <ItemMenuButton />
                 </div>
-            </TooltipCustom>
-            <div className="shrink-0 px-1 opacity-0 group-hover:opacity-100">
-                <ButtonMenuNote note={note} />
             </div>
-        </div>
+        </ButtonMenuNote>
     )
 })

@@ -1,5 +1,5 @@
 /**
- * Creates the task table in the database.
+ * Creates the task table in the database (soft delete through deleted_at, manual order through position).
  * @category Database Schema
  */
 export const createTaskTable = `
@@ -17,15 +17,25 @@ export const createTaskTable = `
         creation_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
         edit_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
         edit_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
+        deleted_at TEXT DEFAULT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
         FOREIGN KEY(sectionID) REFERENCES section(id) ON DELETE CASCADE,
-        FOREIGN KEY(taskID) REFERENCES task(id) ON DELETE CASCADE,
-        UNIQUE(text, sectionID)
+        FOREIGN KEY(taskID) REFERENCES task(id) ON DELETE CASCADE
     );
 `
 
 /**
- * Recreates the trigger that updates the edit timestamp of the task table.
- * It fires only when content columns change, so it never re-triggers itself.
+ * Indexes of the task table, serving the task tree lookups and the ON DELETE CASCADE.
+ * @category Database Schema
+ */
+export const createTaskIndexes = `
+    CREATE INDEX IF NOT EXISTS idx_task_section ON task(sectionID, taskID, position);
+    CREATE INDEX IF NOT EXISTS idx_task_parent ON task(taskID, position);
+`
+
+/**
+ * Creates the trigger that updates the edit timestamp of the task table.
+ * It fires only when content columns change (not position or deleted_at), so it never re-triggers itself.
  * @category Database Schema
  */
 export const createTaskTrigger = `

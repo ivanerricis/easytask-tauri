@@ -1,10 +1,13 @@
+import { useTranslation } from "react-i18next"
 import type { Task } from "@/types/types";
 import { getErrorMessage } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import TextareaAutosize from "react-textarea-autosize"
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import { useWorkspaceData } from "@/contexts/workspace-data-context";
+import { useWorkspaceActions } from "@/contexts/workspace-data";
+import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { useUndoRecorder } from "@/contexts/undo/use-undo";
 import { toast } from "sonner";
 
 type Props = {
@@ -14,17 +17,22 @@ type Props = {
 }
 
 export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
+    const { t } = useTranslation()
     const [text, setText] = useState(task.description)
-    const { updateTaskDescription, getNoteData, currentNote } = useWorkspaceData()
+    const { updateTaskDescription } = useWorkspaceActions()
+    const { patchTask } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
 
     const handleSaveDecription = async (e: React.MouseEvent) => {
         e.stopPropagation()
+        // Optimistic: the cached tree is updated at once and restored if the write fails
+        const rollback = patchTask(task.id, { description: text })
         try {
             await updateTaskDescription(task.id, text !== "" ? text : undefined)
-            if (currentNote)
-                await getNoteData(currentNote?.id)
+            if (text !== (task.description ?? "")) recorder.taskDescription(task.id, task.text, task.description ?? "", text)
             onOpenChange(false)
         } catch (err) {
+            rollback()
             toast.error(getErrorMessage(err))
         }
     }
@@ -52,10 +60,10 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
                         variant={"outline"}
                         onClick={(e) => handleClose(e)}
                     >
-                        Annulla
+                        {t("common.cancel")}
                     </Button>
                     <Button onClick={(e) => handleSaveDecription(e)}>
-                        Salva
+                        {t("common.save")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

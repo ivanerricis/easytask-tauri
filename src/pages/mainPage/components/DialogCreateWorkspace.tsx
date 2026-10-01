@@ -1,4 +1,7 @@
+import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { useShortcut } from "@/hooks/use-shortcut"
+import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { Button } from "@/components/ui/button"
 import {
     Dialog,
@@ -10,9 +13,9 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useWorkspace } from "@/contexts/workspace-context"
+import { useWorkspace } from "@/contexts/use-workspace"
 import { ArrowRight, Palette, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 import { getErrorMessage } from "@/lib/utils"
 
 const defaultWorkspace = {
@@ -21,22 +24,15 @@ const defaultWorkspace = {
 }
 
 export function DialogCreateWorkspace() {
+    const { t } = useTranslation()
     const [workspace, setWorkspace] = useState(defaultWorkspace)
     const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
     const [paletteIsOpen, setPaletteOpen] = useState(false);
     const { createWorkspace, getWorkspaces } = useWorkspace()
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if (e.ctrlKey && e.key === "n") {
-                e.preventDefault()
-                setIsOpen(true)
-            }
-        }
-        window.addEventListener("keydown", handleKeyDown)
-        return () => window.removeEventListener("keydown", handleKeyDown)
-    }, [])
+    useShortcut("new-workspace", () => setIsOpen(true), { allowInInputs: true })
+    const shortcutLabel = useShortcutLabel("new-workspace")
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -63,13 +59,13 @@ export function DialogCreateWorkspace() {
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Crea Workspace</DialogTitle>
+                        <DialogTitle>{t("home.createWorkspace.title")}</DialogTitle>
                         <DialogDescription />
                     </DialogHeader>
                     <form onSubmit={handleCreate}>
                         <div className="grid gap-4">
                             <div className="grid gap-3">
-                                <Label>Nome</Label>
+                                <Label>{t("home.createWorkspace.name")}</Label>
                                 <Input
                                     id="name-1"
                                     name="name"
@@ -106,6 +102,7 @@ export function DialogCreateWorkspace() {
                                         type="button"
                                         onClick={(e) => { e.preventDefault(); setPaletteOpen(false) }}
                                         variant={"buttonIcon"}
+                                        aria-label={t("home.createWorkspace.closePalette")}
                                         className="h-full"
                                     >
                                         <X />
@@ -117,7 +114,7 @@ export function DialogCreateWorkspace() {
                                     variant={"outline"}
                                     onClick={(e) => { e.preventDefault(); setPaletteOpen(true) }}
                                     className="h-full">
-                                    Aggiungi colore
+                                    {t("home.createWorkspace.addColor")}
                                     <Palette />
                                 </Button>
                             }
@@ -128,22 +125,22 @@ export function DialogCreateWorkspace() {
                                 type="button"
                                 onClick={handleCancel}
                             >
-                                Annulla
+                                {t("common.cancel")}
                             </Button>
                             <Button type="submit" disabled={!workspace.name}>
-                                Crea Workspace
+                                {t("home.createWorkspace.title")}
                             </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog >
 
-            <TooltipCustom text="Crea Workspace" shortcut="(Ctrl + N)">
+            <TooltipCustom text={t("home.createWorkspace.title")} shortcut={shortcutLabel}>
                 <Button
                     onClick={() => setIsOpen(true)}
                     className="flex items-center justify-center w-[280px] p-6 rounded-full gap-2 text-lg transition-all"
                 >
-                    Crea un nuovo Workspace
+                    {t("home.createWorkspace.open")}
                     <ArrowRight className="h-5! w-5!" />
                 </Button>
             </TooltipCustom>

@@ -45,6 +45,15 @@ describe("item type whitelist", () => {
 })
 
 describe("renameDBItem", () => {
+    it("stores the name of a group, and NULL for an empty or blank name", async () => {
+        await renameDBItem("section_group", 1, "  Idee ")
+        expect(db.execute).toHaveBeenLastCalledWith("UPDATE section_group SET name=? WHERE id=?", ["Idee", 1])
+        await renameDBItem("section_group", 1, "")
+        expect(db.execute).toHaveBeenLastCalledWith("UPDATE section_group SET name=? WHERE id=?", [null, 1])
+        await renameDBItem("section_group", 1, "   ")
+        expect(db.execute).toHaveBeenLastCalledWith("UPDATE section_group SET name=? WHERE id=?", [null, 1])
+    })
+
     it("uses title for section", async () => {
         await renameDBItem("section", 3, "T")
         expect(db.execute).toHaveBeenCalledWith("UPDATE section SET title=? WHERE id=?", ["T", 3])
@@ -56,7 +65,7 @@ describe("renameDBItem", () => {
     })
 
     it("uses name for the other types", async () => {
-        for (const type of ["workspace", "folder", "note", "section_group"] as const) {
+        for (const type of ["workspace", "folder", "note"] as const) {
             await renameDBItem(type, 1, "N")
             expect(db.execute).toHaveBeenLastCalledWith(`UPDATE ${type} SET name=? WHERE id=?`, ["N", 1])
         }
@@ -66,12 +75,12 @@ describe("renameDBItem", () => {
         db.execute.mockRejectedValueOnce(new Error("UNIQUE constraint failed"))
         expect(await thrown(renameDBItem("folder", 1, "x"))).toEqual({
             code: "FOLDER_EXISTS",
-            message: "An item with this name already exists.",
+            message: "Esiste già un elemento con questo nome.",
         })
         db.execute.mockRejectedValueOnce(new Error("CHECK constraint failed"))
         expect(await thrown(renameDBItem("folder", 1, ""))).toEqual({
             code: "FOLDER_CHECK_FAILED",
-            message: "The name cannot be empty.",
+            message: "Il nome non può essere vuoto.",
         })
     })
 })
@@ -88,7 +97,7 @@ describe("updateDBColor", () => {
         db.execute.mockRejectedValueOnce(new Error("CHECK constraint failed"))
         expect(await thrown(updateDBColor("note", 1, "bad"))).toEqual({
             code: "NOTE_CHECK_FAILED",
-            message: "The color cannot be empty.",
+            message: "Il colore non può essere vuoto.",
         })
     })
 })
@@ -96,50 +105,30 @@ describe("updateDBColor", () => {
 describe("deleteDBItem", () => {
     it("deletes non-section items directly", async () => {
         await deleteDBItem("task", 9)
-        expect(db.execute).toHaveBeenCalledWith("DELETE FROM task WHERE id=?", [9])
+        expect(db.execute).toHaveBeenCalledWith("UPDATE task SET deleted_at = datetime('now','localtime') WHERE id=?", [9])
         expect(db.select).not.toHaveBeenCalled()
     })
 
-    it("deletes only the section when the group has other sections", async () => {
-        db.select
-            .mockResolvedValueOnce([{ groupID: 5 }])
-            .mockResolvedValueOnce([{ count: 2 }])
+    it("deletes only the section, never its group (an emptied group stays)", async () => {
         await deleteDBItem("section", 7)
-        expect(db.select).toHaveBeenNthCalledWith(1, "SELECT groupID FROM section WHERE id=?", [7])
-        expect(db.select).toHaveBeenNthCalledWith(2, "SELECT COUNT(*) as count FROM section WHERE groupID=?", [5])
+        expect(db.select).not.toHaveBeenCalled()
         expect(db.execute).toHaveBeenCalledTimes(1)
-        expect(db.execute).toHaveBeenCalledWith("DELETE FROM section WHERE id=?", [7])
-    })
-
-    it("deletes the group when removing its last section", async () => {
-        db.select
-            .mockResolvedValueOnce([{ groupID: 5 }])
-            .mockResolvedValueOnce([{ count: 1 }])
-        await deleteDBItem("section", 7)
-        expect(db.execute).toHaveBeenCalledTimes(1)
-        expect(db.execute).toHaveBeenCalledWith("DELETE FROM section_group WHERE id=?", [5])
-    })
-
-    it("returns silently when the section does not exist", async () => {
-        db.select.mockResolvedValueOnce([])
-        await expect(deleteDBItem("section", 1)).resolves.toBeUndefined()
-        expect(db.select).toHaveBeenCalledTimes(1)
-        expect(db.execute).not.toHaveBeenCalled()
+        expect(db.execute).toHaveBeenCalledWith("UPDATE section SET deleted_at = datetime('now','localtime') WHERE id=?", [7])
     })
 
     it("throws a DELETE_FAILED error when the DB fails", async () => {
         db.execute.mockRejectedValueOnce(new Error("disk full"))
         expect(await thrown(deleteDBItem("task", 1))).toEqual({
             code: "TASK_DELETE_FAILED",
-            message: "Failed to delete item: disk full",
+            message: "Impossibile eliminare l'elemento: disk full",
         })
     })
 
-    it("throws when a select fails for a section", async () => {
-        db.select.mockRejectedValueOnce("locked")
+    it("throws a DELETE_FAILED error for a section too", async () => {
+        db.execute.mockRejectedValueOnce("locked")
         expect(await thrown(deleteDBItem("section", 1))).toEqual({
             code: "SECTION_DELETE_FAILED",
-            message: "Failed to delete item: locked",
+            message: "Impossibile eliminare l'elemento: locked",
         })
     })
 })

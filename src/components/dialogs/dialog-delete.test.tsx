@@ -5,7 +5,7 @@ import { toast } from "sonner"
 import { DialogDeleteItem } from "./dialog-delete"
 
 const deleteItem = vi.fn()
-vi.mock("@/contexts/workspace-data-context", () => ({
+vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceData: () => ({ deleteItem }),
 }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
@@ -36,7 +36,7 @@ describe("DialogDeleteItem", () => {
     it("deletes the item, refreshes data and closes", async () => {
         const user = userEvent.setup()
         const { onOpenChange, getItemData } = setup()
-        await user.click(screen.getByRole("button", { name: "Elimina" }))
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
 
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
         expect(deleteItem).toHaveBeenCalledWith("note", 3)
@@ -55,7 +55,7 @@ describe("DialogDeleteItem", () => {
     it("skips the refresh when getItemId is missing", async () => {
         const user = userEvent.setup()
         const { getItemData, onOpenChange } = setup({ getItemId: undefined })
-        await user.click(screen.getByRole("button", { name: "Elimina" }))
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
 
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
         expect(getItemData).not.toHaveBeenCalled()
@@ -65,10 +65,34 @@ describe("DialogDeleteItem", () => {
         const user = userEvent.setup()
         deleteItem.mockRejectedValue(new Error("constraint"))
         const { onOpenChange } = setup()
-        await user.click(screen.getByRole("button", { name: "Elimina" }))
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("constraint")))
         expect(onOpenChange).not.toHaveBeenCalledWith(false)
+    })
+
+    it("removes the item optimistically before the write and keeps it removed on success", async () => {
+        const user = userEvent.setup()
+        const rollback = vi.fn()
+        const optimistic = vi.fn(() => rollback)
+        deleteItem.mockImplementation(async () => { expect(optimistic).toHaveBeenCalledTimes(1) })
+        const { onOpenChange, getItemData } = setup({ optimistic, getItemId: undefined, getItemData: undefined })
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
+
+        await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+        expect(rollback).not.toHaveBeenCalled()
+        expect(getItemData).not.toHaveBeenCalled()
+    })
+
+    it("restores the item and shows a toast when the delete fails", async () => {
+        const user = userEvent.setup()
+        const rollback = vi.fn()
+        deleteItem.mockRejectedValue(new Error("constraint"))
+        setup({ optimistic: () => rollback })
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
+
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("constraint")))
+        expect(rollback).toHaveBeenCalledTimes(1)
     })
 
     it("cancel closes without deleting", async () => {

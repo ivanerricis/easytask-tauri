@@ -1,15 +1,15 @@
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useActiveNoteId } from "@/contexts/use-tabs"
 import { GroupContainer } from "./groups/GroupContainer"
 import { NoteList } from "./note/NoteList"
 import { BlankNote } from "./BlankNote"
 
 export const CenterContainer = () => {
-    const { currentNote } = useWorkspaceData()
+    const activeId = useActiveNoteId()
 
     return (
-        <div className="flex flex-col w-full overflow-hidden relative">
-            {currentNote && <NoteList />}
-            {currentNote ? <GroupContainer /> : <BlankNote />}
+        <div className="flex flex-col w-full min-w-0 overflow-hidden relative">
+            {activeId !== null && <NoteList />}
+            {activeId !== null ? <GroupContainer /> : <BlankNote />}
         </div >
     )
 }

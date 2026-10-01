@@ -54,6 +54,16 @@ describe("DialogAddColor", () => {
         expect(addColorItem).not.toHaveBeenCalled()
     })
 
+    it("saves without a reload hook (the caller updates the cached data)", async () => {
+        const user = userEvent.setup()
+        const { addColorItem } = setup({ getItemData: undefined, getItemId: undefined })
+        await user.click(screen.getAllByRole("button")[0])
+        await waitFor(() => expect(addColorItem).toHaveBeenCalledWith("section", 4, "#e6194b"))
+
+        await user.click(screen.getByRole("button", { name: /Elimina/ }))
+        await waitFor(() => expect(addColorItem).toHaveBeenCalledWith("section", 4))
+    })
+
     it("saves the color chosen with the custom picker", async () => {
         const { addColorItem, container } = setup()
         const picker = container.querySelector("input[type=color]") as HTMLInputElement

@@ -1,93 +1,106 @@
-import { EllipsisVertical } from "lucide-react"
-import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
+import type { DBItemType } from "@/db/queries/shared_queries"
 import type { Section } from "@/types/types"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { SectionMoveSubmenu } from "../NoteMoveSubmenus"
+import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
+import { ItemMenu } from "@/components/item-menu"
+import { useItemMenuState } from "@/hooks/use-item-menu-state"
 
 type ButtonMenuSectionProps = {
     section: Section
+    /** The section header: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
+    children: ReactElement
 }
 
-export const ButtonMenuSection = ({ section }: ButtonMenuSectionProps) => {
+export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps) => {
+    const { t } = useTranslation()
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
-    const [dropDownOpen, setDropDownOpen] = useState(false)
-    const { updateItemColor, getNoteData, currentNote } = useWorkspaceData()
+    const menu = useItemMenuState()
+    const { updateItemColor } = useWorkspaceActions()
+    const { patchSection, removeSection } = useActiveNoteActions()
 
-    return (
+    // The color is applied to the cached tree at once and restored if the write fails
+    const addColorItem = async (itemType: DBItemType, itemId: number, color?: string) => {
+        const rollback = patchSection(itemId, { color: color ?? null })
+        try {
+            await updateItemColor(itemType, itemId, color)
+        } catch (error) {
+            rollback()
+            throw error
+        }
+    }
+
+    const items = (
+        <MenuGroup className="flex flex-col gap-1">
+            <ButtonInPopover
+                text={t("common.rename")}
+                type="rename"
+                onClick={() => {
+                    setRenameOpen(true)
+                    menu.close()
+                }}
+            />
+            <MenuSub>
+                <MenuSubTrigger>
+                    <ButtonInPopover
+                        text={t("menu.changeColor")}
+                        type="color"
+                    />
+                </MenuSubTrigger>
+                <MenuSubContent>
+                    <DialogAddColor
+                        item={section}
+                        itemType="section"
+                        addColorItem={addColorItem}
+                        setDropDownOpen={menu.close}
+                    />
+                </MenuSubContent>
+            </MenuSub>
+            <SectionMoveSubmenu sectionId={section.id} onDone={menu.close} />
+            <Separator />
+            <ButtonInPopover
+                text={t("common.delete")}
+                type="delete"
+                destructive
+                onClick={() => {
+                    setDeleteOpen(true)
+                    menu.close()
+                }}
+            />
+        </MenuGroup>
+    )
+
+    const dialogs = (
         <>
-            <DropdownMenu open={dropDownOpen} onOpenChange={setDropDownOpen}>
-                <DropdownMenuTrigger asChild>
-                    <div onClick={(e) => e.stopPropagation()} className="p-1 rounded-xs cursor-pointer">
-                        <EllipsisVertical className="!h-4 !w-4" />
-                    </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                    onClick={(e) => e.stopPropagation()}
-                    className="p-1 rounded-xs"
-                >
-                    <DropdownMenuGroup className="flex flex-col gap-1">
-                        <ButtonInPopover
-                            text="Rinomina"
-                            type="rename"
-                            onClick={() => {
-                                setRenameOpen(true)
-                                setDropDownOpen(false)
-                            }}
-                        />
-                        <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                                <ButtonInPopover
-                                    text="Cambia colore"
-                                    type="color"
-                                />
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent>
-                                <DialogAddColor
-                                    item={section}
-                                    itemType="section"
-                                    addColorItem={updateItemColor}
-                                    getItemId={currentNote?.id}
-                                    getItemData={getNoteData}
-                                    setDropDownOpen={setDropDownOpen}
-                                />
-                            </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <Separator />
-                        <ButtonInPopover
-                            text="Elimina"
-                            type="delete"
-                            destructive
-                            onClick={() => {
-                                setDeleteOpen(true)
-                                setDropDownOpen(false)
-                            }}
-                        />
-                    </DropdownMenuGroup>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
             <DialogRenameItem
                 item={section}
                 itemType="section"
                 isOpen={isRenameOpen}
                 onOpenChange={setRenameOpen}
-                getItemId={currentNote?.id}
-                getItemData={getNoteData}
+                optimistic={title => patchSection(section.id, { title })}
             />
             <DialogDeleteItem
                 item={section}
                 itemType="section"
                 isOpen={isDeleteOpen}
                 onOpenChange={setDeleteOpen}
-                getItemId={currentNote?.id}
-                getItemData={getNoteData}
+                optimistic={() => removeSection(section.id)}
             />
         </>
+    )
+
+    return (
+        <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="p-1 rounded-xs">
+            {children}
+        </ItemMenu>
     )
 }

@@ -9,7 +9,38 @@ permissions:
   contents: write
 
 jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file             libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+      - run: npm ci
+      - name: Check that the versions and the tag agree
+        run: node scripts/check-versions.mjs
+      - run: npx eslint .
+      - run: npx tsc -b
+      - run: npm test
+      - run: npm run build
+      - run: cargo clippy -- -D warnings
+        working-directory: src-tauri
+      - run: cargo test
+        working-directory: src-tauri
+
   release:
+    needs: verify
     strategy:
       fail-fast: false
       matrix:
@@ -32,11 +63,60 @@ jobs:
         with:
           workspaces: src-tauri -> target
       - run: npm ci
+      # Builds the installers (NSIS on Windows, deb + AppImage on Linux), signs the updater artifacts and uploads
+      # them, with latest.json (merged across the two jobs), to a DRAFT release. Nothing is published automatically.
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: 'EasyTask ${{ github.ref_name }}'
           releaseDraft: true
           prerelease: false
+          uploadUpdaterJson: true
+          uploadUpdaterSignatures: true
+      # The portable zip reuses the executable built here (one build only).
+      - name: Keep the Windows executable for the portable job
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          mkdir -p portable-input
+          # The Cargo binary is already named EasyTask (see [[bin]] in Cargo.toml)
+          cp src-tauri/target/release/EasyTask.exe portable-input/EasyTask.exe
+      - uses: actions/upload-artifact@v7
+        if: runner.os == 'Windows'
+        with:
+          name: windows-exe
+          path: portable-input/EasyTask.exe
+          if-no-files-found: error
+
+  # Portable zip: EasyTask.exe + portable.txt (switches the app to <exe folder>/data) + a short README.
+  portable:
+    needs: release
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/download-artifact@v7
+        with:
+          name: windows-exe
+          path: portable-input
+      - name: Build the portable zip
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          DIR="EasyTask_${VERSION}_x64_portable"
+          mkdir -p "$DIR"
+          cp portable-input/EasyTask.exe "$DIR/EasyTask.exe"
+          cp .github/portable/portable.txt "$DIR/portable.txt"
+          cp .github/portable/LEGGIMI.txt "$DIR/LEGGIMI.txt"
+          7z a -tzip "$DIR.zip" "./$DIR/*"
+          echo "ZIP=$DIR.zip" >> "$GITHUB_ENV"
+      - name: Upload to the draft release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.ref_name }}" "$ZIP" --clobber --repo "${{ github.repository }}"

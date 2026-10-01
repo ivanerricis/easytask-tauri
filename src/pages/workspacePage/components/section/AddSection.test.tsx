@@ -1,125 +1,132 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import type { ReactElement } from "react"
+import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { AddSection } from "./AddSection"
-import { makeGroup, makeNote } from "@/test/ui-fixtures"
+import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 
-vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }))
+const render = (ui: ReactElement) => rtlRender(ui, { wrapper: ShortcutsProvider })
+
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 
 const ctx = {
-    createSection: vi.fn(),
+    createGroup: vi.fn(),
     createSectionInGroup: vi.fn(),
-    getNoteData: vi.fn(),
-    currentNote: null as ReturnType<typeof makeNote> | null,
-    groups: [] as ReturnType<typeof makeGroup>[],
+    appendGroup: vi.fn(),
+    appendSection: vi.fn(),
+    activeId: null as number | null,
 }
-vi.mock("@/contexts/workspace-data-context", () => ({
-    useWorkspaceData: () => ctx,
-}))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ctx }))
+vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => ctx.activeId }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }))
 
-const PLACEHOLDER = "Scrivi qualcosa..."
+const GROUP_PLACEHOLDER = "Nome del gruppo (facoltativo)..."
+const SECTION_PLACEHOLDER = "Titolo della sezione..."
 
-const openForm = async (user: ReturnType<typeof userEvent.setup>) => {
+const openGroupForm = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.click(screen.getByRole("button", { name: /Nuovo gruppo/ }))
+    return screen.getByPlaceholderText(GROUP_PLACEHOLDER)
+}
+
+const openSectionForm = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.click(screen.getByRole("button", { name: /Nuova sezione/ }))
-    return screen.getByPlaceholderText(PLACEHOLDER)
+    return screen.getByPlaceholderText(SECTION_PLACEHOLDER)
 }
 
 describe("AddSection", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        ctx.createSection.mockResolvedValue(undefined)
-        ctx.createSectionInGroup.mockResolvedValue(undefined)
-        ctx.getNoteData.mockResolvedValue(undefined)
-        ctx.currentNote = makeNote({ id: 20 })
-        ctx.groups = []
+        ctx.createGroup.mockResolvedValue(31)
+        ctx.createSectionInGroup.mockResolvedValue(41)
+        ctx.activeId = 20
     })
 
-    it("creates a section at position 0 when there are no groups", async () => {
+    it("outside a group creates a named group, not a section", async () => {
         const user = userEvent.setup()
         render(<AddSection />)
-        await user.type(await openForm(user), "  Todo  {Enter}")
+        await user.type(await openGroupForm(user), "  Sprint  {Enter}")
 
-        await waitFor(() => expect(ctx.getNoteData).toHaveBeenCalledWith(20))
-        expect(ctx.createSection).toHaveBeenCalledWith(20, "Todo", 0)
-        expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument()
+        await waitFor(() => expect(ctx.appendGroup).toHaveBeenCalledWith(31, 20, "Sprint"))
+        expect(ctx.createGroup).toHaveBeenCalledWith(20, "Sprint")
+        expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
+        expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
     })
 
-    it("places the new section after the last group", async () => {
+    it("creates an unnamed group when the name is empty", async () => {
         const user = userEvent.setup()
-        ctx.groups = [makeGroup({ id: 1, position: 0 }), makeGroup({ id: 2, position: 4 })]
         render(<AddSection />)
-        await user.type(await openForm(user), "Next{Enter}")
+        await user.type(await openGroupForm(user), "   {Enter}")
 
-        await waitFor(() => expect(ctx.createSection).toHaveBeenCalledWith(20, "Next", 5))
+        await waitFor(() => expect(ctx.createGroup).toHaveBeenCalledWith(20, ""))
     })
 
     it("creates the section inside a group", async () => {
         const user = userEvent.setup()
         render(<AddSection inGroup groupId={7} />)
-        await user.type(await openForm(user), "Inner{Enter}")
+        await user.type(await openSectionForm(user), "Inner{Enter}")
 
         await waitFor(() => expect(ctx.createSectionInGroup).toHaveBeenCalledWith(7, "Inner"))
-        expect(ctx.createSection).not.toHaveBeenCalled()
+        expect(ctx.appendSection).toHaveBeenCalledWith(41, 7, "Inner")
+        expect(ctx.createGroup).not.toHaveBeenCalled()
+    })
+
+    it("ignores an empty section title", async () => {
+        const user = userEvent.setup()
+        render(<AddSection inGroup groupId={7} />)
+        await user.type(await openSectionForm(user), "   {Enter}")
+
+        expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
     })
 
     it("shows a toast when inGroup is set without a groupId", async () => {
         const user = userEvent.setup()
         render(<AddSection inGroup />)
-        await user.type(await openForm(user), "Inner{Enter}")
+        await user.type(await openSectionForm(user), "Inner{Enter}")
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("ID gruppo mancante"))
         expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
     })
 
-    it("ignores an empty name", async () => {
-        const user = userEvent.setup()
-        render(<AddSection />)
-        await user.type(await openForm(user), "   {Enter}")
-
-        expect(ctx.createSection).not.toHaveBeenCalled()
-    })
-
     it("does nothing without a current note", async () => {
         const user = userEvent.setup()
-        ctx.currentNote = null
+        ctx.activeId = null
         render(<AddSection />)
-        await user.type(await openForm(user), "X{Enter}")
+        await user.type(await openGroupForm(user), "X{Enter}")
 
-        expect(ctx.createSection).not.toHaveBeenCalled()
-        expect(screen.getByPlaceholderText(PLACEHOLDER)).toBeInTheDocument()
+        expect(ctx.createGroup).not.toHaveBeenCalled()
+        expect(screen.getByPlaceholderText(GROUP_PLACEHOLDER)).toBeInTheDocument()
     })
 
     it("reports creation errors with a toast and keeps the form open", async () => {
         const user = userEvent.setup()
-        ctx.createSection.mockRejectedValue(new Error("insert failed"))
+        ctx.createGroup.mockRejectedValue(new Error("insert failed"))
         render(<AddSection />)
-        await user.type(await openForm(user), "X{Enter}")
+        await user.type(await openGroupForm(user), "X{Enter}")
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("insert failed"))
-        expect(ctx.getNoteData).not.toHaveBeenCalled()
-        expect(screen.getByPlaceholderText(PLACEHOLDER)).toBeInTheDocument()
+        expect(ctx.appendGroup).not.toHaveBeenCalled()
+        expect(screen.getByPlaceholderText(GROUP_PLACEHOLDER)).toBeInTheDocument()
     })
 
     it("closes on outside click and clears the typed name", async () => {
         const user = userEvent.setup()
         render(<AddSection />)
-        await user.type(await openForm(user), "draft")
+        await user.type(await openGroupForm(user), "draft")
 
         fireEvent.mouseDown(document.body)
-        expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument()
-        expect(await openForm(user)).toHaveValue("")
+        expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
+        expect(await openGroupForm(user)).toHaveValue("")
     })
 
     it("toggles with Alt+N only when not inside a group", async () => {
         const { unmount } = render(<AddSection />)
         fireEvent.keyDown(document, { key: "n", altKey: true })
-        expect(await screen.findByPlaceholderText(PLACEHOLDER)).toBeInTheDocument()
+        expect(await screen.findByPlaceholderText(GROUP_PLACEHOLDER)).toBeInTheDocument()
         unmount()
 
         render(<AddSection inGroup groupId={1} />)
         fireEvent.keyDown(document, { key: "n", altKey: true })
-        expect(screen.queryByPlaceholderText(PLACEHOLDER)).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText(SECTION_PLACEHOLDER)).not.toBeInTheDocument()
     })
 })

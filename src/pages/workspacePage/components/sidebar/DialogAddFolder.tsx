@@ -1,4 +1,7 @@
+import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { useShortcut } from "@/hooks/use-shortcut"
+import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,10 +14,11 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useWorkspace } from "@/contexts/workspace-context"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspace } from "@/contexts/use-workspace"
+import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { FolderPlus, Palette, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 const defaultFolder = {
     name: "",
@@ -22,21 +26,23 @@ const defaultFolder = {
 }
 
 export function DialogAddFolder() {
+    const { t } = useTranslation()
 
     const [folder, setFolder] = useState(defaultFolder)
     const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
     const [paletteIsOpen, setPaletteOpen] = useState(false)
     const { currentWorkspace } = useWorkspace()
-    const { createWorkspaceFolder, getWorkspaceData } = useWorkspaceData()
+    const { createWorkspaceFolder } = useWorkspaceData()
+    const recorder = useUndoRecorder()
 
     const handleCreateFolder = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentWorkspace?.id) return
         if (folder.name.trim() === "") return
         try {
-            await createWorkspaceFolder(currentWorkspace.id, folder.name.trim(), paletteIsOpen ? folder.color : undefined)
-            await getWorkspaceData(currentWorkspace.id)
+            const id = await createWorkspaceFolder(currentWorkspace.id, folder.name.trim(), paletteIsOpen ? folder.color : undefined)
+            if (typeof id === "number") recorder.create("folder", id, folder.name.trim())
             setError(null)
             setIsOpen(false)
             setPaletteOpen(false)
@@ -53,41 +59,26 @@ export function DialogAddFolder() {
         setIsOpen(false)
     }
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            const isTyping = document.activeElement && (
-                document.activeElement.tagName === 'INPUT' ||
-                document.activeElement.tagName === 'TEXTAREA' ||
-                (document.activeElement as HTMLElement).isContentEditable
-            )
-
-            if (isTyping) return
-
-            if (e.key === "m" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault()
-                setError(null)
-                setPaletteOpen(false)
-                setFolder(defaultFolder)
-                setIsOpen(true)
-            }
-        }
-
-        window.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [])
+    useShortcut("new-folder", () => {
+        setError(null)
+        setPaletteOpen(false)
+        setFolder(defaultFolder)
+        setIsOpen(true)
+    })
+    const shortcutLabel = useShortcutLabel("new-folder")
 
     return (
         <>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Crea una cartella</DialogTitle>
+                        <DialogTitle>{t("dialogs.addFolder.title")}</DialogTitle>
                         <DialogDescription />
                     </DialogHeader>
                     <form onSubmit={handleCreateFolder}>
                         <div className="grid gap-4">
                             <div className="grid gap-3">
-                                <Label>Nome</Label>
+                                <Label>{t("common.name")}</Label>
                                 <Input
                                     id="name-1"
                                     name="name"
@@ -138,7 +129,7 @@ export function DialogAddFolder() {
                                         setPaletteOpen(true)
                                     }}
                                     className="h-full">
-                                    Aggiungi colore
+                                    {t("common.addColor")}
                                     <Palette />
                                 </Button>
                             }
@@ -149,24 +140,25 @@ export function DialogAddFolder() {
                                 type="button"
                                 onClick={handleCancel}
                             >
-                                Annulla
+                                {t("common.cancel")}
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={!folder.name.trim()}
                             >
-                                Crea cartella
+                                {t("dialogs.addFolder.submit")}
                             </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            <TooltipCustom text="Crea una cartella" shortcut="(Ctrl + M)">
+            <TooltipCustom text={t("sidebar.addFolder")} shortcut={shortcutLabel}>
                 <Button
                     onClick={() => setIsOpen(true)}
                     variant='buttonIcon'
                     size="icon"
+                    aria-label={t("sidebar.addFolder")}
                 >
                     <FolderPlus />
                 </Button>

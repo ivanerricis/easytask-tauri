@@ -1,4 +1,7 @@
+import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { useShortcut } from "@/hooks/use-shortcut"
+import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import {
@@ -11,10 +14,13 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useWorkspace } from "@/contexts/workspace-context"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { NativeSelect } from "@/components/native-select"
+import { useTemplates } from "@/hooks/use-templates"
+import { useWorkspace } from "@/contexts/use-workspace"
+import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { FilePlus, Palette, X } from "lucide-react"
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 const defaultNote = {
     name: "",
@@ -22,24 +28,34 @@ const defaultNote = {
 }
 
 export function DialogAddNote() {
+    const { t } = useTranslation()
 
     const [note, setNote] = useState(defaultNote)
     const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
     const [paletteIsOpen, setPaletteOpen] = useState(false)
+    const [templateId, setTemplateId] = useState("")
     const { currentWorkspace } = useWorkspace()
-    const { createWorkspaceNote, getWorkspaceData } = useWorkspaceData()
+    const { createWorkspaceNote, createNoteFromTemplate } = useWorkspaceData()
+    const recorder = useUndoRecorder()
+    const templates = useTemplates(isOpen)
+    // A stale selection (template deleted meanwhile) behaves as "no template"
+    const template = templates.find(tpl => String(tpl.id) === templateId)
 
     const handleCreateNote = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentWorkspace?.id) return
         if (note.name.trim() === "") return
         try {
-            await createWorkspaceNote(currentWorkspace.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
-            await getWorkspaceData(currentWorkspace.id)
+            // Both are added to the sidebar tree by the context
+            const id = template
+                ? await createNoteFromTemplate(template.id, currentWorkspace.id, null, note.name.trim(), template.color)
+                : await createWorkspaceNote(currentWorkspace.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
+            if (typeof id === "number") recorder.create("note", id, note.name.trim())
             setError(null)
             setIsOpen(false)
             setNote(defaultNote)
+            setTemplateId("")
         } catch (err) {
             setError(getErrorMessage(err))
         }
@@ -49,44 +65,31 @@ export function DialogAddNote() {
         setNote(defaultNote)
         setError(null)
         setPaletteOpen(false)
+        setTemplateId("")
         setIsOpen(false)
     }
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            const isTyping = document.activeElement && (
-                document.activeElement.tagName === 'INPUT' ||
-                document.activeElement.tagName === 'TEXTAREA' ||
-                (document.activeElement as HTMLElement).isContentEditable
-            )
-
-            if (isTyping) return
-
-            if (e.key === "n" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault()
-                setNote(defaultNote)
-                setError(null)
-                setPaletteOpen(false)
-                setIsOpen(true)
-            }
-        }
-
-        window.addEventListener('keydown', handleKeyDown)
-        return () => window.removeEventListener('keydown', handleKeyDown)
-    }, [])
+    useShortcut("new-note", () => {
+        setNote(defaultNote)
+        setError(null)
+        setPaletteOpen(false)
+        setTemplateId("")
+        setIsOpen(true)
+    })
+    const shortcutLabel = useShortcutLabel("new-note")
 
     return (
         <>
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Crea una nota</DialogTitle>
+                        <DialogTitle>{t("dialogs.addNote.title")}</DialogTitle>
                         <DialogDescription />
                     </DialogHeader>
                     <form onSubmit={handleCreateNote}>
                         <div className="grid gap-4">
                             <div className="grid gap-3">
-                                <Label>Nome</Label>
+                                <Label>{t("common.name")}</Label>
                                 <Input
                                     id="name-1"
                                     name="name"
@@ -100,8 +103,21 @@ export function DialogAddNote() {
                                     }}
                                 />
                             </div>
+                            {templates.length > 0 && (
+                                <div className="grid gap-3">
+                                    <Label htmlFor="template-1">{t("dialogs.addNote.fromTemplate")}</Label>
+                                    <NativeSelect
+                                        id="template-1"
+                                        value={template ? templateId : ""}
+                                        onChange={e => setTemplateId(e.target.value)}
+                                    >
+                                        <option value="">{t("dialogs.addNote.noTemplate")}</option>
+                                        {templates.map(tpl => <option key={tpl.id} value={tpl.id}>{tpl.name}</option>)}
+                                    </NativeSelect>
+                                </div>
+                            )}
                             {error && (<p className="text-xs text-destructive">{error}</p>)}
-                            {paletteIsOpen ?
+                            {template ? null : paletteIsOpen ?
                                 <div className="flex items-center justify-between gap-1">
                                     <div
                                         className="flex items-center justify-center h-full w-full border rounded-xs"
@@ -140,7 +156,7 @@ export function DialogAddNote() {
                                         setPaletteOpen(true)
                                     }}
                                     className="h-full">
-                                    Aggiungi colore
+                                    {t("common.addColor")}
                                     <Palette />
                                 </Button>
                             }
@@ -151,21 +167,22 @@ export function DialogAddNote() {
                                 type="button"
                                 onClick={handleCancel}
                             >
-                                Annulla
+                                {t("common.cancel")}
                             </Button>
                             <Button type="submit" disabled={!note.name.trim()}>
-                                Crea nota
+                                {t("dialogs.addNote.submit")}
                             </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            <TooltipCustom text="Crea una nota" shortcut="(Ctrl + N)">
+            <TooltipCustom text={t("sidebar.addNote")} shortcut={shortcutLabel}>
                 <Button
                     onClick={() => setIsOpen(true)}
                     variant='buttonIcon'
                     size="icon"
+                    aria-label={t("sidebar.addNote")}
                 >
                     <FilePlus />
                 </Button>

@@ -6,9 +6,7 @@ const ensureAppFolder = vi.fn()
 const initDB = vi.fn()
 
 vi.mock("@tauri-apps/plugin-sql", () => ({ default: { load: (...a: unknown[]) => load(...a) } }))
-vi.mock("@tauri-apps/plugin-fs", () => ({ exists: vi.fn(), mkdir: vi.fn() }))
 vi.mock("@tauri-apps/api/path", () => ({
-    BaseDirectory: { Document: 1 },
     documentDir: vi.fn(async () => "/docs"),
     join: vi.fn(async (...parts: string[]) => parts.join("/")),
 }))
@@ -76,6 +74,23 @@ describe("getDB", () => {
         await expect(getDB()).rejects.toThrow("cannot open")
         await expect(getDB()).resolves.toBe(db)
         expect(load).toHaveBeenCalledTimes(2)
+    })
+
+    it("closeDB closes the connection so the next call reopens the file", async () => {
+        vi.resetModules()
+        const { getDB, closeDB } = await import("./dbManager")
+        await getDB()
+        await closeDB()
+        expect(db.close).toHaveBeenCalledTimes(1)
+        await getDB()
+        expect(load).toHaveBeenCalledTimes(2)
+    })
+
+    it("closeDB does nothing when the database was never opened", async () => {
+        vi.resetModules()
+        const { closeDB } = await import("./dbManager")
+        await closeDB()
+        expect(db.close).not.toHaveBeenCalled()
     })
 
     it("shares the same failure among concurrent callers", async () => {

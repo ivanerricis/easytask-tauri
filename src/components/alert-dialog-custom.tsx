@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import {
     AlertDialog,
     AlertDialogAction,
@@ -9,7 +10,7 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger
 } from "./ui/alert-dialog"
-import { buttonVariants } from "./ui/button"
+import { buttonVariants } from "./ui/button-variants"
 
 type AlertDialogCustomProps = {
     onDelete: () => void
@@ -17,6 +18,7 @@ type AlertDialogCustomProps = {
 }
 
 export const AlertDialogCustom = ({ onDelete, children }: AlertDialogCustomProps) => {
+    const { t } = useTranslation()
     return (
         <>
             <AlertDialog>
@@ -25,15 +27,15 @@ export const AlertDialogCustom = ({ onDelete, children }: AlertDialogCustomProps
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Sei sicuro di voler procedere?</AlertDialogTitle>
+                        <AlertDialogTitle>{t("dialogs.confirm.title")}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Questa azione non può essere annullata.
+                            {t("dialogs.confirm.description")}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                         <AlertDialogAction className={buttonVariants({ variant: "destructive" })} onClick={onDelete}>
-                            ELimina
+                            {t("common.delete")}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

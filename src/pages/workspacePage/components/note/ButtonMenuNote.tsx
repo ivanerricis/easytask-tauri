@@ -1,107 +1,112 @@
-import { EllipsisVertical } from "lucide-react"
-import { useState } from "react"
+import { useTranslation } from "react-i18next"
+import { lazy, useState, type ReactElement } from "react"
 import type { Note } from "@/types/types"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { useTabsActions } from "@/contexts/use-tabs"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
-import { useWorkspace } from "@/contexts/workspace-context"
+import { LazyMount } from "@/components/lazy-mount"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { Separator } from "@/components/ui/separator"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { MoveToSubmenu } from "../MoveToSubmenu"
+import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
+import { ItemMenu } from "@/components/item-menu"
+import { useItemMenuState } from "@/hooks/use-item-menu-state"
+
+const DialogCreateTemplate = lazy(() => import("@/components/dialogs/dialog-create-template").then(m => ({ default: m.DialogCreateTemplate })))
 
 type ButtonMenuNoteProps = {
     note: Note
+    /** The note row or tab: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
+    children: ReactElement
 }
 
-export const ButtonMenuNote = ({ note }: ButtonMenuNoteProps) => {
+export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
+    const { t } = useTranslation()
     const [isRenameOpen, setRenameOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
-    const [dropDownOpen, setDropDownOpen] = useState(false);
-    const { currentWorkspace } = useWorkspace()
-    const { setCurrentNotes, setCurrentNote, getNoteData, getWorkspaceData, updateItemColor } = useWorkspaceData()
+    const [isTemplateOpen, setTemplateOpen] = useState(false);
+    const menu = useItemMenuState()
+    const { updateItemColor } = useWorkspaceActions()
+    const { openNote } = useTabsActions()
 
-    const openNote = async () => {
-        await getNoteData(note.id)
-        setCurrentNotes((prev: Note[]) => {
-            const alreadyExists = prev.some(n => n.id === note.id)
-            return alreadyExists ? prev : [...prev, note]
-        })
-        setCurrentNote(note)
-    }
+    const items = (
+        <MenuGroup className="flex flex-col gap-1">
+            <ButtonInPopover
+                text={t("menu.open")}
+                type="open"
+                onClick={() => { openNote(note.id); menu.close() }}
+            />
+            <ButtonInPopover
+                text={t("common.rename")}
+                type="rename"
+                onClick={() => { setRenameOpen(true); menu.close() }}
+            />
+            <MenuSub>
+                <MenuSubTrigger>
+                    <ButtonInPopover
+                        text={t("menu.changeColor")}
+                        type="color"
+                    />
+                </MenuSubTrigger>
+                <MenuSubContent>
+                    <DialogAddColor
+                        item={note}
+                        itemType="note"
+                        addColorItem={updateItemColor}
+                        setDropDownOpen={menu.close}
+                    />
+                </MenuSubContent>
+            </MenuSub>
+            <MoveToSubmenu
+                itemType="note"
+                itemId={note.id}
+                folderID={note.folderID}
+                onDone={menu.close}
+            />
+            <ButtonInPopover
+                text={t("menu.createTemplate")}
+                type="createTemplate"
+                onClick={() => { setTemplateOpen(true); menu.close() }}
+            />
+            <Separator />
+            <ButtonInPopover
+                text={t("common.delete")}
+                type="delete"
+                destructive
+                onClick={() => { setDeleteOpen(true); menu.close() }}
+            />
+        </MenuGroup>
+    )
 
-    return (
+    const dialogs = (
         <>
-            <DropdownMenu open={dropDownOpen} onOpenChange={setDropDownOpen}>
-                <DropdownMenuTrigger asChild>
-                    <div
-                        role="button"
-                        onClick={(e) => e.stopPropagation()}
-                        className="p-1 rounded-xs cursor-pointer"
-                    >
-                        <EllipsisVertical className="size-4" />
-                    </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                    onClick={(e) => e.stopPropagation()}
-                    className="p-1 rounded-xs"
-                >
-                    <DropdownMenuGroup className="flex flex-col gap-1">
-                        <ButtonInPopover
-                            text="Apri"
-                            type="open"
-                            onClick={() => { openNote(); setDropDownOpen(false) }}
-                        />
-                        <ButtonInPopover
-                            text="Rinomina"
-                            type="rename"
-                            onClick={() => { setRenameOpen(true); setDropDownOpen(false) }}
-                        />
-                        <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                                <ButtonInPopover
-                                    text="Cambia colore"
-                                    type="color"
-                                />
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent>
-                                <DialogAddColor
-                                    item={note}
-                                    itemType="note"
-                                    addColorItem={updateItemColor}
-                                    getItemId={currentWorkspace?.id}
-                                    getItemData={getWorkspaceData}
-                                    setDropDownOpen={setDropDownOpen}
-                                />
-                            </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <Separator />
-                        <ButtonInPopover
-                            text="Elimina"
-                            type="delete"
-                            destructive
-                            onClick={() => { setDeleteOpen(true); setDropDownOpen(false) }}
-                        />
-                    </DropdownMenuGroup>
-                </DropdownMenuContent>
-            </DropdownMenu>
-
             <DialogRenameItem
                 item={note}
                 itemType="note"
                 isOpen={isRenameOpen}
                 onOpenChange={setRenameOpen}
-                getItemId={currentWorkspace?.id}
-                getItemData={getWorkspaceData}
             />
+            <LazyMount active={isTemplateOpen}>
+                <DialogCreateTemplate
+                    note={note}
+                    isOpen={isTemplateOpen}
+                    onOpenChange={setTemplateOpen}
+                />
+            </LazyMount>
             <DialogDeleteItem
                 item={note}
                 itemType="note"
                 isOpen={isDeleteOpen}
                 onOpenChange={setDeleteOpen}
-                getItemId={currentWorkspace?.id}
-                getItemData={getWorkspaceData}
             />
         </>
+    )
+
+    return (
+        <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="p-1 rounded-xs">
+            {children}
+        </ItemMenu>
     )
 }

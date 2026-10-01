@@ -1,24 +1,32 @@
+import { useTranslation } from "react-i18next"
 import type { Workspace } from "@/types/types"
 import { WorkSpaceItem } from "./WorkSpace"
+import { cn } from "@/lib/utils"
 
 type WorkspacesContainerProps = {
     workspaces: Workspace[]
+    view?: "grid" | "list"
 }
 
-export const WorkspacesContainer = ({ workspaces }: WorkspacesContainerProps) => {
+export const WorkspacesContainer = ({ workspaces, view = "grid" }: WorkspacesContainerProps) => {
+    const { t } = useTranslation()
     return (
-        <div className="grid grid-cols-2 w-full overflow-y-auto h-[200px] lg:h-[350px] gap-1 transition- content-start">
+        <div className={cn(
+            "grid w-full overflow-y-auto h-[200px] lg:h-[350px] gap-1 content-start",
+            view === "grid" ? "grid-cols-2" : "grid-cols-1"
+        )}>
             {workspaces.length > 0 ? (
                 workspaces.map((ws) => (
                     <WorkSpaceItem
                         key={ws.id}
                         workspace={ws}
+                        view={view}
                     />
                 ))
             ) : (
-                <h1 className="text-muted-foreground text-sm w-full">
-                    Nessun workspace trovato
-                </h1>
+                <p className="text-muted-foreground text-sm w-full">
+                    {t("home.noWorkspaces")}
+                </p>
             )}
         </div>
     )

@@ -1,7 +1,10 @@
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { isUndoableType } from "@/contexts/undo/commands"
 import React, { useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
@@ -12,32 +15,44 @@ type DialogRenameProps<T> = {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     getItemId?: number | undefined
-    getItemData: (id: number) => Promise<void>
+    /** Reloads the data after the rename (when the change is not applied optimistically). */
+    getItemData?: (id: number) => Promise<void>
+    /** Applies the new name to the cached data before the write; returns the function that undoes it if the write fails. */
+    optimistic?: (name: string) => () => void
 }
 
 type defaultItemType = {
     id: number
-    name?: string
+    name?: string | null
     title?: string
 }
 
-export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, isOpen, onOpenChange, getItemData, getItemId }: DialogRenameProps<T>) => {
+export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, isOpen, onOpenChange, getItemData, getItemId, optimistic }: DialogRenameProps<T>) => {
+    const { t } = useTranslation()
     const currentName = item.name ?? item.title ?? ""
     const [value, setValue] = useState(currentName)
     const { renameItem } = useWorkspaceData()
+    const recorder = useUndoRecorder()
     const [error, setError] = useState<string | null>(null)
+    // A group may be unnamed: saving an empty name clears it
+    const allowEmpty = itemType === "section_group"
 
     const handleEdit = async (e: React.FormEvent) => {
         e.preventDefault()
+        let rollback: (() => void) | undefined
         try {
-            if (value.trim() && value !== currentName)
+            if ((allowEmpty || value.trim()) && value.trim() !== currentName) {
+                rollback = optimistic?.(value.trim())
                 await renameItem(itemType, item.id, value.trim())
+                if (isUndoableType(itemType)) recorder.rename(itemType, item.id, currentName, value.trim())
+            }
             if (typeof getItemId === "number") {
-                await getItemData(getItemId)
+                await getItemData?.(getItemId)
             }
             setError(null)
             onOpenChange(false)
         } catch (err) {
+            rollback?.()
             setError(getErrorMessage(err))
         }
     }
@@ -52,7 +67,7 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Rinomina</DialogTitle>
+                    <DialogTitle>{t("common.rename")}</DialogTitle>
                     <DialogDescription />
                 </DialogHeader>
                 <form onSubmit={handleEdit}>
@@ -74,13 +89,13 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
                             type="button"
                             onClick={handleCancel}
                         >
-                            Annulla
+                            {t("common.cancel")}
                         </Button>
                         <Button
                             type="submit"
-                            disabled={!value.trim()}
+                            disabled={!allowEmpty && !value.trim()}
                         >
-                            Salva
+                            {t("common.save")}
                         </Button>
                     </DialogFooter>
                 </form>

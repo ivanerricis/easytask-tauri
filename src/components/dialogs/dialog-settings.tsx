@@ -1,132 +1,45 @@
-import { ModeToggle } from "@/components/mode-toggle"
+import { lazy, useEffect, useState } from "react"
+import { OPEN_SETTINGS_EVENT } from "@/lib/updater"
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Settings } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import React, { useState } from "react"
-import { Separator } from "@/components/ui/separator"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { usePreferences } from "@/contexts/preferences-context"
-import { Checkbox } from "@/components/ui/checkbox"
+import { LazyMount } from "@/components/lazy-mount"
+
+const DialogSettingsContent = lazy(() => import("./dialog-settings-content").then(m => ({ default: m.DialogSettingsContent })))
 
 type DialogSettingsProps = {
     className?: string
 }
 
 export const DialogSettings = ({ className }: DialogSettingsProps) => {
+    const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
-    const {
-        primaryColor, setPrimaryColor,
-        showProgressBar, setShowProgressBar,
-        showSectionCount, setShowSectionCount,
-        showTaskCount, setShowTaskCount,
-        resetPlayerPosition
-    } = usePreferences()
+    const [category, setCategory] = useState<string | undefined>(undefined)
 
-    const handleColorChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        setPrimaryColor(e.target.value)
-    }
-
-    const handleProgressBar = async () => {
-        setShowProgressBar(!showProgressBar)
-    }
-
-    const handleSectionCount = async () => {
-        setShowSectionCount(!showSectionCount)
-    }
-
-    const handleTaskCount = async () => {
-        setShowTaskCount(!showTaskCount)
-    }
+    // Other parts of the app (e.g. the update toast) can ask to open the settings on a given page
+    useEffect(() => {
+        const onRequest = (event: Event) => {
+            const requested = (event as CustomEvent<{ category?: string }>).detail?.category
+            setCategory(requested)
+            setIsOpen(true)
+        }
+        window.addEventListener(OPEN_SETTINGS_EVENT, onRequest)
+        return () => window.removeEventListener(OPEN_SETTINGS_EVENT, onRequest)
+    }, [])
 
     return (
         <>
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent>
-                    <DialogDescription />
-                    <DialogHeader>
-                        <DialogTitle>
-                            Impostazioni
-                        </DialogTitle>
-                    </DialogHeader>
-                    <Separator />
-                    <DialogHeader className="font-bold">
-                        Aspetto
-                    </DialogHeader>
+            <LazyMount active={isOpen}>
+                <DialogSettingsContent isOpen={isOpen} onOpenChange={open => { setIsOpen(open); if (!open) setCategory(undefined) }} requestedCategory={category} />
+            </LazyMount>
 
-                    <div className="flex items-center justify-between w-full">
-                        <h1 className="text-sm">
-                            Cambia tema:
-                        </h1>
-                        <ModeToggle />
-                    </div>
-                    <div className="flex items-center justify-between w-full">
-                        <h1 className="text-sm">
-                            Colore d'accento:
-                        </h1>
-                        <div
-                            className="flex items-center justify-center size-5 border rounded-xs"
-                            style={{ backgroundColor: primaryColor }}
-                        >
-                            <Input
-                                type="color"
-                                className="opacity-0 cursor-pointer"
-                                value={primaryColor}
-                                onChange={handleColorChange}
-                            />
-                        </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-sm">
-                            Mostra barra d'avanzamento nelle sezioni
-                        </h1>
-                        <Checkbox
-                            checked={showProgressBar}
-                            onCheckedChange={handleProgressBar}
-                            className="size-5"
-                        />
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-sm">
-                            Mostra numero di sezioni
-                        </h1>
-                        <Checkbox
-                            checked={showSectionCount}
-                            onCheckedChange={handleSectionCount}
-                            className="size-5"
-                        />
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-sm">
-                            Mostra numero di task
-                        </h1>
-                        <Checkbox
-                            checked={showTaskCount}
-                            onCheckedChange={handleTaskCount}
-                            className="size-5"
-                        />
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <h1 className="text-sm">
-                            Ripristina la posizione del player audio
-                        </h1>
-                        <Button
-                            variant={"outline"}
-                            size={"sm"}
-                            onClick={resetPlayerPosition}
-                            className=""
-                        >
-                            Reset
-                        </Button>
-                    </div>
-                </DialogContent>
-            </Dialog>
-
-            <TooltipCustom text="Impostazioni">
+            <TooltipCustom text={t("settings.title")}>
                 <Button
                     onClick={() => setIsOpen(true)}
                     variant="buttonIcon"
                     size="icon"
+                    aria-label={t("settings.title")}
                     className={`absolute left-1 bottom-1 !hover:bg-accent ${className}`}
                 >
                     <Settings />

@@ -1,5 +1,5 @@
 /**
- * Creates the section table in the database.
+ * Creates the section table in the database (soft delete through deleted_at, manual order through position).
  * @category Database Schema
  */
 export const createSectionTable = `
@@ -13,14 +13,24 @@ export const createSectionTable = `
         creation_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
         edit_date TEXT NOT NULL DEFAULT (DATE('now', 'localtime')),
         edit_time TEXT NOT NULL DEFAULT (strftime('%H:%M', 'now', 'localtime')),
-        FOREIGN KEY(groupID) REFERENCES section_group(id) ON DELETE CASCADE,
-        UNIQUE(title, groupID)
+        deleted_at TEXT DEFAULT NULL,
+        position INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY(groupID) REFERENCES section_group(id) ON DELETE CASCADE
     );
 `
 
 /**
- * Recreates the trigger that updates the edit timestamp of the section table.
- * It fires only when content columns change, so it never re-triggers itself.
+ * Indexes of the section table: the title is unique among the non deleted sections of a group.
+ * @category Database Schema
+ */
+export const createSectionIndexes = `
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_section_title ON section(groupID, title) WHERE deleted_at IS NULL;
+    CREATE INDEX IF NOT EXISTS idx_section_parent ON section(groupID, position);
+`
+
+/**
+ * Creates the trigger that updates the edit timestamp of the section table.
+ * It fires only when content columns change (not position or deleted_at), so it never re-triggers itself.
  * @category Database Schema
  */
 export const createSectionTrigger = `

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Moon, Sun } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -7,16 +8,17 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useTheme } from "@/components/theme-provider"
+import { useTheme } from "@/components/use-theme"
 
 export function ModeToggle() {
+    const { t } = useTranslation()
     const { theme, setTheme } = useTheme()
 
     const getThemeText = () => {
         switch (theme) {
-            case 'light': return 'Chiaro'
-            case 'dark': return 'Scuro'
-            default: return 'Sistema'
+            case 'light': return t("settings.appearance.theme.light")
+            case 'dark': return t("settings.appearance.theme.dark")
+            default: return t("common.system")
         }
     }
 
@@ -28,19 +30,19 @@ export function ModeToggle() {
                         <Sun className="relative h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
                         <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
                     </div>
-                    <span className="sr-only">Toggle theme</span>
+                    <span className="sr-only">{t("settings.appearance.theme.toggle")}</span>
                     <span className="text-sm">{getThemeText()}</span>
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setTheme("light")}>
-                    Chiaro
+                    {t("settings.appearance.theme.light")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("dark")}>
-                    Scuro
+                    {t("settings.appearance.theme.dark")}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setTheme("system")}>
-                    Sistema
+                    {t("common.system")}
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

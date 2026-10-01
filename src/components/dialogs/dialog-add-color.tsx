@@ -1,15 +1,19 @@
+import { useTranslation } from "react-i18next"
 import { Plus, X } from "lucide-react"
 import React, { useState } from "react"
 import { toast } from "sonner"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { getItemName, isUndoableType } from "@/contexts/undo/commands"
 
 type DialogAddColorProps<T> = {
     item: T
     itemType: DBItemType
     getItemId?: number | undefined
     addColorItem: (itemType: DBItemType, id: number, color?: string) => Promise<void>
-    getItemData: (id: number) => Promise<void>
+    /** Reloads the data after the change; not needed when `addColorItem` updates the cached data itself. */
+    getItemData?: (id: number) => Promise<void>
     setDropDownOpen?: (open: boolean) => void
     className?: string
 }
@@ -27,9 +31,13 @@ const COLORS = [
 ] as const
 
 export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getItemId, addColorItem, getItemData, setDropDownOpen, className }: DialogAddColorProps<T>) => {
+    const { t } = useTranslation()
+    const recorder = useUndoRecorder()
     const [color, setColor] = useState(item.color)
     const dialogRef = React.useRef<HTMLDivElement>(null);
     const [inputColor, setInputColor] = useState("#000000")
+    // Reloading needs the id; without a reload hook the change is saved as is
+    const canSave = !getItemData || !!getItemId
 
     const handleColorClick = async (colorValue: string, e: React.MouseEvent) => {
         setColor(colorValue)
@@ -41,9 +49,10 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
         if (setDropDownOpen) setDropDownOpen(false)
         try {
             const colorToSave = selectedColor ?? color
-            if (item.color !== colorToSave && getItemId && colorToSave) {
+            if (item.color !== colorToSave && colorToSave && canSave) {
                 await addColorItem(itemType, item.id, colorToSave)
-                await getItemData(getItemId)
+                if (getItemData && getItemId) await getItemData(getItemId)
+                if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, colorToSave)
             }
         } catch (err) {
             toast.error(getErrorMessage(err))
@@ -56,9 +65,10 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
         e.stopPropagation()
         if (setDropDownOpen) setDropDownOpen(false)
         try {
-            if (item.color && getItemId) {
+            if (item.color && canSave) {
                 await addColorItem(itemType, item.id)
-                await getItemData(getItemId)
+                if (getItemData && getItemId) await getItemData(getItemId)
+                if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, null)
             }
         } catch (err) {
             toast.error(getErrorMessage(err))
@@ -72,16 +82,17 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
         >
             <div className="grid grid-cols-4">
                 {COLORS.map((colorValue) => (
-                    <div
-                        role="button"
+                    <button
+                        type="button"
+                        aria-label={t("dialogs.color.swatch", { color: colorValue })}
                         key={colorValue}
                         onClick={(e) => {
                             handleColorClick(colorValue, e);
                         }}
-                        className="cursor-pointer size-6"
+                        className="cursor-pointer size-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset"
                         style={{ backgroundColor: colorValue }}
                     >
-                    </div>
+                    </button>
                 ))}
                 <div
                     className="relative flex items-center justify-center size-6"
@@ -106,7 +117,7 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
                     className="flex items-center p-1 cursor-pointer w-full hover:bg-secondary rounded-xs text-xs"
                 >
                     <X className="size-4" />
-                    Elimina
+                    {t("common.delete")}
                 </button>
             </div>
         </div>

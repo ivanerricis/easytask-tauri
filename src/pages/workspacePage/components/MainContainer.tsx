@@ -4,10 +4,16 @@ import { SideBarLeft } from "./sidebar/SideBarLeft"
 import { DndContext, type DragEndEvent } from "@dnd-kit/core"
 import { restrictToParentElement } from "@dnd-kit/modifiers"
 import { DraggableAudioPlayer } from "@/components/draggable-audio-player"
-import { usePreferences } from "@/contexts/preferences-context"
+import { useTranslation } from "react-i18next"
+import { buildDndAccessibility } from "@/lib/dnd-accessibility"
+import { usePreferences } from "@/contexts/use-preferences"
+import { useTabShortcuts } from "@/hooks/use-tab-shortcuts"
 
 export const MainContainer = () => {
     const { audioPlayerPosition, audioPlayerContainerRef, setAudioPlayerPosition, resetPlayerPosition } = usePreferences()
+    const { t } = useTranslation()
+    useTabShortcuts()
+    const accessibility = buildDndAccessibility(entry => entry.id === "audio-player" ? t("dnd.audioPlayer") : undefined, { keyboard: false })
 
     useEffect(() => {
         if (audioPlayerPosition.x === 0 && audioPlayerPosition.y === 0)
@@ -30,7 +36,7 @@ export const MainContainer = () => {
     return (
         <div ref={audioPlayerContainerRef} className="flex flex-1 w-full h-full relative">
             <SideBarLeft />
-            <DndContext onDragEnd={handleDragEnd} modifiers={[restrictToParentElement]}>
+            <DndContext accessibility={accessibility} onDragEnd={handleDragEnd} modifiers={[restrictToParentElement]}>
                 <CenterContainer />
                 <DraggableAudioPlayer position={audioPlayerPosition} />
             </DndContext>

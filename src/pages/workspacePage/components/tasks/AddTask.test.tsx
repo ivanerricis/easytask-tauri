@@ -3,18 +3,16 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AddTask } from "./AddTask"
 import { toast } from "sonner"
-import { makeNote } from "@/test/ui-fixtures"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 
 const ctx = {
     createTask: vi.fn(),
-    getNoteData: vi.fn(),
-    currentNote: null as ReturnType<typeof makeNote> | null,
+    createSubTask: vi.fn(),
+    appendTask: vi.fn(),
 }
-vi.mock("@/contexts/workspace-data-context", () => ({
-    useWorkspaceData: () => ctx,
-}))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ctx }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }))
 
 const open = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.click(screen.getByRole("button"))
@@ -24,9 +22,8 @@ const open = async (user: ReturnType<typeof userEvent.setup>) => {
 describe("AddTask", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        ctx.createTask.mockResolvedValue(undefined)
-        ctx.getNoteData.mockResolvedValue(undefined)
-        ctx.currentNote = makeNote({ id: 12 })
+        ctx.createTask.mockResolvedValue(50)
+        ctx.createSubTask.mockResolvedValue(60)
     })
 
     it("starts collapsed and opens the input on click", async () => {
@@ -38,14 +35,14 @@ describe("AddTask", () => {
         expect(screen.getByPlaceholderText("Scrivi qualcosa...")).toHaveFocus()
     })
 
-    it("creates the trimmed task, refreshes the note and collapses", async () => {
+    it("creates the trimmed task, appends it to the note without reloading and collapses", async () => {
         const user = userEvent.setup()
         render(<AddTask sectionId={3} />)
         const input = await open(user)
 
         await user.type(input, "  Buy milk  {Enter}")
 
-        await waitFor(() => expect(ctx.getNoteData).toHaveBeenCalledWith(12))
+        await waitFor(() => expect(ctx.appendTask).toHaveBeenCalledWith(50, { sectionId: 3 }, "Buy milk"))
         expect(ctx.createTask).toHaveBeenCalledWith(3, "Buy milk")
         expect(screen.queryByPlaceholderText("Scrivi qualcosa...")).not.toBeInTheDocument()
     })
@@ -70,17 +67,7 @@ describe("AddTask", () => {
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("duplicate"))
         expect(screen.getByPlaceholderText("Scrivi qualcosa...")).toBeInTheDocument()
-        expect(ctx.getNoteData).not.toHaveBeenCalled()
-    })
-
-    it("does not refresh the note when there is no current note", async () => {
-        const user = userEvent.setup()
-        ctx.currentNote = null
-        render(<AddTask sectionId={3} />)
-        await user.type(await open(user), "Task{Enter}")
-
-        await waitFor(() => expect(ctx.createTask).toHaveBeenCalled())
-        expect(ctx.getNoteData).not.toHaveBeenCalled()
+        expect(ctx.appendTask).not.toHaveBeenCalled()
     })
 
     it("closes and clears the text on outside mousedown", async () => {
@@ -104,5 +91,68 @@ describe("AddTask", () => {
 
         expect(screen.queryByPlaceholderText("Scrivi qualcosa...")).not.toBeInTheDocument()
         expect(ctx.createTask).not.toHaveBeenCalled()
+    })
+
+    describe("subtask mode", () => {
+        const placeholder = "Nuovo sottotask…"
+
+        it("starts open and focused, and creates a subtask instead of a task", async () => {
+            const user = userEvent.setup()
+            render(<AddTask sectionId={3} parentTaskId={7} />)
+            const input = screen.getByPlaceholderText(placeholder)
+            expect(input).toHaveFocus()
+
+            await user.type(input, "  Step one  {Enter}")
+
+            await waitFor(() => expect(ctx.appendTask).toHaveBeenCalledWith(60, { parentTaskId: 7 }, "Step one"))
+            expect(ctx.createSubTask).toHaveBeenCalledWith(7, "Step one")
+            expect(ctx.createTask).not.toHaveBeenCalled()
+        })
+
+        it("keeps the input open and empty to add the next subtask", async () => {
+            const user = userEvent.setup()
+            const onClose = vi.fn()
+            render(<AddTask sectionId={3} parentTaskId={7} onClose={onClose} />)
+            await user.type(screen.getByPlaceholderText(placeholder), "One{Enter}")
+            await waitFor(() => expect(ctx.appendTask).toHaveBeenCalled())
+
+            const input = screen.getByPlaceholderText(placeholder)
+            expect(input).toHaveValue("")
+            await user.type(input, "Two{Enter}")
+            await waitFor(() => expect(ctx.createSubTask).toHaveBeenLastCalledWith(7, "Two"))
+            expect(onClose).not.toHaveBeenCalled()
+        })
+
+        it("closes on Escape", async () => {
+            const user = userEvent.setup()
+            const onClose = vi.fn()
+            render(<AddTask sectionId={3} parentTaskId={7} onClose={onClose} />)
+            await user.type(screen.getByPlaceholderText(placeholder), "draft{Escape}")
+            expect(onClose).toHaveBeenCalledTimes(1)
+            expect(ctx.createSubTask).not.toHaveBeenCalled()
+        })
+
+        it("closes on blur when empty but not when it holds text", async () => {
+            const user = userEvent.setup()
+            const onClose = vi.fn()
+            render(<AddTask sectionId={3} parentTaskId={7} onClose={onClose} />)
+            const input = screen.getByPlaceholderText(placeholder)
+            await user.type(input, "keep")
+            input.blur()
+            expect(onClose).not.toHaveBeenCalled()
+
+            await user.clear(input)
+            input.blur()
+            expect(onClose).toHaveBeenCalledTimes(1)
+        })
+
+        it("reports errors with a toast", async () => {
+            const user = userEvent.setup()
+            ctx.createSubTask.mockRejectedValue(new Error("boom"))
+            render(<AddTask sectionId={3} parentTaskId={7} />)
+            await user.type(screen.getByPlaceholderText(placeholder), "x{Enter}")
+            await waitFor(() => expect(toast.error).toHaveBeenCalledWith("boom"))
+            expect(ctx.appendTask).not.toHaveBeenCalled()
+        })
     })
 })

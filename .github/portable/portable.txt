@@ -1,0 +1,5 @@
+EasyTask portable marker / Marcatore portable di EasyTask
+
+This file next to EasyTask.exe makes the app keep all its data in the "data" folder beside the executable.
+Questo file accanto a EasyTask.exe fa salvare tutti i dati nella cartella "data" accanto all'eseguibile.
+Do not delete it / Non eliminarlo.

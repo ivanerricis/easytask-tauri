@@ -1,17 +1,25 @@
+import { useTranslation } from "react-i18next"
 import { Progress } from "@/components/ui/progress"
-import { getErrorMessage } from "@/lib/utils"
+import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import type { Section as SectionType, Task } from "@/types/types"
-import { ChevronDown } from "lucide-react"
+import { ChevronDown, GripVertical } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
+import { ItemMenuButton } from "@/components/item-menu"
 import { useEffect, useRef, useState } from "react"
-import { useWorkspaceData } from "@/contexts/workspace-data-context"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { toast } from "sonner"
-import { usePreferences } from "@/contexts/preferences-context"
+import { usePreferences } from "@/contexts/use-preferences"
+import type { HTMLAttributes } from "react"
 
 type SectionHeaderProps = {
     isOpen: boolean
     onOpenChange: (isOpen: boolean) => void
     section: SectionType
+    /** Drag handle of the section (drag & drop inside the open note); omitted when the section is not draggable. */
+    dragHandleRef?: (element: HTMLElement | null) => void
+    dragHandleProps?: HTMLAttributes<HTMLDivElement>
 }
 
 const calculateCompletionPercentage = (tasks: Task[]): number => {
@@ -27,10 +35,13 @@ const calculateCompletionPercentage = (tasks: Task[]): number => {
     return (completedTasks / totalTasks) * 100
 }
 
-export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderProps) => {
+export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dragHandleProps }: SectionHeaderProps) => {
+    const { t } = useTranslation()
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(section.title)
-    const { getNoteData, renameItem, currentNote } = useWorkspaceData()
+    const { renameItem } = useWorkspaceActions()
+    const { patchSection } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
     const { showProgressBar } = usePreferences()
     const textareaRef = useRef<HTMLInputElement>(null)
 
@@ -44,14 +55,17 @@ export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderPr
     }, [isTextAreaOpen])
 
     const handleChangeText = async () => {
+        // Optimistic: the cached tree is updated at once and restored if the write fails
+        const changed = section.title !== text && text.trim() !== ""
+        const rollback = changed ? patchSection(section.id, { title: text.trim() }) : null
         try {
-            if (section.title !== text && text.trim() !== "") {
+            if (changed) {
                 await renameItem("section", section.id, text.trim())
-                if (currentNote)
-                    await getNoteData(currentNote.id)
+                recorder.rename("section", section.id, section.title, text.trim())
             }
         } catch (err) {
-            toast.error('Impossibile cambiare il titolo della sezione' + ' - ' + getErrorMessage(err))
+            rollback?.()
+            toast.error(t("sections.renameError", { message: getErrorMessage(err) }))
         }
         setTextAreaOpen(false)
     }
@@ -65,49 +79,63 @@ export const SectionHeader = ({ isOpen, onOpenChange, section }: SectionHeaderPr
     return (
         <div className="relative flex flex-col items-center justify-center">
 
-            {/* Color Container */}
-            {/* section.color && <div className="w-full h-1 absolute top-0" style={{ backgroundColor: section.color }}></div>} */}
-            
-            {section.color && <div
-                className="group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs"
-                style={{ backgroundColor: section.color }}
-            >
-                {(section.tasks.length > 0) &&
-                    <div role="button" onClick={handleOpen} className="shrink-0 cursor-pointer">
-                        <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1.5 size-5`} />
-                    </div>}
-                <div className="flex items-center justify-between gap-2 w-full">
-                    {!isTextAreaOpen && <h1
-                        onClick={() => { setTextAreaOpen(true) }}
-                        className="text-sm ml-2">
-                        {section.title}
-                    </h1>}
-                    {isTextAreaOpen && <input
-                        ref={textareaRef}
-                        type="text"
-                        value={text}
-                        onChange={e => setText(e.target.value)}
-                        onBlur={handleChangeText}
-                        onKeyDown={e => {
-                            if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                handleChangeText();
-                            }
-                        }}
-                        className="w-auto px-1 ml-2 border border-primary resize-none text-sm rounded-xs"
-                    />}
-                    {showProgressBar && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
-                        <Progress className="w-20" value={completionPercentage} />
-                        <h1 className="text-xs">
-                            {Math.round(completionPercentage)} %
-                        </h1>
-                    </div>}
-                    <div className="opacity-0 group-hover:opacity-100">
-                        <ButtonMenuSection section={section} />
+            <ButtonMenuSection section={section}>
+                <div
+                    className={`group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs ${section.color ? "" : "bg-background border"}`}
+                    style={section.color ? { backgroundColor: hexToRgba(0.4, section.color) } : undefined}
+                >
+                    {dragHandleProps &&
+                        <div
+                            ref={dragHandleRef}
+                            {...dragHandleProps}
+                            aria-label={t("sections.moveHandle")}
+                            title={t("sections.moveHandleTitle")}
+                            className="shrink-0 touch-none cursor-grab text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
+                            <GripVertical className="size-4" />
+                        </div>}
+                    {(section.tasks.length > 0) &&
+                        <button
+                            type="button"
+                            onClick={handleOpen}
+                            aria-label={isOpen ? t("sections.collapse") : t("sections.expand")}
+                            aria-expanded={isOpen}
+                            className="shrink-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                            <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1.5 size-5`} />
+                        </button>}
+                    <div className="flex items-center justify-between gap-2 w-full min-w-0">
+                        {!isTextAreaOpen && <button
+                            type="button"
+                            onClick={() => { setTextAreaOpen(true) }}
+                            title={section.title}
+                            className="text-sm ml-2 min-w-0 flex-1 truncate cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                            {section.title}
+                        </button>}
+                        {isTextAreaOpen && <input
+                            ref={textareaRef}
+                            type="text"
+                            value={text}
+                            onChange={e => setText(e.target.value)}
+                            onBlur={handleChangeText}
+                            onKeyDown={e => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleChangeText();
+                                }
+                            }}
+                            className="min-w-0 flex-1 px-1 ml-2 border border-primary resize-none text-sm rounded-xs"
+                        />}
+                        {showProgressBar && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
+                            <Progress className="w-20" value={completionPercentage} />
+                            <span className="text-xs">
+                                {Math.round(completionPercentage)} %
+                            </span>
+                        </div>}
+                        <div className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                            <ItemMenuButton iconClassName="!h-4 !w-4" />
+                        </div>
                     </div>
                 </div>
-            </div>
-            }
+            </ButtonMenuSection>
         </div>
     )
 }
