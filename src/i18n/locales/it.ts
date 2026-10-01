@@ -289,6 +289,10 @@ export const it = {
                 label: "Riapri l'ultimo workspace all'avvio",
                 description: "Se chiudi l'app dentro un workspace, lo riapre al prossimo avvio.",
             },
+            hideCompleted: {
+                label: "Nascondi i task completati",
+                description: "I task completati (con i loro sottotask) non vengono mostrati nelle note. Una riga indica quanti sono nascosti.",
+            },
             reopenNotes: {
                 label: "Riapri le note all'avvio",
                 description: "Ripristina le note aperte e quella attiva quando riapri un workspace.",
@@ -354,6 +358,7 @@ export const it = {
             "new-folder": "Crea una nuova cartella",
             "close-note": "Chiudi la nota attiva",
             "close-all-notes": "Chiudi tutte le note",
+            "toggle-hide-completed": "Nascondi o mostra i task completati",
             "new-group": "Crea un nuovo gruppo o una nuova sezione",
             "confirm-rename": "Conferma la modifica di nome gruppo, sezione o task",
             "cancel-rename": "Annulla la rinomina del gruppo o chiudi il nuovo sottotask",
@@ -670,6 +675,7 @@ export const it = {
             suggestions: "Suggerimenti",
             short: "Cerca...",
         },
+        hideCompleted: "Nascondi i task completati",
         closeCurrent: "Chiudi nota corrente",
         close: "Chiudi nota",
     },
@@ -716,6 +722,8 @@ export const it = {
         expand: "Espandi sezione",
     },
     tasks: {
+        hiddenCompleted_one: "{{count}} task completato nascosto",
+        hiddenCompleted_other: "{{count}} task completati nascosti",
         errors: {
             createSubtask: "Errore nella creazione del sottotask",
             createTask: "Errore nella creazione del task",

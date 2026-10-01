@@ -291,6 +291,10 @@ export const en: Translation = {
                 label: "Reopen the last workspace at startup",
                 description: "If you close the app inside a workspace, it is reopened at the next startup.",
             },
+            hideCompleted: {
+                label: "Hide completed tasks",
+                description: "Completed tasks (and their subtasks) are not shown in the notes. A line tells how many are hidden.",
+            },
             reopenNotes: {
                 label: "Reopen notes at startup",
                 description: "Restores the open notes and the active one when you reopen a workspace.",
@@ -356,6 +360,7 @@ export const en: Translation = {
             "new-folder": "Create a new folder",
             "close-note": "Close the active note",
             "close-all-notes": "Close all notes",
+            "toggle-hide-completed": "Hide or show the completed tasks",
             "new-group": "Create a new group or section",
             "confirm-rename": "Confirm editing a group, section or task name",
             "cancel-rename": "Cancel renaming the group or close the new subtask",
@@ -672,6 +677,7 @@ export const en: Translation = {
             suggestions: "Suggestions",
             short: "Search...",
         },
+        hideCompleted: "Hide completed tasks",
         closeCurrent: "Close current note",
         close: "Close note",
     },
@@ -718,6 +724,8 @@ export const en: Translation = {
         expand: "Expand section",
     },
     tasks: {
+        hiddenCompleted_one: "{{count}} completed task hidden",
+        hiddenCompleted_other: "{{count}} completed tasks hidden",
         errors: {
             createSubtask: "Error while creating the subtask",
             createTask: "Error while creating the task",
