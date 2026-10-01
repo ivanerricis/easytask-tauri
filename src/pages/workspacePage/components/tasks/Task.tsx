@@ -93,6 +93,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
             <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)}>
                 <div
                     ref={setRowRef}
+                    data-task-id={task.id}
                     data-selected={selected ? "true" : undefined}
                     aria-current={selected ? "true" : undefined}
                     onClick={e => {
