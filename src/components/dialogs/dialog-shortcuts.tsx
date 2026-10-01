@@ -33,9 +33,9 @@ export const DialogShortcuts = () => {
                             {index > 0 && <Separator />}
                             <section aria-label={categoryLabel(category)}>
                                 <h3 className="mb-2 text-sm font-semibold">{categoryLabel(category)}</h3>
-                                <ul className="flex flex-col divide-y">
+                                <ul className="flex flex-col gap-2">
                                     {SHORTCUTS.filter(s => s.category === category).map(s => (
-                                        <li key={s.id} className="flex items-center justify-between gap-4 py-1.5 text-sm first:pt-0 last:pb-0">
+                                        <li key={s.id} className="flex items-center justify-between gap-4 text-sm">
                                             <span>{shortcutDescription(s.id)}</span>
                                             <KbdKeys keys={shortcutKeys(s.id, s.keys, getBinding)} className="shrink-0" />
                                         </li>

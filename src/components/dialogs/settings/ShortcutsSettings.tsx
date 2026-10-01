@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
 import { KbdKeys } from "@/components/kbd"
 import { useShortcutsContext } from "@/contexts/use-shortcuts"
 import { SHORTCUTS, SHORTCUT_CATEGORIES, bindingFromEvent, categoryLabel, findConflictsFor, formatBinding, isValidBinding, shortcutDescription } from "@/lib/shortcuts"
@@ -60,11 +61,12 @@ export const ShortcutsSettings = () => {
                     {t("settings.shortcuts.resetAll")}
                 </Button>
             </div>
-            {SHORTCUT_CATEGORIES.map(category => {
-                const items = SHORTCUTS.filter(s => s.category === category && s.editable && s.defaultBinding)
-                if (items.length === 0) return null
-                return (
-                    <section key={category} aria-label={categoryLabel(category)} className="flex flex-col gap-3">
+            {SHORTCUT_CATEGORIES.map(category => ({ category, items: SHORTCUTS.filter(s => s.category === category && s.editable && s.defaultBinding) }))
+                .filter(({ items }) => items.length > 0)
+                .map(({ category, items }) => (
+                <Fragment key={category}>
+                    <Separator />
+                    <section aria-label={categoryLabel(category)} className="flex flex-col gap-3">
                         <h4 className="text-sm font-semibold">{categoryLabel(category)}</h4>
                         {items.map(s => {
                             const isRecording = recordingId === s.id
@@ -102,8 +104,8 @@ export const ShortcutsSettings = () => {
                             )
                         })}
                     </section>
-                )
-            })}
+                </Fragment>
+            ))}
         </SettingsPanel>
     )
 }
