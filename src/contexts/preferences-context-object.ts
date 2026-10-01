@@ -49,6 +49,9 @@ export type PreferencesContextType = {
     setColorIntensity: (value: number) => void
     language: LanguagePreference
     setLanguage: (value: LanguagePreference) => void
+    /** Whether the completed tasks (with their subtasks) are hidden in the notes. */
+    hideCompletedTasks: boolean
+    setHideCompletedTasks: (value: boolean) => void
 }
 
 export const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined)

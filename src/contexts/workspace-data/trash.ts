@@ -10,11 +10,11 @@ type TrashActions = Pick<WorkspaceActionsType, "deleteItem" | "getTrash" | "rest
  * Delete (move to trash), restore, purge and empty. Every write that changes the trash bumps trashVersion.
  * @category WorkspaceData Context
  */
-export function useTrashActions({ withLoading, withTrashChange, latest, setCurrentFolder, setTemplatesVersion, applyTree, getTree }: Runtime): TrashActions {
+export function useTrashActions({ tabsBridge, withLoading, withTrashChange, latest, setCurrentFolder, setTemplatesVersion, applyTree, getTree }: Runtime): TrashActions {
     /**
      * Delete an item from the workspace (moves it to the trash). A folder or a note is removed from the sidebar tree
      * at once and put back if the write fails; the tabs of deleted notes (or of notes inside a deleted folder) are
-     * closed by the tabs module as the tree changes. Deleting a folder clears the current folder if it was affected.
+     * closed by the tabs module as the tree changes (and reopened if the write fails). Deleting a folder clears the current folder if it was affected.
      * Sections, groups and tasks are removed from the open note by the caller.
      * @param itemType - The type of the item to delete (e.g., "folder", "note", "section", "task").
      * @param itemID - The ID of the item to delete.
@@ -39,6 +39,7 @@ export function useTrashActions({ withLoading, withTrashChange, latest, setCurre
         }
 
         // Folders and notes leave the sidebar tree at once (and their open tabs close with them); restored on failure
+        const tabsBefore = tabsBridge.current?.snapshot()
         const tree = getTree()
         const found = tree && (itemType === "folder" || itemType === "note") ? findTreeItem(tree, itemType, itemID) : undefined
         const rollback = found && (itemType === "folder" || itemType === "note")
@@ -50,6 +51,8 @@ export function useTrashActions({ withLoading, withTrashChange, latest, setCurre
             await deleteDBItem(itemType, itemID)
         } catch (error) {
             rollback?.()
+            // The tree is back: so are the tabs that the optimistic removal closed
+            if (rollback && tabsBefore) tabsBridge.current?.reopen(tabsBefore)
             throw error
         }
         if (itemType === "note_template") setTemplatesVersion(version => version + 1)
@@ -58,7 +61,7 @@ export function useTrashActions({ withLoading, withTrashChange, latest, setCurre
             const { currentFolder } = latest.current
             if (currentFolder && folderIds.has(currentFolder.id)) setCurrentFolder(null)
         }
-    }), [withTrashChange, applyTree, getTree, latest, setCurrentFolder, setTemplatesVersion])
+    }), [tabsBridge, withTrashChange, applyTree, getTree, latest, setCurrentFolder, setTemplatesVersion])
 
     /**
      * Retrieves the trashed items of a workspace. Does not touch the context state.

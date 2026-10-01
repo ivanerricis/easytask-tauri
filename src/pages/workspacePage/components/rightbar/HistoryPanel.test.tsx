@@ -12,6 +12,7 @@ const makeContext = (over: Partial<UndoContextType> = {}): UndoContextType => ({
     redo: vi.fn().mockResolvedValue(undefined),
     undoTo: vi.fn().mockResolvedValue(undefined),
     redoTo: vi.fn().mockResolvedValue(undefined),
+    clear: vi.fn(),
     recorder: {} as never,
     ...over,
 })

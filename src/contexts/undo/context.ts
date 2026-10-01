@@ -13,6 +13,8 @@ export type UndoContextType = UndoSnapshot & {
     undo: () => Promise<void>
     /** Redoes the last undone action. Never rejects. */
     redo: () => Promise<void>
+    /** Empties the history (undo and redo). Used after a purge: the ids of purged rows can be reused by new ones. Stable identity. */
+    clear: () => void
     /** Records the actions as they are done by the user. Stable: it never changes identity. */
     recorder: UndoRecorder
 }

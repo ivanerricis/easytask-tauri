@@ -21,6 +21,7 @@ import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { useOptionalUndo } from "@/contexts/undo/use-undo"
 import { formatDate, getErrorMessage } from "@/lib/utils"
 import type { TrashItem } from "@/types/types"
 
@@ -221,6 +222,7 @@ export const DialogTrash = ({ isOpen, onOpenChange }: DialogTrashProps) => {
     const { currentWorkspace } = useWorkspace()
     const { getTrash, restoreItem, purgeItem, emptyTrash, getWorkspaceData } = useWorkspaceActions()
     const { refreshActiveNote } = useActiveNoteActions()
+    const clearUndo = useOptionalUndo()?.clear
     const workspaceID = currentWorkspace?.id
 
     const refresh = async () => {
@@ -229,11 +231,12 @@ export const DialogTrash = ({ isOpen, onOpenChange }: DialogTrashProps) => {
         await refreshActiveNote()
     }
 
+    // Ids of purged rows can be reused by new ones (no AUTOINCREMENT): the undo history must not outlive a purge
     const source: TrashSource = {
         load: async () => workspaceID === undefined ? [] : getTrash(workspaceID),
         restore: async (item) => { await restoreItem(item.type, item.id); await refresh() },
-        purge: async (item) => { await purgeItem(item.type, item.id); await refresh() },
-        empty: async () => { if (workspaceID !== undefined) { await emptyTrash(workspaceID); await refresh() } },
+        purge: async (item) => { await purgeItem(item.type, item.id); clearUndo?.(); await refresh() },
+        empty: async () => { if (workspaceID !== undefined) { await emptyTrash(workspaceID); clearUndo?.(); await refresh() } },
     }
 
     return <DialogTrashView isOpen={isOpen} onOpenChange={onOpenChange} source={source} />

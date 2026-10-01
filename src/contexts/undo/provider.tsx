@@ -37,6 +37,7 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
         history.record,
     ), [history, workspaceActions, noteActions])
 
+    const clear = useCallback(() => history.clear(), [history])
     const undo = useCallback(() => runHistory(history, "undo"), [history])
     const redo = useCallback(() => runHistory(history, "redo"), [history])
     const undoTo = useCallback((index: number) => runHistoryTo(history, "undo", index), [history])
@@ -50,8 +51,8 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
     const entries = useSyncExternalStore(history.subscribe, history.getEntries)
 
     const value = useMemo<UndoContextType>(
-        () => ({ ...snapshot, entries, undo, redo, undoTo, redoTo, recorder }),
-        [snapshot, entries, undo, redo, undoTo, redoTo, recorder],
+        () => ({ ...snapshot, entries, undo, redo, undoTo, redoTo, clear, recorder }),
+        [snapshot, entries, clear, undo, redo, undoTo, redoTo, recorder],
     )
 
     return <UndoContext.Provider value={value}>{children}</UndoContext.Provider>

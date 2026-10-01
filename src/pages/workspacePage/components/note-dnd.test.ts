@@ -247,3 +247,32 @@ describe("group reorder", () => {
         expect(computeTaskTarget(buildTree(), 4, { kind: "group", id: 1 }, "inside")).toBeNull()
     })
 })
+
+describe("computeTaskTarget with hidden completed tasks", () => {
+    // Full list of the section: A, B (done), C (done), D, X. With the completed hidden the user only sees A, D, X
+    const hiddenTree = (): NoteDataTree => ({
+        groups: [makeGroup({
+            id: 1, sections: [makeSection({
+                id: 1, groupID: 1, tasks: [
+                    makeTask({ id: 1, sectionID: 1, text: "A" }),
+                    makeTask({ id: 2, sectionID: 1, text: "B", completed: true }),
+                    makeTask({ id: 3, sectionID: 1, text: "C", completed: true }),
+                    makeTask({ id: 4, sectionID: 1, text: "D" }),
+                    makeTask({ id: 5, sectionID: 1, text: "X" }),
+                ],
+            })],
+        })],
+    })
+
+    it("maps a drop next to a visible neighbour to the index of the full list", () => {
+        const tree = hiddenTree()
+        // "Before D" lands after the hidden B and C; "after A" lands right after A (before the hidden ones)
+        expect(computeTaskTarget(tree, 5, { kind: "task", id: 4 }, "before")).toEqual({ sectionId: 1, parentTaskId: null, index: 3 })
+        expect(computeTaskTarget(tree, 5, { kind: "task", id: 1 }, "after")).toEqual({ sectionId: 1, parentTaskId: null, index: 1 })
+        expect(computeTaskTarget(tree, 1, { kind: "task", id: 4 }, "after")).toEqual({ sectionId: 1, parentTaskId: null, index: 3 })
+    })
+
+    it("appends to the end of the full list when dropped on the section", () => {
+        expect(computeTaskTarget(hiddenTree(), 1, { kind: "section", id: 1 }, "inside")).toEqual({ sectionId: 1, parentTaskId: null, index: 4 })
+    })
+})
