@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest"
 import { afterEach, vi } from "vitest"
 import { cleanup } from "@testing-library/react"
 import { store } from "@/lib/store/initStore"
-import { initI18n } from "@/i18n"
+import { applyLanguagePreference, initI18n } from "@/i18n"
 
 // The settings store needs Tauri: every test gets an in-memory one (a test can still vi.mock it with its own)
 vi.mock("@/lib/store/initStore", () => {
@@ -24,6 +24,7 @@ initI18n("it")
 
 afterEach(async () => {
     cleanup()
+    await applyLanguagePreference("it")
     // Imported lazily so a test's own vi.mock("sonner") applies to the module
     ;(await import("@/lib/report-error")).resetReportErrorDedupe()
     ;(store as unknown as { clear?: () => void }).clear?.()

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { cn, getErrorMessage } from "./utils"
+import { applyLanguagePreference } from "@/i18n"
+import { cn, formatDate, getErrorMessage } from "./utils"
 
 describe("getErrorMessage", () => {
     it("returns the message of an Error", () => {
@@ -38,5 +39,14 @@ describe("cn", () => {
     it("resolves tailwind conflicts keeping the last one", () => {
         expect(cn("p-2", "p-4")).toBe("p-4")
         expect(cn("text-red-500", "text-blue-500")).toBe("text-blue-500")
+    })
+})
+
+describe("formatDate", () => {
+    it("uses DD-MM-YYYY in Italian and MM/DD/YYYY in English", async () => {
+        expect(formatDate("2024-03-15")).toBe("15-03-2024")
+        await applyLanguagePreference("en")
+        expect(formatDate("2024-03-15")).toBe("03/15/2024")
+        expect(formatDate("")).toBe("")
     })
 })
