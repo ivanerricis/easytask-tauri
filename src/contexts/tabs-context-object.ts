@@ -29,6 +29,9 @@ export type TabsActionsType = {
     activateNote: (noteId: number) => void
 }
 
+/** What is selected in a note (shown in the details panel). */
+export type SelectedItem = { type: "task", id: number }
+
 export type ScrollPosition = { left: number, top: number }
 
 /**
@@ -41,6 +44,8 @@ export type TabUiStore = {
     setSectionCollapsed: (noteId: number, sectionId: number, collapsed: boolean) => void
     isGroupCollapsed: (noteId: number, groupId: number) => boolean
     setGroupCollapsed: (noteId: number, groupId: number, collapsed: boolean) => void
+    getSelectedItem: (noteId: number) => SelectedItem | null
+    setSelectedItem: (noteId: number, item: SelectedItem | null) => void
     getScroll: (noteId: number) => ScrollPosition | undefined
     setScroll: (noteId: number, position: ScrollPosition) => void
     /** Drops the UI state of the notes that are not in `keep` (closed tabs). */

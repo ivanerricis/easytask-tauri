@@ -90,7 +90,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
                             {...dragHandleProps}
                             aria-label={t("sections.moveHandle")}
                             title={t("sections.moveHandleTitle")}
-                            className="shrink-0 touch-none cursor-grab text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
+                            className="shrink-0 touch-none cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
                             <GripVertical className="size-4" />
                         </div>}
                     {(section.tasks.length > 0) &&

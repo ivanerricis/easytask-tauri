@@ -2,7 +2,10 @@ import { useTranslation } from "react-i18next"
 import { ButtonInPopover } from "@/components/button-in-popover";
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename";
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete";
-import { MenuGroup } from "@/components/menu-kind";
+import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind";
+import { DialogAddColor } from "@/components/dialogs/dialog-add-color";
+import { useWorkspaceActions } from "@/contexts/workspace-data";
+import type { DBItemType } from "@/db/queries/shared_queries";
 import { ItemMenu } from "@/components/item-menu";
 import { useItemMenuState } from "@/hooks/use-item-menu-state";
 import { useActiveNoteActions } from "@/contexts/use-active-note";
@@ -23,6 +26,18 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
     const menu = useItemMenuState()
     const { patchGroup, removeGroup } = useActiveNoteActions()
     const { addFiles } = useAudio()
+    const { updateItemColor } = useWorkspaceActions()
+
+    // The color is applied to the cached note at once and restored if the write fails (the dialog shows the error)
+    const addColorItem = async (itemType: DBItemType, itemId: number, color?: string) => {
+        const rollback = patchGroup(itemId, { color: color ?? null })
+        try {
+            await updateItemColor(itemType, itemId, color)
+        } catch (error) {
+            rollback()
+            throw error
+        }
+    }
 
     const items = (
         <MenuGroup className="flex flex-col gap-1">
@@ -34,6 +49,22 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
                     menu.close()
                 }}
             />
+            <MenuSub>
+                <MenuSubTrigger>
+                    <ButtonInPopover
+                        text={t("menu.changeColor")}
+                        type="color"
+                    />
+                </MenuSubTrigger>
+                <MenuSubContent>
+                    <DialogAddColor
+                        item={group}
+                        itemType="section_group"
+                        addColorItem={addColorItem}
+                        setDropDownOpen={menu.close}
+                    />
+                </MenuSubContent>
+            </MenuSub>
             <ButtonInPopover
                 text={t("audio.add")}
                 type="addAudio"

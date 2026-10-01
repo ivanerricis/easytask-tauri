@@ -36,6 +36,22 @@ beforeEach(() => {
     patchGroup.mockReset().mockReturnValue(rollback)
 })
 
+describe("GroupHeader color", () => {
+    it("tints the header with the color of the group and drops the neutral background", () => {
+        const { container } = render(<GroupHeader group={makeGroup({ name: "G", color: "#ff0000" })} />)
+        const header = container.firstElementChild as HTMLElement
+        expect(header.style.backgroundColor).toBe("rgba(255, 0, 0, 0.4)")
+        expect(header).not.toHaveClass("bg-background")
+    })
+
+    it("keeps the neutral background without a color", () => {
+        const { container } = render(<GroupHeader group={makeGroup({ name: "G", color: null })} />)
+        const header = container.firstElementChild as HTMLElement
+        expect(header.style.backgroundColor).toBe("")
+        expect(header).toHaveClass("bg-background")
+    })
+})
+
 describe("GroupHeader name", () => {
     it("shows the full name, wrapping instead of truncating", () => {
         render(<GroupHeader group={makeGroup({ name: "Da fare" })} index={2} />)

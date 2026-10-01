@@ -1,6 +1,8 @@
 import { useEffect } from "react"
 import { CenterContainer } from "./CenterContainer"
 import { SideBarLeft } from "./sidebar/SideBarLeft"
+import { SideBarRight } from "./rightbar/SideBarRight"
+import { RightPanelProvider } from "./rightbar/right-panel-context"
 import { DndContext, type DragEndEvent } from "@dnd-kit/core"
 import { restrictToParentElement } from "@dnd-kit/modifiers"
 import { DraggableAudioPlayer } from "@/components/draggable-audio-player"
@@ -36,10 +38,13 @@ export const MainContainer = () => {
     return (
         <div ref={audioPlayerContainerRef} className="flex flex-1 w-full h-full relative">
             <SideBarLeft />
-            <DndContext accessibility={accessibility} onDragEnd={handleDragEnd} modifiers={[restrictToParentElement]}>
-                <CenterContainer />
-                <DraggableAudioPlayer position={audioPlayerPosition} />
-            </DndContext>
+            <RightPanelProvider>
+                <DndContext accessibility={accessibility} onDragEnd={handleDragEnd} modifiers={[restrictToParentElement]}>
+                    <CenterContainer />
+                    <DraggableAudioPlayer position={audioPlayerPosition} />
+                </DndContext>
+                <SideBarRight />
+            </RightPanelProvider>
         </div >
     )
 }

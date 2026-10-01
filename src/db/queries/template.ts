@@ -72,6 +72,7 @@ export async function buildContent(noteId: number): Promise<NoteTemplateContent>
         version: 1,
         groups: groups.map((group): TemplateGroup => ({
             name: group.name ?? null,
+            color: group.color ?? null,
             position: group.position,
             sections: sections.filter(section => section.groupID === group.id).map(snapshotSection),
         })),
@@ -196,8 +197,8 @@ type PendingTask = { sectionRef: TxRef, parentRef: TxRef | null, task: TemplateT
  */
 export function addNoteContent(tx: Transaction, noteRef: number | TxRef, content: NoteTemplateContent): TxRef[] {
     const { groups } = content
-    const groupRefs = tx.insertRows("section_group", ["noteID", "position", "name"],
-        groups.map(group => [noteRef, group.position, group.name ?? null]))
+    const groupRefs = tx.insertRows("section_group", ["noteID", "position", "name", "color"],
+        groups.map(group => [noteRef, group.position, group.name ?? null, group.color || null]))
 
     const sectionSources = groups.flatMap((group, i) => group.sections.map(section => ({ groupRef: groupRefs[i], section })))
     const sectionRefs = tx.insertRows("section", ["groupID", "title", "color", "archived", "position"],

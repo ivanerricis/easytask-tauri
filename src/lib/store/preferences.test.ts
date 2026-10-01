@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, saveShowGroupProgressBar, saveSidebarItemSize } from "./preferences"
+import { flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, getSidebarRightWidth, saveSidebarRightWidth, getRightPanelTab, saveRightPanelTab, saveShowGroupProgressBar, saveSidebarItemSize } from "./preferences"
 
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn(), delete: vi.fn() },
@@ -190,5 +190,45 @@ describe("left sidebar width preference", () => {
         await p
         expect(store.set).toHaveBeenCalledWith("sidebarLeftWidth", 480)
         expect(store.save).toHaveBeenCalled()
+    })
+})
+
+describe("right sidebar width and tab preferences", () => {
+    beforeEach(() => {
+        vi.resetAllMocks()
+        vi.useFakeTimers()
+    })
+
+    it("defaults the width to 260 when nothing valid is stored", async () => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getSidebarRightWidth()).toBe(260)
+        vi.mocked(store.get).mockResolvedValue("wide")
+        expect(await getSidebarRightWidth()).toBe(260)
+    })
+
+    it.each([[320, 320], [10, 200], [9999, 480]])("clamps the stored width %d to %d", async (stored, expected) => {
+        vi.mocked(store.get).mockResolvedValue(stored)
+        expect(await getSidebarRightWidth()).toBe(expected)
+        expect(store.get).toHaveBeenCalledWith("sidebarRightWidth")
+    })
+
+    it("saves the clamped width", async () => {
+        const p = saveSidebarRightWidth(9999)
+        await vi.advanceTimersByTimeAsync(500)
+        await p
+        expect(store.set).toHaveBeenCalledWith("sidebarRightWidth", 480)
+    })
+
+    it.each([[undefined, "details"], ["bogus", "details"], ["details", "details"], ["history", "history"]])("reads the tab %s as %s", async (stored, expected) => {
+        vi.mocked(store.get).mockResolvedValue(stored)
+        expect(await getRightPanelTab()).toBe(expected)
+        expect(store.get).toHaveBeenCalledWith("rightPanelTab")
+    })
+
+    it("saves the tab", async () => {
+        const p = saveRightPanelTab("history")
+        await vi.advanceTimersByTimeAsync(500)
+        await p
+        expect(store.set).toHaveBeenCalledWith("rightPanelTab", "history")
     })
 })

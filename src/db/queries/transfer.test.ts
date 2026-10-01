@@ -2,7 +2,7 @@
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DatabaseSync, type SQLInputValue } from "node:sqlite"
-import { initialSchema } from "../schema/initial"
+import { latestSchema } from "../schema/initial"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v8)
 let sqlite: DatabaseSync
@@ -44,14 +44,14 @@ beforeEach(() => {
     failOn = null
     sqlite = new DatabaseSync(":memory:")
     sqlite.exec("PRAGMA foreign_keys=ON")
-    for (const sql of initialSchema) sqlite.exec(sql)
+    for (const sql of latestSchema) sqlite.exec(sql)
     sqlite.exec(`
         INSERT INTO workspace (id, name) VALUES (1, 'WS'), (2, 'Other');
         INSERT INTO folder (id, workspaceID, name) VALUES (1, 1, 'Cartella');
         INSERT INTO note (id, workspaceID, name, color) VALUES (1, 1, 'Sorgente', '#ff0000');
         INSERT INTO note (id, workspaceID, folderID, name, position) VALUES (2, 1, 1, 'Nella cartella', 0);
 
-        INSERT INTO section_group (id, noteID, position, name) VALUES (1, 1, 0, 'Sprint'), (2, 1, 1, NULL), (3, 1, 2, 'Eliminato');
+        INSERT INTO section_group (id, noteID, position, name, color) VALUES (1, 1, 0, 'Sprint', '#abcdef'), (2, 1, 1, NULL, NULL), (3, 1, 2, 'Eliminato', NULL);
         INSERT INTO section (id, groupID, title, color, archived, position) VALUES
             (1, 1, 'Da fare', '#00ff00', 0, 0),
             (2, 1, 'Archivio', NULL, 1, 1),
@@ -191,5 +191,32 @@ describe("importDBWorkspace", () => {
         failOn = null
         // The database is still usable
         await expect(importDBWorkspace(data)).resolves.toMatchObject({ workspaceId: expect.any(Number) })
+    })
+})
+
+describe("group color in export/import", () => {
+    const groupColors = (workspaceId: number) => rows(`SELECT g.name, g.color FROM section_group g JOIN note n ON n.id = g.noteID
+        WHERE n.workspaceID = ${workspaceId} AND n.name = 'Sorgente' ORDER BY g.position`)
+
+    it("exports the color of the groups and imports it back", async () => {
+        const data = await exportOf()
+        const source = data.notes.find(n => n.name === "Sorgente")!
+        expect(source.content.groups.map(g => g.color)).toEqual(["#abcdef", null])
+        const { workspaceId } = await importDBWorkspace(JSON.parse(JSON.stringify(data)))
+        expect(groupColors(workspaceId)).toEqual([{ name: "Sprint", color: "#abcdef" }, { name: null, color: null }])
+    })
+
+    it("still imports files created before groups had a color", async () => {
+        const data = JSON.parse(JSON.stringify(await exportOf()))
+        for (const note of data.notes) for (const group of note.content.groups) delete group.color
+        expect(() => validateWorkspaceExport(data)).not.toThrow()
+        const { workspaceId } = await importDBWorkspace(data)
+        expect(groupColors(workspaceId)).toEqual([{ name: "Sprint", color: null }, { name: null, color: null }])
+    })
+
+    it("rejects a color that is not a string", async () => {
+        const data = JSON.parse(JSON.stringify(await exportOf()))
+        data.notes[0].content.groups[0].color = 5
+        expect(() => validateWorkspaceExport(data)).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
     })
 })

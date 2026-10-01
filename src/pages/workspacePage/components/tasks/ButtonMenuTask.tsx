@@ -3,7 +3,6 @@ import { getErrorMessage } from "@/lib/utils"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import type { Task } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
-import { useActiveNoteId } from "@/contexts/use-tabs"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { toast } from "sonner"
@@ -17,6 +16,8 @@ import { ItemMenu } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { TaskMoveSubmenu } from "../NoteMoveSubmenus"
+import { useShowTaskDetails } from "../rightbar/use-right-panel"
+import { useActiveNoteId, useSelectTask } from "@/contexts/use-tabs"
 
 type ButtonMenuFolderProps = {
     task: Task
@@ -36,6 +37,8 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
     const activeId = useActiveNoteId()
     const { patchTask, removeTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
+    const selectTask = useSelectTask()
+    const showTaskDetails = useShowTaskDetails()
 
     const handleEditPriority = async () => {
         // Optimistic: the cached tree is updated at once and restored if the write fails
@@ -86,6 +89,11 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
 
     const items = (
         <MenuGroup className="flex flex-col gap-1">
+            <ButtonInPopover
+                text={t("details.showTask")}
+                type="details"
+                onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id); menu.close() }}
+            />
             <ButtonInPopover
                 text={t("tasks.addSubtask")}
                 type="addSubtask"

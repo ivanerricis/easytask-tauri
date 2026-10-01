@@ -2,7 +2,7 @@ import { act, render, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { TabsProvider } from "./tabs-context"
-import { useActiveNoteId, useGroupOpen, useSectionOpen, useTabs, useTabsActions } from "./use-tabs"
+import { useActiveNoteId, useGroupOpen, useIsTaskSelected, useSelectTask, useSelectedTask, useSectionOpen, useTabs, useTabsActions } from "./use-tabs"
 import { getReopenNotes } from "@/lib/store/preferences"
 import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
 import { makeNote } from "@/test/ui-fixtures"
@@ -227,6 +227,67 @@ describe("TabsProvider", () => {
             act(() => result.current.closeNote(1))
             act(() => result.current.openNote(1))
             expect(result.current.group[0]).toBe(true)
+        })
+    })
+
+    describe("task selection", () => {
+        const wrapper = ({ children }: { children: ReactNode }) =>
+            <TabsProvider notes={notesOf(1, 2)} workspaceId={null}>{children}</TabsProvider>
+        const useAll = () => {
+            const { activeId } = useTabs()
+            return { activeId, selected: useSelectedTask(activeId), is7: useIsTaskSelected(7), is8: useIsTaskSelected(8), select: useSelectTask(), ...useTabsActions() }
+        }
+
+        it("is empty without an active note and ignores selecting", () => {
+            const { result } = renderHook(useAll, { wrapper })
+            expect(result.current.selected[0]).toBeNull()
+            act(() => result.current.select(7))
+            expect(result.current.selected[0]).toBeNull()
+        })
+
+        it("selects one task at a time and clears with null", () => {
+            const { result } = renderHook(useAll, { wrapper })
+            act(() => result.current.openNote(1))
+            act(() => result.current.select(7))
+            expect(result.current.selected[0]).toBe(7)
+            expect(result.current.is7).toBe(true)
+            expect(result.current.is8).toBe(false)
+
+            act(() => result.current.selected[1](8))
+            expect(result.current.is7).toBe(false)
+            expect(result.current.is8).toBe(true)
+
+            act(() => result.current.select(null))
+            expect(result.current.selected[0]).toBeNull()
+            expect(result.current.is8).toBe(false)
+        })
+
+        it("does not notify when the selection does not change", () => {
+            let renders = 0
+            const { result } = renderHook(() => { renders++; return useAll() }, { wrapper })
+            act(() => result.current.openNote(1))
+            act(() => result.current.select(7))
+            const before = renders
+            act(() => result.current.select(7))
+            act(() => result.current.select(null))
+            act(() => result.current.select(null))
+            expect(renders).toBe(before + 1)
+        })
+
+        it("is kept per note and dropped when the tab is closed", () => {
+            const { result } = renderHook(useAll, { wrapper })
+            act(() => result.current.openNote(1))
+            act(() => result.current.select(7))
+            act(() => result.current.openNote(2))
+            expect(result.current.selected[0]).toBeNull()
+            act(() => result.current.select(8))
+
+            act(() => result.current.activateNote(1))
+            expect(result.current.selected[0]).toBe(7)
+
+            act(() => result.current.closeNote(1))
+            act(() => result.current.openNote(1))
+            expect(result.current.selected[0]).toBeNull()
         })
     })
 })

@@ -34,6 +34,10 @@ vi.mock("@/lib/store/preferences", () => ({
     saveSidebarItemSize: vi.fn(),
     getSidebarLeftWidth: vi.fn(),
     saveSidebarLeftWidth: vi.fn(),
+    getSidebarRightWidth: vi.fn(),
+    saveSidebarRightWidth: vi.fn(),
+    getRightPanelTab: vi.fn(),
+    saveRightPanelTab: vi.fn(),
     getLanguage: vi.fn(),
     saveLanguage: vi.fn(),
 }))
@@ -56,6 +60,8 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getReopenLastWorkspace).mockResolvedValue(true)
         vi.mocked(prefs.getSidebarItemSize).mockResolvedValue("large")
         vi.mocked(prefs.getSidebarLeftWidth).mockResolvedValue(320)
+        vi.mocked(prefs.getSidebarRightWidth).mockResolvedValue(300)
+        vi.mocked(prefs.getRightPanelTab).mockResolvedValue("history")
         vi.mocked(prefs.getLanguage).mockResolvedValue("system")
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
     })
@@ -157,6 +163,29 @@ describe("PreferencesContext", () => {
 
         act(() => result.current.setSidebarLeftWidth(5000))
         expect(result.current.sidebarLeftWidth).toBe(480)
+    })
+
+    it("loads and persists the right sidebar width (default 260, clamped on save)", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.sidebarRightWidth).toBe(260)
+        await waitFor(() => expect(result.current.sidebarRightWidth).toBe(300))
+
+        act(() => result.current.setSidebarRightWidth(380))
+        expect(result.current.sidebarRightWidth).toBe(380)
+        expect(prefs.saveSidebarRightWidth).toHaveBeenCalledWith(380)
+
+        act(() => result.current.setSidebarRightWidth(5000))
+        expect(result.current.sidebarRightWidth).toBe(480)
+    })
+
+    it("loads and persists the right panel tab (details by default)", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.rightPanelTab).toBe("details")
+        await waitFor(() => expect(result.current.rightPanelTab).toBe("history"))
+
+        act(() => result.current.setRightPanelTab("details"))
+        expect(result.current.rightPanelTab).toBe("details")
+        expect(prefs.saveRightPanelTab).toHaveBeenCalledWith("details")
     })
 
     it("resetPlayerPosition resets the store but skips the state update without a container", async () => {

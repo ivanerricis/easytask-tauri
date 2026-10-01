@@ -226,4 +226,132 @@ describe("createUndoHistory", () => {
         await history.undo()
         expect(listener).toHaveBeenCalledTimes(1)
     })
+
+    describe("entries", () => {
+        it("lists the labels, the most recent undo first and the next redo first", async () => {
+            const history = createUndoHistory()
+            expect(history.getEntries()).toEqual({ undo: [], redo: [] })
+            ;["a", "b", "c"].forEach(label => history.record(makeCommand(label)))
+            expect(history.getEntries()).toEqual({ undo: ["c", "b", "a"], redo: [] })
+            await history.undo()
+            await history.undo()
+            expect(history.getEntries()).toEqual({ undo: ["a"], redo: ["b", "c"] })
+        })
+
+        it("keeps its identity until something changes and notifies the subscribers", async () => {
+            const history = createUndoHistory()
+            const listener = vi.fn()
+            history.subscribe(listener)
+            const empty = history.getEntries()
+            history.clear()
+            expect(history.getEntries()).toBe(empty)
+            expect(listener).not.toHaveBeenCalled()
+
+            history.record(makeCommand("a"))
+            const one = history.getEntries()
+            expect(one).not.toBe(empty)
+            expect(history.getEntries()).toBe(one)
+            expect(listener).toHaveBeenCalledTimes(1)
+            expect(Object.isFrozen(one)).toBe(false)
+            // a snapshot is never mutated afterwards
+            history.record(makeCommand("b"))
+            expect(one).toEqual({ undo: ["a"], redo: [] })
+        })
+
+        it("does not change the identity of getSnapshot when only the entries change", () => {
+            const history = createUndoHistory()
+            history.record(makeCommand("a"))
+            const snapshot = history.getSnapshot()
+            history.record(makeCommand("a"))
+            expect(history.getSnapshot()).toBe(snapshot)
+            expect(history.getEntries().undo).toEqual(["a", "a"])
+        })
+
+        it("is emptied by clear", async () => {
+            const history = createUndoHistory()
+            history.record(makeCommand("a"))
+            await history.undo()
+            history.clear()
+            expect(history.getEntries()).toEqual({ undo: [], redo: [] })
+        })
+    })
+
+    describe("undoTo and redoTo", () => {
+        const setup = () => {
+            const order: string[] = []
+            const commands = ["a", "b", "c", "d"].map(label => makeCommand(label, {
+                undo: vi.fn(async () => { order.push(`undo ${label}`) }),
+                redo: vi.fn(async () => { order.push(`redo ${label}`) }),
+            }))
+            const history = createUndoHistory()
+            commands.forEach(command => history.record(command))
+            return { history, commands, order }
+        }
+
+        it("undoTo(0) undoes just the last action", async () => {
+            const { history, order } = setup()
+            expect(await history.undoTo(0)).toEqual({ status: "done", executed: 1, label: "d" })
+            expect(order).toEqual(["undo d"])
+        })
+
+        it("undoes from the most recent down to the index included, in sequence", async () => {
+            const { history, order } = setup()
+            expect(await history.undoTo(2)).toEqual({ status: "done", executed: 3, label: "b" })
+            expect(order).toEqual(["undo d", "undo c", "undo b"])
+            expect(history.getEntries()).toEqual({ undo: ["a"], redo: ["b", "c", "d"] })
+        })
+
+        it("redoTo redoes from the next action up to the index included", async () => {
+            const { history, order } = setup()
+            await history.undoTo(3)
+            order.length = 0
+            expect(await history.redoTo(1)).toEqual({ status: "done", executed: 2, label: "b" })
+            expect(order).toEqual(["redo a", "redo b"])
+            expect(history.getEntries()).toEqual({ undo: ["b", "a"], redo: ["c", "d"] })
+        })
+
+        it("clamps an index past the end and answers 'empty' to a wrong one or an empty stack", async () => {
+            const { history } = setup()
+            expect(await history.redoTo(0)).toEqual({ status: "empty", executed: 0 })
+            expect(await history.undoTo(-1)).toEqual({ status: "empty", executed: 0 })
+            expect(await history.undoTo(1.5)).toEqual({ status: "empty", executed: 0 })
+            expect(await history.undoTo(99)).toEqual({ status: "done", executed: 4, label: "a" })
+            expect(await history.undoTo(0)).toEqual({ status: "empty", executed: 0 })
+        })
+
+        it("stops at the first failure, reports how many were applied and drops the failed command", async () => {
+            const { history, commands } = setup()
+            const error = new Error("boom")
+            commands[1].undo.mockRejectedValueOnce(error)
+            expect(await history.undoTo(3)).toEqual({ status: "failed", executed: 2, label: "b", error })
+            expect(commands[0].undo).not.toHaveBeenCalled()
+            expect(history.getEntries()).toEqual({ undo: ["a"], redo: ["c", "d"] })
+        })
+
+        it("is serialized with the other requests", async () => {
+            const { history, order } = setup()
+            const gate = deferred()
+            history.record(makeCommand("slow", { undo: vi.fn(async () => { await gate.promise; order.push("undo slow") }) }))
+            const first = history.undo()
+            const second = history.undoTo(1)
+            await Promise.resolve()
+            expect(order).toEqual([])
+            gate.resolve()
+            await Promise.all([first, second])
+            expect(order).toEqual(["undo slow", "undo d", "undo c"])
+        })
+
+        it("stops when the history is cleared meanwhile", async () => {
+            const { history, commands } = setup()
+            const gate = deferred()
+            commands[3].undo.mockImplementation(() => gate.promise)
+            const pending = history.undoTo(3)
+            await Promise.resolve()
+            history.clear()
+            gate.resolve()
+            expect(await pending).toEqual({ status: "done", executed: 1, label: "d" })
+            expect(commands[2].undo).not.toHaveBeenCalled()
+            expect(history.getEntries()).toEqual({ undo: [], redo: [] })
+        })
+    })
 })

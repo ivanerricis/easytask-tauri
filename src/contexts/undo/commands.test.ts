@@ -122,6 +122,24 @@ describe("color", () => {
         expect(ctx.deps.note.patchSection).not.toHaveBeenCalled()
     })
 
+    it("undoes and redoes the color of a group, with a translated label", async () => {
+        const command = commands.color("section_group", 6, "Sprint", null, "#fff")
+        expect(command.label).toBe(makeLabel("color", "section_group", "Sprint"))
+        expect(command.label).toContain("gruppo")
+        await command.redo()
+        expect(ctx.deps.note.patchGroup).toHaveBeenLastCalledWith(6, { color: "#fff" })
+        expect(ctx.deps.workspace.updateItemColor).toHaveBeenLastCalledWith("section_group", 6, "#fff")
+        await command.undo()
+        expect(ctx.deps.note.patchGroup).toHaveBeenLastCalledWith(6, { color: null })
+        expect(ctx.deps.workspace.updateItemColor).toHaveBeenLastCalledWith("section_group", 6, undefined)
+    })
+
+    it("rolls back the group color on failure", async () => {
+        ctx.deps.workspace.updateItemColor.mockRejectedValueOnce(new Error("fail"))
+        await expect(commands.color("section_group", 6, "G", null, "#fff").redo()).rejects.toThrow("fail")
+        expect(ctx.rollbacks.patch).toHaveBeenCalled()
+    })
+
     it("rolls back and rejects on failure", async () => {
         ctx.deps.workspace.updateItemColor.mockRejectedValueOnce(new Error("fail"))
         await expect(commands.color("task", 1, "T", null, "#fff").redo()).rejects.toThrow("fail")

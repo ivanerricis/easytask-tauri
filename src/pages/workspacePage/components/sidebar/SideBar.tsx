@@ -22,16 +22,21 @@ type SideBarProps = {
     onWidthChange?: (value: number) => void
     /** Compact mode: the panel floats over the content instead of pushing it, and is not resizable. */
     overlay?: boolean
+    /** Shortcut shown in the tooltip of the toggle button (default: the left sidebar one). */
+    toggleShortcut?: string
+    /** Texts of the toggle button (default: the generic sidebar ones). */
+    toggleLabels?: { toggle: string, show: string, hide: string }
 }
 
 export const SideBar = ({
     children, position = "left", className, topContainer, bottomContainer,
     open, onOpenChange, width = SIDEBAR_DEFAULT_WIDTH, onWidthChange, overlay = false,
+    toggleShortcut = "toggle-sidebar", toggleLabels,
 }: SideBarProps) => {
     const { t } = useTranslation()
     const sidebarRef = useRef<HTMLDivElement>(null)
     const toggleRef = useRef<HTMLButtonElement>(null)
-    const toggleLabel = useShortcutLabel("toggle-sidebar")
+    const toggleLabel = useShortcutLabel(toggleShortcut)
     const [dragWidth, setDragWidth] = useState<number | null>(null)
     const dragWidthRef = useRef<number | null>(null)
     const isResizing = dragWidth !== null
@@ -93,7 +98,7 @@ export const SideBar = ({
     const borderClass = position === "left" ? "border-r-2" : "border-l-2"
     const resizerPosition = position === "left" ? "right-0" : "left-0"
     const sideAnchor = position === "left" ? "left-full" : "right-full"
-    const toggleText = open ? t("layout.hideSidebar") : t("layout.showSidebar")
+    const toggleText = open ? (toggleLabels?.hide ?? t("layout.hideSidebar")) : (toggleLabels?.show ?? t("layout.showSidebar"))
 
     return (
         <div className={`flex ${flexDirection} relative h-full z-20 shrink-0 ${className || ""}`}>
@@ -148,7 +153,7 @@ export const SideBar = ({
                         <Button
                             ref={toggleRef}
                             onClick={() => onOpenChange(!open)}
-                            aria-label={t("sidebar.toggle")}
+                            aria-label={toggleLabels?.toggle ?? t("sidebar.toggle")}
                             aria-expanded={open}
                             size="icon"
                             variant="ghost"

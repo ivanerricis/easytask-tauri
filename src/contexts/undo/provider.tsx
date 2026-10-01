@@ -5,7 +5,7 @@ import { useActiveNoteActions } from "../use-active-note"
 import { useWorkspaceActions } from "../workspace-data"
 import { createUndoCommands, createUndoRecorder } from "./commands"
 import { UndoContext, type UndoContextType } from "./context"
-import { runHistory } from "./run-history"
+import { runHistory, runHistoryTo } from "./run-history"
 import { createUndoHistory } from "./stack"
 
 /**
@@ -39,13 +39,20 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
 
     const undo = useCallback(() => runHistory(history, "undo"), [history])
     const redo = useCallback(() => runHistory(history, "redo"), [history])
+    const undoTo = useCallback((index: number) => runHistoryTo(history, "undo", index), [history])
+    const redoTo = useCallback((index: number) => runHistoryTo(history, "redo", index), [history])
 
     // Not active in text fields (the fields have their own undo)
     useShortcut("undo", () => { void undo() })
     useShortcut("redo", () => { void redo() })
     useShortcut("redo-alt", () => { void redo() })
 
-    const value = useMemo<UndoContextType>(() => ({ ...snapshot, undo, redo, recorder }), [snapshot, undo, redo, recorder])
+    const entries = useSyncExternalStore(history.subscribe, history.getEntries)
+
+    const value = useMemo<UndoContextType>(
+        () => ({ ...snapshot, entries, undo, redo, undoTo, redoTo, recorder }),
+        [snapshot, entries, undo, redo, undoTo, redoTo, recorder],
+    )
 
     return <UndoContext.Provider value={value}>{children}</UndoContext.Provider>
 }

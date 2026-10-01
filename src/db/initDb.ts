@@ -1,6 +1,7 @@
 import type Database from "@tauri-apps/plugin-sql";
 import i18n from "@/i18n";
 import { APPLICATION_ID, initialSchema } from "./schema/initial";
+import { addGroupColorColumn } from "./schema/section_group";
 
 /**
  * Ordered list of migrations, applied once each and tracked with PRAGMA user_version.
@@ -11,6 +12,8 @@ import { APPLICATION_ID, initialSchema } from "./schema/initial";
 const migrations: string[][] = [
     // v1: initial schema
     initialSchema,
+    // v2: color of the groups
+    [addGroupColorColumn],
 ];
 
 /**
@@ -50,6 +53,9 @@ export async function initDB(db: Database) {
             try {
                 await db.execute(query);
             } catch (err: unknown) {
+                // ALTER TABLE ADD COLUMN has no IF NOT EXISTS: a run interrupted before the version bump is retried safely
+                if (/^\s*ALTER TABLE/i.test(query) && /duplicate column name/i.test(String((err as { message?: unknown })?.message ?? err)))
+                    continue
                 console.error(`Migration v${version + 1} failed on query: ${query}`, err);
                 throw err;
             }

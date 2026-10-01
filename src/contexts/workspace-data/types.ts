@@ -14,6 +14,8 @@ export type WorkspaceStateType = {
     trashVersion: number
     /** Incremented after every operation that can change the templates of the workspace (create, update, delete, restore, purge). */
     templatesVersion: number
+    /** Id of the workspace whose data is loaded in the context (null while nothing is loaded or a load is pending). */
+    loadedWorkspaceId: number | null
 }
 
 /** Every action has a stable identity (it never changes), so consumers of the actions alone never re-render because of it. */
