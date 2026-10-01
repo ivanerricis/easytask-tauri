@@ -40,10 +40,13 @@ fn locate_data_dir(app: &tauri::AppHandle) -> Result<DataDirInfo, String> {
     let exe_dir = exe
         .parent()
         .ok_or_else(|| "the executable has no parent folder".to_string())?;
+    // Minimal Linux setups (containers, CI runners) have no Documents folder: fall back to the app data folder
+    // instead of failing the whole startup
     let documents = app
         .path()
         .document_dir()
-        .map_err(|error| format!("cannot locate the Documents folder: {error}"))?;
+        .or_else(|_| app.path().app_data_dir())
+        .map_err(|error| format!("cannot locate the Documents or the app data folder: {error}"))?;
     let env_dir = std::env::var(DATA_DIR_ENV).ok();
     let info = resolve_data_dir(env_dir.as_deref(), exe_dir, &documents);
     std::fs::create_dir_all(&info.path).map_err(|error| {
