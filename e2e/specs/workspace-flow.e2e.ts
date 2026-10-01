@@ -1,6 +1,6 @@
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    byLabel, byText, createFromSidebar, createWorkspace, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
+    byLabel, byText, createFromSidebar, createWorkspace, openSubmenu, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
     waitForApp,
 } from "../helpers"
 
@@ -92,10 +92,9 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
 
     it("moves the task to the other section", async () => {
         const menu = await openTaskMenu(TASK)
-        await byText(await tr("menu.moveTo"), menu).click()
         // Destinations are menu items (role="menuitem") of the submenu, labelled with the section title
         const destination = $(`//*[@role='menuitem'][.//span[contains(normalize-space(), ${JSON.stringify(SECTION_B)})]]`)
-        await destination.waitForDisplayed({ timeoutMsg: "the move submenu did not list the destination section" })
+        await openSubmenu(menu, await tr("menu.moveTo"), destination)
         await destination.click()
 
         await browser.waitUntil(async () => (await taskValues(SECTION_B)).includes(TASK), { timeoutMsg: "task not moved" })

@@ -94,3 +94,23 @@ export const openContextMenu = async (target: ChainablePromiseElement) => {
     await menu.waitForDisplayed({ timeoutMsg: "the context menu did not open" })
     return menu
 }
+
+/**
+ * Opens a Radix submenu in a way that works on every WebDriver backend: the hover that normally opens it is not
+ * reliably dispatched by WebKitGTK, so click the trigger and, if the item is still not there, focus it and press
+ * ArrowRight. Resolves when `item` is displayed.
+ */
+export const openSubmenu = async (
+    menu: ChainablePromiseElement | WebdriverIO.Element,
+    triggerText: string,
+    item: ChainablePromiseElement,
+) => {
+    const text = xpathString(triggerText)
+    const trigger = menu.$(`.//*[@role='menuitem' and @aria-haspopup='menu'][normalize-space()=${text}]`)
+    await trigger.waitForDisplayed({ timeoutMsg: `the submenu trigger "${triggerText}" is not shown` })
+    await trigger.click()
+    if (await item.waitForDisplayed({ timeout: 2_000 }).then(() => true, () => false)) return
+    await browser.execute((el: HTMLElement) => el.focus(), trigger as unknown as HTMLElement)
+    await browser.keys("ArrowRight")
+    await item.waitForDisplayed({ timeoutMsg: `the submenu "${triggerText}" did not open` })
+}

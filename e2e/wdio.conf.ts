@@ -63,7 +63,16 @@ const resolveNativeDriver = async (): Promise<string | undefined> => {
     fs.mkdirSync(cacheDir, { recursive: true })
     const driver = await download(version, cacheDir)
     console.log(`[e2e] native driver: ${driver}`)
-    return driver
+    const reported = spawnSync(driver, ["--version"], { encoding: "utf8" })
+    console.log(`[e2e] msedgedriver version: ${reported.stdout?.trim() || reported.error?.message || "unknown"}`)
+    if (process.env.E2E_DRIVER_LOG !== "1") return driver
+    // tauri-driver does not forward arguments to the native driver: a .cmd wrapper adds verbose logging
+    // (it shows how msedgedriver launches the app and why it cannot find DevToolsActivePort)
+    fs.mkdirSync(outputDir, { recursive: true })
+    const wrapper = path.join(outputDir, "msedgedriver-verbose.cmd")
+    const log = path.join(outputDir, "msedgedriver-%RANDOM%.log") // one file per session
+    fs.writeFileSync(wrapper, `@echo off\r\n"${driver}" --verbose --log-path="${log}" %*\r\n`)
+    return wrapper
 }
 
 /** Output of tauri-driver and failure screenshots are written here (uploaded by the CI on failure). */
@@ -152,7 +161,12 @@ export const config: Options.Testrunner & { capabilities: unknown[] } = {
 
     onComplete: () => {
         stopDriver()
-        if (dataDir) fs.rmSync(dataDir, { recursive: true, force: true })
+        if (!dataDir) return
+        // Keep the app's own log for the CI artifact before the temporary data directory is removed
+        try {
+            fs.cpSync(path.join(dataDir, "logs"), path.join(outputDir, "app-logs"), { recursive: true })
+        } catch { /* the app may never have started */ }
+        fs.rmSync(dataDir, { recursive: true, force: true })
     },
 }
 
