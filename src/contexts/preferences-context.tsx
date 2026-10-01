@@ -27,6 +27,11 @@ import {
     saveSidebarItemSize,
     getSidebarLeftWidth,
     saveSidebarLeftWidth,
+    getSidebarRightWidth,
+    saveSidebarRightWidth,
+    getRightPanelTab,
+    saveRightPanelTab,
+    type RightPanelTab,
     getLanguage,
     saveLanguage,
     type SidebarItemSize,
@@ -51,6 +56,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [reopenLastWorkspace, setReopenLastWorkspaceState] = useState(false)
     const [sidebarItemSize, setSidebarItemSizeState] = useState<SidebarItemSize>("normal")
     const [sidebarLeftWidth, setSidebarLeftWidthState] = useState(SIDEBAR_DEFAULT_WIDTH)
+    const [sidebarRightWidth, setSidebarRightWidthState] = useState(SIDEBAR_DEFAULT_WIDTH)
+    const [rightPanelTab, setRightPanelTabState] = useState<RightPanelTab>("details")
     const [language, setLanguageState] = useState<LanguagePreference>("system")
     const audioPlayerContainerRef =useRef<HTMLDivElement>(null)
 
@@ -67,6 +74,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         getReopenLastWorkspace().then(setReopenLastWorkspaceState)
         getSidebarItemSize().then(setSidebarItemSizeState)
         getSidebarLeftWidth().then(setSidebarLeftWidthState)
+        getSidebarRightWidth().then(setSidebarRightWidthState)
+        getRightPanelTab().then(setRightPanelTabState)
         getLanguage().then(value => {
             setLanguageState(value)
             void applyLanguagePreference(value)
@@ -139,6 +148,17 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         saveSidebarLeftWidth(width)
     }
 
+    const setSidebarRightWidth = (value: number) => {
+        const width = clampSidebarWidth(value)
+        setSidebarRightWidthState(width)
+        saveSidebarRightWidth(width)
+    }
+
+    const setRightPanelTab = (value: RightPanelTab) => {
+        setRightPanelTabState(value)
+        saveRightPanelTab(value)
+    }
+
     const setLanguage = (value: LanguagePreference) => {
         setLanguageState(value)
         void applyLanguagePreference(value)
@@ -202,6 +222,10 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             setSidebarItemSize,
             sidebarLeftWidth,
             setSidebarLeftWidth,
+            sidebarRightWidth,
+            setSidebarRightWidth,
+            rightPanelTab,
+            setRightPanelTab,
             language,
             setLanguage
         }}>

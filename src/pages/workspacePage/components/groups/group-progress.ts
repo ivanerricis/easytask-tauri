@@ -1,6 +1,7 @@
 import type { Group, Task } from "@/types/types"
 
-const countTasks = (tasks: Task[]): { done: number, total: number } => {
+/** Completion of a list of tasks: every task and every nested subtask counts as one unit. */
+export const countTasks = (tasks: Task[]): { done: number, total: number } => {
     let done = 0
     let total = 0
     for (const task of tasks) {

@@ -16,7 +16,11 @@ const rollback = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ updateTaskPriority, updateTaskDescription, updateItemColor }),
 }))
-vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => 9 }))
+const selectTask = vi.fn()
+vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => 9, useSelectTask: () => selectTask }))
+const showTaskDetails = vi.fn()
+let panelAvailable = true
+vi.mock("../rightbar/use-right-panel", () => ({ useShowTaskDetails: () => (panelAvailable ? showTaskDetails : undefined) }))
 vi.mock("@/contexts/use-active-note", () => ({
     useActiveNoteActions: () => ({ patchTask, removeTask }),
 }))
@@ -35,6 +39,7 @@ vi.mock("./DialogTaskDescription", () => ({ DialogTaskDescription: () => null })
 
 beforeEach(() => {
     vi.clearAllMocks()
+    panelAvailable = true
     updateTaskPriority.mockResolvedValue(undefined)
     updateTaskDescription.mockResolvedValue(undefined)
     updateItemColor.mockResolvedValue(undefined)
@@ -54,6 +59,22 @@ describe("ButtonMenuTask optimistic updates", () => {
         await user.keyboard("{ArrowRight}")
         await user.click(await screen.findByText("pick color"))
     }
+
+    it("'Mostra dettagli' selects the task and opens the details panel", async () => {
+        const user = userEvent.setup()
+        await openMenu(makeTask({ id: 5 }))
+        await user.click(await screen.findByRole("button", { name: "Mostra dettagli" }))
+        expect(showTaskDetails).toHaveBeenCalledWith(5)
+        expect(selectTask).not.toHaveBeenCalled()
+    })
+
+    it("'Mostra dettagli' only selects the task where there is no panel", async () => {
+        const user = userEvent.setup()
+        panelAvailable = false
+        await openMenu(makeTask({ id: 5 }))
+        await user.click(await screen.findByRole("button", { name: "Mostra dettagli" }))
+        expect(selectTask).toHaveBeenCalledWith(5)
+    })
 
     it("toggles the priority optimistically and keeps it on success", async () => {
         const user = userEvent.setup()

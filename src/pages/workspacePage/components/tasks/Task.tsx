@@ -10,10 +10,15 @@ import { toast } from "sonner"
 import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import TextareaAutosize from "react-textarea-autosize"
-import { AlignLeft, GripVertical, Plus } from "lucide-react"
+import { AlignLeft, GripVertical, Info, Plus } from "lucide-react"
 import { AddTask } from "./AddTask"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
+import { useIsTaskSelected, useSelectTask } from "@/contexts/use-tabs"
+import { useShowTaskDetails } from "../rightbar/use-right-panel"
+
+// Clicks on these keep their own action (checkbox, buttons, drag handle) and do not select the row
+const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
 
 type TaskProps = {
     task: TaskType
@@ -30,6 +35,9 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
     const { patchTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    const selected = useIsTaskSelected(task.id)
+    const selectTask = useSelectTask()
+    const showTaskDetails = useShowTaskDetails()
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("task", task.id)
     const { setNodeRef: setDragRef, setActivatorNodeRef, attributes, listeners, isDragging } = useNoteDrag("task", task.id)
 
@@ -85,8 +93,16 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
             <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)}>
                 <div
                     ref={setRowRef}
+                    data-task-id={task.id}
+                    data-selected={selected ? "true" : undefined}
+                    aria-current={selected ? "true" : undefined}
+                    onClick={e => {
+                        if (!(e.target as HTMLElement).closest(SELECTION_IGNORED)) selectTask(task.id)
+                    }}
+                    onFocus={() => selectTask(task.id)}
                     className={cn(
                         "relative flex flex-col items-center w-full border-b",
+                        selected && "bg-accent/50",
                         isDragging && "opacity-40",
                         draggingTask && (zone === "inside" || zone === "inside-start") && "bg-primary/15 ring-1 ring-inset ring-primary",
                     )}
@@ -155,6 +171,14 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
 
                             {/* ButtonMenu */}
                             <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
+                                <button
+                                    type="button"
+                                    aria-label={t("details.showTask")}
+                                    title={t("details.showTask")}
+                                    onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id) }}
+                                    className="p-1 rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                    <Info className="size-4" />
+                                </button>
                                 <button
                                     type="button"
                                     aria-label={t("tasks.addSubtask")}

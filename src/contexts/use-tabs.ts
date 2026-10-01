@@ -74,3 +74,52 @@ export function useGroupOpen(groupId: number): [boolean, () => void] {
     }, [store, noteId, groupId])
     return [!collapsed, toggle]
 }
+
+/**
+ * The id of the task selected in a note (the selection is kept per note), and a setter.
+ * @param noteId The ID of the note (null without a note: nothing is selected).
+ * @category Tabs
+ */
+export function useSelectedTask(noteId: number | null): [number | null, (taskId: number | null) => void] {
+    const store = useTabUiStore()
+    const selectedId = useSyncExternalStore(
+        store.subscribe,
+        () => {
+            const item = noteId === null ? null : store.getSelectedItem(noteId)
+            return item?.type === "task" ? item.id : null
+        },
+    )
+    const select = useCallback((taskId: number | null) => {
+        if (noteId !== null) store.setSelectedItem(noteId, taskId === null ? null : { type: "task", id: taskId })
+    }, [store, noteId])
+    return [selectedId, select]
+}
+
+/**
+ * Whether a task is the selected one of the active note: re-renders only when that answer changes.
+ * @param taskId The ID of the task.
+ * @category Tabs
+ */
+export function useIsTaskSelected(taskId: number): boolean {
+    const store = useTabUiStore()
+    const noteId = useActiveNoteId()
+    return useSyncExternalStore(
+        store.subscribe,
+        () => {
+            const item = noteId === null ? null : store.getSelectedItem(noteId)
+            return item?.type === "task" && item.id === taskId
+        },
+    )
+}
+
+/**
+ * A stable function that selects a task of the active note (null clears the selection).
+ * @category Tabs
+ */
+export function useSelectTask(): (taskId: number | null) => void {
+    const store = useTabUiStore()
+    const noteId = useActiveNoteId()
+    return useCallback((taskId: number | null) => {
+        if (noteId !== null) store.setSelectedItem(noteId, taskId === null ? null : { type: "task", id: taskId })
+    }, [store, noteId])
+}
