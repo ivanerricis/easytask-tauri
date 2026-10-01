@@ -138,7 +138,8 @@ function checkTask(task: unknown, depth = 0) {
 function checkContent(content: unknown): NoteTemplateContent {
     if (!isObject(content) || !Array.isArray(content.groups)) malformed()
     for (const group of content.groups as unknown[]) {
-        if (!isObject(group) || !isNumber(group.position) || !Array.isArray(group.sections) || !isNullableString(group.name)) malformed()
+        if (!isObject(group) || !isNumber(group.position) || !Array.isArray(group.sections) || !isNullableString(group.name)
+            || !isNullableString(group.color)) malformed()
         for (const section of group.sections as unknown[]) {
             if (!isObject(section) || !isString(section.title) || !isNumber(section.position) || !Array.isArray(section.tasks)
                 || !isNullableString(section.color)) malformed()

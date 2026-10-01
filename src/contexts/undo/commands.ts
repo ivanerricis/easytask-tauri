@@ -123,7 +123,7 @@ export function createUndoCommands(deps: UndoDeps) {
     const patchNoteItem = (itemType: UndoItemType, id: number, key: "name" | "color", value: string | null) => {
         if (itemType === "task") return note.patchTask(id, key === "name" ? { text: value ?? "" } : { color: value })
         if (itemType === "section") return note.patchSection(id, key === "name" ? { title: value ?? "" } : { color: value })
-        if (itemType === "section_group" && key === "name") return note.patchGroup(id, { name: value?.trim() || null })
+        if (itemType === "section_group") return note.patchGroup(id, key === "name" ? { name: value?.trim() || null } : { color: value })
         return null
     }
 

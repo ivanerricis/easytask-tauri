@@ -47,6 +47,8 @@ export type Group = {
     position: number
     /** Optional name of the group; null/undefined = unnamed (shown as "Gruppo N"). */
     name?: string | null
+    /** Optional color of the group (hex); null/undefined = no color. */
+    color?: string | null
     sections: Section[]
 }
 

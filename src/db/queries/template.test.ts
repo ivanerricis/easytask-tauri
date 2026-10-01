@@ -2,7 +2,7 @@
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DatabaseSync, type SQLInputValue } from "node:sqlite"
-import { initialSchema } from "../schema/initial"
+import { latestSchema } from "../schema/initial"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v8)
 let sqlite: DatabaseSync
@@ -29,7 +29,7 @@ import {
     countDBTemplates, createDBNoteFromTemplate, createDBTemplateFromNote, getDBTemplates, renameDBTemplate, updateDBTemplateFromNote,
 } from "./template"
 import { getDBNoteData } from "./note"
-import { deleteDBItem, renameDBItem } from "./shared_queries"
+import { deleteDBItem, renameDBItem, updateDBColor } from "./shared_queries"
 import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "./trash"
 import { countTemplateContent } from "@/types/template"
 
@@ -54,7 +54,7 @@ async function noteTree(noteId: number) {
         subtasks: tasks.filter(c => c.taskID === t.id).map(taskNode),
     })
     return groups.map(g => ({
-        name: g.name ?? null, position: g.position,
+        name: g.name ?? null, color: g.color ?? null, position: g.position,
         sections: sections.filter(s => s.groupID === g.id).map(s => ({
             title: s.title, color: s.color ?? null, archived: !!s.archived, position: s.position,
             tasks: tasks.filter(t => t.sectionID === s.id && t.taskID === null).map(taskNode),
@@ -66,14 +66,14 @@ beforeEach(() => {
     failOn = null
     sqlite = new DatabaseSync(":memory:")
     sqlite.exec("PRAGMA foreign_keys=ON")
-    for (const sql of initialSchema) sqlite.exec(sql)
+    for (const sql of latestSchema) sqlite.exec(sql)
     sqlite.exec(`
         INSERT INTO workspace (id, name) VALUES (1, 'WS'), (2, 'Other');
         INSERT INTO folder (id, workspaceID, name) VALUES (1, 1, 'Cartella');
         INSERT INTO note (id, workspaceID, name, color) VALUES (1, 1, 'Sorgente', '#ff0000');
         INSERT INTO note (id, workspaceID, folderID, name, position) VALUES (2, 1, 1, 'Nella cartella', 0);
 
-        INSERT INTO section_group (id, noteID, position, name) VALUES (1, 1, 0, 'Sprint'), (2, 1, 1, NULL), (3, 1, 2, 'Eliminato');
+        INSERT INTO section_group (id, noteID, position, name, color) VALUES (1, 1, 0, 'Sprint', '#abcdef'), (2, 1, 1, NULL, NULL), (3, 1, 2, 'Eliminato', NULL);
         INSERT INTO section (id, groupID, title, color, archived, position) VALUES
             (1, 1, 'Da fare', '#00ff00', 0, 0),
             (2, 1, 'Archivio', NULL, 1, 1),
@@ -109,7 +109,7 @@ describe("createDBTemplateFromNote", () => {
             version: 1,
             groups: [
                 {
-                    name: "Sprint", position: 0, sections: [
+                    name: "Sprint", color: "#abcdef", position: 0, sections: [
                         {
                             title: "Da fare", color: "#00ff00", archived: false, position: 0, tasks: [
                                 {
@@ -131,7 +131,7 @@ describe("createDBTemplateFromNote", () => {
                     ],
                 },
                 {
-                    name: null, position: 1, sections: [
+                    name: null, color: null, position: 1, sections: [
                         {
                             title: "Idee", color: null, archived: false, position: 0, tasks: [
                                 { text: "Idea", description: null, completed: false, priority: false, archived: false, color: null, position: 0, subtasks: [] },
@@ -407,5 +407,32 @@ describe("trash integration", () => {
         await deleteDBItem("note_template", a)
         await createDBTemplateFromNote(2, "A")
         expect(await thrown(restoreDBItem("note_template", a))).toMatchObject({ code: "NOTE_TEMPLATE_EXISTS" })
+    })
+})
+
+describe("group color", () => {
+    it("is stored, returned by the note data, cleared and kept through the trash", async () => {
+        await updateDBColor("section_group", 2, "#123456")
+        expect((await getDBNoteData(1)).groups.map(g => g.color ?? null)).toEqual(["#abcdef", "#123456"])
+        await updateDBColor("section_group", 1)
+        expect((await getDBNoteData(1)).groups.map(g => g.color ?? null)).toEqual([null, "#123456"])
+        await deleteDBItem("section_group", 2)
+        expect((await getDBNoteData(1)).groups).toHaveLength(1)
+        await restoreDBItem("section_group", 2)
+        expect((await getDBNoteData(1)).groups.map(g => g.color ?? null)).toEqual([null, "#123456"])
+    })
+
+    it("rejects an empty color", async () => {
+        await expect(updateDBColor("section_group", 1, "")).rejects.toBeDefined()
+    })
+
+    it("is copied from a template to the new note, and a template without it gives uncolored groups", async () => {
+        const id = await createDBTemplateFromNote(1, "T")
+        const copy = await createDBNoteFromTemplate(id, 1, null, "Copia")
+        expect((await getDBNoteData(copy)).groups.map(g => g.color ?? null)).toEqual(["#abcdef", null])
+        const oldContent = JSON.stringify({ version: 1, groups: [{ name: "Vecchio", position: 0, sections: [] }] })
+        sqlite.prepare("UPDATE note_template SET content = ? WHERE id = ?").run(oldContent, id)
+        const old = await createDBNoteFromTemplate(id, 1, null, "Da vecchio")
+        expect((await getDBNoteData(old)).groups.map(g => g.color ?? null)).toEqual([null])
     })
 })
