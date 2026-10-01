@@ -54,8 +54,11 @@ Download the latest build from the [Releases page](https://github.com/ivanerrici
 
 macOS builds are not provided.
 
-**Windows SmartScreen.** The Windows binaries are not code-signed, so SmartScreen may show "Windows protected your PC".
-Click "More info" and then "Run anyway".
+**Windows SmartScreen.** The Windows binaries (the installer and the portable `EasyTask.exe`) are not code-signed yet,
+so SmartScreen may show "Windows protected your PC" the first time you run them. This does not mean the file is harmful:
+Windows only warns about programs from publishers it does not know.
+To continue, click **More info** and then **Run anyway**. You can download the files only from the
+[Releases page](https://github.com/ivanerricis/easytask-tauri/releases) of this repository. Code signing is planned.
 
 **Portable version (Windows).** The zip contains `EasyTask.exe`, `portable.txt` and a short readme.
 Requirements: 64-bit Windows 10/11 with the Microsoft Edge WebView2 Runtime (already included in Windows 11 and recent Windows 10).
@@ -160,3 +163,9 @@ Workspace
  └── Notes
       └── Sections
 ```
+
+---
+
+## License
+
+EasyTask is released under the [MIT License](LICENSE).

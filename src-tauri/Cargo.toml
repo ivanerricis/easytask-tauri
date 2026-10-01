@@ -3,6 +3,7 @@ name = "app"
 version = "0.1.0"
 description = "EasyTask: desktop task and workspace manager"
 authors = ["Ivan Erricis"]
+license = "MIT"
 publish = false
 repository = ""
 edition = "2021"
