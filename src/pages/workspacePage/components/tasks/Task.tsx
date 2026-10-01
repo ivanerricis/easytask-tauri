@@ -162,7 +162,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                             handleChangeText();
                                         }
                                     }}
-                                    className="w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm mt-[1px]"
+                                    className="w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm"
                                 />}
                             </div>
 

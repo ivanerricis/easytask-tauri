@@ -90,6 +90,31 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
         await expect(checkbox).toHaveAttribute("aria-checked", "false")
     })
 
+    it("keeps the task text in place when it enters edit mode", async () => {
+        const label = await tr("tasks.editText")
+        const card = (await sectionCard(SECTION_A)) as unknown as HTMLElement
+        // Position of the task text area (read-only state: it has the edit label) and of the focused one (edit state)
+        const measure = (selector: "label" | "active") =>
+            browser.execute((el: HTMLElement, aria: string, mode: string) => {
+                const target = mode === "label"
+                    ? Array.from(el.querySelectorAll<HTMLTextAreaElement>(`[aria-label="${aria}"]`))[0]
+                    : (document.activeElement as HTMLTextAreaElement)
+                const rect = target.getBoundingClientRect()
+                return { tag: target.tagName, top: rect.top, left: rect.left, height: rect.height, width: rect.width }
+            }, card, label, selector)
+
+        const before = await measure("label")
+        await sectionCard(SECTION_A).$(`[aria-label="${label}"]`).click()
+        await browser.waitUntil(async () => (await measure("active")).tag === "TEXTAREA", { timeoutMsg: "the text did not enter edit mode" })
+        const after = await measure("active")
+        // Enter leaves the edit mode without changing the text
+        await browser.keys("Enter")
+
+        expect(Math.abs(after.top - before.top)).toBeLessThan(0.5)
+        expect(Math.abs(after.left - before.left)).toBeLessThan(0.5)
+        expect(Math.abs(after.height - before.height)).toBeLessThan(0.5)
+    })
+
     it("moves the task to the other section", async () => {
         const menu = await openTaskMenu(TASK)
         // Destinations are menu items (role="menuitem") of the submenu, labelled with the section title
