@@ -2,6 +2,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom'
 
 import { WorkspaceProvider } from './contexts/workspace-context'
 import { WorkspaceDataProvider } from './contexts/workspace-data'
+import { UndoProvider } from './contexts/undo'
 import { PreferencesProvider } from './contexts/preferences-context'
 import { ThemeProvider } from './components/theme-provider'
 import { Toaster } from './components/ui/sonner'
@@ -36,12 +37,14 @@ function App() {
       <ThemeProvider>
         <WorkspaceProvider>
           <WorkspaceDataProvider>
+            <UndoProvider>
             <HashRouter>
               <Routes>
                 <Route path='/' element={<MainPage />} />
                 <Route path='/workspace/:id' element={<WorkSpacePage />} />
               </Routes>
             </HashRouter>
+            </UndoProvider>
             <Toaster richColors position='top-center' />
             <DialogShortcuts />
             <TextContextMenu />

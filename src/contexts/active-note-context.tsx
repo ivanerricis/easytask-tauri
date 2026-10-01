@@ -152,6 +152,7 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
             refreshActiveNote,
             getNoteData: loadNote,
             setNoteDataTree,
+            getNoteTree: () => getActive()?.tree ?? null,
             ...optimistic,
         }
     }, [cache, loadNote, refreshActiveNote, getActive, commit])

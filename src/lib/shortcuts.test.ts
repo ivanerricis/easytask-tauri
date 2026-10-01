@@ -50,6 +50,36 @@ describe("bindingEquals and conflicts", () => {
     })
 })
 
+describe("undo and redo shortcuts", () => {
+    const bindings = getDefaultBindings()
+
+    it("undo is Ctrl+Z, redo is Ctrl+Y and Ctrl+Shift+Z is a fixed alternative of redo", () => {
+        expect(bindings.undo).toEqual({ key: "z", ctrl: true })
+        expect(bindings.redo).toEqual({ key: "y", ctrl: true })
+        expect(bindings["redo-alt"]).toEqual({ key: "z", ctrl: true, shift: true })
+        expect(SHORTCUTS.find(s => s.id === "undo")?.editable).toBe(true)
+        expect(SHORTCUTS.find(s => s.id === "redo")?.editable).toBe(true)
+        expect(SHORTCUTS.find(s => s.id === "redo-alt")?.editable).toBe(false)
+    })
+
+    it("Ctrl+Z and Ctrl+Shift+Z never match each other", () => {
+        const plain = key({ key: "z", ctrlKey: true })
+        const shifted = key({ key: "Z", ctrlKey: true, shiftKey: true })
+        expect(matchBinding(plain, bindings.undo)).toBe(true)
+        expect(matchBinding(shifted, bindings.undo)).toBe(false)
+        expect(matchBinding(shifted, bindings["redo-alt"])).toBe(true)
+        expect(matchBinding(plain, bindings["redo-alt"])).toBe(false)
+        expect(matchBinding(key({ key: "y", ctrlKey: true }), bindings.redo)).toBe(true)
+    })
+
+    it("have no clash with the other defaults, and a rebinding onto them is a conflict", () => {
+        expect(findConflicts(bindings)).toEqual([])
+        expect(findConflictsFor("new-note", { key: "z", ctrl: true }, bindings)).toEqual(["undo"])
+        expect(findConflictsFor("undo", { key: "y", ctrl: true }, bindings)).toEqual(["redo"])
+        expect(findConflictsFor("redo", { key: "z", ctrl: true, shift: true }, bindings)).toEqual(["redo-alt"])
+    })
+})
+
 describe("recording helpers", () => {
     it("builds bindings from events and skips modifier-only presses", () => {
         expect(bindingFromEvent(key({ key: "Control", ctrlKey: true }))).toBeNull()
