@@ -10,6 +10,7 @@ import { ItemMenuButton } from "@/components/item-menu"
 import type { Folder } from "@/types/types"
 import { focusRing } from "@/lib/a11y"
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { EmptyState } from "@/components/empty-state"
 import { formatDate, hexToRgba } from "@/lib/utils"
 
 type ItemFolderProps = {
@@ -29,6 +30,8 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
 
     const size = useItemSize()
     const hasContent = React.Children.count(children) > 0
+    // Judged on the data, not on the children: the virtualized tree renders the rows without children
+    const isEmpty = !hasContent && (folder.subfolders?.length ?? 0) === 0 && (folder.notes?.length ?? 0) === 0
 
     return (
         <div className="relative flex flex-col gap-1 w-full">
@@ -72,6 +75,11 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                 </div>
             </ButtonMenuFolder>
 
+            {isOpen && isEmpty && (
+                <div className={`${size.indent} w-full`}>
+                    <EmptyState compact title={t("emptyStates.folder.title")} description={t("emptyStates.folder.description")} />
+                </div>
+            )}
             {
                 isOpen && hasContent && (
                     <div className="relative w-full">

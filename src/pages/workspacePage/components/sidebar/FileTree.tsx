@@ -6,6 +6,8 @@ import {
     type CollisionDetection, type DragEndEvent, type DragMoveEvent, type DragStartEvent,
 } from "@dnd-kit/core"
 import { File, Folder as FolderIcon } from "lucide-react"
+import { buildDndAccessibility } from "@/lib/dnd-accessibility"
+import { EmptyState } from "@/components/empty-state"
 import { reportError } from "@/lib/report-error"
 import type { Folder, Note } from "@/types/types"
 import { useWorkspace } from "@/contexts/use-workspace"
@@ -147,6 +149,12 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         [workspaceDataTree],
     )
 
+    const accessibility = buildDndAccessibility(entry => {
+        if (entry.id === ROOT_ID) return currentWorkspace?.name
+        const ref = entry.data.current as TreeRef | undefined
+        return ref ? findTreeItem(tree, ref)?.name : undefined
+    }, { keyboard: true })
+
     const reset = useCallback(() => {
         targetRef.current = null
         setActiveRef(null)
@@ -238,6 +246,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
     return (
         <DndContext
             sensors={sensors}
+            accessibility={accessibility}
             collisionDetection={collisionDetection}
             onDragStart={handleDragStart}
             onDragMove={handleDragMove}
@@ -247,9 +256,15 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         >
             <RootDropArea highlighted={hover.rootActive} rootRef={rootElRef}>
                 {isEmpty ? (
-                    <p className="text-muted-foreground text-sm w-full">
-                        {t("sidebar.emptyTree")}
-                    </p>
+                    <EmptyState
+                        compact
+                        title={t("sidebar.emptyTree")}
+                        description={t("emptyStates.sidebar.description")}
+                        hints={[
+                            { label: t("emptyStates.sidebar.newFolder"), shortcutId: "new-folder" },
+                            { label: t("emptyStates.sidebar.newNote"), shortcutId: "new-note" },
+                        ]}
+                    />
                 ) : virtualized ? (
                     <VirtualTree
                         rows={flatRows}
