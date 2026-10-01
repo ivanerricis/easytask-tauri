@@ -145,6 +145,20 @@ describe("UndoProvider", () => {
         expect(result.current.undo).toMatchObject({ canUndo: false, canRedo: false })
     })
 
+    it("clear empties the whole history, so an entry on a purged (reusable) id can no longer be undone", async () => {
+        const { result } = await setup()
+        await act(async () => {
+            await result.current.data.renameItem("note", 10, "Renamed")
+            result.current.recorder.rename("note", 10, "Open note", "Renamed")
+        })
+        expect(result.current.undo.canUndo).toBe(true)
+        act(() => result.current.undo.clear())
+        expect(result.current.undo).toMatchObject({ canUndo: false, canRedo: false })
+        vi.mocked(renameDBItem).mockClear()
+        await act(() => result.current.undo.undo())
+        expect(renameDBItem).not.toHaveBeenCalled()
+    })
+
     describe("rename and color of folders and notes", () => {
         it("undoes and redoes a note rename on the sidebar tree without reloading", async () => {
             const { result } = await setup()

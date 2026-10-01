@@ -326,12 +326,44 @@ describe("WorkspaceDataContext", () => {
             let reload!: Promise<void>
             act(() => { reload = result.current.getWorkspaceData(1) })
             await act(() => result.current.createWorkspaceFolder(1, "Top"))
+            // The refetch after the discarded response already sees the new folder
+            vi.mocked(getDBWorkspaceData).mockResolvedValue({ folders: [makeFolder({ id: 1 }), makeFolder({ id: 6 })], notes: [] } as never)
             await act(async () => {
                 slow.resolve({ folders: [makeFolder({ id: 1 })], notes: [] })
                 await reload
             })
 
             expect(result.current.workspaceDataTree!.rootFolders.map(f => f.id)).toEqual([1, 6])
+            expect(getDBWorkspaceData).toHaveBeenCalledTimes(2)
+        })
+
+        it("refetches a bounded number of times when every response is overtaken, then applies the last one", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+            let calls = 0
+            vi.mocked(getDBWorkspaceData).mockImplementation(async () => {
+                calls += 1
+                // An optimistic update lands during every fetch
+                await act(() => result.current.updateItemColor("folder", 1, `#00${calls}`))
+                return { folders: [makeFolder({ id: 1 }), makeFolder({ id: 100 + calls })], notes: [] } as never
+            })
+            await act(() => result.current.getWorkspaceData(1))
+            expect(calls).toBe(4)
+            expect(result.current.workspaceDataTree!.rootFolders.map(f => f.id)).toEqual([1, 104])
+        })
+
+        it("applies only the latest of two overlapping reloads", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            const first = deferred<unknown>()
+            const second = deferred<unknown>()
+            vi.mocked(getDBWorkspaceData).mockReturnValueOnce(first.promise as never).mockReturnValueOnce(second.promise as never)
+            let p1!: Promise<void>
+            let p2!: Promise<void>
+            act(() => { p1 = result.current.getWorkspaceData(1) })
+            act(() => { p2 = result.current.getWorkspaceData(1) })
+            await act(async () => { second.resolve({ folders: [makeFolder({ id: 2 })], notes: [] }); await p2 })
+            await act(async () => { first.resolve({ folders: [makeFolder({ id: 1 })], notes: [] }); await p1 })
+            expect(result.current.workspaceDataTree!.rootFolders.map(f => f.id)).toEqual([2])
         })
 
         it("setWorkspaceDataTree replaces the tree and the derived flat lists", async () => {
@@ -529,6 +561,21 @@ describe("WorkspaceDataContext", () => {
             expect(result.current.tabs.map(x => x.id)).toEqual([12, 13])
             expect(result.current.currentNote?.id).toBe(13)
             expect(result.current.currentFolder).toBeNull()
+        })
+
+        it("reopens the tab of a note whose delete failed after the optimistic removal closed it", async () => {
+            const result = await setup([], [n(1), n(2), n(3)], [1, 2, 3], 2)
+            const write = deferred()
+            vi.mocked(deleteDBItem).mockReturnValueOnce(write.promise as never)
+            let pending!: Promise<void>
+            act(() => { pending = result.current.deleteItem("note", 2) })
+            expect(result.current.tabs.map(x => x.id)).toEqual([1, 3])
+            await act(async () => {
+                write.reject(new Error("nope"))
+                await expect(pending).rejects.toThrow("nope")
+            })
+            expect(result.current.tabs.map(x => x.id)).toEqual([1, 2, 3])
+            expect(result.current.currentNote?.id).toBe(2)
         })
 
         it("does not touch the tabs when the db delete fails", async () => {

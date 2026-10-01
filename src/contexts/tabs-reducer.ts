@@ -22,6 +22,8 @@ export type TabsAction =
     | { type: "restore", state: TabsState }
     /** Restores a saved state, unless the user already opened a tab in the meantime. */
     | { type: "hydrate", state: TabsState }
+    /** Reopens the tabs of a snapshot that were closed meanwhile (a failed delete): the others stay as they are. */
+    | { type: "reopen", state: TabsState }
 
 export const initialTabsState: TabsState = { openIds: [], activeId: null }
 
@@ -86,6 +88,15 @@ export function tabsReducer(state: TabsState, action: TabsAction): TabsState {
         }
         case "restore":
             return action.state
+        case "reopen": {
+            const current = new Set(state.openIds)
+            const closed = action.state.openIds.filter(id => !current.has(id))
+            if (closed.length === 0) return state
+            const wasOpen = new Set(action.state.openIds)
+            const openIds = [...action.state.openIds, ...state.openIds.filter(id => !wasOpen.has(id))]
+            const activeId = action.state.activeId !== null && closed.includes(action.state.activeId) ? action.state.activeId : state.activeId
+            return { openIds, activeId }
+        }
         case "hydrate":
             return state.openIds.length === 0 ? action.state : state
     }

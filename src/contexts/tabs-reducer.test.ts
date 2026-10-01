@@ -125,3 +125,18 @@ describe("tabsReducer", () => {
         })
     })
 })
+
+describe("reopen", () => {
+    it("brings back the closed tabs of a snapshot in their place and reactivates the closed active one", () => {
+        const snapshot = { openIds: [1, 2, 3], activeId: 2 }
+        const closed = tabsReducer(snapshot, { type: "close", id: 2 })
+        expect(tabsReducer(closed, { type: "reopen", state: snapshot })).toEqual(snapshot)
+    })
+
+    it("keeps the tabs opened meanwhile and does nothing when nothing was closed", () => {
+        const snapshot = { openIds: [1, 2], activeId: 1 }
+        const state = { openIds: [1, 4], activeId: 4 }
+        expect(tabsReducer(state, { type: "reopen", state: snapshot })).toEqual({ openIds: [1, 2, 4], activeId: 4 })
+        expect(tabsReducer(snapshot, { type: "reopen", state: snapshot })).toBe(snapshot)
+    })
+})

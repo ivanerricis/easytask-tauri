@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { DialogTrash, DialogTrashWorkspaces } from "./dialog-trash"
 import { makeWorkspace } from "@/test/ui-fixtures"
+import { UndoContext, type UndoContextType } from "@/contexts/undo/context"
 import type { TrashItem } from "@/types/types"
 
 const data = {
@@ -137,6 +138,51 @@ describe("DialogTrash", () => {
         await user.click(within(alert).getByRole("button", { name: "Conferma svuotamento" }))
         await waitFor(() => expect(data.emptyTrash).toHaveBeenCalledWith(4))
         expect(data.getWorkspaceData).toHaveBeenCalledWith(4)
+    })
+})
+
+describe("DialogTrash and the undo history", () => {
+    const clear = vi.fn()
+    const renderWithUndo = () => render(
+        <UndoContext.Provider value={{ clear } as unknown as UndoContextType}>
+            <DialogTrash isOpen onOpenChange={vi.fn()} />
+        </UndoContext.Provider>,
+    )
+
+    beforeEach(() => {
+        vi.resetAllMocks()
+        data.getTrash.mockResolvedValue(items)
+        data.purgeItem.mockResolvedValue(undefined)
+        data.emptyTrash.mockResolvedValue(undefined)
+        data.getWorkspaceData.mockResolvedValue(undefined)
+        note.refreshActiveNote.mockResolvedValue(undefined)
+    })
+
+    it("clears the history after a purge (ids can be reused by new rows)", async () => {
+        const user = userEvent.setup()
+        renderWithUndo()
+        await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
+        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Conferma eliminazione" }))
+        await waitFor(() => expect(clear).toHaveBeenCalledTimes(1))
+    })
+
+    it("clears the history after emptying the trash", async () => {
+        const user = userEvent.setup()
+        renderWithUndo()
+        await screen.findByText("Cartella A")
+        await user.click(screen.getByRole("button", { name: "Svuota cestino" }))
+        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Conferma svuotamento" }))
+        await waitFor(() => expect(clear).toHaveBeenCalledTimes(1))
+    })
+
+    it("keeps the history when the purge fails", async () => {
+        const user = userEvent.setup()
+        data.purgeItem.mockRejectedValue(new Error("no"))
+        renderWithUndo()
+        await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
+        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Conferma eliminazione" }))
+        await waitFor(() => expect(toast.error).toHaveBeenCalled())
+        expect(clear).not.toHaveBeenCalled()
     })
 })
 
