@@ -15,13 +15,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Fixed
 
 - Backup restore: the backup is validated first and swapped in atomically, so a bad file can no longer leave the database half restored.
-- Undo after a permanent delete no longer fails.
-- Switching workspace no longer shows stale data (the workspace is reloaded).
+- Undo/redo no longer acts on a new item that reused the id of an item permanently deleted from the trash (the history is cleared after a purge).
+- The sidebar no longer stays out of date when a reload overlaps another change (e.g. undoing a move), and a failed note delete reopens its tab.
 - Double submit in the create dialogs (a fast double click or double Enter created two items).
 - Keyboard shortcuts and preferences are validated when read, so invalid stored values fall back to the defaults.
-- Workspace import validates the file before writing anything.
+- Workspace import fixes or rejects invalid files up front (empty titles, duplicate names, empty colors, non-audio files, size limits) instead of failing halfway with a generic error.
 - Deleting an item that is already in the trash again keeps its original deletion time.
 - `Escape` while editing a task now cancels the edit.
+- Creating a sub-task under a parent deleted in the meantime now shows an error instead of failing silently, and two backups in the same second no longer fail.
 
 ### Security
 

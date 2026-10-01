@@ -32,3 +32,4 @@ src-tauri/gen
 # Env and TS build info
 .env*
 *.tsbuildinfo
+coverage/
