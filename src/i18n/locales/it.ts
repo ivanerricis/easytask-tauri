@@ -341,6 +341,10 @@ export const it = {
         nothingToRedo: "Niente da ripetere",
         undoFailed: "Impossibile annullare: {{label}}",
         redoFailed: "Impossibile ripetere: {{label}}",
+        undoneMany_one: "Annullata {{count}} azione",
+        undoneMany_other: "Annullate {{count}} azioni",
+        redoneMany_one: "Ripetuta {{count}} azione",
+        redoneMany_other: "Ripetute {{count}} azioni",
         undoWithLabel: "Annulla: {{label}}",
         redoWithLabel: "Ripeti: {{label}}",
         actions: "Azioni",
@@ -728,6 +732,17 @@ export const it = {
         resizeValue: "{{width}} pixel",
         showSidebar: "Mostra la barra laterale",
         hideSidebar: "Nascondi la barra laterale",
+    },
+    history: {
+        title: "Cronologia",
+        undoList: "Azioni annullabili",
+        redoList: "Azioni ripetibili",
+        current: "Stato attuale",
+        undoneBadge: "Annullata",
+        goBackTo: "Torna a: {{label}}",
+        goForwardTo: "Avanza a: {{label}}",
+        emptyUndo: "Nessuna azione da annullare",
+        emptyRedo: "Nessuna azione da ripetere",
     },
 }
 
