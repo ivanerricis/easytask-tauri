@@ -6,6 +6,7 @@ import App from './App.tsx'
 import { flushPreferences, getLanguage } from './lib/store/preferences'
 import { initI18n } from './i18n'
 import { reportError } from './lib/report-error'
+import { runAutoBackup } from './db/backup'
 
 // Debounced preference saves must not be lost when the app closes
 window.addEventListener('beforeunload', () => { void flushPreferences() })
@@ -25,5 +26,7 @@ const start = async () => {
       <App />
     </StrictMode>,
   )
+  // Daily backup, best effort: delayed so it does not compete with the first render
+  setTimeout(() => { void runAutoBackup() }, 3000)
 }
 void start()

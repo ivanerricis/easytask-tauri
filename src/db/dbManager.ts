@@ -3,7 +3,7 @@ import Database from "@tauri-apps/plugin-sql";
 import { ensureAppFolder } from "./appPaths";
 import { initDB } from "./initDb";
 
-const DB_FILE = "easytask.db";
+export const DB_FILE = "easytask.db";
 
 let dbPromise: Promise<Database> | null = null;
 
@@ -42,4 +42,17 @@ export function getDB(): Promise<Database> {
         });
     }
     return dbPromise;
+}
+
+/**
+ * Closes the database and forgets the instance, so the next getDB() reopens the file
+ * (used before replacing the file when restoring a backup). Does nothing if it was never opened.
+ * @category Database
+ */
+export async function closeDB(): Promise<void> {
+    const pending = dbPromise;
+    dbPromise = null;
+    if (!pending) return;
+    const db = await pending.catch(() => null);
+    if (db) await db.close();
 }

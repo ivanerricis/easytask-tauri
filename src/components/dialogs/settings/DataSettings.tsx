@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next"
 import { useLocation } from "react-router-dom"
-import { openPath } from "@tauri-apps/plugin-opener"
+import { invoke } from "@tauri-apps/api/core"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { ensureAppFolder } from "@/db/appPaths"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
 import { getErrorMessage } from "@/lib/utils"
+import { BackupSettings } from "./BackupSettings"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 
 export const DataSettings = () => {
@@ -19,7 +19,7 @@ export const DataSettings = () => {
 
     const openDataFolder = async () => {
         try {
-            await openPath(await ensureAppFolder())
+            await invoke("open_data_folder")
         } catch (error) {
             toast.error(getErrorMessage(error))
         }
@@ -44,6 +44,7 @@ export const DataSettings = () => {
                     {t("settings.data.folder.button")}
                 </Button>
             </SettingsRow>
+            <BackupSettings />
         </SettingsPanel>
     )
 }
