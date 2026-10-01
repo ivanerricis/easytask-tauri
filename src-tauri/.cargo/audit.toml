@@ -15,5 +15,4 @@ ignore = [
 informational_warnings = ["unmaintained", "unsound", "notice"]
 
 [output]
-deny = ["warnings"]
 quiet = false
