@@ -21,3 +21,11 @@ export const createSectionGroupTable = `
 export const createSectionGroupIndexes = `
     CREATE INDEX IF NOT EXISTS idx_section_group_note ON section_group(noteID, position);
 `
+
+/**
+ * Migration v2: adds the (optional) color of a group. NULL means no color.
+ * @category Database Schema
+ */
+export const addGroupColorColumn = `
+    ALTER TABLE section_group ADD COLUMN color TEXT CHECK (LENGTH(color) > 0) DEFAULT NULL;
+`

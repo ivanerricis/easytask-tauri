@@ -3,7 +3,7 @@ import { createFolderIndexes, createFolderTable, createFolderTrigger } from "./f
 import { createNoteIndexes, createNoteTable, createNoteTrigger } from "./note";
 import { createNoteTemplateIndexes, createNoteTemplateTable, createNoteTemplateTrigger } from "./note_template";
 import { createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
-import { createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
+import { addGroupColorColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
 import { createTaskIndexes, createTaskTable, createTaskTrigger } from "./task";
 import { createWorkspaceIndexes, createWorkspaceTable, createWorkspaceTrigger } from "./workspace";
 
@@ -46,3 +46,10 @@ export const initialSchema: string[] = [
     createNoteTemplateTrigger,
     `PRAGMA application_id = ${APPLICATION_ID}`,
 ];
+
+/**
+ * The whole schema at the latest version (initial schema plus every additive migration), as statements.
+ * Used by the tests to build a database in one go: the app itself goes through the migrations in initDb.
+ * @category Database Schema
+ */
+export const latestSchema: string[] = [...initialSchema, addGroupColorColumn]

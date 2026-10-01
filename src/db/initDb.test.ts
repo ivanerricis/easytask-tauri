@@ -6,6 +6,7 @@ import type Database from "@tauri-apps/plugin-sql"
 import { createMockDb, type MockDb } from "@/test/db-mock"
 import { initDB, legacyDbMessage, newerDbMessage } from "./initDb"
 import { APPLICATION_ID, initialSchema } from "./schema/initial"
+import { addGroupColorColumn } from "./schema/section_group"
 
 // Runs initDB against a real SQLite database through a minimal adapter of the plugin API
 let sqlite: DatabaseSync
@@ -40,8 +41,8 @@ describe("initDB final schema", () => {
         await initDB(adapter())
     })
 
-    it("sets user_version to 1 and the application id", () => {
-        expect(pragma("user_version")).toBe(1)
+    it("sets user_version to 2 and the application id", () => {
+        expect(pragma("user_version")).toBe(2)
         expect(pragma("application_id")).toBe(APPLICATION_ID)
     })
 
@@ -107,12 +108,12 @@ describe("initDB behaviour", () => {
         await initDB(adapter())
         expect(sqlite.prepare("SELECT type, name, sql FROM sqlite_master ORDER BY name").all()).toEqual(snapshot)
         expect(sqlite.prepare("SELECT name FROM workspace").all()).toEqual([{ name: "WS" }])
-        expect(pragma("user_version")).toBe(1)
+        expect(pragma("user_version")).toBe(2)
     })
 
     it("does not execute anything when already at the latest version", async () => {
         const db: MockDb = createMockDb()
-        db.select.mockResolvedValueOnce([{ user_version: 1 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
+        db.select.mockResolvedValueOnce([{ user_version: 2 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
         await initDB(db as unknown as Database)
         expect(db.execute).not.toHaveBeenCalled()
     })
@@ -121,14 +122,14 @@ describe("initDB behaviour", () => {
         const db: MockDb = createMockDb()
         db.select.mockResolvedValueOnce([{ user_version: 0 }])
         await initDB(db as unknown as Database)
-        expect(db.execute.mock.calls.map(c => c[0])).toEqual([...initialSchema, "PRAGMA user_version = 1"])
+        expect(db.execute.mock.calls.map(c => c[0])).toEqual([...initialSchema, "PRAGMA user_version = 1", addGroupColorColumn, "PRAGMA user_version = 2"])
     })
 
     it("treats an empty PRAGMA result as a fresh database", async () => {
         const db: MockDb = createMockDb()
         db.select.mockResolvedValueOnce([])
         await initDB(db as unknown as Database)
-        expect(db.execute.mock.calls.at(-1)?.[0]).toBe("PRAGMA user_version = 1")
+        expect(db.execute.mock.calls.at(-1)?.[0]).toBe("PRAGMA user_version = 2")
     })
 
     it("refuses a legacy database (user_version > 0 without the application id) and leaves it untouched", async () => {
@@ -149,7 +150,7 @@ describe("initDB behaviour", () => {
 
     it("refuses a database of a newer version", async () => {
         const db: MockDb = createMockDb()
-        db.select.mockResolvedValueOnce([{ user_version: 2 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
+        db.select.mockResolvedValueOnce([{ user_version: 3 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
         await expect(initDB(db as unknown as Database)).rejects.toThrow(newerDbMessage())
         expect(db.execute).not.toHaveBeenCalled()
     })
@@ -172,5 +173,58 @@ describe("initDB behaviour", () => {
         db.select.mockRejectedValueOnce(new Error("no pragma"))
         await expect(initDB(db as unknown as Database)).rejects.toThrow("no pragma")
         expect(db.execute).not.toHaveBeenCalled()
+    })
+})
+
+describe("initDB v2 (group color)", () => {
+    const groupInfo = () => (sqlite.prepare("PRAGMA table_info(section_group)").all() as { name: string, notnull: number, dflt_value: unknown }[])
+        .find(c => c.name === "color")
+
+    // A real v1 database: the initial schema only, with data
+    const makeV1 = () => {
+        for (const q of initialSchema) sqlite.exec(q)
+        sqlite.exec("PRAGMA user_version = 1")
+        sqlite.exec(`INSERT INTO workspace (id, name) VALUES (1, 'WS');
+            INSERT INTO note (id, workspaceID, name, position) VALUES (1, 1, 'N', 0);
+            INSERT INTO section_group (id, noteID, position, name) VALUES (1, 1, 0, 'Idee')`)
+    }
+
+    it("adds a nullable color column with a non empty check on a new database", async () => {
+        await initDB(adapter())
+        expect(columns("section_group")).toContain("color")
+        expect(groupInfo()).toMatchObject({ notnull: 0, dflt_value: "NULL" })
+        sqlite.exec("INSERT INTO workspace (id, name) VALUES (1, 'WS'); INSERT INTO note (id, workspaceID, name, position) VALUES (1, 1, 'N', 0)")
+        expect(() => sqlite.exec("INSERT INTO section_group (noteID, position, color) VALUES (1, 0, '')")).toThrow(/CHECK/)
+        expect(() => sqlite.exec("INSERT INTO section_group (noteID, position, color) VALUES (1, 1, '#fff')")).not.toThrow()
+    })
+
+    it("migrates a real v1 database to v2 preserving its data and application id", async () => {
+        makeV1()
+        await initDB(adapter())
+        expect(pragma("user_version")).toBe(2)
+        expect(pragma("application_id")).toBe(APPLICATION_ID)
+        expect(sqlite.prepare("SELECT id, name, color FROM section_group").all()).toEqual([{ id: 1, name: "Idee", color: null }])
+        expect(sqlite.prepare("SELECT name FROM note").all()).toEqual([{ name: "N" }])
+        expect(sqlite.prepare("PRAGMA foreign_key_check").all()).toEqual([])
+    })
+
+    it("a v1 and a fresh database end up with the same columns", async () => {
+        makeV1()
+        await initDB(adapter())
+        expect(columns("section_group")).toEqual(["id", "noteID", "position", "deleted_at", "name", "color"])
+    })
+
+    it("retries safely when the column exists but the version was not bumped", async () => {
+        makeV1()
+        sqlite.exec("ALTER TABLE section_group ADD COLUMN color TEXT CHECK (LENGTH(color) > 0) DEFAULT NULL")
+        await expect(initDB(adapter())).resolves.toBeUndefined()
+        expect(pragma("user_version")).toBe(2)
+    })
+
+    it("still fails on other ALTER errors", async () => {
+        const db: MockDb = createMockDb()
+        db.select.mockResolvedValueOnce([{ user_version: 1 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
+        db.execute.mockRejectedValueOnce(new Error("disk full"))
+        await expect(initDB(db as unknown as Database)).rejects.toThrow("disk full")
     })
 })

@@ -2,7 +2,7 @@
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DatabaseSync, type SQLInputValue } from "node:sqlite"
-import { initialSchema } from "../schema/initial"
+import { latestSchema } from "../schema/initial"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v6)
 let sqlite: DatabaseSync
@@ -34,7 +34,7 @@ const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknow
 beforeEach(() => {
     sqlite = new DatabaseSync(":memory:")
     sqlite.exec("PRAGMA foreign_keys=ON")
-    for (const sql of initialSchema) sqlite.exec(sql)
+    for (const sql of latestSchema) sqlite.exec(sql)
     sqlite.exec(`
         INSERT INTO workspace (id, name) VALUES (1, 'WS');
         INSERT INTO folder (id, workspaceID, folderID, name) VALUES (1, 1, NULL, 'F');

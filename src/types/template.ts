@@ -31,6 +31,8 @@ export type TemplateSection = {
  */
 export type TemplateGroup = {
     name: string | null
+    /** Absent in templates and export files created before groups had a color. */
+    color?: string | null
     position: number
     sections: TemplateSection[]
 }
