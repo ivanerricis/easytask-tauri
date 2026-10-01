@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -25,6 +26,7 @@ type FormProps = Omit<DialogNoteFromTemplateProps, "isOpen">
 
 // Mounted only while the dialog is open, so the fields always start from their defaults
 const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) => {
+    const { t } = useTranslation()
     const { workspaceDataTree } = useWorkspaceState()
     const { createNoteFromTemplate } = useWorkspaceActions()
     const { openNote } = useTabsActions()
@@ -44,7 +46,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
             // The context adds the note to the sidebar tree
             const noteID = await createNoteFromTemplate(template.id, template.workspaceID, folderID, name.trim(), template.color)
             openNote(noteID)
-            toast.success("Nota creata")
+            toast.success(t("dialogs.noteFromTemplate.created"))
             onOpenChange(false)
             onCreated?.(noteID)
         } catch (err) {
@@ -56,7 +58,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
 
     return (
         <form onSubmit={handleSubmit} className="grid gap-3">
-            <Label htmlFor="note-from-template-name">Nome</Label>
+            <Label htmlFor="note-from-template-name">{t("dialogs.noteFromTemplate.name")}</Label>
             <Input
                 id="note-from-template-name"
                 name="name"
@@ -67,7 +69,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
                     setName(e.target.value)
                 }}
             />
-            <Label htmlFor="note-from-template-destination">Destinazione</Label>
+            <Label htmlFor="note-from-template-destination">{t("dialogs.noteFromTemplate.destination")}</Label>
             <NativeSelect
                 id="note-from-template-destination"
                 value={destination}
@@ -78,17 +80,17 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
             >
                 {destinations.map(item => (
                     <option key={item.id ?? ROOT_VALUE} value={item.id ?? ROOT_VALUE}>
-                        {item.id === null ? "Radice del workspace" : `${"  ".repeat(item.depth)}${item.name}`}
+                        {item.id === null ? t("dialogs.noteFromTemplate.root") : `${"  ".repeat(item.depth)}${item.name}`}
                     </option>
                 ))}
             </NativeSelect>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <DialogFooter className="mt-4">
                 <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
-                    Annulla
+                    {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={!name.trim() || busy}>
-                    Crea nota
+                    {t("dialogs.noteFromTemplate.submit")}
                 </Button>
             </DialogFooter>
         </form>
@@ -99,14 +101,17 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
  * Creates a note from a template (name and destination: workspace root or a folder) and opens it.
  * @category Dialogs
  */
-export const DialogNoteFromTemplate = ({ template, isOpen, onOpenChange, onCreated }: DialogNoteFromTemplateProps) => (
+export const DialogNoteFromTemplate = ({ template, isOpen, onOpenChange, onCreated }: DialogNoteFromTemplateProps) => {
+    const { t } = useTranslation()
+    return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent onClick={e => e.stopPropagation()}>
             <DialogHeader>
-                <DialogTitle>Crea nota da template</DialogTitle>
-                <DialogDescription>Template: {template.name}</DialogDescription>
+                <DialogTitle>{t("dialogs.noteFromTemplate.title")}</DialogTitle>
+                <DialogDescription>{t("dialogs.noteFromTemplate.description", { name: template.name })}</DialogDescription>
             </DialogHeader>
             <NoteFromTemplateForm template={template} onOpenChange={onOpenChange} onCreated={onCreated} />
         </DialogContent>
     </Dialog>
-)
+    )
+}

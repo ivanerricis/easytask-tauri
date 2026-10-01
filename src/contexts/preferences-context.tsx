@@ -25,9 +25,12 @@ import {
     saveReopenLastWorkspace,
     getSidebarItemSize,
     saveSidebarItemSize,
+    getLanguage,
+    saveLanguage,
     type SidebarItemSize,
     type WorkspaceView
 } from "@/lib/store/preferences"
+import { applyLanguagePreference, type LanguagePreference } from "@/i18n"
 import type { AudioPlayerPosition } from "@/types/types"
 import { PreferencesContext } from "./preferences-context-object"
 
@@ -44,6 +47,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [reopenNotes, setReopenNotesState] = useState(true)
     const [reopenLastWorkspace, setReopenLastWorkspaceState] = useState(false)
     const [sidebarItemSize, setSidebarItemSizeState] = useState<SidebarItemSize>("normal")
+    const [language, setLanguageState] = useState<LanguagePreference>("system")
     const audioPlayerContainerRef =useRef<HTMLDivElement>(null)
 
     useEffect(() => {
@@ -58,6 +62,10 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         getReopenNotes().then(setReopenNotesState)
         getReopenLastWorkspace().then(setReopenLastWorkspaceState)
         getSidebarItemSize().then(setSidebarItemSizeState)
+        getLanguage().then(value => {
+            setLanguageState(value)
+            void applyLanguagePreference(value)
+        })
         getPrimaryColor().then(hex => {
             setPrimaryColorState(hex)
             document.documentElement.style.setProperty('--primary', hex)
@@ -120,6 +128,12 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         saveSidebarItemSize(value)
     }
 
+    const setLanguage = (value: LanguagePreference) => {
+        setLanguageState(value)
+        void applyLanguagePreference(value)
+        saveLanguage(value)
+    }
+
     const setAudioPlayerPosition =(position: AudioPlayerPosition) => {
         setAudioPlayerPositionState(position)
         saveAudioPlayerPosition(position)
@@ -174,7 +188,9 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             reopenLastWorkspace,
             setReopenLastWorkspace,
             sidebarItemSize,
-            setSidebarItemSize
+            setSidebarItemSize,
+            language,
+            setLanguage
         }}>
             {children}
         </PreferencesContext.Provider>

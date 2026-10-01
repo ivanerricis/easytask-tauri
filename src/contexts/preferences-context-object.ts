@@ -1,5 +1,6 @@
 import { createContext } from "react"
 import type { SidebarItemSize, WorkspaceView } from "@/lib/store/preferences"
+import type { LanguagePreference } from "@/i18n"
 import type { AudioPlayerPosition } from "@/types/types"
 
 export type PreferencesContextType = {
@@ -29,6 +30,8 @@ export type PreferencesContextType = {
     setReopenLastWorkspace: (value: boolean) => void
     sidebarItemSize: SidebarItemSize
     setSidebarItemSize: (value: SidebarItemSize) => void
+    language: LanguagePreference
+    setLanguage: (value: LanguagePreference) => void
 }
 
 export const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined)

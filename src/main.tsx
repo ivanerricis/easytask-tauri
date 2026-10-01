@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import './index.css'
 import App from './App.tsx'
-import { flushPreferences } from './lib/store/preferences'
+import { flushPreferences, getLanguage } from './lib/store/preferences'
+import { initI18n } from './i18n'
 import { reportError } from './lib/report-error'
 
 // Debounced preference saves must not be lost when the app closes
@@ -16,8 +17,13 @@ try {
   reportError(e)
 }
 
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+// The stored language is applied before the first render so the UI never flashes in the wrong language
+const start = async () => {
+  initI18n(await getLanguage().catch(() => 'system' as const))
+  createRoot(document.getElementById('root')!).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}
+void start()

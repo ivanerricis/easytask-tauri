@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Plus, X } from "lucide-react"
 import React, { useState } from "react"
 import { toast } from "sonner"
@@ -28,6 +29,7 @@ const COLORS = [
 ] as const
 
 export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getItemId, addColorItem, getItemData, setDropDownOpen, className }: DialogAddColorProps<T>) => {
+    const { t } = useTranslation()
     const [color, setColor] = useState(item.color)
     const dialogRef = React.useRef<HTMLDivElement>(null);
     const [inputColor, setInputColor] = useState("#000000")
@@ -77,7 +79,7 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
                 {COLORS.map((colorValue) => (
                     <button
                         type="button"
-                        aria-label={`Colore ${colorValue}`}
+                        aria-label={t("dialogs.color.swatch", { color: colorValue })}
                         key={colorValue}
                         onClick={(e) => {
                             handleColorClick(colorValue, e);
@@ -110,7 +112,7 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
                     className="flex items-center p-1 cursor-pointer w-full hover:bg-secondary rounded-xs text-xs"
                 >
                     <X className="size-4" />
-                    Elimina
+                    {t("common.delete")}
                 </button>
             </div>
         </div>

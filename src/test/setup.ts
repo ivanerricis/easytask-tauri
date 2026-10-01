@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest"
 import { afterEach, vi } from "vitest"
 import { cleanup } from "@testing-library/react"
 import { store } from "@/lib/store/initStore"
+import { initI18n } from "@/i18n"
 
 // The settings store needs Tauri: every test gets an in-memory one (a test can still vi.mock it with its own)
 vi.mock("@/lib/store/initStore", () => {
@@ -16,6 +17,10 @@ vi.mock("@/lib/store/initStore", () => {
         },
     }
 })
+
+// The UI tests assert Italian strings: the system language is Italian and i18n starts in Italian
+if (typeof window !== "undefined") vi.spyOn(window.navigator, "language", "get").mockReturnValue("it-IT")
+initI18n("it")
 
 afterEach(async () => {
     cleanup()

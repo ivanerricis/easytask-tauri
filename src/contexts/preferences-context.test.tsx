@@ -32,6 +32,8 @@ vi.mock("@/lib/store/preferences", () => ({
     saveReopenLastWorkspace: vi.fn(),
     getSidebarItemSize: vi.fn(),
     saveSidebarItemSize: vi.fn(),
+    getLanguage: vi.fn(),
+    saveLanguage: vi.fn(),
 }))
 
 const wrapper = ({ children }: { children: ReactNode }) => <PreferencesProvider>{children}</PreferencesProvider>
@@ -51,6 +53,7 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getReopenNotes).mockResolvedValue(false)
         vi.mocked(prefs.getReopenLastWorkspace).mockResolvedValue(true)
         vi.mocked(prefs.getSidebarItemSize).mockResolvedValue("large")
+        vi.mocked(prefs.getLanguage).mockResolvedValue("system")
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
     })
 

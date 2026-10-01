@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useRef, useState, useEffect } from "react"
 import { Play, Pause, Volume2, GripVertical, X } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -21,6 +22,7 @@ type Props = {
 }
 
 export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle, open = true, onClose, autoPlayKey, onError }: Props) => {
+    const { t } = useTranslation()
     const audioRef = useRef<HTMLAudioElement>(null)
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
@@ -106,20 +108,20 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle, 
                     value={currentTime}
                     step={0.1}
                     onChange={handleSeek}
-                    aria-label="Posizione di riproduzione"
+                    aria-label={t("audio.player.seek")}
                     className={cn("flex-1")}
                 />
                 <span>{formatTime(duration)}</span>
-                <button type="button" onClick={handleClose} aria-label="Chiudi il player" className="p-1 hover:bg-accent rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                <button type="button" onClick={handleClose} aria-label={t("audio.player.close")} className="p-1 hover:bg-accent rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <X className="size-4" />
                 </button>
             </div>
             <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                <div className="flex items-center justify-start text-sm truncate w-full">{fileName ?? "Audio file title"}</div>
+                <div className="flex items-center justify-start text-sm truncate w-full">{fileName ?? t("audio.player.defaultTitle")}</div>
                 <button
                     type="button"
                     onClick={togglePlay}
-                    aria-label={isPlaying ? "Pausa" : "Riproduci"}
+                    aria-label={isPlaying ? t("audio.player.pause") : t("audio.player.play")}
                     className="w-fit p-2 bg-secondary rounded-full hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                     {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
@@ -133,7 +135,7 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle, 
                         step={0.01}
                         value={volume}
                         onChange={handleVolume}
-                        aria-label="Volume"
+                        aria-label={t("audio.player.volume")}
                         className="w-full"
                     />
                     <span className="w-5">{Math.round(volume * 100)}</span>

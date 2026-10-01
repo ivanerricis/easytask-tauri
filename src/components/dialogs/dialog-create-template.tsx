@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -18,6 +19,7 @@ type TemplateFormProps = Pick<DialogCreateTemplateProps, "note" | "onOpenChange"
 
 // Mounted only while the dialog is open, so the name always starts from the note name
 const TemplateForm = ({ note, onOpenChange }: TemplateFormProps) => {
+    const { t } = useTranslation()
     const { createTemplateFromNote } = useWorkspaceActions()
     const [name, setName] = useState(note.name)
     const [error, setError] = useState<string | null>(null)
@@ -29,7 +31,7 @@ const TemplateForm = ({ note, onOpenChange }: TemplateFormProps) => {
         setBusy(true)
         try {
             await createTemplateFromNote(note.id, name.trim())
-            toast.success("Template creato")
+            toast.success(t("dialogs.createTemplate.created"))
             onOpenChange(false)
         } catch (err) {
             setError(getErrorMessage(err))
@@ -40,7 +42,7 @@ const TemplateForm = ({ note, onOpenChange }: TemplateFormProps) => {
 
     return (
         <form onSubmit={handleSubmit} className="grid gap-3">
-            <Label htmlFor="template-name">Nome del template</Label>
+            <Label htmlFor="template-name">{t("dialogs.createTemplate.name")}</Label>
             <Input
                 id="template-name"
                 name="name"
@@ -54,10 +56,10 @@ const TemplateForm = ({ note, onOpenChange }: TemplateFormProps) => {
             {error && <p className="text-xs text-destructive">{error}</p>}
             <DialogFooter className="mt-4">
                 <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
-                    Annulla
+                    {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={!name.trim() || busy}>
-                    Crea template
+                    {t("dialogs.createTemplate.title")}
                 </Button>
             </DialogFooter>
         </form>
@@ -69,16 +71,19 @@ const TemplateForm = ({ note, onOpenChange }: TemplateFormProps) => {
  * deleted items and audio files are not included). Meant to be opened from the note menu.
  * @category Dialogs
  */
-export const DialogCreateTemplate = ({ note, isOpen, onOpenChange }: DialogCreateTemplateProps) => (
+export const DialogCreateTemplate = ({ note, isOpen, onOpenChange }: DialogCreateTemplateProps) => {
+    const { t } = useTranslation()
+    return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
         <DialogContent onClick={e => e.stopPropagation()}>
             <DialogHeader>
-                <DialogTitle>Crea template</DialogTitle>
+                <DialogTitle>{t("dialogs.createTemplate.title")}</DialogTitle>
                 <DialogDescription>
-                    Salva una copia del contenuto attuale della nota "{note.name}" per riutilizzarla.
+                    {t("dialogs.createTemplate.description", { name: note.name })}
                 </DialogDescription>
             </DialogHeader>
             <TemplateForm note={note} onOpenChange={onOpenChange} />
         </DialogContent>
     </Dialog>
-)
+    )
+}

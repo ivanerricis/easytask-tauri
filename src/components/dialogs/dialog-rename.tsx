@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -25,6 +26,7 @@ type defaultItemType = {
 }
 
 export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, isOpen, onOpenChange, getItemData, getItemId, optimistic }: DialogRenameProps<T>) => {
+    const { t } = useTranslation()
     const currentName = item.name ?? item.title ?? ""
     const [value, setValue] = useState(currentName)
     const { renameItem } = useWorkspaceData()
@@ -61,7 +63,7 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Rinomina</DialogTitle>
+                    <DialogTitle>{t("common.rename")}</DialogTitle>
                     <DialogDescription />
                 </DialogHeader>
                 <form onSubmit={handleEdit}>
@@ -83,13 +85,13 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
                             type="button"
                             onClick={handleCancel}
                         >
-                            Annulla
+                            {t("common.cancel")}
                         </Button>
                         <Button
                             type="submit"
                             disabled={!allowEmpty && !value.trim()}
                         >
-                            Salva
+                            {t("common.save")}
                         </Button>
                     </DialogFooter>
                 </form>

@@ -1,5 +1,6 @@
 import type { AudioPlayerPosition } from "@/types/types"
 import { store } from "./initStore"
+import { DEFAULT_LANGUAGE_PREFERENCE, isLanguagePreference, type LanguagePreference } from "@/i18n"
 
 const SHOW_PROGRESSBAR_KEY = "showProgressBar"
 const SHOW_GROUP_PROGRESSBAR_KEY = "showGroupProgressBar"
@@ -14,6 +15,7 @@ const REOPEN_NOTES_KEY = "reopenNotes"
 const REOPEN_LAST_WORKSPACE_KEY = "reopenLastWorkspace"
 const LAST_WORKSPACE_ID_KEY = "lastWorkspaceId"
 const SIDEBAR_ITEM_SIZE_KEY = "sidebarItemSize"
+const LANGUAGE_KEY = "language"
 
 const SAVE_DEBOUNCE_MS = 500
 
@@ -349,5 +351,26 @@ export const getSidebarItemSize = async (): Promise<SidebarItemSize> => {
  */
 export const saveSidebarItemSize = async (value: SidebarItemSize): Promise<void> => {
     await store.set(SIDEBAR_ITEM_SIZE_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets the language preference.
+ * @returns A promise that resolves to "system" (default, follows the OS language), "it" or "en"; unknown stored values fall back to "system".
+ * @category Store
+ */
+export const getLanguage = async (): Promise<LanguagePreference> => {
+    const value = await store.get<LanguagePreference>(LANGUAGE_KEY)
+    return isLanguagePreference(value) ? value : DEFAULT_LANGUAGE_PREFERENCE
+}
+
+/**
+ * Saves the language preference.
+ * @param value "system", "it" or "en".
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveLanguage = async (value: LanguagePreference): Promise<void> => {
+    await store.set(LANGUAGE_KEY, value)
     await persist()
 }

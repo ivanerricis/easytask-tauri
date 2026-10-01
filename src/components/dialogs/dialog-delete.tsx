@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useWorkspaceData } from "@/contexts/workspace-data"
@@ -24,6 +25,7 @@ type defaultItemType = {
 }
 
 export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, getItemId, isOpen, onOpenChange, getItemData, optimistic }: DialogDeleteProps<T>) => {
+    const { t } = useTranslation()
     const { deleteItem } = useWorkspaceData()
 
     const handleDelete = async (e: React.SyntheticEvent) => {
@@ -37,7 +39,7 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             onOpenChange(false)
         } catch (error) {
             rollback?.()
-            toast.error('Impossibile eliminare l\'elemento: ' + getErrorMessage(error))
+            toast.error(t("dialogs.delete.error", { message: getErrorMessage(error) }))
         }
     }
 
@@ -54,10 +56,10 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             >
                 <DialogHeader>
                     <DialogTitle className="text-destructive">
-                        Spostare nel cestino?
+                        {t("dialogs.delete.title")}
                     </DialogTitle>
                     <DialogDescription>
-                        L'elemento verrà spostato nel cestino. Potrai ripristinarlo in seguito.
+                        {t("dialogs.delete.description")}
                     </DialogDescription>
                 </DialogHeader>
                 <DialogFooter>
@@ -66,11 +68,11 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
                             onClick={(e) => { e.stopPropagation() }}
                             variant="outline"
                         >
-                            Annulla
+                            {t("common.cancel")}
                         </Button>
                     </DialogClose>
                     <Button variant="destructive" onClick={handleDelete}>
-                        Sposta nel cestino
+                        {t("dialogs.delete.confirm")}
                     </Button>
                 </DialogFooter>
             </DialogContent>
