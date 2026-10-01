@@ -54,7 +54,7 @@ Until the placeholder is replaced the app runs normally, but "Check for updates"
 ## 5. Artifact names
 
 - Installers use the `productName` and the version from `tauri.conf.json` (NSIS: `EasyTask_X.Y.Z_x64-setup.exe`; Linux: `.deb` and `.AppImage`), with matching `.sig` signature files, plus `latest.json`. Exact file names are chosen by Tauri's bundler: check them in the draft.
-- The Cargo binary is named after the crate, so it is `app.exe` (Windows) in `src-tauri/target/release`. The bundler renames it to `EasyTask` inside installers; the portable job does the same by copying `app.exe` to `EasyTask.exe`.
+- The Cargo binary is named `EasyTask` (`[[bin]]` in `src-tauri/Cargo.toml`, same as `productName`), so it is `EasyTask.exe` (Windows) in `src-tauri/target/release`, in the installers and in the portable zip. The crate/package itself is still called `app`.
 - Portable zip: `EasyTask_<package.json version>_x64_portable.zip`, containing `EasyTask.exe`, `portable.txt` and `LEGGIMI.txt` directly (no wrapping folder).
 - `portable.txt` and `LEGGIMI.txt` come from `.github/portable/`.
 

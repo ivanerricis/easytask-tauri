@@ -83,8 +83,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p portable-input
-          # Cargo names the binary after the crate ("app"); the bundler renames it to the productName, so do the same
-          cp src-tauri/target/release/app.exe portable-input/EasyTask.exe
+          # The Cargo binary is already named EasyTask (see [[bin]] in Cargo.toml)
+          cp src-tauri/target/release/EasyTask.exe portable-input/EasyTask.exe
       - uses: actions/upload-artifact@v7
         if: runner.os == 'Windows'
         with:

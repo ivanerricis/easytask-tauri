@@ -18,7 +18,7 @@ import type { Options } from "@wdio/types"
  */
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const isWindows = process.platform === "win32"
-const binName = isWindows ? "app.exe" : "app"
+const binName = isWindows ? "EasyTask.exe" : "EasyTask"
 const application = process.env.E2E_APP ?? path.join(root, "src-tauri", "target", "debug", binName)
 
 let dataDir = ""
