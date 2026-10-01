@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import MainPage from "./MainPage"
@@ -22,12 +22,20 @@ const prefs = {
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("./MainPageLayout", () => ({ MainPageLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock("./components/DialogCreateWorkspace", () => ({ DialogCreateWorkspace: () => <div>create-dialog</div> }))
+vi.mock("./components/ButtonTrashWorkspaces", () => ({ ButtonTrashWorkspaces: () => <button type="button">trash-button</button> }))
 vi.mock("./components/WorkspacesContainer", () => ({
     WorkspacesContainer: ({ workspaces, view }: { workspaces: { name: string }[]; view: string }) => (
         <ul data-view={view}>{workspaces.map(w => <li key={w.name}>{w.name}</li>)}</ul>
     ),
 }))
 vi.mock("@/components/pages/error-page", () => ({ ErrorPage: ({ error }: { error: string }) => <div>error:{error}</div> }))
+
+// The page shows the loading page until the first load of the workspaces is over
+const renderLoaded = async () => {
+    const result = render(<MainPage />)
+    await screen.findByText("Bentornato!")
+    return result
+}
 
 describe("MainPage", () => {
     beforeEach(() => {
@@ -50,8 +58,8 @@ describe("MainPage", () => {
         expect(screen.queryByText("Alpha")).not.toBeInTheDocument()
     })
 
-    it("offers the import button next to the create dialog", () => {
-        render(<MainPage />)
+    it("offers the import button next to the create dialog", async () => {
+        await renderLoaded()
         expect(screen.getByRole("button", { name: "Importa un Workspace" })).toBeEnabled()
     })
 
@@ -67,51 +75,55 @@ describe("MainPage", () => {
         expect(screen.queryByText("Bentornato!")).not.toBeInTheDocument()
     })
 
-    it("keeps showing the list while refreshing when workspaces already exist", () => {
+    it("keeps showing the list while a later operation is running", async () => {
         ctx.isLoading = true
         ctx.workspaces = [makeWorkspace({ name: "Alpha" })]
-        render(<MainPage />)
+        await renderLoaded()
         expect(screen.getByText("Alpha")).toBeInTheDocument()
         expect(screen.queryByText("Caricamento dei Workspace...")).not.toBeInTheDocument()
-        expect(screen.getByRole("button", { name: "Ricarica i Workspace" })).toBeDisabled()
     })
 
-    it("shows the error page when loading failed and nothing is cached", () => {
+    it("does not replace the page with the loading page when an operation runs on an empty list", async () => {
+        const { rerender } = await renderLoaded()
+        ctx.isLoading = true
+        ctx.workspaces = []
+        // e.g. restoring a workspace from the trash: the page (and the open trash dialog) must stay mounted
+        rerender(<MainPage />)
+        expect(screen.getByText("trash-button")).toBeInTheDocument()
+        expect(screen.queryByText("Caricamento dei Workspace...")).not.toBeInTheDocument()
+    })
+
+    it("offers the trash button next to the view toggle", async () => {
+        await renderLoaded()
+        const toggle = screen.getByRole("button", { name: "Visualizza come lista" })
+        const trash = screen.getByText("trash-button")
+        expect(toggle.parentElement).toBe(trash.parentElement)
+    })
+
+    it("shows the error page when loading failed and nothing is cached", async () => {
         ctx.error = "db unavailable"
         render(<MainPage />)
-        expect(screen.getByText("error:db unavailable")).toBeInTheDocument()
+        expect(await screen.findByText("error:db unavailable")).toBeInTheDocument()
     })
 
-    it("shows the workspaces instead of the error when some are available", () => {
+    it("shows the workspaces instead of the error when some are available", async () => {
         ctx.error = "stale"
         ctx.workspaces = [makeWorkspace({ name: "Beta" })]
         render(<MainPage />)
-        expect(screen.getByText("Beta")).toBeInTheDocument()
+        expect(await screen.findByText("Beta")).toBeInTheDocument()
         expect(screen.queryByText(/error:/)).not.toBeInTheDocument()
     })
 
-    it("reloads on refresh click and swallows rejections", async () => {
-        const user = userEvent.setup()
-        const spy = vi.spyOn(console, "error").mockImplementation(() => {})
-        render(<MainPage />)
-        ctx.getWorkspaces.mockRejectedValueOnce(new Error("fail"))
-
-        await user.click(screen.getByRole("button", { name: "Ricarica i Workspace" }))
-
-        await waitFor(() => expect(ctx.getWorkspaces).toHaveBeenCalledTimes(2))
-        await waitFor(() => expect(spy).toHaveBeenCalled())
-    })
-
-    it("passes the persisted view to the container", () => {
+    it("passes the persisted view to the container", async () => {
         prefs.workspaceView = "list"
         ctx.workspaces = [makeWorkspace({ name: "Alpha" })]
-        const { container } = render(<MainPage />)
+        const { container } = await renderLoaded()
         expect(container.querySelector("ul")).toHaveAttribute("data-view", "list")
     })
 
     it("switches from grid to list through the toggle", async () => {
         const user = userEvent.setup()
-        render(<MainPage />)
+        await renderLoaded()
         await user.click(screen.getByRole("button", { name: "Visualizza come lista" }))
         expect(prefs.setWorkspaceView).toHaveBeenCalledWith("list")
     })
@@ -119,7 +131,7 @@ describe("MainPage", () => {
     it("switches from list back to grid through the toggle", async () => {
         const user = userEvent.setup()
         prefs.workspaceView = "list"
-        render(<MainPage />)
+        await renderLoaded()
         await user.click(screen.getByRole("button", { name: "Visualizza come griglia" }))
         expect(prefs.setWorkspaceView).toHaveBeenCalledWith("grid")
     })

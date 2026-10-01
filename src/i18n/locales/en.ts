@@ -592,8 +592,6 @@ export const en: Translation = {
         recent: "Open a recent Workspace:",
         viewGrid: "View as grid",
         viewList: "View as list",
-        reload: "Reload Workspaces",
-        reloadError: "Could not reload the Workspaces. Try again.",
         createWorkspace: {
             title: "Create Workspace",
             name: "Name",

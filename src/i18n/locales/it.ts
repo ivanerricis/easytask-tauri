@@ -590,8 +590,6 @@ export const it = {
         recent: "Apri un Workspace recente:",
         viewGrid: "Visualizza come griglia",
         viewList: "Visualizza come lista",
-        reload: "Ricarica i Workspace",
-        reloadError: "Impossibile ricaricare i Workspace. Riprova.",
         createWorkspace: {
             title: "Crea Workspace",
             name: "Nome",
