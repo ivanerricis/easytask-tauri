@@ -5,6 +5,11 @@ on:
     branches: [master]
   pull_request:
   workflow_dispatch:
+    inputs:
+      e2e_edge_args:
+        description: "Extra WebView2 browser arguments for the Windows e2e run (e.g. --no-sandbox)"
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -159,7 +164,16 @@ jobs:
         env:
           E2E_SKIP_BUILD: "1"
           E2E_DRIVER_LOG: "1"
+          E2E_EDGE_ARGS: ${{ inputs.e2e_edge_args }}
         run: npm run e2e
+      # Where did the browser write DevToolsActivePort, and with which arguments was the app launched?
+      - name: Diagnostics after the run (Windows)
+        if: runner.os == 'Windows' && always()
+        continue-on-error: true
+        shell: pwsh
+        env:
+          E2E_EDGE_ARGS: ${{ inputs.e2e_edge_args }}
+        run: ./e2e/windows-after-diagnostics.ps1
       - name: Upload e2e logs and screenshots
         if: always()
         uses: actions/upload-artifact@v7
