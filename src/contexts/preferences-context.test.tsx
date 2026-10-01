@@ -6,7 +6,16 @@ import { usePreferences } from "./use-preferences"
 import * as prefs from "@/lib/store/preferences"
 
 vi.mock("@/lib/store/initStore", () => ({ store: {} }))
-vi.mock("@/lib/store/preferences", () => ({
+vi.mock("@/lib/store/preferences", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@/lib/store/preferences")>()),
+    getAudioVolume: vi.fn(),
+    saveAudioVolume: vi.fn(),
+    getAudioPlayerVisible: vi.fn(),
+    saveAudioPlayerVisible: vi.fn(),
+    getAudioPlayerScale: vi.fn(),
+    saveAudioPlayerScale: vi.fn(),
+    getAudioPlayerOpacity: vi.fn(),
+    saveAudioPlayerOpacity: vi.fn(),
     getPrimaryColor: vi.fn(),
     savePrimaryColor: vi.fn(),
     getShowProgressBar: vi.fn(),
@@ -63,6 +72,10 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getSidebarRightWidth).mockResolvedValue(300)
         vi.mocked(prefs.getRightPanelTab).mockResolvedValue("history")
         vi.mocked(prefs.getLanguage).mockResolvedValue("system")
+        vi.mocked(prefs.getAudioVolume).mockResolvedValue(0.3)
+        vi.mocked(prefs.getAudioPlayerVisible).mockResolvedValue(false)
+        vi.mocked(prefs.getAudioPlayerScale).mockResolvedValue(1.2)
+        vi.mocked(prefs.getAudioPlayerOpacity).mockResolvedValue(0.6)
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
     })
 
@@ -117,6 +130,57 @@ describe("PreferencesContext", () => {
         expect(result.current.workspaceView).toBe("grid")
         expect(prefs.saveWorkspaceView).toHaveBeenCalledWith("grid")
         expect(document.documentElement.style.getPropertyValue("--primary")).toBe("#abcdef")
+    })
+
+    it("has backwards compatible audio defaults, then loads the stored ones", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.audioVolume).toBe(1)
+        expect(result.current.audioPlayerVisible).toBe(true)
+        expect(result.current.audioPlayerScale).toBe(1)
+        expect(result.current.audioPlayerOpacity).toBe(1)
+        await waitFor(() => expect(result.current.audioVolume).toBe(0.3))
+        expect(result.current.audioPlayerVisible).toBe(false)
+        expect(result.current.audioPlayerScale).toBe(1.2)
+        expect(result.current.audioPlayerOpacity).toBe(0.6)
+    })
+
+    it("updates and persists the audio preferences (clamped) and can reset them", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(result.current.audioVolume).toBe(0.3))
+
+        act(() => {
+            result.current.setAudioVolume(5)
+            result.current.setAudioPlayerOpacity(0.1)
+            result.current.setAudioPlayerScale(0.85)
+            result.current.setAudioPlayerVisible(true)
+        })
+        expect(result.current.audioVolume).toBe(1)
+        expect(prefs.saveAudioVolume).toHaveBeenCalledWith(1)
+        expect(result.current.audioPlayerOpacity).toBe(0.4)
+        expect(prefs.saveAudioPlayerOpacity).toHaveBeenCalledWith(0.4)
+        expect(result.current.audioPlayerScale).toBe(0.85)
+        expect(prefs.saveAudioPlayerScale).toHaveBeenCalledWith(0.85)
+        expect(prefs.saveAudioPlayerVisible).toHaveBeenCalledWith(true)
+
+        act(() => result.current.setAudioVolume(0.2))
+        act(() => result.current.resetAudioSettings())
+        expect(result.current.audioVolume).toBe(1)
+        expect(result.current.audioPlayerScale).toBe(1)
+        expect(result.current.audioPlayerOpacity).toBe(1)
+        expect(result.current.audioPlayerVisible).toBe(true)
+    })
+
+    it("pulls the player back inside the container when it gets bigger", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(result.current.audioPlayerScale).toBe(1.2))
+        const container = document.createElement("div")
+        Object.defineProperty(container, "offsetWidth", { value: 600 })
+        Object.defineProperty(container, "offsetHeight", { value: 400 })
+        result.current.audioPlayerContainerRef.current = container
+        act(() => result.current.setAudioPlayerPosition({ x: 250, y: 318, scaleX: 1, scaleY: 1 }))
+        act(() => result.current.setAudioPlayerScale(1.2))
+        expect(result.current.audioPlayerPosition.x).toBe(180)
+        expect(result.current.audioPlayerPosition.y).toBeCloseTo(301.6)
     })
 
     it("loads and persists the reopen notes preference (default on)", async () => {
@@ -202,6 +266,8 @@ describe("PreferencesContext", () => {
     it("resetPlayerPosition centers the player at the bottom of the container", async () => {
         const { result } = renderHook(() => usePreferences(), { wrapper })
         await waitFor(() => expect(result.current.audioPlayerPosition.x).toBe(5))
+        // The stored size is 1.2: the player is taller and wider, so it is placed accordingly
+        await waitFor(() => expect(result.current.audioPlayerScale).toBe(1.2))
 
         const el = document.createElement("div")
         Object.defineProperty(el, "offsetWidth", { value: 1000 })
@@ -210,7 +276,7 @@ describe("PreferencesContext", () => {
 
         act(() => result.current.resetPlayerPosition())
 
-        const expected = { x: 500 - 175, y: 600 - 82, scaleX: 1, scaleY: 1 }
+        const expected = { x: 500 - 175 * 1.2, y: 600 - 82 * 1.2, scaleX: 1, scaleY: 1 }
         expect(result.current.audioPlayerPosition).toEqual(expected)
         expect(prefs.saveAudioPlayerPosition).toHaveBeenCalledWith(expected)
     })

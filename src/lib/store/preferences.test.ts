@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, getSidebarRightWidth, saveSidebarRightWidth, getRightPanelTab, saveRightPanelTab, saveShowGroupProgressBar, saveSidebarItemSize } from "./preferences"
+import { getAudioVolume, saveAudioVolume, getAudioPlayerVisible, saveAudioPlayerVisible, getAudioPlayerScale, saveAudioPlayerScale, getAudioPlayerOpacity, saveAudioPlayerOpacity, flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, getSidebarRightWidth, saveSidebarRightWidth, getRightPanelTab, saveRightPanelTab, saveShowGroupProgressBar, saveSidebarItemSize } from "./preferences"
 
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn(), delete: vi.fn() },
@@ -230,5 +230,55 @@ describe("right sidebar width and tab preferences", () => {
         await vi.advanceTimersByTimeAsync(500)
         await p
         expect(store.set).toHaveBeenCalledWith("rightPanelTab", "history")
+    })
+})
+
+describe("audio player preferences", () => {
+    beforeEach(() => {
+        vi.resetAllMocks()
+        vi.useFakeTimers()
+    })
+
+    it("has backwards compatible defaults when nothing is stored", async () => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getAudioVolume()).toBe(1)
+        expect(await getAudioPlayerVisible()).toBe(true)
+        expect(await getAudioPlayerScale()).toBe(1)
+        expect(await getAudioPlayerOpacity()).toBe(1)
+    })
+
+    it.each([[0.4, 0.4], [-1, 0], [7, 1], ["loud", 1], [Number.NaN, 1]])("reads the volume %s as %s", async (stored, expected) => {
+        vi.mocked(store.get).mockResolvedValue(stored)
+        expect(await getAudioVolume()).toBe(expected)
+        expect(store.get).toHaveBeenCalledWith("audioVolume")
+    })
+
+    it.each([[0.85, 0.85], [1.2, 1.2], [2, 1], ["big", 1]])("reads the scale %s as %s", async (stored, expected) => {
+        vi.mocked(store.get).mockResolvedValue(stored)
+        expect(await getAudioPlayerScale()).toBe(expected)
+        expect(store.get).toHaveBeenCalledWith("audioPlayerScale")
+    })
+
+    it.each([[0.7, 0.7], [0.1, 0.4], [3, 1], ["x", 1]])("reads the opacity %s as %s", async (stored, expected) => {
+        vi.mocked(store.get).mockResolvedValue(stored)
+        expect(await getAudioPlayerOpacity()).toBe(expected)
+        expect(store.get).toHaveBeenCalledWith("audioPlayerOpacity")
+    })
+
+    it("reads the visibility flag", async () => {
+        vi.mocked(store.get).mockResolvedValue(false)
+        expect(await getAudioPlayerVisible()).toBe(false)
+        expect(store.get).toHaveBeenCalledWith("audioPlayerVisible")
+    })
+
+    it("saves every value (clamped) with a debounced flush", async () => {
+        const saves = [saveAudioVolume(5), saveAudioPlayerVisible(false), saveAudioPlayerScale(1.2), saveAudioPlayerOpacity(0.1)]
+        await vi.advanceTimersByTimeAsync(500)
+        await Promise.all(saves)
+        expect(store.set).toHaveBeenCalledWith("audioVolume", 1)
+        expect(store.set).toHaveBeenCalledWith("audioPlayerVisible", false)
+        expect(store.set).toHaveBeenCalledWith("audioPlayerScale", 1.2)
+        expect(store.set).toHaveBeenCalledWith("audioPlayerOpacity", 0.4)
+        expect(store.save).toHaveBeenCalledTimes(1)
     })
 })

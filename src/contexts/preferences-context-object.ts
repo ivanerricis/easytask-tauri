@@ -1,5 +1,5 @@
 import { createContext } from "react"
-import type { RightPanelTab, SidebarItemSize, WorkspaceView } from "@/lib/store/preferences"
+import type { AudioPlayerScale, RightPanelTab, SidebarItemSize, WorkspaceView } from "@/lib/store/preferences"
 import type { LanguagePreference } from "@/i18n"
 import type { AudioPlayerPosition } from "@/types/types"
 
@@ -22,6 +22,15 @@ export type PreferencesContextType = {
     audioPlayerContainerRef: React.RefObject<HTMLDivElement | null>
     setAudioPlayerPosition: (position: AudioPlayerPosition) => void
     resetPlayerPosition: () => void
+    audioVolume: number
+    setAudioVolume: (value: number) => void
+    audioPlayerVisible: boolean
+    setAudioPlayerVisible: (value: boolean) => void
+    audioPlayerScale: AudioPlayerScale
+    setAudioPlayerScale: (value: AudioPlayerScale) => void
+    audioPlayerOpacity: number
+    setAudioPlayerOpacity: (value: number) => void
+    resetAudioSettings: () => void
     workspaceView: WorkspaceView
     setWorkspaceView: (value: WorkspaceView) => void
     reopenNotes: boolean
