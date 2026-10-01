@@ -34,6 +34,9 @@ serde_json = "1"
 # Same major/minor as the one used by tauri-plugin-sql, so its Pool<Sqlite> type is shared.
 sqlx = { version = "0.8", default-features = false, features = ["sqlite", "runtime-tokio"] }
 
+[target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
+tauri-plugin-updater = "2"
+
 [profile.release]
 lto = true
 opt-level = "s"

@@ -7,6 +7,7 @@ import { Copy } from "lucide-react"
 import { toast } from "sonner"
 import { getErrorMessage } from "@/lib/utils"
 import { SettingsPanel } from "./SettingsRow"
+import { UpdateSection } from "./UpdateSection"
 
 const REPO_URL = "https://github.com/ivanerricis/easytask-tauri"
 const DB_FILE = "easytask.db"
@@ -108,6 +109,7 @@ export const AboutSettings = () => {
                 <RepositoryRow />
                 <InfoRow label={t("settings.about.database")} value={info.dbPath} selectable />
             </div>
+            <UpdateSection />
         </SettingsPanel>
     )
 }

@@ -7,12 +7,19 @@ import { SETTINGS_CATEGORIES } from "./settings/categories"
 type DialogSettingsContentProps = {
     isOpen: boolean
     onOpenChange: (open: boolean) => void
+    /** Category to show when the dialog is opened on request (e.g. "about") */
+    requestedCategory?: string
 }
 
 /** The settings dialog itself; loaded on demand by DialogSettings */
-export const DialogSettingsContent = ({ isOpen, onOpenChange }: DialogSettingsContentProps) => {
+export const DialogSettingsContent = ({ isOpen, onOpenChange, requestedCategory }: DialogSettingsContentProps) => {
     const { t } = useTranslation()
-    const [activeId, setActiveId] = useState(SETTINGS_CATEGORIES[0].id)
+    const [activeId, setActiveId] = useState(requestedCategory ?? SETTINGS_CATEGORIES[0].id)
+    const [seenRequest, setSeenRequest] = useState(requestedCategory)
+    if (requestedCategory !== seenRequest) {
+        setSeenRequest(requestedCategory)
+        if (requestedCategory) setActiveId(requestedCategory)
+    }
     const active = SETTINGS_CATEGORIES.find(c => c.id === activeId) ?? SETTINGS_CATEGORIES[0]
     const Panel = active.Panel
 

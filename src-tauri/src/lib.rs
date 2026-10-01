@@ -283,6 +283,12 @@ pub fn run() {
             }
             window.build()?;
 
+            // Updater: registered at runtime (desktop only). The public key comes from tauri.conf.json; while it
+            // is still the placeholder the plugin loads fine and `check()` fails with a handled error.
+            #[cfg(desktop)]
+            app.handle()
+                .plugin(tauri_plugin_updater::Builder::new().build())?;
+
             app.manage(info);
             Ok(())
         })

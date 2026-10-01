@@ -19,6 +19,7 @@ const SIDEBAR_ITEM_SIZE_KEY = "sidebarItemSize"
 const LANGUAGE_KEY = "language"
 const BACKUP_KEEP_KEY = "backupKeep"
 const AUTO_BACKUP_KEY = "autoBackup"
+const CHECK_UPDATES_KEY = "checkUpdatesOnStartup"
 const SIDEBAR_LEFT_WIDTH_KEY = "sidebarLeftWidth"
 
 const SAVE_DEBOUNCE_MS = 500
@@ -448,5 +449,26 @@ export const getSidebarLeftWidth = async (): Promise<number> => {
  */
 export const saveSidebarLeftWidth = async (value: number): Promise<void> => {
     await store.set(SIDEBAR_LEFT_WIDTH_KEY, clampSidebarWidth(value))
+    await persist()
+}
+
+/**
+ * Gets whether the app silently checks for a new version at startup.
+ * @returns A promise that resolves to a boolean (default true).
+ * @category Store
+ */
+export const getCheckUpdatesOnStartup = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(CHECK_UPDATES_KEY)
+    return value ?? true
+}
+
+/**
+ * Saves whether the app checks for a new version at startup.
+ * @param value A boolean indicating whether the startup update check is enabled.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveCheckUpdatesOnStartup = async (value: boolean): Promise<void> => {
+    await store.set(CHECK_UPDATES_KEY, value)
     await persist()
 }

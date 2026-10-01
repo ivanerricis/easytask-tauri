@@ -28,6 +28,9 @@
       "allow": [
         {
           "url": "https://github.com/ivanerricis/easytask-tauri"
+        },
+        {
+          "url": "https://github.com/ivanerricis/easytask-tauri/releases*"
         }
       ]
     },
@@ -43,6 +46,7 @@
     "store:allow-save",
     "clipboard-manager:allow-read-text",
     "clipboard-manager:allow-write-text",
-    "process:allow-restart"
+    "process:allow-restart",
+    "updater:default"
   ]
 }

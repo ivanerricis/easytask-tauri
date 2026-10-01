@@ -7,6 +7,7 @@ import { flushPreferences, getLanguage } from './lib/store/preferences'
 import { initI18n } from './i18n'
 import { reportError } from './lib/report-error'
 import { runAutoBackup } from './db/backup'
+import { scheduleStartupUpdateCheck } from './lib/updater'
 import { installGlobalErrorHandlers } from './lib/global-error-handlers'
 import { ErrorBoundary } from './components/error-boundary'
 
@@ -34,5 +35,6 @@ const start = async () => {
   )
   // Daily backup, best effort: delayed so it does not compete with the first render
   setTimeout(() => { void runAutoBackup() }, 3000)
+  scheduleStartupUpdateCheck()
 }
 void start()

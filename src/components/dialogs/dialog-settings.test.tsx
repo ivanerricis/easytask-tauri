@@ -15,7 +15,10 @@ vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 vi.mock("@/db/appPaths", () => ({
     ensureAppFolder: vi.fn().mockResolvedValue("C:\\Docs\\EasyTask"),
+    isPortable: vi.fn().mockResolvedValue(false),
 }))
+vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn().mockResolvedValue(null) }))
+vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: vi.fn() }))
 vi.mock("@/components/mode-toggle", () => ({ ModeToggle: () => <div>mode-toggle</div> }))
 vi.mock("@/contexts/use-preferences", () => ({
     usePreferences: () => ({
@@ -86,6 +89,13 @@ describe("DialogSettings", () => {
         expect(screen.getByText("2.1.0")).toBeInTheDocument()
         expect(screen.getByText("Ivan Erricis")).toBeInTheDocument()
         expect(screen.getByText("C:\\Docs\\EasyTask\\easytask.db")).toBeInTheDocument()
+    })
+
+    it("opens on the About page when the app requests it (update toast)", async () => {
+        render(<DialogSettings />)
+        window.dispatchEvent(new CustomEvent("easytask:open-settings", { detail: { category: "about" } }))
+        expect(await screen.findByText("9.8.7", {}, { timeout: 5000 })).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "Controlla aggiornamenti" })).toBeInTheDocument()
     })
 
     it("opens the repository link with the opener plugin", async () => {
