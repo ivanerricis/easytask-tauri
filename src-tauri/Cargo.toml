@@ -1,6 +1,6 @@
 [package]
 name = "app"
-version = "0.1.0"
+version = "0.1.0-rc.1"
 description = "EasyTask: desktop task and workspace manager"
 authors = ["Ivan Erricis"]
 publish = false
