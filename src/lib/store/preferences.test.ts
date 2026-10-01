@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { getAudioVolume, saveAudioVolume, getAudioPlayerVisible, saveAudioPlayerVisible, getAudioPlayerScale, saveAudioPlayerScale, getAudioPlayerOpacity, saveAudioPlayerOpacity, getColorIntensity, saveColorIntensity, flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, getSidebarRightWidth, saveSidebarRightWidth, getRightPanelTab, saveRightPanelTab, saveShowGroupProgressBar, saveSidebarItemSize } from "./preferences"
+import { getAudioVolume, saveAudioVolume, getAudioPlayerVisible, saveAudioPlayerVisible, getAudioPlayerScale, saveAudioPlayerScale, getAudioPlayerOpacity, saveAudioPlayerOpacity, getColorIntensity, saveColorIntensity, flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, getSidebarRightWidth, saveSidebarRightWidth, getRightPanelTab, saveRightPanelTab, saveShowGroupProgressBar, saveSidebarItemSize, getHideCompletedTasks, saveHideCompletedTasks, getPrimaryColor, getAudioPlayerPosition } from "./preferences"
 
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn(), delete: vi.fn() },
@@ -299,5 +299,64 @@ describe("audio player preferences", () => {
         await save
         expect(store.set).toHaveBeenCalledWith("colorIntensity", 1.75)
         expect(store.save).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe("hide completed tasks preference", () => {
+    beforeEach(() => {
+        vi.resetAllMocks()
+        vi.useFakeTimers()
+    })
+
+    it("is off by default", async () => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getHideCompletedTasks()).toBe(false)
+        expect(store.get).toHaveBeenCalledWith("hideCompletedTasks")
+    })
+
+    it("returns the stored value", async () => {
+        vi.mocked(store.get).mockResolvedValue(true)
+        expect(await getHideCompletedTasks()).toBe(true)
+    })
+
+    it("saves the value and flushes the store", async () => {
+        const save = saveHideCompletedTasks(true)
+        await vi.advanceTimersByTimeAsync(500)
+        await save
+        expect(store.set).toHaveBeenCalledWith("hideCompletedTasks", true)
+        expect(store.save).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe("primary color preference validation", () => {
+    beforeEach(() => vi.resetAllMocks())
+
+    it.each(["#fff", "#FFB375", "#a1b2c3"])("keeps the valid hex %s", async (hex) => {
+        vi.mocked(store.get).mockResolvedValue({ hex })
+        expect(await getPrimaryColor()).toBe(hex)
+    })
+
+    it.each([undefined, null, {}, { hex: 3 }, { hex: "red" }, { hex: "#12" }, { hex: "#12345g" }, { hex: "url(x)" }, "#fff"])("falls back to the default for %j", async (stored) => {
+        vi.mocked(store.get).mockResolvedValue(stored)
+        expect(await getPrimaryColor()).toBe("#ffb375")
+    })
+})
+
+describe("audio player position validation", () => {
+    beforeEach(() => vi.resetAllMocks())
+
+    it("returns a valid stored position", async () => {
+        vi.mocked(store.get).mockResolvedValue({ x: 10, y: 20, scaleX: 1, scaleY: 1 })
+        expect(await getAudioPlayerPosition()).toEqual({ x: 10, y: 20, scaleX: 1, scaleY: 1 })
+    })
+
+    it.each([undefined, null, "x", {}, { x: "1", y: 2 }, { x: Number.NaN, y: 2 }, { x: 1, y: Infinity }])("falls back to the default for %j", async (stored) => {
+        vi.mocked(store.get).mockResolvedValue(stored)
+        expect(await getAudioPlayerPosition()).toEqual({ x: 0, y: 0, scaleX: 1, scaleY: 1 })
+    })
+
+    it("defaults a missing or invalid scale to 1", async () => {
+        vi.mocked(store.get).mockResolvedValue({ x: 1, y: 2, scaleX: "a" })
+        expect(await getAudioPlayerPosition()).toEqual({ x: 1, y: 2, scaleX: 1, scaleY: 1 })
     })
 })
