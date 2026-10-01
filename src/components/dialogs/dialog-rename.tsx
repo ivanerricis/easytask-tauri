@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { isUndoableType } from "@/contexts/undo/commands"
 import React, { useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
@@ -30,6 +32,7 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
     const currentName = item.name ?? item.title ?? ""
     const [value, setValue] = useState(currentName)
     const { renameItem } = useWorkspaceData()
+    const recorder = useUndoRecorder()
     const [error, setError] = useState<string | null>(null)
     // A group may be unnamed: saving an empty name clears it
     const allowEmpty = itemType === "section_group"
@@ -41,6 +44,7 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
             if ((allowEmpty || value.trim()) && value.trim() !== currentName) {
                 rollback = optimistic?.(value.trim())
                 await renameItem(itemType, item.id, value.trim())
+                if (isUndoableType(itemType)) recorder.rename(itemType, item.id, currentName, value.trim())
             }
             if (typeof getItemId === "number") {
                 await getItemData?.(getItemId)

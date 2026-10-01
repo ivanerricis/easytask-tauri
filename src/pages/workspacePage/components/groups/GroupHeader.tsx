@@ -10,6 +10,7 @@ import type { Group } from "@/types/types"
 import { useEffect, useRef, useState, type HTMLAttributes } from "react"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { toast } from "sonner"
 import { getErrorMessage } from "@/lib/utils"
 import { getGroupLabel } from "./group-label"
@@ -29,6 +30,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
     const progress = getGroupProgress(group)
     const { renameItem } = useWorkspaceActions()
     const { patchGroup } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
     const [isEditing, setEditing] = useState(false)
     const [text, setText] = useState(group.name ?? "")
     const inputRef = useRef<HTMLInputElement>(null)
@@ -61,6 +63,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
         const rollback = patchGroup(group.id, { name: text.trim() || null })
         try {
             await renameItem("section_group", group.id, text.trim())
+            recorder.rename("section_group", group.id, group.name ?? "", text.trim())
         } catch (err) {
             rollback()
             toast.error(t("groups.renameError", { message: getErrorMessage(err) }))

@@ -11,6 +11,8 @@ import type { Folder, Note } from "@/types/types"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { getErrorMessage } from "@/lib/utils"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { captureTreePlace } from "@/contexts/undo/commands"
 import { ItemNote } from "../note/Note"
 import { ItemFolder } from "../folder/Folder"
 import {
@@ -133,6 +135,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { workspaceDataTree, getWorkspaceData, moveTreeItem } = useWorkspaceData()
+    const recorder = useUndoRecorder()
     const [hover, setHover] = useState<HoverState>(NO_HOVER)
     const [activeRef, setActiveRef] = useState<TreeRef | null>(null)
     const targetRef = useRef<DropTarget | null>(null)
@@ -198,7 +201,9 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         if (!active || !event.over || !target) return
 
         try {
+            const from = captureTreePlace(workspaceDataTree, active.type, active.id)
             await moveTreeItem(active.type, active.id, target.folderId, target.index)
+            if (from) recorder.treeMove(active.type, active.id, from.name, { folderId: from.folderId, index: from.index }, { folderId: target.folderId, index: target.index })
             if (target.folderId != null) onExpandFolder(target.folderId)
         } catch (err) {
             reportError(err, getErrorMessage(err))

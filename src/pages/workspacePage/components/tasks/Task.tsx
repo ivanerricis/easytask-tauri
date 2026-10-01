@@ -5,6 +5,7 @@ import { ButtonMenuTask } from "./ButtonMenuTask"
 import { ItemMenuButton } from "@/components/item-menu"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { toast } from "sonner"
 import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
@@ -27,6 +28,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
     const [isAddingSubtask, setAddingSubtask] = useState(false)
     const { updateTaskCompletion, renameItem } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("task", task.id)
     const { setNodeRef: setDragRef, setActivatorNodeRef, attributes, listeners, isDragging } = useNoteDrag("task", task.id)
@@ -52,6 +54,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
         const rollback = patchTask(task.id, { completed: !task.completed })
         try {
             await updateTaskCompletion(task.id, !task.completed)
+            recorder.taskCompletion(task.id, task.text, !!task.completed, !task.completed)
         } catch (err) {
             rollback()
             toast.error(t("tasks.errors.update", { message: getErrorMessage(err) }))
@@ -63,7 +66,10 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
         const changed = task.text !== text && text.trim() !== ""
         const rollback = changed ? patchTask(task.id, { text: text.trim() }) : null
         try {
-            if (changed) await renameItem("task", task.id, text.trim())
+            if (changed) {
+                await renameItem("task", task.id, text.trim())
+                recorder.rename("task", task.id, task.text, text.trim())
+            }
         } catch (err) {
             rollback?.()
             toast.error(t("tasks.errors.rename", { message: getErrorMessage(err) }))

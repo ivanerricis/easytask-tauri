@@ -2,6 +2,8 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { getItemName, isUndoableType } from "@/contexts/undo/commands"
 import { DialogClose } from "@radix-ui/react-dialog"
 import React from "react"
 import { toast } from "sonner"
@@ -27,6 +29,7 @@ type defaultItemType = {
 export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, getItemId, isOpen, onOpenChange, getItemData, optimistic }: DialogDeleteProps<T>) => {
     const { t } = useTranslation()
     const { deleteItem } = useWorkspaceData()
+    const recorder = useUndoRecorder()
 
     const handleDelete = async (e: React.SyntheticEvent) => {
         e.stopPropagation()
@@ -36,6 +39,7 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             if (typeof getItemId === "number") {
                 await getItemData?.(getItemId)
             }
+            if (isUndoableType(itemType)) recorder.remove(itemType, item.id, getItemName(item))
             onOpenChange(false)
         } catch (error) {
             rollback?.()

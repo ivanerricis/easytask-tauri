@@ -6,7 +6,8 @@ import TextareaAutosize from "react-textarea-autosize"
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useWorkspaceActions } from "@/contexts/workspace-data";
-import { useActiveNoteActions } from "@/contexts/use-active-note";
+import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { useUndoRecorder } from "@/contexts/undo/use-undo";
 import { toast } from "sonner";
 
 type Props = {
@@ -20,6 +21,7 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
     const [text, setText] = useState(task.description)
     const { updateTaskDescription } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
 
     const handleSaveDecription = async (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -27,6 +29,7 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
         const rollback = patchTask(task.id, { description: text })
         try {
             await updateTaskDescription(task.id, text !== "" ? text : undefined)
+            if (text !== (task.description ?? "")) recorder.taskDescription(task.id, task.text, task.description ?? "", text)
             onOpenChange(false)
         } catch (err) {
             rollback()

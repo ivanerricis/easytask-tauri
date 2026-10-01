@@ -8,12 +8,17 @@ import { SearchIcon } from "lucide-react"
 import { useState } from "react"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
+import { useOptionalUndo } from "@/contexts/undo/use-undo"
+import { Redo2, Undo2 } from "lucide-react"
 
 export function CommandMenu() {
     const { t } = useTranslation()
     const [open, setOpen] = useState(false)
     const { notes, folders } = useWorkspaceState()
     const { openNote } = useTabsActions()
+    const undo = useOptionalUndo()
+    const undoShortcut = useShortcutLabel("undo")
+    const redoShortcut = useShortcutLabel("redo")
 
     useShortcut("search-notes", () => setOpen(open => !open), { allowInInputs: true })
     const searchLabel = useShortcutLabel("search-notes")
@@ -31,6 +36,24 @@ export function CommandMenu() {
                 <CommandInput placeholder={t("notes.search.placeholder")} />
                 <CommandList>
                     <CommandEmpty>{t("notes.search.empty")}</CommandEmpty>
+                    {undo && (undo.canUndo || undo.canRedo) && (
+                        <CommandGroup heading={t("undo.actions")}>
+                            {undo.canUndo && (
+                                <CommandItem className="!p-2" onSelect={() => { setOpen(false); void undo.undo() }}>
+                                    <Undo2 className="size-4" />
+                                    {t("undo.undoWithLabel", { label: undo.undoLabel })}
+                                    {undoShortcut && <span className="ml-auto text-xs text-muted-foreground">{undoShortcut}</span>}
+                                </CommandItem>
+                            )}
+                            {undo.canRedo && (
+                                <CommandItem className="!p-2" onSelect={() => { setOpen(false); void undo.redo() }}>
+                                    <Redo2 className="size-4" />
+                                    {t("undo.redoWithLabel", { label: undo.redoLabel })}
+                                    {redoShortcut && <span className="ml-auto text-xs text-muted-foreground">{redoShortcut}</span>}
+                                </CommandItem>
+                            )}
+                        </CommandGroup>
+                    )}
                     <CommandGroup heading={t("notes.search.suggestions")}>
                         {allNotes.map((note) => (
                             <CommandItem

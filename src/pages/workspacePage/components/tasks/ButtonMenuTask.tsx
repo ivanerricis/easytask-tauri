@@ -5,6 +5,7 @@ import type { Task } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteId } from "@/contexts/use-tabs"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { toast } from "sonner"
 import { useRef, useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
@@ -34,12 +35,14 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
     const { updateTaskPriority, updateTaskDescription, updateItemColor } = useWorkspaceActions()
     const activeId = useActiveNoteId()
     const { patchTask, removeTask } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
 
     const handleEditPriority = async () => {
         // Optimistic: the cached tree is updated at once and restored if the write fails
         const rollback = patchTask(task.id, { priority: !task.priority })
         try {
             await updateTaskPriority(task.id, !task.priority)
+            recorder.taskPriority(task.id, task.text, !!task.priority, !task.priority)
         } catch {
             rollback()
             toast.error(t("tasks.errors.priority"))
@@ -53,6 +56,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
             const rollback = patchTask(task.id, { description: "" })
             try {
                 await updateTaskDescription(task.id, undefined)
+                recorder.taskDescription(task.id, task.text, task.description ?? "", "")
             } catch (err) {
                 rollback()
                 toast.error(getErrorMessage(err))

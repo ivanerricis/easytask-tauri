@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import { useWorkspace } from "@/contexts/use-workspace"
 import type { Folder } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import React, { useState } from "react"
 import { toast } from "sonner"
 
@@ -28,6 +29,7 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
     const [name, setName] = useState("")
     const [error, setError] = useState<string | null>(null)
     const { createSubFolder } = useWorkspaceData()
+    const recorder = useUndoRecorder()
     const { currentWorkspace } = useWorkspace()
 
     const handleCreateFolder = async (e: React.FormEvent) => {
@@ -35,7 +37,8 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
         if (!currentWorkspace?.id) return
         if (name.trim() === "") return
         try {
-            await createSubFolder(currentWorkspace.id, parentFolder.id, name.trim())
+            const id = await createSubFolder(currentWorkspace.id, parentFolder.id, name.trim())
+            if (typeof id === "number") recorder.create("folder", id, name.trim())
             setError(null)
             onOpenChange(false)
             setName("")

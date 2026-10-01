@@ -4,6 +4,8 @@ import React, { useState } from "react"
 import { toast } from "sonner"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { getItemName, isUndoableType } from "@/contexts/undo/commands"
 
 type DialogAddColorProps<T> = {
     item: T
@@ -30,6 +32,7 @@ const COLORS = [
 
 export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getItemId, addColorItem, getItemData, setDropDownOpen, className }: DialogAddColorProps<T>) => {
     const { t } = useTranslation()
+    const recorder = useUndoRecorder()
     const [color, setColor] = useState(item.color)
     const dialogRef = React.useRef<HTMLDivElement>(null);
     const [inputColor, setInputColor] = useState("#000000")
@@ -49,6 +52,7 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
             if (item.color !== colorToSave && colorToSave && canSave) {
                 await addColorItem(itemType, item.id, colorToSave)
                 if (getItemData && getItemId) await getItemData(getItemId)
+                if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, colorToSave)
             }
         } catch (err) {
             toast.error(getErrorMessage(err))
@@ -64,6 +68,7 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
             if (item.color && canSave) {
                 await addColorItem(itemType, item.id)
                 if (getItemData && getItemId) await getItemData(getItemId)
+                if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, null)
             }
         } catch (err) {
             toast.error(getErrorMessage(err))
