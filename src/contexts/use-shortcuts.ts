@@ -8,9 +8,6 @@ export const useShortcutsContext = () => {
     return context
 }
 
-/** Like useShortcutsContext, but null outside a provider (hints then fall back to the defaults). */
-export const useOptionalShortcutsContext = () => useContext(ShortcutsContext)
-
 /** The effective binding of a shortcut (the default one outside a provider). */
 export const useBinding = (id: string): Binding | undefined => {
     const context = useContext(ShortcutsContext)
