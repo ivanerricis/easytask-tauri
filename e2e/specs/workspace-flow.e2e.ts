@@ -1,6 +1,6 @@
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    byLabel, byText, createFromSidebar, createWorkspace, openSubmenu, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
+    byLabel, byText, createFromSidebar, createWorkspace, openContextMenu, openSubmenu, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
     waitForApp,
 } from "../helpers"
 
@@ -144,5 +144,43 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
         await browser.waitUntil(async () => (await taskValues(SECTION_B)).includes(TASK), {
             timeoutMsg: "restored task is not shown again",
         })
+    })
+
+    it("hides the completed tasks and shows them again", async () => {
+        const checkbox = sectionCard(SECTION_B).$('[role="checkbox"]')
+        await checkbox.click()
+        await expect(checkbox).toHaveAttribute("aria-checked", "true")
+
+        const toggle = byLabel(await tr("notes.hideCompleted"))
+        await toggle.click()
+        await expect(toggle).toHaveAttribute("aria-pressed", "true")
+        await browser.waitUntil(async () => !(await taskValues(SECTION_B)).includes(TASK), { timeoutMsg: "the completed task is still shown" })
+        await expect(sectionCard(SECTION_B).$("[data-testid=\"hidden-completed\"]")).toHaveText(await tr("tasks.hiddenCompleted_one", { count: 1 }))
+
+        await toggle.click()
+        await expect(toggle).toHaveAttribute("aria-pressed", "false")
+        await browser.waitUntil(async () => (await taskValues(SECTION_B)).includes(TASK), { timeoutMsg: "the completed task is not shown again" })
+        await sectionCard(SECTION_B).$('[role="checkbox"]').click()
+    })
+
+    it("duplicates a section with its tasks", async () => {
+        const copy = `${SECTION_B} (${await tr("duplicate.suffix")})`
+        await sectionCard(SECTION_B).$(`button[aria-label="${await tr("common.openMenu")}"]`).click()
+        const menu = $('[role="menu"]')
+        await menu.waitForDisplayed()
+        await byText(await tr("menu.duplicate"), menu).click()
+
+        await sectionCard(copy).waitForDisplayed({ timeoutMsg: "the section copy was not created" })
+        await browser.waitUntil(async () => (await taskValues(copy)).includes(TASK), { timeoutMsg: "the tasks were not copied" })
+    })
+
+    it("duplicates a note and opens the copy", async () => {
+        const copy = `${NOTE} (${await tr("duplicate.suffix")})`
+        const menu = await openContextMenu(treeRow(NOTE))
+        await byText(await tr("menu.duplicate"), menu).click()
+
+        await treeRow(copy).waitForDisplayed({ timeoutMsg: "the note copy is not in the sidebar" })
+        await sectionCard(SECTION_B).waitForDisplayed({ timeoutMsg: "the copy was not opened with its content" })
+        await sectionCard(`${SECTION_B} (${await tr("duplicate.suffix")})`).waitForDisplayed()
     })
 })
