@@ -53,12 +53,21 @@ describe("GroupHeader color", () => {
 })
 
 describe("GroupHeader name", () => {
-    it("shows the full name, wrapping instead of truncating", () => {
+    it("keeps the name on a single line, truncated, with the full name as tooltip", () => {
         render(<GroupHeader group={makeGroup({ name: "Da fare" })} index={2} />)
         const name = screen.getByText("Da fare")
-        expect(name).toHaveClass("break-words")
-        expect(name).not.toHaveClass("truncate")
+        expect(name).toHaveClass("truncate")
+        expect(name).not.toHaveClass("break-words")
+        expect(name).toHaveAttribute("title", "Da fare")
         expect(name).not.toHaveClass("text-muted-foreground")
+    })
+
+    it("keeps the name, the progress and the counters on the same row", () => {
+        const { container } = render(<GroupHeader group={makeGroup({ name: "Da fare" })} index={0} />)
+        const header = container.querySelector(".group.flex") as HTMLElement
+        expect(header).toHaveClass("flex")
+        expect(header).not.toHaveClass("flex-wrap")
+        expect(header).not.toHaveClass("grid")
     })
 
     it("shows a muted placeholder 'Gruppo N' when unnamed", () => {
