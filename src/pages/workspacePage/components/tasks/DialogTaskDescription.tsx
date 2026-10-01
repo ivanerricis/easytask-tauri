@@ -1,9 +1,10 @@
 import { useTranslation } from "react-i18next"
 import type { Task } from "@/types/types";
 import { getErrorMessage } from "@/lib/utils"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import TextareaAutosize from "react-textarea-autosize"
 import { Button } from "@/components/ui/button";
+import { Check } from "lucide-react";
 import { useState } from "react";
 import { useWorkspaceActions } from "@/contexts/workspace-data";
 import { useActiveNoteActions } from "@/contexts/use-active-note"
@@ -19,22 +20,32 @@ type Props = {
 export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
     const { t } = useTranslation()
     const [text, setText] = useState(task.description)
+    const [saving, setSaving] = useState(false)
     const { updateTaskDescription } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
+    const changed = text !== (task.description ?? "")
 
-    const handleSaveDecription = async (e: React.MouseEvent) => {
-        e.stopPropagation()
+    const save = async () => {
+        if (saving || !changed) return
+        setSaving(true)
         // Optimistic: the cached tree is updated at once and restored if the write fails
         const rollback = patchTask(task.id, { description: text })
         try {
             await updateTaskDescription(task.id, text !== "" ? text : undefined)
-            if (text !== (task.description ?? "")) recorder.taskDescription(task.id, task.text, task.description ?? "", text)
+            recorder.taskDescription(task.id, task.text, task.description ?? "", text)
             onOpenChange(false)
         } catch (err) {
             rollback()
             toast.error(getErrorMessage(err))
+        } finally {
+            setSaving(false)
         }
+    }
+
+    const handleSave = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        void save()
     }
 
     const handleClose = (e: React.MouseEvent) => {
@@ -44,27 +55,40 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogTitle />
-            <DialogDescription />
-            <DialogContent className="px-10">
+            <DialogContent className="sm:max-w-lg">
+                <DialogHeader>
+                    <DialogTitle>{t("tasks.descriptionDialog.title")}</DialogTitle>
+                    <DialogDescription className="truncate" title={task.text}>{task.text}</DialogDescription>
+                </DialogHeader>
                 <TextareaAutosize
+                    autoFocus
                     minRows={5}
-                    maxRows={10}
-                    className="resize-none border rounded-xs py-1 px-2 mt-5"
+                    maxRows={12}
+                    aria-label={t("tasks.descriptionDialog.label")}
+                    placeholder={t("tasks.descriptionDialog.placeholder")}
+                    className="resize-none border rounded-xs py-1 px-2 text-sm focus-visible:border-primary"
                     value={text}
                     onChange={(e) => setText(e.target.value)}
-                >
-                </TextareaAutosize>
-                <DialogFooter>
-                    <Button
-                        variant={"outline"}
-                        onClick={(e) => handleClose(e)}
-                    >
-                        {t("common.cancel")}
-                    </Button>
-                    <Button onClick={(e) => handleSaveDecription(e)}>
-                        {t("common.save")}
-                    </Button>
+                    // The caret starts at the end of the existing text
+                    onFocus={(e) => { const end = e.currentTarget.value.length; e.currentTarget.setSelectionRange(end, end) }}
+                    onKeyDown={(e) => {
+                        if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+                            e.preventDefault()
+                            void save()
+                        }
+                    }}
+                />
+                <DialogFooter className="items-center sm:justify-between">
+                    <span className="hidden text-xs text-muted-foreground sm:inline">{t("tasks.descriptionDialog.hint")}</span>
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row">
+                        <Button variant="outline" onClick={handleClose}>
+                            {t("common.cancel")}
+                        </Button>
+                        <Button onClick={handleSave} disabled={!changed || saving}>
+                            <Check />
+                            {t("common.save")}
+                        </Button>
+                    </div>
                 </DialogFooter>
             </DialogContent>
         </Dialog>

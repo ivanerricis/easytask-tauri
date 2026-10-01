@@ -718,6 +718,12 @@ export const it = {
             update: "Impossibile modificare il task - {{message}}",
             rename: "Impossibile cambiare il testo del task - {{message}}",
         },
+        descriptionDialog: {
+            title: "Descrizione del task",
+            label: "Descrizione",
+            placeholder: "Scrivi qualcosa per descrivere il task...",
+            hint: "Ctrl + Invio per salvare",
+        },
         newSubtaskPlaceholder: "Nuovo sottotask…",
         newSubtask: "Nuovo sottotask",
         addSubtask: "Aggiungi sottotask",

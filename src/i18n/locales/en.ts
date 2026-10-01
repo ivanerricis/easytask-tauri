@@ -720,6 +720,12 @@ export const en: Translation = {
             update: "Could not change the task - {{message}}",
             rename: "Could not change the task text - {{message}}",
         },
+        descriptionDialog: {
+            title: "Task description",
+            label: "Description",
+            placeholder: "Write something to describe the task...",
+            hint: "Ctrl + Enter to save",
+        },
         newSubtaskPlaceholder: "New subtask…",
         newSubtask: "New subtask",
         addSubtask: "Add subtask",
