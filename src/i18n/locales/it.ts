@@ -244,8 +244,14 @@ export const it = {
                     empty: "Nessun backup presente.",
                     preRestore: "(prima del ripristino)",
                 },
+                delete: {
+                    aria: "Elimina il backup del {{date}}",
+                    title: "Eliminare questo backup?",
+                    description: "Il backup del {{date}} verrà eliminato definitivamente. L'operazione non si può annullare.",
+                },
                 restore: {
                     button: "Ripristina",
+                    aria: "Ripristina il backup del {{date}}",
                     title: "Ripristinare questo backup?",
                     description: "I dati attuali verranno sostituiti con il backup del {{date}} e l'app si riavvierà. Prima viene salvata una copia dei dati attuali.",
                     confirm: "Ripristina e riavvia",

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { invoke } from "@tauri-apps/api/core"
+import { ArchiveRestore, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import {
     AlertDialog,
@@ -16,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { buttonVariants } from "@/components/ui/button-variants"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
+import { TooltipCustom } from "@/components/tooltip-custom"
 import {
     createBackup,
     deleteBackup,
@@ -51,6 +53,7 @@ export const BackupSettings = () => {
     const [auto, setAuto] = useState(true)
     const [busy, setBusy] = useState(false)
     const [toRestore, setToRestore] = useState<BackupInfo | null>(null)
+    const [toDelete, setToDelete] = useState<BackupInfo | null>(null)
 
     const refresh = useCallback(async () => {
         try {
@@ -163,18 +166,53 @@ export const BackupSettings = () => {
                                     <span className="ml-2 text-xs text-muted-foreground">{formatSize(backup.size)}</span>
                                 </span>
                                 <span className="shrink-0 flex gap-1">
-                                    <Button variant="outline" size="sm" disabled={busy} onClick={() => setToRestore(backup)}>
-                                        {t("settings.data.backup.restore.button")}
-                                    </Button>
-                                    <Button variant="outline" size="sm" disabled={busy} onClick={() => void remove(backup)}>
-                                        {t("common.delete")}
-                                    </Button>
+                                    <TooltipCustom text={t("settings.data.backup.restore.button")}>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            disabled={busy}
+                                            aria-label={t("settings.data.backup.restore.aria", { date: backup.date.toLocaleString(i18n.language) })}
+                                            onClick={() => setToRestore(backup)}
+                                        >
+                                            <ArchiveRestore />
+                                        </Button>
+                                    </TooltipCustom>
+                                    <TooltipCustom text={t("common.delete")}>
+                                        <Button
+                                            variant="destructive"
+                                            size="icon"
+                                            disabled={busy}
+                                            aria-label={t("settings.data.backup.delete.aria", { date: backup.date.toLocaleString(i18n.language) })}
+                                            onClick={() => setToDelete(backup)}
+                                        >
+                                            <Trash2 />
+                                        </Button>
+                                    </TooltipCustom>
                                 </span>
                             </li>
                         ))}
                     </ul>
                 )}
             </div>
+            <AlertDialog open={toDelete !== null} onOpenChange={open => { if (!open) setToDelete(null) }}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t("settings.data.backup.delete.title")}</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            {t("settings.data.backup.delete.description", { date: toDelete?.date.toLocaleString(i18n.language) ?? "" })}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                        <AlertDialogAction
+                            className={buttonVariants({ variant: "destructive" })}
+                            onClick={() => { if (toDelete) void remove(toDelete) }}
+                        >
+                            {t("common.delete")}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
             <AlertDialog open={toRestore !== null} onOpenChange={open => { if (!open) setToRestore(null) }}>
                 <AlertDialogContent>
                     <AlertDialogHeader>

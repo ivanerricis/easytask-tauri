@@ -246,8 +246,14 @@ export const en: Translation = {
                     empty: "No backups yet.",
                     preRestore: "(before restore)",
                 },
+                delete: {
+                    aria: "Delete the backup of {{date}}",
+                    title: "Delete this backup?",
+                    description: "The backup of {{date}} will be permanently deleted. This cannot be undone.",
+                },
                 restore: {
                     button: "Restore",
+                    aria: "Restore the backup of {{date}}",
                     title: "Restore this backup?",
                     description: "The current data will be replaced with the backup of {{date}} and the app will restart. A copy of the current data is saved first.",
                     confirm: "Restore and restart",
