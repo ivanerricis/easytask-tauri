@@ -1,0 +1,15 @@
+EasyTask - versione portable / portable version
+
+IT
+1. Requisiti: Windows 10/11 a 64 bit con Microsoft Edge WebView2 Runtime (gia' presente in Windows 11 e nelle versioni recenti di Windows 10).
+2. Avvio: esegui EasyTask.exe. Nessuna installazione.
+3. Dati: database, impostazioni, backup e log sono nella cartella "data" accanto all'exe (non cancellare portable.txt).
+4. Aggiornamento: chiudi l'app e sostituisci EasyTask.exe con quello della nuova versione; la cartella "data" resta intatta.
+5. Il controllo aggiornamenti in Impostazioni > Informazioni apre la pagina delle Release; non installa nulla.
+
+EN
+1. Requirements: 64-bit Windows 10/11 with the Microsoft Edge WebView2 Runtime (already included in Windows 11 and recent Windows 10).
+2. Start: run EasyTask.exe. No installation.
+3. Data: database, settings, backups and logs live in the "data" folder next to the exe (do not delete portable.txt).
+4. Updating: close the app and replace EasyTask.exe with the new version's; the "data" folder is kept.
+5. The update check in Settings > About opens the Releases page; it never installs anything.
