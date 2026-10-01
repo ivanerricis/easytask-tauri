@@ -1,6 +1,18 @@
 import { useTranslation } from "react-i18next"
 import { Fragment, useEffect, useState } from "react"
+import { Pencil, RotateCcw, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button-variants"
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Separator } from "@/components/ui/separator"
 import { KbdKeys } from "@/components/kbd"
 import { useShortcutsContext } from "@/contexts/use-shortcuts"
@@ -12,6 +24,7 @@ export const ShortcutsSettings = () => {
     const { bindings, overrides, setBinding, resetBinding, resetAll, setRecording } = useShortcutsContext()
     const [recordingId, setRecordingId] = useState<string | null>(null)
     const [error, setError] = useState<{ id: string, message: string } | null>(null)
+    const [confirmResetAll, setConfirmResetAll] = useState(false)
 
     useEffect(() => {
         if (!recordingId) return
@@ -57,7 +70,8 @@ export const ShortcutsSettings = () => {
         <SettingsPanel title={t("settings.shortcuts.title")}>
             <div className="flex items-center justify-between gap-4">
                 <p className="text-xs text-muted-foreground">{t("settings.shortcuts.hint")}</p>
-                <Button variant="outline" size="sm" onClick={resetAll} disabled={Object.keys(overrides).length === 0}>
+                <Button variant="outline" size="sm" onClick={() => setConfirmResetAll(true)} disabled={Object.keys(overrides).length === 0}>
+                    <RotateCcw />
                     {t("settings.shortcuts.resetAll")}
                 </Button>
             </div>
@@ -83,6 +97,7 @@ export const ShortcutsSettings = () => {
                                                 aria-label={t("settings.shortcuts.editAria", { name: shortcutDescription(s.id) })}
                                                 onClick={() => isRecording ? setRecordingId(null) : startRecording(s.id)}
                                             >
+                                                {isRecording ? <X /> : <Pencil />}
                                                 {isRecording ? t("common.cancel") : t("settings.shortcuts.edit")}
                                             </Button>
                                             {s.id in overrides && !isRecording && (
@@ -92,6 +107,7 @@ export const ShortcutsSettings = () => {
                                                     aria-label={t("settings.shortcuts.resetAria", { name: shortcutDescription(s.id) })}
                                                     onClick={() => { resetBinding(s.id); setError(null) }}
                                                 >
+                                                    <RotateCcw />
                                                     {t("settings.shortcuts.reset")}
                                                 </Button>
                                             )}
@@ -106,6 +122,23 @@ export const ShortcutsSettings = () => {
                     </section>
                 </Fragment>
             ))}
+            <AlertDialog open={confirmResetAll} onOpenChange={setConfirmResetAll}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t("settings.shortcuts.resetAllTitle")}</AlertDialogTitle>
+                        <AlertDialogDescription>{t("settings.shortcuts.resetAllDescription")}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
+                        <AlertDialogAction
+                            className={buttonVariants({ variant: "destructive" })}
+                            onClick={() => { resetAll(); setError(null) }}
+                        >
+                            {t("settings.shortcuts.resetAll")}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
         </SettingsPanel>
     )
 }

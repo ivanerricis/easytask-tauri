@@ -157,6 +157,8 @@ export const en: Translation = {
             title: "Shortcuts",
             hint: "Press \"Edit\" and then the new key combination. Esc cancels.",
             resetAll: "Reset all",
+            resetAllTitle: "Reset all shortcuts?",
+            resetAllDescription: "Every custom shortcut will go back to its default.",
             needsModifier: "Use a combination with Ctrl or Alt.",
             conflict: "Already used by: {{names}}.",
             pressKeys: "Press the keys...",

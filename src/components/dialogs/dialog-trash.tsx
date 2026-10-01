@@ -178,6 +178,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                             disabled={busy || isLoading || items.length === 0}
                             onClick={() => setConfirm({ kind: "empty" })}
                         >
+                            <Trash2 />
                             {t("trash.empty")}
                         </Button>
                         <Button variant="outline" onClick={() => onOpenChange(false)}>

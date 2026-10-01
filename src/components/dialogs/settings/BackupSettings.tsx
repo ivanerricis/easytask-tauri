@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { invoke } from "@tauri-apps/api/core"
-import { ArchiveRestore, Trash2 } from "lucide-react"
+import { ArchiveRestore, DatabaseBackup, FolderOpen, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import {
     AlertDialog,
@@ -127,6 +127,7 @@ export const BackupSettings = () => {
         <>
             <SettingsRow label={t("settings.data.backup.now.label")} description={t("settings.data.backup.now.description")}>
                 <Button variant="outline" size="sm" disabled={busy} onClick={() => void backupNow()}>
+                    <DatabaseBackup />
                     {t("settings.data.backup.now.button")}
                 </Button>
             </SettingsRow>
@@ -147,6 +148,7 @@ export const BackupSettings = () => {
             </SettingsRow>
             <SettingsRow label={t("settings.data.backup.folder.label")} description={t("settings.data.backup.folder.description")}>
                 <Button variant="outline" size="sm" onClick={() => void openFolder()}>
+                    <FolderOpen />
                     {t("settings.data.backup.folder.button")}
                 </Button>
             </SettingsRow>

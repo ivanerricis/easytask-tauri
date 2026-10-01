@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 import { getShortcutOverrides } from "@/lib/store/shortcuts"
@@ -52,6 +52,10 @@ describe("ShortcutsSettings", () => {
         press({ key: "j", altKey: true })
         await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina tutte" })).toHaveProperty("disabled", false))
         fireEvent.click(screen.getByRole("button", { name: "Ripristina tutte" }))
+        // A confirmation comes first: nothing is cleared until it is accepted
+        const dialog = await screen.findByRole("alertdialog")
+        expect(Object.keys(await getShortcutOverrides())).not.toHaveLength(0)
+        fireEvent.click(within(dialog).getByRole("button", { name: "Ripristina tutte" }))
         await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina tutte" })).toHaveProperty("disabled", true))
         expect(await getShortcutOverrides()).toEqual({})
     })

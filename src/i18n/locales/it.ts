@@ -155,6 +155,8 @@ export const it = {
             title: "Scorciatoie",
             hint: "Premi \"Modifica\" e poi la nuova combinazione di tasti. Esc annulla.",
             resetAll: "Ripristina tutte",
+            resetAllTitle: "Ripristinare tutte le scorciatoie?",
+            resetAllDescription: "Tutte le scorciatoie personalizzate torneranno ai valori predefiniti.",
             needsModifier: "Usa una combinazione con Ctrl o Alt.",
             conflict: "Già usata da: {{names}}.",
             pressKeys: "Premi i tasti...",

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { relaunch } from "@tauri-apps/plugin-process"
 import type { Update } from "@tauri-apps/plugin-updater"
 import { toast } from "sonner"
+import { Download, ExternalLink, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
@@ -86,6 +87,7 @@ export const UpdateSection = () => {
         <div className="flex flex-col gap-3">
             <SettingsRow label={t("settings.about.update.label")}>
                 <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleCheck()}>
+                    <RefreshCw />
                     {t("settings.about.update.checkButton")}
                 </Button>
             </SettingsRow>
@@ -116,6 +118,7 @@ export const UpdateSection = () => {
                                 <p className="text-xs text-muted-foreground">{t("settings.about.update.portableHint")}</p>
                                 <div>
                                     <Button size="sm" onClick={() => void handleOpenReleases()}>
+                                        <ExternalLink />
                                         {t("settings.about.update.openReleases")}
                                     </Button>
                                 </div>
@@ -123,6 +126,7 @@ export const UpdateSection = () => {
                         ) : (
                             <div>
                                 <Button size="sm" onClick={() => void handleInstall(status.update)}>
+                                    <Download />
                                     {t("settings.about.update.install")}
                                 </Button>
                             </div>
