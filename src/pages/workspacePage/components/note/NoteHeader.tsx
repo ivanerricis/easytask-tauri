@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useActiveNoteId, useTabsActions } from "@/contexts/use-tabs"
 import type { Note } from "@/types/types"
+import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { X } from "lucide-react"
 import React from "react"
 import { ButtonMenuNote } from "./ButtonMenuNote"
@@ -17,6 +18,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
     const activeId = useActiveNoteId()
     const { closeNote, activateNote } = useTabsActions()
     const isActive = activeId === note.id
+    const closeLabel = useShortcutLabel("close-note")
 
     const handleCloseHeader = (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -51,7 +53,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                         {note.name}
                     </span>
                     {isActive ?
-                        <TooltipCustom text={t("notes.closeCurrent")} shortcut="(Ctrl + L)">
+                        <TooltipCustom text={t("notes.closeCurrent")} shortcut={closeLabel}>
                             <button type="button" aria-label={t("notes.closeCurrent")} onClick={handleCloseHeader} className={`${focusRing} flex items-center justify-center cursor-pointer p-0.5 hover:bg-accent rounded-xs text-foreground`}>
                                 <X className="h-4 w-4" />
                             </button>

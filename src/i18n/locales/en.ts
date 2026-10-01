@@ -257,6 +257,7 @@ export const en: Translation = {
             "confirm-rename": "Confirm editing a group, section or task name",
             "cancel-rename": "Cancel renaming the group or close the new subtask",
             "task-newline": "New line in a task description",
+            "toggle-sidebar": "Show or hide the sidebar",
             "new-workspace": "Create a new workspace",
         },
         keys: {
@@ -598,5 +599,56 @@ export const en: Translation = {
         imported: "Workspace imported",
         importedSkipped_one: "Workspace imported · {{count}} audio file skipped",
         importedSkipped_other: "Workspace imported · {{count}} audio files skipped",
+    },
+    dnd: {
+        unknownItem: "item",
+        instructions: {
+            keyboard: "To move the item press Space, then use the arrow keys to pick the position and press Space again to drop it. Press Esc to cancel.",
+            pointer: "Drag the item with the mouse, or use the \"Move to…\" menu to move it with the keyboard.",
+        },
+        start: "Picked up {{name}}.",
+        over: "{{name}} is over {{target}}.",
+        overNone: "{{name}} is not over a valid target.",
+        end: "{{name}} was dropped on {{target}}.",
+        endNone: "{{name}} was dropped outside a valid target.",
+        cancel: "Moving {{name}} cancelled.",
+        audioPlayer: "Audio player",
+    },
+    layout: {
+        resizeSidebar: "Resize the sidebar",
+        resizeValue: "{{width}} pixels",
+        showSidebar: "Show the sidebar",
+        hideSidebar: "Hide the sidebar",
+    },
+    emptyStates: {
+        workspaces: {
+            description: "A workspace gathers folders, notes and tasks: create one to get started, or import an existing one.",
+            create: "Create a workspace",
+        },
+        sidebar: {
+            description: "Organize your work in folders and notes.",
+            newFolder: "Create a folder",
+            newNote: "Create a note",
+        },
+        folder: {
+            title: "Empty folder",
+            description: "Drag notes or folders here to fill it.",
+        },
+        trash: {
+            description: "Deleted items stay here and can be restored.",
+        },
+        templates: {
+            description: "A template is a note to reuse: open a note's menu and choose \"Create template\".",
+        },
+        group: {
+            title: "Empty group",
+            description: "Add a section to organize the tasks.",
+            newSection: "Add a section",
+        },
+        section: {
+            title: "No tasks",
+            description: "Write the text below to add the first task.",
+            confirm: "Add the task",
+        },
     },
 }

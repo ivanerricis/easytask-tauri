@@ -255,6 +255,7 @@ export const it = {
             "confirm-rename": "Conferma la modifica di nome gruppo, sezione o task",
             "cancel-rename": "Annulla la rinomina del gruppo o chiudi il nuovo sottotask",
             "task-newline": "Vai a capo nella descrizione di un task",
+            "toggle-sidebar": "Mostra o nascondi la barra laterale",
             "new-workspace": "Crea un nuovo workspace",
         },
         keys: {
@@ -596,6 +597,57 @@ export const it = {
         imported: "Workspace importato",
         importedSkipped_one: "Workspace importato · {{count}} audio saltato",
         importedSkipped_other: "Workspace importato · {{count}} audio saltati",
+    },
+    dnd: {
+        unknownItem: "elemento",
+        instructions: {
+            keyboard: "Per spostare l'elemento premi Spazio, poi usa le frecce per scegliere la posizione e premi di nuovo Spazio per rilasciarlo. Premi Esc per annullare.",
+            pointer: "Trascina l'elemento con il mouse, oppure usa il menu \"Sposta in…\" per spostarlo con la tastiera.",
+        },
+        start: "Hai sollevato {{name}}.",
+        over: "{{name}} è sopra {{target}}.",
+        overNone: "{{name}} non è sopra una destinazione valida.",
+        end: "{{name}} è stato rilasciato su {{target}}.",
+        endNone: "{{name}} è stato rilasciato fuori da una destinazione valida.",
+        cancel: "Spostamento di {{name}} annullato.",
+        audioPlayer: "Lettore audio",
+    },
+    layout: {
+        resizeSidebar: "Ridimensiona la barra laterale",
+        resizeValue: "{{width}} pixel",
+        showSidebar: "Mostra la barra laterale",
+        hideSidebar: "Nascondi la barra laterale",
+    },
+    emptyStates: {
+        workspaces: {
+            description: "Un workspace raccoglie cartelle, note e task: creane uno per iniziare, oppure importane uno esistente.",
+            create: "Crea un workspace",
+        },
+        sidebar: {
+            description: "Organizza il lavoro in cartelle e note.",
+            newFolder: "Crea una cartella",
+            newNote: "Crea una nota",
+        },
+        folder: {
+            title: "Cartella vuota",
+            description: "Trascina qui note o cartelle per riempirla.",
+        },
+        trash: {
+            description: "Gli elementi eliminati restano qui e possono essere ripristinati.",
+        },
+        templates: {
+            description: "Un template è una nota da riusare: aprine il menu e scegli \"Crea template\".",
+        },
+        group: {
+            title: "Gruppo vuoto",
+            description: "Aggiungi una sezione per organizzare i task.",
+            newSection: "Aggiungi una sezione",
+        },
+        section: {
+            title: "Nessun task",
+            description: "Scrivi il testo qui sotto per aggiungere il primo task.",
+            confirm: "Aggiungi il task",
+        },
     },
 }
 

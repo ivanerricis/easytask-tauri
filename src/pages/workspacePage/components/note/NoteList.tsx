@@ -6,6 +6,8 @@ import {
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
 import { CSS } from "@dnd-kit/utilities"
 import { useTabs, useTabsActions } from "@/contexts/use-tabs"
+import { useTranslation } from "react-i18next"
+import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { cn } from "@/lib/utils"
 import { NoteHeader } from "./NoteHeader"
 import { computeTabMove, computeTabZone, type TabZone } from "./tab-reorder"
@@ -47,6 +49,7 @@ const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {
 }
 
 export const NoteList = () => {
+    useTranslation() // re-renders on language change so the screen reader texts follow it
     const { tabs } = useTabs()
     const { reorderTabs } = useTabsActions()
     const [hover, setHover] = useState<Hover>(null)
@@ -54,6 +57,8 @@ export const NoteList = () => {
 
     // A small distance keeps plain clicks (open / close tab) working
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+    const accessibility = buildDndAccessibility(entry => tabs.find(tab => tab.id === entry.id)?.name, { keyboard: false })
 
     const updateHover = (next: Hover) => {
         hoverRef.current = next
@@ -78,6 +83,7 @@ export const NoteList = () => {
     return (
         <DndContext
             sensors={sensors}
+            accessibility={accessibility}
             modifiers={[restrictToHorizontalAxis]}
             collisionDetection={collisionDetection}
             onDragMove={handleDragMove}

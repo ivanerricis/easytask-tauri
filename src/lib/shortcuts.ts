@@ -44,6 +44,7 @@ export const keyLabel = (key: ShortcutKey | "ctrl" | "alt"): string => i18n.t(`s
 export const SHORTCUTS: Shortcut[] = [
     { id: "show-shortcuts", defaultBinding: { key: "?" }, editable: false, scope: "global", category: "general" },
     { id: "go-home", defaultBinding: { key: "h", ctrl: true }, editable: true, scope: "workspace", category: "general" },
+    { id: "toggle-sidebar", defaultBinding: { key: "b", ctrl: true }, editable: true, scope: "workspace", category: "general" },
     { id: "search-notes", defaultBinding: { key: "o", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "new-note", defaultBinding: { key: "n", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "new-folder", defaultBinding: { key: "m", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
