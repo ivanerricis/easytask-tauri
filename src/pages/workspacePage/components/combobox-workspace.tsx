@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import * as React from "react"
 import { Box, CheckIcon, ChevronsUpDownIcon } from "lucide-react"
 
@@ -20,6 +21,7 @@ import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 
 export function ComboboxWorkspace() {
+    const { t } = useTranslation()
     const [open, setOpen] = React.useState(false)
     const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace()
     const { getWorkspaceData } = useWorkspaceData()
@@ -46,16 +48,16 @@ export function ComboboxWorkspace() {
                 >
                     <div className="flex items-center gap-2">
                         <Box />
-                        {value || "Seleziona Workspace..."}
+                        {value || t("workspace.combobox.select")}
                     </div>
                     <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[200px] p-0">
                 <Command>
-                    <CommandInput placeholder="Cerca un Workspace..." />
+                    <CommandInput placeholder={t("workspace.combobox.search")} />
                     <CommandList>
-                        <CommandEmpty>Nessun Workspace trovato.</CommandEmpty>
+                        <CommandEmpty>{t("workspace.combobox.empty")}</CommandEmpty>
                         <CommandGroup>
                             {workspaces.map((workspace) => (
                                 <CommandItem

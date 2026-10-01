@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useMemo } from "react"
 import { reportError } from "@/lib/report-error"
 import { Folder as FolderIcon, FolderInput } from "lucide-react"
@@ -17,6 +18,7 @@ type MoveToSubmenuProps = {
 
 /** "Sposta in…" submenu: accessible alternative to drag & drop. Moves the item to the end of the destination. */
 export const MoveToSubmenu = ({ itemType, itemId, folderID, onDone }: MoveToSubmenuProps) => {
+    const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { workspaceDataTree, moveTreeItem, getWorkspaceData } = useWorkspaceData()
 
@@ -38,7 +40,7 @@ export const MoveToSubmenu = ({ itemType, itemId, folderID, onDone }: MoveToSubm
             try {
                 await getWorkspaceData(currentWorkspace.id)
             } catch (err) {
-                reportError(err, "Impossibile aggiornare l'elenco di cartelle e note. Riprova.")
+                reportError(err, t("errors.refreshTree"))
             }
         }
     }
@@ -46,7 +48,7 @@ export const MoveToSubmenu = ({ itemType, itemId, folderID, onDone }: MoveToSubm
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <ButtonInPopover text="Sposta in…" type="move" />
+                <ButtonInPopover text={t("menu.moveTo")} type="move" />
             </MenuSubTrigger>
             <MenuSubContent className="max-h-64 overflow-y-auto">
                 {destinations.map(destination => (
@@ -57,7 +59,7 @@ export const MoveToSubmenu = ({ itemType, itemId, folderID, onDone }: MoveToSubm
                         onSelect={() => { void move(destination.id) }}
                     >
                         {destination.id == null ? <FolderInput className="size-4" /> : <FolderIcon className="size-4" />}
-                        <span className="truncate">{destination.name ?? "Radice del workspace"}</span>
+                        <span className="truncate">{destination.name ?? t("common.workspaceRoot")}</span>
                     </MenuItem>
                 ))}
             </MenuSubContent>

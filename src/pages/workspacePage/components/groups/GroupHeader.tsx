@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { usePreferences } from "@/contexts/use-preferences"
 import { ChevronDown, Grip, LayoutList, SquareCheckBig } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
@@ -22,6 +23,7 @@ type GroupHeaderProps = {
 }
 
 export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }: GroupHeaderProps) => {
+    const { t } = useTranslation()
     const { showSectionCount, showTaskCount, showGroupProgressBar } = usePreferences()
     const [isOpen, toggleOpen] = useGroupOpen(group.id)
     const progress = getGroupProgress(group)
@@ -61,7 +63,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
             await renameItem("section_group", group.id, text.trim())
         } catch (err) {
             rollback()
-            toast.error('Impossibile cambiare il nome del gruppo' + ' - ' + getErrorMessage(err))
+            toast.error(t("groups.renameError", { message: getErrorMessage(err) }))
         }
     }
 
@@ -74,7 +76,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
                 <button
                     type="button"
                     onClick={toggleOpen}
-                    aria-label={isOpen ? "Compatta gruppo" : "Espandi gruppo"}
+                    aria-label={isOpen ? t("groups.collapse") : t("groups.expand")}
                     aria-expanded={isOpen}
                     className="shrink-0 cursor-pointer mr-2 rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} size-5`} />
@@ -90,7 +92,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
                     type="text"
                     value={text}
                     placeholder={label}
-                    aria-label="Nome del gruppo"
+                    aria-label={t("groups.nameLabel")}
                     onChange={e => setText(e.target.value)}
                     onBlur={() => { void save() }}
                     onKeyDown={e => {

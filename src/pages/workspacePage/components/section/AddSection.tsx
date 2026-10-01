@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Input } from "@/components/ui/input"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteId } from "@/contexts/use-tabs"
@@ -17,6 +18,7 @@ type AddSectionFormProps = {
 }
 
 export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
+    const { t } = useTranslation()
     const [isOpen, setOpen] = useState(false)
     const [name, setName] = useState("")
     const { createGroup, createSectionInGroup } = useWorkspaceActions()
@@ -53,7 +55,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
 
             if (inGroup) {
                 if (!groupId) {
-                    toast.error("ID gruppo mancante")
+                    toast.error(t("errors.missingGroupId"))
                     return
                 }
                 const id = await createSectionInGroup(groupId, name.trim())
@@ -65,7 +67,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
 
             handleOpen()
         } catch (error) {
-            toast.error(getErrorMessage(error) || (inGroup ? "Errore nella creazione della sezione" : "Errore nella creazione del gruppo"))
+            toast.error(getErrorMessage(error) || (inGroup ? t("errors.createSection") : t("errors.createGroup")))
         }
     }
 
@@ -81,8 +83,8 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                 <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder={inGroup ? "Titolo della sezione..." : "Nome del gruppo (facoltativo)..."}
-                    aria-label={inGroup ? "Titolo della sezione" : "Nome del gruppo"}
+                    placeholder={inGroup ? t("sections.titlePlaceholder") : t("groups.namePlaceholder")}
+                    aria-label={inGroup ? t("sections.titleLabel") : t("groups.nameLabel")}
                     autoFocus
                     className={`rounded-none border-none !bg-background text-sm ${inGroup ? 'w-full' : 'w-fit'}`}
                 />

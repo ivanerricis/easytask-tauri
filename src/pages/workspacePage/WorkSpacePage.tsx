@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { MainContainer } from "./components/MainContainer"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { ErrorPage } from "@/components/pages/error-page"
@@ -10,6 +11,7 @@ import { saveLastWorkspaceId } from "@/lib/store/preferences"
 import { reportError } from "@/lib/report-error"
 
 const WorkSpacePage = () => {
+    const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { error, getWorkspaceData } = useWorkspaceData()
     const [isLoading, setIsLoading] = useState(true)
@@ -37,7 +39,7 @@ const WorkSpacePage = () => {
     if (isLoading) {
         return (
             <WorkSpaceLayout>
-                <LoadingPage text="Caricamento dati del Workspace..." />
+                <LoadingPage text={t("workspace.loading")} />
             </WorkSpaceLayout>
         )
     }

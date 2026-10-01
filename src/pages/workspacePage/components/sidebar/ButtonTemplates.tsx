@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
@@ -10,6 +11,7 @@ import { ItemFooter } from "../items/ItemFooter"
  * @category Sidebar
  */
 export const ButtonTemplates = () => {
+    const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { countTemplates, templatesVersion } = useWorkspaceData()
     const [isOpen, setIsOpen] = useState(false)
@@ -28,7 +30,7 @@ export const ButtonTemplates = () => {
 
     return (
         <>
-            <ItemFooter type="template" text="Template" badge={count} badgeLabel={`${count} template`} onClick={() => setIsOpen(true)} />
+            <ItemFooter type="template" text={t("dialogs.templates.title")} badge={count} badgeLabel={t("templates.badge", { count })} onClick={() => setIsOpen(true)} />
             <DialogTemplates isOpen={isOpen} onOpenChange={setIsOpen} />
         </>
     )

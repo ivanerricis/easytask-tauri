@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { Task as TaskType } from "@/types/types"
 import { ButtonMenuTask } from "./ButtonMenuTask"
@@ -19,6 +20,7 @@ type TaskProps = {
 }
 
 export const Task = React.memo(({ task, children }: TaskProps) => {
+    const { t } = useTranslation()
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(task.text)
     const [open, onOpenChange] = useState(false)
@@ -52,7 +54,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
             await updateTaskCompletion(task.id, !task.completed)
         } catch (err) {
             rollback()
-            toast.error('Impossibile modificare il task' + ' - ' + getErrorMessage(err))
+            toast.error(t("tasks.errors.update", { message: getErrorMessage(err) }))
         }
     }
 
@@ -64,7 +66,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
             if (changed) await renameItem("task", task.id, text.trim())
         } catch (err) {
             rollback?.()
-            toast.error('Impossibile cambiare il testo del task' + ' - ' + getErrorMessage(err))
+            toast.error(t("tasks.errors.rename", { message: getErrorMessage(err) }))
         }
         setTextAreaOpen(false)
     }
@@ -97,8 +99,8 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                 ref={setActivatorNodeRef}
                                 {...attributes}
                                 {...listeners}
-                                aria-label="Sposta task"
-                                title="Trascina per spostare il task"
+                                aria-label={t("tasks.moveHandle")}
+                                title={t("tasks.moveHandleTitle")}
                                 className="absolute left-0.5 top-2 z-10 touch-none cursor-grab text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
                                 <GripVertical className="size-3.5" />
                             </div>
@@ -119,7 +121,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                             setText(task.text)
                                         }
                                     }}
-                                    aria-label="Modifica il testo del task"
+                                    aria-label={t("tasks.editText")}
                                     value={task.text}
                                     className={cn(
                                         "w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm",
@@ -149,8 +151,8 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                             <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
                                 <button
                                     type="button"
-                                    aria-label="Aggiungi sottotask"
-                                    title="Aggiungi sottotask"
+                                    aria-label={t("tasks.addSubtask")}
+                                    title={t("tasks.addSubtask")}
                                     onClick={() => setAddingSubtask(true)}
                                     className="p-1 rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                     <Plus className="size-4" />
@@ -163,7 +165,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                         {task.description &&
                             <button
                                 type="button"
-                                aria-label="Mostra la descrizione"
+                                aria-label={t("tasks.showDescription")}
                                 onClick={() => { onOpenChange(true) }}
                                 className="p-1 flex items-center justify-center hover:bg-accent rounded-xs cursor-pointer mb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                                 <AlignLeft className="size-4" />

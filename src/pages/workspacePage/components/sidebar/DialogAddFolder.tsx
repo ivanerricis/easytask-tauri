@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
@@ -24,6 +25,7 @@ const defaultFolder = {
 }
 
 export function DialogAddFolder() {
+    const { t } = useTranslation()
 
     const [folder, setFolder] = useState(defaultFolder)
     const [error, setError] = useState<string | null>(null)
@@ -67,13 +69,13 @@ export function DialogAddFolder() {
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
-                        <DialogTitle>Crea una cartella</DialogTitle>
+                        <DialogTitle>{t("dialogs.addFolder.title")}</DialogTitle>
                         <DialogDescription />
                     </DialogHeader>
                     <form onSubmit={handleCreateFolder}>
                         <div className="grid gap-4">
                             <div className="grid gap-3">
-                                <Label>Nome</Label>
+                                <Label>{t("common.name")}</Label>
                                 <Input
                                     id="name-1"
                                     name="name"
@@ -124,7 +126,7 @@ export function DialogAddFolder() {
                                         setPaletteOpen(true)
                                     }}
                                     className="h-full">
-                                    Aggiungi colore
+                                    {t("common.addColor")}
                                     <Palette />
                                 </Button>
                             }
@@ -135,25 +137,25 @@ export function DialogAddFolder() {
                                 type="button"
                                 onClick={handleCancel}
                             >
-                                Annulla
+                                {t("common.cancel")}
                             </Button>
                             <Button
                                 type="submit"
                                 disabled={!folder.name.trim()}
                             >
-                                Crea cartella
+                                {t("dialogs.addFolder.submit")}
                             </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            <TooltipCustom text="Crea una cartella" shortcut={shortcutLabel}>
+            <TooltipCustom text={t("sidebar.addFolder")} shortcut={shortcutLabel}>
                 <Button
                     onClick={() => setIsOpen(true)}
                     variant='buttonIcon'
                     size="icon"
-                    aria-label="Crea una cartella"
+                    aria-label={t("sidebar.addFolder")}
                 >
                     <FolderPlus />
                 </Button>

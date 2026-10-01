@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useLocation } from "react-router-dom"
 import { openPath } from "@tauri-apps/plugin-opener"
 import { toast } from "sonner"
@@ -9,6 +10,7 @@ import { getErrorMessage } from "@/lib/utils"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 
 export const DataSettings = () => {
+    const { t } = useTranslation()
     const { exportWorkspace, importWorkspace, isBusy } = useWorkspaceTransfer()
     const { currentWorkspace } = useWorkspace()
     const { pathname } = useLocation()
@@ -24,22 +26,22 @@ export const DataSettings = () => {
     }
 
     return (
-        <SettingsPanel title="Dati">
-            <SettingsRow label="Importa workspace" description="Crea un nuovo workspace da un file di esportazione EasyTask.">
+        <SettingsPanel title={t("settings.data.title")}>
+            <SettingsRow label={t("settings.data.import.label")} description={t("settings.data.import.description")}>
                 <Button variant="outline" size="sm" disabled={isBusy} onClick={() => void importWorkspace()}>
-                    Importa
+                    {t("settings.data.import.button")}
                 </Button>
             </SettingsRow>
             {current && (
-                <SettingsRow label="Esporta workspace corrente" description={`Salva "${current.name}" in un file .easytask.json.`}>
+                <SettingsRow label={t("settings.data.export.label")} description={t("settings.data.export.description", { name: current.name })}>
                     <Button variant="outline" size="sm" disabled={isBusy} onClick={() => void exportWorkspace(current)}>
-                        Esporta
+                        {t("settings.data.export.button")}
                     </Button>
                 </SettingsRow>
             )}
-            <SettingsRow label="Apri cartella dati" description="Apre la cartella EasyTask nei Documenti.">
+            <SettingsRow label={t("settings.data.folder.label")} description={t("settings.data.folder.description")}>
                 <Button variant="outline" size="sm" onClick={() => void openDataFolder()}>
-                    Apri
+                    {t("settings.data.folder.button")}
                 </Button>
             </SettingsRow>
         </SettingsPanel>

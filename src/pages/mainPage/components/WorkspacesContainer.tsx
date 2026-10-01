@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { Workspace } from "@/types/types"
 import { WorkSpaceItem } from "./WorkSpace"
 import { cn } from "@/lib/utils"
@@ -8,6 +9,7 @@ type WorkspacesContainerProps = {
 }
 
 export const WorkspacesContainer = ({ workspaces, view = "grid" }: WorkspacesContainerProps) => {
+    const { t } = useTranslation()
     return (
         <div className={cn(
             "grid w-full overflow-y-auto h-[200px] lg:h-[350px] gap-1 content-start",
@@ -23,7 +25,7 @@ export const WorkspacesContainer = ({ workspaces, view = "grid" }: WorkspacesCon
                 ))
             ) : (
                 <p className="text-muted-foreground text-sm w-full">
-                    Nessun workspace trovato
+                    {t("home.noWorkspaces")}
                 </p>
             )}
         </div>

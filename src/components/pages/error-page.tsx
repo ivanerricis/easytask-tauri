@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { Button } from "../ui/button"
 import { ArrowLeft } from "lucide-react"
@@ -9,6 +10,7 @@ type ErrorPageProps = {
 }
 
 export const ErrorPage = ({ error }: ErrorPageProps) => {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { resetWorkspace } = useWorkspace()
     const { resetData } = useWorkspaceData()
@@ -22,17 +24,17 @@ export const ErrorPage = ({ error }: ErrorPageProps) => {
     return (
         <div className="flex flex-col items-center justify-center h-full gap-4">
             <h1 className="font-bold text-lg">
-                Ops c'è stato un errore...
+                {t("errorPage.title")}
             </h1>
             <div className="flex flex-col rounded-xs border p-2 gap-1">
                 <h2>
-                    Descrizione dell'errore:
+                    {t("errorPage.description")}
                 </h2>
                 <p className="text-destructive w-[300px] border rounded-xs p-2">{error}</p>
             </div>
             <Button variant="outline" onClick={handleClick}>
                 <ArrowLeft />
-                Torna alla home
+                {t("errorPage.home")}
             </Button>
         </div>
     )

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { FilePlus, LayoutTemplate, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -21,7 +22,7 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogNoteFromTemplate } from "@/components/dialogs/dialog-note-from-template"
-import { formatDate, getErrorMessage, plural } from "@/lib/utils"
+import { formatDate, getErrorMessage } from "@/lib/utils"
 import { countTemplateContent, type NoteTemplate } from "@/types/template"
 
 // The search box is shown only when the list gets long
@@ -38,6 +39,7 @@ type DialogTemplatesProps = {
  * @category Dialogs
  */
 export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) => {
+    const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { getTemplates, updateTemplateFromNote } = useWorkspaceActions()
     const workspaceID = currentWorkspace?.id
@@ -76,7 +78,7 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
         setBusy(true)
         try {
             await updateTemplateFromNote(template.id)
-            toast.success("Template aggiornato")
+            toast.success(t("dialogs.templates.updated"))
         } catch (err) {
             toast.error(getErrorMessage(err))
         } finally {
@@ -86,22 +88,22 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     }
 
     const query = search.trim().toLowerCase()
-    const visible = query ? templates.filter(t => t.name.toLowerCase().includes(query)) : templates
+    const visible = query ? templates.filter(tpl => tpl.name.toLowerCase().includes(query)) : templates
 
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
-                        <DialogTitle>Template</DialogTitle>
+                        <DialogTitle>{t("dialogs.templates.title")}</DialogTitle>
                         <DialogDescription>
-                            Crea nuove note a partire da un template salvato.
+                            {t("dialogs.templates.description")}
                         </DialogDescription>
                     </DialogHeader>
                     {templates.length > SEARCH_THRESHOLD && (
                         <Input
-                            aria-label="Cerca template"
-                            placeholder="Cerca template..."
+                            aria-label={t("dialogs.templates.search")}
+                            placeholder={t("dialogs.templates.searchPlaceholder")}
                             value={search}
                             onChange={e => setSearch(e.target.value)}
                         />
@@ -109,14 +111,14 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                     <div className="flex flex-col gap-1 max-h-[50vh] overflow-y-auto pr-1">
                         {isLoading ? (
                             <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-                                <Loader2 className="size-4 animate-spin" /> Caricamento...
+                                <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
                             </div>
                         ) : templates.length === 0 ? (
                             <p className="py-6 text-center text-muted-foreground text-sm">
-                                Nessun template. Creane uno dal menu di una nota.
+                                {t("dialogs.templates.empty")}
                             </p>
                         ) : visible.length === 0 ? (
-                            <p className="py-6 text-center text-muted-foreground text-sm">Nessun risultato</p>
+                            <p className="py-6 text-center text-muted-foreground text-sm">{t("common.noResults")}</p>
                         ) : (
                             visible.map(template => {
                                 const counts = countTemplateContent(template.content)
@@ -126,46 +128,46 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                                         <div className="flex flex-col min-w-0 flex-1">
                                             <span className="truncate text-sm" title={template.name}>{template.name}</span>
                                             <span className="truncate text-xs text-muted-foreground">
-                                                {template.sourceNoteName !== null ? `Da: ${template.sourceNoteName}` : "Nota eliminata"}
-                                                {" · "}Creato il {formatDate(template.creation_date)}
+                                                {template.sourceNoteName !== null ? t("dialogs.templates.from", { name: template.sourceNoteName }) : t("dialogs.templates.noteDeleted")}
+                                                {" · "}{t("dialogs.templates.createdOn", { date: formatDate(template.creation_date) })}
                                             </span>
                                             <span className="truncate text-xs text-muted-foreground">
                                                 {[
-                                                    plural(counts.groups, "gruppo", "gruppi"),
-                                                    plural(counts.sections, "sezione", "sezioni"),
-                                                    plural(counts.tasks, "task", "task"),
+                                                    t("common.counts.group", { count: counts.groups }),
+                                                    t("common.counts.section", { count: counts.sections }),
+                                                    t("common.counts.task", { count: counts.tasks }),
                                                 ].join(" · ")}
                                             </span>
                                         </div>
-                                        <TooltipCustom text="Crea nota">
+                                        <TooltipCustom text={t("dialogs.templates.createNote")}>
                                             <Button
                                                 variant="outline"
                                                 size="icon"
-                                                aria-label={`Crea nota da ${template.name}`}
+                                                aria-label={t("dialogs.templates.createNoteFrom", { name: template.name })}
                                                 disabled={busy}
                                                 onClick={() => setCreating(template)}
                                             >
                                                 <FilePlus />
                                             </Button>
                                         </TooltipCustom>
-                                        <TooltipCustom text="Rinomina">
+                                        <TooltipCustom text={t("common.rename")}>
                                             <Button
                                                 variant="outline"
                                                 size="icon"
-                                                aria-label={`Rinomina ${template.name}`}
+                                                aria-label={t("dialogs.templates.renameAria", { name: template.name })}
                                                 disabled={busy}
                                                 onClick={() => setRenaming(template)}
                                             >
                                                 <Pencil />
                                             </Button>
                                         </TooltipCustom>
-                                        <TooltipCustom text={template.sourceNoteName !== null ? "Aggiorna dalla nota" : "La nota di origine non esiste più"}>
+                                        <TooltipCustom text={template.sourceNoteName !== null ? t("dialogs.templates.refreshTooltip") : t("dialogs.templates.sourceMissing")}>
                                             {/* A disabled button gets no pointer events: the span keeps the tooltip working */}
                                             <span>
                                                 <Button
                                                     variant="outline"
                                                     size="icon"
-                                                    aria-label={`Aggiorna ${template.name} dalla nota`}
+                                                    aria-label={t("dialogs.templates.refreshAria", { name: template.name })}
                                                     disabled={busy || template.sourceNoteName === null}
                                                     onClick={() => setRefreshing(template)}
                                                 >
@@ -173,11 +175,11 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                                                 </Button>
                                             </span>
                                         </TooltipCustom>
-                                        <TooltipCustom text="Elimina">
+                                        <TooltipCustom text={t("common.delete")}>
                                             <Button
                                                 variant="destructive"
                                                 size="icon"
-                                                aria-label={`Elimina ${template.name}`}
+                                                aria-label={t("dialogs.templates.deleteAria", { name: template.name })}
                                                 disabled={busy}
                                                 onClick={() => setDeleting(template)}
                                             >
@@ -191,7 +193,7 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => onOpenChange(false)}>
-                            Chiudi
+                            {t("common.close")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -231,16 +233,15 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
             <AlertDialog open={refreshing !== null} onOpenChange={open => { if (!open) setRefreshing(null) }}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>Aggiornare il template dalla nota?</AlertDialogTitle>
+                        <AlertDialogTitle>{t("dialogs.templates.refreshTitle")}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Il contenuto del template "{refreshing?.name}" verrà sostituito con quello attuale della nota "{refreshing?.sourceNoteName}".
-                            Le note già create dal template non cambiano.
+                            {t("dialogs.templates.refreshDescription", { name: refreshing?.name, note: refreshing?.sourceNoteName })}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                         <AlertDialogAction className={buttonVariants({ variant: "destructive" })} onClick={handleRefresh}>
-                            Sovrascrivi template
+                            {t("dialogs.templates.overwrite")}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { Task } from "@/types/types";
 import { getErrorMessage } from "@/lib/utils"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
@@ -15,6 +16,7 @@ type Props = {
 }
 
 export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
+    const { t } = useTranslation()
     const [text, setText] = useState(task.description)
     const { updateTaskDescription } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
@@ -55,10 +57,10 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
                         variant={"outline"}
                         onClick={(e) => handleClose(e)}
                     >
-                        Annulla
+                        {t("common.cancel")}
                     </Button>
                     <Button onClick={(e) => handleSaveDecription(e)}>
-                        Salva
+                        {t("common.save")}
                     </Button>
                 </DialogFooter>
             </DialogContent>

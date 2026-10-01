@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { useWorkspaceState } from "@/contexts/workspace-data"
@@ -9,6 +10,7 @@ import { useShortcut } from "@/hooks/use-shortcut"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
 
 export function CommandMenu() {
+    const { t } = useTranslation()
     const [open, setOpen] = useState(false)
     const { notes, folders } = useWorkspaceState()
     const { openNote } = useTabsActions()
@@ -26,10 +28,10 @@ export function CommandMenu() {
     return (
         <>
             <CommandDialog open={open} onOpenChange={setOpen} className="rounded-xs">
-                <CommandInput placeholder="Cerca una nota..." />
+                <CommandInput placeholder={t("notes.search.placeholder")} />
                 <CommandList>
-                    <CommandEmpty>Nessun risultato.</CommandEmpty>
-                    <CommandGroup heading="Suggerimenti">
+                    <CommandEmpty>{t("notes.search.empty")}</CommandEmpty>
+                    <CommandGroup heading={t("notes.search.suggestions")}>
                         {allNotes.map((note) => (
                             <CommandItem
                                 className="!p-2"
@@ -45,13 +47,13 @@ export function CommandMenu() {
                 </CommandList>
             </CommandDialog>
 
-            <TooltipCustom text="Cerca una nota" shortcut={searchLabel}>
+            <TooltipCustom text={t("notes.hints.search")} shortcut={searchLabel}>
                 <button
                     type="button"
                     onClick={() => { setOpen(prev => !prev) }}
                     className="relative flex items-center justify-center w-full rounded-[4px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <SearchIcon className="absolute left-2 w-4 h-4 text-muted-foreground" />
-                    <span className="flex items-center app-no-drag rounded-[4px] h-6 pl-7 pr-16 md:text-xs border w-full text-left text-muted-foreground cursor-default">Cerca...</span>
+                    <span className="flex items-center app-no-drag rounded-[4px] h-6 pl-7 pr-16 md:text-xs border w-full text-left text-muted-foreground cursor-default">{t("notes.search.short")}</span>
                 </button>
             </TooltipCustom>
         </>

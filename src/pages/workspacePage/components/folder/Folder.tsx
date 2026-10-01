@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { ChevronDown, Folder as FolderIcon, FolderOpen } from "lucide-react"
 import React, { useState } from "react"
 import { DropLine } from "../sidebar/DropLine"
@@ -22,6 +23,7 @@ type ItemFolderProps = {
 }
 
 export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, dropZone = null }: ItemFolderProps) => {
+    const { t } = useTranslation()
     const [isHovered, setIsHovered] = useState(false)
     const { ref, attributes, listeners, isDragging } = useTreeRow("folder", folder.id)
 
@@ -49,8 +51,8 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                         side="right"
                         sideOffset={size.folderTooltipOffset}
                         text={[
-                            "Data creazione: " + formatDate(folder.creation_date) + " " + folder.creation_time,
-                            "Data modifica: " + formatDate(folder.edit_date) + " " + folder.edit_time
+                            t("common.creationDate", { date: formatDate(folder.creation_date), time: folder.creation_time }),
+                            t("common.editDate", { date: formatDate(folder.edit_date), time: folder.edit_time })
                         ]}>
                         <div className="flex items-center gap-1 w-full h-full">
                             <ChevronDown className={`${isOpen ? 'rotate-0' : '-rotate-90'} ${size.icon} shrink-0 opacity-85 group-hover:opacity-100`} />

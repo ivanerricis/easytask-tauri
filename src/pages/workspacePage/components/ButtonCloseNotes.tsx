@@ -1,10 +1,11 @@
+import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import { useTabs, useTabsActions } from "@/contexts/use-tabs"
 import { CopyMinus } from "lucide-react"
 
 export const ButtonCloseNotes = () => {
-
+    const { t } = useTranslation()
     const { openIds } = useTabs()
     const { closeAllNotes } = useTabsActions()
 
@@ -14,11 +15,11 @@ export const ButtonCloseNotes = () => {
     }
 
     return (
-        <TooltipCustom text="Chiudi tutte le note" shortcut="(Ctrl + T)">
+        <TooltipCustom text={t("notes.closeAll")} shortcut="(Ctrl + T)">
             <Button
                 variant={"buttonIcon"}
                 size={"icon"}
-                aria-label="Chiudi tutte le note"
+                aria-label={t("notes.closeAll")}
                 disabled={openIds.length === 0}
                 onClick={closeNotes}
             >

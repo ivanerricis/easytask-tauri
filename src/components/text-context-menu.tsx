@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { readText, writeText } from "@tauri-apps/plugin-clipboard-manager"
 import { ClipboardPaste, Copy, Scissors, TextSelect } from "lucide-react"
@@ -25,8 +26,9 @@ interface Session {
     text: string
 }
 
-/** Custom Italian context menu (Taglia/Copia/Incolla/Seleziona tutto) for editable text fields. */
+/** Custom localized context menu (Taglia/Copia/Incolla/Seleziona tutto) for editable text fields. */
 export function TextContextMenu() {
+    const { t } = useTranslation()
     const [open, setOpen] = useState(false)
     const [position, setPosition] = useState({ x: 0, y: 0 })
     const [canPaste, setCanPaste] = useState(false)
@@ -142,17 +144,17 @@ export function TextContextMenu() {
                 }}
             >
                 <DropdownMenuItem disabled={!hasSelection} onSelect={() => void cut()}>
-                    <Scissors /> Taglia <DropdownMenuShortcut>Ctrl+X</DropdownMenuShortcut>
+                    <Scissors /> {t("textMenu.cut")} <DropdownMenuShortcut>Ctrl+X</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem disabled={!hasSelection} onSelect={() => void copy()}>
-                    <Copy /> Copia <DropdownMenuShortcut>Ctrl+C</DropdownMenuShortcut>
+                    <Copy /> {t("textMenu.copy")} <DropdownMenuShortcut>Ctrl+C</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuItem disabled={!canPaste} onSelect={() => void paste()}>
-                    <ClipboardPaste /> Incolla <DropdownMenuShortcut>Ctrl+V</DropdownMenuShortcut>
+                    <ClipboardPaste /> {t("textMenu.paste")} <DropdownMenuShortcut>Ctrl+V</DropdownMenuShortcut>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onSelect={selectAll}>
-                    <TextSelect /> Seleziona tutto <DropdownMenuShortcut>Ctrl+A</DropdownMenuShortcut>
+                    <TextSelect /> {t("textMenu.selectAll")} <DropdownMenuShortcut>Ctrl+A</DropdownMenuShortcut>
                 </DropdownMenuItem>
             </DropdownMenuContent>
         </DropdownMenu>

@@ -3,7 +3,7 @@ import { render as rtlRender, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it } from "vitest"
 import { DialogShortcuts } from "./dialog-shortcuts"
-import { SHORTCUT_CATEGORIES } from "@/lib/shortcuts"
+import { SHORTCUT_CATEGORIES, categoryLabel } from "@/lib/shortcuts"
 import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 
 const render = (ui: ReactElement) => rtlRender(ui, { wrapper: ShortcutsProvider })
@@ -17,7 +17,7 @@ describe("DialogShortcuts", () => {
         await user.keyboard("?")
         expect(await screen.findByRole("dialog")).toBeTruthy()
         for (const category of SHORTCUT_CATEGORIES) {
-            expect(screen.getByRole("heading", { name: category })).toBeTruthy()
+            expect(screen.getByRole("heading", { name: categoryLabel(category) })).toBeTruthy()
         }
     })
 

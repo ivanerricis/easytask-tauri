@@ -1,3 +1,5 @@
+import i18n from "@/i18n"
+import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
@@ -20,6 +22,7 @@ import { usePreferences } from "@/contexts/use-preferences"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
 
 export const SideBarLeft = () => {
+    const { t } = useTranslation()
 
     const { currentWorkspace } = useWorkspace()
     const { folders, getWorkspaceData } = useWorkspaceData()
@@ -28,7 +31,7 @@ export const SideBarLeft = () => {
 
     useEffect(() => {
         if (currentWorkspace?.id) {
-            getWorkspaceData(currentWorkspace.id).catch(error => reportError(error, "Impossibile caricare il workspace. Riprova."))
+            getWorkspaceData(currentWorkspace.id).catch(error => reportError(error, i18n.t("errors.loadWorkspace")))
         }
     }, [currentWorkspace, getWorkspaceData])
 
@@ -77,7 +80,7 @@ export const SideBarLeft = () => {
                     <ButtonTrash />
                     <ItemFooter
                         type="download"
-                        text="Esporta Workspace"
+                        text={t("sidebar.exportWorkspace")}
                         disabled={!currentWorkspace || isTransferring}
                         onClick={() => { if (currentWorkspace) void exportWorkspace(currentWorkspace) }}
                     />

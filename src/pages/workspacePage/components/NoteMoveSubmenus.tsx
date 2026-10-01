@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useMemo } from "react"
 import { MenuItem, MenuSeparator, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ButtonInPopover } from "@/components/button-in-popover"
@@ -18,6 +19,7 @@ type SectionMoveSubmenuProps = {
  * @category Note DnD
  */
 export const SectionMoveSubmenu = ({ sectionId, onDone }: SectionMoveSubmenuProps) => {
+    const { t } = useTranslation()
     const { noteDataTree } = useActiveNote()
     const { moveSectionTo } = useNoteMoves()
 
@@ -31,7 +33,7 @@ export const SectionMoveSubmenu = ({ sectionId, onDone }: SectionMoveSubmenuProp
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <ButtonInPopover text="Sposta in…" type="move" />
+                <ButtonInPopover text={t("menu.moveTo")} type="move" />
             </MenuSubTrigger>
             <MenuSubContent className="max-h-64 min-w-40 overflow-y-auto">
                 {destinations.groups.map(group => (
@@ -50,7 +52,7 @@ export const SectionMoveSubmenu = ({ sectionId, onDone }: SectionMoveSubmenuProp
                         className="text-xs"
                         onSelect={() => { onDone?.(); void moveSectionTo(sectionId, { type: "new-group", index: destinations.newGroupIndex }) }}
                     >
-                        Nuovo gruppo
+                        {t("menu.newGroup")}
                     </MenuItem>
                 </>}
             </MenuSubContent>
@@ -72,6 +74,7 @@ type TaskMoveSubmenuProps = {
  * @category Note DnD
  */
 export const TaskMoveSubmenu = ({ taskId, onDone }: TaskMoveSubmenuProps) => {
+    const { t } = useTranslation()
     const { noteDataTree } = useActiveNote()
     const { moveTaskTo } = useNoteMoves()
 
@@ -85,7 +88,7 @@ export const TaskMoveSubmenu = ({ taskId, onDone }: TaskMoveSubmenuProps) => {
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <ButtonInPopover text="Sposta in…" type="move" />
+                <ButtonInPopover text={t("menu.moveTo")} type="move" />
             </MenuSubTrigger>
             <MenuSubContent className="max-h-72 min-w-48 max-w-80 overflow-y-auto">
                 {destinations.map(destination => (
@@ -104,10 +107,10 @@ export const TaskMoveSubmenu = ({ taskId, onDone }: TaskMoveSubmenuProps) => {
                     >
                         {destination.type === "section"
                             ? <>
-                                <span className="truncate font-medium">Sezione {destination.label}</span>
+                                <span className="truncate font-medium">{t("menu.sectionLabel", { label: destination.label })}</span>
                                 {destination.hint && <span className="ml-auto shrink-0 text-muted-foreground">{destination.hint}</span>}
                             </>
-                            : <span className="truncate" title={`Sotto il task ${destination.label}`}>↳ {destination.label}</span>}
+                            : <span className="truncate" title={t("menu.underTask", { label: destination.label })}>↳ {destination.label}</span>}
                     </MenuItem>
                 ))}
             </MenuSubContent>

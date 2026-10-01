@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useActiveNoteId, useTabsActions } from "@/contexts/use-tabs"
 import type { Note } from "@/types/types"
@@ -11,6 +12,7 @@ type NoteHeaderProps = {
 }
 
 export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
+    const { t } = useTranslation()
 
     const activeId = useActiveNoteId()
     const { closeNote, activateNote } = useTabsActions()
@@ -49,14 +51,14 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                         {note.name}
                     </span>
                     {isActive ?
-                        <TooltipCustom text="Chiudi nota corrente" shortcut="(Ctrl + L)">
-                            <button type="button" aria-label="Chiudi nota corrente" onClick={handleCloseHeader} className={`${focusRing} flex items-center justify-center cursor-pointer p-0.5 hover:bg-accent rounded-xs text-foreground`}>
+                        <TooltipCustom text={t("notes.closeCurrent")} shortcut="(Ctrl + L)">
+                            <button type="button" aria-label={t("notes.closeCurrent")} onClick={handleCloseHeader} className={`${focusRing} flex items-center justify-center cursor-pointer p-0.5 hover:bg-accent rounded-xs text-foreground`}>
                                 <X className="h-4 w-4" />
                             </button>
                         </TooltipCustom>
                         :
-                        <TooltipCustom text="Chiudi nota">
-                            <button type="button" aria-label="Chiudi nota" onClick={handleCloseHeader} className={`${focusRing} flex items-center justify-center cursor-pointer p-0.5 hover:bg-accent rounded-xs text-muted-foreground`}>
+                        <TooltipCustom text={t("notes.close")}>
+                            <button type="button" aria-label={t("notes.close")} onClick={handleCloseHeader} className={`${focusRing} flex items-center justify-center cursor-pointer p-0.5 hover:bg-accent rounded-xs text-muted-foreground`}>
                                 <X className="h-4 w-4" />
                             </button>
                         </TooltipCustom>

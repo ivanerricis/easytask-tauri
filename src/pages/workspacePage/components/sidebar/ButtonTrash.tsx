@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
@@ -6,6 +7,7 @@ import { DialogTrash } from "@/components/dialogs/dialog-trash"
 import { ItemFooter } from "../items/ItemFooter"
 
 export const ButtonTrash = () => {
+    const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { workspaceDataTree, getTrash, trashVersion } = useWorkspaceData()
     const [isOpen, setIsOpen] = useState(false)
@@ -24,7 +26,7 @@ export const ButtonTrash = () => {
 
     return (
         <>
-            <ItemFooter type="trash" text="Cestino" badge={count} onClick={() => setIsOpen(true)} />
+            <ItemFooter type="trash" text={t("trash.title")} badge={count} badgeLabel={t("sidebar.trashBadge", { count })} onClick={() => setIsOpen(true)} />
             <DialogTrash isOpen={isOpen} onOpenChange={setIsOpen} />
         </>
     )

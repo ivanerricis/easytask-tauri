@@ -46,7 +46,7 @@ describe("ButtonTrash", () => {
         expect(screen.queryByLabelText(/elementi nel cestino/)).not.toBeInTheDocument()
 
         await user.click(screen.getByText("simulate-delete"))
-        expect(await screen.findByLabelText("1 elementi nel cestino")).toBeInTheDocument()
+        expect(await screen.findByLabelText("1 elemento nel cestino")).toBeInTheDocument()
         expect(data.getTrash).toHaveBeenCalledTimes(2)
     })
 })

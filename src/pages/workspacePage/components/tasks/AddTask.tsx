@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Input } from "@/components/ui/input"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -7,6 +8,7 @@ import { Check, Loader2, Plus, X } from "lucide-react"
 import { toast } from "sonner"
 import { useState, useRef, useEffect } from "react"
 import type { FormEvent } from "react"
+import { keyLabel } from "@/lib/shortcuts"
 import { PlusButton } from "../section/PlusButton"
 import { CloseButton } from "../section/CloseButton"
 
@@ -27,6 +29,7 @@ type AddTaskProps = {
  * While saving the input is read-only (not disabled, so it keeps focus) and further submits are ignored.
  */
 const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose?: () => void }) => {
+    const { t } = useTranslation()
     const [text, setText] = useState("")
     const [saving, setSaving] = useState(false)
     const [focused, setFocused] = useState(true)
@@ -46,7 +49,7 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
             setText("")
             appendTask(id, { parentTaskId }, value)
         } catch (error: unknown) {
-            toast.error(getErrorMessage(error) || "Errore nella creazione del sottotask")
+            toast.error(getErrorMessage(error) || t("tasks.errors.createSubtask"))
         } finally {
             savingRef.current = false
             setSaving(false)
@@ -64,8 +67,8 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
                         ref={inputRef}
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        placeholder="Nuovo sottotask…"
-                        aria-label="Nuovo sottotask"
+                        placeholder={t("tasks.newSubtaskPlaceholder")}
+                        aria-label={t("tasks.newSubtask")}
                         autoFocus
                         autoComplete="off"
                         readOnly={saving}
@@ -86,20 +89,20 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
                         )}
                     />
                     <div className="flex items-center gap-0.5 shrink-0">
-                        <TooltipCustom text="Aggiungi" shortcut="Invio">
+                        <TooltipCustom text={t("common.add")} shortcut={keyLabel("enter")}>
                             <button
                                 type="submit"
-                                aria-label="Aggiungi sottotask"
+                                aria-label={t("tasks.addSubtask")}
                                 disabled={!text.trim() || saving}
                                 className="p-0.5 rounded-xs cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none"
                             >
                                 {saving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
                             </button>
                         </TooltipCustom>
-                        <TooltipCustom text="Chiudi" shortcut="Esc">
+                        <TooltipCustom text={t("common.close")} shortcut={keyLabel("escape")}>
                             <button
                                 type="button"
-                                aria-label="Chiudi"
+                                aria-label={t("common.close")}
                                 onClick={() => onClose?.()}
                                 className="p-0.5 rounded-xs cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
                             >
@@ -111,7 +114,7 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
             </div>
             {focused && !text && (
                 <p className="px-1 pb-1 ml-10 text-[11px] leading-none text-muted-foreground">
-                    Invio per aggiungere · Esc per chiudere
+                    {t("tasks.subtaskHint")}
                 </p>
             )}
         </form>
@@ -119,6 +122,7 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
 }
 
 const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
+    const { t } = useTranslation()
     const [isOpen, setOpen] = useState(false)
     const [text, setText] = useState("")
     const { createTask } = useWorkspaceActions()
@@ -151,7 +155,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                 handleOpen()
                 appendTask(id, { sectionId }, value)
             } catch (error: unknown) {
-                toast.error(getErrorMessage(error) || "Errore nella creazione del task")
+                toast.error(getErrorMessage(error) || t("tasks.errors.createTask"))
             }
         }
     }
@@ -160,7 +164,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
         !isOpen ? (
             <button
                 type="button"
-                aria-label="Aggiungi task"
+                aria-label={t("tasks.add")}
                 onClick={handleOpen}
                 className="cursor-pointer group/add flex items-center justify-center w-full h-9 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
@@ -176,7 +180,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                     <Input
                         value={text}
                         onChange={(e) => setText(e.target.value)}
-                        placeholder="Scrivi qualcosa..."
+                        placeholder={t("tasks.placeholder")}
                         autoFocus
                         className="rounded-none border-none text-sm"
                     />

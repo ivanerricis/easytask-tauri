@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
@@ -20,6 +21,7 @@ type ButtonMenuSectionProps = {
 }
 
 export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps) => {
+    const { t } = useTranslation()
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const menu = useItemMenuState()
@@ -40,7 +42,7 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
     const items = (
         <MenuGroup className="flex flex-col gap-1">
             <ButtonInPopover
-                text="Rinomina"
+                text={t("common.rename")}
                 type="rename"
                 onClick={() => {
                     setRenameOpen(true)
@@ -50,7 +52,7 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
             <MenuSub>
                 <MenuSubTrigger>
                     <ButtonInPopover
-                        text="Cambia colore"
+                        text={t("menu.changeColor")}
                         type="color"
                     />
                 </MenuSubTrigger>
@@ -66,7 +68,7 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
             <SectionMoveSubmenu sectionId={section.id} onDone={menu.close} />
             <Separator />
             <ButtonInPopover
-                text="Elimina"
+                text={t("common.delete")}
                 type="delete"
                 destructive
                 onClick={() => {

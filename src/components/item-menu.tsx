@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import * as React from "react"
 import { EllipsisVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -73,7 +74,8 @@ type ItemMenuButtonProps = {
 }
 
 /** The "…" button of an item (inside an {@link ItemMenu}): opens the item menu below the button. */
-export const ItemMenuButton = ({ className, iconClassName = "size-4", label = "Apri menu" }: ItemMenuButtonProps) => {
+export const ItemMenuButton = ({ className, iconClassName = "size-4", label }: ItemMenuButtonProps) => {
+    const { t } = useTranslation()
     const menu = React.useContext(ItemMenuContext)
     if (!menu) return null
     const { state, items, contentClassName, onCloseAutoFocus } = menu
@@ -83,7 +85,7 @@ export const ItemMenuButton = ({ className, iconClassName = "size-4", label = "A
     return (
         <DropdownMenu open={state.dropdownOpen} onOpenChange={state.setDropdownOpen}>
             <DropdownMenuTrigger asChild>
-                <button type="button" aria-label={label} onClick={(e) => e.stopPropagation()} className={triggerClass}>{icon}</button>
+                <button type="button" aria-label={label ?? t("common.openMenu")} onClick={(e) => e.stopPropagation()} className={triggerClass}>{icon}</button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 onClick={(e) => e.stopPropagation()}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { Folder } from "@/types/types"
 import { getErrorMessage } from "@/lib/utils"
 import { DialogAddSubFolder } from "./DialogAddSubFolder"
@@ -22,6 +23,7 @@ type ButtonMenuFolderProps = {
 }
 
 export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) => {
+    const { t } = useTranslation()
     const [isAddSubFolderOpen, setAddSubFolderOpen] = useState(false);
     const [isAddNoteOpen, setAddNoteOpen] = useState(false);
     const [isRenameOpen, setRenameOpen] = useState(false);
@@ -42,29 +44,29 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
     const items = (
         <MenuGroup className="flex flex-col gap-1 p-1">
             <ButtonInPopover
-                text="Nuova nota"
+                text={t("menu.newNote")}
                 type="addNote"
                 onClick={() => { setAddNoteOpen(true); menu.close() }}
             />
             <ButtonInPopover
-                text="Nuova cartella"
+                text={t("menu.newFolder")}
                 type="addFolder"
                 onClick={() => { setAddSubFolderOpen(true); menu.close() }}
             />
             <ButtonInPopover
-                text="Rinomina"
+                text={t("common.rename")}
                 type="rename"
                 onClick={() => { setRenameOpen(true); menu.close() }}
             />
             <ButtonInPopover
-                text="Colora contenuto"
+                text={t("menu.colorContent")}
                 type="colorContent"
                 onClick={() => { handleColorContent(); menu.close() }}
             />
             <MenuSub>
                 <MenuSubTrigger>
                     <ButtonInPopover
-                        text="Cambia colore"
+                        text={t("menu.changeColor")}
                         type="color"
                     />
                 </MenuSubTrigger>
@@ -85,7 +87,7 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
             />
             <Separator />
             <ButtonInPopover
-                text="Elimina"
+                text={t("common.delete")}
                 type="delete"
                 destructive
                 onClick={() => { setDeleteFolderOpen(true); menu.close() }}

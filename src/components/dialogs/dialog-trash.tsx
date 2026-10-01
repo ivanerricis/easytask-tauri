@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next"
+import i18n from "@/i18n"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Briefcase, FileText, Music, Folder, Layers, LayoutList, LayoutTemplate, Loader2, RotateCcw, SquareCheck, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -29,18 +31,18 @@ type TrashSource = {
     empty: (items: TrashItem[]) => Promise<void>
 }
 
-const groups: { type: TrashItem["type"], label: string, icon: LucideIcon }[] = [
-    { type: "workspace", label: "Workspace", icon: Briefcase },
-    { type: "folder", label: "Cartelle", icon: Folder },
-    { type: "note", label: "Note", icon: FileText },
-    { type: "section_group", label: "Gruppi", icon: Layers },
-    { type: "section", label: "Sezioni", icon: LayoutList },
-    { type: "task", label: "Task", icon: SquareCheck },
-    { type: "audio_file", label: "File audio", icon: Music },
-    { type: "note_template", label: "Template", icon: LayoutTemplate },
+const groups: { type: TrashItem["type"], icon: LucideIcon }[] = [
+    { type: "workspace", icon: Briefcase },
+    { type: "folder", icon: Folder },
+    { type: "note", icon: FileText },
+    { type: "section_group", icon: Layers },
+    { type: "section", icon: LayoutList },
+    { type: "task", icon: SquareCheck },
+    { type: "audio_file", icon: Music },
+    { type: "note_template", icon: LayoutTemplate },
 ]
 
-// "YYYY-MM-DD HH:MM:SS" -> "DD-MM-YYYY HH:MM"
+// "YYYY-MM-DD HH:MM:SS" -> date in the current language + "HH:MM"
 const formatTrashDate = (value: string) => {
     if (!value) return ""
     const [date, time] = value.split(" ")
@@ -49,7 +51,7 @@ const formatTrashDate = (value: string) => {
 
 // Second line of a row: where it was, what it contained and when it was deleted
 const details = (item: TrashItem) =>
-    [item.context, item.summary, `Eliminato il ${formatTrashDate(item.deleted_at)}`].filter(Boolean).join(" · ")
+    [item.context, item.summary, i18n.t("trash.deletedOn", { date: formatTrashDate(item.deleted_at) })].filter(Boolean).join(" · ")
 
 type Confirm = { kind: "purge", item: TrashItem } | { kind: "empty" } | null
 
@@ -60,6 +62,7 @@ type DialogTrashViewProps = {
 }
 
 const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps) => {
+    const { t } = useTranslation()
     const [items, setItems] = useState<TrashItem[]>([])
     const [loaded, setLoaded] = useState(false)
     const [busy, setBusy] = useState(false)
@@ -100,9 +103,9 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
         setConfirm(null)
         if (!current) return
         if (current.kind === "purge") {
-            await run(() => sourceRef.current.purge(current.item), "Elemento eliminato definitivamente")
+            await run(() => sourceRef.current.purge(current.item), t("trash.purged"))
         } else {
-            await run(() => sourceRef.current.empty(items), "Cestino svuotato")
+            await run(() => sourceRef.current.empty(items), t("trash.emptied"))
         }
     }
 
@@ -111,20 +114,21 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
                 <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
-                        <DialogTitle>Cestino</DialogTitle>
+                        <DialogTitle>{t("trash.title")}</DialogTitle>
                         <DialogDescription>
-                            Ripristina gli elementi eliminati oppure eliminali definitivamente.
+                            {t("trash.description")}
                         </DialogDescription>
                     </DialogHeader>
                     <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-1">
                         {isLoading ? (
                             <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-                                <Loader2 className="size-4 animate-spin" /> Caricamento...
+                                <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
                             </div>
                         ) : items.length === 0 ? (
-                            <p className="py-6 text-center text-muted-foreground text-sm">Il cestino è vuoto</p>
+                            <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
                         ) : (
-                            groups.map(({ type, label, icon: Icon }) => {
+                            groups.map(({ type, icon: Icon }) => {
+                                const label = t(`trash.groups.${type}`)
                                 const groupItems = items.filter(i => i.type === type)
                                 if (groupItems.length === 0) return null
                                 return (
@@ -139,22 +143,22 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                                                         {details(item)}
                                                     </span>
                                                 </div>
-                                                <TooltipCustom text="Ripristina">
+                                                <TooltipCustom text={t("trash.restore")}>
                                                     <Button
                                                         variant="outline"
                                                         size="icon"
-                                                        aria-label={`Ripristina ${item.name}`}
+                                                        aria-label={t("trash.restoreAria", { name: item.name })}
                                                         disabled={busy}
-                                                        onClick={() => run(() => sourceRef.current.restore(item), "Elemento ripristinato")}
+                                                        onClick={() => run(() => sourceRef.current.restore(item), t("trash.restored"))}
                                                     >
                                                         <RotateCcw />
                                                     </Button>
                                                 </TooltipCustom>
-                                                <TooltipCustom text="Elimina definitivamente">
+                                                <TooltipCustom text={t("trash.purge")}>
                                                     <Button
                                                         variant="destructive"
                                                         size="icon"
-                                                        aria-label={`Elimina definitivamente ${item.name}`}
+                                                        aria-label={t("trash.purgeAria", { name: item.name })}
                                                         disabled={busy}
                                                         onClick={() => setConfirm({ kind: "purge", item })}
                                                     >
@@ -174,10 +178,10 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                             disabled={busy || isLoading || items.length === 0}
                             onClick={() => setConfirm({ kind: "empty" })}
                         >
-                            Svuota cestino
+                            {t("trash.empty")}
                         </Button>
                         <Button variant="outline" onClick={() => onOpenChange(false)}>
-                            Chiudi
+                            {t("common.close")}
                         </Button>
                     </DialogFooter>
                 </DialogContent>
@@ -186,18 +190,18 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                 <AlertDialogContent>
                     <AlertDialogHeader>
                         <AlertDialogTitle>
-                            {confirm?.kind === "empty" ? "Svuotare il cestino?" : "Eliminare definitivamente?"}
+                            {confirm?.kind === "empty" ? t("trash.emptyTitle") : t("trash.purgeTitle")}
                         </AlertDialogTitle>
                         <AlertDialogDescription>
                             {confirm?.kind === "empty"
-                                ? "Tutti gli elementi nel cestino verranno eliminati per sempre. Questa azione non può essere annullata."
-                                : "L'elemento verrà eliminato per sempre. Questa azione non può essere annullata."}
+                                ? t("trash.emptyDescription")
+                                : t("trash.purgeDescription")}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                         <AlertDialogAction className={buttonVariants({ variant: "destructive" })} onClick={handleConfirm}>
-                            {confirm?.kind === "empty" ? "Conferma svuotamento" : "Conferma eliminazione"}
+                            {confirm?.kind === "empty" ? t("trash.confirmEmpty") : t("trash.confirmPurge")}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

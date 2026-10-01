@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState, type ReactElement } from "react";
 import type { Workspace } from "@/types/types";
 import { ButtonInPopover } from "@/components/button-in-popover";
@@ -18,6 +19,7 @@ type ButtonMenuProps = {
 };
 
 export const ButtonMenuWorkspace = ({ workspace, children }: ButtonMenuProps) => {
+    const { t } = useTranslation();
     const [isRenameOpen, setRenameOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const menu = useItemMenuState();
@@ -29,7 +31,7 @@ export const ButtonMenuWorkspace = ({ workspace, children }: ButtonMenuProps) =>
     const items = (
         <MenuGroup className="flex flex-col gap-1">
             <ButtonInPopover
-                text="Rinomina"
+                text={t("common.rename")}
                 type="rename"
                 onClick={() => {
                     setRenameOpen(true);
@@ -40,7 +42,7 @@ export const ButtonMenuWorkspace = ({ workspace, children }: ButtonMenuProps) =>
             <MenuSub>
                 <MenuSubTrigger>
                     <ButtonInPopover
-                        text="Cambia colore"
+                        text={t("menu.changeColor")}
                         type="color"
                     />
                 </MenuSubTrigger>
@@ -56,7 +58,7 @@ export const ButtonMenuWorkspace = ({ workspace, children }: ButtonMenuProps) =>
                 </MenuSubContent>
             </MenuSub>
             <ButtonInPopover
-                text="Esporta"
+                text={t("menu.export")}
                 type="export"
                 onClick={() => {
                     menu.close();
@@ -65,7 +67,7 @@ export const ButtonMenuWorkspace = ({ workspace, children }: ButtonMenuProps) =>
             />
             <MenuSeparator />
             <ButtonInPopover
-                text="Elimina"
+                text={t("common.delete")}
                 type="delete"
                 destructive
                 onClick={() => {

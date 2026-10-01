@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { DialogCreateWorkspace } from "./components/DialogCreateWorkspace"
 import { RefreshCcw, Loader2, LayoutGrid, LayoutList, Upload } from "lucide-react"
@@ -14,6 +15,7 @@ import { reportError } from "@/lib/report-error"
 import { useStartupRestore } from "./startup-restore"
 
 const MainPage = () => {
+    const { t } = useTranslation()
     const { workspaces, getWorkspaces, isLoading, error } = useWorkspace()
     const [loaded, setLoaded] = useState(false)
     const { workspaceView, setWorkspaceView } = usePreferences()
@@ -30,7 +32,7 @@ const MainPage = () => {
     if (isInitialLoading) {
         return (
             <MainPageLayout>
-                <LoadingPage text="Caricamento dei Workspace..."/>
+                <LoadingPage text={t("home.loading")}/>
             </MainPageLayout>
         )
     }
@@ -46,7 +48,7 @@ const MainPage = () => {
     return (
         <MainPageLayout>
             <div className="flex flex-col w-full max-w-[600px] px-4 h-full items-center justify-center gap-8">
-                <h1 className="text-4xl">Bentornato!</h1>
+                <h1 className="text-4xl">{t("home.welcome")}</h1>
                 <div className="flex w-full flex-wrap items-center justify-center gap-3">
                     <DialogCreateWorkspace />
                     <Button
@@ -55,27 +57,27 @@ const MainPage = () => {
                         disabled={isImporting}
                         className="flex items-center justify-center w-[276px] max-w-full p-6 rounded-full gap-2 text-lg border-primary transition-all"
                     >
-                        Importa un Workspace
+                        {t("home.import")}
                         {isImporting ? <Loader2 className="h-5! w-5! animate-spin" /> : <Upload className="h-5! w-5!" />}
                     </Button>
                 </div>
                 <div className="flex flex-col items-center justify-center w-full p-2 gap-2 border rounded-xs">
                     <div className="flex items-center justify-between w-full">
                         <h2 className="text-lg w-full ml-2">
-                            Apri un Workspace recente:
+                            {t("home.recent")}
                         </h2>
                         <div className="flex items-center gap-1">
-                            <TooltipCustom text={isList ? "Visualizza come griglia" : "Visualizza come lista"}>
+                            <TooltipCustom text={isList ? t("home.viewGrid") : t("home.viewList")}>
                                 <Button
                                     onClick={() => setWorkspaceView(isList ? "grid" : "list")}
                                     variant="outline"
                                     size="icon"
-                                    aria-label={isList ? "Visualizza come griglia" : "Visualizza come lista"}>
+                                    aria-label={isList ? t("home.viewGrid") : t("home.viewList")}>
                                     {isList ? <LayoutGrid /> : <LayoutList />}
                                 </Button>
                             </TooltipCustom>
-                            <TooltipCustom text="Ricarica i Workspace">
-                                <Button onClick={() => getWorkspaces().catch(error => reportError(error, "Impossibile ricaricare i Workspace. Riprova."))} variant="outline" size="icon" aria-label="Ricarica i Workspace" disabled={isLoading}>
+                            <TooltipCustom text={t("home.reload")}>
+                                <Button onClick={() => getWorkspaces().catch(error => reportError(error, t("home.reloadError")))} variant="outline" size="icon" aria-label={t("home.reload")} disabled={isLoading}>
                                     {isLoading ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
                                 </Button>
                             </TooltipCustom>

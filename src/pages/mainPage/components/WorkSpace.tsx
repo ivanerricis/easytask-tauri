@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { Workspace } from "@/types/types"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useNavigate } from "react-router-dom"
@@ -12,6 +13,7 @@ type WorkSpaceItemProps = {
 }
 
 export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpaceItemProps) => {
+    const { t } = useTranslation()
     const { setCurrentWorkspace } = useWorkspace()
     const navigate = useNavigate()
 
@@ -30,7 +32,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                     <button
                         type="button"
                         onClick={handleOpen}
-                        aria-label={`Apri il workspace ${workspace.name}`}
+                        aria-label={t("home.workspace.open", { name: workspace.name })}
                         className="absolute inset-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
 
                     {/* Color Container */}
@@ -64,7 +66,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                 <button
                     type="button"
                     onClick={handleOpen}
-                    aria-label={`Apri il workspace ${workspace.name}`}
+                    aria-label={t("home.workspace.open", { name: workspace.name })}
                     className="absolute inset-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
 
                 {/* Color Container */}
@@ -80,10 +82,10 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                     </span>
                     <div className="flex flex-col items-start gap-1 w-full">
                         <span className="text-muted-foreground text-sm">
-                            Creato il: {formattedCreationDate} - {workspace.creation_time}
+                            {t("home.workspace.createdOn", { date: formattedCreationDate, time: workspace.creation_time })}
                         </span>
                         <span className="text-muted-foreground text-sm">
-                            Modificato il: {formattedEditDate} - {workspace.edit_time}
+                            {t("home.workspace.editedOn", { date: formattedEditDate, time: workspace.edit_time })}
                         </span>
                     </div>
                 </div>

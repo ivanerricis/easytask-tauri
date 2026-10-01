@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import React, { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { PanelLeft, PanelRight } from "lucide-react"
@@ -15,6 +16,7 @@ type SideBarProps = {
 const DEFAULT_WIDTH = 260
 
 export const SideBar = ({ children, position = "left", className, topContainer, bottomContainer, defaultOpen, updateOpen }: SideBarProps) => {
+    const { t } = useTranslation()
     const sidebarRef = useRef<HTMLDivElement>(null)
     const [isResizing, setIsResizing] = useState(false)
     const [sidebarOpen, setSidebarOpen] = useState(defaultOpen)
@@ -100,7 +102,7 @@ export const SideBar = ({ children, position = "left", className, topContainer, 
                 <div className="h-full w-full flex flex-col">
                     <Button
                         onClick={handleToggle}
-                        aria-label="Mostra o nascondi la barra laterale"
+                        aria-label={t("sidebar.toggle")}
                         size="icon"
                         variant="ghost"
                     >

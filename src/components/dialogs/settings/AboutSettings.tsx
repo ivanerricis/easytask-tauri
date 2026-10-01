@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { getName, getTauriVersion, getVersion } from "@tauri-apps/api/app"
 import { ensureAppFolder } from "@/db/appPaths"
@@ -29,20 +30,21 @@ const InfoRow = ({ label, value, selectable }: { label: string, value: string, s
 )
 
 const RepositoryRow = () => {
+    const { t } = useTranslation()
     const handleOpen = async () => {
         try {
             await openUrl(REPO_URL)
         } catch (err) {
-            toast.error("Impossibile aprire il link - " + getErrorMessage(err))
+            toast.error(t("settings.about.openError", { message: getErrorMessage(err) }))
         }
     }
 
     const handleCopy = async () => {
         try {
             await navigator.clipboard.writeText(REPO_URL)
-            toast.success("Link copiato")
+            toast.success(t("settings.about.copied"))
         } catch (err) {
-            toast.error("Impossibile copiare il link - " + getErrorMessage(err))
+            toast.error(t("settings.about.copyError", { message: getErrorMessage(err) }))
         }
     }
 
@@ -53,7 +55,7 @@ const RepositoryRow = () => {
                 <button
                     type="button"
                     onClick={handleOpen}
-                    title="Apri nel browser"
+                    title={t("settings.about.openInBrowser")}
                     className="break-all text-primary underline underline-offset-2 hover:opacity-80 cursor-pointer text-right"
                 >
                     {REPO_URL}
@@ -61,8 +63,8 @@ const RepositoryRow = () => {
                 <button
                     type="button"
                     onClick={handleCopy}
-                    aria-label="Copia link"
-                    title="Copia link"
+                    aria-label={t("settings.about.copyLink")}
+                    title={t("settings.about.copyLink")}
                     className="shrink-0 self-center rounded-xs p-1 text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
                 >
                     <Copy className="size-3.5" />
@@ -73,6 +75,7 @@ const RepositoryRow = () => {
 }
 
 export const AboutSettings = () => {
+    const { t } = useTranslation()
     const [info, setInfo] = useState<AboutInfo>({ name: EMPTY, version: EMPTY, tauri: EMPTY, dbPath: EMPTY })
 
     useEffect(() => {
@@ -93,19 +96,17 @@ export const AboutSettings = () => {
     }, [])
 
     return (
-        <SettingsPanel title="Informazioni">
+        <SettingsPanel title={t("settings.about.title")}>
             <p className="text-sm text-muted-foreground">
-                EasyTask è una todo list avanzata basata su Workspace, ispirata a sistemi come
-                Notion, Obsidian e Trello. Organizza cartelle, note, sezioni e task annidati,
-                con colori personalizzabili e drag &amp; drop.
+                {t("settings.about.description")}
             </p>
             <div className="flex flex-col gap-2">
-                <InfoRow label="Applicazione" value={info.name} />
-                <InfoRow label="Versione" value={info.version} />
-                <InfoRow label="Versione Tauri" value={info.tauri} />
-                <InfoRow label="Autore" value="Ivan Erricis" />
+                <InfoRow label={t("settings.about.application")} value={info.name} />
+                <InfoRow label={t("settings.about.version")} value={info.version} />
+                <InfoRow label={t("settings.about.tauriVersion")} value={info.tauri} />
+                <InfoRow label={t("settings.about.author")} value="Ivan Erricis" />
                 <RepositoryRow />
-                <InfoRow label="Database" value={info.dbPath} selectable />
+                <InfoRow label={t("settings.about.database")} value={info.dbPath} selectable />
             </div>
         </SettingsPanel>
     )

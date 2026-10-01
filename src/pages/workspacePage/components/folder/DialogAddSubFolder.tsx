@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { getErrorMessage } from "@/lib/utils"
 import {
@@ -23,6 +24,7 @@ type ParentFolderProps = {
 }
 
 export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: ParentFolderProps) {
+    const { t } = useTranslation()
     const [name, setName] = useState("")
     const [error, setError] = useState<string | null>(null)
     const { createSubFolder } = useWorkspaceData()
@@ -54,7 +56,7 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent className="sm:max-w-[425px]" onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
-                    <DialogTitle>Crea una cartella</DialogTitle>
+                    <DialogTitle>{t("dialogs.addFolder.title")}</DialogTitle>
                     <DialogDescription />
                 </DialogHeader>
                 <form onSubmit={handleCreateFolder} className="grid gap-3">
@@ -75,13 +77,13 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
                                 type="button"
                                 onClick={handleCancel}
                             >
-                                Annulla
+                                {t("common.cancel")}
                             </Button>
                         </DialogClose>
                         <Button
                             type="submit"
                             disabled={!name.trim()}>
-                            Crea cartella
+                            {t("dialogs.addFolder.submit")}
                         </Button>
                     </DialogFooter>
                 </form>

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import { useActiveNote } from "@/contexts/use-active-note"
@@ -9,17 +10,18 @@ import { Music } from "lucide-react"
  * @category Sidebar
  */
 export const ButtonUpload = () => {
+    const { t } = useTranslation()
     const { noteDataTree } = useActiveNote()
     const { addFiles } = useAudio()
     const firstGroup = noteDataTree?.groups[0]
 
     return (
-        <TooltipCustom text="Aggiungi file audio al primo gruppo della nota">
+        <TooltipCustom text={t("sidebar.addAudioFirstGroup")}>
             <Button
                 variant={"buttonIcon"}
                 size={"icon"}
                 disabled={!firstGroup}
-                aria-label="Aggiungi file audio"
+                aria-label={t("audio.add")}
                 onClick={() => { if (firstGroup) void addFiles(firstGroup.id) }}
             >
                 <Music />

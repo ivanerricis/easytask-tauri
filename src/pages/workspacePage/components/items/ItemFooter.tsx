@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Download, LayoutTemplate, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
@@ -10,7 +11,7 @@ type ItemFooterProps = {
     onClick?: () => void
     disabled?: boolean
     badge?: number
-    /** Accessible label of the badge (default: "N elementi nel cestino"). */
+    /** Accessible label of the badge (default: the number of items in the trash). */
     badgeLabel?: string
 }
 
@@ -21,6 +22,7 @@ const iconMap: Record<IconType, LucideIcon> = {
 }
 
 export const ItemFooter = ({ text, type, className, onClick, disabled, badge, badgeLabel }: ItemFooterProps) => {
+    const { t } = useTranslation()
 
     const Icon = iconMap[type]
 
@@ -38,7 +40,7 @@ export const ItemFooter = ({ text, type, className, onClick, disabled, badge, ba
             </span>
             {badge !== undefined && badge > 0 && (
                 <span
-                    aria-label={badgeLabel ?? `${badge} elementi nel cestino`}
+                    aria-label={badgeLabel ?? t("sidebar.trashBadge", { count: badge })}
                     className="absolute right-2 min-w-5 rounded-full bg-primary px-1 text-center text-xs text-primary-foreground"
                 >
                     {badge}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Settings } from "lucide-react"
@@ -11,6 +12,7 @@ type DialogSettingsProps = {
 }
 
 export const DialogSettings = ({ className }: DialogSettingsProps) => {
+    const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
     const [activeId, setActiveId] = useState(SETTINGS_CATEGORIES[0].id)
     const active = SETTINGS_CATEGORIES.find(c => c.id === activeId) ?? SETTINGS_CATEGORIES[0]
@@ -21,10 +23,10 @@ export const DialogSettings = ({ className }: DialogSettingsProps) => {
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent className="sm:max-w-3xl h-[min(560px,80vh)] grid-rows-[auto_1fr] overflow-hidden">
                     <DialogDescription className="sr-only">
-                        Impostazioni dell'applicazione suddivise per categoria
+                        {t("settings.description")}
                     </DialogDescription>
                     <DialogHeader>
-                        <DialogTitle>Impostazioni</DialogTitle>
+                        <DialogTitle>{t("settings.title")}</DialogTitle>
                     </DialogHeader>
                     <div className="flex flex-col sm:flex-row gap-4 min-h-0">
                         <SettingsNav
@@ -39,12 +41,12 @@ export const DialogSettings = ({ className }: DialogSettingsProps) => {
                 </DialogContent>
             </Dialog>
 
-            <TooltipCustom text="Impostazioni">
+            <TooltipCustom text={t("settings.title")}>
                 <Button
                     onClick={() => setIsOpen(true)}
                     variant="buttonIcon"
                     size="icon"
-                    aria-label="Impostazioni"
+                    aria-label={t("settings.title")}
                     className={`absolute left-1 bottom-1 !hover:bg-accent ${className}`}
                 >
                     <Settings />

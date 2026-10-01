@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { Note } from "@/types/types"
 import { useTabsActions } from "@/contexts/use-tabs"
 import { File } from "lucide-react"
@@ -20,6 +21,7 @@ type ItemNoteProps = {
 }
 
 export const ItemNote = React.memo(({ note, className, dropZone = null }: ItemNoteProps) => {
+    const { t } = useTranslation()
     const { ref, attributes, listeners, isDragging } = useTreeRow("note", note.id)
     const [isHovered, setIsHovered] = useState(false)
     const size = useItemSize()
@@ -51,8 +53,8 @@ export const ItemNote = React.memo(({ note, className, dropZone = null }: ItemNo
                     side="right"
                     sideOffset={size.noteTooltipOffset}
                     text={[
-                        "Data creazione: " + formatDate(note.creation_date) + " " + note.creation_time,
-                        "Data modifica: " + formatDate(note.edit_date) + " " + note.edit_time
+                        t("common.creationDate", { date: formatDate(note.creation_date), time: note.creation_time }),
+                        t("common.editDate", { date: formatDate(note.edit_date), time: note.edit_time })
                     ]}>
                     <div className="flex items-center gap-1 px-1 overflow-hidden w-full">
                         <File className={`${size.icon} shrink-0 text-foreground`} />

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import type { ReactNode } from "react"
 import { cn } from "@/lib/utils"
 import { useNoteDrop } from "../note-dnd-state"
@@ -42,6 +43,7 @@ type NewGroupEndProps = {
  * @category Note DnD
  */
 export const NewGroupEnd = ({ index, children }: NewGroupEndProps) => {
+    const { t } = useTranslation()
     const { setNodeRef, zone, active } = useNoteDrop("new-group", index)
     const dragging = active?.kind === "section"
 
@@ -57,7 +59,7 @@ export const NewGroupEnd = ({ index, children }: NewGroupEndProps) => {
             {children}
             {dragging &&
                 <span className="pointer-events-none absolute inset-x-0 top-1/2 text-center text-xs text-muted-foreground">
-                    Nuovo gruppo
+                    {t("menu.newGroup")}
                 </span>}
         </div>
     )

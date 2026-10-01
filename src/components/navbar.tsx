@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import React from "react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { ButtonNavbar } from "./button-navbar"
@@ -10,6 +11,7 @@ type NavBarProps = {
 }
 
 export const Navbar = React.memo(({ leftContainer, centerContainer, rightContainer }: NavBarProps) => {
+    const { t } = useTranslation()
     const window = getCurrentWindow();
 
     const handleClose = async () => {
@@ -30,13 +32,13 @@ export const Navbar = React.memo(({ leftContainer, centerContainer, rightContain
             <div className="flex-1 text-center">{centerContainer}</div>
             <div className="flex-1 flex flex-row-reverse items-center justify-start text-right" data-tauri-drag-region>
                 <div className="flex items-center justify-end">
-                    <ButtonNavbar onClick={handleMinimize} label="Riduci a icona" window>
+                    <ButtonNavbar onClick={handleMinimize} label={t("window.minimize")} window>
                         <Minus className="w-5 h-5" />
                     </ButtonNavbar>
-                    <ButtonNavbar onClick={handletoggleMaximize} className={"!p-2.5"} label="Ingrandisci o ripristina" window>
+                    <ButtonNavbar onClick={handletoggleMaximize} className={"!p-2.5"} label={t("window.maximize")} window>
                         <Square className="w-4 h-4" />
                     </ButtonNavbar>
-                    <ButtonNavbar onClick={handleClose} label="Chiudi la finestra" window>
+                    <ButtonNavbar onClick={handleClose} label={t("window.close")} window>
                         <X className="w-5 h-5" />
                     </ButtonNavbar>
                 </div>

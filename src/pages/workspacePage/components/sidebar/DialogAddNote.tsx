@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
@@ -26,6 +27,7 @@ const defaultNote = {
 }
 
 export function DialogAddNote() {
+    const { t } = useTranslation()
 
     const [note, setNote] = useState(defaultNote)
     const [error, setError] = useState<string | null>(null)
@@ -36,7 +38,7 @@ export function DialogAddNote() {
     const { createWorkspaceNote, createNoteFromTemplate } = useWorkspaceData()
     const templates = useTemplates(isOpen)
     // A stale selection (template deleted meanwhile) behaves as "no template"
-    const template = templates.find(t => String(t.id) === templateId)
+    const template = templates.find(tpl => String(tpl.id) === templateId)
 
     const handleCreateNote = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -79,13 +81,13 @@ export function DialogAddNote() {
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Crea una nota</DialogTitle>
+                        <DialogTitle>{t("dialogs.addNote.title")}</DialogTitle>
                         <DialogDescription />
                     </DialogHeader>
                     <form onSubmit={handleCreateNote}>
                         <div className="grid gap-4">
                             <div className="grid gap-3">
-                                <Label>Nome</Label>
+                                <Label>{t("common.name")}</Label>
                                 <Input
                                     id="name-1"
                                     name="name"
@@ -101,14 +103,14 @@ export function DialogAddNote() {
                             </div>
                             {templates.length > 0 && (
                                 <div className="grid gap-3">
-                                    <Label htmlFor="template-1">Da template</Label>
+                                    <Label htmlFor="template-1">{t("dialogs.addNote.fromTemplate")}</Label>
                                     <NativeSelect
                                         id="template-1"
                                         value={template ? templateId : ""}
                                         onChange={e => setTemplateId(e.target.value)}
                                     >
-                                        <option value="">Nessun template</option>
-                                        {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                        <option value="">{t("dialogs.addNote.noTemplate")}</option>
+                                        {templates.map(tpl => <option key={tpl.id} value={tpl.id}>{tpl.name}</option>)}
                                     </NativeSelect>
                                 </div>
                             )}
@@ -152,7 +154,7 @@ export function DialogAddNote() {
                                         setPaletteOpen(true)
                                     }}
                                     className="h-full">
-                                    Aggiungi colore
+                                    {t("common.addColor")}
                                     <Palette />
                                 </Button>
                             }
@@ -163,22 +165,22 @@ export function DialogAddNote() {
                                 type="button"
                                 onClick={handleCancel}
                             >
-                                Annulla
+                                {t("common.cancel")}
                             </Button>
                             <Button type="submit" disabled={!note.name.trim()}>
-                                Crea nota
+                                {t("dialogs.addNote.submit")}
                             </Button>
                         </DialogFooter>
                     </form>
                 </DialogContent>
             </Dialog>
 
-            <TooltipCustom text="Crea una nota" shortcut={shortcutLabel}>
+            <TooltipCustom text={t("sidebar.addNote")} shortcut={shortcutLabel}>
                 <Button
                     onClick={() => setIsOpen(true)}
                     variant='buttonIcon'
                     size="icon"
-                    aria-label="Crea una nota"
+                    aria-label={t("sidebar.addNote")}
                 >
                     <FilePlus />
                 </Button>

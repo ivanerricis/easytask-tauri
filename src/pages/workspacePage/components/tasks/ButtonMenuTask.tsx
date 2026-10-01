@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { getErrorMessage } from "@/lib/utils"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import type { Task } from "@/types/types"
@@ -24,6 +25,7 @@ type ButtonMenuFolderProps = {
 }
 
 export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolderProps) => {
+    const { t } = useTranslation()
     // The inline input is opened once the menu has given the focus back, otherwise the input would lose it
     const addSubtaskRequested = useRef(false)
     const menu = useItemMenuState()
@@ -40,7 +42,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
             await updateTaskPriority(task.id, !task.priority)
         } catch {
             rollback()
-            toast.error('Impossibile modificare la priorità')
+            toast.error(t("tasks.errors.priority"))
         } finally {
             menu.close()
         }
@@ -81,24 +83,24 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
     const items = (
         <MenuGroup className="flex flex-col gap-1">
             <ButtonInPopover
-                text="Aggiungi sottotask"
+                text={t("tasks.addSubtask")}
                 type="addSubtask"
                 onClick={() => { addSubtaskRequested.current = true; menu.close() }}
             />
             <ButtonInPopover
-                text={task.description ? 'Rimuovi descrizione' : 'Aggiungi descrizione'}
+                text={task.description ? t("tasks.menu.removeDescription") : t("tasks.menu.addDescription")}
                 type={task.description ? 'removeDescription' : 'addDescription'}
                 onClick={() => { handleDescription() }}
             />
             <ButtonInPopover
-                text={task.priority ? 'Rimuovi priorità' : 'Aggiungi priorità'}
+                text={task.priority ? t("tasks.menu.removePriority") : t("tasks.menu.addPriority")}
                 type={task.priority ? 'removePriority' : 'addPriority'}
                 onClick={() => { handleEditPriority(); menu.close() }}
             />
             <MenuSub>
                 <MenuSubTrigger>
                     <ButtonInPopover
-                        text="Cambia colore"
+                        text={t("menu.changeColor")}
                         type="color"
                     />
                 </MenuSubTrigger>
@@ -116,7 +118,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
             <TaskMoveSubmenu taskId={task.id} onDone={menu.close} />
             <Separator />
             <ButtonInPopover
-                text="Elimina"
+                text={t("common.delete")}
                 type="delete"
                 destructive
                 onClick={() => { setDeleteTaskOpen(true); menu.close() }}

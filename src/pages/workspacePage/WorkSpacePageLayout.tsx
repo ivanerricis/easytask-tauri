@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Navbar } from "@/components/navbar"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
@@ -16,6 +17,7 @@ type WorkSpaceLayoutProps = {
 }
 
 export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
+    const { t } = useTranslation()
 
     const { resetWorkspace } = useWorkspace()
     const { resetData } = useWorkspaceData()
@@ -39,7 +41,7 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
                         <ButtonNavbar
                             onClick={handleGoHome}
                             className={"text-foreground pr-1"}
-                            textTooltip="Torna alla Home"
+                            textTooltip={t("workspace.backHome")}
                             textTooltipShortcut={homeLabel}
                         >
                             <ArrowLeft className="w-5 h-5" />

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Progress } from "@/components/ui/progress"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import type { Section as SectionType, Task } from "@/types/types"
@@ -34,6 +35,7 @@ const calculateCompletionPercentage = (tasks: Task[]): number => {
 }
 
 export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dragHandleProps }: SectionHeaderProps) => {
+    const { t } = useTranslation()
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(section.title)
     const { renameItem } = useWorkspaceActions()
@@ -58,7 +60,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
             if (changed) await renameItem("section", section.id, text.trim())
         } catch (err) {
             rollback?.()
-            toast.error('Impossibile cambiare il titolo della sezione' + ' - ' + getErrorMessage(err))
+            toast.error(t("sections.renameError", { message: getErrorMessage(err) }))
         }
         setTextAreaOpen(false)
     }
@@ -81,8 +83,8 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
                         <div
                             ref={dragHandleRef}
                             {...dragHandleProps}
-                            aria-label="Sposta sezione"
-                            title="Trascina per spostare la sezione"
+                            aria-label={t("sections.moveHandle")}
+                            title={t("sections.moveHandleTitle")}
                             className="shrink-0 touch-none cursor-grab text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
                             <GripVertical className="size-4" />
                         </div>}
@@ -90,7 +92,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
                         <button
                             type="button"
                             onClick={handleOpen}
-                            aria-label={isOpen ? "Compatta sezione" : "Espandi sezione"}
+                            aria-label={isOpen ? t("sections.collapse") : t("sections.expand")}
                             aria-expanded={isOpen}
                             className="shrink-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1.5 size-5`} />

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState, type ReactElement } from "react"
 import type { Note } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -20,6 +21,7 @@ type ButtonMenuNoteProps = {
 }
 
 export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
+    const { t } = useTranslation()
     const [isRenameOpen, setRenameOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [isTemplateOpen, setTemplateOpen] = useState(false);
@@ -30,19 +32,19 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
     const items = (
         <MenuGroup className="flex flex-col gap-1">
             <ButtonInPopover
-                text="Apri"
+                text={t("menu.open")}
                 type="open"
                 onClick={() => { openNote(note.id); menu.close() }}
             />
             <ButtonInPopover
-                text="Rinomina"
+                text={t("common.rename")}
                 type="rename"
                 onClick={() => { setRenameOpen(true); menu.close() }}
             />
             <MenuSub>
                 <MenuSubTrigger>
                     <ButtonInPopover
-                        text="Cambia colore"
+                        text={t("menu.changeColor")}
                         type="color"
                     />
                 </MenuSubTrigger>
@@ -62,13 +64,13 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                 onDone={menu.close}
             />
             <ButtonInPopover
-                text="Crea template"
+                text={t("menu.createTemplate")}
                 type="createTemplate"
                 onClick={() => { setTemplateOpen(true); menu.close() }}
             />
             <Separator />
             <ButtonInPopover
-                text="Elimina"
+                text={t("common.delete")}
                 type="delete"
                 destructive
                 onClick={() => { setDeleteOpen(true); menu.close() }}

@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { getErrorMessage } from "@/lib/utils"
 import {
@@ -25,13 +26,14 @@ type ParentFolderProps = {
 }
 
 export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFolderProps) {
+    const { t } = useTranslation()
     const [name, setName] = useState("")
     const [error, setError] = useState<string | null>(null)
     const [templateId, setTemplateId] = useState("")
     const { createNoteInFolder, createNoteFromTemplate } = useWorkspaceData()
     const templates = useTemplates(isOpen)
     // A stale selection (template deleted meanwhile) behaves as "no template"
-    const template = templates.find(t => String(t.id) === templateId)
+    const template = templates.find(tpl => String(tpl.id) === templateId)
     const { currentWorkspace } = useWorkspace()
 
     const handleCreateNote = async (e: React.FormEvent) => {
@@ -66,7 +68,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
             <DialogContent onClick={(e) => { e.stopPropagation() }}>
                 <DialogHeader>
-                    <DialogTitle>Crea una nota</DialogTitle>
+                    <DialogTitle>{t("dialogs.addNote.title")}</DialogTitle>
                     <DialogDescription />
                 </DialogHeader>
                 <form onSubmit={handleCreateNote} className="grid gap-3">
@@ -81,14 +83,14 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                     />
                     {templates.length > 0 && (
                         <>
-                            <Label htmlFor="template-1">Da template</Label>
+                            <Label htmlFor="template-1">{t("dialogs.addNote.fromTemplate")}</Label>
                             <NativeSelect
                                 id="template-1"
                                 value={template ? templateId : ""}
                                 onChange={e => setTemplateId(e.target.value)}
                             >
-                                <option value="">Nessun template</option>
-                                {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                <option value="">{t("dialogs.addNote.noTemplate")}</option>
+                                {templates.map(tpl => <option key={tpl.id} value={tpl.id}>{tpl.name}</option>)}
                             </NativeSelect>
                         </>
                     )}
@@ -99,13 +101,13 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                             type="button"
                             onClick={handleCancel}
                         >
-                            Annulla
+                            {t("common.cancel")}
                         </Button>
                         <Button
                             type="submit"
                             disabled={!name.trim()}
                         >
-                            Crea nota
+                            {t("dialogs.addNote.submit")}
                         </Button>
                     </DialogFooter>
                 </form>

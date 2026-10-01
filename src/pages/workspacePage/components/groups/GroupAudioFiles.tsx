@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { Music } from "lucide-react"
 import { ButtonInPopover } from "@/components/button-in-popover"
@@ -17,6 +18,7 @@ type AudioFileRowProps = {
 }
 
 const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
+    const { t } = useTranslation()
     const { track, playFile, relinkFile, refresh } = useAudio()
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
@@ -29,7 +31,7 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
     const items = (
         <MenuGroup className="flex flex-col gap-1">
             <ButtonInPopover
-                text="Rinomina"
+                text={t("common.rename")}
                 type="rename"
                 onClick={() => {
                     setRenameOpen(true)
@@ -37,7 +39,7 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
                 }}
             />
             <ButtonInPopover
-                text="Aggiorna percorso"
+                text={t("audio.updatePath")}
                 type="move"
                 onClick={() => {
                     menu.close()
@@ -45,7 +47,7 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
                 }}
             />
             <ButtonInPopover
-                text="Elimina"
+                text={t("common.delete")}
                 type="delete"
                 destructive
                 onClick={() => {
@@ -93,7 +95,7 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
                 <Music className={cn("size-4 shrink-0", isCurrent ? "text-primary" : "text-muted-foreground")} />
                 <span className="flex-1 truncate">{file.name}</span>
                 <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-                    <ItemMenuButton label="Menu file audio" iconClassName="!h-4 !w-4" />
+                    <ItemMenuButton label={t("audio.fileMenu")} iconClassName="!h-4 !w-4" />
                 </div>
             </div>
         </ItemMenu>
@@ -109,11 +111,12 @@ type GroupAudioFilesProps = {
  * @category Group
  */
 export const GroupAudioFiles = ({ groupId }: GroupAudioFilesProps) => {
+    const { t } = useTranslation()
     const files = useGroupAudioFiles(groupId)
     if (files.length === 0) return null
 
     return (
-        <div className="flex flex-col gap-1" aria-label="File audio">
+        <div className="flex flex-col gap-1" aria-label={t("audio.files")}>
             {files.map(file => (
                 <AudioFileRow key={file.id} file={file} groupId={groupId} />
             ))}

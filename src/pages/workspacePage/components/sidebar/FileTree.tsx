@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next"
+import i18n from "@/i18n"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
     DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useDroppable, useSensor, useSensors,
@@ -128,6 +130,7 @@ const NO_HOVER: HoverState = { overKey: null, zone: null, rootActive: false }
  * of that parent and a folder dropped next to a note becomes its last folder.
  */
 export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileTreeProps) => {
+    const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { workspaceDataTree, getWorkspaceData, moveTreeItem } = useWorkspaceData()
     const [hover, setHover] = useState<HoverState>(NO_HOVER)
@@ -204,7 +207,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
             try {
                 await getWorkspaceData(currentWorkspace.id)
             } catch (err) {
-                reportError(err, "Impossibile aggiornare l'elenco di cartelle e note. Riprova.")
+                reportError(err, i18n.t("errors.refreshTree"))
             }
         }
     }
@@ -245,7 +248,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
             <RootDropArea highlighted={hover.rootActive} rootRef={rootElRef}>
                 {isEmpty ? (
                     <p className="text-muted-foreground text-sm w-full">
-                        Nessuna cartella o file
+                        {t("sidebar.emptyTree")}
                     </p>
                 ) : virtualized ? (
                     <VirtualTree

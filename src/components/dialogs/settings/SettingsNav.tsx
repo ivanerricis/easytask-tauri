@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 import type { SettingsCategory } from "./categories"
 
@@ -7,12 +8,14 @@ type SettingsNavProps = {
     onSelect: (id: string) => void
 }
 
-export const SettingsNav = ({ categories, activeId, onSelect }: SettingsNavProps) => (
+export const SettingsNav = ({ categories, activeId, onSelect }: SettingsNavProps) => {
+    const { t } = useTranslation()
+    return (
     <nav
-        aria-label="Categorie impostazioni"
+        aria-label={t("settings.nav")}
         className="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-visible sm:w-48 shrink-0 border-b sm:border-b-0 sm:border-r pb-2 sm:pb-0 sm:pr-3"
     >
-        {categories.map(({ id, label, icon: Icon }) => {
+        {categories.map(({ id, labelKey, icon: Icon }) => {
             const active = id === activeId
             return (
                 <button
@@ -27,9 +30,10 @@ export const SettingsNav = ({ categories, activeId, onSelect }: SettingsNavProps
                     )}
                 >
                     <Icon className="size-4 shrink-0" />
-                    {label}
+                    {t(labelKey)}
                 </button>
             )
         })}
     </nav>
-)
+    )
+}

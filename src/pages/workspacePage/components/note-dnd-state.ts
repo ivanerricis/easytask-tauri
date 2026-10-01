@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { createContext, useCallback, useContext } from "react"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { reportError } from "@/lib/report-error"
@@ -105,7 +106,7 @@ export function useGroupMoves() {
         try {
             await updateGroupsPositions(updatedGroups)
         } catch (error) {
-            reportError(error, "Impossibile spostare il gruppo. Riprova.")
+            reportError(error, i18n.t("errors.moveGroup"))
             setNoteDataTree(noteDataTree)
         }
     }, [noteDataTree, setNoteDataTree, updateGroupsPositions])
