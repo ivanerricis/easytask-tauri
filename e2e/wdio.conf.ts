@@ -1,8 +1,10 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process"
 import fs from "node:fs"
+import net from "node:net"
 import os from "node:os"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
+import { browser } from "@wdio/globals"
 import type { Options } from "@wdio/types"
 
 /**
@@ -30,15 +32,42 @@ const stopDriver = () => {
     tauriDriver?.kill()
 }
 
-/** Downloads (once) an msedgedriver that matches the installed Edge / WebView2 on Windows. */
+/**
+ * Version of the installed WebView2 Runtime (the engine the app really runs on), read from the registry.
+ * It can differ from the version of Microsoft Edge (on which edgedriver would otherwise be matched): msedgedriver
+ * must match the WebView2 runtime, or the session fails with "DevToolsActivePort file doesn't exist".
+ */
+const webView2Version = (): string | undefined => {
+    const guid = "{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}"
+    const keys = [
+        ["HKLM", "SOFTWARE", "WOW6432Node", "Microsoft", "EdgeUpdate", "Clients", guid].join("\\"),
+        ["HKLM", "SOFTWARE", "Microsoft", "EdgeUpdate", "Clients", guid].join("\\"),
+        ["HKCU", "SOFTWARE", "Microsoft", "EdgeUpdate", "Clients", guid].join("\\"),
+    ]
+    for (const key of keys) {
+        const out = spawnSync("reg", ["query", key, "/v", "pv"], { encoding: "utf8" })
+        const match = /pv\s+REG_SZ\s+(\d+\.\d+\.\d+\.\d+)/.exec(out.stdout ?? "")
+        if (match) return match[1]
+    }
+    return undefined
+}
+
+/** Downloads (once) an msedgedriver that matches the installed WebView2 Runtime on Windows. */
 const resolveNativeDriver = async (): Promise<string | undefined> => {
     if (process.env.E2E_NATIVE_DRIVER) return process.env.E2E_NATIVE_DRIVER
     if (!isWindows) return undefined
     const { download } = await import("edgedriver")
-    const cacheDir = path.join(os.tmpdir(), "easytask-e2e-edgedriver")
+    const version = webView2Version()
+    console.log(`[e2e] WebView2 runtime: ${version ?? "not detected (falling back to the installed Edge)"}`)
+    const cacheDir = path.join(os.tmpdir(), "easytask-e2e-edgedriver", version ?? "edge")
     fs.mkdirSync(cacheDir, { recursive: true })
-    return download(undefined, cacheDir)
+    const driver = await download(version, cacheDir)
+    console.log(`[e2e] native driver: ${driver}`)
+    return driver
 }
+
+/** Output of tauri-driver and failure screenshots are written here (uploaded by the CI on failure). */
+const outputDir = path.join(root, "e2e", "output")
 
 export const config: Options.Testrunner & { capabilities: unknown[] } = {
     runner: "local",
@@ -80,8 +109,10 @@ export const config: Options.Testrunner & { capabilities: unknown[] } = {
         const nativeDriver = await resolveNativeDriver()
         exiting = false
         const args = nativeDriver ? ["--native-driver", nativeDriver] : []
+        fs.mkdirSync(outputDir, { recursive: true })
+        const logFile = fs.openSync(path.join(outputDir, "tauri-driver.log"), "a")
         tauriDriver = spawn(path.join(os.homedir(), ".cargo", "bin", "tauri-driver"), args, {
-            stdio: [null, process.stdout, process.stderr],
+            stdio: [null, logFile, logFile],
             env: process.env,
         })
         tauriDriver.on("error", (error) => {
@@ -94,8 +125,25 @@ export const config: Options.Testrunner & { capabilities: unknown[] } = {
                 process.exit(1)
             }
         })
-        // Give the driver time to start listening on :4444
-        await new Promise((resolve) => setTimeout(resolve, 1500))
+        // Wait until the driver accepts connections on :4444
+        const deadline = Date.now() + 30_000
+        while (Date.now() < deadline) {
+            const listening = await new Promise<boolean>((resolve) => {
+                const socket = net.connect(4444, "127.0.0.1")
+                socket.once("connect", () => { socket.destroy(); resolve(true) })
+                socket.once("error", () => { socket.destroy(); resolve(false) })
+            })
+            if (listening) return
+            await new Promise((resolve) => setTimeout(resolve, 200))
+        }
+        throw new Error("tauri-driver did not start listening on port 4444")
+    },
+
+    afterTest: async (test, _context, result) => {
+        if (result.passed) return
+        const name = `${test.parent} ${test.title}`.replace(/[^\w-]+/g, "_")
+        fs.mkdirSync(outputDir, { recursive: true })
+        await browser.saveScreenshot(path.join(outputDir, `${name}.png`)).catch(() => undefined)
     },
 
     afterSession: () => {
