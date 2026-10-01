@@ -144,7 +144,7 @@ On pushes to `master` and on pull requests, GitHub Actions runs:
 - frontend: ESLint, TypeScript, tests, coverage, build
 - backend (Windows and Linux): `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`
 - audit (blocking): `npm audit` (high/critical, production dependencies), `cargo audit`, `cargo deny`
-- e2e on Windows and Linux (**not blocking** for now)
+- e2e on Linux (**not blocking** for now); the Windows run starts manually (`workflow_dispatch`), because the hosted runner cannot attach the driver to the app, while the suite passes on a Windows machine (`npm run e2e`)
 
 Releases are built by a separate workflow, see [RELEASING.md](RELEASING.md).
 

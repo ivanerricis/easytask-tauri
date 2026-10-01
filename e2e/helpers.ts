@@ -109,8 +109,10 @@ export const openSubmenu = async (
     const trigger = menu.$(`.//*[@role='menuitem' and @aria-haspopup='menu'][normalize-space()=${text}]`)
     await trigger.waitForDisplayed({ timeoutMsg: `the submenu trigger "${triggerText}" is not shown` })
     await trigger.click()
-    if (await item.waitForDisplayed({ timeout: 2_000 }).then(() => true, () => false)) return
-    await browser.execute((el: HTMLElement) => el.focus(), trigger as unknown as HTMLElement)
+    if (await item.waitForDisplayed({ timeout: 4_000 }).then(() => true, () => false)) return
+    // Resolve the element first: WebKitGTK does not serialise an unresolved chainable promise as a DOM node
+    const element = (await trigger.getElement()) as unknown as HTMLElement
+    await browser.execute((el: HTMLElement) => el.focus(), element)
     await browser.keys("ArrowRight")
     await item.waitForDisplayed({ timeoutMsg: `the submenu "${triggerText}" did not open` })
 }
