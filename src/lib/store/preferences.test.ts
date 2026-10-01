@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, saveShowGroupProgressBar, saveSidebarItemSize } from "./preferences"
+import { flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, saveShowGroupProgressBar, saveSidebarItemSize } from "./preferences"
 
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn(), delete: vi.fn() },
@@ -160,5 +160,35 @@ describe("batched saves", () => {
         const assertion = expect(p).rejects.toThrow("disk")
         await vi.advanceTimersByTimeAsync(500)
         await assertion
+    })
+})
+
+describe("left sidebar width preference", () => {
+    beforeEach(() => {
+        vi.resetAllMocks()
+        vi.useFakeTimers()
+    })
+
+    it("defaults to 260 when nothing valid is stored", async () => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getSidebarLeftWidth()).toBe(260)
+        vi.mocked(store.get).mockResolvedValue("wide")
+        expect(await getSidebarLeftWidth()).toBe(260)
+        vi.mocked(store.get).mockResolvedValue(Number.NaN)
+        expect(await getSidebarLeftWidth()).toBe(260)
+    })
+
+    it.each([[320, 320], [10, 200], [9999, 480]])("clamps the stored width %d to %d", async (stored, expected) => {
+        vi.mocked(store.get).mockResolvedValue(stored)
+        expect(await getSidebarLeftWidth()).toBe(expected)
+        expect(store.get).toHaveBeenCalledWith("sidebarLeftWidth")
+    })
+
+    it("saves the clamped width and flushes the store", async () => {
+        const p = saveSidebarLeftWidth(9999)
+        await vi.advanceTimersByTimeAsync(500)
+        await p
+        expect(store.set).toHaveBeenCalledWith("sidebarLeftWidth", 480)
+        expect(store.save).toHaveBeenCalled()
     })
 })

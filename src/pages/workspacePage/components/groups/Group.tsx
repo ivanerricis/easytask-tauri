@@ -3,6 +3,8 @@ import { useCallback, type HTMLAttributes } from "react"
 import { Section } from "../section/Section"
 import { AddSection } from "../section/AddSection"
 import { GroupHeader } from "./GroupHeader"
+import { useTranslation } from "react-i18next"
+import { EmptyState } from "@/components/empty-state"
 import { cn } from "@/lib/utils"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { GroupAudioFiles } from "./GroupAudioFiles"
@@ -25,6 +27,7 @@ export const Group = ({ group, index = 0 }: GroupProps) => {
     }, [setDropRef, setDragRef])
     const draggingGroup = active?.kind === "group"
     const [isOpen] = useGroupOpen(group.id)
+    const { t } = useTranslation()
 
     return (
         <div
@@ -45,6 +48,15 @@ export const Group = ({ group, index = 0 }: GroupProps) => {
             />
             {isOpen && <>
                 <GroupAudioFiles groupId={group.id} />
+                {group.sections.length === 0 && (
+                    <EmptyState
+                        compact
+                        className="w-[250px]"
+                        title={t("emptyStates.group.title")}
+                        description={t("emptyStates.group.description")}
+                        hints={[{ label: t("emptyStates.group.newSection"), shortcutId: "new-group" }]}
+                    />
+                )}
                 <div className="flex flex-col gap-1 overflow-y-auto">
                     {group.sections.map((section) => (
                         <Section

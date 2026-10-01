@@ -32,6 +32,8 @@ vi.mock("@/lib/store/preferences", () => ({
     saveReopenLastWorkspace: vi.fn(),
     getSidebarItemSize: vi.fn(),
     saveSidebarItemSize: vi.fn(),
+    getSidebarLeftWidth: vi.fn(),
+    saveSidebarLeftWidth: vi.fn(),
     getLanguage: vi.fn(),
     saveLanguage: vi.fn(),
 }))
@@ -53,6 +55,7 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getReopenNotes).mockResolvedValue(false)
         vi.mocked(prefs.getReopenLastWorkspace).mockResolvedValue(true)
         vi.mocked(prefs.getSidebarItemSize).mockResolvedValue("large")
+        vi.mocked(prefs.getSidebarLeftWidth).mockResolvedValue(320)
         vi.mocked(prefs.getLanguage).mockResolvedValue("system")
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
     })
@@ -141,6 +144,19 @@ describe("PreferencesContext", () => {
 
         expect(result.current.sidebarItemSize).toBe("compact")
         expect(prefs.saveSidebarItemSize).toHaveBeenCalledWith("compact")
+    })
+
+    it("loads and persists the left sidebar width (default 260, clamped on save)", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.sidebarLeftWidth).toBe(260)
+        await waitFor(() => expect(result.current.sidebarLeftWidth).toBe(320))
+
+        act(() => result.current.setSidebarLeftWidth(400))
+        expect(result.current.sidebarLeftWidth).toBe(400)
+        expect(prefs.saveSidebarLeftWidth).toHaveBeenCalledWith(400)
+
+        act(() => result.current.setSidebarLeftWidth(5000))
+        expect(result.current.sidebarLeftWidth).toBe(480)
     })
 
     it("resetPlayerPosition resets the store but skips the state update without a container", async () => {

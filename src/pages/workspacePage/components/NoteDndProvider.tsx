@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
+import { useTranslation } from "react-i18next"
 import { createPortal } from "react-dom"
 import {
     DndContext, DragOverlay, PointerSensor, useSensor, useSensors,
@@ -9,8 +10,9 @@ import { getGroupLabel } from "./groups/group-label"
 import { useActiveNote } from "@/contexts/use-active-note"
 import {
     computeDropZone, computeGroupDropZone, computeGroupTarget, computeSectionTarget, findGroup, computeTaskTarget, findSection, findTask,
-    type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverRef, type SectionTarget, type TaskTarget,
+    type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverKind, type NoteOverRef, type SectionTarget, type TaskTarget,
 } from "./note-dnd"
+import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { NO_HOVER, NoteDndContext, noteKey, useGroupMoves, useNoteMoves, type NoteHover } from "./note-dnd-state"
 
 type PendingDrop =
@@ -62,6 +64,7 @@ const getPointer = (event: DragMoveEvent): { x: number, y: number } | null => {
  * @category Note DnD
  */
 export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
+    useTranslation() // re-renders on language change so the screen reader texts follow it
     const { noteDataTree } = useActiveNote()
     const { moveSectionTo, moveTaskTo } = useNoteMoves()
     const [active, setActive] = useState<NoteDragRef | null>(null)
@@ -70,6 +73,18 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
     const pendingRef = useRef<PendingDrop | null>(null)
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+    const accessibility = buildDndAccessibility(entry => {
+        const ref = entry.data.current as { kind?: NoteOverKind, id?: number } | undefined
+        if (!noteDataTree || !ref || typeof ref.id !== "number") return undefined
+        if (ref.kind === "group") {
+            const found = findGroup(noteDataTree, ref.id)
+            return found ? getGroupLabel(found.group, found.index) : undefined
+        }
+        if (ref.kind === "section") return findSection(noteDataTree, ref.id)?.title
+        if (ref.kind === "task") return findTask(noteDataTree, ref.id)?.text
+        return undefined
+    }, { keyboard: false })
 
     const reset = () => {
         pendingRef.current = null
@@ -163,6 +178,7 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         <NoteDndContext.Provider value={state}>
             <DndContext
                 sensors={sensors}
+                accessibility={accessibility}
                 collisionDetection={collisionDetection}
                 onDragStart={handleDragStart}
                 onDragMove={handleDragMove}
