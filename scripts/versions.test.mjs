@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
     findMismatches,
+    getCargoLockVersion,
     getCargoTomlVersion,
     getJsonVersion,
+    getPackageLockVersion,
     isSemver,
     setCargoLockVersion,
     setCargoTomlVersion,
@@ -75,6 +77,22 @@ describe('package-lock.json', () => {
         expect(out.version).toBe('3.0.0')
         expect(out.packages[''].version).toBe('3.0.0')
         expect(out.packages['node_modules/a'].version).toBe('5.0.0')
+    })
+})
+
+describe('lock file readers', () => {
+    it('reads the app crate version from Cargo.lock (LF and CRLF)', () => {
+        const lock = 'version = 4\n\n[[package]]\nname = "app"\nversion = "0.3.0"\n\n[[package]]\nname = "log"\nversion = "0.4.0"\n'
+        expect(getCargoLockVersion(lock)).toBe('0.3.0')
+        expect(getCargoLockVersion(lock.replace(/\n/g, '\r\n'))).toBe('0.3.0')
+        expect(getCargoLockVersion(lock, 'log')).toBe('0.4.0')
+        expect(() => getCargoLockVersion(lock, 'nope')).toThrow()
+    })
+    it('reads the root version from package-lock.json', () => {
+        const lock = JSON.stringify({ version: '0.1.0', packages: { '': { version: '0.2.0' }, 'node_modules/a': { version: '5.0.0' } } })
+        expect(getPackageLockVersion(lock)).toBe('0.2.0')
+        expect(getPackageLockVersion(JSON.stringify({ version: '1.0.0' }))).toBe('1.0.0')
+        expect(() => getPackageLockVersion('{}')).toThrow()
     })
 })
 
