@@ -20,13 +20,29 @@ import { ButtonCollapseItems } from "./ButtonCollapseItems"
 import { ButtonUpload } from "./ButtonUpload"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
+import { useShortcut } from "@/hooks/use-shortcut"
+import { useCompactLayout } from "@/lib/sidebar-layout"
 
 export const SideBarLeft = () => {
     const { t } = useTranslation()
 
     const { currentWorkspace } = useWorkspace()
     const { folders, getWorkspaceData } = useWorkspaceData()
-    const { sidebarLeftOpen, setSideBarLeftOpen } = usePreferences()
+    const { sidebarLeftOpen, setSideBarLeftOpen, sidebarLeftWidth, setSidebarLeftWidth } = usePreferences()
+    // Compact window: the sidebar is an overlay, closed by default, whose state is not persisted
+    const compact = useCompactLayout()
+    const [overlayOpen, setOverlayOpen] = useState(false)
+    const [prevCompact, setPrevCompact] = useState(compact)
+    if (prevCompact !== compact) {
+        setPrevCompact(compact)
+        setOverlayOpen(false)
+    }
+    const open = compact ? overlayOpen : sidebarLeftOpen
+    const setOpen = useCallback((value: boolean) => {
+        if (compact) setOverlayOpen(value)
+        else setSideBarLeftOpen(value)
+    }, [compact, setSideBarLeftOpen])
+    useShortcut("toggle-sidebar", () => setOpen(!open), { allowInInputs: true })
     const { exportWorkspace, isBusy: isTransferring } = useWorkspaceTransfer()
 
     useEffect(() => {
@@ -63,8 +79,11 @@ export const SideBarLeft = () => {
     return (
         <SideBar
             position="left"
-            defaultOpen={sidebarLeftOpen}
-            updateOpen={setSideBarLeftOpen}
+            open={open}
+            onOpenChange={setOpen}
+            width={sidebarLeftWidth}
+            onWidthChange={setSidebarLeftWidth}
+            overlay={compact}
             bottomContainer={<DialogSettings className="relative top-0 left-0" />}
         >
             <SideBarContainer

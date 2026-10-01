@@ -1,5 +1,6 @@
 import type { AudioPlayerPosition } from "@/types/types"
 import { store } from "./initStore"
+import { SIDEBAR_DEFAULT_WIDTH, clampSidebarWidth } from "@/lib/sidebar-layout"
 import { DEFAULT_LANGUAGE_PREFERENCE, isLanguagePreference, type LanguagePreference } from "@/i18n"
 
 const SHOW_PROGRESSBAR_KEY = "showProgressBar"
@@ -16,6 +17,7 @@ const REOPEN_LAST_WORKSPACE_KEY = "reopenLastWorkspace"
 const LAST_WORKSPACE_ID_KEY = "lastWorkspaceId"
 const SIDEBAR_ITEM_SIZE_KEY = "sidebarItemSize"
 const LANGUAGE_KEY = "language"
+const SIDEBAR_LEFT_WIDTH_KEY = "sidebarLeftWidth"
 
 const SAVE_DEBOUNCE_MS = 500
 
@@ -372,5 +374,26 @@ export const getLanguage = async (): Promise<LanguagePreference> => {
  */
 export const saveLanguage = async (value: LanguagePreference): Promise<void> => {
     await store.set(LANGUAGE_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets the width of the left sidebar in pixels.
+ * @returns A promise that resolves to the stored width clamped to the allowed range (260 by default; invalid stored values fall back to the default).
+ * @category Store
+ */
+export const getSidebarLeftWidth = async (): Promise<number> => {
+    const value = await store.get<number>(SIDEBAR_LEFT_WIDTH_KEY)
+    return typeof value === "number" && Number.isFinite(value) ? clampSidebarWidth(value) : SIDEBAR_DEFAULT_WIDTH
+}
+
+/**
+ * Saves the width of the left sidebar.
+ * @param value The width in pixels (clamped to the allowed range).
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveSidebarLeftWidth = async (value: number): Promise<void> => {
+    await store.set(SIDEBAR_LEFT_WIDTH_KEY, clampSidebarWidth(value))
     await persist()
 }

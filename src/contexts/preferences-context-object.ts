@@ -30,6 +30,8 @@ export type PreferencesContextType = {
     setReopenLastWorkspace: (value: boolean) => void
     sidebarItemSize: SidebarItemSize
     setSidebarItemSize: (value: SidebarItemSize) => void
+    sidebarLeftWidth: number
+    setSidebarLeftWidth: (value: number) => void
     language: LanguagePreference
     setLanguage: (value: LanguagePreference) => void
 }

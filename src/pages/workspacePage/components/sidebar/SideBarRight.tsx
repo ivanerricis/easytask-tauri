@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { SideBar } from "./SideBar"
 import { SideBarContainer } from "./SideBarContainer"
@@ -8,9 +9,10 @@ import { useWorkspace } from "@/contexts/use-workspace"
 export const SideBarRight = () => {
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
+    const [open, setOpen] = useState(false)
 
     return (
-        <SideBar position="right" defaultOpen={false}>
+        <SideBar position="right" open={open} onOpenChange={setOpen}>
             {/* Right Up Container */}
             <SideBarContainer className="flex flex-col"
                 header={<SideBarHeader text={t("sidebar.info.title")} className="border-b-2" />}
