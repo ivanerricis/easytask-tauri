@@ -105,7 +105,7 @@ describe("updateDBColor", () => {
 describe("deleteDBItem", () => {
     it("deletes non-section items directly", async () => {
         await deleteDBItem("task", 9)
-        expect(db.execute).toHaveBeenCalledWith("UPDATE task SET deleted_at = datetime('now','localtime') WHERE id=?", [9])
+        expect(db.execute).toHaveBeenCalledWith("UPDATE task SET deleted_at = datetime('now','localtime') WHERE id=? AND deleted_at IS NULL", [9])
         expect(db.select).not.toHaveBeenCalled()
     })
 
@@ -113,7 +113,7 @@ describe("deleteDBItem", () => {
         await deleteDBItem("section", 7)
         expect(db.select).not.toHaveBeenCalled()
         expect(db.execute).toHaveBeenCalledTimes(1)
-        expect(db.execute).toHaveBeenCalledWith("UPDATE section SET deleted_at = datetime('now','localtime') WHERE id=?", [7])
+        expect(db.execute).toHaveBeenCalledWith("UPDATE section SET deleted_at = datetime('now','localtime') WHERE id=? AND deleted_at IS NULL", [7])
     })
 
     it("throws a DELETE_FAILED error when the DB fails", async () => {

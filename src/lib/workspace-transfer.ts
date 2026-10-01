@@ -1,8 +1,9 @@
 import i18n from "@/i18n"
 import { open, save } from "@tauri-apps/plugin-dialog"
-import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs"
+import { readTextFile, stat, writeTextFile } from "@tauri-apps/plugin-fs"
 import { buildDBWorkspaceExport, importDBWorkspace, validateWorkspaceExport } from "@/db/queries/transfer"
 import { createError } from "@/types/error"
+import { MAX_IMPORT_FILE_BYTES } from "@/types/transfer"
 
 const FILTERS = [{ name: "EasyTask", extensions: ["json"] }]
 
@@ -31,6 +32,11 @@ export async function exportWorkspaceToFile(workspace: { id: number, name: strin
 export async function importWorkspaceFromFile(): Promise<{ workspaceId: number, skippedAudio: number } | null> {
     const path = await open({ filters: FILTERS, multiple: false, directory: false })
     if (!path) return null
+
+    // A failing stat is ignored: the read below reports the real problem
+    const size = await stat(path).then(info => info.size, () => 0)
+    if (size > MAX_IMPORT_FILE_BYTES)
+        throw createError("TRANSFER_FILE_TOO_LARGE", i18n.t("errors.transfer.fileTooLarge", { max: MAX_IMPORT_FILE_BYTES / (1024 * 1024) }))
 
     let parsed: unknown
     try {

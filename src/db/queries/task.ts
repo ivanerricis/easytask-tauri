@@ -35,20 +35,24 @@ export async function createDBTask(sectionId: number, text: string) {
  * @category Database
  */
 export async function createDBSubTask(taskId: number, text: string) {
+    let result: { rowsAffected: number, lastInsertId?: number }
     try {
         const db = await getDB()
-        const result = await db.execute(
+        result = await db.execute(
             `INSERT INTO task (sectionID, taskID, text, position)
              SELECT sectionID, id, ?, COALESCE((SELECT MAX(position) + 1 FROM task WHERE taskID = ? AND deleted_at IS NULL), 0)
-             FROM task WHERE id = ?`,
+             FROM task WHERE id = ? AND deleted_at IS NULL`,
             [text, taskId, taskId])
-        return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "TASK", {
             UNIQUE: i18n.t("errors.task.unique"),
             CHECK: i18n.t("errors.task.check"),
         })
     }
+    // The parent is missing or in the trash: nothing was inserted
+    if (result.rowsAffected !== 1)
+        throw createError("TASK_PARENT_MISSING", i18n.t("errors.task.parentMissing"))
+    return result.lastInsertId as number
 }
 
 /**

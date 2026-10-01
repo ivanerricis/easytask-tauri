@@ -17,6 +17,14 @@ const migrations: string[][] = [
 ];
 
 /**
+ * Highest schema version this build knows (the number of migrations); a database with a greater user_version is newer.
+ * @category Database
+ */
+export const LATEST_SCHEMA_VERSION = migrations.length;
+
+export { APPLICATION_ID };
+
+/**
  * Error thrown when the database file was created by an older, incompatible version of the app.
  * @category Database
  */

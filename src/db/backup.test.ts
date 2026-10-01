@@ -8,6 +8,10 @@ let db: MockDb
 const closeDB = vi.fn()
 const relaunch = vi.fn()
 const reportError = vi.fn()
+const setRestoring = vi.fn()
+const loadValidation = vi.fn()
+let validation: MockDb
+let validationRows: { application_id: number, user_version: number, integrity: string }
 let keep = 7
 let auto = true
 
@@ -16,6 +20,7 @@ const BACKUPS = "/data/backups"
 vi.mock("@tauri-apps/api/path", () => ({
     join: vi.fn(async (...parts: string[]) => parts.join("/")),
 }))
+vi.mock("@tauri-apps/plugin-sql", () => ({ default: { load: (...a: unknown[]) => loadValidation(...a) } }))
 vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: () => relaunch() }))
 vi.mock("@tauri-apps/plugin-fs", () => ({
     exists: vi.fn(async (path: string) => path === BACKUPS || files.has(path)),
@@ -24,6 +29,7 @@ vi.mock("@tauri-apps/plugin-fs", () => ({
         [...files.keys()].filter(p => p.startsWith(`${BACKUPS}/`)).map(p => ({ name: p.slice(BACKUPS.length + 1), isFile: true }))),
     stat: vi.fn(async (path: string) => ({ size: files.get(path) ?? 0 })),
     remove: vi.fn(async (path: string) => { files.delete(path) }),
+    rename: vi.fn(async (from: string, to: string) => { files.set(to, files.get(from) ?? 0); files.delete(from) }),
     copyFile: vi.fn(async (from: string, to: string) => { files.set(to, files.get(from) ?? 0) }),
 }))
 vi.mock("./appPaths", () => ({ ensureAppFolder: async () => "/data" }))
@@ -31,6 +37,7 @@ vi.mock("./dbManager", () => ({
     DB_FILE: "easytask.db",
     getDB: async () => db,
     closeDB: () => closeDB(),
+    setRestoring: (value: boolean) => setRestoring(value),
 }))
 vi.mock("@/lib/report-error", () => ({
     reportError: (...a: unknown[]) => reportError(...a),
@@ -51,6 +58,7 @@ import {
     rotateBackups,
     runAutoBackup,
 } from "./backup"
+import { APPLICATION_ID, LATEST_SCHEMA_VERSION } from "./initDb"
 
 const at = (y: number, mo: number, d: number, h = 10, mi = 0, s = 0) => new Date(y, mo - 1, d, h, mi, s)
 const seed = (name: string, size = 100) => files.set(`${BACKUPS}/${name}`, size)
@@ -58,6 +66,17 @@ const seed = (name: string, size = 100) => files.set(`${BACKUPS}/${name}`, size)
 beforeEach(() => {
     files = new Map()
     db = createMockDb()
+    validationRows = { application_id: APPLICATION_ID, user_version: LATEST_SCHEMA_VERSION, integrity: "ok" }
+    validation = createMockDb()
+    validation.select.mockImplementation(async (sql: unknown) => {
+        if (sql === "PRAGMA application_id") return [{ application_id: validationRows.application_id }]
+        if (sql === "PRAGMA user_version") return [{ user_version: validationRows.user_version }]
+        return [{ integrity_check: validationRows.integrity }]
+    })
+    loadValidation.mockReset().mockImplementation(async () => validation)
+    setRestoring.mockReset()
+    closeDB.mockReset()
+    relaunch.mockReset()
     // VACUUM INTO creates the file like SQLite would
     db.execute.mockImplementation(async (sql: unknown) => {
         const path = /INTO '(.*)'/.exec(String(sql))![1].replace(/''/g, "'")
@@ -77,8 +96,10 @@ describe("backup names", () => {
         const date = at(2026, 3, 9, 7, 5, 2)
         expect(backupFileName(date)).toBe("easytask-20260309-070502.db")
         expect(backupFileName(date, true)).toBe("easytask-pre-restore-20260309-070502.db")
-        expect(parseBackupName("easytask-20260309-070502.db")).toEqual({ date, preRestore: false })
-        expect(parseBackupName("easytask-pre-restore-20260309-070502.db")).toEqual({ date, preRestore: true })
+        expect(parseBackupName("easytask-20260309-070502.db")).toEqual({ date, preRestore: false, sequence: 1 })
+        expect(parseBackupName("easytask-pre-restore-20260309-070502.db")).toEqual({ date, preRestore: true, sequence: 1 })
+        expect(backupFileName(date, false, 3)).toBe("easytask-20260309-070502-3.db")
+        expect(parseBackupName("easytask-20260309-070502-3.db")).toEqual({ date, preRestore: false, sequence: 3 })
     })
 
     it("rejects anything else", () => {
@@ -146,6 +167,20 @@ describe("createBackup", () => {
     })
 })
 
+describe("same-second backups", () => {
+    it("adds a numeric suffix when the file already exists and keeps listing them in order", async () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(at(2026, 3, 9, 7, 5, 2))
+        const first = await createBackup("manual")
+        const second = await createBackup("manual")
+        const third = await createBackup("manual")
+        expect(first.name).toBe("easytask-20260309-070502.db")
+        expect(second.name).toBe("easytask-20260309-070502-2.db")
+        expect(third.name).toBe("easytask-20260309-070502-3.db")
+        expect((await listBackups()).map(b => b.name)).toEqual([third.name, second.name, first.name])
+    })
+})
+
 describe("rotateBackups", () => {
     it("never deletes the last backup even with keep 0", async () => {
         seed("easytask-20260101-100000.db")
@@ -209,6 +244,10 @@ describe("restoreBackup", () => {
         await restoreBackup("easytask-20260101-100000.db")
 
         expect(order).toEqual(["vacuum", "close", "relaunch"])
+        expect(loadValidation).toHaveBeenCalledWith(expect.stringMatching(/easytask-20260101-100000\.db\?mode=ro$/))
+        expect(validation.close).toHaveBeenCalled()
+        expect(files.has("/data/easytask.db.restoring")).toBe(false)
+        expect(setRestoring.mock.calls).toEqual([[true]])
         expect(String(db.execute.mock.calls[0][0])).toContain("easytask-pre-restore-")
         expect(files.get("/data/easytask.db")).toBe(999)
         expect(files.has("/data/easytask.db-wal")).toBe(false)
@@ -227,5 +266,38 @@ describe("restoreBackup", () => {
         vi.mocked(copyFile).mockRejectedValueOnce(new Error("locked"))
         await expect(restoreBackup("easytask-20260101-100000.db")).rejects.toThrow("locked")
         expect(relaunch).not.toHaveBeenCalled()
+        // the temp file is cleaned up and the db is usable again
+        expect(files.has("/data/easytask.db.restoring")).toBe(false)
+        expect(setRestoring.mock.calls).toEqual([[true], [false]])
+    })
+
+    it("rejects a backup of another application, without touching the database", async () => {
+        seed("easytask-20260101-100000.db")
+        validationRows.application_id = 0
+        await expect(restoreBackup("easytask-20260101-100000.db")).rejects.toMatchObject({ code: "BACKUP_INVALID" })
+        expect(validation.close).toHaveBeenCalled()
+        expect(closeDB).not.toHaveBeenCalled()
+        expect(db.execute).not.toHaveBeenCalled()
+    })
+
+    it("rejects a backup from a newer schema", async () => {
+        seed("easytask-20260101-100000.db")
+        validationRows.user_version = LATEST_SCHEMA_VERSION + 1
+        await expect(restoreBackup("easytask-20260101-100000.db")).rejects.toMatchObject({ code: "BACKUP_NEWER" })
+        expect(closeDB).not.toHaveBeenCalled()
+    })
+
+    it("rejects a backup failing the integrity check", async () => {
+        seed("easytask-20260101-100000.db")
+        validationRows.integrity = "*** in database main ***"
+        await expect(restoreBackup("easytask-20260101-100000.db")).rejects.toMatchObject({ code: "BACKUP_INVALID" })
+        expect(closeDB).not.toHaveBeenCalled()
+    })
+
+    it("rejects a file that cannot be opened as a database", async () => {
+        seed("easytask-20260101-100000.db")
+        loadValidation.mockRejectedValueOnce(new Error("file is not a database"))
+        await expect(restoreBackup("easytask-20260101-100000.db")).rejects.toMatchObject({ code: "BACKUP_INVALID" })
+        expect(closeDB).not.toHaveBeenCalled()
     })
 })

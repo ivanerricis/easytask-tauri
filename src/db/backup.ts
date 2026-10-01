@@ -1,15 +1,19 @@
 import { join } from "@tauri-apps/api/path"
-import { copyFile, exists, mkdir, readDir, remove, stat } from "@tauri-apps/plugin-fs"
+import { copyFile, exists, mkdir, readDir, remove, rename, stat } from "@tauri-apps/plugin-fs"
 import { relaunch } from "@tauri-apps/plugin-process"
+import Database from "@tauri-apps/plugin-sql"
+import i18n from "@/i18n"
 import { reportError } from "@/lib/report-error"
 import { getAutoBackup, getBackupKeep } from "@/lib/store/preferences"
+import { createError } from "@/types/error"
 import { ensureAppFolder } from "./appPaths"
-import { closeDB, DB_FILE, getDB } from "./dbManager"
+import { closeDB, DB_FILE, getDB, setRestoring } from "./dbManager"
+import { APPLICATION_ID, LATEST_SCHEMA_VERSION } from "./initDb"
 
 export const BACKUP_FOLDER = "backups"
 
-const REGULAR_PATTERN = /^easytask-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.db$/
-const PRE_RESTORE_PATTERN = /^easytask-pre-restore-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})\.db$/
+const REGULAR_PATTERN = /^easytask-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:-(\d+))?\.db$/
+const PRE_RESTORE_PATTERN = /^easytask-pre-restore-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:-(\d+))?\.db$/
 
 export type BackupKind = "manual" | "auto" | "pre-restore"
 
@@ -33,18 +37,18 @@ export function formatTimestamp(date: Date): string {
     return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
 }
 
-/** Builds the file name of a backup taken at `date`. */
-export function backupFileName(date: Date, preRestore = false): string {
-    return `easytask-${preRestore ? "pre-restore-" : ""}${formatTimestamp(date)}.db`
+/** Builds the file name of a backup taken at `date`; `sequence` (>= 2) disambiguates backups taken in the same second. */
+export function backupFileName(date: Date, preRestore = false, sequence = 1): string {
+    return `easytask-${preRestore ? "pre-restore-" : ""}${formatTimestamp(date)}${sequence > 1 ? `-${sequence}` : ""}.db`
 }
 
 /** Reads the date out of a backup file name; null when the name is not a backup name. */
-export function parseBackupName(name: string): { date: Date, preRestore: boolean } | null {
+export function parseBackupName(name: string): { date: Date, preRestore: boolean, sequence: number } | null {
     const preRestore = PRE_RESTORE_PATTERN.exec(name)
     const match = preRestore ?? REGULAR_PATTERN.exec(name)
     if (!match) return null
-    const [year, month, day, hour, minute, second] = match.slice(1).map(Number)
-    return { date: new Date(year, month - 1, day, hour, minute, second), preRestore: preRestore !== null }
+    const [year, month, day, hour, minute, second] = match.slice(1, 7).map(Number)
+    return { date: new Date(year, month - 1, day, hour, minute, second), preRestore: preRestore !== null, sequence: match[7] ? Number(match[7]) : 1 }
 }
 
 async function backupFolderPath(): Promise<string> {
@@ -68,7 +72,8 @@ export async function listBackups(): Promise<BackupInfo[]> {
         const size = await stat(path).then(info => info.size, () => 0)
         backups.push({ name: entry.name, path, size, date: parsed.date, preRestore: parsed.preRestore })
     }
-    return backups.sort((a, b) => b.date.getTime() - a.date.getTime() || b.name.localeCompare(a.name))
+    const sequenceOf = (backup: BackupInfo) => parseBackupName(backup.name)?.sequence ?? 1
+    return backups.sort((a, b) => b.date.getTime() - a.date.getTime() || sequenceOf(b) - sequenceOf(a) || b.name.localeCompare(a.name))
 }
 
 /**
@@ -93,8 +98,13 @@ export async function createBackup(kind: BackupKind = "manual"): Promise<BackupI
     const folder = await backupFolderPath()
     const date = new Date()
     const preRestore = kind === "pre-restore"
-    const name = backupFileName(date, preRestore)
-    const path = await join(folder, name)
+    // Two backups in the same second would make VACUUM INTO fail on the existing file: add a numeric suffix
+    let name = backupFileName(date, preRestore)
+    let path = await join(folder, name)
+    for (let sequence = 2; await exists(path); sequence++) {
+        name = backupFileName(date, preRestore, sequence)
+        path = await join(folder, name)
+    }
 
     const db = await getDB()
     // The file name goes into the SQL as a literal: single quotes are escaped by doubling them
@@ -144,8 +154,39 @@ export async function deleteBackup(name: string): Promise<void> {
 }
 
 /**
- * Replaces the database with a backup and restarts the app. A pre-restore copy of the current database
- * is taken first; the database is closed and its -wal/-shm files removed before the copy.
+ * Opens a backup read-only and checks that it is an EasyTask database this build can use:
+ * application_id, user_version not newer than the known migrations and PRAGMA integrity_check.
+ * @throws A "BACKUP_INVALID" error (translated) when the file is not a usable EasyTask database.
+ * @category Database
+ */
+async function validateBackupFile(path: string): Promise<void> {
+    const invalid = () => createError("BACKUP_INVALID", i18n.t("errors.backup.invalid"))
+    let db: Database
+    try {
+        db = await Database.load(`sqlite:${path}?mode=ro`)
+    } catch {
+        throw invalid()
+    }
+    try {
+        const [{ application_id: applicationId = 0 } = {}] = await db.select<{ application_id: number }[]>("PRAGMA application_id")
+        const [{ user_version: version = 0 } = {}] = await db.select<{ user_version: number }[]>("PRAGMA user_version")
+        if (applicationId !== APPLICATION_ID) throw invalid()
+        if (version > LATEST_SCHEMA_VERSION) throw createError("BACKUP_NEWER", i18n.t("errors.backup.newer"))
+        const check = await db.select<{ integrity_check: string }[]>("PRAGMA integrity_check")
+        if (check.length !== 1 || check[0].integrity_check !== "ok") throw invalid()
+    } catch (error) {
+        if (typeof error === "object" && error !== null && "code" in error) throw error
+        throw invalid()
+    } finally {
+        await db.close().catch(() => false)
+    }
+}
+
+/**
+ * Replaces the database with a backup and restarts the app. The backup is validated first (see validateBackupFile),
+ * then a pre-restore copy of the current database is taken. The database is closed (getDB() rejects meanwhile),
+ * its -wal/-shm files removed, and the backup copied to "<db>.restoring" and renamed over the database, so a
+ * failure never leaves a half-written database.
  * @category Database
  */
 export async function restoreBackup(name: string): Promise<void> {
@@ -154,14 +195,30 @@ export async function restoreBackup(name: string): Promise<void> {
     const source = await join(folder, name)
     if (!(await exists(source))) throw new Error(`Backup not found: ${name}`)
 
+    await validateBackupFile(source)
     await createBackup("pre-restore")
-    await closeDB()
 
     const target = await join(await ensureAppFolder(), DB_FILE)
-    for (const suffix of ["-wal", "-shm"]) {
-        const sidecar = `${target}${suffix}`
-        if (await exists(sidecar)) await remove(sidecar)
+    const temp = `${target}.restoring`
+    let relaunching = false
+    setRestoring(true)
+    try {
+        await closeDB()
+        for (const suffix of ["-wal", "-shm"]) {
+            const sidecar = `${target}${suffix}`
+            if (await exists(sidecar)) await remove(sidecar)
+        }
+        try {
+            await copyFile(source, temp)
+            await rename(temp, target)
+        } catch (error) {
+            await remove(temp).catch(() => undefined)
+            throw error
+        }
+        relaunching = true
+        await relaunch()
+    } finally {
+        // On success the app is restarting: keep refusing the database until the process exits
+        if (!relaunching) setRestoring(false)
     }
-    await copyFile(source, target)
-    await relaunch()
 }
