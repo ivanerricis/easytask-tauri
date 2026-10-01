@@ -1,14 +1,20 @@
-import { fireEvent, render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { describe, expect, it, vi } from "vitest"
+import { toast } from "sonner"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import { ItemMenuButton } from "@/components/item-menu"
 import { makeNote } from "@/test/ui-fixtures"
 
 const openNote = vi.fn()
+const duplicateNote = vi.fn()
+const create = vi.fn()
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create }) }))
 
 vi.mock("@/contexts/workspace-data", () => ({
-    useWorkspaceActions: () => ({ getWorkspaceData: vi.fn(), updateItemColor: vi.fn() }),
+    useWorkspaceActions: () => ({ getWorkspaceData: vi.fn(), updateItemColor: vi.fn(), duplicateNote }),
 }))
 vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote }) }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
@@ -22,7 +28,12 @@ vi.mock("@/components/dialogs/dialog-rename", () => ({
     DialogRenameItem: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div>Dialog rinomina</div> : null,
 }))
 
-const ENTRIES = ["Apri", "Rinomina", "Cambia colore", "Crea template", "Elimina"]
+const ENTRIES = ["Apri", "Rinomina", "Duplica", "Cambia colore", "Crea template", "Elimina"]
+
+beforeEach(() => {
+    vi.clearAllMocks()
+    duplicateNote.mockResolvedValue(9)
+})
 
 const setup = () => {
     render(
@@ -75,6 +86,28 @@ describe("ButtonMenuNote", () => {
         fireEvent.contextMenu(row)
         await user.click(await screen.findByText("Crea template"))
         expect(await screen.findByText("Dialog template 4")).toBeInTheDocument()
+    })
+
+    it("duplicates the note, records the creation, opens the copy and confirms", async () => {
+        const user = userEvent.setup()
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Duplica"))
+        await waitFor(() => expect(openNote).toHaveBeenCalledWith(9))
+        expect(duplicateNote).toHaveBeenCalledWith(4)
+        expect(create).toHaveBeenCalledWith("note", 9, null)
+        expect(toast.success).toHaveBeenCalledWith("Nota duplicata")
+    })
+
+    it("shows the error and opens nothing when the duplication fails", async () => {
+        const user = userEvent.setup()
+        duplicateNote.mockRejectedValueOnce(new Error("boom"))
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Duplica"))
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith("boom"))
+        expect(openNote).not.toHaveBeenCalled()
+        expect(create).not.toHaveBeenCalled()
     })
 
     it("does not open the menu on a right click inside a text field", () => {

@@ -3,10 +3,11 @@ import type { Group } from "@/types/types"
 import { createDBSection, createDBSectionInGroup } from "@/db/queries/section"
 import { createDBGroup, updateDBGroupPositions } from "@/db/queries/group"
 import { moveDBSection, moveDBSectionToNewGroup } from "@/db/queries/move"
+import { duplicateDBSection } from "@/db/queries/duplicate"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type NoteContentActions = Pick<WorkspaceActionsType,
-    "createGroup" | "createSection" | "createSectionInGroup" | "updateGroupsPositions" | "moveSection" | "moveSectionToNewGroup">
+    "createGroup" | "createSection" | "createSectionInGroup" | "updateGroupsPositions" | "moveSection" | "moveSectionToNewGroup" | "duplicateSection">
 
 /**
  * Groups and sections of the open note. The creations resolve with the ids of the new rows (the callers build
@@ -55,5 +56,16 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
     const moveSectionToNewGroup = useCallback((sectionID: number, groupPosition: number) =>
         withTrashChange(() => moveDBSectionToNewGroup(sectionID, groupPosition)), [withTrashChange])
 
-    return useMemo(() => ({ createGroup, createSection, createSectionInGroup, updateGroupsPositions, moveSection, moveSectionToNewGroup }), [ createGroup, createSection, createSectionInGroup, updateGroupsPositions, moveSection, moveSectionToNewGroup ])
+    /**
+     * Duplicates a section with its tasks, right after the original in its group. It does NOT reload the data:
+     * the caller refreshes the active note.
+     * @param sectionID - The ID of the section to duplicate.
+     * @returns The ID of the copy.
+     * @throws Will throw an error if the section no longer exists or the copy cannot be written.
+     * @category Workspace Data Context
+     */
+    const duplicateSection = useCallback((sectionID: number) =>
+        withLoading(() => duplicateDBSection(sectionID)), [withLoading])
+
+    return useMemo(() => ({ createGroup, createSection, createSectionInGroup, updateGroupsPositions, moveSection, moveSectionToNewGroup, duplicateSection }), [ createGroup, createSection, createSectionInGroup, updateGroupsPositions, moveSection, moveSectionToNewGroup, duplicateSection ])
 }
