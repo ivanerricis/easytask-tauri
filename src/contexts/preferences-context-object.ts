@@ -45,6 +45,8 @@ export type PreferencesContextType = {
     setSidebarRightWidth: (value: number) => void
     rightPanelTab: RightPanelTab
     setRightPanelTab: (value: RightPanelTab) => void
+    colorIntensity: number
+    setColorIntensity: (value: number) => void
     language: LanguagePreference
     setLanguage: (value: LanguagePreference) => void
 }

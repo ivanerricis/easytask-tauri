@@ -4,6 +4,8 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { openUrl } from "@tauri-apps/plugin-opener"
 import { toast } from "sonner"
 const setSidebarItemSize = vi.fn()
+const setColorIntensity = vi.fn()
+const colorPrefs = { colorIntensity: 1 }
 const audioPrefs = {
     setAudioVolume: vi.fn(),
     setAudioPlayerVisible: vi.fn(),
@@ -42,6 +44,7 @@ vi.mock("@/contexts/use-preferences", () => ({
         audioPlayerScale: 1, setAudioPlayerScale: (value: number) => audioPrefs.setAudioPlayerScale(value),
         audioPlayerOpacity: 0.8, setAudioPlayerOpacity: (value: number) => audioPrefs.setAudioPlayerOpacity(value),
         resetAudioSettings: () => audioPrefs.resetAudioSettings(),
+        colorIntensity: colorPrefs.colorIntensity, setColorIntensity: (value: number) => setColorIntensity(value),
         sidebarItemSize: "normal", setSidebarItemSize: (value: string) => setSidebarItemSize(value),
     }),
 }))
@@ -61,6 +64,8 @@ describe("DialogSettings", () => {
 
     beforeEach(() => {
         setSidebarItemSize.mockReset()
+        setColorIntensity.mockReset()
+        colorPrefs.colorIntensity = 1
         vi.mocked(openUrl).mockReset().mockResolvedValue(undefined)
         vi.mocked(toast.error).mockReset()
     })
@@ -120,6 +125,26 @@ describe("DialogSettings", () => {
 
         await userEvent.click(within(group).getByRole("radio", { name: "Grande" }))
         expect(setSidebarItemSize).toHaveBeenCalledWith("large")
+    })
+
+    it("sets the color intensity with the slider, previews it and can reset it", async () => {
+        colorPrefs.colorIntensity = 1.5
+        const user = await open()
+        const slider = screen.getByRole("slider", { name: "Intensità dei colori" })
+        expect(slider).toHaveValue("150")
+        expect(slider).toHaveAttribute("min", "25")
+        expect(slider).toHaveAttribute("max", "175")
+        expect(slider).toHaveAttribute("step", "5")
+        expect(slider).toHaveAttribute("aria-valuetext", "150%")
+        const swatches = screen.getByTestId("color-intensity-preview").children
+        expect(swatches).toHaveLength(3)
+        expect((swatches[0] as HTMLElement).style.backgroundColor).toBe("rgba(239, 68, 68, 0.45)")
+
+        fireEvent.change(slider, { target: { value: "75" } })
+        expect(setColorIntensity).toHaveBeenCalledWith(0.75)
+
+        await user.click(screen.getByRole("button", { name: "Ripristina" }))
+        expect(setColorIntensity).toHaveBeenLastCalledWith(1)
     })
 
     it("Informazioni is last and shows the app version", async () => {

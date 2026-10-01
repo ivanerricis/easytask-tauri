@@ -153,6 +153,11 @@ export const en: Translation = {
                 previewFolder: "Folder",
                 previewNote: "Note",
             },
+            colorIntensity: {
+                label: "Color intensity",
+                description: "How strongly the colors of folders, notes, groups and sections show. It does not change the task colors.",
+                reset: "Reset",
+            },
         },
         shortcuts: {
             title: "Shortcuts",

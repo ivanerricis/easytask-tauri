@@ -48,12 +48,15 @@ import {
     saveRightPanelTab,
     type RightPanelTab,
     getLanguage,
+    getColorIntensity,
+    saveColorIntensity,
     saveLanguage,
     type SidebarItemSize,
     type WorkspaceView
 } from "@/lib/store/preferences"
 import { applyLanguagePreference, type LanguagePreference } from "@/i18n"
 import type { AudioPlayerPosition } from "@/types/types"
+import { DEFAULT_COLOR_INTENSITY, clampColorIntensity } from "@/lib/color-intensity"
 import { SIDEBAR_DEFAULT_WIDTH, clampSidebarWidth } from "@/lib/sidebar-layout"
 import { PreferencesContext } from "./preferences-context-object"
 
@@ -80,6 +83,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [sidebarLeftWidth, setSidebarLeftWidthState] = useState(SIDEBAR_DEFAULT_WIDTH)
     const [sidebarRightWidth, setSidebarRightWidthState] = useState(SIDEBAR_DEFAULT_WIDTH)
     const [rightPanelTab, setRightPanelTabState] = useState<RightPanelTab>("details")
+    const [colorIntensity, setColorIntensityState] = useState(DEFAULT_COLOR_INTENSITY)
     const [language, setLanguageState] = useState<LanguagePreference>("system")
     const audioPlayerContainerRef =useRef<HTMLDivElement>(null)
 
@@ -102,6 +106,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         getSidebarLeftWidth().then(setSidebarLeftWidthState)
         getSidebarRightWidth().then(setSidebarRightWidthState)
         getRightPanelTab().then(setRightPanelTabState)
+        getColorIntensity().then(setColorIntensityState)
         getLanguage().then(value => {
             setLanguageState(value)
             void applyLanguagePreference(value)
@@ -183,6 +188,12 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const setRightPanelTab = (value: RightPanelTab) => {
         setRightPanelTabState(value)
         saveRightPanelTab(value)
+    }
+
+    const setColorIntensity = (value: number) => {
+        const intensity = clampColorIntensity(value)
+        setColorIntensityState(intensity)
+        saveColorIntensity(intensity)
     }
 
     const setLanguage = (value: LanguagePreference) => {
@@ -298,6 +309,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             setSidebarRightWidth,
             rightPanelTab,
             setRightPanelTab,
+            colorIntensity,
+            setColorIntensity,
             language,
             setLanguage
         }}>

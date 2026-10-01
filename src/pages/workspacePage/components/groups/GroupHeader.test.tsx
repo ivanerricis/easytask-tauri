@@ -3,6 +3,7 @@ import { toast } from "sonner"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { GroupHeader } from "./GroupHeader"
+import { PreferencesContext, type PreferencesContextType } from "@/contexts/preferences-context-object"
 import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 
 const renameItem = vi.fn()
@@ -42,6 +43,15 @@ describe("GroupHeader color", () => {
         const header = container.firstElementChild as HTMLElement
         expect(header.style.backgroundColor).toBe("rgba(255, 0, 0, 0.4)")
         expect(header).not.toHaveClass("bg-background")
+    })
+
+    it("scales the tint by the color intensity preference", () => {
+        const { container } = render(
+            <PreferencesContext.Provider value={{ colorIntensity: 1.5 } as PreferencesContextType}>
+                <GroupHeader group={makeGroup({ name: "G", color: "#ff0000" })} />
+            </PreferencesContext.Provider>,
+        )
+        expect((container.firstElementChild as HTMLElement).style.backgroundColor).toBe("rgba(255, 0, 0, 0.6)")
     })
 
     it("keeps the neutral background without a color", () => {

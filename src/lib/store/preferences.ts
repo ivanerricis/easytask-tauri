@@ -1,6 +1,7 @@
 import type { AudioPlayerPosition } from "@/types/types"
 import { store } from "./initStore"
 import { SIDEBAR_DEFAULT_WIDTH, clampSidebarWidth } from "@/lib/sidebar-layout"
+import { DEFAULT_COLOR_INTENSITY, clampColorIntensity } from "@/lib/color-intensity"
 import { DEFAULT_LANGUAGE_PREFERENCE, isLanguagePreference, type LanguagePreference } from "@/i18n"
 
 const SHOW_PROGRESSBAR_KEY = "showProgressBar"
@@ -26,6 +27,7 @@ const AUTO_BACKUP_KEY = "autoBackup"
 const CHECK_UPDATES_KEY = "checkUpdatesOnStartup"
 const SIDEBAR_LEFT_WIDTH_KEY = "sidebarLeftWidth"
 const SIDEBAR_RIGHT_WIDTH_KEY = "sidebarRightWidth"
+const COLOR_INTENSITY_KEY = "colorIntensity"
 const RIGHT_PANEL_TAB_KEY = "rightPanelTab"
 
 const SAVE_DEBOUNCE_MS = 500
@@ -624,5 +626,25 @@ export const getCheckUpdatesOnStartup = async (): Promise<boolean> => {
  */
 export const saveCheckUpdatesOnStartup = async (value: boolean): Promise<void> => {
     await store.set(CHECK_UPDATES_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets the intensity of the colors of folders, notes, groups and sections.
+ * @returns A promise that resolves to a multiplier between 0.25 and 1.75 (default 1 = 100%; invalid stored values give the default).
+ * @category Store
+ */
+export const getColorIntensity = async (): Promise<number> => {
+    return clampColorIntensity(await store.get<number>(COLOR_INTENSITY_KEY) ?? DEFAULT_COLOR_INTENSITY)
+}
+
+/**
+ * Saves the intensity of the colors of folders, notes, groups and sections.
+ * @param value The multiplier (clamped between 0.25 and 1.75).
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveColorIntensity = async (value: number): Promise<void> => {
+    await store.set(COLOR_INTENSITY_KEY, clampColorIntensity(value))
     await persist()
 }

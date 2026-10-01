@@ -47,6 +47,8 @@ vi.mock("@/lib/store/preferences", async (importOriginal) => ({
     saveSidebarRightWidth: vi.fn(),
     getRightPanelTab: vi.fn(),
     saveRightPanelTab: vi.fn(),
+    getColorIntensity: vi.fn(),
+    saveColorIntensity: vi.fn(),
     getLanguage: vi.fn(),
     saveLanguage: vi.fn(),
 }))
@@ -72,6 +74,7 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getSidebarRightWidth).mockResolvedValue(300)
         vi.mocked(prefs.getRightPanelTab).mockResolvedValue("history")
         vi.mocked(prefs.getLanguage).mockResolvedValue("system")
+        vi.mocked(prefs.getColorIntensity).mockResolvedValue(1.4)
         vi.mocked(prefs.getAudioVolume).mockResolvedValue(0.3)
         vi.mocked(prefs.getAudioPlayerVisible).mockResolvedValue(false)
         vi.mocked(prefs.getAudioPlayerScale).mockResolvedValue(1.2)
@@ -168,6 +171,23 @@ describe("PreferencesContext", () => {
         expect(result.current.audioPlayerScale).toBe(1)
         expect(result.current.audioPlayerOpacity).toBe(1)
         expect(result.current.audioPlayerVisible).toBe(true)
+    })
+
+    it("has the default color intensity, then loads the stored one", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.colorIntensity).toBe(1)
+        await waitFor(() => expect(result.current.colorIntensity).toBe(1.4))
+    })
+
+    it("updates and persists the color intensity (clamped)", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(result.current.colorIntensity).toBe(1.4))
+        act(() => result.current.setColorIntensity(0.1))
+        expect(result.current.colorIntensity).toBe(0.25)
+        expect(prefs.saveColorIntensity).toHaveBeenCalledWith(0.25)
+        act(() => result.current.setColorIntensity(1))
+        expect(result.current.colorIntensity).toBe(1)
+        expect(prefs.saveColorIntensity).toHaveBeenCalledWith(1)
     })
 
     it("pulls the player back inside the container when it gets bigger", async () => {
