@@ -17,38 +17,18 @@
     "dialog:allow-save",
     "fs:allow-write-text-file",
     "fs:allow-read-text-file",
+    "fs:allow-exists",
+    "fs:allow-mkdir",
+    "fs:allow-copy-file",
+    "fs:allow-read-dir",
+    "fs:allow-remove",
+    "fs:allow-stat",
     {
       "identifier": "opener:allow-open-url",
       "allow": [
-        { "url": "https://github.com/ivanerricis/easytask-tauri" }
-      ]
-    },
-    {
-      "identifier": "opener:allow-open-path",
-      "allow": [
-        { "path": "$DOCUMENT/EasyTask" },
-        { "path": "$DOCUMENT/EasyTask/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-exists",
-      "allow": [
-        { "path": "$DOCUMENT/EasyTask" },
-        { "path": "$DOCUMENT/EasyTask/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-mkdir",
-      "allow": [
-        { "path": "$DOCUMENT/EasyTask" },
-        { "path": "$DOCUMENT/EasyTask/**" }
-      ]
-    },
-    {
-      "identifier": "fs:allow-copy-file",
-      "allow": [
-        { "path": "$DOCUMENT/EasyTask" },
-        { "path": "$DOCUMENT/EasyTask/**" }
+        {
+          "url": "https://github.com/ivanerricis/easytask-tauri"
+        }
       ]
     },
     "sql:allow-load",
@@ -62,6 +42,7 @@
     "store:allow-delete",
     "store:allow-save",
     "clipboard-manager:allow-read-text",
-    "clipboard-manager:allow-write-text"
+    "clipboard-manager:allow-write-text",
+    "process:allow-restart"
   ]
 }

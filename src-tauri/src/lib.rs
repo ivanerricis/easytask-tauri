@@ -1,5 +1,93 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use tauri::Manager;
+use tauri_plugin_fs::FsExt;
+
+/// Marker file: when it sits next to the executable the app runs in portable mode.
+const PORTABLE_MARKER: &str = "portable.txt";
+/// Environment variable that overrides the data folder (used by the e2e tests).
+const DATA_DIR_ENV: &str = "EASYTASK_DATA_DIR";
+/// Name of the data folder inside the user's Documents folder (installed mode).
+const APP_FOLDER: &str = "EasyTask";
+/// Log files rotate at this size and this many are kept.
+const LOG_MAX_FILE_SIZE: u128 = 1_000_000;
+const LOG_FILES_KEPT: usize = 5;
+/// Subfolders of the data folder the UI is allowed to open in the file manager.
+const OPENABLE_SUBFOLDERS: [&str; 2] = ["backups", "logs"];
+
+/// Where the app keeps its data and whether it runs in portable mode.
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct DataDirInfo {
+    path: PathBuf,
+    portable: bool,
+}
+
+/// Decides the data folder. Priority: the `EASYTASK_DATA_DIR` override (portable only if `portable.txt`
+/// exists), then `<exe folder>/data` when `portable.txt` sits next to the executable, then `<Documents>/EasyTask`.
+fn resolve_data_dir(env_dir: Option<&str>, exe_dir: &Path, documents: &Path) -> DataDirInfo {
+    let portable = exe_dir.join(PORTABLE_MARKER).is_file();
+    let path = match env_dir.map(str::trim).filter(|dir| !dir.is_empty()) {
+        Some(dir) => PathBuf::from(dir),
+        None if portable => exe_dir.join("data"),
+        None => documents.join(APP_FOLDER),
+    };
+    DataDirInfo { path, portable }
+}
+
+/// Resolves the data folder for the running app and creates it when missing.
+fn locate_data_dir(app: &tauri::AppHandle) -> Result<DataDirInfo, String> {
+    let exe = std::env::current_exe()
+        .map_err(|error| format!("cannot locate the executable: {error}"))?;
+    let exe_dir = exe
+        .parent()
+        .ok_or_else(|| "the executable has no parent folder".to_string())?;
+    let documents = app
+        .path()
+        .document_dir()
+        .map_err(|error| format!("cannot locate the Documents folder: {error}"))?;
+    let env_dir = std::env::var(DATA_DIR_ENV).ok();
+    let info = resolve_data_dir(env_dir.as_deref(), exe_dir, &documents);
+    std::fs::create_dir_all(&info.path).map_err(|error| {
+        format!(
+            "cannot create the data folder {}: {error}",
+            info.path.display()
+        )
+    })?;
+    Ok(info)
+}
+
+/// Absolute path of the data folder (database, settings, backups, logs). Created at startup.
+#[tauri::command]
+fn data_dir(info: tauri::State<'_, DataDirInfo>) -> String {
+    info.path.to_string_lossy().into_owned()
+}
+
+/// True when the app runs in portable mode (`portable.txt` next to the executable).
+#[tauri::command]
+fn is_portable(info: tauri::State<'_, DataDirInfo>) -> bool {
+    info.portable
+}
+
+/// Opens the data folder (or one of its allowed subfolders) in the file manager.
+#[tauri::command]
+fn open_data_folder(
+    app: tauri::AppHandle,
+    info: tauri::State<'_, DataDirInfo>,
+    subfolder: Option<String>,
+) -> Result<(), String> {
+    use tauri_plugin_opener::OpenerExt;
+
+    let mut target = info.path.clone();
+    if let Some(name) = subfolder {
+        if !OPENABLE_SUBFOLDERS.contains(&name.as_str()) {
+            return Err("folder not allowed".to_string());
+        }
+        target.push(name);
+        std::fs::create_dir_all(&target).map_err(|error| error.to_string())?;
+    }
+    app.opener()
+        .open_path(target.to_string_lossy(), None::<&str>)
+        .map_err(|error| error.to_string())
+}
 
 /// Extensions (lowercase) of the audio files the app is allowed to check and play.
 /// Keep in sync with AUDIO_EXTENSIONS in src/db/queries/audio.ts.
@@ -137,28 +225,74 @@ async fn db_transaction(
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let mut builder = tauri::Builder::default()
+    tauri::Builder::default()
         .plugin(tauri_plugin_window_state::Builder::default().build())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
         .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(tauri_plugin_opener::init())
-        .plugin(tauri_plugin_clipboard_manager::init());
+        .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_process::init())
+        .setup(|app| {
+            let info = locate_data_dir(app.handle())?;
 
-    if cfg!(debug_assertions) {
-        builder = builder.plugin(
-            tauri_plugin_log::Builder::default()
+            // Runtime scope limited to the data folder (no global scope in the capabilities).
+            app.fs_scope().allow_directory(&info.path, true)?;
+            app.asset_protocol_scope()
+                .allow_directory(&info.path, true)?;
+
+            // File logging (rotated by size) in <data>/logs, also in release builds.
+            let mut log = tauri_plugin_log::Builder::default()
+                .clear_targets()
                 .level(log::LevelFilter::Info)
-                .build(),
-        );
-    }
+                .max_file_size(LOG_MAX_FILE_SIZE)
+                .rotation_strategy(tauri_plugin_log::RotationStrategy::KeepSome(LOG_FILES_KEPT))
+                .target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Folder {
+                        path: info.path.join("logs"),
+                        file_name: Some("easytask".to_string()),
+                    },
+                ));
+            if cfg!(debug_assertions) {
+                log = log.target(tauri_plugin_log::Target::new(
+                    tauri_plugin_log::TargetKind::Stdout,
+                ));
+            }
+            app.handle().plugin(log.build())?;
+            log::info!(
+                "data folder: {} (portable: {})",
+                info.path.display(),
+                info.portable
+            );
 
-    builder
+            // The main window is created here (create: false in tauri.conf.json) so that, in portable mode,
+            // WebView2 keeps its user data folder inside the data folder.
+            let config = app
+                .config()
+                .app
+                .windows
+                .first()
+                .cloned()
+                .ok_or("no window configured")?;
+            #[allow(unused_mut)]
+            let mut window = tauri::WebviewWindowBuilder::from_config(app.handle(), &config)?;
+            #[cfg(windows)]
+            if info.portable {
+                window = window.data_directory(info.path.join("webview"));
+            }
+            window.build()?;
+
+            app.manage(info);
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             audio_file_exists,
             allow_audio_file,
-            db_transaction
+            db_transaction,
+            data_dir,
+            is_portable,
+            open_data_folder
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -247,6 +381,49 @@ mod tests {
         std::fs::create_dir_all(&audio_dir).unwrap();
         assert!(!is_audio_file(audio_dir.to_str().unwrap()));
         std::fs::remove_dir_all(&dir).unwrap();
+    }
+
+    #[test]
+    fn data_dir_defaults_to_documents_folder() {
+        let exe = temp_dir("dd-exe-plain");
+        let docs = temp_dir("dd-docs-plain");
+        let info = resolve_data_dir(None, &exe, &docs);
+        assert_eq!(info.path, docs.join("EasyTask"));
+        assert!(!info.portable);
+    }
+
+    #[test]
+    fn data_dir_is_next_to_the_executable_in_portable_mode() {
+        let exe = temp_dir("dd-exe-portable");
+        std::fs::write(exe.join("portable.txt"), b"").unwrap();
+        let info = resolve_data_dir(None, &exe, &temp_dir("dd-docs-portable"));
+        assert_eq!(info.path, exe.join("data"));
+        assert!(info.portable);
+    }
+
+    #[test]
+    fn data_dir_env_override_wins_and_is_not_portable() {
+        let exe = temp_dir("dd-exe-env");
+        let info = resolve_data_dir(Some("/tmp/custom"), &exe, &temp_dir("dd-docs-env"));
+        assert_eq!(info.path, PathBuf::from("/tmp/custom"));
+        assert!(!info.portable);
+    }
+
+    #[test]
+    fn data_dir_env_override_keeps_portable_flag_with_marker() {
+        let exe = temp_dir("dd-exe-env-marker");
+        std::fs::write(exe.join("portable.txt"), b"").unwrap();
+        let info = resolve_data_dir(Some("/tmp/custom"), &exe, &temp_dir("dd-docs-env-marker"));
+        assert_eq!(info.path, PathBuf::from("/tmp/custom"));
+        assert!(info.portable);
+    }
+
+    #[test]
+    fn data_dir_blank_env_is_ignored() {
+        let exe = temp_dir("dd-exe-blank");
+        let docs = temp_dir("dd-docs-blank");
+        let info = resolve_data_dir(Some("  "), &exe, &docs);
+        assert_eq!(info.path, docs.join("EasyTask"));
     }
 
     async fn memory_pool() -> sqlx::SqlitePool {
