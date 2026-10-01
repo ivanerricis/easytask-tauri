@@ -36,6 +36,8 @@ Default shortcuts (all but the fixed ones can be changed in Settings > Shortcuts
 | `Ctrl+O` | Search notes |
 | `Ctrl+L` / `Ctrl+T` | Close the current note / close all notes |
 | `Ctrl+B` | Toggle the sidebar |
+| `Ctrl+Shift+B` | Toggle the right sidebar |
+| `Ctrl+Shift+H` | Hide / show completed tasks |
 | `Ctrl+H` | Go to the home page |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo (not active while typing in a text field) |
 
