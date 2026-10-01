@@ -18,6 +18,7 @@
     "e2e": "wdio run e2e/wdio.conf.ts",
     "release:bump": "node scripts/bump-version.mjs",
     "release:check": "node scripts/check-versions.mjs",
+    "ui-tour": "wdio run e2e/ui-tour/wdio.ui-tour.conf.ts",
     "e2e:typecheck": "tsc -p e2e/tsconfig.json"
   },
   "dependencies": {
