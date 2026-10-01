@@ -1,4 +1,5 @@
 import { $, $$, browser, expect } from "@wdio/globals"
+import type { ChainablePromiseElement } from "webdriverio"
 import {
     byLabel, byText, createFromSidebar, createWorkspace, openContextMenu, openSubmenu, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
     waitForApp,
@@ -41,6 +42,15 @@ const openTaskMenu = async (text: string) => {
     const menu = $('[role="menu"]')
     await menu.waitForDisplayed()
     return menu
+}
+
+/**
+ * Clicks through the DOM: on WebKitGTK a tooltip left open by the previous step can cover the target and make a
+ * WebDriver click fail with "element click intercepted".
+ */
+const domClick = async (element: ChainablePromiseElement) => {
+    const resolved = (await element.getElement()) as unknown as HTMLElement
+    await browser.execute((el: HTMLElement) => el.click(), resolved)
 }
 
 describe("Workspace, folders, notes, groups, sections and tasks", () => {
@@ -148,19 +158,19 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
 
     it("hides the completed tasks and shows them again", async () => {
         const checkbox = sectionCard(SECTION_B).$('[role="checkbox"]')
-        await checkbox.click()
+        await domClick(checkbox)
         await expect(checkbox).toHaveAttribute("aria-checked", "true")
 
         const toggle = byLabel(await tr("notes.hideCompleted"))
-        await toggle.click()
+        await domClick(toggle)
         await expect(toggle).toHaveAttribute("aria-pressed", "true")
         await browser.waitUntil(async () => !(await taskValues(SECTION_B)).includes(TASK), { timeoutMsg: "the completed task is still shown" })
         await expect(sectionCard(SECTION_B).$("[data-testid=\"hidden-completed\"]")).toHaveText(await tr("tasks.hiddenCompleted_one", { count: 1 }))
 
-        await toggle.click()
+        await domClick(toggle)
         await expect(toggle).toHaveAttribute("aria-pressed", "false")
         await browser.waitUntil(async () => (await taskValues(SECTION_B)).includes(TASK), { timeoutMsg: "the completed task is not shown again" })
-        await sectionCard(SECTION_B).$('[role="checkbox"]').click()
+        await domClick(sectionCard(SECTION_B).$('[role="checkbox"]'))
     })
 
     it("duplicates a section with its tasks", async () => {
