@@ -23,6 +23,8 @@ const isWindows = process.platform === "win32"
 const binName = isWindows ? "EasyTask.exe" : "EasyTask"
 const application = process.env.E2E_APP ?? path.join(root, "src-tauri", "target", "debug", binName)
 
+const edgeArgs = (process.env.E2E_EDGE_ARGS ?? "").split(/\s+/).filter(Boolean)
+
 let dataDir = ""
 let tauriDriver: ChildProcess | undefined
 let exiting = false
@@ -87,7 +89,8 @@ export const config: Options.Testrunner & { capabilities: unknown[] } = {
     capabilities: [
         {
             maxInstances: 1,
-            "tauri:options": { application },
+            // E2E_EDGE_ARGS (space separated, e.g. "--no-sandbox") is passed to the WebView2 browser by tauri-driver
+            "tauri:options": { application, ...(edgeArgs.length > 0 ? { args: edgeArgs } : {}) },
         },
     ],
     reporters: ["spec"],
