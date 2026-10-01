@@ -13,7 +13,7 @@ dist
 dist-ssr
 *.local
 target
-gen
+src-tauri/gen
 
 # Editor directories and files
 .vscode/*
@@ -26,6 +26,10 @@ gen
 *.sln
 *.sw?
 
+# Claude Code local settings and worktrees
+.claude/
+
 # Env and TS build info
 .env*
 *.tsbuildinfo
+coverage/

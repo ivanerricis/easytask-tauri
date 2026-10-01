@@ -17,6 +17,8 @@ yanked = "deny"
 ignore = [
     # Add accepted advisories here with a reason, e.g.:
     # { id = "RUSTSEC-0000-0000", reason = "transitive dependency of tauri, no patched version available" },
+    # Same justification as src-tauri/.cargo/audit.toml
+    { id = "RUSTSEC-2023-0071", reason = "rsa (Marvin attack, no fix available) is only reached through sqlx-mysql, which is in Cargo.lock because of sqlx-macros-core but is never compiled: the app uses SQLite only. Revisit when sqlx drops the lockfile entry." },
 ]
 
 [licenses]

@@ -5,6 +5,7 @@ import { openUrl } from "@tauri-apps/plugin-opener"
 import { toast } from "sonner"
 const setSidebarItemSize = vi.fn()
 const setColorIntensity = vi.fn()
+const setHideCompletedTasks = vi.fn()
 const colorPrefs = { colorIntensity: 1 }
 const audioPrefs = {
     setAudioVolume: vi.fn(),
@@ -36,6 +37,7 @@ vi.mock("@/contexts/use-preferences", () => ({
         showGroupProgressBar: true, setShowGroupProgressBar: vi.fn(),
         showSectionCount: true, setShowSectionCount: vi.fn(),
         showTaskCount: true, setShowTaskCount: vi.fn(),
+        hideCompletedTasks: false, setHideCompletedTasks: (value: boolean) => setHideCompletedTasks(value),
         reopenNotes: true, setReopenNotes: vi.fn(),
         reopenLastWorkspace: false, setReopenLastWorkspace: vi.fn(),
         resetPlayerPosition: vi.fn(),
@@ -65,6 +67,7 @@ describe("DialogSettings", () => {
     beforeEach(() => {
         setSidebarItemSize.mockReset()
         setColorIntensity.mockReset()
+        setHideCompletedTasks.mockReset()
         colorPrefs.colorIntensity = 1
         vi.mocked(openUrl).mockReset().mockResolvedValue(undefined)
         vi.mocked(toast.error).mockReset()
@@ -78,12 +81,20 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("button", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
-        expect(screen.getAllByRole("switch")).toHaveLength(6)
+        expect(screen.getAllByRole("switch")).toHaveLength(7)
+        expect(screen.getByRole("switch", { name: "Nascondi i task completati" })).not.toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()
 
         await user.click(screen.getByRole("button", { name: "Audio" }))
         expect(screen.getByRole("button", { name: "Ripristina" })).toBeInTheDocument()
+    })
+
+    it("toggles the hide completed tasks preference", async () => {
+        const user = await open()
+        await user.click(screen.getByRole("button", { name: "Note e sezioni" }))
+        await user.click(screen.getByRole("switch", { name: "Nascondi i task completati" }))
+        expect(setHideCompletedTasks).toHaveBeenCalledWith(true)
     })
 
     it("shows the audio settings and changes them", async () => {

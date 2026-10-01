@@ -29,6 +29,8 @@ const SIDEBAR_LEFT_WIDTH_KEY = "sidebarLeftWidth"
 const SIDEBAR_RIGHT_WIDTH_KEY = "sidebarRightWidth"
 const COLOR_INTENSITY_KEY = "colorIntensity"
 const RIGHT_PANEL_TAB_KEY = "rightPanelTab"
+const HIDE_COMPLETED_TASKS_KEY = "hideCompletedTasks"
+export const DEFAULT_PRIMARY_COLOR = "#ffb375"
 
 const SAVE_DEBOUNCE_MS = 500
 
@@ -221,13 +223,14 @@ export const saveShowGroupProgressBar = async (value: boolean): Promise<void> =>
 
 /**
  * Gets the primary color preference.
- * If no value is set, it defaults to "#ffb375".
+ * If no value is set (or it is not a hex color), it defaults to "#ffb375".
  * @returns A promise that resolves to the primary color hex code.
  * @category Store
  */
 export const getPrimaryColor = async (): Promise<string> => {
-    const value = await store.get<{ hex: string }>(PRIMARY_COLOR_KEY)
-    return value?.hex ?? "#ffb375"
+    const value = await store.get<{ hex: unknown }>(PRIMARY_COLOR_KEY)
+    const hex = value?.hex
+    return typeof hex === "string" && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex) ? hex : DEFAULT_PRIMARY_COLOR
 }
 
 /**
@@ -326,13 +329,15 @@ export const saveSideBarRightOpen = async (value: boolean): Promise<void> => {
 
 /**
  * Gets the current position of the audio player.
- * If no position is set, it defaults to { x: 0, y: 0, scaleX: 1, scaleY: 1 }.
+ * If no position is set (or it is not made of finite numbers), it defaults to { x: 0, y: 0, scaleX: 1, scaleY: 1 }.
  * @returns A promise that resolves to an object containing the audio player's position and scale.
  * @category Store
  */
 export const getAudioPlayerPosition = async (): Promise<AudioPlayerPosition> => {
-    const value = await store.get<AudioPlayerPosition>(AUDIOPLAYER_POSITION_KEY)
-    return value ?? { x: 0, y: 0, scaleX: 1, scaleY: 1 }
+    const value = await store.get<Partial<AudioPlayerPosition>>(AUDIOPLAYER_POSITION_KEY)
+    const finite = (n: unknown): n is number => typeof n === "number" && Number.isFinite(n)
+    if (!value || typeof value !== "object" || !finite(value.x) || !finite(value.y)) return { x: 0, y: 0, scaleX: 1, scaleY: 1 }
+    return { x: value.x, y: value.y, scaleX: finite(value.scaleX) ? value.scaleX : 1, scaleY: finite(value.scaleY) ? value.scaleY : 1 }
 }
 
 /**
@@ -646,5 +651,26 @@ export const getColorIntensity = async (): Promise<number> => {
  */
 export const saveColorIntensity = async (value: number): Promise<void> => {
     await store.set(COLOR_INTENSITY_KEY, clampColorIntensity(value))
+    await persist()
+}
+
+/**
+ * Gets whether the completed tasks are hidden in the notes.
+ * @returns A promise that resolves to a boolean (default false).
+ * @category Store
+ */
+export const getHideCompletedTasks = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(HIDE_COMPLETED_TASKS_KEY)
+    return value ?? false
+}
+
+/**
+ * Saves whether the completed tasks are hidden in the notes.
+ * @param value A boolean indicating whether the completed tasks are hidden.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveHideCompletedTasks = async (value: boolean): Promise<void> => {
+    await store.set(HIDE_COMPLETED_TASKS_KEY, value)
     await persist()
 }

@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useLocation } from "react-router-dom"
 import { invoke } from "@tauri-apps/api/core"
@@ -17,6 +18,15 @@ export const DataSettings = () => {
     const { pathname } = useLocation()
     // currentWorkspace is not cleared on the start page: offer the export only inside a workspace
     const current = pathname.startsWith("/workspace/") ? currentWorkspace : null
+
+    const [inOneDrive, setInOneDrive] = useState(false)
+
+    useEffect(() => {
+        // Best effort: a failed check just hides the warning
+        invoke<boolean>("data_dir_in_onedrive")
+            .then(setInOneDrive)
+            .catch(() => setInOneDrive(false))
+    }, [])
 
     const openDataFolder = async () => {
         try {
@@ -48,6 +58,11 @@ export const DataSettings = () => {
                     {t("settings.data.folder.button")}
                 </Button>
             </SettingsRow>
+            {inOneDrive && (
+                <p role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs">
+                    {t("settings.data.folder.oneDriveWarning")}
+                </p>
+            )}
             <BackupSettings />
         </SettingsPanel>
     )

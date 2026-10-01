@@ -86,6 +86,16 @@ describe("getDB", () => {
         expect(load).toHaveBeenCalledTimes(2)
     })
 
+    it("getDB rejects while a restore is in progress and works again afterwards", async () => {
+        vi.resetModules()
+        const { getDB, setRestoring } = await import("./dbManager")
+        setRestoring(true)
+        await expect(getDB()).rejects.toMatchObject({ code: "DB_RESTORING" })
+        expect(load).not.toHaveBeenCalled()
+        setRestoring(false)
+        await expect(getDB()).resolves.toBe(db)
+    })
+
     it("closeDB does nothing when the database was never opened", async () => {
         vi.resetModules()
         const { closeDB } = await import("./dbManager")

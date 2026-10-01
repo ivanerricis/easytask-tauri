@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useReducer, useRef, useState } from "react"
+import type { MutableRefObject } from "react"
 import type { Note } from "@/types/types"
+import type { TabsBridge } from "./workspace-data/types"
 import {
     ActiveIdContext, TabUiContext, TabsActionsContext, TabsContext,
     type ScrollPosition, type SelectedItem, type TabUiStore, type TabsActionsType, type TabsContextType,
@@ -78,6 +80,8 @@ type TabsProviderProps = {
     notes: Note[]
     /** The ID of the loaded workspace (null when none), used to save and restore the open tabs. */
     workspaceId: number | null
+    /** Filled with the tabs bridge (state snapshot and reopen), for the module that deletes notes. Optional. */
+    bridgeRef?: MutableRefObject<TabsBridge | null>
     children: React.ReactNode
 }
 
@@ -86,7 +90,7 @@ type TabsProviderProps = {
  * and keeps the per-note UI state. Split in several contexts so consumers re-render only for what they use.
  * @category Tabs
  */
-export function TabsProvider({ notes, workspaceId, children }: TabsProviderProps) {
+export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsProviderProps) {
     const [state, dispatch] = useReducer(tabsReducer, initialTabsState)
     const [uiStore] = useState(createTabUiStore)
     const [restoredTick, setRestoredTick] = useState(0)
@@ -97,9 +101,24 @@ export function TabsProvider({ notes, workspaceId, children }: TabsProviderProps
     const lastWorkspaceId = useRef<number | null>(null)
     const notesSeen = useRef(false)
 
+    const stateRef = useRef(state)
+
     useEffect(() => {
         notesRef.current = notes
     }, [notes])
+
+    useEffect(() => {
+        stateRef.current = state
+    }, [state])
+
+    useEffect(() => {
+        if (!bridgeRef) return
+        bridgeRef.current = {
+            snapshot: () => stateRef.current,
+            reopen: snapshot => dispatch({ type: "reopen", state: snapshot }),
+        }
+        return () => { bridgeRef.current = null }
+    }, [bridgeRef])
 
     // Tabs of notes that no longer exist (deleted, trashed, other workspace) are closed with the usual neighbour rule
     useEffect(() => {

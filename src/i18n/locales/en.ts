@@ -228,6 +228,7 @@ export const en: Translation = {
                 label: "Open data folder",
                 description: "Opens the folder with the database, settings, backups and logs.",
                 button: "Open",
+                oneDriveWarning: "The data folder is synced by OneDrive. Syncing can cause \"database is locked\" errors or conflicted copies of the database. Exclude the folder from OneDrive or use portable mode.",
             },
             backup: {
                 created: "Backup created.",
@@ -290,6 +291,10 @@ export const en: Translation = {
             reopenWorkspace: {
                 label: "Reopen the last workspace at startup",
                 description: "If you close the app inside a workspace, it is reopened at the next startup.",
+            },
+            hideCompleted: {
+                label: "Hide completed tasks",
+                description: "Completed tasks (and their subtasks) are not shown in the notes. A line tells how many are hidden.",
             },
             reopenNotes: {
                 label: "Reopen notes at startup",
@@ -356,6 +361,7 @@ export const en: Translation = {
             "new-folder": "Create a new folder",
             "close-note": "Close the active note",
             "close-all-notes": "Close all notes",
+            "toggle-hide-completed": "Hide or show the completed tasks",
             "new-group": "Create a new group or section",
             "confirm-rename": "Confirm editing a group, section or task name",
             "cancel-rename": "Cancel renaming the group or close the new subtask",
@@ -506,6 +512,7 @@ export const en: Translation = {
         task: {
             unique: "A task with this name already exists.",
             check: "The task name cannot be empty.",
+            parentMissing: "The parent task no longer exists.",
             descriptionUpdate: "Failed to update task description: {{message}}",
         },
         workspace: {
@@ -527,6 +534,12 @@ export const en: Translation = {
             sectionTargetInvalid: "The target section is not valid.",
             taskTargetInvalid: "The target task is not valid.",
             taskIntoItself: "You cannot move a task into itself or one of its subtasks.",
+        },
+        duplicate: {
+            noteMissing: "The note to duplicate no longer exists.",
+            sectionMissing: "The section to duplicate no longer exists.",
+            load: "Failed to read the item to duplicate: {{message}}",
+            apply: "Failed to duplicate the item: {{message}}",
         },
         template: {
             unique: "A template with this name already exists.",
@@ -562,6 +575,14 @@ export const en: Translation = {
             invalidJson: "The file is not a valid JSON.",
             export: "Export failed: {{message}}",
             import: "Import failed: {{message}}",
+            fileTooLarge: "The file is too large to import (maximum {{max}} MB).",
+            tooManyItems: "The file contains too many items to import (maximum {{max}}).",
+            untitled: "(untitled)",
+        },
+        backup: {
+            restoring: "A backup is being restored: try again in a moment.",
+            invalid: "The backup is damaged or is not an EasyTask database.",
+            newer: "The backup was created by a newer version of the app: update EasyTask to restore it.",
         },
         group: {
             create: "Could not create the group: {{message}}",
@@ -610,6 +631,11 @@ export const en: Translation = {
         paste: "Paste",
         selectAll: "Select all",
     },
+    duplicate: {
+        suffix: "copy",
+        noteDone: "Note duplicated",
+        sectionDone: "Section duplicated",
+    },
     menu: {
         changeColor: "Change color",
         export: "Export",
@@ -622,6 +648,7 @@ export const en: Translation = {
         colorContent: "Color content",
         open: "Open",
         createTemplate: "Create template",
+        duplicate: "Duplicate",
     },
     home: {
         loading: "Loading Workspaces...",
@@ -672,6 +699,7 @@ export const en: Translation = {
             suggestions: "Suggestions",
             short: "Search...",
         },
+        hideCompleted: "Hide completed tasks",
         closeCurrent: "Close current note",
         close: "Close note",
     },
@@ -718,6 +746,8 @@ export const en: Translation = {
         expand: "Expand section",
     },
     tasks: {
+        hiddenCompleted_one: "{{count}} completed task hidden",
+        hiddenCompleted_other: "{{count}} completed tasks hidden",
         errors: {
             createSubtask: "Error while creating the subtask",
             createTask: "Error while creating the task",

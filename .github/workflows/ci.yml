@@ -4,6 +4,9 @@ on:
   push:
     branches: [master]
   pull_request:
+  # Weekly run: only the audit job (new advisories show up without any code change)
+  schedule:
+    - cron: "17 5 * * 1"
   workflow_dispatch:
     inputs:
       e2e_edge_args:
@@ -21,28 +24,31 @@ concurrency:
 jobs:
   # package.json, src-tauri/Cargo.toml and src-tauri/tauri.conf.json must carry the same version
   versions:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
       - run: node scripts/check-versions.mjs
 
   frontend:
+    if: github.event_name != 'schedule'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - run: npx eslint .
       - run: npx tsc -b
-      - run: npm test
+      - run: npm run e2e:typecheck
+      # Runs the whole suite with coverage (no separate `npm test`)
       - run: npm run test:coverage
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: coverage
           path: coverage
@@ -50,6 +56,7 @@ jobs:
       - run: npm run build
 
   backend:
+    if: github.event_name != 'schedule'
     strategy:
       fail-fast: false
       matrix:
@@ -59,7 +66,7 @@ jobs:
       run:
         working-directory: src-tauri
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         working-directory: .
@@ -67,14 +74,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
             libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: clippy, rustfmt
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri -> target
       # tauri.conf.json frontendDist points to ../dist
@@ -87,22 +94,22 @@ jobs:
       - run: cargo clippy -- -D warnings
       - run: cargo test
 
-  # Blocking for high/critical advisories (npm) and for any RustSec advisory, license or ban violation (cargo).
+  # Also runs on the weekly schedule. Blocking for high/critical advisories (npm) and for any RustSec advisory, license or ban violation (cargo).
   # Known/accepted advisories are listed, with a reason, in src-tauri/.cargo/audit.toml and src-tauri/deny.toml.
   audit:
     runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@v7
-      - uses: actions/setup-node@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
       - run: npm ci
       - name: npm audit (production dependencies, high and critical)
         run: npm audit --omit=dev --audit-level=high
-      - uses: taiki-e/install-action@v2
+      - uses: taiki-e/install-action@83ac0ad63c0167e6f06796fab0fce28db1bf3db0 # v2.87.22
         with:
           tool: cargo-audit,cargo-deny
       - name: cargo audit
@@ -116,6 +123,7 @@ jobs:
   # continue-on-error: the suite is new and not yet proven stable on the runners; it reports but does not block.
   # Remove `continue-on-error` once it has been green for a while.
   e2e:
+    if: github.event_name != 'schedule'
     strategy:
       fail-fast: false
       # The Windows run needs a manual start: on the hosted runner msedgedriver cannot attach to the app (the same
@@ -126,7 +134,7 @@ jobs:
     continue-on-error: true
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         run: |
@@ -134,12 +142,12 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
             libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
             webkit2gtk-driver xvfb
-      - uses: actions/setup-node@v7
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 24
           cache: npm
-      - uses: dtolnay/rust-toolchain@stable
-      - uses: Swatinem/rust-cache@v2
+      - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri -> target
       - name: Install tauri-driver
@@ -175,7 +183,7 @@ jobs:
         run: ./e2e/windows-after-diagnostics.ps1
       - name: Upload e2e logs and screenshots
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: e2e-output-${{ matrix.os }}
           path: e2e/output

@@ -1,16 +1,22 @@
 import { Store } from "@tauri-apps/plugin-store"
 import { join } from "@tauri-apps/api/path"
-import { ensureAppFolder } from "@/db/appPaths"
+import { ensureAppFolder, isPortable } from "@/db/appPaths"
 
 /**
  * Loads the settings store, falling back to the app data folder if the
  * documents folder is not accessible, so a failure never blocks the UI.
+ * In portable mode there is no fallback (the app data folder is outside the portable folder): the error is surfaced.
  */
 async function loadStore(): Promise<Store> {
     try {
         const folderPath = await ensureAppFolder()
         return await Store.load(await join(folderPath, "settings.dat"))
     } catch (err: unknown) {
+        // If portable mode cannot be determined (the backend is unreachable) the error is surfaced too
+        const portable = await isPortable().catch(() => true)
+        if (portable) {
+            throw new Error(`Unable to load the settings store from the portable data folder: ${String(err)}`, { cause: err })
+        }
         console.error("Unable to load settings from the EasyTask folder, using the app data folder", err)
         try {
             return await Store.load("settings.dat")

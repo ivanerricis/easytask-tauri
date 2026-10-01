@@ -226,6 +226,7 @@ export const it = {
                 label: "Apri cartella dati",
                 description: "Apre la cartella con database, impostazioni, backup e log.",
                 button: "Apri",
+                oneDriveWarning: "La cartella dei dati è sincronizzata da OneDrive. La sincronizzazione può causare errori \"database is locked\" o copie in conflitto del database. Escludi la cartella da OneDrive oppure usa la modalità portatile.",
             },
             backup: {
                 created: "Backup creato.",
@@ -288,6 +289,10 @@ export const it = {
             reopenWorkspace: {
                 label: "Riapri l'ultimo workspace all'avvio",
                 description: "Se chiudi l'app dentro un workspace, lo riapre al prossimo avvio.",
+            },
+            hideCompleted: {
+                label: "Nascondi i task completati",
+                description: "I task completati (con i loro sottotask) non vengono mostrati nelle note. Una riga indica quanti sono nascosti.",
             },
             reopenNotes: {
                 label: "Riapri le note all'avvio",
@@ -354,6 +359,7 @@ export const it = {
             "new-folder": "Crea una nuova cartella",
             "close-note": "Chiudi la nota attiva",
             "close-all-notes": "Chiudi tutte le note",
+            "toggle-hide-completed": "Nascondi o mostra i task completati",
             "new-group": "Crea un nuovo gruppo o una nuova sezione",
             "confirm-rename": "Conferma la modifica di nome gruppo, sezione o task",
             "cancel-rename": "Annulla la rinomina del gruppo o chiudi il nuovo sottotask",
@@ -504,6 +510,7 @@ export const it = {
         task: {
             unique: "Esiste già un task con questo nome.",
             check: "Il nome del task non può essere vuoto.",
+            parentMissing: "Il task padre non esiste più.",
             descriptionUpdate: "Impossibile aggiornare la descrizione del task: {{message}}",
         },
         workspace: {
@@ -525,6 +532,12 @@ export const it = {
             sectionTargetInvalid: "La sezione di destinazione non è valida.",
             taskTargetInvalid: "Il task di destinazione non è valido.",
             taskIntoItself: "Non puoi spostare un task dentro sé stesso o un suo sottotask.",
+        },
+        duplicate: {
+            noteMissing: "La nota da duplicare non esiste più.",
+            sectionMissing: "La sezione da duplicare non esiste più.",
+            load: "Impossibile leggere l'elemento da duplicare: {{message}}",
+            apply: "Impossibile duplicare l'elemento: {{message}}",
         },
         template: {
             unique: "Esiste già un template con questo nome.",
@@ -560,6 +573,14 @@ export const it = {
             invalidJson: "Il file non è un JSON valido.",
             export: "Esportazione non riuscita: {{message}}",
             import: "Importazione non riuscita: {{message}}",
+            fileTooLarge: "Il file è troppo grande per essere importato (massimo {{max}} MB).",
+            tooManyItems: "Il file contiene troppi elementi da importare (massimo {{max}}).",
+            untitled: "(senza titolo)",
+        },
+        backup: {
+            restoring: "È in corso il ripristino di un backup: riprova tra un momento.",
+            invalid: "Il backup è danneggiato o non è un database di EasyTask.",
+            newer: "Il backup è stato creato da una versione più recente dell'app: aggiorna EasyTask per ripristinarlo.",
         },
         group: {
             create: "Impossibile creare il gruppo: {{message}}",
@@ -608,6 +629,11 @@ export const it = {
         paste: "Incolla",
         selectAll: "Seleziona tutto",
     },
+    duplicate: {
+        suffix: "copia",
+        noteDone: "Nota duplicata",
+        sectionDone: "Sezione duplicata",
+    },
     menu: {
         changeColor: "Cambia colore",
         export: "Esporta",
@@ -620,6 +646,7 @@ export const it = {
         colorContent: "Colora contenuto",
         open: "Apri",
         createTemplate: "Crea template",
+        duplicate: "Duplica",
     },
     home: {
         loading: "Caricamento dei Workspace...",
@@ -670,6 +697,7 @@ export const it = {
             suggestions: "Suggerimenti",
             short: "Cerca...",
         },
+        hideCompleted: "Nascondi i task completati",
         closeCurrent: "Chiudi nota corrente",
         close: "Chiudi nota",
     },
@@ -716,6 +744,8 @@ export const it = {
         expand: "Espandi sezione",
     },
     tasks: {
+        hiddenCompleted_one: "{{count}} task completato nascosto",
+        hiddenCompleted_other: "{{count}} task completati nascosti",
         errors: {
             createSubtask: "Errore nella creazione del sottotask",
             createTask: "Errore nella creazione del task",

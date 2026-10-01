@@ -55,6 +55,8 @@ export const SHORTCUTS: Shortcut[] = [
     { id: "new-folder", defaultBinding: { key: "m", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "close-note", defaultBinding: { key: "l", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "close-all-notes", defaultBinding: { key: "t", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    // Ctrl+H is go-home: the Shift variant is free
+    { id: "toggle-hide-completed", defaultBinding: { key: "h", ctrl: true, shift: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "new-group", defaultBinding: { key: "n", alt: true }, editable: true, scope: "workspace", category: "groups" },
     { id: "confirm-rename", keys: ["enter"], editable: false, scope: "workspace", category: "groups" },
     { id: "cancel-rename", keys: ["escape"], editable: false, scope: "workspace", category: "groups" },

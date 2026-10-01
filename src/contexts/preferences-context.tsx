@@ -49,11 +49,14 @@ import {
     type RightPanelTab,
     getLanguage,
     getColorIntensity,
+    getHideCompletedTasks,
+    saveHideCompletedTasks,
     saveColorIntensity,
     saveLanguage,
     type SidebarItemSize,
     type WorkspaceView
 } from "@/lib/store/preferences"
+import { reportError } from "@/lib/report-error"
 import { applyLanguagePreference, type LanguagePreference } from "@/i18n"
 import type { AudioPlayerPosition } from "@/types/types"
 import { DEFAULT_COLOR_INTENSITY, clampColorIntensity } from "@/lib/color-intensity"
@@ -85,138 +88,178 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [rightPanelTab, setRightPanelTabState] = useState<RightPanelTab>("details")
     const [colorIntensity, setColorIntensityState] = useState(DEFAULT_COLOR_INTENSITY)
     const [language, setLanguageState] = useState<LanguagePreference>("system")
+    const [hideCompletedTasks, setHideCompletedTasksState] = useState(false)
     const audioPlayerContainerRef =useRef<HTMLDivElement>(null)
+    const positionRef = useRef<AudioPlayerPosition>(audioPlayerPosition)
+    const scaleRef = useRef<AudioPlayerScale>(audioPlayerScale)
 
     useEffect(() => {
-        getShowProgressBar().then(setShowProgressBarState)
-        getShowGroupProgressBar().then(setShowGroupProgressBarState)
-        getShowSectionCount().then(setShowSectionCountState)
-        getShowTaskCount().then(setShowTaskCountState)
-        getSideBarLeftOpen().then(setSidebarLeftOpenState)
-        getSideBarRightOpen().then(setSidebarRightOpenState)
-        getAudioPlayerPosition().then(setAudioPlayerPositionState)
-        getAudioVolume().then(setAudioVolumeState)
-        getAudioPlayerVisible().then(setAudioPlayerVisibleState)
-        getAudioPlayerScale().then(setAudioPlayerScaleState)
-        getAudioPlayerOpacity().then(setAudioPlayerOpacityState)
-        getWorkspaceView().then(setWorkspaceViewState)
-        getReopenNotes().then(setReopenNotesState)
-        getReopenLastWorkspace().then(setReopenLastWorkspaceState)
-        getSidebarItemSize().then(setSidebarItemSizeState)
-        getSidebarLeftWidth().then(setSidebarLeftWidthState)
-        getSidebarRightWidth().then(setSidebarRightWidthState)
-        getRightPanelTab().then(setRightPanelTabState)
-        getColorIntensity().then(setColorIntensityState)
+        scaleRef.current = audioPlayerScale
+    }, [audioPlayerScale])
+
+    /** Brings a position inside the container of the player (the window while it is not mounted). */
+    const fitPosition = (position: AudioPlayerPosition, scale: AudioPlayerScale = scaleRef.current): AudioPlayerPosition => {
+        const container = audioPlayerContainerRef.current
+        const width = container?.offsetWidth || window.innerWidth
+        const height = container?.offsetHeight || window.innerHeight
+        const x = Math.max(0, Math.min(position.x, width - AUDIO_PLAYER_WIDTH * scale))
+        const y = Math.max(0, Math.min(position.y, height - AUDIO_PLAYER_HEIGHT * scale))
+        return x === position.x && y === position.y ? position : { ...position, x, y }
+    }
+    const fitPositionRef = useRef(fitPosition)
+    useEffect(() => {
+        fitPositionRef.current = fitPosition
+    })
+
+    // A smaller window must not leave the player outside of it
+    useEffect(() => {
+        const onResize = () => {
+            const current = positionRef.current
+            const fitted = fitPositionRef.current(current)
+            if (fitted === current) return
+            positionRef.current = fitted
+            setAudioPlayerPositionState(fitted)
+            saveAudioPlayerPosition(fitted).catch(reportError)
+        }
+        window.addEventListener("resize", onResize)
+        return () => window.removeEventListener("resize", onResize)
+    }, [])
+
+    useEffect(() => {
+        getShowProgressBar().then(setShowProgressBarState).catch(reportError)
+        getShowGroupProgressBar().then(setShowGroupProgressBarState).catch(reportError)
+        getShowSectionCount().then(setShowSectionCountState).catch(reportError)
+        getShowTaskCount().then(setShowTaskCountState).catch(reportError)
+        getSideBarLeftOpen().then(setSidebarLeftOpenState).catch(reportError)
+        getSideBarRightOpen().then(setSidebarRightOpenState).catch(reportError)
+        getAudioPlayerPosition().then(position => {
+            const fitted = fitPositionRef.current(position)
+            positionRef.current = fitted
+            setAudioPlayerPositionState(fitted)
+        }).catch(reportError)
+        getAudioVolume().then(setAudioVolumeState).catch(reportError)
+        getAudioPlayerVisible().then(setAudioPlayerVisibleState).catch(reportError)
+        getAudioPlayerScale().then(setAudioPlayerScaleState).catch(reportError)
+        getAudioPlayerOpacity().then(setAudioPlayerOpacityState).catch(reportError)
+        getWorkspaceView().then(setWorkspaceViewState).catch(reportError)
+        getReopenNotes().then(setReopenNotesState).catch(reportError)
+        getReopenLastWorkspace().then(setReopenLastWorkspaceState).catch(reportError)
+        getSidebarItemSize().then(setSidebarItemSizeState).catch(reportError)
+        getSidebarLeftWidth().then(setSidebarLeftWidthState).catch(reportError)
+        getSidebarRightWidth().then(setSidebarRightWidthState).catch(reportError)
+        getRightPanelTab().then(setRightPanelTabState).catch(reportError)
+        getColorIntensity().then(setColorIntensityState).catch(reportError)
         getLanguage().then(value => {
             setLanguageState(value)
             void applyLanguagePreference(value)
-        })
+        }).catch(reportError)
         getPrimaryColor().then(hex => {
             setPrimaryColorState(hex)
             document.documentElement.style.setProperty('--primary', hex)
-        })
+        }).catch(reportError)
+        getHideCompletedTasks().then(setHideCompletedTasksState).catch(reportError)
     }, [])
 
     const setShowProgressBar = (value: boolean) => {
         setShowProgressBarState(value)
-        saveShowProgressBar(value)
+        saveShowProgressBar(value).catch(reportError)
     }
 
     const setShowGroupProgressBar = (value: boolean) => {
         setShowGroupProgressBarState(value)
-        saveShowGroupProgressBar(value)
+        saveShowGroupProgressBar(value).catch(reportError)
     }
 
     const setShowSectionCount = (value: boolean) => {
         setShowSectionCountState(value)
-        saveShowSectionCount(value)
+        saveShowSectionCount(value).catch(reportError)
     }
 
     const setShowTaskCount = (value: boolean) => {
         setShowTaskCountState(value)
-        saveShowTaskCount(value)
+        saveShowTaskCount(value).catch(reportError)
     }
 
     const setPrimaryColor = (hex: string) => {
         setPrimaryColorState(hex)
         document.documentElement.style.setProperty('--primary', hex)
-        savePrimaryColor(hex)
+        savePrimaryColor(hex).catch(reportError)
     }
 
     const setSideBarLeftOpen = (value: boolean) => {
         setSidebarLeftOpenState(value)
-        saveSideBarLeftOpen(value)
+        saveSideBarLeftOpen(value).catch(reportError)
     }
 
     const setSideBarRightOpen = (value: boolean) => {
         setSidebarRightOpenState(value)
-        saveSideBarRightOpen(value)
+        saveSideBarRightOpen(value).catch(reportError)
     }
 
     const setWorkspaceView = (value: WorkspaceView) => {
         setWorkspaceViewState(value)
-        saveWorkspaceView(value)
+        saveWorkspaceView(value).catch(reportError)
     }
 
     const setReopenNotes = (value: boolean) => {
         setReopenNotesState(value)
-        saveReopenNotes(value)
+        saveReopenNotes(value).catch(reportError)
     }
 
     const setReopenLastWorkspace = (value: boolean) => {
         setReopenLastWorkspaceState(value)
-        saveReopenLastWorkspace(value)
+        saveReopenLastWorkspace(value).catch(reportError)
     }
 
     const setSidebarItemSize = (value: SidebarItemSize) => {
         setSidebarItemSizeState(value)
-        saveSidebarItemSize(value)
+        saveSidebarItemSize(value).catch(reportError)
     }
 
     const setSidebarLeftWidth = (value: number) => {
         const width = clampSidebarWidth(value)
         setSidebarLeftWidthState(width)
-        saveSidebarLeftWidth(width)
+        saveSidebarLeftWidth(width).catch(reportError)
     }
 
     const setSidebarRightWidth = (value: number) => {
         const width = clampSidebarWidth(value)
         setSidebarRightWidthState(width)
-        saveSidebarRightWidth(width)
+        saveSidebarRightWidth(width).catch(reportError)
     }
 
     const setRightPanelTab = (value: RightPanelTab) => {
         setRightPanelTabState(value)
-        saveRightPanelTab(value)
+        saveRightPanelTab(value).catch(reportError)
     }
 
     const setColorIntensity = (value: number) => {
         const intensity = clampColorIntensity(value)
         setColorIntensityState(intensity)
-        saveColorIntensity(intensity)
+        saveColorIntensity(intensity).catch(reportError)
     }
 
     const setLanguage = (value: LanguagePreference) => {
         setLanguageState(value)
         void applyLanguagePreference(value)
-        saveLanguage(value)
+        saveLanguage(value).catch(reportError)
     }
 
     const setAudioVolume = (value: number) => {
         const volume = clampAudioVolume(value)
         setAudioVolumeState(volume)
-        saveAudioVolume(volume)
+        saveAudioVolume(volume).catch(reportError)
     }
 
     const setAudioPlayerVisible = (value: boolean) => {
         setAudioPlayerVisibleState(value)
-        saveAudioPlayerVisible(value)
+        saveAudioPlayerVisible(value).catch(reportError)
     }
 
     const setAudioPlayerScale = (value: AudioPlayerScale) => {
         const scale = normalizeAudioPlayerScale(value)
         setAudioPlayerScaleState(scale)
-        saveAudioPlayerScale(scale)
+        saveAudioPlayerScale(scale).catch(reportError)
         // A bigger player must not overflow the window: pull it back inside
         const container = audioPlayerContainerRef.current
         if (!container) return
@@ -229,7 +272,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const setAudioPlayerOpacity = (value: number) => {
         const opacity = clampAudioPlayerOpacity(value)
         setAudioPlayerOpacityState(opacity)
-        saveAudioPlayerOpacity(opacity)
+        saveAudioPlayerOpacity(opacity).catch(reportError)
     }
 
     const resetAudioSettings = () => {
@@ -241,29 +284,30 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
 
     const setAudioPlayerPosition =(position: AudioPlayerPosition) => {
         setAudioPlayerPositionState(position)
-        saveAudioPlayerPosition(position)
+        positionRef.current = position
+        saveAudioPlayerPosition(position).catch(reportError)
     }
 
     const resetPlayerPosition = () => {
-        resetAudioPlayerPosition()
+        resetAudioPlayerPosition().catch(reportError)
         const container = audioPlayerContainerRef.current
         if (!container) return
 
-        const containerWidth = container.offsetWidth
-        const containerHeight = container.offsetHeight
         const playerWidth = AUDIO_PLAYER_WIDTH * audioPlayerScale
         const playerHeight = AUDIO_PLAYER_HEIGHT * audioPlayerScale
 
-        const newPosition = {
-            x: containerWidth / 2 - playerWidth / 2,
-            y: containerHeight - playerHeight,
+        // Computed once and set once (setAudioPlayerPosition also saves it)
+        setAudioPlayerPosition({
+            x: container.offsetWidth / 2 - playerWidth / 2,
+            y: container.offsetHeight - playerHeight,
             scaleX: 1,
             scaleY: 1
-        }
+        })
+    }
 
-        setAudioPlayerPosition(newPosition)
-        saveAudioPlayerPosition(newPosition)
-        setAudioPlayerPositionState(newPosition)
+    const setHideCompletedTasks = (value: boolean) => {
+        setHideCompletedTasksState(value)
+        saveHideCompletedTasks(value).catch(reportError)
     }
 
     return (
@@ -312,7 +356,9 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             colorIntensity,
             setColorIntensity,
             language,
-            setLanguage
+            setLanguage,
+            hideCompletedTasks,
+            setHideCompletedTasks
         }}>
             {children}
         </PreferencesContext.Provider>

@@ -16,6 +16,7 @@ Everything is stored locally on your computer.
 - **Drag & drop** to reorder and move elements
 - **Trash**: deleted workspaces and deleted items (folders, notes, groups, sections, tasks, audio files, templates) go to the trash, where you can restore them or delete them permanently
 - **Templates**: save a note as a template and create new notes from it
+- **Duplicate** a note (with all its content, audio files excluded) or a section (with its tasks) from its menu; the copy is named "... (copy)" and undoable
 - **Audio**: attach audio files to a note and play them in the app
 - **Undo / redo** with `Ctrl+Z` / `Ctrl+Y` (`Ctrl+Shift+Z` also redoes)
 - **Search notes** with `Ctrl+O`
@@ -36,6 +37,8 @@ Default shortcuts (all but the fixed ones can be changed in Settings > Shortcuts
 | `Ctrl+O` | Search notes |
 | `Ctrl+L` / `Ctrl+T` | Close the current note / close all notes |
 | `Ctrl+B` | Toggle the sidebar |
+| `Ctrl+Shift+B` | Toggle the right sidebar |
+| `Ctrl+Shift+H` | Hide / show completed tasks |
 | `Ctrl+H` | Go to the home page |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo (not active while typing in a text field) |
 

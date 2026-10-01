@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { PreferencesProvider } from "./preferences-context"
 import { usePreferences } from "./use-preferences"
 import * as prefs from "@/lib/store/preferences"
+import { reportError } from "@/lib/report-error"
 
 vi.mock("@/lib/store/initStore", () => ({ store: {} }))
 vi.mock("@/lib/store/preferences", async (importOriginal) => ({
@@ -51,6 +52,12 @@ vi.mock("@/lib/store/preferences", async (importOriginal) => ({
     saveColorIntensity: vi.fn(),
     getLanguage: vi.fn(),
     saveLanguage: vi.fn(),
+    getHideCompletedTasks: vi.fn(),
+    saveHideCompletedTasks: vi.fn(),
+}))
+vi.mock("@/lib/report-error", async (importOriginal) => ({
+    ...(await importOriginal<typeof import("@/lib/report-error")>()),
+    reportError: vi.fn(),
 }))
 
 const wrapper = ({ children }: { children: ReactNode }) => <PreferencesProvider>{children}</PreferencesProvider>
@@ -80,6 +87,11 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getAudioPlayerScale).mockResolvedValue(1.2)
         vi.mocked(prefs.getAudioPlayerOpacity).mockResolvedValue(0.6)
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
+        vi.mocked(prefs.getHideCompletedTasks).mockResolvedValue(true)
+        // The saves are promises (the provider reports their failures)
+        for (const [name, fn] of Object.entries(prefs)) {
+            if (/^(save|reset)/.test(name) && vi.isMockFunction(fn)) fn.mockResolvedValue(undefined)
+        }
     })
 
     it("throws when used outside the provider", () => {
@@ -299,5 +311,63 @@ describe("PreferencesContext", () => {
         const expected = { x: 500 - 175 * 1.2, y: 600 - 82 * 1.2, scaleX: 1, scaleY: 1 }
         expect(result.current.audioPlayerPosition).toEqual(expected)
         expect(prefs.saveAudioPlayerPosition).toHaveBeenCalledWith(expected)
+    })
+
+    it("loads and persists the hide completed tasks preference (default off)", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.hideCompletedTasks).toBe(false)
+        await waitFor(() => expect(result.current.hideCompletedTasks).toBe(true))
+
+        act(() => result.current.setHideCompletedTasks(false))
+
+        expect(result.current.hideCompletedTasks).toBe(false)
+        expect(prefs.saveHideCompletedTasks).toHaveBeenCalledWith(false)
+    })
+
+    it("resetPlayerPosition sets and saves the computed position once", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(result.current.audioPlayerScale).toBe(1.2))
+        const el = document.createElement("div")
+        Object.defineProperty(el, "offsetWidth", { value: 1000 })
+        Object.defineProperty(el, "offsetHeight", { value: 600 })
+        result.current.audioPlayerContainerRef.current = el
+
+        act(() => result.current.resetPlayerPosition())
+
+        expect(prefs.saveAudioPlayerPosition).toHaveBeenCalledTimes(1)
+    })
+
+    it("clamps a stored player position that lies outside the window", async () => {
+        vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 99999, y: 99999, scaleX: 1, scaleY: 1 })
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(result.current.audioPlayerPosition.x).toBe(window.innerWidth - 350))
+        expect(result.current.audioPlayerPosition.y).toBe(window.innerHeight - 82)
+    })
+
+    it("pulls the player back inside the container when the window shrinks", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(result.current.audioPlayerScale).toBe(1.2))
+        const container = document.createElement("div")
+        Object.defineProperty(container, "offsetWidth", { value: 600, configurable: true })
+        Object.defineProperty(container, "offsetHeight", { value: 400 })
+        result.current.audioPlayerContainerRef.current = container
+        act(() => result.current.setAudioPlayerPosition({ x: 100, y: 100, scaleX: 1, scaleY: 1 }))
+        vi.mocked(prefs.saveAudioPlayerPosition).mockClear()
+
+        Object.defineProperty(container, "offsetWidth", { value: 300, configurable: true })
+        act(() => { window.dispatchEvent(new Event("resize")) })
+
+        expect(result.current.audioPlayerPosition.x).toBe(0)
+        expect(result.current.audioPlayerPosition.y).toBe(100)
+        expect(prefs.saveAudioPlayerPosition).toHaveBeenCalledTimes(1)
+    })
+
+    it("reports a failing preference save and a failing initial load instead of leaving them unhandled", async () => {
+        vi.mocked(prefs.saveShowProgressBar).mockRejectedValue(new Error("save"))
+        vi.mocked(prefs.getShowTaskCount).mockRejectedValue(new Error("load"))
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(reportError).toHaveBeenCalledTimes(1))
+        act(() => result.current.setShowProgressBar(false))
+        await waitFor(() => expect(reportError).toHaveBeenCalledTimes(2))
     })
 })

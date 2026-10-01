@@ -35,6 +35,8 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
     const { patchTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const textareaRef = useRef<HTMLTextAreaElement>(null)
+    // Set once an edit has ended (saved or cancelled): Enter + the blur on unmount, or Escape + blur, must not run twice
+    const editDoneRef = useRef(false)
     const selected = useIsTaskSelected(task.id)
     const selectTask = useSelectTask()
     const showTaskDetails = useShowTaskDetails()
@@ -50,6 +52,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
 
     useEffect(() => {
         if (isTextAreaOpen && textareaRef.current) {
+            editDoneRef.current = false
             const input = textareaRef.current
             const length = input.value.length
             input.focus()
@@ -69,9 +72,18 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
         }
     }
 
+    const handleCancelEdit = () => {
+        if (editDoneRef.current) return
+        editDoneRef.current = true
+        setText(task.text)
+        setTextAreaOpen(false)
+    }
+
     const handleChangeText = async () => {
+        if (editDoneRef.current) return
+        editDoneRef.current = true
         // Optimistic: the cached tree is updated at once and restored if the write fails
-        const changed = task.text !== text && text.trim() !== ""
+        const changed = text.trim() !== task.text && text.trim() !== ""
         const rollback = changed ? patchTask(task.id, { text: text.trim() }) : null
         try {
             if (changed) {
@@ -160,6 +172,10 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                         if (e.key === "Enter" && !e.shiftKey) {
                                             e.preventDefault();
                                             handleChangeText();
+                                        } else if (e.key === "Escape") {
+                                            e.preventDefault()
+                                            e.stopPropagation()
+                                            handleCancelEdit()
                                         }
                                     }}
                                     className="w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm"
@@ -167,7 +183,11 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                             </div>
 
                             {/* Priority circle */}
-                            <div className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-600 size-2 mx-2 mt-1.5 p-1`}></div>
+                            <div
+                                role="img"
+                                aria-label={t("details.priority")}
+                                className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-600 size-2 mx-2 mt-1.5 p-1`}
+                            ></div>
 
                             {/* ButtonMenu */}
                             <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">

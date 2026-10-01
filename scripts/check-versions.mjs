@@ -1,17 +1,26 @@
 #!/usr/bin/env node
-// Fails (exit 1) when package.json, src-tauri/Cargo.toml and src-tauri/tauri.conf.json disagree on the version.
+// Fails (exit 1) when package.json, package-lock.json, src-tauri/Cargo.toml, src-tauri/Cargo.lock and\n// src-tauri/tauri.conf.json disagree on the version.
 // When a tag is given (first argument or GITHUB_REF_NAME like v1.2.3) it must match too.
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { findMismatches, getCargoTomlVersion, getJsonVersion, VERSION_FILES } from './versions.mjs'
+import {
+    findMismatches,
+    getCargoLockVersion,
+    getCargoTomlVersion,
+    getJsonVersion,
+    getPackageLockVersion,
+    VERSION_FILES,
+} from './versions.mjs'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const read = (file) => readFileSync(path.join(root, file), 'utf8')
 
 const versions = {
     packageJson: getJsonVersion(read(VERSION_FILES.packageJson)),
+    packageLock: getPackageLockVersion(read(VERSION_FILES.packageLock)),
     cargoToml: getCargoTomlVersion(read(VERSION_FILES.cargoToml)),
+    cargoLock: getCargoLockVersion(read(VERSION_FILES.cargoLock)),
     tauriConf: getJsonVersion(read(VERSION_FILES.tauriConf)),
 }
 

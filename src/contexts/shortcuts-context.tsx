@@ -33,8 +33,15 @@ export const ShortcutsProvider = ({ children }: { children: React.ReactNode }) =
             const inInput = isEditableTarget(e.target)
             let handled = false
             registry.current.forEach((entries, id) => {
-                const binding = bindingsRef.current[id]
-                if (!binding || !matchBinding(e, binding)) return
+                // One bad binding must not break the others
+                let matches = false
+                try {
+                    const binding = bindingsRef.current[id]
+                    matches = !!binding && matchBinding(e, binding)
+                } catch (error) {
+                    reportError(error)
+                }
+                if (!matches) return
                 entries.forEach(ref => {
                     const entry = ref.current
                     if (!entry.enabled || (inInput && !entry.allowInInputs)) return

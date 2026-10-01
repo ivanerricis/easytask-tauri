@@ -13,6 +13,9 @@ import { SectionMoveSubmenu } from "../NoteMoveSubmenus"
 import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { getErrorMessage } from "@/lib/utils"
+import { toast } from "sonner"
 
 type ButtonMenuSectionProps = {
     section: Section
@@ -25,8 +28,22 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const menu = useItemMenuState()
-    const { updateItemColor } = useWorkspaceActions()
-    const { patchSection, removeSection } = useActiveNoteActions()
+    const { updateItemColor, duplicateSection } = useWorkspaceActions()
+    const { patchSection, removeSection, refreshActiveNote } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
+
+    // The copy is placed right after the original: reload the open note to show it
+    const handleDuplicate = async () => {
+        menu.close()
+        try {
+            const id = await duplicateSection(section.id)
+            recorder.create("section", id, null)
+            await refreshActiveNote()
+            toast.success(t("duplicate.sectionDone"))
+        } catch (error) {
+            toast.error(getErrorMessage(error))
+        }
+    }
 
     // The color is applied to the cached tree at once and restored if the write fails
     const addColorItem = async (itemType: DBItemType, itemId: number, color?: string) => {
@@ -48,6 +65,11 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
                     setRenameOpen(true)
                     menu.close()
                 }}
+            />
+            <ButtonInPopover
+                text={t("menu.duplicate")}
+                type="duplicate"
+                onClick={handleDuplicate}
             />
             <MenuSub>
                 <MenuSubTrigger>

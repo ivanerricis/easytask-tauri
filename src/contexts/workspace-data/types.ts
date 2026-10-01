@@ -18,6 +18,14 @@ export type WorkspaceStateType = {
     loadedWorkspaceId: number | null
 }
 
+/** What the workspace data needs from the tabs module. */
+export type TabsBridge = {
+    /** The open tabs right now. */
+    snapshot: () => { openIds: number[], activeId: number | null }
+    /** Reopens the tabs of a snapshot that were closed since. */
+    reopen: (snapshot: { openIds: number[], activeId: number | null }) => void
+}
+
 /** Every action has a stable identity (it never changes), so consumers of the actions alone never re-render because of it. */
 export type WorkspaceActionsType = {
     setCurrentFolder: (folder: Folder | null) => void
@@ -66,6 +74,11 @@ export type WorkspaceActionsType = {
     createTemplateFromNote: (noteID: number, name: string) => Promise<number>
     updateTemplateFromNote: (templateID: number) => Promise<void>
     createNoteFromTemplate: (templateID: number, workspaceID: number, folderID: number | null, name: string, color?: string | null) => Promise<number>
+
+    /** Copies a note (same folder, right after it, content included) and refreshes the sidebar tree. Resolves with the id of the copy. */
+    duplicateNote: (noteID: number) => Promise<number>
+    /** Copies a section with its tasks (same group, right after it). The caller refreshes the open note. Resolves with the id of the copy. */
+    duplicateSection: (sectionID: number) => Promise<number>
 }
 
 /**
@@ -73,6 +86,8 @@ export type WorkspaceActionsType = {
  * @category WorkspaceData Context
  */
 export type Runtime = {
+    /** Bridge to the tabs (filled by the TabsProvider, null outside it): used to reopen the tabs closed by a failed delete. */
+    tabsBridge: MutableRefObject<TabsBridge | null>
     /** Runs an async operation and keeps isLoading true while any operation is in flight. */
     withLoading: <T>(operation: () => Promise<T>) => Promise<T>
     /** Runs an operation that can change the trash content and bumps trashVersion once it succeeds. */

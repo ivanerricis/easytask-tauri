@@ -64,3 +64,15 @@ export type WorkspaceExport = {
 
 export const WORKSPACE_EXPORT_FORMAT = "easytask-workspace"
 export const WORKSPACE_EXPORT_VERSION = 1
+
+/**
+ * Largest export file accepted by the import, in bytes (checked before reading it).
+ * @category Types
+ */
+export const MAX_IMPORT_FILE_BYTES = 50 * 1024 * 1024
+
+/**
+ * Largest number of items (folders, notes, templates, groups, sections and tasks together) accepted by the import.
+ * @category Types
+ */
+export const MAX_IMPORT_ITEMS = 100_000

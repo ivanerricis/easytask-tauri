@@ -34,6 +34,19 @@ describe("useShortcut", () => {
         expect(handler).toHaveBeenCalledTimes(1)
     })
 
+    it("ignores corrupted stored overrides: the defaults keep working for every shortcut", async () => {
+        await store.set("shortcutOverrides", { "close-note": { key: 5 }, "close-all-notes": null, ghost: { key: "x" } })
+        const closeNote = vi.fn()
+        const closeAll = vi.fn()
+        setup(<><Probe id="close-note" handler={closeNote} /><Probe id="close-all-notes" handler={closeAll} /></>)
+        await waitFor(() => expect(store.get).toBeDefined())
+        await new Promise(resolve => setTimeout(resolve, 0))
+        fireEvent.keyDown(document.body, { key: "l", ctrlKey: true })
+        fireEvent.keyDown(document.body, { key: "t", ctrlKey: true })
+        expect(closeNote).toHaveBeenCalledTimes(1)
+        expect(closeAll).toHaveBeenCalledTimes(1)
+    })
+
     it("ignores events from inputs unless allowInInputs is set", () => {
         const blocked = vi.fn()
         const allowed = vi.fn()

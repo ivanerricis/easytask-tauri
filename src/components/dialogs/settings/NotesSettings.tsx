@@ -10,6 +10,7 @@ export const NotesSettings = () => {
         showGroupProgressBar, setShowGroupProgressBar,
         showSectionCount, setShowSectionCount,
         showTaskCount, setShowTaskCount,
+        hideCompletedTasks, setHideCompletedTasks,
         reopenNotes, setReopenNotes,
         reopenLastWorkspace, setReopenLastWorkspace,
     } = usePreferences()
@@ -42,6 +43,13 @@ export const NotesSettings = () => {
                     aria-label={t("settings.notes.taskCount")}
                     checked={showTaskCount}
                     onCheckedChange={() => setShowTaskCount(!showTaskCount)}
+                />
+            </SettingsRow>
+            <SettingsRow label={t("settings.notes.hideCompleted.label")} description={t("settings.notes.hideCompleted.description")}>
+                <Switch
+                    aria-label={t("settings.notes.hideCompleted.label")}
+                    checked={hideCompletedTasks}
+                    onCheckedChange={() => setHideCompletedTasks(!hideCompletedTasks)}
                 />
             </SettingsRow>
             <SettingsRow label={t("settings.notes.reopenWorkspace.label")} description={t("settings.notes.reopenWorkspace.description")}>

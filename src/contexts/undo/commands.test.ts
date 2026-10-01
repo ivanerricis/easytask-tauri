@@ -243,6 +243,26 @@ describe("remove and create", () => {
         expect(ctx.deps.workspace.getWorkspaceData).toHaveBeenCalledWith(7)
     })
 
+    it("a duplicated note (no name known) is undone by deleting the copy and redone by restoring it with a tree reload", async () => {
+        const command = commands.create("note", 30, null)
+        expect(command.label).toBe("Crea nota")
+        await command.undo()
+        expect(ctx.deps.workspace.deleteItem).toHaveBeenCalledWith("note", 30)
+        await command.redo()
+        expect(ctx.deps.workspace.restoreItem).toHaveBeenCalledWith("note", 30)
+        expect(ctx.deps.workspace.getWorkspaceData).toHaveBeenCalledWith(7)
+    })
+
+    it("a duplicated section is undone by removing it from the note and redone by restoring it with a note reload", async () => {
+        const command = commands.create("section", 31, null)
+        await command.undo()
+        expect(ctx.deps.note.removeSection).toHaveBeenCalledWith(31)
+        expect(ctx.deps.workspace.deleteItem).toHaveBeenCalledWith("section", 31)
+        await command.redo()
+        expect(ctx.deps.workspace.restoreItem).toHaveBeenCalledWith("section", 31)
+        expect(ctx.deps.note.refreshActiveNote).toHaveBeenCalledTimes(1)
+    })
+
     it("puts the optimistic removal back and rejects when the delete fails", async () => {
         ctx.deps.workspace.deleteItem.mockRejectedValueOnce(new Error("locked"))
         await expect(commands.create("section", 2, "S").undo()).rejects.toThrow("locked")
