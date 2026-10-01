@@ -1,0 +1,18 @@
+# cargo-audit configuration (read when `cargo audit` runs from src-tauri).
+# Docs: https://github.com/rustsec/rustsec/blob/main/cargo-audit/audit.toml.example
+#
+# HOW TO ACCEPT AN ADVISORY
+# Only when no patched version can be adopted yet (e.g. the crate is pulled in by Tauri). Add its id below
+# WITH a comment explaining why it is not exploitable here and when to revisit it. Keep src-tauri/deny.toml
+# [advisories].ignore in sync: both tools read the same RustSec database.
+
+[advisories]
+ignore = [
+    # "RUSTSEC-0000-0000", # reason, link to the tracking issue, review date
+]
+# Informational advisories (unmaintained, unsound, notice) are reported as warnings and do not fail the job;
+# vulnerabilities and yanked crates do.
+informational_warnings = ["unmaintained", "unsound", "notice"]
+
+[output]
+quiet = false
