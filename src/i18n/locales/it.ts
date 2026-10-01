@@ -226,6 +226,7 @@ export const it = {
                 label: "Apri cartella dati",
                 description: "Apre la cartella con database, impostazioni, backup e log.",
                 button: "Apri",
+                oneDriveWarning: "La cartella dei dati è sincronizzata da OneDrive. La sincronizzazione può causare errori \"database is locked\" o copie in conflitto del database. Escludi la cartella da OneDrive oppure usa la modalità portatile.",
             },
             backup: {
                 created: "Backup creato.",

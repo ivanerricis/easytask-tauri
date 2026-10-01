@@ -85,16 +85,38 @@ export function setPackageLockVersion(text, version) {
     return eol === '\r\n' ? out.replace(/\n/g, '\r\n') : out
 }
 
+/** Reads the version of the app crate in a Cargo.lock text. */
+export function getCargoLockVersion(text, crate = CRATE_NAME) {
+    const lines = text.split(/\r?\n/)
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i] === `name = "${crate}"`) {
+            const match = /^version\s*=\s*"([^"]*)"/.exec(lines[i + 1] ?? '')
+            if (match) return match[1]
+        }
+    }
+    throw new Error(`package "${crate}" not found in Cargo.lock`)
+}
+
+/** Reads the root version of a package-lock.json text (`packages[""].version`, else the top-level `version`). */
+export function getPackageLockVersion(text) {
+    const lock = JSON.parse(text)
+    const version = lock.packages?.['']?.version ?? lock.version
+    if (typeof version !== 'string') throw new Error('no root version found in package-lock.json')
+    return version
+}
+
 /** Version files: path relative to the repository root, and how to read them. */
 export const VERSION_FILES = {
     packageJson: 'package.json',
+    packageLock: 'package-lock.json',
     cargoToml: 'src-tauri/Cargo.toml',
+    cargoLock: 'src-tauri/Cargo.lock',
     tauriConf: 'src-tauri/tauri.conf.json',
 }
 
 /**
- * Compares the three release versions.
- * @param {{ packageJson: string, cargoToml: string, tauriConf: string }} versions
+ * Compares the release versions (the first entry is the reference).
+ * @param {Record<string, string>} versions
  * @returns {string[]} one message per mismatch (empty when all match)
  */
 export function findMismatches(versions) {

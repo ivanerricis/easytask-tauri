@@ -23,14 +23,45 @@ struct DataDirInfo {
 
 /// Decides the data folder. Priority: the `EASYTASK_DATA_DIR` override (portable only if `portable.txt`
 /// exists), then `<exe folder>/data` when `portable.txt` sits next to the executable, then `<Documents>/EasyTask`.
-fn resolve_data_dir(env_dir: Option<&str>, exe_dir: &Path, documents: &Path) -> DataDirInfo {
-    let portable = exe_dir.join(PORTABLE_MARKER).is_file();
+fn resolve_data_dir(
+    env_dir: Option<&str>,
+    exe_dir: &Path,
+    documents: &Path,
+) -> Result<DataDirInfo, String> {
+    let portable = is_portable_install(exe_dir);
     let path = match env_dir.map(str::trim).filter(|dir| !dir.is_empty()) {
-        Some(dir) => PathBuf::from(dir),
+        Some(dir) => {
+            let dir = PathBuf::from(dir);
+            // A relative path would depend on the working directory the app was launched from
+            if !dir.is_absolute() {
+                return Err(format!(
+                    "{DATA_DIR_ENV} must be an absolute path, got \"{}\"",
+                    dir.display()
+                ));
+            }
+            dir
+        }
         None if portable => exe_dir.join("data"),
         None => documents.join(APP_FOLDER),
     };
-    DataDirInfo { path, portable }
+    Ok(DataDirInfo { path, portable })
+}
+
+/// True when `portable.txt` sits next to the executable.
+fn is_portable_install(exe_dir: &Path) -> bool {
+    exe_dir.join(PORTABLE_MARKER).is_file()
+}
+
+/// True when the path has a component that starts with "OneDrive" (case-insensitive), e.g.
+/// `C:\Users\me\OneDrive\Documents` or `C:\Users\me\OneDrive - Contoso\Documents`.
+fn path_in_onedrive(path: &Path) -> bool {
+    path.components().any(|component| {
+        component
+            .as_os_str()
+            .to_str()
+            .map(|name| name.to_ascii_lowercase().starts_with("onedrive"))
+            .unwrap_or(false)
+    })
 }
 
 /// Resolves the data folder for the running app and creates it when missing.
@@ -48,7 +79,7 @@ fn locate_data_dir(app: &tauri::AppHandle) -> Result<DataDirInfo, String> {
         .or_else(|_| app.path().app_data_dir())
         .map_err(|error| format!("cannot locate the Documents or the app data folder: {error}"))?;
     let env_dir = std::env::var(DATA_DIR_ENV).ok();
-    let info = resolve_data_dir(env_dir.as_deref(), exe_dir, &documents);
+    let info = resolve_data_dir(env_dir.as_deref(), exe_dir, &documents)?;
     std::fs::create_dir_all(&info.path).map_err(|error| {
         format!(
             "cannot create the data folder {}: {error}",
@@ -62,6 +93,13 @@ fn locate_data_dir(app: &tauri::AppHandle) -> Result<DataDirInfo, String> {
 #[tauri::command]
 fn data_dir(info: tauri::State<'_, DataDirInfo>) -> String {
     info.path.to_string_lossy().into_owned()
+}
+
+/// True when the data folder is synced by OneDrive (Windows only): SQLite files in a synced folder can hit
+/// "database is locked" errors or conflicted copies.
+#[tauri::command]
+fn data_dir_in_onedrive(info: tauri::State<'_, DataDirInfo>) -> bool {
+    cfg!(windows) && path_in_onedrive(&info.path)
 }
 
 /// True when the app runs in portable mode (`portable.txt` next to the executable).
@@ -226,10 +264,34 @@ async fn db_transaction(
     run_transaction(pool, &statements).await
 }
 
+/// Portable mode as seen before the app exists (plugins are registered first).
+fn portable_install() -> bool {
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(is_portable_install))
+        .unwrap_or(false)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_window_state::Builder::default().build())
+    let mut builder = tauri::Builder::default();
+    // Must be the first plugin. A second launch focuses the window of the running instance.
+    #[cfg(desktop)]
+    {
+        builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
+        }));
+    }
+    // The plugin stores .window-state.json in the user profile, outside the portable folder, so it is
+    // skipped in portable mode.
+    if !portable_install() {
+        builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());
+    }
+    builder
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_sql::Builder::default().build())
@@ -238,7 +300,21 @@ pub fn run() {
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
-            let info = locate_data_dir(app.handle())?;
+            let info = match locate_data_dir(app.handle()) {
+                Ok(info) => info,
+                Err(error) => {
+                    // Show the reason instead of exiting silently. The non-blocking dialog is queued on the
+                    // main thread (a blocking one would deadlock here, the event loop is not running yet).
+                    use tauri_plugin_dialog::{DialogExt, MessageDialogKind};
+                    let handle = app.handle().clone();
+                    app.dialog()
+                        .message(format!("EasyTask cannot start.\n\n{error}"))
+                        .title("EasyTask")
+                        .kind(MessageDialogKind::Error)
+                        .show(move |_| handle.exit(1));
+                    return Ok(());
+                }
+            };
 
             // Runtime scope limited to the data folder (no global scope in the capabilities).
             app.fs_scope().allow_directory(&info.path, true)?;
@@ -301,6 +377,7 @@ pub fn run() {
             db_transaction,
             data_dir,
             is_portable,
+            data_dir_in_onedrive,
             open_data_folder
         ])
         .run(tauri::generate_context!())
@@ -396,7 +473,7 @@ mod tests {
     fn data_dir_defaults_to_documents_folder() {
         let exe = temp_dir("dd-exe-plain");
         let docs = temp_dir("dd-docs-plain");
-        let info = resolve_data_dir(None, &exe, &docs);
+        let info = resolve_data_dir(None, &exe, &docs).unwrap();
         assert_eq!(info.path, docs.join("EasyTask"));
         assert!(!info.portable);
     }
@@ -405,7 +482,7 @@ mod tests {
     fn data_dir_is_next_to_the_executable_in_portable_mode() {
         let exe = temp_dir("dd-exe-portable");
         std::fs::write(exe.join("portable.txt"), b"").unwrap();
-        let info = resolve_data_dir(None, &exe, &temp_dir("dd-docs-portable"));
+        let info = resolve_data_dir(None, &exe, &temp_dir("dd-docs-portable")).unwrap();
         assert_eq!(info.path, exe.join("data"));
         assert!(info.portable);
     }
@@ -413,8 +490,14 @@ mod tests {
     #[test]
     fn data_dir_env_override_wins_and_is_not_portable() {
         let exe = temp_dir("dd-exe-env");
-        let info = resolve_data_dir(Some("/tmp/custom"), &exe, &temp_dir("dd-docs-env"));
-        assert_eq!(info.path, PathBuf::from("/tmp/custom"));
+        let custom = temp_dir("dd-custom");
+        let info = resolve_data_dir(
+            Some(custom.to_str().unwrap()),
+            &exe,
+            &temp_dir("dd-docs-env"),
+        )
+        .unwrap();
+        assert_eq!(info.path, custom);
         assert!(!info.portable);
     }
 
@@ -422,8 +505,14 @@ mod tests {
     fn data_dir_env_override_keeps_portable_flag_with_marker() {
         let exe = temp_dir("dd-exe-env-marker");
         std::fs::write(exe.join("portable.txt"), b"").unwrap();
-        let info = resolve_data_dir(Some("/tmp/custom"), &exe, &temp_dir("dd-docs-env-marker"));
-        assert_eq!(info.path, PathBuf::from("/tmp/custom"));
+        let custom = temp_dir("dd-custom-marker");
+        let info = resolve_data_dir(
+            Some(custom.to_str().unwrap()),
+            &exe,
+            &temp_dir("dd-docs-env-marker"),
+        )
+        .unwrap();
+        assert_eq!(info.path, custom);
         assert!(info.portable);
     }
 
@@ -431,8 +520,42 @@ mod tests {
     fn data_dir_blank_env_is_ignored() {
         let exe = temp_dir("dd-exe-blank");
         let docs = temp_dir("dd-docs-blank");
-        let info = resolve_data_dir(Some("  "), &exe, &docs);
+        let info = resolve_data_dir(Some("  "), &exe, &docs).unwrap();
         assert_eq!(info.path, docs.join("EasyTask"));
+    }
+
+    #[test]
+    fn data_dir_env_relative_path_is_rejected() {
+        let exe = temp_dir("dd-exe-relative");
+        let docs = temp_dir("dd-docs-relative");
+        for dir in ["data", "./data", "..\\data"] {
+            let error = resolve_data_dir(Some(dir), &exe, &docs).unwrap_err();
+            assert!(error.contains(DATA_DIR_ENV), "{error}");
+        }
+    }
+
+    #[test]
+    fn portable_install_needs_the_marker_file() {
+        let exe = temp_dir("pi-exe");
+        assert!(!is_portable_install(&exe));
+        std::fs::write(exe.join("portable.txt"), b"").unwrap();
+        assert!(is_portable_install(&exe));
+    }
+
+    #[test]
+    fn onedrive_paths_are_detected_by_component() {
+        for path in [
+            "C:\\Users\\me\\OneDrive\\Documents\\EasyTask",
+            "C:\\Users\\me\\OneDrive - Contoso\\Documents",
+            "/home/me/onedrive/EasyTask",
+        ] {
+            // Backslashes are only separators on Windows: build the path from components instead
+            let built: PathBuf = path.split(['\\', '/']).collect();
+            assert!(path_in_onedrive(&built), "{path}");
+        }
+        for path in ["/home/me/Documents/EasyTask", "/home/me/MyOneDrive/x"] {
+            assert!(!path_in_onedrive(Path::new(path)), "{path}");
+        }
     }
 
     async fn memory_pool() -> sqlx::SqlitePool {

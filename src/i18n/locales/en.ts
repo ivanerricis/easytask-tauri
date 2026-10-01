@@ -228,6 +228,7 @@ export const en: Translation = {
                 label: "Open data folder",
                 description: "Opens the folder with the database, settings, backups and logs.",
                 button: "Open",
+                oneDriveWarning: "The data folder is synced by OneDrive. Syncing can cause \"database is locked\" errors or conflicted copies of the database. Exclude the folder from OneDrive or use portable mode.",
             },
             backup: {
                 created: "Backup created.",
