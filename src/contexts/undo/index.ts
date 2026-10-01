@@ -1,6 +1,6 @@
 export { UndoProvider } from "./provider"
 export { useUndo, useUndoRecorder } from "./use-undo"
 export { UNDO_LIMIT, createUndoHistory } from "./stack"
-export type { UndoCommand, UndoOutcome, UndoSnapshot } from "./stack"
+export type { UndoCommand, UndoEntries, UndoManyOutcome, UndoOutcome, UndoSnapshot } from "./stack"
 export { captureSectionPlace, captureTaskPlace, captureTreePlace, isUndoableType } from "./commands"
 export type { UndoRecorder, UndoItemType, TreePlace, SectionPlace, TaskPlace } from "./commands"

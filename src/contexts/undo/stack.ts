@@ -15,6 +15,18 @@ export type UndoOutcome =
     | { status: "done", label: string }
     | { status: "failed", label: string, error: unknown }
 
+/** Outcome of undoing/redoing several actions in a row: `executed` is how many were applied (also on failure). */
+export type UndoManyOutcome =
+    | { status: "empty", executed: 0 }
+    | { status: "done", executed: number, label: string }
+    | { status: "failed", executed: number, label: string, error: unknown }
+
+/** Labels of the actions, each list ordered starting from the one the next undo/redo would apply. */
+export type UndoEntries = {
+    undo: string[]
+    redo: string[]
+}
+
 export type UndoSnapshot = {
     canUndo: boolean
     canRedo: boolean
@@ -50,15 +62,29 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
     })
     let snapshot = buildSnapshot()
     const emit = () => {
+        const entriesChanged = refreshEntries()
         const next = buildSnapshot()
         const same = next.canUndo === snapshot.canUndo && next.canRedo === snapshot.canRedo &&
             next.undoLabel === snapshot.undoLabel && next.redoLabel === snapshot.redoLabel
-        if (same) return
-        snapshot = next
+        if (same && !entriesChanged) return
+        if (!same) snapshot = next
         listeners.forEach(listener => listener())
     }
 
-    const trim = () => {
+    const buildEntries = (): UndoEntries => ({
+        undo: undoStack.map(c => c.label).reverse(),
+        redo: redoStack.map(c => c.label).reverse(),
+    })
+    let entries = buildEntries()
+    const sameList = (a: string[], b: string[]) => a.length === b.length && a.every((label, i) => label === b[i])
+    const refreshEntries = () => {
+        const next = buildEntries()
+        if (sameList(next.undo, entries.undo) && sameList(next.redo, entries.redo)) return false
+        entries = next
+        return true
+    }
+
+    const trim =() => {
         if (undoStack.length > limit) undoStack = undoStack.slice(undoStack.length - limit)
     }
 
@@ -70,8 +96,8 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
         emit()
     }
 
-    const execute = (direction: "undo" | "redo"): Promise<UndoOutcome> => {
-        const task = async (): Promise<UndoOutcome> => {
+    const runOne = async (direction: "undo" | "redo"): Promise<UndoOutcome> => {
+        {
             const from = direction === "undo" ? undoStack : redoStack
             const command = from.at(-1)
             if (!command) return { status: "empty" }
@@ -101,15 +127,40 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
             }
             return { status: "done", label: command.label }
         }
+    }
+
+    const enqueue = <T,>(task: () => Promise<T>): Promise<T> => {
         const result = queue.then(task, task)
         queue = result
         return result
     }
 
+    const execute = (direction: "undo" | "redo"): Promise<UndoOutcome> => enqueue(() => runOne(direction))
+
+    /** Applies `index + 1` actions in sequence as one queued task (nothing can interleave); stops at the first failure. */
+    const executeTo = (direction: "undo" | "redo", index: number): Promise<UndoManyOutcome> => enqueue(async (): Promise<UndoManyOutcome> => {
+        const available = () => (direction === "undo" ? undoStack : redoStack).length
+        if (!Number.isInteger(index) || index < 0 || available() === 0) return { status: "empty", executed: 0 }
+        const target = Math.min(index + 1, available())
+        const startedAt = generation
+        let executed = 0
+        let label = ""
+        while (executed < target && startedAt === generation) {
+            const outcome = await runOne(direction)
+            if (outcome.status === "empty") break
+            if (outcome.status === "failed") return { status: "failed", executed, label: outcome.label, error: outcome.error }
+            executed += 1
+            label = outcome.label
+        }
+        return executed === 0 ? { status: "empty", executed: 0 } : { status: "done", executed, label }
+    })
+
     return {
         record,
         undo: () => execute("undo"),
         redo: () => execute("redo"),
+        undoTo: (index: number) => executeTo("undo", index),
+        redoTo: (index: number) => executeTo("redo", index),
         clear: () => {
             generation += 1
             undoStack = []
@@ -117,6 +168,7 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
             emit()
         },
         getSnapshot: () => snapshot,
+        getEntries: () => entries,
         subscribe: (listener: () => void) => {
             listeners.add(listener)
             return () => { listeners.delete(listener) }

@@ -1,8 +1,14 @@
 import { createContext } from "react"
 import type { UndoRecorder } from "./commands"
-import type { UndoSnapshot } from "./stack"
+import type { UndoEntries, UndoSnapshot } from "./stack"
 
 export type UndoContextType = UndoSnapshot & {
+    /** Labels of the undoable (most recent first) and redoable (next to redo first) actions. Stable identity until they change. */
+    entries: UndoEntries
+    /** Undoes the actions from the most recent down to entry `index` included (0 = the last one), one toast. Never rejects. */
+    undoTo: (index: number) => Promise<void>
+    /** Redoes the actions from the next one up to entry `index` included (0 = the next one), one toast. Never rejects. */
+    redoTo: (index: number) => Promise<void>
     /** Undoes the last action (a toast tells the outcome); resolves once it is done. Never rejects. */
     undo: () => Promise<void>
     /** Redoes the last undone action. Never rejects. */

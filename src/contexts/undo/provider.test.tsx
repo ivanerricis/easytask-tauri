@@ -418,4 +418,66 @@ describe("UndoProvider", () => {
             input.remove()
         })
     })
+
+    describe("entries and undoTo/redoTo", () => {
+        const recordThree = async (result: { current: ReturnType<typeof useAll> }) => {
+            await act(async () => {
+                result.current.recorder.rename("note", 10, "A", "B")
+                result.current.recorder.rename("note", 10, "B", "C")
+                result.current.recorder.rename("note", 10, "C", "D")
+            })
+        }
+
+        it("exposes the labels, most recent first, with a stable identity", async () => {
+            const { result } = await setup()
+            expect(result.current.undo.entries).toEqual({ undo: [], redo: [] })
+            await recordThree(result)
+            expect(result.current.undo.entries.undo).toEqual([
+                "Rinomina nota \"C\"", "Rinomina nota \"B\"", "Rinomina nota \"A\"",
+            ])
+            const entries = result.current.undo.entries
+            await act(async () => { await Promise.resolve() })
+            expect(result.current.undo.entries).toBe(entries)
+        })
+
+        it("undoTo undoes up to the entry in order and shows one summary toast with a Ripeti button", async () => {
+            const { result } = await setup()
+            await recordThree(result)
+            await act(() => result.current.undo.undoTo(1))
+            expect(vi.mocked(renameDBItem).mock.calls.map(c => c[2])).toEqual(["C", "B"])
+            expect(result.current.undo.entries).toEqual({ undo: ["Rinomina nota \"A\""], redo: ["Rinomina nota \"B\"", "Rinomina nota \"C\""] })
+
+            const [message, options] = vi.mocked(toast).mock.calls.at(-1)!
+            expect(message).toBe("Annullate 2 azioni")
+            expect(options?.action).toMatchObject({ label: "Ripeti" })
+
+            vi.mocked(renameDBItem).mockClear()
+            await act(async () => { (options!.action as unknown as { onClick: () => void }).onClick() })
+            await waitFor(() => expect(result.current.undo.entries.redo).toEqual([]))
+            expect(vi.mocked(renameDBItem).mock.calls.map(c => c[2])).toEqual(["C", "D"])
+            expect(vi.mocked(toast).mock.calls.at(-1)![0]).toBe("Ripetute 2 azioni")
+        })
+
+        it("redoTo redoes up to the entry and uses the singular for one action", async () => {
+            const { result } = await setup()
+            await recordThree(result)
+            await act(() => result.current.undo.undoTo(2))
+            await act(() => result.current.undo.redoTo(0))
+            expect(vi.mocked(toast).mock.calls.at(-1)![0]).toBe("Ripetuta 1 azione")
+            expect(result.current.undo.entries.undo).toEqual(["Rinomina nota \"A\""])
+        })
+
+        it("tells there is nothing to undo, and reports a failure in the middle like the single undo", async () => {
+            const { result } = await setup()
+            await act(() => result.current.undo.undoTo(0))
+            expect(toast.info).toHaveBeenLastCalledWith("Niente da annullare", expect.anything())
+
+            await recordThree(result)
+            vi.mocked(renameDBItem).mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("taken"))
+            await act(() => result.current.undo.undoTo(2))
+            expect(toast.error).toHaveBeenCalledWith("Impossibile annullare: Rinomina nota \"B\"")
+            expect(vi.mocked(toast).mock.calls.at(-1)![0]).toBe("Annullata 1 azione")
+            expect(result.current.undo.entries).toEqual({ undo: ["Rinomina nota \"A\""], redo: ["Rinomina nota \"C\""] })
+        })
+    })
 })
