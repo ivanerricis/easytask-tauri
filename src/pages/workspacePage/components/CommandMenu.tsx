@@ -3,9 +3,9 @@ import { TooltipCustom } from "@/components/tooltip-custom"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { useWorkspaceState } from "@/contexts/workspace-data"
 import { useTabsActions } from "@/contexts/use-tabs"
-import type { Note } from "@/types/types"
+import type { Folder, Note } from "@/types/types"
 import { SearchIcon } from "lucide-react"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { useOptionalUndo } from "@/contexts/undo/use-undo"
@@ -23,12 +23,18 @@ export function CommandMenu() {
     useShortcut("search-notes", () => setOpen(open => !open), { allowInInputs: true })
     const searchLabel = useShortcutLabel("search-notes")
 
-    const allNotesMap = new Map<number, Note>()
-    notes.forEach(note => allNotesMap.set(note.id, note))
-    folders.forEach(folder => {
-        folder.notes.forEach(note => allNotesMap.set(note.id, note))
-    })
-    const allNotes = Array.from(allNotesMap.values())
+    // Every note once, with the path of its folder (so same-named notes can be told apart)
+    const allNotes = useMemo(() => {
+        const map = new Map<number, { note: Note, path: string }>()
+        notes.forEach(note => map.set(note.id, { note, path: "" }))
+        const walk = (list: Folder[], parentPath: string) => list.forEach(folder => {
+            const path = parentPath ? `${parentPath} / ${folder.name}` : folder.name
+            folder.notes.forEach(note => map.set(note.id, { note, path }))
+            walk(folder.subfolders ?? [], path)
+        })
+        walk(folders, "")
+        return Array.from(map.values())
+    }, [notes, folders])
 
     return (
         <>
@@ -55,16 +61,19 @@ export function CommandMenu() {
                         </CommandGroup>
                     )}
                     <CommandGroup heading={t("notes.search.suggestions")}>
-                        {allNotes.map((note) => (
+                        {allNotes.map(({ note, path }) => (
                             <CommandItem
                                 className="!p-2"
                                 key={note.id}
+                                value={`${note.name} ${note.id}`}
+                                keywords={path ? [path] : undefined}
                                 onSelect={() => {
                                     setOpen(prev => !prev)
                                     openNote(note.id)
                                 }}
                             >
                                 {note.name}
+                                {path && <span className="ml-1 truncate text-xs text-muted-foreground">{path}</span>}
                             </CommandItem>))}
                     </CommandGroup>
                 </CommandList>

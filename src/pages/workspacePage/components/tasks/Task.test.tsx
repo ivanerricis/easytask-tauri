@@ -1,6 +1,6 @@
 import { useEffect } from "react"
 import type { ReactNode } from "react"
-import { act, fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { Task } from "./Task"
@@ -10,9 +10,10 @@ import { RightPanelContext, type RightPanelContextType } from "../rightbar/right
 import { makeNote, makeTask } from "@/test/ui-fixtures"
 
 const updateTaskCompletion = vi.fn()
+const renameItem = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({
-        updateTaskCompletion, renameItem: vi.fn(), updateTaskPriority: vi.fn(), updateTaskDescription: vi.fn(), updateItemColor: vi.fn(),
+        updateTaskCompletion, renameItem, updateTaskPriority: vi.fn(), updateTaskDescription: vi.fn(), updateItemColor: vi.fn(),
     }),
 }))
 vi.mock("@/contexts/use-active-note", () => ({
@@ -164,5 +165,45 @@ describe("Task selection", () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />)
         await user.click(screen.getByRole("checkbox"))
         expect(updateTaskCompletion).toHaveBeenCalledWith(10, true)
+    })
+})
+
+describe("Task text editing", () => {
+    const edit = async (user: ReturnType<typeof userEvent.setup>, text = "Primo") => {
+        renderTasks(<Task task={makeTask({ id: 10, text })} />)
+        await user.click(screen.getByLabelText("Modifica il testo del task"))
+        return screen.getByDisplayValue(text)
+    }
+
+    it("Escape cancels the edit: restores the text and does not rename", async () => {
+        const user = userEvent.setup()
+        const field = await edit(user)
+        await user.type(field, " modificato{Escape}")
+
+        expect(renameItem).not.toHaveBeenCalled()
+        expect(screen.getByLabelText("Modifica il testo del task")).toHaveValue("Primo")
+    })
+
+    it("Enter saves once (the blur on unmount does not save again)", async () => {
+        const user = userEvent.setup()
+        const field = await edit(user)
+        await user.type(field, "x{Enter}")
+
+        await waitFor(() => expect(renameItem).toHaveBeenCalledTimes(1))
+        expect(renameItem).toHaveBeenCalledWith("task", 10, "Primox")
+    })
+
+    it("does not rename for a whitespace-only change", async () => {
+        const user = userEvent.setup()
+        const field = await edit(user)
+        await user.type(field, "   {Enter}")
+
+        await waitFor(() => expect(screen.getByLabelText("Modifica il testo del task")).toBeInTheDocument())
+        expect(renameItem).not.toHaveBeenCalled()
+    })
+
+    it("labels the priority indicator", () => {
+        renderTasks(<Task task={makeTask({ id: 10, text: "Primo", priority: true })} />)
+        expect(screen.getByRole("img", { name: "Priorità alta" })).toBeInTheDocument()
     })
 })

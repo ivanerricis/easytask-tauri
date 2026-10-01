@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { useState, useRef, useEffect } from "react"
 import type { FormEvent } from "react"
 import { keyLabel } from "@/lib/shortcuts"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { PlusButton } from "../section/PlusButton"
 import { CloseButton } from "../section/CloseButton"
 
@@ -132,6 +133,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
     const { appendTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const formRef = useRef<HTMLFormElement>(null)
+    const { saving, run } = useSubmitOnce()
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -153,15 +155,17 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
         if (text.trim() && sectionId !== null) {
-            try {
-                const value = text.trim()
-                const id = await createTask(sectionId, value)
-                handleOpen()
-                appendTask(id, { sectionId }, value)
-                recorder.create("task", id, value)
-            } catch (error: unknown) {
-                toast.error(getErrorMessage(error) || t("tasks.errors.createTask"))
-            }
+            await run(async () => {
+                try {
+                    const value = text.trim()
+                    const id = await createTask(sectionId, value)
+                    handleOpen()
+                    appendTask(id, { sectionId }, value)
+                    recorder.create("task", id, value)
+                } catch (error: unknown) {
+                    toast.error(getErrorMessage(error) || t("tasks.errors.createTask"))
+                }
+            })
         }
     }
 
@@ -187,11 +191,12 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                         onChange={(e) => setText(e.target.value)}
                         placeholder={t("tasks.placeholder")}
                         autoFocus
+                        readOnly={saving}
                         className="rounded-none border-none text-sm"
                     />
                 </div>
                 <div className="flex items-center w-full border-t divide-x">
-                    <PlusButton disabled={!text.trim()} />
+                    <PlusButton disabled={!text.trim() || saving} />
                     <CloseButton onClick={handleOpen} />
                 </div>
             </form>

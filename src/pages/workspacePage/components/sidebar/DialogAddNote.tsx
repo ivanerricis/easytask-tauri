@@ -20,7 +20,8 @@ import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { FilePlus, Palette, X } from "lucide-react"
-import { useState } from "react"
+import { useId, useState } from "react"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 const defaultNote = {
     name: "",
@@ -38,6 +39,10 @@ export function DialogAddNote() {
     const { currentWorkspace } = useWorkspace()
     const { createWorkspaceNote, createNoteFromTemplate } = useWorkspaceData()
     const recorder = useUndoRecorder()
+    const { saving, run } = useSubmitOnce()
+    const nameId = useId()
+    const colorId = useId()
+    const templateFieldId = useId()
     const templates = useTemplates(isOpen)
     // A stale selection (template deleted meanwhile) behaves as "no template"
     const template = templates.find(tpl => String(tpl.id) === templateId)
@@ -46,19 +51,21 @@ export function DialogAddNote() {
         e.preventDefault()
         if (!currentWorkspace?.id) return
         if (note.name.trim() === "") return
-        try {
-            // Both are added to the sidebar tree by the context
-            const id = template
-                ? await createNoteFromTemplate(template.id, currentWorkspace.id, null, note.name.trim(), template.color)
-                : await createWorkspaceNote(currentWorkspace.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
-            if (typeof id === "number") recorder.create("note", id, note.name.trim())
-            setError(null)
-            setIsOpen(false)
-            setNote(defaultNote)
-            setTemplateId("")
-        } catch (err) {
-            setError(getErrorMessage(err))
-        }
+        await run(async () => {
+            try {
+                // Both are added to the sidebar tree by the context
+                const id = template
+                    ? await createNoteFromTemplate(template.id, currentWorkspace.id, null, note.name.trim(), template.color)
+                    : await createWorkspaceNote(currentWorkspace.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
+                if (typeof id === "number") recorder.create("note", id, note.name.trim())
+                setError(null)
+                setIsOpen(false)
+                setNote(defaultNote)
+                setTemplateId("")
+            } catch (err) {
+                setError(getErrorMessage(err))
+            }
+        })
     }
 
     const handleCancel = () => {
@@ -89,9 +96,9 @@ export function DialogAddNote() {
                     <form onSubmit={handleCreateNote}>
                         <div className="grid gap-4">
                             <div className="grid gap-3">
-                                <Label>{t("common.name")}</Label>
+                                <Label htmlFor={nameId}>{t("common.name")}</Label>
                                 <Input
-                                    id="name-1"
+                                    id={nameId}
                                     name="name"
                                     value={note.name}
                                     onChange={e => {
@@ -105,9 +112,9 @@ export function DialogAddNote() {
                             </div>
                             {templates.length > 0 && (
                                 <div className="grid gap-3">
-                                    <Label htmlFor="template-1">{t("dialogs.addNote.fromTemplate")}</Label>
+                                    <Label htmlFor={templateFieldId}>{t("dialogs.addNote.fromTemplate")}</Label>
                                     <NativeSelect
-                                        id="template-1"
+                                        id={templateFieldId}
                                         value={template ? templateId : ""}
                                         onChange={e => setTemplateId(e.target.value)}
                                     >
@@ -124,7 +131,7 @@ export function DialogAddNote() {
                                         style={{ backgroundColor: note.color }}
                                     >
                                         <Input
-                                            id="color-1"
+                                            id={colorId}
                                             name="color"
                                             type="color"
                                             className="opacity-0 cursor-pointer"
@@ -169,7 +176,7 @@ export function DialogAddNote() {
                             >
                                 {t("common.cancel")}
                             </Button>
-                            <Button type="submit" disabled={!note.name.trim()}>
+                            <Button type="submit" disabled={!note.name.trim() || saving}>
                                 {t("dialogs.addNote.submit")}
                             </Button>
                         </DialogFooter>

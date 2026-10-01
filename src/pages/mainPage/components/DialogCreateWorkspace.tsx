@@ -15,7 +15,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { ArrowRight, Palette, X } from "lucide-react"
-import { useState } from "react"
+import { useId, useState } from "react"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { getErrorMessage } from "@/lib/utils"
 
 const defaultWorkspace = {
@@ -30,6 +31,9 @@ export function DialogCreateWorkspace() {
     const [isOpen, setIsOpen] = useState(false)
     const [paletteIsOpen, setPaletteOpen] = useState(false);
     const { createWorkspace, getWorkspaces } = useWorkspace()
+    const { saving, run } = useSubmitOnce()
+    const nameId = useId()
+    const colorId = useId()
 
     useShortcut("new-workspace", () => setIsOpen(true), { allowInInputs: true })
     const shortcutLabel = useShortcutLabel("new-workspace")
@@ -37,15 +41,17 @@ export function DialogCreateWorkspace() {
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
         if (workspace.name.trim() === "") return
-        try {
-            await createWorkspace(workspace.name.trim(), paletteIsOpen ? workspace.color : undefined)
-            await getWorkspaces()
-            setError(null)
-            setIsOpen(false)
-            setWorkspace(defaultWorkspace)
-        } catch (err) {
-            setError(getErrorMessage(err))
-        }
+        await run(async () => {
+            try {
+                await createWorkspace(workspace.name.trim(), paletteIsOpen ? workspace.color : undefined)
+                await getWorkspaces()
+                setError(null)
+                setIsOpen(false)
+                setWorkspace(defaultWorkspace)
+            } catch (err) {
+                setError(getErrorMessage(err))
+            }
+        })
     }
 
     const handleCancel = () => {
@@ -65,9 +71,9 @@ export function DialogCreateWorkspace() {
                     <form onSubmit={handleCreate}>
                         <div className="grid gap-4">
                             <div className="grid gap-3">
-                                <Label>{t("home.createWorkspace.name")}</Label>
+                                <Label htmlFor={nameId}>{t("home.createWorkspace.name")}</Label>
                                 <Input
-                                    id="name-1"
+                                    id={nameId}
                                     name="name"
                                     value={workspace.name}
                                     onChange={e => {
@@ -87,7 +93,7 @@ export function DialogCreateWorkspace() {
                                         style={{ backgroundColor: workspace.color }}
                                     >
                                         <Input
-                                            id="color-1"
+                                            id={colorId}
                                             name="color"
                                             type="color"
                                             className="opacity-0 cursor-pointer"
@@ -127,7 +133,7 @@ export function DialogCreateWorkspace() {
                             >
                                 {t("common.cancel")}
                             </Button>
-                            <Button type="submit" disabled={!workspace.name}>
+                            <Button type="submit" disabled={!workspace.name.trim() || saving}>
                                 {t("home.createWorkspace.title")}
                             </Button>
                         </DialogFooter>

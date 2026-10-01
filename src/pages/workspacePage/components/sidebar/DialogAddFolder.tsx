@@ -18,7 +18,8 @@ import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { FolderPlus, Palette, X } from "lucide-react"
-import { useState } from "react"
+import { useId, useState } from "react"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 const defaultFolder = {
     name: "",
@@ -35,21 +36,26 @@ export function DialogAddFolder() {
     const { currentWorkspace } = useWorkspace()
     const { createWorkspaceFolder } = useWorkspaceData()
     const recorder = useUndoRecorder()
+    const { saving, run } = useSubmitOnce()
+    const nameId = useId()
+    const colorId = useId()
 
     const handleCreateFolder = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentWorkspace?.id) return
         if (folder.name.trim() === "") return
-        try {
-            const id = await createWorkspaceFolder(currentWorkspace.id, folder.name.trim(), paletteIsOpen ? folder.color : undefined)
-            if (typeof id === "number") recorder.create("folder", id, folder.name.trim())
-            setError(null)
-            setIsOpen(false)
-            setPaletteOpen(false)
-            setFolder(defaultFolder)
-        } catch (err) {
-            setError(getErrorMessage(err))
-        }
+        await run(async () => {
+            try {
+                const id = await createWorkspaceFolder(currentWorkspace.id, folder.name.trim(), paletteIsOpen ? folder.color : undefined)
+                if (typeof id === "number") recorder.create("folder", id, folder.name.trim())
+                setError(null)
+                setIsOpen(false)
+                setPaletteOpen(false)
+                setFolder(defaultFolder)
+            } catch (err) {
+                setError(getErrorMessage(err))
+            }
+        })
     }
 
     const handleCancel = () => {
@@ -78,9 +84,9 @@ export function DialogAddFolder() {
                     <form onSubmit={handleCreateFolder}>
                         <div className="grid gap-4">
                             <div className="grid gap-3">
-                                <Label>{t("common.name")}</Label>
+                                <Label htmlFor={nameId}>{t("common.name")}</Label>
                                 <Input
-                                    id="name-1"
+                                    id={nameId}
                                     name="name"
                                     value={folder.name}
                                     onChange={e => {
@@ -97,7 +103,7 @@ export function DialogAddFolder() {
                                         style={{ backgroundColor: folder.color }}
                                     >
                                         <Input
-                                            id="color-1"
+                                            id={colorId}
                                             name="color"
                                             type="color"
                                             className="opacity-0 cursor-pointer"
@@ -144,7 +150,7 @@ export function DialogAddFolder() {
                             </Button>
                             <Button
                                 type="submit"
-                                disabled={!folder.name.trim()}
+                                disabled={!folder.name.trim() || saving}
                             >
                                 {t("dialogs.addFolder.submit")}
                             </Button>
