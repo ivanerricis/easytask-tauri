@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import type { Group, Section, Task } from "@/types/types";
 import { getDB } from "../dbManager";
 import { createError, handleDBError } from "@/types/error";
@@ -28,7 +29,7 @@ export async function getDBNoteData(noteId: number) {
             ORDER BY position, id`, [noteId]);
         return { groups, sections, tasks }
     } catch (error: unknown) {
-        throw createError('NOTE_DATA_LOAD_FAILED', 'Failed to load note data: ' + getErrorMessage(error))
+        throw createError('NOTE_DATA_LOAD_FAILED', i18n.t("errors.note.load", { message: getErrorMessage(error) }))
     }
 }
 
@@ -50,8 +51,8 @@ export async function createDBWorkspaceNote(workspaceId: number, name: string, c
         return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "NOTE", {
-            UNIQUE: "A note with this name already exists.",
-            CHECK: "The note name cannot be empty.",
+            UNIQUE: i18n.t("errors.note.unique"),
+            CHECK: i18n.t("errors.note.check"),
         })
     }
 }
@@ -75,8 +76,8 @@ export async function createDBNoteInFolder(workspaceId: number, folderId: number
         return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "NOTE", {
-            UNIQUE: "A note with this name already exists.",
-            CHECK: "The note name cannot be empty.",
+            UNIQUE: i18n.t("errors.note.unique"),
+            CHECK: i18n.t("errors.note.check"),
         })
     }
 }

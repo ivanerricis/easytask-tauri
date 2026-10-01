@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { Folder, Note, WorkspaceDataTree } from "@/types/types"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
@@ -106,7 +107,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             setTreeState(tree)
             setLoadedWorkspaceId(workspaceID)
         } catch (error) {
-            setError('Errore caricamento dati del Workspace')
+            setError(i18n.t("errors.loadWorkspaceData"))
             throw error
         }
     }), [withLoading])
@@ -126,7 +127,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             optimisticSeq.current += 1
             if (current === next) setWorkspaceDataTree(previous)
             else if (current && inverse) setWorkspaceDataTree(inverse(current))
-            else if (loadedWorkspaceRef.current !== null) getWorkspaceData(loadedWorkspaceRef.current).catch(error => reportError(error, "Impossibile aggiornare i dati del workspace. Riprova."))
+            else if (loadedWorkspaceRef.current !== null) getWorkspaceData(loadedWorkspaceRef.current).catch(error => reportError(error, i18n.t("errors.refreshWorkspaceData")))
         }
     }, [setWorkspaceDataTree, getWorkspaceData])
 

@@ -1,5 +1,5 @@
 import { useContext } from "react"
-import { formatBinding, getShortcut, type Binding } from "@/lib/shortcuts"
+import { formatBinding, getShortcut, keyLabel, type Binding } from "@/lib/shortcuts"
 import { ShortcutsContext } from "./shortcuts-context-object"
 
 export const useShortcutsContext = () => {
@@ -26,5 +26,5 @@ export const useShortcutLabel = (id: string): string | undefined => {
 /** Key labels of a shortcut for the hints, following the effective binding. */
 export const useShortcutKeys = (id: string): string[] => {
     const binding = useBinding(id)
-    return binding ? formatBinding(binding) : getShortcut(id).keys ?? []
+    return binding ? formatBinding(binding) : (getShortcut(id).keys ?? []).map(key => keyLabel(key))
 }

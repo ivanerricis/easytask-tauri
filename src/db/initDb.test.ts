@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DatabaseSync, type SQLInputValue } from "node:sqlite"
 import type Database from "@tauri-apps/plugin-sql"
 import { createMockDb, type MockDb } from "@/test/db-mock"
-import { initDB, LEGACY_DB_MESSAGE, NEWER_DB_MESSAGE } from "./initDb"
+import { initDB, legacyDbMessage, newerDbMessage } from "./initDb"
 import { APPLICATION_ID, initialSchema } from "./schema/initial"
 
 // Runs initDB against a real SQLite database through a minimal adapter of the plugin API
@@ -135,7 +135,7 @@ describe("initDB behaviour", () => {
         for (const version of [1, 2, 8]) {
             const db: MockDb = createMockDb()
             db.select.mockResolvedValueOnce([{ user_version: version }]).mockResolvedValueOnce([{ application_id: 0 }])
-            await expect(initDB(db as unknown as Database)).rejects.toThrow(LEGACY_DB_MESSAGE)
+            await expect(initDB(db as unknown as Database)).rejects.toThrow(legacyDbMessage())
             expect(db.execute).not.toHaveBeenCalled()
         }
     })
@@ -150,7 +150,7 @@ describe("initDB behaviour", () => {
     it("refuses a database of a newer version", async () => {
         const db: MockDb = createMockDb()
         db.select.mockResolvedValueOnce([{ user_version: 2 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
-        await expect(initDB(db as unknown as Database)).rejects.toThrow(NEWER_DB_MESSAGE)
+        await expect(initDB(db as unknown as Database)).rejects.toThrow(newerDbMessage())
         expect(db.execute).not.toHaveBeenCalled()
     })
 

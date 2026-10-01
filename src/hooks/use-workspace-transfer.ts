@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useCallback, useState } from "react"
 import { toast } from "sonner"
 import { useWorkspace } from "@/contexts/use-workspace"
@@ -15,7 +16,7 @@ export function useWorkspaceTransfer() {
     const exportWorkspace = useCallback(async (workspace: { id: number, name: string }) => {
         setBusy(true)
         try {
-            if (await exportWorkspaceToFile(workspace)) toast.success("Workspace esportato")
+            if (await exportWorkspaceToFile(workspace)) toast.success(i18n.t("transfer.exported"))
         } catch (error) {
             toast.error(getErrorMessage(error))
         } finally {
@@ -29,7 +30,7 @@ export function useWorkspaceTransfer() {
             const result = await importWorkspaceFromFile()
             if (!result) return
             await getWorkspaces()
-            toast.success("Workspace importato" + (result.skippedAudio > 0 ? ` · ${result.skippedAudio} audio saltati` : ""))
+            toast.success(result.skippedAudio > 0 ? i18n.t("transfer.importedSkipped", { count: result.skippedAudio }) : i18n.t("transfer.imported"))
         } catch (error) {
             toast.error(getErrorMessage(error))
         } finally {

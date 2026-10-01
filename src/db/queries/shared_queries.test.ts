@@ -75,12 +75,12 @@ describe("renameDBItem", () => {
         db.execute.mockRejectedValueOnce(new Error("UNIQUE constraint failed"))
         expect(await thrown(renameDBItem("folder", 1, "x"))).toEqual({
             code: "FOLDER_EXISTS",
-            message: "An item with this name already exists.",
+            message: "Esiste già un elemento con questo nome.",
         })
         db.execute.mockRejectedValueOnce(new Error("CHECK constraint failed"))
         expect(await thrown(renameDBItem("folder", 1, ""))).toEqual({
             code: "FOLDER_CHECK_FAILED",
-            message: "The name cannot be empty.",
+            message: "Il nome non può essere vuoto.",
         })
     })
 })
@@ -97,7 +97,7 @@ describe("updateDBColor", () => {
         db.execute.mockRejectedValueOnce(new Error("CHECK constraint failed"))
         expect(await thrown(updateDBColor("note", 1, "bad"))).toEqual({
             code: "NOTE_CHECK_FAILED",
-            message: "The color cannot be empty.",
+            message: "Il colore non può essere vuoto.",
         })
     })
 })
@@ -120,7 +120,7 @@ describe("deleteDBItem", () => {
         db.execute.mockRejectedValueOnce(new Error("disk full"))
         expect(await thrown(deleteDBItem("task", 1))).toEqual({
             code: "TASK_DELETE_FAILED",
-            message: "Failed to delete item: disk full",
+            message: "Impossibile eliminare l'elemento: disk full",
         })
     })
 
@@ -128,7 +128,7 @@ describe("deleteDBItem", () => {
         db.execute.mockRejectedValueOnce("locked")
         expect(await thrown(deleteDBItem("section", 1))).toEqual({
             code: "SECTION_DELETE_FAILED",
-            message: "Failed to delete item: locked",
+            message: "Impossibile eliminare l'elemento: locked",
         })
     })
 })

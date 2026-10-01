@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useContext, useEffect, useState } from "react"
 import type { AudioFile } from "@/types/types"
 import { getDBGroupAudioFiles } from "@/db/queries/audio"
@@ -27,7 +28,7 @@ export function useGroupAudioFiles(groupId: number): AudioFile[] {
         let stale = false
         getDBGroupAudioFiles(groupId)
             .then(rows => { if (!stale) setFiles(rows) })
-            .catch(error => reportError(error, "Impossibile caricare i file audio."))
+            .catch(error => reportError(error, i18n.t("errors.loadAudio")))
         return () => { stale = true }
     }, [groupId, version])
 

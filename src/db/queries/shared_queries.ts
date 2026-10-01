@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { createError, handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 import { getErrorMessage } from "@/lib/utils";
@@ -14,7 +15,7 @@ export type DBItemType = typeof ITEM_TYPES[number]
 // Guards the table name interpolated into the SQL strings
 export function assertItemType(itemType: string): asserts itemType is DBItemType {
     if (!(ITEM_TYPES as readonly string[]).includes(itemType))
-        throw createError("INVALID_ITEM_TYPE", `Unsupported item type: ${itemType}`)
+        throw createError("INVALID_ITEM_TYPE", i18n.t("errors.unsupportedItemType", { type: itemType }))
 }
 
 /**
@@ -42,8 +43,8 @@ export async function renameDBItem(itemType: DBItemType, itemID: number, name: s
             await db.execute('UPDATE ' + itemType + ' SET name=? WHERE id=?', [name, itemID])
     } catch (error: unknown) {
         handleDBError(error, itemType.toUpperCase(), {
-            UNIQUE: "An item with this name already exists.",
-            CHECK: "The name cannot be empty.",
+            UNIQUE: i18n.t("errors.item.unique"),
+            CHECK: i18n.t("errors.nameEmpty"),
         })
     }
 }
@@ -63,8 +64,8 @@ export async function updateDBColor(itemType: DBItemType, itemID: number, color?
         await db.execute('UPDATE ' + itemType + ' SET color=? WHERE id=?', [color ?? null, itemID])
     } catch (error: unknown) {
         handleDBError(error, itemType.toUpperCase(), {
-            UNIQUE: "An item with this color already exists.",
-            CHECK: "The color cannot be empty.",
+            UNIQUE: i18n.t("errors.item.colorUnique"),
+            CHECK: i18n.t("errors.item.colorCheck"),
         })
     }
 }
@@ -85,6 +86,6 @@ export async function deleteDBItem(itemType: DBItemType, itemID: number) {
     try {
         await db.execute(`UPDATE ${itemType} ${SOFT_DELETE} WHERE id=?`, [itemID])
     } catch (error: unknown) {
-        throw createError(`${itemType.toUpperCase()}_DELETE_FAILED`, "Failed to delete item: " + getErrorMessage(error))
+        throw createError(`${itemType.toUpperCase()}_DELETE_FAILED`, i18n.t("errors.item.delete", { message: getErrorMessage(error) }))
     }
 }

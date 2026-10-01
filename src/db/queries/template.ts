@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import type { NoteTemplate, NoteTemplateContent, TemplateGroup, TemplateSection, TemplateTask } from "@/types/template";
 import type { Task } from "@/types/types";
 import { createError, handleDBError } from "@/types/error";
@@ -6,11 +7,11 @@ import { getDB } from "../dbManager";
 import { Transaction, TransactionError, type TxRef } from "../transaction";
 import { getDBNoteData } from "./note";
 
-const TEMPLATE_UNIQUE_MESSAGE = "Esiste già un template con questo nome."
-const TEMPLATE_CHECK_MESSAGE = "Il nome del template non può essere vuoto."
-const NOTE_UNIQUE_MESSAGE = "Esiste già una nota con questo nome nella cartella di destinazione."
-const NOTE_CHECK_MESSAGE = "Il nome della nota non può essere vuoto."
-const SOURCE_MISSING_MESSAGE = "La nota di origine non esiste più."
+const TEMPLATE_UNIQUE_MESSAGE = () => i18n.t("errors.template.unique")
+const TEMPLATE_CHECK_MESSAGE = () => i18n.t("errors.template.check")
+const NOTE_UNIQUE_MESSAGE = () => i18n.t("errors.template.noteUnique")
+const NOTE_CHECK_MESSAGE = () => i18n.t("errors.template.noteCheck")
+const SOURCE_MISSING_MESSAGE = () => i18n.t("errors.template.sourceMissing")
 
 type TemplateRow = Omit<NoteTemplate, "content"> & { content: string }
 
@@ -91,7 +92,7 @@ export async function createDBTemplateFromNote(noteId: number, name: string): Pr
         const notes = await db.select<{ workspaceID: number, color: string | null }[]>(
             'SELECT workspaceID, color FROM note WHERE id = ? AND deleted_at IS NULL', [noteId])
         if (notes.length === 0)
-            throw createError("TEMPLATE_SOURCE_MISSING", SOURCE_MISSING_MESSAGE)
+            throw createError("TEMPLATE_SOURCE_MISSING", SOURCE_MISSING_MESSAGE())
 
         const content = await buildContent(noteId)
         const result = await db.execute(
@@ -100,7 +101,7 @@ export async function createDBTemplateFromNote(noteId: number, name: string): Pr
         return result.lastInsertId as number
     } catch (error: unknown) {
         if (isAppError(error)) throw error
-        handleDBError(error, "TEMPLATE", { UNIQUE: TEMPLATE_UNIQUE_MESSAGE, CHECK: TEMPLATE_CHECK_MESSAGE })
+        handleDBError(error, "TEMPLATE", { UNIQUE: TEMPLATE_UNIQUE_MESSAGE(), CHECK: TEMPLATE_CHECK_MESSAGE() })
     }
 }
 
@@ -121,7 +122,7 @@ export async function getDBTemplates(workspaceId: number): Promise<NoteTemplate[
             `${TEMPLATE_SELECT} WHERE t.workspaceID = ? AND t.deleted_at IS NULL ORDER BY t.name COLLATE NOCASE, t.id`, [workspaceId])
         return rows.map(toTemplate)
     } catch (error: unknown) {
-        throw createError("TEMPLATE_LOAD_FAILED", "Failed to load the templates: " + getErrorMessage(error))
+        throw createError("TEMPLATE_LOAD_FAILED", i18n.t("errors.template.loadAll", { message: getErrorMessage(error) }))
     }
 }
 
@@ -138,7 +139,7 @@ export async function countDBTemplates(workspaceId: number): Promise<number> {
             'SELECT COUNT(*) AS count FROM note_template WHERE workspaceID = ? AND deleted_at IS NULL', [workspaceId])
         return rows[0]?.count ?? 0
     } catch (error: unknown) {
-        throw createError("TEMPLATE_LOAD_FAILED", "Failed to load the templates: " + getErrorMessage(error))
+        throw createError("TEMPLATE_LOAD_FAILED", i18n.t("errors.template.loadAll", { message: getErrorMessage(error) }))
     }
 }
 
@@ -153,7 +154,7 @@ export async function renameDBTemplate(templateId: number, name: string) {
         const db = await getDB()
         await db.execute('UPDATE note_template SET name = ? WHERE id = ?', [name.trim(), templateId])
     } catch (error: unknown) {
-        handleDBError(error, "TEMPLATE", { UNIQUE: TEMPLATE_UNIQUE_MESSAGE, CHECK: TEMPLATE_CHECK_MESSAGE })
+        handleDBError(error, "TEMPLATE", { UNIQUE: TEMPLATE_UNIQUE_MESSAGE(), CHECK: TEMPLATE_CHECK_MESSAGE() })
     }
 }
 
@@ -171,14 +172,14 @@ export async function updateDBTemplateFromNote(templateId: number) {
              INNER JOIN note n ON n.id = t.sourceNoteID AND n.deleted_at IS NULL
              WHERE t.id = ? AND t.deleted_at IS NULL`, [templateId])
         if (rows.length === 0)
-            throw createError("TEMPLATE_SOURCE_MISSING", SOURCE_MISSING_MESSAGE)
+            throw createError("TEMPLATE_SOURCE_MISSING", SOURCE_MISSING_MESSAGE())
 
         const content = await buildContent(rows[0].noteID)
         await db.execute('UPDATE note_template SET color = ?, content = ? WHERE id = ?',
             [rows[0].color ?? null, JSON.stringify(content), templateId])
     } catch (error: unknown) {
         if (isAppError(error)) throw error
-        throw createError("TEMPLATE_UPDATE_FAILED", "Failed to update the template: " + getErrorMessage(error))
+        throw createError("TEMPLATE_UPDATE_FAILED", i18n.t("errors.template.update", { message: getErrorMessage(error) }))
     }
 }
 
@@ -238,11 +239,11 @@ export async function createDBNoteFromTemplate(templateId: number, workspaceId: 
         const rows = await db.select<TemplateRow[]>(
             `${TEMPLATE_SELECT} WHERE t.id = ? AND t.workspaceID = ? AND t.deleted_at IS NULL`, [templateId, workspaceId])
         if (rows.length === 0)
-            throw createError("TEMPLATE_NOT_FOUND", "Il template non esiste più.")
+            throw createError("TEMPLATE_NOT_FOUND", i18n.t("errors.template.notFound"))
         template = toTemplate(rows[0])
     } catch (error: unknown) {
         if (isAppError(error)) throw error
-        throw createError("TEMPLATE_LOAD_FAILED", "Failed to load the template: " + getErrorMessage(error))
+        throw createError("TEMPLATE_LOAD_FAILED", i18n.t("errors.template.load", { message: getErrorMessage(error) }))
     }
 
     const tx = new Transaction()
@@ -265,7 +266,7 @@ export async function createDBNoteFromTemplate(templateId: number, workspaceId: 
     } catch (error: unknown) {
         // Statement 0 is the note itself: its failures are name clashes / invalid names
         if (error instanceof TransactionError && error.statementIndex === note)
-            handleDBError(error, "NOTE", { UNIQUE: NOTE_UNIQUE_MESSAGE, CHECK: NOTE_CHECK_MESSAGE })
-        throw createError("TEMPLATE_APPLY_FAILED", "Failed to create the note from the template: " + getErrorMessage(error))
+            handleDBError(error, "NOTE", { UNIQUE: NOTE_UNIQUE_MESSAGE(), CHECK: NOTE_CHECK_MESSAGE() })
+        throw createError("TEMPLATE_APPLY_FAILED", i18n.t("errors.template.apply", { message: getErrorMessage(error) }))
     }
 }

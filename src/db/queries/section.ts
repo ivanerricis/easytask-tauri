@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
@@ -20,8 +21,8 @@ export async function createDBSectionInGroup(groupId: number, title: string) {
         return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "SECTION", {
-            UNIQUE: "A section with this name already exists.",
-            CHECK: "The section name cannot be empty.",
+            UNIQUE: i18n.t("errors.section.unique"),
+            CHECK: i18n.t("errors.section.check"),
         })
     }
 }
@@ -44,8 +45,8 @@ export async function createDBSection(noteId: number, title: string, position: n
         return { groupId: results[group].lastInsertId, sectionId: results[section].lastInsertId }
     } catch (error: unknown) {
         handleDBError(error, "SECTION", {
-            UNIQUE: "A section with this name already exists.",
-            CHECK: "The section name cannot be empty.",
+            UNIQUE: i18n.t("errors.section.unique"),
+            CHECK: i18n.t("errors.section.check"),
         })
     }
 }

@@ -52,7 +52,7 @@ describe("createDBSection", () => {
         mockTransaction({ error: "statement 1 failed: UNIQUE constraint failed" })
         expect(await thrown(createDBSection(3, "Title", 0))).toEqual({
             code: "SECTION_EXISTS",
-            message: "A section with this name already exists.",
+            message: "Esiste già una sezione con questo nome.",
         })
         expect(db.execute).not.toHaveBeenCalled()
     })
@@ -61,7 +61,7 @@ describe("createDBSection", () => {
         mockTransaction({ error: "statement 1 failed: CHECK constraint failed" })
         expect(await thrown(createDBSection(3, "", 0))).toEqual({
             code: "SECTION_CHECK_FAILED",
-            message: "The section name cannot be empty.",
+            message: "Il nome della sezione non può essere vuoto.",
         })
     })
 

@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useCallback, useMemo } from "react"
 import { createDBNoteInFolder, createDBWorkspaceNote } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder"
@@ -34,7 +35,7 @@ export function useTreeActions(rt: Runtime): TreeActions {
                     : buildNote(id, workspaceID, parentId, name, color, getFolderNotes(tree, parentId)),
                 parentId),
             tree => removeTreeItem(tree, type, id))
-        if (!applied) getWorkspaceData(workspaceID).catch(error => reportError(error, "Impossibile aggiornare l'elenco di cartelle e note. Riprova."))
+        if (!applied) getWorkspaceData(workspaceID).catch(error => reportError(error, i18n.t("errors.refreshTree")))
     }, [applyTree, getWorkspaceData])
 
     const createWorkspaceFolder = useCallback((workspaceID: number, name: string, color?: string) =>

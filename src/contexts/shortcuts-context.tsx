@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { reportError } from "@/lib/report-error"
 import { getShortcutOverrides, saveShortcutOverrides } from "@/lib/store/shortcuts"
@@ -50,7 +51,7 @@ export const ShortcutsProvider = ({ children }: { children: React.ReactNode }) =
     const persist = useCallback((next: Record<string, Binding>) => {
         changedRef.current = true
         setOverrides(next)
-        saveShortcutOverrides(next).catch(error => reportError(error, "Impossibile salvare le scorciatoie. Riprova."))
+        saveShortcutOverrides(next).catch(error => reportError(error, i18n.t("errors.saveShortcuts")))
     }, [])
 
     const setBinding = useCallback((id: string, binding: Binding) => {

@@ -1,8 +1,9 @@
+import i18n from "@/i18n"
 import { createError, handleDBError } from "@/types/error"
 import { getDB } from "../dbManager"
 import { Transaction, type TxRef } from "../transaction"
 
-const SECTION_UNIQUE_MESSAGE = "Esiste già una sezione con questo nome nel gruppo di destinazione."
+const SECTION_UNIQUE_MESSAGE = () => i18n.t("errors.move.sectionUnique")
 
 /**
  * Clamps a caller supplied index to the valid range [0, length].
@@ -64,12 +65,12 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
              WHERE s.id = ? AND s.deleted_at IS NULL`, [sectionId])
         const section = sections[0]
         if (!section)
-            throw createError("SECTION_MOVE_INVALID", "La sezione da spostare non esiste.")
+            throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.sectionMissing"))
 
         const targets = await db.select<{ id: number, noteID: number }[]>(
             'SELECT id, noteID FROM section_group WHERE id = ? AND deleted_at IS NULL', [targetGroupId])
         if (!targets[0] || targets[0].noteID !== section.noteID)
-            throw createError("SECTION_MOVE_INVALID", "Il gruppo di destinazione non è valido.")
+            throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.groupInvalid"))
 
         const siblings = await db.select<{ id: number }[]>(
             `SELECT id FROM section WHERE groupID = ? AND deleted_at IS NULL AND id <> ? ORDER BY position, id`,
@@ -98,7 +99,7 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
         }
         await tx.run()
     } catch (error: unknown) {
-        rethrow(error, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE })
+        rethrow(error, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE() })
     }
 }
 
@@ -123,7 +124,7 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
              WHERE s.id = ? AND s.deleted_at IS NULL`, [sectionId])
         const section = sections[0]
         if (!section)
-            throw createError("SECTION_MOVE_INVALID", "La sezione da spostare non esiste.")
+            throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.sectionMissing"))
 
         const groups = await db.select<{ id: number }[]>(
             'SELECT id FROM section_group WHERE noteID = ? AND deleted_at IS NULL ORDER BY position, id', [section.noteID])
@@ -151,7 +152,7 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
         const results = await tx.run()
         return results[created].lastInsertId
     } catch (error: unknown) {
-        rethrow(error, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE })
+        rethrow(error, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE() })
     }
 }
 
@@ -190,21 +191,21 @@ export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetI
              WHERE t.id = ? AND t.deleted_at IS NULL`, [taskId])
         const task = tasks[0]
         if (!task)
-            throw createError("TASK_MOVE_INVALID", "Il task da spostare non esiste.")
+            throw createError("TASK_MOVE_INVALID", i18n.t("errors.move.taskMissing"))
 
         const sectionsFound = await db.select<{ id: number, noteID: number }[]>(
             `SELECT s.id, g.noteID FROM section s
              INNER JOIN section_group g ON g.id = s.groupID
              WHERE s.id = ? AND s.deleted_at IS NULL AND g.deleted_at IS NULL`, [target.sectionId])
         if (!sectionsFound[0] || sectionsFound[0].noteID !== task.noteID)
-            throw createError("TASK_MOVE_INVALID", "La sezione di destinazione non è valida.")
+            throw createError("TASK_MOVE_INVALID", i18n.t("errors.move.sectionTargetInvalid"))
 
         const parentId = target.parentTaskId ?? null
         if (parentId != null) {
             const parents = await db.select<{ id: number, sectionID: number }[]>(
                 'SELECT id, sectionID FROM task WHERE id = ? AND deleted_at IS NULL', [parentId])
             if (!parents[0] || parents[0].sectionID !== target.sectionId)
-                throw createError("TASK_MOVE_INVALID", "Il task di destinazione non è valido.")
+                throw createError("TASK_MOVE_INVALID", i18n.t("errors.move.taskTargetInvalid"))
 
             // Walk up from the new parent: the moved task is among its ancestors (or is the parent itself)
             // exactly when the parent lies in the moved subtree
@@ -216,7 +217,7 @@ export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetI
                 )
                 SELECT EXISTS (SELECT 1 FROM anc WHERE id = ?) AS found`, [parentId, taskId])
             if (ancestors[0]?.found)
-                throw createError("TASK_MOVE_INVALID", "Non puoi spostare un task dentro sé stesso o un suo sottotask.")
+                throw createError("TASK_MOVE_INVALID", i18n.t("errors.move.taskIntoItself"))
         }
 
         const siblings = parentId == null

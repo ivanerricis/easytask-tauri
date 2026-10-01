@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { createError, handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
@@ -6,7 +7,7 @@ type TreeItemType = "folder" | "note"
 
 type TreeRow = { id: number, workspaceID: number | null, folderID: number | null }
 
-const MOVE_UNIQUE_MESSAGE = "Esiste già un elemento con questo nome nella cartella di destinazione."
+const MOVE_UNIQUE_MESSAGE = () => i18n.t("errors.tree.moveUnique")
 
 /**
  * Builds the single UPDATE that assigns the parent and the sequential positions to an ordered list of siblings.
@@ -44,7 +45,7 @@ function buildReorderUpdate(table: TreeItemType, ids: number[], parentId: number
  */
 export async function moveDBTreeItem(itemType: TreeItemType, itemId: number, targetFolderId: number | null, targetIndex: number) {
     if (itemType !== "folder" && itemType !== "note")
-        throw createError("INVALID_ITEM_TYPE", `Unsupported item type: ${itemType}`)
+        throw createError("INVALID_ITEM_TYPE", i18n.t("errors.unsupportedItemType", { type: itemType }))
 
     const db = await getDB()
     const table: TreeItemType = itemType
@@ -54,9 +55,9 @@ export async function moveDBTreeItem(itemType: TreeItemType, itemId: number, tar
             `SELECT id, workspaceID, folderID FROM ${table} WHERE id = ? AND deleted_at IS NULL`, [itemId])
         const item = items[0]
         if (!item)
-            throw createError("ITEM_NOT_FOUND", "L'elemento da spostare non esiste.")
+            throw createError("ITEM_NOT_FOUND", i18n.t("errors.tree.itemMissing"))
         if (item.workspaceID == null)
-            throw createError("ITEM_MOVE_INVALID", "L'elemento non appartiene a un workspace.")
+            throw createError("ITEM_MOVE_INVALID", i18n.t("errors.tree.noWorkspace"))
 
         if (targetFolderId != null) {
             if (itemType === "folder") {
@@ -70,13 +71,13 @@ export async function moveDBTreeItem(itemType: TreeItemType, itemId: number, tar
                     )
                     SELECT EXISTS (SELECT 1 FROM anc WHERE id = ?) AS found`, [targetFolderId, itemId])
                 if (ancestors[0]?.found)
-                    throw createError("FOLDER_MOVE_INVALID", "Non puoi spostare una cartella dentro sé stessa o una sua sottocartella.")
+                    throw createError("FOLDER_MOVE_INVALID", i18n.t("errors.tree.folderIntoItself"))
             }
 
             const targets = await db.select<{ id: number, workspaceID: number | null }[]>(
                 'SELECT id, workspaceID FROM folder WHERE id = ? AND deleted_at IS NULL', [targetFolderId])
             if (!targets[0] || targets[0].workspaceID !== item.workspaceID)
-                throw createError("FOLDER_MOVE_INVALID", "La cartella di destinazione non è valida.")
+                throw createError("FOLDER_MOVE_INVALID", i18n.t("errors.tree.folderTargetInvalid"))
         }
 
         const loadSiblings = async (parentId: number | null) => {
@@ -111,6 +112,6 @@ export async function moveDBTreeItem(itemType: TreeItemType, itemId: number, tar
         // createError objects are already user facing, only unexpected failures are wrapped
         if (typeof error === "object" && error !== null && "code" in error && "message" in error)
             throw error
-        handleDBError(error, itemType.toUpperCase(), { UNIQUE: MOVE_UNIQUE_MESSAGE })
+        handleDBError(error, itemType.toUpperCase(), { UNIQUE: MOVE_UNIQUE_MESSAGE() })
     }
 }

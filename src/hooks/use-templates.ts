@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -22,7 +23,7 @@ export function useTemplates(enabled: boolean): NoteTemplate[] {
         let cancelled = false
         getTemplates(workspaceID)
             .then(list => { if (!cancelled) setTemplates(list) })
-            .catch(error => reportError(error, "Impossibile caricare i template."))
+            .catch(error => reportError(error, i18n.t("errors.loadTemplates")))
         return () => { cancelled = true }
     }, [enabled, workspaceID, getTemplates])
 

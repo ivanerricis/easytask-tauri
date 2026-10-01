@@ -1,27 +1,18 @@
+import i18n from "@/i18n"
 import type { TrashItem, TrashedWorkspace, Workspace } from "@/types/types";
 import { countTemplateContent, type NoteTemplateContent } from "@/types/template";
 import { createError, handleDBError } from "@/types/error";
-import { getErrorMessage, plural } from "@/lib/utils";
+import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { assertItemType, type DBItemType } from "./shared_queries";
 import { Transaction } from "../transaction";
 
-const RESTORE_UNIQUE_MESSAGE = "Esiste già un elemento con questo nome: rinominalo prima di ripristinare."
+const RESTORE_UNIQUE_MESSAGE = () => i18n.t("errors.trash.restoreUnique")
 
 type TrashRow = { type: DBItemType, id: number, name: string, context: string | null, deleted_at: string, extra: number }
 
 /** What a trashed item contained; a missing key counts as zero. */
 export type TrashCounts = Partial<Record<"folders" | "notes" | "groups" | "sections" | "tasks" | "audio", number>>
-
-// [key, singular, plural] of each counter
-const COUNT_LABELS: [keyof TrashCounts, string, string][] = [
-    ["folders", "cartella", "cartelle"],
-    ["notes", "nota", "note"],
-    ["groups", "gruppo", "gruppi"],
-    ["sections", "sezione", "sezioni"],
-    ["tasks", "task", "task"],
-    ["audio", "audio", "audio"],
-]
 
 // Counters shown for each type, in display order (audio files have no content)
 const SUMMARY_FIELDS: Partial<Record<DBItemType, (keyof TrashCounts)[]>> = {
@@ -34,15 +25,15 @@ const SUMMARY_FIELDS: Partial<Record<DBItemType, (keyof TrashCounts)[]>> = {
     note_template: ["groups", "sections", "tasks"],
 }
 
-// A folder contains "sottocartelle" and a task "sottotask"
-const SUBITEM_LABELS: Partial<Record<DBItemType, Partial<Record<keyof TrashCounts, [string, string]>>>> = {
-    folder: { folders: ["sottocartella", "sottocartelle"] },
-    task: { tasks: ["sottotask", "sottotask"] },
+// A folder contains "subfolders" and a task "subtasks"
+const SUBITEM_KEYS: Partial<Record<DBItemType, Partial<Record<keyof TrashCounts, "subfolders" | "subtasks">>>> = {
+    folder: { folders: "subfolders" },
+    task: { tasks: "subtasks" },
 }
 
 /**
  * Describes what a trashed item contained, e.g. "2 gruppi · 3 sezioni · 5 task".
- * Zero counts are omitted, "Vuoto" is returned when nothing is left, and audio files (no content) give "".
+ * Zero counts are omitted, "Vuoto" (translated) is returned when nothing is left, and audio files (no content) give "".
  * @param type The type of the trashed item.
  * @param counts The number of children that come back with the item.
  * @category Database Queries
@@ -52,12 +43,8 @@ export function formatTrashSummary(type: DBItemType, counts: TrashCounts): strin
     if (!fields) return ""
     const parts = fields
         .filter(field => (counts[field] ?? 0) > 0)
-        .map(field => {
-            const [, one, many] = COUNT_LABELS.find(([key]) => key === field)!
-            const [subOne, subMany] = SUBITEM_LABELS[type]?.[field] ?? [one, many]
-            return plural(counts[field]!, subOne, subMany)
-        })
-    return parts.length > 0 ? parts.join(" · ") : "Vuoto"
+        .map(field => i18n.t(`trash.summary.${SUBITEM_KEYS[type]?.[field] ?? field}`, { count: counts[field]! }))
+    return parts.length > 0 ? parts.join(" · ") : i18n.t("trash.summary.empty")
 }
 
 type CountRow = { id: number } & Record<string, number>
@@ -163,6 +150,12 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
     try {
         const db = await getDB()
 
+        // Context labels are composed in SQL: the translated prefixes are bound in order of appearance
+        const notePrefix = i18n.t("trash.context.note")
+        const sectionPrefix = i18n.t("trash.context.section")
+        const groupPrefix = i18n.t("trash.context.group")
+        const fromPrefix = i18n.t("trash.context.from")
+
         // One UNION ALL query; `kind` keeps the historical order among items deleted at the same time
         const rows = await db.select<TrashRow[]>(
             `SELECT 'folder' AS type, 0 AS kind, f.id, f.name,
@@ -178,29 +171,29 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
              FROM section_group g INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND g.deleted_at IS NOT NULL
              UNION ALL
-             SELECT 'section', 3, s.id, s.title, 'Nota ' || n.name, s.deleted_at, 0
+             SELECT 'section', 3, s.id, s.title, ? || n.name, s.deleted_at, 0
              FROM section s
              INNER JOIN section_group g ON g.id = s.groupID
              INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND s.deleted_at IS NOT NULL
              UNION ALL
-             SELECT 'task', 4, t.id, t.text, 'Nota ' || n.name || ' › Sezione ' || s.title, t.deleted_at, 0
+             SELECT 'task', 4, t.id, t.text, ? || n.name || ' › ' || ? || s.title, t.deleted_at, 0
              FROM task t
              INNER JOIN section s ON s.id = t.sectionID
              INNER JOIN section_group g ON g.id = s.groupID
              INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND t.deleted_at IS NOT NULL
              UNION ALL
-             SELECT 'audio_file', 5, a.id, a.name, 'Nota ' || n.name || ' › ' || COALESCE(NULLIF(TRIM(g.name), ''), 'Gruppo ' || (g.position + 1)), a.deleted_at, 0
+             SELECT 'audio_file', 5, a.id, a.name, ? || n.name || ' › ' || COALESCE(NULLIF(TRIM(g.name), ''), ? || (g.position + 1)), a.deleted_at, 0
              FROM audio_file a
              INNER JOIN section_group g ON g.id = a.section_groupID
              INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND a.deleted_at IS NOT NULL
              UNION ALL
              SELECT 'note_template', 6, t.id, t.name,
-                    COALESCE('Da: ' || (SELECT n.name FROM note n WHERE n.id = t.sourceNoteID), ''), t.deleted_at, 0
+                    COALESCE(? || (SELECT n.name FROM note n WHERE n.id = t.sourceNoteID), ''), t.deleted_at, 0
              FROM note_template t WHERE t.workspaceID = ? AND t.deleted_at IS NOT NULL
-             ORDER BY deleted_at DESC, kind, id`, [workspaceId, workspaceId, workspaceId, workspaceId, workspaceId, workspaceId, workspaceId])
+             ORDER BY deleted_at DESC, kind, id`, [workspaceId, workspaceId, workspaceId, notePrefix, workspaceId, notePrefix, sectionPrefix, workspaceId, notePrefix, groupPrefix, workspaceId, fromPrefix, workspaceId])
 
         const counts = await loadTrashCounts(db, workspaceId, new Set(rows.map(row => row.type)))
         if (rows.some(row => row.type === "note_template")) {
@@ -213,14 +206,14 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
             type: row.type,
             id: row.id,
             name: row.type === "section_group" && !row.name
-                ? `Gruppo di ${row.extra} ${row.extra === 1 ? "sezione" : "sezioni"}`
+                ? i18n.t("trash.unnamedGroup", { count: row.extra })
                 : row.name,
             context: row.context ?? "",
             summary: formatTrashSummary(row.type, counts.get(row.type)?.get(row.id) ?? {}),
             deleted_at: row.deleted_at,
         }))
     } catch (error: unknown) {
-        throw createError("TRASH_LOAD_FAILED", "Failed to load the trash: " + getErrorMessage(error))
+        throw createError("TRASH_LOAD_FAILED", i18n.t("errors.trash.load", { message: getErrorMessage(error) }))
     }
 }
 
@@ -250,7 +243,7 @@ export async function getDBTrashedWorkspaces(): Promise<TrashedWorkspace[]> {
              FROM workspace w WHERE w.deleted_at IS NOT NULL`))
         return workspaces.map((w): TrashedWorkspace => ({ ...w, summary: formatTrashSummary("workspace", counts.get(w.id) ?? {}) }))
     } catch (error: unknown) {
-        throw createError("TRASH_LOAD_FAILED", "Failed to load the trashed workspaces: " + getErrorMessage(error))
+        throw createError("TRASH_LOAD_FAILED", i18n.t("errors.trash.loadWorkspaces", { message: getErrorMessage(error) }))
     }
 }
 
@@ -360,7 +353,7 @@ export async function restoreDBItem(itemType: DBItemType, itemID: number) {
             tx.add(statement.sql, statement.params)
         await tx.run()
     } catch (error: unknown) {
-        handleDBError(error, itemType.toUpperCase(), { UNIQUE: RESTORE_UNIQUE_MESSAGE })
+        handleDBError(error, itemType.toUpperCase(), { UNIQUE: RESTORE_UNIQUE_MESSAGE() })
     }
 }
 
@@ -378,7 +371,7 @@ export async function purgeDBItem(itemType: DBItemType, itemID: number) {
     try {
         await db.execute(`DELETE FROM ${itemType} WHERE id=? AND deleted_at IS NOT NULL`, [itemID])
     } catch (error: unknown) {
-        throw createError(`${itemType.toUpperCase()}_PURGE_FAILED`, "Failed to delete item permanently: " + getErrorMessage(error))
+        throw createError(`${itemType.toUpperCase()}_PURGE_FAILED`, i18n.t("errors.trash.purge", { message: getErrorMessage(error) }))
     }
 }
 
@@ -410,6 +403,6 @@ export async function emptyDBTrash(workspaceId: number) {
         tx.add('DELETE FROM note_template WHERE workspaceID = ? AND deleted_at IS NOT NULL', [workspaceId])
         await tx.run()
     } catch (error: unknown) {
-        throw createError("TRASH_EMPTY_FAILED", "Failed to empty the trash: " + getErrorMessage(error))
+        throw createError("TRASH_EMPTY_FAILED", i18n.t("errors.trash.empty", { message: getErrorMessage(error) }))
     }
 }

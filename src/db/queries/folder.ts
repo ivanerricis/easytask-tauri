@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
@@ -20,8 +21,8 @@ export async function createDBWorkspaceFolder(workspaceId: number, name: string,
         return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "FOLDER", {
-            UNIQUE: "A folder with this name already exists.",
-            CHECK: "The folder name cannot be empty.",
+            UNIQUE: i18n.t("errors.folder.unique"),
+            CHECK: i18n.t("errors.folder.check"),
         })
     }
 }
@@ -44,8 +45,8 @@ export async function createDBSubFolder(workspaceID: number, folderId: number, n
         return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "FOLDER", {
-            UNIQUE: "A folder with this name already exists.",
-            CHECK: "The folder name cannot be empty.",
+            UNIQUE: i18n.t("errors.folder.unique"),
+            CHECK: i18n.t("errors.folder.check"),
         })
     }
 }
@@ -85,8 +86,8 @@ export async function updateDBFolderColorContent(folderId: number, color?: strin
     } catch (error: unknown) {
         console.error(error)
         handleDBError(error, "FOLDER", {
-            UNIQUE: "A folder with this name already exists.",
-            CHECK: "The folder name cannot be empty.",
+            UNIQUE: i18n.t("errors.folder.unique"),
+            CHECK: i18n.t("errors.folder.check"),
         })
     }
 }

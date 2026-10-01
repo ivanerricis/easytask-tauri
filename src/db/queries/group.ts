@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import type { Group } from "@/types/types";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
@@ -19,7 +20,7 @@ export async function createDBGroup(noteId: number, name: string) {
             [noteId, name.trim() || null, noteId])
         return result.lastInsertId as number
     } catch (error: unknown) {
-        throw createError('GROUP_CREATE_ERROR', 'Impossibile creare il gruppo: ' + getErrorMessage(error))
+        throw createError('GROUP_CREATE_ERROR', i18n.t("errors.group.create", { message: getErrorMessage(error) }))
     }
 }
 
@@ -36,6 +37,6 @@ export async function updateDBGroupPositions(groups: Group[]) {
             tx.add('UPDATE section_group SET position=? WHERE id=?', [group.position, group.id])
         await tx.run()
     } catch (error: unknown) {
-        throw createError('GROUP_UPDATE_ERROR', 'An error occurred while updating group positions: ' + getErrorMessage(error))
+        throw createError('GROUP_UPDATE_ERROR', i18n.t("errors.group.updatePositions", { message: getErrorMessage(error) }))
     }
 }

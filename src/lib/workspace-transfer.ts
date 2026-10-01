@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { open, save } from "@tauri-apps/plugin-dialog"
 import { readTextFile, writeTextFile } from "@tauri-apps/plugin-fs"
 import { buildDBWorkspaceExport, importDBWorkspace, validateWorkspaceExport } from "@/db/queries/transfer"
@@ -35,7 +36,7 @@ export async function importWorkspaceFromFile(): Promise<{ workspaceId: number, 
     try {
         parsed = JSON.parse(await readTextFile(path))
     } catch {
-        throw createError("TRANSFER_INVALID_FILE", "Il file non è un JSON valido.")
+        throw createError("TRANSFER_INVALID_FILE", i18n.t("errors.transfer.invalidJson"))
     }
     return importDBWorkspace(validateWorkspaceExport(parsed))
 }

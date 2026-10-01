@@ -1,4 +1,6 @@
-export type ShortcutCategory = "Generale" | "Note e schede" | "Gruppi, sezioni e task" | "Pagina iniziale"
+import i18n from "@/i18n"
+
+export type ShortcutCategory = "general" | "notes" | "groups" | "home"
 
 // "global" shortcuts clash with every scope; "workspace" and "home" are separate pages and can reuse the same keys
 export type ShortcutScope = "global" | "workspace" | "home"
@@ -13,32 +15,45 @@ export interface Binding {
 
 export interface Shortcut {
     id: string
-    description: string
     category: ShortcutCategory
     scope: ShortcutScope
     editable: boolean
     // Present on every actionable shortcut
     defaultBinding?: Binding
-    // Labels of documentation-only entries (no binding)
-    keys?: string[]
+    // Keys of documentation-only entries (no binding), as ShortcutKey names: see keyLabel
+    keys?: ShortcutKey[]
 }
 
-export const SHORTCUT_CATEGORIES: ShortcutCategory[] = ["Generale", "Note e schede", "Gruppi, sezioni e task", "Pagina iniziale"]
+type ShortcutId = keyof typeof import("@/i18n/locales/it").it.shortcuts.items
+
+export type ShortcutKey = "enter" | "escape" | "shift" | "space" | "delete"
+
+export const SHORTCUT_CATEGORIES: ShortcutCategory[] = ["general", "notes", "groups", "home"]
+
+/** The translated name of a category. */
+export const categoryLabel = (category: ShortcutCategory): string => i18n.t(`shortcuts.categories.${category}`)
+
+/** The translated description of a shortcut. */
+export const shortcutDescription = (id: string): string =>
+    i18n.t(`shortcuts.items.${id as ShortcutId}`)
+
+/** The translated label of a named key ("Invio", "Esc"...). */
+export const keyLabel = (key: ShortcutKey | "ctrl" | "alt"): string => i18n.t(`shortcuts.keys.${key}`)
 
 // "?" is fixed: it needs Shift on most layouts and would clash with the modifier rule of the recorder.
 export const SHORTCUTS: Shortcut[] = [
-    { id: "show-shortcuts", defaultBinding: { key: "?" }, editable: false, scope: "global", description: "Mostra le scorciatoie", category: "Generale" },
-    { id: "go-home", defaultBinding: { key: "h", ctrl: true }, editable: true, scope: "workspace", description: "Torna alla Home", category: "Generale" },
-    { id: "search-notes", defaultBinding: { key: "o", ctrl: true }, editable: true, scope: "workspace", description: "Cerca una nota", category: "Note e schede" },
-    { id: "new-note", defaultBinding: { key: "n", ctrl: true }, editable: true, scope: "workspace", description: "Crea una nuova nota", category: "Note e schede" },
-    { id: "new-folder", defaultBinding: { key: "m", ctrl: true }, editable: true, scope: "workspace", description: "Crea una nuova cartella", category: "Note e schede" },
-    { id: "close-note", defaultBinding: { key: "l", ctrl: true }, editable: true, scope: "workspace", description: "Chiudi la nota attiva", category: "Note e schede" },
-    { id: "close-all-notes", defaultBinding: { key: "t", ctrl: true }, editable: true, scope: "workspace", description: "Chiudi tutte le note", category: "Note e schede" },
-    { id: "new-group", defaultBinding: { key: "n", alt: true }, editable: true, scope: "workspace", description: "Crea un nuovo gruppo o una nuova sezione", category: "Gruppi, sezioni e task" },
-    { id: "confirm-rename", keys: ["Invio"], editable: false, scope: "workspace", description: "Conferma la modifica di nome gruppo, sezione o task", category: "Gruppi, sezioni e task" },
-    { id: "cancel-rename", keys: ["Esc"], editable: false, scope: "workspace", description: "Annulla la rinomina del gruppo o chiudi il nuovo sottotask", category: "Gruppi, sezioni e task" },
-    { id: "task-newline", keys: ["Maiusc", "Invio"], editable: false, scope: "workspace", description: "Vai a capo nella descrizione di un task", category: "Gruppi, sezioni e task" },
-    { id: "new-workspace", defaultBinding: { key: "n", ctrl: true }, editable: true, scope: "home", description: "Crea un nuovo workspace", category: "Pagina iniziale" },
+    { id: "show-shortcuts", defaultBinding: { key: "?" }, editable: false, scope: "global", category: "general" },
+    { id: "go-home", defaultBinding: { key: "h", ctrl: true }, editable: true, scope: "workspace", category: "general" },
+    { id: "search-notes", defaultBinding: { key: "o", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    { id: "new-note", defaultBinding: { key: "n", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    { id: "new-folder", defaultBinding: { key: "m", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    { id: "close-note", defaultBinding: { key: "l", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    { id: "close-all-notes", defaultBinding: { key: "t", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    { id: "new-group", defaultBinding: { key: "n", alt: true }, editable: true, scope: "workspace", category: "groups" },
+    { id: "confirm-rename", keys: ["enter"], editable: false, scope: "workspace", category: "groups" },
+    { id: "cancel-rename", keys: ["escape"], editable: false, scope: "workspace", category: "groups" },
+    { id: "task-newline", keys: ["shift", "enter"], editable: false, scope: "workspace", category: "groups" },
+    { id: "new-workspace", defaultBinding: { key: "n", ctrl: true }, editable: true, scope: "home", category: "home" },
 ]
 
 export const getShortcut = (id: string): Shortcut => {
@@ -58,23 +73,23 @@ export const matchBinding = (e: KeyboardEvent, binding: Binding): boolean => {
     return e.shiftKey === !!binding.shift
 }
 
-const KEY_LABELS: Record<string, string> = {
-    enter: "Invio",
-    escape: "Esc",
-    " ": "Spazio",
-    arrowup: "↑",
-    arrowdown: "↓",
-    arrowleft: "←",
-    arrowright: "→",
-    delete: "Canc",
+const KEY_LABELS: Record<string, () => string> = {
+    enter: () => keyLabel("enter"),
+    escape: () => keyLabel("escape"),
+    " ": () => keyLabel("space"),
+    arrowup: () => "↑",
+    arrowdown: () => "↓",
+    arrowleft: () => "←",
+    arrowright: () => "→",
+    delete: () => keyLabel("delete"),
 }
 
 export const formatBinding = (binding: Binding): string[] => {
     const parts: string[] = []
-    if (binding.ctrl) parts.push("Ctrl")
-    if (binding.alt) parts.push("Alt")
-    if (binding.shift) parts.push("Maiusc")
-    parts.push(KEY_LABELS[binding.key.toLowerCase()] ?? (binding.key.length === 1 ? binding.key.toUpperCase() : binding.key))
+    if (binding.ctrl) parts.push(keyLabel("ctrl"))
+    if (binding.alt) parts.push(keyLabel("alt"))
+    if (binding.shift) parts.push(keyLabel("shift"))
+    parts.push(KEY_LABELS[binding.key.toLowerCase()]?.() ?? (binding.key.length === 1 ? binding.key.toUpperCase() : binding.key))
     return parts
 }
 

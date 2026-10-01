@@ -1,4 +1,5 @@
 import type Database from "@tauri-apps/plugin-sql";
+import i18n from "@/i18n";
 import { APPLICATION_ID, initialSchema } from "./schema/initial";
 
 /**
@@ -16,15 +17,13 @@ const migrations: string[][] = [
  * Error thrown when the database file was created by an older, incompatible version of the app.
  * @category Database
  */
-export const LEGACY_DB_MESSAGE =
-    "Database di una versione precedente non compatibile: elimina il file Documents/EasyTask/easytask.db e riavvia l'app.";
+export const legacyDbMessage = () => i18n.t("errors.db.legacy");
 
 /**
  * Error thrown when the database file was created by a newer version of the app.
  * @category Database
  */
-export const NEWER_DB_MESSAGE =
-    "Database creato da una versione più recente dell'app: aggiorna EasyTask oppure elimina il file Documents/EasyTask/easytask.db.";
+export const newerDbMessage = () => i18n.t("errors.db.newer");
 
 /**
  * Applies the pending migrations to the database.
@@ -41,10 +40,10 @@ export async function initDB(db: Database) {
     if (current > 0) {
         const idRows = await db.select<{ application_id: number }[]>("PRAGMA application_id");
         if ((idRows[0]?.application_id ?? 0) !== APPLICATION_ID)
-            throw new Error(LEGACY_DB_MESSAGE);
+            throw new Error(legacyDbMessage());
     }
     if (current > migrations.length)
-        throw new Error(NEWER_DB_MESSAGE);
+        throw new Error(newerDbMessage());
 
     for (let version = current; version < migrations.length; version++) {
         for (const query of migrations[version]) {

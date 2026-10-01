@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import type { AudioFile } from "@/types/types";
 import { createError, handleDBError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
@@ -54,7 +55,7 @@ export async function getDBGroupAudioFiles(groupId: number): Promise<AudioFile[]
             `SELECT ${COLUMNS} FROM audio_file WHERE section_groupID = ? AND deleted_at IS NULL ORDER BY position, id`,
             [groupId])
     } catch (error: unknown) {
-        throw createError("AUDIO_LOAD_FAILED", "Failed to load the audio files: " + getErrorMessage(error))
+        throw createError("AUDIO_LOAD_FAILED", i18n.t("errors.audio.loadFiles", { message: getErrorMessage(error) }))
     }
 }
 
@@ -77,7 +78,7 @@ export async function getDBNoteAudioFiles(noteId: number): Promise<Record<number
         for (const row of rows) (byGroup[row.section_groupID] ??= []).push(row)
         return byGroup
     } catch (error: unknown) {
-        throw createError("AUDIO_LOAD_FAILED", "Failed to load the audio files: " + getErrorMessage(error))
+        throw createError("AUDIO_LOAD_FAILED", i18n.t("errors.audio.loadFiles", { message: getErrorMessage(error) }))
     }
 }
 
@@ -93,7 +94,7 @@ export async function getDBAudioFile(audioId: number): Promise<AudioFile | null>
             `SELECT ${COLUMNS} FROM audio_file WHERE id = ? AND deleted_at IS NULL`, [audioId])
         return rows[0] ?? null
     } catch (error: unknown) {
-        throw createError("AUDIO_LOAD_FAILED", "Failed to load the audio file: " + getErrorMessage(error))
+        throw createError("AUDIO_LOAD_FAILED", i18n.t("errors.audio.loadFile", { message: getErrorMessage(error) }))
     }
 }
 
@@ -120,13 +121,13 @@ export async function createDBAudioFile(groupId: number, path: string): Promise<
             [groupId, name, path, groupId])
 
         const created = result.lastInsertId !== undefined ? await getDBAudioFile(result.lastInsertId) : null
-        if (!created) throw createError("AUDIO_UNKNOWN_ERROR", "The audio file was not created.")
+        if (!created) throw createError("AUDIO_UNKNOWN_ERROR", i18n.t("errors.audio.notCreated"))
         return created
     } catch (error: unknown) {
         if (typeof error === "object" && error !== null && "code" in error) throw error
         handleDBError(error, "AUDIO", {
-            UNIQUE: "A file with this name already exists in the group.",
-            CHECK: "The file name and path cannot be empty.",
+            UNIQUE: i18n.t("errors.audio.unique"),
+            CHECK: i18n.t("errors.audio.checkCreate"),
         })
         throw error
     }
@@ -144,8 +145,8 @@ export async function renameDBAudioFile(audioId: number, name: string) {
         await db.execute('UPDATE audio_file SET name = ? WHERE id = ?', [name, audioId])
     } catch (error: unknown) {
         handleDBError(error, "AUDIO", {
-            UNIQUE: "A file with this name already exists in the group.",
-            CHECK: "The name cannot be empty.",
+            UNIQUE: i18n.t("errors.audio.unique"),
+            CHECK: i18n.t("errors.nameEmpty"),
         })
     }
 }
@@ -161,6 +162,6 @@ export async function updateDBAudioFilePath(audioId: number, path: string) {
         const db = await getDB()
         await db.execute('UPDATE audio_file SET path = ? WHERE id = ?', [path, audioId])
     } catch (error: unknown) {
-        handleDBError(error, "AUDIO", { CHECK: "The path cannot be empty." })
+        handleDBError(error, "AUDIO", { CHECK: i18n.t("errors.audio.checkPath") })
     }
 }

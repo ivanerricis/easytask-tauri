@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import type { Folder, Note, Workspace } from "@/types/types";
 import { getDB } from "../dbManager"
 import { createError, handleDBError } from "@/types/error";
@@ -23,7 +24,7 @@ export async function getDBWorkspaceData(workspaceID: number) {
 
         return { folders, notes }
     } catch (error: unknown) {
-        throw createError('WORKSPACE_DATA_LOAD_FAILED', 'Failed to load workspace data: ' + getErrorMessage(error))
+        throw createError('WORKSPACE_DATA_LOAD_FAILED', i18n.t("errors.workspace.load", { message: getErrorMessage(error) }))
     }
 }
 
@@ -38,8 +39,8 @@ export async function getDBWorkspaces() {
         return await db.select<Workspace[]>('SELECT * FROM workspace WHERE deleted_at IS NULL ORDER BY edit_date DESC, edit_time DESC')
     } catch (error: unknown) {
         handleDBError(error, "ERROR_ON_GET_WORKSPACE", {
-            UNIQUE: "A workspace with this name already exists.",
-            CHECK: "The workspace name cannot be empty.",
+            UNIQUE: i18n.t("errors.workspace.unique"),
+            CHECK: i18n.t("errors.workspace.check"),
         })
     }
 }
@@ -56,8 +57,8 @@ export async function createDBWorkspace(name: string, color?: string | null) {
         await db.execute('INSERT INTO workspace (name, color) VALUES (?, ?)', [name, color ?? null])
     } catch (error: unknown) {
         handleDBError(error, "WORKSPACE", {
-            UNIQUE: "A workspace with this name already exists.",
-            CHECK: "The workspace name cannot be empty.",
+            UNIQUE: i18n.t("errors.workspace.unique"),
+            CHECK: i18n.t("errors.workspace.check"),
         })
     }
 }

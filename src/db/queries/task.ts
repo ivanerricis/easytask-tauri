@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { createError, handleDBError } from "@/types/error"
 import { getDB } from "../dbManager"
 import { getErrorMessage } from "@/lib/utils"
@@ -20,8 +21,8 @@ export async function createDBTask(sectionId: number, text: string) {
         return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "TASK", {
-            UNIQUE: "A task with this name already exists.",
-            CHECK: "The task name cannot be empty.",
+            UNIQUE: i18n.t("errors.task.unique"),
+            CHECK: i18n.t("errors.task.check"),
         })
     }
 }
@@ -44,8 +45,8 @@ export async function createDBSubTask(taskId: number, text: string) {
         return result.lastInsertId as number
     } catch (error: unknown) {
         handleDBError(error, "TASK", {
-            UNIQUE: "A task with this name already exists.",
-            CHECK: "The task name cannot be empty.",
+            UNIQUE: i18n.t("errors.task.unique"),
+            CHECK: i18n.t("errors.task.check"),
         })
     }
 }
@@ -62,8 +63,8 @@ export async function updateDBTaskPriority(taskId: number, priority: boolean) {
         await db.execute('UPDATE task SET priority=? WHERE id=?', [priority ? 1 : 0, taskId])
     } catch (error: unknown) {
         handleDBError(error, "TASK", {
-            UNIQUE: "A task with this name already exists.",
-            CHECK: "The task name cannot be empty.",
+            UNIQUE: i18n.t("errors.task.unique"),
+            CHECK: i18n.t("errors.task.check"),
         })
     }
 }
@@ -80,8 +81,8 @@ export async function updateDBTaskCompletion(taskId: number, isCompleted: boolea
         await db.execute('UPDATE task SET completed=? WHERE id=?', [isCompleted ? 1 : 0, taskId])
     } catch (error: unknown) {
         handleDBError(error, "TASK", {
-            UNIQUE: "A task with this name already exists.",
-            CHECK: "The task name cannot be empty.",
+            UNIQUE: i18n.t("errors.task.unique"),
+            CHECK: i18n.t("errors.task.check"),
         })
     }
 }
@@ -97,6 +98,6 @@ export async function updateDBTaskDescription(taskID: number, description?: stri
         const db = await getDB()
         await db.execute('UPDATE task SET description=? WHERE id=?', [description ?? null, taskID])
     } catch (error: unknown) {
-        throw createError(`TASK_DESCRIPTION_UPDATE_FAILED`, "Failed to update task description: " + getErrorMessage(error))
+        throw createError(`TASK_DESCRIPTION_UPDATE_FAILED`, i18n.t("errors.task.descriptionUpdate", { message: getErrorMessage(error) }))
     }
 }

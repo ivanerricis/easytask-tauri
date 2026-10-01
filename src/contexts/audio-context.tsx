@@ -1,3 +1,5 @@
+import { useTranslation } from "react-i18next"
+import i18n from "@/i18n"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { convertFileSrc, invoke } from "@tauri-apps/api/core"
 import { open } from "@tauri-apps/plugin-dialog"
@@ -16,7 +18,7 @@ import {
 } from "@/components/ui/alert-dialog"
 import { buttonVariants } from "@/components/ui/button-variants"
 
-const filters = [{ name: "File audio", extensions: [...AUDIO_EXTENSIONS] }]
+const getFilters = () => [{ name: i18n.t("audio.dialogFilter"), extensions: [...AUDIO_EXTENSIONS] }]
 
 /**
  * State of the audio files attached to the groups and of the floating player.
@@ -26,6 +28,7 @@ const filters = [{ name: "File audio", extensions: [...AUDIO_EXTENSIONS] }]
  * @category Audio Context
  */
 export function AudioProvider({ children }: { children: React.ReactNode }) {
+    const { t } = useTranslation()
     const { trashVersion } = useWorkspaceState()
     const { deleteItem } = useWorkspaceActions()
     const [track, setTrack] = useState<AudioTrack | null>(null)
@@ -59,7 +62,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
     const addFiles = useCallback(async (groupId: number) => {
         try {
-            const selected = await open({ multiple: true, directory: false, filters })
+            const selected = await open({ multiple: true, directory: false, filters: getFilters() })
             if (!selected) return
             const paths = Array.isArray(selected) ? selected : [selected]
 
@@ -74,15 +77,15 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             }
             refresh()
             if (paths.length > failed)
-                toast.success(paths.length - failed === 1 ? "File audio aggiunto" : `${paths.length - failed} file audio aggiunti`)
+                toast.success(i18n.t("audio.added", { count: paths.length - failed }))
         } catch (error) {
-            toast.error("Impossibile aggiungere i file audio: " + getErrorMessage(error))
+            toast.error(i18n.t("audio.addError", { message: getErrorMessage(error) }))
         }
     }, [refresh])
 
     const relinkFile = useCallback(async (file: AudioFile, play = false) => {
         try {
-            const selected = await open({ multiple: false, directory: false, filters })
+            const selected = await open({ multiple: false, directory: false, filters: getFilters() })
             const path = Array.isArray(selected) ? selected[0] : selected
             if (!path) return
 
@@ -91,9 +94,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             const updated = { ...file, path }
             knownFiles.current.set(file.id, updated)
             if (play) await playFile(updated)
-            else toast.success("Percorso aggiornato")
+            else toast.success(i18n.t("audio.pathUpdated"))
         } catch (error) {
-            toast.error("Impossibile aggiornare il percorso: " + getErrorMessage(error))
+            toast.error(i18n.t("audio.pathError", { message: getErrorMessage(error) }))
         }
     }, [playFile, refresh])
 
@@ -106,7 +109,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             setTrack(null)
             setMissing(file)
         } else {
-            toast.error("Impossibile riprodurre il file audio (formato non supportato o file non leggibile)")
+            toast.error(i18n.t("audio.playbackError"))
         }
     }, [])
 
@@ -136,9 +139,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         try {
             await deleteItem("audio_file", file.id)
             refresh()
-            toast.success("Riferimento spostato nel cestino")
+            toast.success(i18n.t("audio.referenceTrashed"))
         } catch (error) {
-            toast.error("Impossibile eliminare il riferimento: " + getErrorMessage(error))
+            toast.error(i18n.t("audio.referenceError", { message: getErrorMessage(error) }))
         }
     }
 
@@ -158,25 +161,24 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             <AlertDialog open={missing !== null} onOpenChange={(isOpen) => { if (!isOpen) setMissing(null) }}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
-                        <AlertDialogTitle>File non trovato</AlertDialogTitle>
+                        <AlertDialogTitle>{t("audio.missing.title")}</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Il file audio non si trova più nel percorso salvato: potrebbe essere stato spostato o eliminato.
-                            Puoi indicare il nuovo percorso oppure eliminare il riferimento.
+                            {t("audio.missing.description")}
                         </AlertDialogDescription>
                         <p className="text-xs text-muted-foreground break-all rounded-xs border bg-secondary p-2">
                             {missing?.path}
                         </p>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
-                        <AlertDialogCancel>Annulla</AlertDialogCancel>
+                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                         <AlertDialogAction
                             className={buttonVariants({ variant: "destructive" })}
                             onClick={handleDeleteReference}
                         >
-                            Elimina riferimento
+                            {t("audio.missing.deleteReference")}
                         </AlertDialogAction>
                         <AlertDialogAction onClick={handleRelink}>
-                            Aggiorna percorso
+                            {t("audio.updatePath")}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

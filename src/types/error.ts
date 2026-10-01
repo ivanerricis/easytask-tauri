@@ -1,3 +1,5 @@
+import i18n from "@/i18n"
+
 export type Error = {
     code: string
     message: string
@@ -16,12 +18,13 @@ export function createError(code: string, message: string): Error {
 export function handleDBError(error: unknown, codePrefix: string, messages: DBErrorMap = {}): never {
     const message = String(error)
     if (message.includes("UNIQUE")) {
-        throw createError(`${codePrefix}_EXISTS`, messages.UNIQUE ?? "A record with this value already exists.")
+        throw createError(`${codePrefix}_EXISTS`, messages.UNIQUE ?? i18n.t("errors.default.unique"))
     } else if (message.includes("CHECK")) {
-        throw createError(`${codePrefix}_CHECK_FAILED`, messages.CHECK ?? "A check constraint failed.")
+        throw createError(`${codePrefix}_CHECK_FAILED`, messages.CHECK ?? i18n.t("errors.default.check"))
     } else if (message.includes("NOT NULL")) {
-        throw createError(`${codePrefix}_REQUIRED`, messages.NOT_NULL ?? "A required field is missing.")
+        throw createError(`${codePrefix}_REQUIRED`, messages.NOT_NULL ?? i18n.t("errors.default.required"))
     } else {
-        throw createError(`${codePrefix}_UNKNOWN_ERROR`, "An unknown error occurred: " + (error instanceof Error ? error.message : String(error)))
+        throw createError(`${codePrefix}_UNKNOWN_ERROR`, i18n.t("errors.default.unknown", { message: error instanceof Error ? error.message : String(error) }))
     }
+
 }

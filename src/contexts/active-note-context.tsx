@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { reportError } from "@/lib/report-error"
 import type { NoteDataTree } from "@/types/types"
@@ -101,7 +102,7 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
     useEffect(() => {
         if (activeId === null) return
         loadNote(activeId).catch(error => {
-            reportError(error, "Impossibile caricare la nota. Riprova.")
+            reportError(error, i18n.t("errors.loadNote"))
         })
     }, [activeId, loadNote])
 
@@ -137,7 +138,7 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
         // A creation that cannot be applied locally falls back to a background reload (never awaited by the UI)
         const withReload = <A extends unknown[]>(append: (...args: A) => Rollback | null) => (...args: A): Rollback => {
             const rollback = append(...args)
-            if (!rollback) refreshActiveNote().catch(error => reportError(error, "Impossibile aggiornare la nota. Riprova."))
+            if (!rollback) refreshActiveNote().catch(error => reportError(error, i18n.t("errors.refreshNote")))
             return rollback ?? (() => {})
         }
         const optimistic: NoteOptimisticActions = {

@@ -1,3 +1,4 @@
+import i18n from "@/i18n"
 import type Database from "@tauri-apps/plugin-sql";
 import { exists } from "@tauri-apps/plugin-fs";
 import type { Folder, Note, Workspace } from "@/types/types";
@@ -12,8 +13,8 @@ import { getDB } from "../dbManager";
 import { addNoteContent, buildContent } from "./template";
 import { Transaction, TransactionError, type TxRef } from "../transaction";
 
-const INVALID_FILE_MESSAGE = "Il file non è un export di EasyTask."
-const MALFORMED_MESSAGE = "Il file di export è danneggiato o incompleto."
+const INVALID_FILE_MESSAGE = () => i18n.t("errors.transfer.invalidFile")
+const MALFORMED_MESSAGE = () => i18n.t("errors.transfer.malformed")
 
 // Errors built with createError are plain objects; driver errors (Error instances of any realm, or strings) must not match
 const isAppError = (error: unknown): error is { code: string, message: string } =>
@@ -31,7 +32,7 @@ export async function buildDBWorkspaceExport(workspaceId: number): Promise<Works
         const workspaces = await db.select<Workspace[]>(
             'SELECT * FROM workspace WHERE id = ? AND deleted_at IS NULL', [workspaceId])
         if (workspaces.length === 0)
-            throw createError("TRANSFER_WORKSPACE_MISSING", "Il workspace non esiste più.")
+            throw createError("TRANSFER_WORKSPACE_MISSING", i18n.t("errors.transfer.workspaceMissing"))
 
         const folders = await db.select<(Folder & { color: string | null })[]>(
             'SELECT * FROM folder WHERE workspaceID = ? AND deleted_at IS NULL ORDER BY position, id', [workspaceId])
@@ -111,7 +112,7 @@ export async function buildDBWorkspaceExport(workspaceId: number): Promise<Works
         }
     } catch (error: unknown) {
         if (isAppError(error)) throw error
-        throw createError("TRANSFER_EXPORT_FAILED", "Esportazione non riuscita: " + getErrorMessage(error))
+        throw createError("TRANSFER_EXPORT_FAILED", i18n.t("errors.transfer.export", { message: getErrorMessage(error) }))
     }
 }
 
@@ -123,7 +124,7 @@ const isNumber = (value: unknown): value is number => typeof value === "number" 
 const isNullableString = (value: unknown) => value === null || value === undefined || isString(value)
 
 function malformed(): never {
-    throw createError("TRANSFER_INVALID_FILE", MALFORMED_MESSAGE)
+    throw createError("TRANSFER_INVALID_FILE", MALFORMED_MESSAGE())
 }
 
 function checkTask(task: unknown, depth = 0) {
@@ -157,9 +158,9 @@ function checkContent(content: unknown): NoteTemplateContent {
  */
 export function validateWorkspaceExport(data: unknown): WorkspaceExport {
     if (!isObject(data) || data.format !== WORKSPACE_EXPORT_FORMAT)
-        throw createError("TRANSFER_INVALID_FILE", INVALID_FILE_MESSAGE)
+        throw createError("TRANSFER_INVALID_FILE", INVALID_FILE_MESSAGE())
     if (data.version !== WORKSPACE_EXPORT_VERSION)
-        throw createError("TRANSFER_UNSUPPORTED_VERSION", "La versione del file di export non è supportata.")
+        throw createError("TRANSFER_UNSUPPORTED_VERSION", i18n.t("errors.transfer.unsupportedVersion"))
 
     const { workspace, folders, notes, templates } = data
     if (!isObject(workspace) || !isNonEmpty(workspace.name) || !isNullableString(workspace.color)) malformed()
@@ -245,8 +246,8 @@ export async function importDBWorkspace(
         workspace = tx.add('INSERT INTO workspace (name, color) VALUES (?, ?)', [name, data.workspace.color ?? null])
     } catch (error: unknown) {
         handleDBError(error, "WORKSPACE", {
-            UNIQUE: "Esiste già un workspace con questo nome.",
-            CHECK: "Il nome del workspace non può essere vuoto.",
+            UNIQUE: i18n.t("errors.workspace.unique"),
+            CHECK: i18n.t("errors.workspace.check"),
         })
     }
 
@@ -310,9 +311,9 @@ export async function importDBWorkspace(
         // Statement 0 is the workspace row itself: a name clash (race with another writer) or an invalid name
         if (error instanceof TransactionError && error.statementIndex === workspace)
             handleDBError(error, "WORKSPACE", {
-                UNIQUE: "Esiste già un workspace con questo nome.",
-                CHECK: "Il nome del workspace non può essere vuoto.",
+                UNIQUE: i18n.t("errors.workspace.unique"),
+                CHECK: i18n.t("errors.workspace.check"),
             })
-        throw createError("TRANSFER_IMPORT_FAILED", "Importazione non riuscita: " + getErrorMessage(error))
+        throw createError("TRANSFER_IMPORT_FAILED", i18n.t("errors.transfer.import", { message: getErrorMessage(error) }))
     }
 }
