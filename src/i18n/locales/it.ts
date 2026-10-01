@@ -526,6 +526,12 @@ export const it = {
             taskTargetInvalid: "Il task di destinazione non è valido.",
             taskIntoItself: "Non puoi spostare un task dentro sé stesso o un suo sottotask.",
         },
+        duplicate: {
+            noteMissing: "La nota da duplicare non esiste più.",
+            sectionMissing: "La sezione da duplicare non esiste più.",
+            load: "Impossibile leggere l'elemento da duplicare: {{message}}",
+            apply: "Impossibile duplicare l'elemento: {{message}}",
+        },
         template: {
             unique: "Esiste già un template con questo nome.",
             check: "Il nome del template non può essere vuoto.",
@@ -608,6 +614,11 @@ export const it = {
         paste: "Incolla",
         selectAll: "Seleziona tutto",
     },
+    duplicate: {
+        suffix: "copia",
+        noteDone: "Nota duplicata",
+        sectionDone: "Sezione duplicata",
+    },
     menu: {
         changeColor: "Cambia colore",
         export: "Esporta",
@@ -620,6 +631,7 @@ export const it = {
         colorContent: "Colora contenuto",
         open: "Apri",
         createTemplate: "Crea template",
+        duplicate: "Duplica",
     },
     home: {
         loading: "Caricamento dei Workspace...",
