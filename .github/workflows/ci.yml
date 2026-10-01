@@ -141,11 +141,23 @@ jobs:
       - name: Run e2e (Linux, virtual display)
         if: runner.os == 'Linux'
         run: xvfb-run --auto-servernum npm run e2e
+      - name: Build the debug app (Windows)
+        if: runner.os == 'Windows'
+        run: npm run tauri -- build --debug --no-bundle
+      # Starts the app by hand for 15 s and prints versions, exit code and the app log (see e2e/windows-diagnostics.ps1)
+      - name: Diagnostics (Windows)
+        if: runner.os == 'Windows'
+        continue-on-error: true
+        shell: pwsh
+        run: ./e2e/windows-diagnostics.ps1
       - name: Run e2e (Windows)
         if: runner.os == 'Windows'
+        env:
+          E2E_SKIP_BUILD: "1"
+          E2E_DRIVER_LOG: "1"
         run: npm run e2e
       - name: Upload e2e logs and screenshots
-        if: failure()
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: e2e-output-${{ matrix.os }}
