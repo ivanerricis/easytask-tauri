@@ -151,6 +151,11 @@ export const it = {
                 previewFolder: "Cartella",
                 previewNote: "Nota",
             },
+            colorIntensity: {
+                label: "Intensità dei colori",
+                description: "Quanto risaltano i colori di cartelle, note, gruppi e sezioni. Non cambia i colori dei task.",
+                reset: "Ripristina",
+            },
         },
         shortcuts: {
             title: "Scorciatoie",

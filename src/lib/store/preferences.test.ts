@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { getAudioVolume, saveAudioVolume, getAudioPlayerVisible, saveAudioPlayerVisible, getAudioPlayerScale, saveAudioPlayerScale, getAudioPlayerOpacity, saveAudioPlayerOpacity, flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, getSidebarRightWidth, saveSidebarRightWidth, getRightPanelTab, saveRightPanelTab, saveShowGroupProgressBar, saveSidebarItemSize } from "./preferences"
+import { getAudioVolume, saveAudioVolume, getAudioPlayerVisible, saveAudioPlayerVisible, getAudioPlayerScale, saveAudioPlayerScale, getAudioPlayerOpacity, saveAudioPlayerOpacity, getColorIntensity, saveColorIntensity, flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, getSidebarRightWidth, saveSidebarRightWidth, getRightPanelTab, saveRightPanelTab, saveShowGroupProgressBar, saveSidebarItemSize } from "./preferences"
 
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn(), delete: vi.fn() },
@@ -279,6 +279,25 @@ describe("audio player preferences", () => {
         expect(store.set).toHaveBeenCalledWith("audioPlayerVisible", false)
         expect(store.set).toHaveBeenCalledWith("audioPlayerScale", 1.2)
         expect(store.set).toHaveBeenCalledWith("audioPlayerOpacity", 0.4)
+        expect(store.save).toHaveBeenCalledTimes(1)
+    })
+
+    it("has the default color intensity of 100% when nothing is stored", async () => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getColorIntensity()).toBe(1)
+    })
+
+    it.each([[1.5, 1.5], [0.25, 0.25], [0.1, 0.25], [5, 1.75], ["x", 1], [Number.NaN, 1]])("reads the color intensity %s as %s", async (stored, expected) => {
+        vi.mocked(store.get).mockResolvedValue(stored)
+        expect(await getColorIntensity()).toBe(expected)
+        expect(store.get).toHaveBeenCalledWith("colorIntensity")
+    })
+
+    it("saves the color intensity (clamped) with a debounced flush", async () => {
+        const save = saveColorIntensity(9)
+        await vi.advanceTimersByTimeAsync(500)
+        await save
+        expect(store.set).toHaveBeenCalledWith("colorIntensity", 1.75)
         expect(store.save).toHaveBeenCalledTimes(1)
     })
 })

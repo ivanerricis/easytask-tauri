@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { Progress } from "@/components/ui/progress"
+import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import type { Section as SectionType, Task } from "@/types/types"
 import { ChevronDown, GripVertical } from "lucide-react"
@@ -43,6 +44,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
     const { patchSection } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const { showProgressBar } = usePreferences()
+    const colorAlpha = useColorAlpha()
     const textareaRef = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
@@ -82,7 +84,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
             <ButtonMenuSection section={section}>
                 <div
                     className={`group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs ${section.color ? "" : "bg-background border"}`}
-                    style={section.color ? { backgroundColor: hexToRgba(0.4, section.color) } : undefined}
+                    style={section.color ? { backgroundColor: hexToRgba(colorAlpha.header(), section.color) } : undefined}
                 >
                     {dragHandleProps &&
                         <div
