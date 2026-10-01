@@ -13,6 +13,16 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # package.json, src-tauri/Cargo.toml and src-tauri/tauri.conf.json must carry the same version
+  versions:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+      - run: node scripts/check-versions.mjs
+
   frontend:
     runs-on: ubuntu-24.04
     steps:

@@ -16,7 +16,7 @@ export default defineConfig({
     // The first test of a file pays for the cold module transform (slow on Windows under parallel load)
     testTimeout: 15000,
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.test.{ts,tsx}"],
+    include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.mjs"],
     coverage: {
       provider: "v8",
       include: ["src/**/*.{ts,tsx}"],
