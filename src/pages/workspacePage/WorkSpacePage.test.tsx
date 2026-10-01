@@ -6,7 +6,7 @@ import { saveLastWorkspaceId } from "@/lib/store/preferences"
 import { makeWorkspace } from "@/test/ui-fixtures"
 
 const workspaceCtx = { currentWorkspace: null as ReturnType<typeof makeWorkspace> | null }
-const dataCtx = { error: null as string | null, getWorkspaceData: vi.fn() }
+const dataCtx = { error: null as string | null, getWorkspaceData: vi.fn(), loadedWorkspaceId: null as number | null }
 
 vi.mock("@/lib/store/preferences", () => ({ saveLastWorkspaceId: vi.fn() }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => workspaceCtx }))
@@ -21,6 +21,7 @@ describe("WorkSpacePage", () => {
         vi.resetAllMocks()
         workspaceCtx.currentWorkspace = makeWorkspace({ id: 4 })
         dataCtx.error = null
+        dataCtx.loadedWorkspaceId = null
         dataCtx.getWorkspaceData.mockResolvedValue(undefined)
         vi.mocked(saveLastWorkspaceId).mockResolvedValue(undefined)
     })
@@ -33,14 +34,30 @@ describe("WorkSpacePage", () => {
     it("shows the loading page until the data is loaded, then the main container", async () => {
         const d = deferred()
         dataCtx.getWorkspaceData.mockReturnValue(d.promise)
-        render(<WorkSpacePage />)
+        const { rerender } = render(<WorkSpacePage />)
 
         expect(screen.getByText("Caricamento dati del Workspace...")).toBeInTheDocument()
         expect(dataCtx.getWorkspaceData).toHaveBeenCalledWith(4)
+        expect(screen.queryByText("main-container")).not.toBeInTheDocument()
 
         d.resolve()
+        dataCtx.loadedWorkspaceId = 4
+        rerender(<WorkSpacePage />)
         expect(await screen.findByText("main-container")).toBeInTheDocument()
         expect(screen.queryByText("Caricamento dati del Workspace...")).not.toBeInTheDocument()
+    })
+
+    it("shows the loading page again when another workspace is opened", async () => {
+        dataCtx.loadedWorkspaceId = 4
+        const { rerender } = render(<WorkSpacePage />)
+        expect(await screen.findByText("main-container")).toBeInTheDocument()
+
+        workspaceCtx.currentWorkspace = makeWorkspace({ id: 5 })
+        rerender(<WorkSpacePage />)
+
+        expect(screen.getByText("Caricamento dati del Workspace...")).toBeInTheDocument()
+        expect(screen.queryByText("main-container")).not.toBeInTheDocument()
+        await waitFor(() => expect(dataCtx.getWorkspaceData).toHaveBeenCalledWith(5))
     })
 
     it("shows the error page when the context reports an error", async () => {

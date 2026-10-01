@@ -123,7 +123,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                 {...listeners}
                                 aria-label={t("tasks.moveHandle")}
                                 title={t("tasks.moveHandleTitle")}
-                                className="absolute left-0.5 top-2 z-10 touch-none cursor-grab text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
+                                className="absolute left-0.5 top-2 z-10 touch-none cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
                                 <GripVertical className="size-3.5" />
                             </div>
 

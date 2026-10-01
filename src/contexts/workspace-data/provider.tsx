@@ -106,6 +106,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             setNotes(loadedNotes)
             setTreeState(tree)
             setLoadedWorkspaceId(workspaceID)
+            setError(null)
         } catch (error) {
             setError(i18n.t("errors.loadWorkspaceData"))
             throw error
@@ -153,8 +154,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const templateActions = useTemplateActions(runtime)
 
     const state = useMemo<WorkspaceStateType>(() => ({
-        folders, notes, workspaceDataTree, currentFolder, error, trashVersion, templatesVersion
-    }), [folders, notes, workspaceDataTree, currentFolder, error, trashVersion, templatesVersion])
+        folders, notes, workspaceDataTree, currentFolder, error, trashVersion, templatesVersion, loadedWorkspaceId
+    }), [folders, notes, workspaceDataTree, currentFolder, error, trashVersion, templatesVersion, loadedWorkspaceId])
 
     // Every group of actions is memoized on stable callbacks, so this object is created once
     const actions = useMemo<WorkspaceActionsType>(() => ({

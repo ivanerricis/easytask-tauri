@@ -186,6 +186,7 @@ export const it = {
                 available: "Disponibile la versione {{version}}.",
                 notes: "Novità",
                 error: "Impossibile controllare gli aggiornamenti - {{message}}",
+                noRelease: "nessuna versione pubblicata trovata (o connessione non disponibile)",
                 install: "Scarica e installa",
                 downloading: "Download in corso… {{percent}}%",
                 downloadingUnknown: "Download in corso…",

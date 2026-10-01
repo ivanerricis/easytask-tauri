@@ -41,7 +41,9 @@ export const UpdateSection = () => {
             const update = await checkForUpdate()
             setStatus(update ? { kind: "available", update } : { kind: "upToDate" })
         } catch (error) {
-            setStatus({ kind: "error", message: getErrorMessage(error) })
+            // The plugin reports a missing or unreachable latest.json (no published release, or offline) in English
+            const message = getErrorMessage(error)
+            setStatus({ kind: "error", message: /valid release json/i.test(message) ? t("settings.about.update.noRelease") : message })
         }
     }
 

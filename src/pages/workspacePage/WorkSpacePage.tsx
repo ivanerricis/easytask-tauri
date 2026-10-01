@@ -5,7 +5,7 @@ import { ErrorPage } from "@/components/pages/error-page"
 import { LoadingPage } from "@/components/pages/loading-page"
 import { WorkSpaceLayout } from "./WorkSpacePageLayout"
 import { useWorkspaceData } from "@/contexts/workspace-data"
-import { useEffect, useState } from "react"
+import { useEffect } from "react"
 import { AudioProvider } from "@/contexts/audio-context"
 import { saveLastWorkspaceId } from "@/lib/store/preferences"
 import { reportError } from "@/lib/report-error"
@@ -13,8 +13,7 @@ import { reportError } from "@/lib/report-error"
 const WorkSpacePage = () => {
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
-    const { error, getWorkspaceData } = useWorkspaceData()
-    const [isLoading, setIsLoading] = useState(true)
+    const { error, getWorkspaceData, loadedWorkspaceId } = useWorkspaceData()
 
     useEffect(() => {
         const fetchData = async () => {
@@ -24,8 +23,6 @@ const WorkSpacePage = () => {
             } catch (err) {
                 // The failure is shown by the error page (context `error`), so no toast
                 reportError(err)
-            } finally {
-                setIsLoading(false)
             }
         }
         fetchData()
@@ -36,14 +33,6 @@ const WorkSpacePage = () => {
         if (currentWorkspace) saveLastWorkspaceId(currentWorkspace.id).catch(error => reportError(error))
     }, [currentWorkspace])
 
-    if (isLoading) {
-        return (
-            <WorkSpaceLayout>
-                <LoadingPage text={t("workspace.loading")} />
-            </WorkSpaceLayout>
-        )
-    }
-
     if (error) {
         return (
             <WorkSpaceLayout>
@@ -53,6 +42,16 @@ const WorkSpacePage = () => {
     }
 
     if (!currentWorkspace) return null
+
+    // The data of the open workspace is not loaded yet (opened from the home page or switched from the combobox):
+    // show the loading page instead of the (empty or previous) content
+    if (loadedWorkspaceId !== currentWorkspace.id) {
+        return (
+            <WorkSpaceLayout>
+                <LoadingPage text={t("workspace.loading")} />
+            </WorkSpaceLayout>
+        )
+    }
 
     // The audio provider wraps both the note view and the floating player (rendered by MainContainer)
     return (

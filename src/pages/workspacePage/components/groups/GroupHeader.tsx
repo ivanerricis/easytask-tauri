@@ -73,7 +73,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
     return (
         <ButtonMenuGroup group={group}>
             <div className="group flex items-center justify-between border px-2 py-1 bg-background hover:bg-secondary w-full rounded-xs">
-                {dragHandleProps && <div ref={dragHandleRef} className="group flex items-center justify-center touch-none" {...dragHandleProps}>
+                {dragHandleProps && <div ref={dragHandleRef} className="group flex items-center justify-center touch-none cursor-grab active:cursor-grabbing" {...dragHandleProps}>
                     <Grip className="text-muted-foreground group-hover:text-foreground w-4 h-4 mr-3" />
                 </div>}
                 <button

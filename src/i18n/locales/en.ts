@@ -188,6 +188,7 @@ export const en: Translation = {
                 available: "Version {{version}} is available.",
                 notes: "What's new",
                 error: "Could not check for updates - {{message}}",
+                noRelease: "no published release found (or no connection)",
                 install: "Download and install",
                 downloading: "Downloading… {{percent}}%",
                 downloadingUnknown: "Downloading…",
