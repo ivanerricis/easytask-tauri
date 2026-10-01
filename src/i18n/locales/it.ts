@@ -193,8 +193,47 @@ export const it = {
             },
             folder: {
                 label: "Apri cartella dati",
-                description: "Apre la cartella EasyTask nei Documenti.",
+                description: "Apre la cartella con database, impostazioni, backup e log.",
                 button: "Apri",
+            },
+            backup: {
+                created: "Backup creato.",
+                now: {
+                    label: "Esegui backup ora",
+                    description: "Salva una copia consistente del database nella cartella dei backup.",
+                    button: "Esegui backup",
+                },
+                auto: {
+                    label: "Backup automatico",
+                    description: "Esegue un backup all'avvio, al massimo una volta al giorno.",
+                },
+                keep: {
+                    label: "Backup da conservare",
+                    description: "I più vecchi vengono eliminati automaticamente.",
+                },
+                folder: {
+                    label: "Apri cartella backup",
+                    description: "Mostra i file di backup nel file manager.",
+                    button: "Apri",
+                },
+                list: {
+                    title: "Backup disponibili",
+                    empty: "Nessun backup presente.",
+                    preRestore: "(prima del ripristino)",
+                },
+                restore: {
+                    button: "Ripristina",
+                    title: "Ripristinare questo backup?",
+                    description: "I dati attuali verranno sostituiti con il backup del {{date}} e l'app si riavvierà. Prima viene salvata una copia dei dati attuali.",
+                    confirm: "Ripristina e riavvia",
+                },
+                errors: {
+                    list: "Impossibile leggere i backup.",
+                    create: "Backup non riuscito.",
+                    delete: "Impossibile eliminare il backup.",
+                    restore: "Ripristino non riuscito.",
+                    save: "Impossibile salvare l'impostazione.",
+                },
             },
         },
         notes: {

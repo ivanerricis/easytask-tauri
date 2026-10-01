@@ -16,6 +16,8 @@ const REOPEN_LAST_WORKSPACE_KEY = "reopenLastWorkspace"
 const LAST_WORKSPACE_ID_KEY = "lastWorkspaceId"
 const SIDEBAR_ITEM_SIZE_KEY = "sidebarItemSize"
 const LANGUAGE_KEY = "language"
+const BACKUP_KEEP_KEY = "backupKeep"
+const AUTO_BACKUP_KEY = "autoBackup"
 
 const SAVE_DEBOUNCE_MS = 500
 
@@ -372,5 +374,56 @@ export const getLanguage = async (): Promise<LanguagePreference> => {
  */
 export const saveLanguage = async (value: LanguagePreference): Promise<void> => {
     await store.set(LANGUAGE_KEY, value)
+    await persist()
+}
+
+export const DEFAULT_BACKUP_KEEP = 7
+export const MIN_BACKUP_KEEP = 1
+export const MAX_BACKUP_KEEP = 100
+
+/** Brings a number of backups to keep into the allowed range (non-numbers give the default). */
+export const clampBackupKeep = (value: unknown): number => {
+    if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_BACKUP_KEEP
+    return Math.min(MAX_BACKUP_KEEP, Math.max(MIN_BACKUP_KEEP, Math.round(value)))
+}
+
+/**
+ * Gets how many backups are kept (the oldest are deleted after each backup).
+ * @returns A promise that resolves to a number between 1 and 100 (default 7).
+ * @category Store
+ */
+export const getBackupKeep = async (): Promise<number> => {
+    return clampBackupKeep(await store.get<number>(BACKUP_KEEP_KEY) ?? DEFAULT_BACKUP_KEEP)
+}
+
+/**
+ * Saves how many backups are kept.
+ * @param value The number of backups to keep (clamped between 1 and 100).
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveBackupKeep = async (value: number): Promise<void> => {
+    await store.set(BACKUP_KEEP_KEY, clampBackupKeep(value))
+    await persist()
+}
+
+/**
+ * Gets whether a backup is made automatically at startup (at most one per day).
+ * @returns A promise that resolves to a boolean (default true).
+ * @category Store
+ */
+export const getAutoBackup = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(AUTO_BACKUP_KEY)
+    return value ?? true
+}
+
+/**
+ * Saves whether a backup is made automatically at startup.
+ * @param value A boolean indicating whether the automatic backup is enabled.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveAutoBackup = async (value: boolean): Promise<void> => {
+    await store.set(AUTO_BACKUP_KEY, value)
     await persist()
 }

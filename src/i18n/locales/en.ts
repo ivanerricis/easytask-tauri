@@ -195,8 +195,47 @@ export const en: Translation = {
             },
             folder: {
                 label: "Open data folder",
-                description: "Opens the EasyTask folder in Documents.",
+                description: "Opens the folder with the database, settings, backups and logs.",
                 button: "Open",
+            },
+            backup: {
+                created: "Backup created.",
+                now: {
+                    label: "Back up now",
+                    description: "Saves a consistent copy of the database in the backups folder.",
+                    button: "Back up",
+                },
+                auto: {
+                    label: "Automatic backup",
+                    description: "Makes a backup at startup, at most once a day.",
+                },
+                keep: {
+                    label: "Backups to keep",
+                    description: "The oldest ones are deleted automatically.",
+                },
+                folder: {
+                    label: "Open backups folder",
+                    description: "Shows the backup files in the file manager.",
+                    button: "Open",
+                },
+                list: {
+                    title: "Available backups",
+                    empty: "No backups yet.",
+                    preRestore: "(before restore)",
+                },
+                restore: {
+                    button: "Restore",
+                    title: "Restore this backup?",
+                    description: "The current data will be replaced with the backup of {{date}} and the app will restart. A copy of the current data is saved first.",
+                    confirm: "Restore and restart",
+                },
+                errors: {
+                    list: "Unable to read the backups.",
+                    create: "Backup failed.",
+                    delete: "Unable to delete the backup.",
+                    restore: "Restore failed.",
+                    save: "Unable to save the setting.",
+                },
             },
         },
         notes: {
