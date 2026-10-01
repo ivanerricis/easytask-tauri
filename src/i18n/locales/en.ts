@@ -482,6 +482,14 @@ export const en: Translation = {
         maximize: "Maximize or restore",
         close: "Close the window",
     },
+    crash: {
+        reload: "Reload",
+        copyDetails: "Copy details",
+        copied: "Details copied to the clipboard",
+        copyFailed: "Could not copy the details",
+        unhandledError: "An unexpected error occurred",
+        unhandledRejection: "An operation failed unexpectedly",
+    },
     errorPage: {
         title: "Oops, something went wrong...",
         description: "Error description:",

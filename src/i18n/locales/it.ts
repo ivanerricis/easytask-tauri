@@ -480,6 +480,14 @@ export const it = {
         maximize: "Ingrandisci o ripristina",
         close: "Chiudi la finestra",
     },
+    crash: {
+        reload: "Ricarica",
+        copyDetails: "Copia dettagli",
+        copied: "Dettagli copiati negli appunti",
+        copyFailed: "Impossibile copiare i dettagli",
+        unhandledError: "Si è verificato un errore imprevisto",
+        unhandledRejection: "Un'operazione è fallita in modo imprevisto",
+    },
     errorPage: {
         title: "Ops c'è stato un errore...",
         description: "Descrizione dell'errore:",

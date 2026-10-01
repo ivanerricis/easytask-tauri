@@ -7,6 +7,10 @@ import { flushPreferences, getLanguage } from './lib/store/preferences'
 import { initI18n } from './i18n'
 import { reportError } from './lib/report-error'
 import { runAutoBackup } from './db/backup'
+import { installGlobalErrorHandlers } from './lib/global-error-handlers'
+import { ErrorBoundary } from './components/error-boundary'
+
+installGlobalErrorHandlers()
 
 // Debounced preference saves must not be lost when the app closes
 window.addEventListener('beforeunload', () => { void flushPreferences() })
@@ -23,7 +27,9 @@ const start = async () => {
   initI18n(await getLanguage().catch(() => 'system' as const))
   createRoot(document.getElementById('root')!).render(
     <StrictMode>
-      <App />
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     </StrictMode>,
   )
   // Daily backup, best effort: delayed so it does not compete with the first render

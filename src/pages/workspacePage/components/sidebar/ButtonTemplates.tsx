@@ -1,10 +1,12 @@
 import { useTranslation } from "react-i18next"
-import { useEffect, useState } from "react"
+import { lazy, useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { reportError } from "@/lib/report-error"
-import { DialogTemplates } from "@/components/dialogs/dialog-templates"
+import { LazyMount } from "@/components/lazy-mount"
 import { ItemFooter } from "../items/ItemFooter"
+
+const DialogTemplates = lazy(() => import("@/components/dialogs/dialog-templates").then(m => ({ default: m.DialogTemplates })))
 
 /**
  * Footer entry that opens the templates of the current workspace, with the number of templates as a badge.
@@ -31,7 +33,9 @@ export const ButtonTemplates = () => {
     return (
         <>
             <ItemFooter type="template" text={t("dialogs.templates.title")} badge={count} badgeLabel={t("templates.badge", { count })} onClick={() => setIsOpen(true)} />
-            <DialogTemplates isOpen={isOpen} onOpenChange={setIsOpen} />
+            <LazyMount active={isOpen}>
+                <DialogTemplates isOpen={isOpen} onOpenChange={setIsOpen} />
+            </LazyMount>
         </>
     )
 }

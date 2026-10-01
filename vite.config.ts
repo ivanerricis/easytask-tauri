@@ -20,6 +20,21 @@ export default defineConfig({
     },
   },
   build: {
-    sourcemap: !!process.env.TAURI_ENV_DEBUG
+    sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    rollupOptions: {
+      output: {
+        // Stable vendor chunks: better caching and a smaller entry chunk
+        manualChunks(id: string) {
+          if (!id.includes("node_modules")) return undefined
+          if (id.includes("@radix-ui") || id.includes("radix-ui")) return "radix"
+          if (id.includes("i18next")) return "i18next"
+          if (id.includes("@dnd-kit")) return "dnd-kit"
+          if (id.includes("lucide-react")) return "lucide"
+          if (id.includes("@tanstack")) return "tanstack"
+          if (/node_modules[\\/](react|react-dom|react-router|react-router-dom|scheduler)[\\/]/.test(id)) return "react"
+          return undefined
+        },
+      },
+    },
   }
 })

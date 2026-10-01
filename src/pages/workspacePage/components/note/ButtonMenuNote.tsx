@@ -1,11 +1,11 @@
 import { useTranslation } from "react-i18next"
-import { useState, type ReactElement } from "react"
+import { lazy, useState, type ReactElement } from "react"
 import type { Note } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useTabsActions } from "@/contexts/use-tabs"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
-import { DialogCreateTemplate } from "@/components/dialogs/dialog-create-template"
+import { LazyMount } from "@/components/lazy-mount"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { Separator } from "@/components/ui/separator"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
@@ -13,6 +13,8 @@ import { MoveToSubmenu } from "../MoveToSubmenu"
 import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
+
+const DialogCreateTemplate = lazy(() => import("@/components/dialogs/dialog-create-template").then(m => ({ default: m.DialogCreateTemplate })))
 
 type ButtonMenuNoteProps = {
     note: Note
@@ -86,11 +88,13 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                 isOpen={isRenameOpen}
                 onOpenChange={setRenameOpen}
             />
-            <DialogCreateTemplate
-                note={note}
-                isOpen={isTemplateOpen}
-                onOpenChange={setTemplateOpen}
-            />
+            <LazyMount active={isTemplateOpen}>
+                <DialogCreateTemplate
+                    note={note}
+                    isOpen={isTemplateOpen}
+                    onOpenChange={setTemplateOpen}
+                />
+            </LazyMount>
             <DialogDeleteItem
                 item={note}
                 itemType="note"

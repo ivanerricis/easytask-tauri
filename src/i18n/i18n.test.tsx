@@ -99,6 +99,8 @@ describe("language setting", () => {
         const user = userEvent.setup()
         render(<PreferencesProvider><DialogSettings /></PreferencesProvider>)
         await user.click(screen.getByRole("button", { name: "Impostazioni" }))
+        // The dialog content is a lazy chunk
+        await screen.findByRole("dialog", {}, { timeout: 5000 })
         return user
     }
 
