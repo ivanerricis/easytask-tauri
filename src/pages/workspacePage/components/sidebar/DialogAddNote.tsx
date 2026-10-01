@@ -18,6 +18,7 @@ import { NativeSelect } from "@/components/native-select"
 import { useTemplates } from "@/hooks/use-templates"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { FilePlus, Palette, X } from "lucide-react"
 import { useState } from "react"
 
@@ -36,6 +37,7 @@ export function DialogAddNote() {
     const [templateId, setTemplateId] = useState("")
     const { currentWorkspace } = useWorkspace()
     const { createWorkspaceNote, createNoteFromTemplate } = useWorkspaceData()
+    const recorder = useUndoRecorder()
     const templates = useTemplates(isOpen)
     // A stale selection (template deleted meanwhile) behaves as "no template"
     const template = templates.find(tpl => String(tpl.id) === templateId)
@@ -46,10 +48,10 @@ export function DialogAddNote() {
         if (note.name.trim() === "") return
         try {
             // Both are added to the sidebar tree by the context
-            if (template)
-                await createNoteFromTemplate(template.id, currentWorkspace.id, null, note.name.trim(), template.color)
-            else
-                await createWorkspaceNote(currentWorkspace.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
+            const id = template
+                ? await createNoteFromTemplate(template.id, currentWorkspace.id, null, note.name.trim(), template.color)
+                : await createWorkspaceNote(currentWorkspace.id, note.name.trim(), paletteIsOpen ? note.color : undefined)
+            if (typeof id === "number") recorder.create("note", id, note.name.trim())
             setError(null)
             setIsOpen(false)
             setNote(defaultNote)

@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { FolderPlus, Palette, X } from "lucide-react"
 import { useState } from "react"
 
@@ -33,13 +34,15 @@ export function DialogAddFolder() {
     const [paletteIsOpen, setPaletteOpen] = useState(false)
     const { currentWorkspace } = useWorkspace()
     const { createWorkspaceFolder } = useWorkspaceData()
+    const recorder = useUndoRecorder()
 
     const handleCreateFolder = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentWorkspace?.id) return
         if (folder.name.trim() === "") return
         try {
-            await createWorkspaceFolder(currentWorkspace.id, folder.name.trim(), paletteIsOpen ? folder.color : undefined)
+            const id = await createWorkspaceFolder(currentWorkspace.id, folder.name.trim(), paletteIsOpen ? folder.color : undefined)
+            if (typeof id === "number") recorder.create("folder", id, folder.name.trim())
             setError(null)
             setIsOpen(false)
             setPaletteOpen(false)

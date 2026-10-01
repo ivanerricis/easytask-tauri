@@ -8,6 +8,7 @@ import { ItemMenuButton } from "@/components/item-menu"
 import { useEffect, useRef, useState } from "react"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { toast } from "sonner"
 import { usePreferences } from "@/contexts/use-preferences"
 import type { HTMLAttributes } from "react"
@@ -40,6 +41,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
     const [text, setText] = useState(section.title)
     const { renameItem } = useWorkspaceActions()
     const { patchSection } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
     const { showProgressBar } = usePreferences()
     const textareaRef = useRef<HTMLInputElement>(null)
 
@@ -57,7 +59,10 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
         const changed = section.title !== text && text.trim() !== ""
         const rollback = changed ? patchSection(section.id, { title: text.trim() }) : null
         try {
-            if (changed) await renameItem("section", section.id, text.trim())
+            if (changed) {
+                await renameItem("section", section.id, text.trim())
+                recorder.rename("section", section.id, section.title, text.trim())
+            }
         } catch (err) {
             rollback?.()
             toast.error(t("sections.renameError", { message: getErrorMessage(err) }))

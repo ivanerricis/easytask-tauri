@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteId } from "@/contexts/use-tabs"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { useState, useRef, useEffect, useCallback } from "react"
 import type { FormEvent } from "react"
 import { toast } from "sonner"
@@ -24,6 +25,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     const { createGroup, createSectionInGroup } = useWorkspaceActions()
     const activeId = useActiveNoteId()
     const { appendGroup, appendSection } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
     const formRef = useRef<HTMLFormElement>(null)
 
     const handleOpen = useCallback(() => {
@@ -60,9 +62,11 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                 }
                 const id = await createSectionInGroup(groupId, name.trim())
                 appendSection(id, groupId, name.trim())
+                recorder.create("section", id, name.trim())
             } else {
                 const id = await createGroup(activeId, name.trim())
                 appendGroup(id, activeId, name.trim())
+                recorder.create("section_group", id, name.trim())
             }
 
             handleOpen()

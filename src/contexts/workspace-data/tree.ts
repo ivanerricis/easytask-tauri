@@ -26,7 +26,7 @@ export function useTreeActions(rt: Runtime): TreeActions {
      * Adds the created item to the sidebar tree. Without the new id, or when the parent is not in the tree,
      * the tree is reloaded in background instead.
      */
-    const addToTree = useCallback((type: "folder" | "note", workspaceID: number, parentId: number | null, id: unknown, name: string, color?: string) => {
+    const addToTree = useCallback((type: "folder" | "note", workspaceID: number, parentId: number | null, id: unknown, name: string, color?: string): number | null => {
         const applied = typeof id === "number" && applyTree(
             tree => insertTreeItem(
                 tree, type,
@@ -36,26 +36,27 @@ export function useTreeActions(rt: Runtime): TreeActions {
                 parentId),
             tree => removeTreeItem(tree, type, id))
         if (!applied) getWorkspaceData(workspaceID).catch(error => reportError(error, i18n.t("errors.refreshTree")))
+        return typeof id === "number" ? id : null
     }, [applyTree, getWorkspaceData])
 
     const createWorkspaceFolder = useCallback((workspaceID: number, name: string, color?: string) =>
         withLoading(async () => {
-            addToTree("folder", workspaceID, null, await createDBWorkspaceFolder(workspaceID, name, color), name, color)
+            return addToTree("folder", workspaceID, null, await createDBWorkspaceFolder(workspaceID, name, color), name, color)
         }), [withLoading, addToTree])
 
     const createWorkspaceNote = useCallback((workspaceID: number, name: string, color?: string) =>
         withLoading(async () => {
-            addToTree("note", workspaceID, null, await createDBWorkspaceNote(workspaceID, name, color), name, color)
+            return addToTree("note", workspaceID, null, await createDBWorkspaceNote(workspaceID, name, color), name, color)
         }), [withLoading, addToTree])
 
     const createSubFolder = useCallback((workspaceID: number, folderID: number, name: string) =>
         withLoading(async () => {
-            addToTree("folder", workspaceID, folderID, await createDBSubFolder(workspaceID, folderID, name), name)
+            return addToTree("folder", workspaceID, folderID, await createDBSubFolder(workspaceID, folderID, name), name)
         }), [withLoading, addToTree])
 
     const createNoteInFolder = useCallback((workspaceID: number, folderID: number, name: string) =>
         withLoading(async () => {
-            addToTree("note", workspaceID, folderID, await createDBNoteInFolder(workspaceID, folderID, name), name)
+            return addToTree("note", workspaceID, folderID, await createDBNoteInFolder(workspaceID, folderID, name), name)
         }), [withLoading, addToTree])
 
     /**

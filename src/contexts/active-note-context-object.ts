@@ -14,6 +14,8 @@ export type ActiveNoteActionsType = NoteOptimisticActions & {
     getNoteData: (noteId: number) => Promise<void>
     /** Replaces the cached data of the active note (optimistic updates). */
     setNoteDataTree: (tree: NoteDataTree | null) => void
+    /** The cached data of the active note right now (not the render snapshot), null without active note or cached data. */
+    getNoteTree: () => NoteDataTree | null
 }
 
 export const ActiveNoteContext = createContext<ActiveNoteContextType | null>(null)

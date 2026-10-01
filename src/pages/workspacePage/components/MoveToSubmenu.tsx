@@ -7,6 +7,8 @@ import { ButtonInPopover } from "@/components/button-in-popover"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { getErrorMessage } from "@/lib/utils"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { captureTreePlace } from "@/contexts/undo/commands"
 import { END_INDEX, getMoveDestinations, type TreeItemType } from "./sidebar/tree-dnd"
 
 type MoveToSubmenuProps = {
@@ -21,6 +23,7 @@ export const MoveToSubmenu = ({ itemType, itemId, folderID, onDone }: MoveToSubm
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { workspaceDataTree, moveTreeItem, getWorkspaceData } = useWorkspaceData()
+    const recorder = useUndoRecorder()
 
     const destinations = useMemo(() => getMoveDestinations(
         { rootFolders: workspaceDataTree?.rootFolders ?? [], rootNotes: workspaceDataTree?.rootNotes ?? [] },
@@ -32,7 +35,9 @@ export const MoveToSubmenu = ({ itemType, itemId, folderID, onDone }: MoveToSubm
     const move = async (targetFolderId: number | null) => {
         onDone?.()
         try {
+            const from = captureTreePlace(workspaceDataTree, itemType, itemId)
             await moveTreeItem(itemType, itemId, targetFolderId, END_INDEX)
+            if (from) recorder.treeMove(itemType, itemId, from.name, { folderId: from.folderId, index: from.index }, { folderId: targetFolderId, index: END_INDEX })
         } catch (err) {
             reportError(err, getErrorMessage(err))
         }

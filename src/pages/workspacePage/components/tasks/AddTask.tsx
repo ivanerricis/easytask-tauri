@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { cn, getErrorMessage } from "@/lib/utils"
 import { Check, Loader2, Plus, X } from "lucide-react"
 import { toast } from "sonner"
@@ -35,6 +36,7 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
     const [focused, setFocused] = useState(true)
     const { createSubTask } = useWorkspaceActions()
     const { appendTask } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
     const inputRef = useRef<HTMLInputElement>(null)
     const savingRef = useRef(false)
 
@@ -48,6 +50,7 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
             const id = await createSubTask(parentTaskId, value)
             setText("")
             appendTask(id, { parentTaskId }, value)
+            recorder.create("task", id, value)
         } catch (error: unknown) {
             toast.error(getErrorMessage(error) || t("tasks.errors.createSubtask"))
         } finally {
@@ -127,6 +130,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
     const [text, setText] = useState("")
     const { createTask } = useWorkspaceActions()
     const { appendTask } = useActiveNoteActions()
+    const recorder = useUndoRecorder()
     const formRef = useRef<HTMLFormElement>(null)
 
     useEffect(() => {
@@ -154,6 +158,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                 const id = await createTask(sectionId, value)
                 handleOpen()
                 appendTask(id, { sectionId }, value)
+                recorder.create("task", id, value)
             } catch (error: unknown) {
                 toast.error(getErrorMessage(error) || t("tasks.errors.createTask"))
             }

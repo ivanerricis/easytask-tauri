@@ -33,7 +33,7 @@ vi.mock("@/contexts/workspace-data", () => ({
 }))
 vi.mock("@/contexts/use-active-note", () => ({
     useActiveNote: () => ({ noteDataTree }),
-    useActiveNoteActions: () => ({ applySectionMove, applySectionMoveToNewGroup, applyTaskMove }),
+    useActiveNoteActions: () => ({ applySectionMove, applySectionMoveToNewGroup, applyTaskMove, getNoteTree: () => noteDataTree }),
 }))
 
 async function openSubmenu(ui: React.ReactElement) {

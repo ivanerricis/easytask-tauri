@@ -16,6 +16,7 @@ import { useTemplates } from "@/hooks/use-templates"
 import { useWorkspace } from "@/contexts/use-workspace"
 import type { Folder } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import React, { useState } from "react"
 import { toast } from "sonner"
 
@@ -31,6 +32,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
     const [error, setError] = useState<string | null>(null)
     const [templateId, setTemplateId] = useState("")
     const { createNoteInFolder, createNoteFromTemplate } = useWorkspaceData()
+    const recorder = useUndoRecorder()
     const templates = useTemplates(isOpen)
     // A stale selection (template deleted meanwhile) behaves as "no template"
     const template = templates.find(tpl => String(tpl.id) === templateId)
@@ -42,10 +44,10 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
         if (name.trim() === "") return
         try {
             // Both are added to the sidebar tree by the context
-            if (template)
-                await createNoteFromTemplate(template.id, currentWorkspace.id, parentFolder.id, name.trim(), template.color)
-            else
-                await createNoteInFolder(currentWorkspace.id, parentFolder.id, name.trim())
+            const id = template
+                ? await createNoteFromTemplate(template.id, currentWorkspace.id, parentFolder.id, name.trim(), template.color)
+                : await createNoteInFolder(currentWorkspace.id, parentFolder.id, name.trim())
+            if (typeof id === "number") recorder.create("note", id, name.trim())
             setError(null)
             onOpenChange(false)
             setName("")

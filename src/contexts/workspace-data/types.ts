@@ -24,11 +24,12 @@ export type WorkspaceActionsType = {
     /** Replaces the workspace tree (and the flat folders/notes derived from it) without reloading (optimistic updates). */
     setWorkspaceDataTree: (tree: WorkspaceDataTree) => void
 
-    createWorkspaceFolder: (workspaceID: number, name: string, color?: string) => Promise<void>
-    createWorkspaceNote: (workspaceID: number, name: string, color?: string) => Promise<void>
+    /** The creations of folders and notes resolve with the id of the new row (null when the database did not return it). */
+    createWorkspaceFolder: (workspaceID: number, name: string, color?: string) => Promise<number | null>
+    createWorkspaceNote: (workspaceID: number, name: string, color?: string) => Promise<number | null>
 
-    createSubFolder: (workspaceID: number, folderID: number, name: string) => Promise<void>
-    createNoteInFolder: (workspaceID: number, folderID: number, name: string) => Promise<void>
+    createSubFolder: (workspaceID: number, folderID: number, name: string) => Promise<number | null>
+    createNoteInFolder: (workspaceID: number, folderID: number, name: string) => Promise<number | null>
     /** The creations of the open note resolve with the ids of the new rows, so the caller can update the UI without reloading. */
     createGroup: (noteID: number, name: string) => Promise<number>
     createSection: (noteID: number, title: string, position: number) => Promise<{ groupId: number, sectionId: number }>
