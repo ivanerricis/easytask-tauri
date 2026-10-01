@@ -528,6 +528,12 @@ export const en: Translation = {
             taskTargetInvalid: "The target task is not valid.",
             taskIntoItself: "You cannot move a task into itself or one of its subtasks.",
         },
+        duplicate: {
+            noteMissing: "The note to duplicate no longer exists.",
+            sectionMissing: "The section to duplicate no longer exists.",
+            load: "Failed to read the item to duplicate: {{message}}",
+            apply: "Failed to duplicate the item: {{message}}",
+        },
         template: {
             unique: "A template with this name already exists.",
             check: "The template name cannot be empty.",
@@ -610,6 +616,11 @@ export const en: Translation = {
         paste: "Paste",
         selectAll: "Select all",
     },
+    duplicate: {
+        suffix: "copy",
+        noteDone: "Note duplicated",
+        sectionDone: "Section duplicated",
+    },
     menu: {
         changeColor: "Change color",
         export: "Export",
@@ -622,6 +633,7 @@ export const en: Translation = {
         colorContent: "Color content",
         open: "Open",
         createTemplate: "Create template",
+        duplicate: "Duplicate",
     },
     home: {
         loading: "Loading Workspaces...",

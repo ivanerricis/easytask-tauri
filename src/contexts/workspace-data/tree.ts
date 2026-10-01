@@ -4,6 +4,7 @@ import { createDBNoteInFolder, createDBWorkspaceNote } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder"
 import { reportError } from "@/lib/report-error"
 import { moveDBTreeItem } from "@/db/queries/tree"
+import { duplicateDBNote } from "@/db/queries/duplicate"
 import { renameDBItem, updateDBColor, type DBItemType } from "@/db/queries/shared_queries"
 import {
     buildFolder, buildNote, colorFolderContent, findTreeItem, getFolderNotes, getSubfolders,
@@ -13,7 +14,7 @@ import type { Runtime, WorkspaceActionsType } from "./types"
 
 type TreeActions = Pick<WorkspaceActionsType,
     "createWorkspaceFolder" | "createWorkspaceNote" | "createSubFolder" | "createNoteInFolder" |
-    "renameItem" | "updateItemColor" | "updateFolderColorContent" | "moveTreeItem">
+    "renameItem" | "updateItemColor" | "updateFolderColorContent" | "moveTreeItem" | "duplicateNote">
 
 /**
  * Folders and notes of the workspace tree: creations, rename/color (optimistic on the sidebar tree) and moves.
@@ -135,5 +136,21 @@ export function useTreeActions(rt: Runtime): TreeActions {
     const moveTreeItem = useCallback((itemType: "folder" | "note", itemId: number, targetFolderId: number | null, targetIndex: number) =>
         withLoading(() => moveDBTreeItem(itemType, itemId, targetFolderId, targetIndex)), [withLoading])
 
-    return useMemo(() => ({ createWorkspaceFolder, createWorkspaceNote, createSubFolder, createNoteInFolder, renameItem, updateItemColor, updateFolderColorContent, moveTreeItem }), [ createWorkspaceFolder, createWorkspaceNote, createSubFolder, createNoteInFolder, renameItem, updateItemColor, updateFolderColorContent, moveTreeItem ])
+    /**
+     * Duplicates a note right after the original (same folder, same color, content included) and reloads the
+     * sidebar tree, because the following siblings shift by one position.
+     * @param noteID - The ID of the note to duplicate.
+     * @returns The ID of the copy.
+     * @throws Will throw an error if the note no longer exists or the copy cannot be written.
+     * @category Workspace Data Context
+     */
+    const duplicateNote = useCallback((noteID: number) => withLoading(async () => {
+        const tree = getTree()
+        const workspaceID = tree ? findTreeItem(tree, "note", noteID)?.item.workspaceID : null
+        const id = await duplicateDBNote(noteID)
+        if (typeof workspaceID === "number") await getWorkspaceData(workspaceID)
+        return id
+    }), [withLoading, getTree, getWorkspaceData])
+
+    return useMemo(() => ({ createWorkspaceFolder, createWorkspaceNote, createSubFolder, createNoteInFolder, renameItem, updateItemColor, updateFolderColorContent, moveTreeItem, duplicateNote }), [ createWorkspaceFolder, createWorkspaceNote, createSubFolder, createNoteInFolder, renameItem, updateItemColor, updateFolderColorContent, moveTreeItem, duplicateNote ])
 }

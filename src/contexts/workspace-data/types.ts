@@ -66,6 +66,11 @@ export type WorkspaceActionsType = {
     createTemplateFromNote: (noteID: number, name: string) => Promise<number>
     updateTemplateFromNote: (templateID: number) => Promise<void>
     createNoteFromTemplate: (templateID: number, workspaceID: number, folderID: number | null, name: string, color?: string | null) => Promise<number>
+
+    /** Copies a note (same folder, right after it, content included) and refreshes the sidebar tree. Resolves with the id of the copy. */
+    duplicateNote: (noteID: number) => Promise<number>
+    /** Copies a section with its tasks (same group, right after it). The caller refreshes the open note. Resolves with the id of the copy. */
+    duplicateSection: (sectionID: number) => Promise<number>
 }
 
 /**

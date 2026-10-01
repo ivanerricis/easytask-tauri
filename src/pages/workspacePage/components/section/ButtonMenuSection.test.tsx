@@ -6,12 +6,16 @@ import { ButtonMenuSection } from "./ButtonMenuSection"
 import { ItemMenuButton } from "@/components/item-menu"
 import { makeSection } from "@/test/ui-fixtures"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+const duplicateSection = vi.fn()
+const refreshActiveNote = vi.fn()
+const create = vi.fn()
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create }) }))
 const updateItemColor = vi.fn()
 const patchSection = vi.fn()
 const removeSection = vi.fn()
-vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor }) }))
-vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchSection, removeSection }) }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor, duplicateSection }) }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchSection, removeSection, refreshActiveNote }) }))
 vi.mock("../NoteMoveSubmenus", () => ({ SectionMoveSubmenu: () => null }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({
     DialogDeleteItem: ({ isOpen, optimistic }: { isOpen: boolean, optimistic: () => () => void }) =>
@@ -22,12 +26,14 @@ vi.mock("@/components/dialogs/dialog-rename", () => ({
         isOpen ? <button onClick={() => optimistic("Nuovo")}>Dialog rinomina</button> : null,
 }))
 
-const ENTRIES = ["Rinomina", "Cambia colore", "Elimina"]
+const ENTRIES = ["Rinomina", "Duplica", "Cambia colore", "Elimina"]
 
 beforeEach(() => {
     vi.clearAllMocks()
     updateItemColor.mockResolvedValue(undefined)
     patchSection.mockReturnValue(vi.fn())
+    duplicateSection.mockResolvedValue(12)
+    refreshActiveNote.mockResolvedValue(undefined)
 })
 
 const setup = () => {
@@ -61,6 +67,28 @@ describe("ButtonMenuSection", () => {
         fireEvent.contextMenu(row)
         await user.click(await screen.findByText("Rinomina"))
         expect(await screen.findByText("Dialog rinomina")).toBeInTheDocument()
+    })
+
+    it("duplicates the section, records the creation, reloads the note and confirms", async () => {
+        const user = userEvent.setup()
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Duplica"))
+        await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Sezione duplicata"))
+        expect(duplicateSection).toHaveBeenCalledWith(7)
+        expect(create).toHaveBeenCalledWith("section", 12, null)
+        expect(refreshActiveNote).toHaveBeenCalledTimes(1)
+    })
+
+    it("shows the error when the duplication fails", async () => {
+        const user = userEvent.setup()
+        duplicateSection.mockRejectedValueOnce(new Error("boom"))
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Duplica"))
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith("boom"))
+        expect(create).not.toHaveBeenCalled()
+        expect(refreshActiveNote).not.toHaveBeenCalled()
     })
 
     it("opens the color submenu from the context menu", async () => {

@@ -16,6 +16,7 @@ Everything is stored locally on your computer.
 - **Drag & drop** to reorder and move elements
 - **Trash**: deleted workspaces and deleted items (folders, notes, groups, sections, tasks, audio files, templates) go to the trash, where you can restore them or delete them permanently
 - **Templates**: save a note as a template and create new notes from it
+- **Duplicate** a note (with all its content, audio files excluded) or a section (with its tasks) from its menu; the copy is named "... (copy)" and undoable
 - **Audio**: attach audio files to a note and play them in the app
 - **Undo / redo** with `Ctrl+Z` / `Ctrl+Y` (`Ctrl+Shift+Z` also redoes)
 - **Search notes** with `Ctrl+O`

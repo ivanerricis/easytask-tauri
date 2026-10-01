@@ -13,6 +13,9 @@ import { MoveToSubmenu } from "../MoveToSubmenu"
 import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { getErrorMessage } from "@/lib/utils"
+import { toast } from "sonner"
 
 const DialogCreateTemplate = lazy(() => import("@/components/dialogs/dialog-create-template").then(m => ({ default: m.DialogCreateTemplate })))
 
@@ -28,8 +31,22 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [isTemplateOpen, setTemplateOpen] = useState(false);
     const menu = useItemMenuState()
-    const { updateItemColor } = useWorkspaceActions()
+    const { updateItemColor, duplicateNote } = useWorkspaceActions()
     const { openNote } = useTabsActions()
+    const recorder = useUndoRecorder()
+
+    // The copy is added to the tree by the context: open it in a tab and make the creation undoable
+    const handleDuplicate = async () => {
+        menu.close()
+        try {
+            const id = await duplicateNote(note.id)
+            recorder.create("note", id, null)
+            openNote(id)
+            toast.success(t("duplicate.noteDone"))
+        } catch (error) {
+            toast.error(getErrorMessage(error))
+        }
+    }
 
     const items = (
         <MenuGroup className="flex flex-col gap-1">
@@ -42,6 +59,11 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                 text={t("common.rename")}
                 type="rename"
                 onClick={() => { setRenameOpen(true); menu.close() }}
+            />
+            <ButtonInPopover
+                text={t("menu.duplicate")}
+                type="duplicate"
+                onClick={handleDuplicate}
             />
             <MenuSub>
                 <MenuSubTrigger>
