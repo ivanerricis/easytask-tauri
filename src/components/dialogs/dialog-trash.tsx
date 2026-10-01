@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next"
-import { EmptyState } from "@/components/empty-state"
 import i18n from "@/i18n"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Briefcase, FileText, Music, Folder, Layers, LayoutList, LayoutTemplate, Loader2, RotateCcw, SquareCheck, Trash2 } from "lucide-react"
@@ -126,7 +125,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                                 <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
                             </div>
                         ) : items.length === 0 ? (
-                            <EmptyState title={t("trash.isEmpty")} description={t("emptyStates.trash.description")} />
+                            <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
                         ) : (
                             groups.map(({ type, icon: Icon }) => {
                                 const label = t(`trash.groups.${type}`)

@@ -1,5 +1,4 @@
 import { useTranslation } from "react-i18next"
-import { EmptyState } from "@/components/empty-state"
 import { useCallback, useEffect, useRef, useState } from "react"
 import { FilePlus, LayoutTemplate, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -115,7 +114,9 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                                 <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
                             </div>
                         ) : templates.length === 0 ? (
-                            <EmptyState title={t("dialogs.templates.empty")} description={t("emptyStates.templates.description")} />
+                            <p className="py-6 text-center text-muted-foreground text-sm">
+                                {t("dialogs.templates.empty")}
+                            </p>
                         ) : visible.length === 0 ? (
                             <p className="py-6 text-center text-muted-foreground text-sm">{t("common.noResults")}</p>
                         ) : (

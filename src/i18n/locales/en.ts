@@ -731,35 +731,4 @@ export const en: Translation = {
         showSidebar: "Show the sidebar",
         hideSidebar: "Hide the sidebar",
     },
-    emptyStates: {
-        workspaces: {
-            description: "A workspace gathers folders, notes and tasks: create one to get started, or import an existing one.",
-            create: "Create a workspace",
-        },
-        sidebar: {
-            description: "Organize your work in folders and notes.",
-            newFolder: "Create a folder",
-            newNote: "Create a note",
-        },
-        folder: {
-            title: "Empty folder",
-            description: "Drag notes or folders here to fill it.",
-        },
-        trash: {
-            description: "Deleted items stay here and can be restored.",
-        },
-        templates: {
-            description: "A template is a note to reuse: open a note's menu and choose \"Create template\".",
-        },
-        group: {
-            title: "Empty group",
-            description: "Add a section to organize the tasks.",
-            newSection: "Add a section",
-        },
-        section: {
-            title: "No tasks",
-            description: "Write the text below to add the first task.",
-            confirm: "Add the task",
-        },
-    },
 }

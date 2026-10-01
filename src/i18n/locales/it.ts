@@ -729,37 +729,6 @@ export const it = {
         showSidebar: "Mostra la barra laterale",
         hideSidebar: "Nascondi la barra laterale",
     },
-    emptyStates: {
-        workspaces: {
-            description: "Un workspace raccoglie cartelle, note e task: creane uno per iniziare, oppure importane uno esistente.",
-            create: "Crea un workspace",
-        },
-        sidebar: {
-            description: "Organizza il lavoro in cartelle e note.",
-            newFolder: "Crea una cartella",
-            newNote: "Crea una nota",
-        },
-        folder: {
-            title: "Cartella vuota",
-            description: "Trascina qui note o cartelle per riempirla.",
-        },
-        trash: {
-            description: "Gli elementi eliminati restano qui e possono essere ripristinati.",
-        },
-        templates: {
-            description: "Un template è una nota da riusare: aprine il menu e scegli \"Crea template\".",
-        },
-        group: {
-            title: "Gruppo vuoto",
-            description: "Aggiungi una sezione per organizzare i task.",
-            newSection: "Aggiungi una sezione",
-        },
-        section: {
-            title: "Nessun task",
-            description: "Scrivi il testo qui sotto per aggiungere il primo task.",
-            confirm: "Aggiungi il task",
-        },
-    },
 }
 
 export type Translation = typeof it

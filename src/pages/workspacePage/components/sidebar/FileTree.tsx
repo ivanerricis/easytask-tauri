@@ -7,7 +7,6 @@ import {
 } from "@dnd-kit/core"
 import { File, Folder as FolderIcon } from "lucide-react"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
-import { EmptyState } from "@/components/empty-state"
 import { reportError } from "@/lib/report-error"
 import type { Folder, Note } from "@/types/types"
 import { useWorkspace } from "@/contexts/use-workspace"
@@ -261,15 +260,9 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         >
             <RootDropArea highlighted={hover.rootActive} rootRef={rootElRef}>
                 {isEmpty ? (
-                    <EmptyState
-                        compact
-                        title={t("sidebar.emptyTree")}
-                        description={t("emptyStates.sidebar.description")}
-                        hints={[
-                            { label: t("emptyStates.sidebar.newFolder"), shortcutId: "new-folder" },
-                            { label: t("emptyStates.sidebar.newNote"), shortcutId: "new-note" },
-                        ]}
-                    />
+                    <p className="text-muted-foreground text-sm w-full">
+                        {t("sidebar.emptyTree")}
+                    </p>
                 ) : virtualized ? (
                     <VirtualTree
                         rows={flatRows}

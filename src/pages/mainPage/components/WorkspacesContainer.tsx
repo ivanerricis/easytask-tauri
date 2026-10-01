@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next"
 import type { Workspace } from "@/types/types"
 import { WorkSpaceItem } from "./WorkSpace"
-import { EmptyState } from "@/components/empty-state"
 import { cn } from "@/lib/utils"
 
 type WorkspacesContainerProps = {
@@ -25,12 +24,9 @@ export const WorkspacesContainer = ({ workspaces, view = "grid" }: WorkspacesCon
                     />
                 ))
             ) : (
-                <EmptyState
-                    className="col-span-full"
-                    title={t("home.noWorkspaces")}
-                    description={t("emptyStates.workspaces.description")}
-                    hints={[{ label: t("emptyStates.workspaces.create"), shortcutId: "new-workspace" }]}
-                />
+                <p className="text-muted-foreground text-sm w-full">
+                    {t("home.noWorkspaces")}
+                </p>
             )}
         </div>
     )
