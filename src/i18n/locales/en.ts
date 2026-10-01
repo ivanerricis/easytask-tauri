@@ -506,6 +506,7 @@ export const en: Translation = {
         task: {
             unique: "A task with this name already exists.",
             check: "The task name cannot be empty.",
+            parentMissing: "The parent task no longer exists.",
             descriptionUpdate: "Failed to update task description: {{message}}",
         },
         workspace: {
@@ -562,6 +563,14 @@ export const en: Translation = {
             invalidJson: "The file is not a valid JSON.",
             export: "Export failed: {{message}}",
             import: "Import failed: {{message}}",
+            fileTooLarge: "The file is too large to import (maximum {{max}} MB).",
+            tooManyItems: "The file contains too many items to import (maximum {{max}}).",
+            untitled: "(untitled)",
+        },
+        backup: {
+            restoring: "A backup is being restored: try again in a moment.",
+            invalid: "The backup is damaged or is not an EasyTask database.",
+            newer: "The backup was created by a newer version of the app: update EasyTask to restore it.",
         },
         group: {
             create: "Could not create the group: {{message}}",

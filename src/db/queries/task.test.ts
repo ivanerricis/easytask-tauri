@@ -39,6 +39,11 @@ describe("task queries SQL", () => {
         expect(await createDBSubTask(2, "s")).toBe(43)
     })
 
+    it("createDBSubTask throws when the parent is missing or trashed", async () => {
+        db.execute.mockResolvedValueOnce({ rowsAffected: 0, lastInsertId: 0 })
+        expect(await thrown(createDBSubTask(2, "s"))).toMatchObject({ code: "TASK_PARENT_MISSING" })
+    })
+
     it("createDBSubTask", async () => {
         await createDBSubTask(2, "s")
         expect(db.execute).toHaveBeenCalledWith(

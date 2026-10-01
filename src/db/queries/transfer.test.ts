@@ -2,12 +2,15 @@
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DatabaseSync, type SQLInputValue } from "node:sqlite"
+import { MAX_IMPORT_ITEMS } from "@/types/transfer"
 import { latestSchema } from "../schema/initial"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v8)
 let sqlite: DatabaseSync
 // Set to a substring to make the next matching statement fail (simulates a failure in the middle of the creation)
 let failOn: string | null = null
+// Answer of the Rust audio_file_exists command (used by the default existence check)
+let audioFileExists: (path: string) => boolean = () => true
 
 vi.mock("../dbManager", () => ({
     getDB: vi.fn(async () => ({
@@ -22,10 +25,12 @@ vi.mock("../dbManager", () => ({
 // db_transaction runs on the same in-memory database, with real BEGIN/COMMIT/ROLLBACK
 vi.mock("@tauri-apps/api/core", async () => {
     const { createSqliteInvoke } = await import("@/test/db-mock")
-    return { invoke: createSqliteInvoke(() => sqlite, { shouldFail: sql => failOn !== null && sql.includes(failOn) }) }
+    const sqliteInvoke = createSqliteInvoke(() => sqlite, { shouldFail: sql => failOn !== null && sql.includes(failOn) })
+    return {
+        invoke: vi.fn(async (command: string, args?: { path?: string, statements?: never }) =>
+            command === "audio_file_exists" ? audioFileExists(args?.path ?? "") : sqliteInvoke(command, args)),
+    }
 })
-
-vi.mock("@tauri-apps/plugin-fs", () => ({ exists: vi.fn(async () => true) }))
 
 import { buildDBWorkspaceExport, importDBWorkspace, validateWorkspaceExport } from "./transfer"
 
@@ -42,6 +47,7 @@ async function thrown(p: Promise<unknown>): Promise<unknown> {
 
 beforeEach(() => {
     failOn = null
+    audioFileExists = () => true
     sqlite = new DatabaseSync(":memory:")
     sqlite.exec("PRAGMA foreign_keys=ON")
     for (const sql of latestSchema) sqlite.exec(sql)
@@ -218,5 +224,69 @@ describe("group color in export/import", () => {
         const data = JSON.parse(JSON.stringify(await exportOf()))
         data.notes[0].content.groups[0].color = 5
         expect(() => validateWorkspaceExport(data)).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
+    })
+})
+
+describe("import hardening", () => {
+    const clone = async () => JSON.parse(JSON.stringify(await exportOf()))
+
+    it("replaces blank task texts and section titles with a placeholder and empty colors with null", async () => {
+        const data = await clone()
+        const section = data.notes.find((n: { name: string }) => n.name === "Sorgente").content.groups[0].sections[0]
+        section.title = "   "
+        section.color = ""
+        section.tasks[0].text = " "
+        section.tasks[0].color = ""
+        data.folders[0].color = ""
+        data.notes[0].color = ""
+        data.workspace.color = ""
+        const valid = validateWorkspaceExport(data)
+        const { workspaceId } = await importDBWorkspace(valid)
+        expect(rows(`SELECT title, color FROM section WHERE title = '(senza titolo)'`)).toEqual([{ title: "(senza titolo)", color: null }])
+        expect(rows(`SELECT COUNT(*) AS c FROM task WHERE text = '(senza titolo)' AND color IS NULL`)[0].c).toBe(1)
+        expect(rows(`SELECT color FROM workspace WHERE id = ${workspaceId}`)).toEqual([{ color: null }])
+        expect(rows(`SELECT COUNT(*) AS c FROM folder WHERE color = ''`)[0].c).toBe(0)
+        expect(rows(`SELECT COUNT(*) AS c FROM note WHERE color = ''`)[0].c).toBe(0)
+    })
+
+    it("suffixes duplicate sibling folders, notes and sections instead of failing", async () => {
+        const data = await clone()
+        data.folders.push({ ...data.folders[0], ref: "dup" })
+        data.notes.push({ ...data.notes[1], ref: "dupNote" })
+        const group = data.notes.find((n: { name: string }) => n.name === "Sorgente").content.groups[0]
+        group.sections.push({ ...group.sections[0], tasks: [] })
+        const { workspaceId } = await importDBWorkspace(validateWorkspaceExport(data))
+        const names = (table: string) => rows(`SELECT name FROM ${table} WHERE workspaceID = ${workspaceId}`).map(r => r.name).sort()
+        expect(names("folder")).toEqual(["Cartella", "Cartella (2)"])
+        expect(names("note")).toEqual(["Nella cartella", "Nella cartella (2)", "Sorgente"])
+        expect(rows(`SELECT COUNT(*) AS c FROM section WHERE title = 'Da fare (2)'`)[0].c).toBe(1)
+    })
+
+    it("skips audio with a disallowed extension and uses the audio_file_exists command by default", async () => {
+        const data = await clone()
+        const note = data.notes.find((n: { name: string }) => n.name === "Sorgente")
+        note.audio.push(
+            { groupIndex: 0, name: "evil.exe", path: "/x/evil.exe", position: 1 },
+            { groupIndex: 0, name: "gone.mp3", path: "/x/gone.mp3", position: 2 },
+            { groupIndex: 0, name: "UP.MP3", path: "/x/UP.MP3", position: 3 })
+        audioFileExists = path => !path.endsWith("gone.mp3")
+        const { workspaceId, skippedAudio } = await importDBWorkspace(validateWorkspaceExport(data))
+        expect(skippedAudio).toBe(2)
+        const files = rows(`SELECT a.name FROM audio_file a JOIN section_group g ON g.id = a.section_groupID
+            JOIN note n ON n.id = g.noteID WHERE n.workspaceID = ${workspaceId} ORDER BY a.position`)
+        expect(files).toEqual([{ name: "song.mp3" }, { name: "UP.MP3" }])
+    })
+
+    it("treats an error of audio_file_exists as present", async () => {
+        const data = await clone()
+        audioFileExists = () => { throw new Error("denied") }
+        expect((await importDBWorkspace(validateWorkspaceExport(data))).skippedAudio).toBe(0)
+    })
+
+    it("rejects files with more than the maximum number of items", async () => {
+        const data = await clone()
+        data.notes[0].content.groups[0].sections[0].tasks = Array.from({ length: MAX_IMPORT_ITEMS + 1 }, (_, i) =>
+            ({ text: "t", position: i, subtasks: [] }))
+        expect(() => validateWorkspaceExport(data)).toThrow(expect.objectContaining({ code: "TRANSFER_TOO_MANY_ITEMS" }))
     })
 })

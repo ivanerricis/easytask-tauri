@@ -84,7 +84,7 @@ export async function deleteDBItem(itemType: DBItemType, itemID: number) {
     const db = await getDB()
 
     try {
-        await db.execute(`UPDATE ${itemType} ${SOFT_DELETE} WHERE id=?`, [itemID])
+        await db.execute(`UPDATE ${itemType} ${SOFT_DELETE} WHERE id=? AND deleted_at IS NULL`, [itemID])
     } catch (error: unknown) {
         throw createError(`${itemType.toUpperCase()}_DELETE_FAILED`, i18n.t("errors.item.delete", { message: getErrorMessage(error) }))
     }

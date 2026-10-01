@@ -1,15 +1,16 @@
 import i18n from "@/i18n"
 import type Database from "@tauri-apps/plugin-sql";
-import { exists } from "@tauri-apps/plugin-fs";
+import { invoke } from "@tauri-apps/api/core";
 import type { Folder, Note, Workspace } from "@/types/types";
 import type { NoteTemplateContent } from "@/types/template";
 import {
-    WORKSPACE_EXPORT_FORMAT, WORKSPACE_EXPORT_VERSION,
+    MAX_IMPORT_ITEMS, WORKSPACE_EXPORT_FORMAT, WORKSPACE_EXPORT_VERSION,
     type ExportAudio, type ExportFolder, type ExportNote, type ExportTemplate, type WorkspaceExport,
 } from "@/types/transfer";
 import { createError, handleDBError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
+import { AUDIO_EXTENSIONS } from "./audio";
 import { addNoteContent, buildContent } from "./template";
 import { Transaction, TransactionError, type TxRef } from "../transaction";
 
@@ -127,26 +128,88 @@ function malformed(): never {
     throw createError("TRANSFER_INVALID_FILE", MALFORMED_MESSAGE())
 }
 
-function checkTask(task: unknown, depth = 0) {
+function tooMany(): never {
+    throw createError("TRANSFER_TOO_MANY_ITEMS", i18n.t("errors.transfer.tooManyItems", { max: MAX_IMPORT_ITEMS.toLocaleString(i18n.language) }))
+}
+
+/** Counts the items of a file against MAX_IMPORT_ITEMS (the walk stops as soon as the limit is passed). */
+type Counter = { count: number }
+function bump(counter: Counter, amount = 1) {
+    counter.count += amount
+    if (counter.count > MAX_IMPORT_ITEMS) tooMany()
+}
+
+function checkTask(task: unknown, counter: Counter, depth = 0) {
     if (!isObject(task) || depth > 100) malformed()
+    bump(counter)
     if (!isString(task.text) || !isNumber(task.position) || !Array.isArray(task.subtasks)) malformed()
     if (!isNullableString(task.description) || !isNullableString(task.color)) malformed()
-    for (const subtask of task.subtasks as unknown[]) checkTask(subtask, depth + 1)
+    for (const subtask of task.subtasks as unknown[]) checkTask(subtask, counter, depth + 1)
 }
 
 /** Checks a note content so that the insertion never crashes on a malformed file. */
-function checkContent(content: unknown): NoteTemplateContent {
+function checkContent(content: unknown, counter: Counter): NoteTemplateContent {
     if (!isObject(content) || !Array.isArray(content.groups)) malformed()
     for (const group of content.groups as unknown[]) {
+        bump(counter)
         if (!isObject(group) || !isNumber(group.position) || !Array.isArray(group.sections) || !isNullableString(group.name)
             || !isNullableString(group.color)) malformed()
         for (const section of group.sections as unknown[]) {
+            bump(counter)
             if (!isObject(section) || !isString(section.title) || !isNumber(section.position) || !Array.isArray(section.tasks)
                 || !isNullableString(section.color)) malformed()
-            for (const task of section.tasks as unknown[]) checkTask(task)
+            for (const task of section.tasks as unknown[]) checkTask(task, counter)
         }
     }
     return content as unknown as NoteTemplateContent
+}
+
+/** An empty color is not a valid color (CHECK LENGTH(color) > 0): it means "no color". */
+const cleanColor = (color: string | null | undefined): string | null => color ? color : null
+
+/** Returns "name", or "name (2)", "name (3)"... the first one not in `used`; the result is added to `used`. */
+function uniqueSibling(name: string, used: Set<string>): string {
+    let candidate = name
+    for (let counter = 2; used.has(candidate); counter++) candidate = `${name} (${counter})`
+    used.add(candidate)
+    return candidate
+}
+
+const untitled = (value: string) => value.trim() || i18n.t("errors.transfer.untitled")
+
+type ContentTask = NoteTemplateContent["groups"][number]["sections"][number]["tasks"][number]
+
+function normalizeTask(task: ContentTask) {
+    task.text = untitled(task.text)
+    task.color = cleanColor(task.color)
+    for (const subtask of task.subtasks) normalizeTask(subtask)
+}
+
+/**
+ * Fixes (in place) what the database would reject: blank task texts and section titles get a placeholder,
+ * empty colors become null and section titles clashing in the same group get a numeric suffix.
+ */
+function normalizeContent(content: NoteTemplateContent) {
+    for (const group of content.groups) {
+        group.color = cleanColor(group.color)
+        const titles = new Set<string>()
+        for (const section of group.sections) {
+            section.title = uniqueSibling(untitled(section.title), titles)
+            section.color = cleanColor(section.color)
+            for (const task of section.tasks) normalizeTask(task)
+        }
+    }
+}
+
+/** Renames (in place) the items of the same parent that share a name, keeping the file order. */
+function dedupeNames<T extends { name: string }>(items: T[], parentOf: (item: T) => string | null) {
+    const used = new Map<string | null, Set<string>>()
+    for (const item of items) {
+        const parent = parentOf(item)
+        let names = used.get(parent)
+        if (!names) used.set(parent, names = new Set())
+        item.name = uniqueSibling(item.name.trim(), names)
+    }
 }
 
 /**
@@ -154,7 +217,9 @@ function checkContent(content: unknown): NoteTemplateContent {
  * @param data The parsed JSON.
  * @returns The same data, typed.
  * @throws A "TRANSFER_INVALID_FILE" error (Italian message) for a wrong format or malformed structure,
- * "TRANSFER_UNSUPPORTED_VERSION" for an unsupported version.
+ * "TRANSFER_UNSUPPORTED_VERSION" for an unsupported version, "TRANSFER_TOO_MANY_ITEMS" above MAX_IMPORT_ITEMS.
+ * The data is also normalized in place: blank task texts / section titles get a placeholder, empty colors become null,
+ * and sibling folders, notes and sections with the same name get a numeric suffix.
  * @category Database Queries
  */
 export function validateWorkspaceExport(data: unknown): WorkspaceExport {
@@ -166,6 +231,8 @@ export function validateWorkspaceExport(data: unknown): WorkspaceExport {
     const { workspace, folders, notes, templates } = data
     if (!isObject(workspace) || !isNonEmpty(workspace.name) || !isNullableString(workspace.color)) malformed()
     if (!Array.isArray(folders) || !Array.isArray(notes) || !Array.isArray(templates)) malformed()
+    const counter: Counter = { count: 0 }
+    bump(counter, folders.length + notes.length + templates.length)
 
     const folderRefs = new Set<string>()
     for (const folder of folders as unknown[]) {
@@ -184,7 +251,7 @@ export function validateWorkspaceExport(data: unknown): WorkspaceExport {
             || !(note.folderRef === null || (isString(note.folderRef) && folderRefs.has(note.folderRef)))) malformed()
         if (noteRefs.has(note.ref)) malformed()
         noteRefs.add(note.ref)
-        const content = checkContent(note.content)
+        const content = checkContent(note.content, counter)
         for (const audio of note.audio as unknown[]) {
             if (!isObject(audio) || !isNumber(audio.groupIndex) || !isNonEmpty(audio.name) || !isNonEmpty(audio.path)
                 || !isNumber(audio.position) || audio.groupIndex < 0 || audio.groupIndex >= content.groups.length) malformed()
@@ -192,24 +259,45 @@ export function validateWorkspaceExport(data: unknown): WorkspaceExport {
     }
     for (const template of templates as unknown[]) {
         if (!isObject(template) || !isNonEmpty(template.name) || !isNullableString(template.color)) malformed()
-        checkContent(template.content)
+        checkContent(template.content, counter)
     }
-    return data as unknown as WorkspaceExport
+
+    const result = data as unknown as WorkspaceExport
+    result.workspace.color = cleanColor(result.workspace.color)
+    for (const folder of result.folders) folder.color = cleanColor(folder.color)
+    for (const note of result.notes) {
+        note.color = cleanColor(note.color)
+        normalizeContent(note.content)
+    }
+    for (const template of result.templates) {
+        template.color = cleanColor(template.color)
+        template.name = template.name.trim()
+        normalizeContent(template.content)
+    }
+    dedupeNames(result.folders, folder => folder.parentRef)
+    dedupeNames(result.notes, note => note.folderRef)
+    return result
 }
 
 /**
- * Default check for the audio files of an import. `exists` is scoped by the capabilities to the EasyTask folder,
- * so a permission error says nothing about the file: it is treated as present (the row is kept, the app already
- * handles a missing audio file at playback). Only a definite `false` skips the file.
+ * Default check for the audio files of an import: the Rust `audio_file_exists` command, which (unlike plugin-fs
+ * `exists`) is not scoped to the EasyTask folder. An error of the command says nothing about the file, so it is
+ * treated as present (the row is kept, the app already handles a missing audio file at playback). Only a definite
+ * `false` skips the file.
  * @param path Absolute path of the audio file.
  * @category Database Queries
  */
 async function defaultAudioExists(path: string): Promise<boolean> {
     try {
-        return await exists(path)
+        return await invoke<boolean>("audio_file_exists", { path })
     } catch {
         return true
     }
+}
+
+const hasAudioExtension = (path: string) => {
+    const dot = path.lastIndexOf(".")
+    return dot >= 0 && (AUDIO_EXTENSIONS as readonly string[]).includes(path.slice(dot + 1).toLowerCase())
 }
 
 /** Returns the first free workspace name: "name", "name (importato)", "name (importato 2)"... */
@@ -231,6 +319,7 @@ type PendingFolder = { folder: ExportFolder, parentRef: TxRef | null }
  * The workspace and everything in it are written in ONE database transaction: on any failure nothing is created.
  * @param data A validated export (see validateWorkspaceExport).
  * @param options `audioExists` decides whether an audio file is kept (files for which it returns false or throws are skipped).
+ * Audio files without an allowed extension (AUDIO_EXTENSIONS) are always skipped.
  * @returns The ID of the new workspace and the number of skipped audio files.
  * @category Database Queries
  */
@@ -257,7 +346,13 @@ export async function importDBWorkspace(
         const workspaceRef = tx.idOf(workspace)
         // Folders level by level: children reference the ids of their parents
         const folderRefs = new Map<string, TxRef>()
-        let level: PendingFolder[] = data.folders.filter(folder => folder.parentRef === null).map(folder => ({ folder, parentRef: null }))
+        const childrenOf = new Map<string | null, ExportFolder[]>()
+        for (const folder of data.folders) {
+            const siblings = childrenOf.get(folder.parentRef)
+            if (siblings) siblings.push(folder)
+            else childrenOf.set(folder.parentRef, [folder])
+        }
+        let level: PendingFolder[] = (childrenOf.get(null) ?? []).map(folder => ({ folder, parentRef: null }))
         let imported = 0
         while (level.length > 0) {
             const refs = tx.insertRows("folder", ["workspaceID", "folderID", "name", "color", "position"],
@@ -265,7 +360,7 @@ export async function importDBWorkspace(
             level.forEach(({ folder }, i) => folderRefs.set(folder.ref, refs[i]))
             imported += level.length
             level = level.flatMap(({ folder }, i) =>
-                data.folders.filter(child => child.parentRef === folder.ref).map(child => ({ folder: child, parentRef: refs[i] })))
+                (childrenOf.get(folder.ref) ?? []).map(child => ({ folder: child, parentRef: refs[i] })))
         }
         // Folders left out are part of a parent cycle
         if (imported !== data.folders.length) throw new Error("Invalid folder tree")
@@ -282,11 +377,13 @@ export async function importDBWorkspace(
                 const rows: unknown[][] = []
                 const taken = new Set<string>()
                 for (const file of note.audio) {
-                    let keep: boolean
-                    try {
-                        keep = await audioExists(file.path)
-                    } catch {
-                        keep = false
+                    let keep = hasAudioExtension(file.path)
+                    if (keep) {
+                        try {
+                            keep = await audioExists(file.path)
+                        } catch {
+                            keep = false
+                        }
                     }
                     // UNIQUE(name, section_groupID): a duplicated name in the file is skipped instead of failing the import
                     const key = `${file.groupIndex} ${file.name.toLowerCase()}`
