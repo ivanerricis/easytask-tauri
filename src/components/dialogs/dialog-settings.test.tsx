@@ -78,7 +78,7 @@ describe("DialogSettings", () => {
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()
 
         await user.click(screen.getByRole("button", { name: "Audio" }))
-        expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "Ripristina" })).toBeInTheDocument()
     })
 
     it("shows the audio settings and changes them", async () => {
@@ -108,7 +108,7 @@ describe("DialogSettings", () => {
         await user.click(within(size).getByRole("radio", { name: "Piccolo" }))
         expect(audioPrefs.setAudioPlayerScale).toHaveBeenCalledWith(0.85)
 
-        await user.click(screen.getByRole("button", { name: "Ripristina" }))
+        await user.click(screen.getByRole("button", { name: "Ripristina tutto" }))
         expect(audioPrefs.resetAudioSettings).toHaveBeenCalled()
     })
 

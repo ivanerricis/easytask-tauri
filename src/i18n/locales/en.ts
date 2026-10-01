@@ -320,7 +320,7 @@ export const en: Translation = {
             resetAll: {
                 label: "Reset the audio settings",
                 description: "Volume, visibility, size and transparency go back to their defaults.",
-                button: "Reset",
+                button: "Reset all",
             },
         },
         nav: "Settings categories",

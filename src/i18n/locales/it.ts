@@ -294,7 +294,7 @@ export const it = {
             resetPlayer: {
                 label: "Ripristina la posizione del player audio",
                 description: "Riporta il player alla posizione predefinita.",
-                button: "Reset",
+                button: "Ripristina",
             },
             volume: {
                 label: "Volume predefinito",
@@ -318,7 +318,7 @@ export const it = {
             resetAll: {
                 label: "Ripristina le impostazioni audio",
                 description: "Volume, visibilità, dimensione e trasparenza tornano ai valori predefiniti.",
-                button: "Ripristina",
+                button: "Ripristina tutto",
             },
         },
         nav: "Categorie impostazioni",

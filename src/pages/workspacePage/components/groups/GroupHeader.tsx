@@ -77,7 +77,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
                 className={`group @container flex items-center border px-2 py-1 w-full rounded-xs ${group.color ? "" : "bg-background hover:bg-secondary"}`}
                 style={group.color ? { backgroundColor: hexToRgba(0.4, group.color) } : undefined}>
                 {dragHandleProps && <div ref={dragHandleRef} className="group flex items-center justify-center touch-none cursor-grab active:cursor-grabbing" {...dragHandleProps}>
-                    <Grip className="text-muted-foreground group-hover:text-foreground w-4 h-4 mr-3" />
+                    <Grip className="text-muted-foreground group-hover:text-foreground w-4 h-4 mr-2" />
                 </div>}
                 <button
                     type="button"
@@ -91,7 +91,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
                     type="button"
                     onClick={startEditing}
                     title={name ? label : undefined}
-                    className={`text-sm font-semibold mr-3 min-w-12 flex-1 truncate cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${name ? "" : "text-muted-foreground"}`}>
+                    className={`text-sm font-semibold mr-2 min-w-12 flex-1 truncate cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${name ? "" : "text-muted-foreground"}`}>
                     {label}
                 </button>}
                 {isEditing && <input
@@ -112,15 +112,15 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
                             setEditing(false)
                         }
                     }}
-                    className="min-w-0 flex-1 mr-3 px-1 border border-primary text-sm font-semibold rounded-xs"
+                    className="min-w-0 flex-1 mr-2 px-1 border border-primary text-sm font-semibold rounded-xs"
                 />}
-                {showGroupProgressBar && progress.total > 0 && <div className="flex items-center gap-2 min-w-0 shrink mr-3">
-                    <Progress className="w-16 min-w-6 shrink" value={progress.percent} />
+                {showGroupProgressBar && progress.total > 0 && <div className="flex items-center gap-2 min-w-0 shrink mr-2">
+                    <Progress className="w-16 min-w-4 shrink" value={progress.percent} />
                     <span className="text-xs shrink-0 @max-[360px]:hidden">
                         {Math.round(progress.percent)} %
                     </span>
                 </div>}
-                <div className="flex shrink-0 gap-3">
+                <div className="flex shrink-0 gap-2">
                     {showSectionCount && <div className="flex items-center gap-1">
                         <LayoutList className="size-4" />
                         <span className="text-xs">
