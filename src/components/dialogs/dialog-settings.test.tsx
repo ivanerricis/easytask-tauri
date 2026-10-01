@@ -1,9 +1,18 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { openUrl } from "@tauri-apps/plugin-opener"
 import { toast } from "sonner"
 const setSidebarItemSize = vi.fn()
+const setColorIntensity = vi.fn()
+const colorPrefs = { colorIntensity: 1 }
+const audioPrefs = {
+    setAudioVolume: vi.fn(),
+    setAudioPlayerVisible: vi.fn(),
+    setAudioPlayerScale: vi.fn(),
+    setAudioPlayerOpacity: vi.fn(),
+    resetAudioSettings: vi.fn(),
+}
 import { DialogSettings } from "./dialog-settings"
 
 vi.mock("@tauri-apps/api/app", () => ({
@@ -30,6 +39,12 @@ vi.mock("@/contexts/use-preferences", () => ({
         reopenNotes: true, setReopenNotes: vi.fn(),
         reopenLastWorkspace: false, setReopenLastWorkspace: vi.fn(),
         resetPlayerPosition: vi.fn(),
+        audioVolume: 0.5, setAudioVolume: (value: number) => audioPrefs.setAudioVolume(value),
+        audioPlayerVisible: true, setAudioPlayerVisible: (value: boolean) => audioPrefs.setAudioPlayerVisible(value),
+        audioPlayerScale: 1, setAudioPlayerScale: (value: number) => audioPrefs.setAudioPlayerScale(value),
+        audioPlayerOpacity: 0.8, setAudioPlayerOpacity: (value: number) => audioPrefs.setAudioPlayerOpacity(value),
+        resetAudioSettings: () => audioPrefs.resetAudioSettings(),
+        colorIntensity: colorPrefs.colorIntensity, setColorIntensity: (value: number) => setColorIntensity(value),
         sidebarItemSize: "normal", setSidebarItemSize: (value: string) => setSidebarItemSize(value),
     }),
 }))
@@ -49,6 +64,8 @@ describe("DialogSettings", () => {
 
     beforeEach(() => {
         setSidebarItemSize.mockReset()
+        setColorIntensity.mockReset()
+        colorPrefs.colorIntensity = 1
         vi.mocked(openUrl).mockReset().mockResolvedValue(undefined)
         vi.mocked(toast.error).mockReset()
     })
@@ -66,7 +83,38 @@ describe("DialogSettings", () => {
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()
 
         await user.click(screen.getByRole("button", { name: "Audio" }))
-        expect(screen.getByRole("button", { name: "Reset" })).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "Ripristina" })).toBeInTheDocument()
+    })
+
+    it("shows the audio settings and changes them", async () => {
+        const user = await open()
+        await user.click(screen.getByRole("button", { name: "Audio" }))
+
+        const volume = screen.getByRole("slider", { name: "Volume predefinito" })
+        expect(volume).toHaveValue("50")
+        expect(volume).toHaveAttribute("aria-valuetext", "50%")
+        fireEvent.change(volume, { target: { value: "30" } })
+        expect(audioPrefs.setAudioVolume).toHaveBeenCalledWith(0.3)
+
+        const opacity = screen.getByRole("slider", { name: "Trasparenza del player" })
+        expect(opacity).toHaveAttribute("min", "40")
+        fireEvent.change(opacity, { target: { value: "60" } })
+        expect(audioPrefs.setAudioPlayerOpacity).toHaveBeenCalledWith(0.6)
+
+        const visible = screen.getByRole("switch", { name: "Mostra il player flottante" })
+        expect(visible).toBeChecked()
+        await user.click(visible)
+        expect(audioPrefs.setAudioPlayerVisible).toHaveBeenCalledWith(false)
+
+        const size = screen.getByRole("radiogroup", { name: "Dimensione del player" })
+        expect(within(size).getByRole("radio", { name: "Normale" })).toBeChecked()
+        await user.click(within(size).getByRole("radio", { name: "Grande" }))
+        expect(audioPrefs.setAudioPlayerScale).toHaveBeenCalledWith(1.2)
+        await user.click(within(size).getByRole("radio", { name: "Piccolo" }))
+        expect(audioPrefs.setAudioPlayerScale).toHaveBeenCalledWith(0.85)
+
+        await user.click(screen.getByRole("button", { name: "Ripristina tutto" }))
+        expect(audioPrefs.resetAudioSettings).toHaveBeenCalled()
     })
 
     it("sets the sidebar item size from the segmented control and previews it", async () => {
@@ -77,6 +125,26 @@ describe("DialogSettings", () => {
 
         await userEvent.click(within(group).getByRole("radio", { name: "Grande" }))
         expect(setSidebarItemSize).toHaveBeenCalledWith("large")
+    })
+
+    it("sets the color intensity with the slider, previews it and can reset it", async () => {
+        colorPrefs.colorIntensity = 1.5
+        const user = await open()
+        const slider = screen.getByRole("slider", { name: "Intensità dei colori" })
+        expect(slider).toHaveValue("150")
+        expect(slider).toHaveAttribute("min", "25")
+        expect(slider).toHaveAttribute("max", "175")
+        expect(slider).toHaveAttribute("step", "5")
+        expect(slider).toHaveAttribute("aria-valuetext", "150%")
+        const swatches = screen.getByTestId("color-intensity-preview").children
+        expect(swatches).toHaveLength(3)
+        expect((swatches[0] as HTMLElement).style.backgroundColor).toBe("rgba(239, 68, 68, 0.45)")
+
+        fireEvent.change(slider, { target: { value: "75" } })
+        expect(setColorIntensity).toHaveBeenCalledWith(0.75)
+
+        await user.click(screen.getByRole("button", { name: "Ripristina" }))
+        expect(setColorIntensity).toHaveBeenLastCalledWith(1)
     })
 
     it("Informazioni is last and shows the app version", async () => {

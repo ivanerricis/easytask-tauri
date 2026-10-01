@@ -3,6 +3,7 @@ import { toast } from "sonner"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { GroupHeader } from "./GroupHeader"
+import { PreferencesContext, type PreferencesContextType } from "@/contexts/preferences-context-object"
 import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 
 const renameItem = vi.fn()
@@ -44,6 +45,15 @@ describe("GroupHeader color", () => {
         expect(header).not.toHaveClass("bg-background")
     })
 
+    it("scales the tint by the color intensity preference", () => {
+        const { container } = render(
+            <PreferencesContext.Provider value={{ colorIntensity: 1.5 } as PreferencesContextType}>
+                <GroupHeader group={makeGroup({ name: "G", color: "#ff0000" })} />
+            </PreferencesContext.Provider>,
+        )
+        expect((container.firstElementChild as HTMLElement).style.backgroundColor).toBe("rgba(255, 0, 0, 0.6)")
+    })
+
     it("keeps the neutral background without a color", () => {
         const { container } = render(<GroupHeader group={makeGroup({ name: "G", color: null })} />)
         const header = container.firstElementChild as HTMLElement
@@ -53,12 +63,21 @@ describe("GroupHeader color", () => {
 })
 
 describe("GroupHeader name", () => {
-    it("shows the full name, wrapping instead of truncating", () => {
+    it("keeps the name on a single line, truncated, with the full name as tooltip", () => {
         render(<GroupHeader group={makeGroup({ name: "Da fare" })} index={2} />)
         const name = screen.getByText("Da fare")
-        expect(name).toHaveClass("break-words")
-        expect(name).not.toHaveClass("truncate")
+        expect(name).toHaveClass("truncate")
+        expect(name).not.toHaveClass("break-words")
+        expect(name).toHaveAttribute("title", "Da fare")
         expect(name).not.toHaveClass("text-muted-foreground")
+    })
+
+    it("keeps the name, the progress and the counters on the same row", () => {
+        const { container } = render(<GroupHeader group={makeGroup({ name: "Da fare" })} index={0} />)
+        const header = container.querySelector(".group.flex") as HTMLElement
+        expect(header).toHaveClass("flex")
+        expect(header).not.toHaveClass("flex-wrap")
+        expect(header).not.toHaveClass("grid")
     })
 
     it("shows a muted placeholder 'Gruppo N' when unnamed", () => {

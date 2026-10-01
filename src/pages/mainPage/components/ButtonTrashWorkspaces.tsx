@@ -3,6 +3,7 @@ import { lazy, useState } from "react"
 import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LazyMount } from "@/components/lazy-mount"
+import { TooltipCustom } from "@/components/tooltip-custom"
 
 const DialogTrashWorkspaces = lazy(() => import("@/components/dialogs/dialog-trash").then(m => ({ default: m.DialogTrashWorkspaces })))
 
@@ -12,9 +13,11 @@ export const ButtonTrashWorkspaces = () => {
 
     return (
         <>
-            <Button variant="outline" onClick={() => setIsOpen(true)}>
-                <Trash2 /> {t("trash.title")}
-            </Button>
+            <TooltipCustom text={t("trash.title")}>
+                <Button variant="outline" size="icon" aria-label={t("trash.title")} onClick={() => setIsOpen(true)}>
+                    <Trash2 />
+                </Button>
+            </TooltipCustom>
             <LazyMount active={isOpen}>
                 <DialogTrashWorkspaces isOpen={isOpen} onOpenChange={setIsOpen} />
             </LazyMount>

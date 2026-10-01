@@ -19,15 +19,30 @@ type Props = {
     autoPlayKey?: number
     /** Called when the media element reports an error (unsupported codec, file removed...). */
     onError?: () => void
+    /** Volume (0-1): the player follows it when it changes from outside (e.g. the settings). Default 1. */
+    volume?: number
+    /** Called when the user moves the volume slider. */
+    onVolumeChange?: (volume: number) => void
 }
 
-export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle, open = true, onClose, autoPlayKey, onError }: Props) => {
+export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle, open = true, onClose, autoPlayKey, onError, volume: volumeProp = 1, onVolumeChange }: Props) => {
     const { t } = useTranslation()
     const audioRef = useRef<HTMLAudioElement>(null)
     const [isPlaying, setIsPlaying] = useState(false)
     const [currentTime, setCurrentTime] = useState(0)
     const [duration, setDuration] = useState(0)
-    const [volume, setVolume] = useState(1)
+    const [volume, setVolume] = useState(volumeProp)
+    const [lastVolumeProp, setLastVolumeProp] = useState(volumeProp)
+
+    // Follow the volume set from outside (settings), without an effect
+    if (volumeProp !== lastVolumeProp) {
+        setLastVolumeProp(volumeProp)
+        setVolume(volumeProp)
+    }
+
+    useEffect(() => {
+        if (audioRef.current) audioRef.current.volume = volume
+    }, [volume])
 
     useEffect(() => {
         const audio = audioRef.current
@@ -75,9 +90,7 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle, 
     const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
         const vol = Number(e.target.value)
         setVolume(vol)
-        if (audioRef.current) {
-            audioRef.current.volume = vol
-        }
+        onVolumeChange?.(vol)
     }
 
     const formatTime = (seconds: number) => {
@@ -136,6 +149,7 @@ export const AudioPlayer = ({ src, fileName, listenersHandle, attributesHandle, 
                         value={volume}
                         onChange={handleVolume}
                         aria-label={t("audio.player.volume")}
+                        aria-valuetext={`${Math.round(volume * 100)}%`}
                         className="w-full"
                     />
                     <span className="w-5">{Math.round(volume * 100)}</span>

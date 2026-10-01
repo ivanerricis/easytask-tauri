@@ -5,6 +5,7 @@ import { File } from "lucide-react"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import { ItemMenuButton } from "@/components/item-menu"
 import React, { useCallback, useState } from "react"
+import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { formatDate, hexToRgba } from "@/lib/utils"
 import { useItemSize } from "../sidebar/item-size"
 import { DropLine } from "../sidebar/DropLine"
@@ -25,6 +26,7 @@ export const ItemNote = React.memo(({ note, className, dropZone = null }: ItemNo
     const { ref, attributes, listeners, isDragging } = useTreeRow("note", note.id)
     const [isHovered, setIsHovered] = useState(false)
     const size = useItemSize()
+    const colorAlpha = useColorAlpha()
     const { openNote } = useTabsActions()
 
     const handleOpenFile = useCallback((e: React.MouseEvent) => {
@@ -45,7 +47,7 @@ export const ItemNote = React.memo(({ note, className, dropZone = null }: ItemNo
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
                 className={`${focusRing} relative group cursor-pointer w-full ${size.row} flex items-center opacity-85 bg-background hover:opacity-100 rounded-xs border border-accent overflow-x-hidden ${isDragging ? "opacity-40" : ""} ${className ?? ""}`}
-                style={{ backgroundColor: `${hexToRgba(isHovered ? 0.5 : 0.3, note.color)}` }}
+                style={{ backgroundColor: `${hexToRgba(colorAlpha.item(isHovered), note.color)}` }}
             >
                 <DropLine zone={dropZone} />
                 {/* Icon + Text */}

@@ -31,7 +31,7 @@ export const ItemFooter = ({ text, type, className, onClick, disabled, badge, ba
             type="button"
             onClick={onClick}
             disabled={disabled}
-            className={`group gap-2 py-1 px-2 cursor-pointer relative w-full flex items-center rounded-xs border bg-background hover:bg-accent opacity-50 hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none disabled:opacity-30 overflow-x-hidden ${className ?? ""}`}
+            className={`group gap-2 py-1 px-2 cursor-pointer relative w-full flex items-center rounded-xs border bg-background hover:bg-accent opacity-70 hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none disabled:opacity-30 overflow-x-hidden ${className ?? ""}`}
         >
             {/* Text + Icon */}
             <Icon className="size-4 shrink-0" />

@@ -1,6 +1,7 @@
 import type { AudioPlayerPosition } from "@/types/types"
 import { store } from "./initStore"
 import { SIDEBAR_DEFAULT_WIDTH, clampSidebarWidth } from "@/lib/sidebar-layout"
+import { DEFAULT_COLOR_INTENSITY, clampColorIntensity } from "@/lib/color-intensity"
 import { DEFAULT_LANGUAGE_PREFERENCE, isLanguagePreference, type LanguagePreference } from "@/i18n"
 
 const SHOW_PROGRESSBAR_KEY = "showProgressBar"
@@ -11,6 +12,10 @@ const SHOW_TASK_COUNT_KEY = "showTaskCount"
 const SIDEBAR_LEFT_OPEN_KEY = "sidebarLeftOpen"
 const SIDEBAR_RIGHT_OPEN_KEY = "sidebarRightOpen"
 const AUDIOPLAYER_POSITION_KEY = "audioPlayerPosition"
+const AUDIO_VOLUME_KEY = "audioVolume"
+const AUDIOPLAYER_VISIBLE_KEY = "audioPlayerVisible"
+const AUDIOPLAYER_SCALE_KEY = "audioPlayerScale"
+const AUDIOPLAYER_OPACITY_KEY = "audioPlayerOpacity"
 const WORKSPACE_VIEW_KEY = "workspaceView"
 const REOPEN_NOTES_KEY = "reopenNotes"
 const REOPEN_LAST_WORKSPACE_KEY = "reopenLastWorkspace"
@@ -22,6 +27,7 @@ const AUTO_BACKUP_KEY = "autoBackup"
 const CHECK_UPDATES_KEY = "checkUpdatesOnStartup"
 const SIDEBAR_LEFT_WIDTH_KEY = "sidebarLeftWidth"
 const SIDEBAR_RIGHT_WIDTH_KEY = "sidebarRightWidth"
+const COLOR_INTENSITY_KEY = "colorIntensity"
 const RIGHT_PANEL_TAB_KEY = "rightPanelTab"
 
 const SAVE_DEBOUNCE_MS = 500
@@ -61,6 +67,110 @@ const persist = (): Promise<void> =>
  */
 export const flushPreferences = async (): Promise<void> => {
     if (saveTimer) await runSave()
+}
+
+export const DEFAULT_AUDIO_VOLUME = 1
+export const AUDIO_PLAYER_SCALES = [0.85, 1, 1.2] as const
+export type AudioPlayerScale = typeof AUDIO_PLAYER_SCALES[number]
+export const DEFAULT_AUDIO_PLAYER_SCALE: AudioPlayerScale = 1
+export const MIN_AUDIO_PLAYER_OPACITY = 0.4
+export const DEFAULT_AUDIO_PLAYER_OPACITY = 1
+
+/** Brings a volume into 0-1 (non-numbers give the default). */
+export const clampAudioVolume = (value: unknown): number => {
+    if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_AUDIO_VOLUME
+    return Math.min(1, Math.max(0, Math.round(value * 100) / 100))
+}
+
+/** Brings an opacity into 0.4-1 (non-numbers give the default). */
+export const clampAudioPlayerOpacity = (value: unknown): number => {
+    if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_AUDIO_PLAYER_OPACITY
+    return Math.min(1, Math.max(MIN_AUDIO_PLAYER_OPACITY, Math.round(value * 100) / 100))
+}
+
+/** Returns the allowed scale (0.85, 1 or 1.2) a stored value stands for; anything else gives 1. */
+export const normalizeAudioPlayerScale = (value: unknown): AudioPlayerScale =>
+    AUDIO_PLAYER_SCALES.find(scale => scale === value) ?? DEFAULT_AUDIO_PLAYER_SCALE
+
+/**
+ * Gets the volume of the audio player.
+ * @returns A promise that resolves to a number between 0 and 1 (default 1).
+ * @category Store
+ */
+export const getAudioVolume = async (): Promise<number> => {
+    return clampAudioVolume(await store.get<number>(AUDIO_VOLUME_KEY) ?? DEFAULT_AUDIO_VOLUME)
+}
+
+/**
+ * Saves the volume of the audio player.
+ * @param value The volume (clamped between 0 and 1).
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveAudioVolume = async (value: number): Promise<void> => {
+    await store.set(AUDIO_VOLUME_KEY, clampAudioVolume(value))
+    await persist()
+}
+
+/**
+ * Gets whether the floating audio player may be shown.
+ * @returns A promise that resolves to a boolean (default true).
+ * @category Store
+ */
+export const getAudioPlayerVisible = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(AUDIOPLAYER_VISIBLE_KEY)
+    return value ?? true
+}
+
+/**
+ * Saves whether the floating audio player may be shown.
+ * @param value A boolean indicating whether the player is enabled.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveAudioPlayerVisible = async (value: boolean): Promise<void> => {
+    await store.set(AUDIOPLAYER_VISIBLE_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets the size of the floating audio player.
+ * @returns A promise that resolves to 0.85, 1 (default) or 1.2.
+ * @category Store
+ */
+export const getAudioPlayerScale = async (): Promise<AudioPlayerScale> => {
+    return normalizeAudioPlayerScale(await store.get<number>(AUDIOPLAYER_SCALE_KEY))
+}
+
+/**
+ * Saves the size of the floating audio player.
+ * @param value 0.85, 1 or 1.2 (other values are stored as 1).
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveAudioPlayerScale = async (value: AudioPlayerScale): Promise<void> => {
+    await store.set(AUDIOPLAYER_SCALE_KEY, normalizeAudioPlayerScale(value))
+    await persist()
+}
+
+/**
+ * Gets the opacity of the floating audio player.
+ * @returns A promise that resolves to a number between 0.4 and 1 (default 1).
+ * @category Store
+ */
+export const getAudioPlayerOpacity = async (): Promise<number> => {
+    return clampAudioPlayerOpacity(await store.get<number>(AUDIOPLAYER_OPACITY_KEY) ?? DEFAULT_AUDIO_PLAYER_OPACITY)
+}
+
+/**
+ * Saves the opacity of the floating audio player.
+ * @param value The opacity (clamped between 0.4 and 1).
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveAudioPlayerOpacity = async (value: number): Promise<void> => {
+    await store.set(AUDIOPLAYER_OPACITY_KEY, clampAudioPlayerOpacity(value))
+    await persist()
 }
 
 export type WorkspaceView ="grid" | "list"
@@ -516,5 +626,25 @@ export const getCheckUpdatesOnStartup = async (): Promise<boolean> => {
  */
 export const saveCheckUpdatesOnStartup = async (value: boolean): Promise<void> => {
     await store.set(CHECK_UPDATES_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets the intensity of the colors of folders, notes, groups and sections.
+ * @returns A promise that resolves to a multiplier between 0.25 and 1.75 (default 1 = 100%; invalid stored values give the default).
+ * @category Store
+ */
+export const getColorIntensity = async (): Promise<number> => {
+    return clampColorIntensity(await store.get<number>(COLOR_INTENSITY_KEY) ?? DEFAULT_COLOR_INTENSITY)
+}
+
+/**
+ * Saves the intensity of the colors of folders, notes, groups and sections.
+ * @param value The multiplier (clamped between 0.25 and 1.75).
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveColorIntensity = async (value: number): Promise<void> => {
+    await store.set(COLOR_INTENSITY_KEY, clampColorIntensity(value))
     await persist()
 }

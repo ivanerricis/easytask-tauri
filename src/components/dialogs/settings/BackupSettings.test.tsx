@@ -74,7 +74,7 @@ describe("BackupSettings", () => {
         const user = userEvent.setup()
         render(<BackupSettings />)
         await screen.findByText("2 KB")
-        await user.click(screen.getAllByRole("button", { name: "Ripristina" })[0])
+        await user.click(screen.getAllByRole("button", { name: /^Ripristina il backup del/ })[0])
         expect(restoreBackup).not.toHaveBeenCalled()
         await user.click(screen.getByRole("button", { name: "Ripristina e riavvia" }))
         await waitFor(() => expect(restoreBackup).toHaveBeenCalledWith("easytask-20260102-100000.db"))
@@ -84,17 +84,40 @@ describe("BackupSettings", () => {
         const user = userEvent.setup()
         render(<BackupSettings />)
         await screen.findByText("2 KB")
-        await user.click(screen.getAllByRole("button", { name: "Ripristina" })[0])
+        await user.click(screen.getAllByRole("button", { name: /^Ripristina il backup del/ })[0])
         await user.click(screen.getByRole("button", { name: "Annulla" }))
         expect(restoreBackup).not.toHaveBeenCalled()
     })
 
-    it("deletes a backup", async () => {
+    it("deletes a backup only after the confirmation", async () => {
         const user = userEvent.setup()
         render(<BackupSettings />)
         await screen.findByText("2 KB")
-        await user.click(screen.getAllByRole("button", { name: "Elimina" })[0])
+        await user.click(screen.getAllByRole("button", { name: /^Elimina il backup del/ })[0])
+        expect(deleteBackup).not.toHaveBeenCalled()
+        expect(screen.getByText("Eliminare questo backup?")).toBeInTheDocument()
+        await user.click(screen.getByRole("button", { name: "Elimina" }))
         await waitFor(() => expect(deleteBackup).toHaveBeenCalledWith("easytask-20260102-100000.db"))
+    })
+
+    it("does not delete when the confirmation is cancelled", async () => {
+        const user = userEvent.setup()
+        render(<BackupSettings />)
+        await screen.findByText("2 KB")
+        await user.click(screen.getAllByRole("button", { name: /^Elimina il backup del/ })[0])
+        await user.click(screen.getByRole("button", { name: "Annulla" }))
+        expect(deleteBackup).not.toHaveBeenCalled()
+    })
+
+    it("shows icon-only buttons with an accessible name and a destructive delete button", async () => {
+        render(<BackupSettings />)
+        await screen.findByText("2 KB")
+        const restoreButton = screen.getAllByRole("button", { name: /^Ripristina il backup del/ })[0]
+        const deleteButton = screen.getAllByRole("button", { name: /^Elimina il backup del/ })[0]
+        expect(restoreButton).not.toHaveTextContent(/\S/)
+        expect(deleteButton).not.toHaveTextContent(/\S/)
+        expect(deleteButton.className).toContain("text-destructive")
+        expect(restoreButton.className).not.toContain("text-destructive")
     })
 
     it("saves the preferences and opens the backups folder", async () => {

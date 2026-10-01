@@ -5,6 +5,7 @@ import { usePreferences } from "@/contexts/use-preferences"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 import { LanguageSetting } from "./LanguageSetting"
 import { SidebarItemSizeSetting } from "./SidebarItemSizeSetting"
+import { ColorIntensitySetting } from "./ColorIntensitySetting"
 
 export const AppearanceSettings = () => {
     const { t } = useTranslation()
@@ -31,6 +32,7 @@ export const AppearanceSettings = () => {
             </SettingsRow>
             <LanguageSetting />
             <SidebarItemSizeSetting />
+            <ColorIntensitySetting />
         </SettingsPanel>
     )
 }

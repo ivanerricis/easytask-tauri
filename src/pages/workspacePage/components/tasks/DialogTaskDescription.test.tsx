@@ -1,0 +1,102 @@
+import { render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
+import { beforeEach, describe, expect, it, vi } from "vitest"
+import { toast } from "sonner"
+import { DialogTaskDescription } from "./DialogTaskDescription"
+import { makeTask } from "@/test/ui-fixtures"
+
+const updateTaskDescription = vi.fn()
+const patchTask = vi.fn()
+const rollback = vi.fn()
+const taskDescription = vi.fn()
+
+vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateTaskDescription }) }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchTask }) }))
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ taskDescription }) }))
+
+const setup = (description = "") => {
+    const onOpenChange = vi.fn()
+    render(<DialogTaskDescription task={makeTask({ id: 4, text: "Write the report", description })} open onOpenChange={onOpenChange} />)
+    return { onOpenChange }
+}
+
+describe("DialogTaskDescription", () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        updateTaskDescription.mockResolvedValue(undefined)
+        patchTask.mockReturnValue(rollback)
+    })
+
+    it("has a title, shows the task text and labels the field", () => {
+        setup()
+        expect(screen.getByRole("dialog", { name: "Descrizione del task" })).toBeInTheDocument()
+        expect(screen.getByText("Write the report")).toBeInTheDocument()
+        const field = screen.getByRole("textbox", { name: "Descrizione" })
+        expect(field).toHaveAttribute("placeholder", "Scrivi qualcosa per descrivere il task...")
+        expect(field).toHaveFocus()
+    })
+
+    it("starts with the caret at the end of the existing description", () => {
+        setup("Existing text")
+        const field = screen.getByRole("textbox", { name: "Descrizione" }) as HTMLTextAreaElement
+        expect(field.selectionStart).toBe("Existing text".length)
+    })
+
+    it("keeps Save disabled until the text changes", async () => {
+        const user = userEvent.setup()
+        setup("Old")
+        expect(screen.getByRole("button", { name: "Salva" })).toBeDisabled()
+        await user.type(screen.getByRole("textbox", { name: "Descrizione" }), "er")
+        expect(screen.getByRole("button", { name: "Salva" })).toBeEnabled()
+    })
+
+    it("saves, records the undo step and closes", async () => {
+        const user = userEvent.setup()
+        const { onOpenChange } = setup("Old")
+        await user.type(screen.getByRole("textbox", { name: "Descrizione" }), " text")
+        await user.click(screen.getByRole("button", { name: "Salva" }))
+
+        await waitFor(() => expect(updateTaskDescription).toHaveBeenCalledWith(4, "Old text"))
+        expect(patchTask).toHaveBeenCalledWith(4, { description: "Old text" })
+        expect(taskDescription).toHaveBeenCalledWith(4, "Write the report", "Old", "Old text")
+        expect(onOpenChange).toHaveBeenCalledWith(false)
+    })
+
+    it("saves with Ctrl+Enter", async () => {
+        const user = userEvent.setup()
+        setup()
+        await user.type(screen.getByRole("textbox", { name: "Descrizione" }), "Done{Control>}{Enter}{/Control}")
+        await waitFor(() => expect(updateTaskDescription).toHaveBeenCalledWith(4, "Done"))
+    })
+
+    it("removes the description when it is cleared", async () => {
+        const user = userEvent.setup()
+        setup("Old")
+        await user.clear(screen.getByRole("textbox", { name: "Descrizione" }))
+        await user.click(screen.getByRole("button", { name: "Salva" }))
+        await waitFor(() => expect(updateTaskDescription).toHaveBeenCalledWith(4, undefined))
+    })
+
+    it("rolls back and shows an error when the write fails", async () => {
+        const user = userEvent.setup()
+        const { onOpenChange } = setup()
+        updateTaskDescription.mockRejectedValueOnce(new Error("disk full"))
+        await user.type(screen.getByRole("textbox", { name: "Descrizione" }), "x")
+        await user.click(screen.getByRole("button", { name: "Salva" }))
+
+        await waitFor(() => expect(rollback).toHaveBeenCalled())
+        expect(toast.error).toHaveBeenCalled()
+        expect(taskDescription).not.toHaveBeenCalled()
+        expect(onOpenChange).not.toHaveBeenCalledWith(false)
+    })
+
+    it("closes without saving on Cancel", async () => {
+        const user = userEvent.setup()
+        const { onOpenChange } = setup()
+        await user.type(screen.getByRole("textbox", { name: "Descrizione" }), "x")
+        await user.click(screen.getByRole("button", { name: "Annulla" }))
+        expect(onOpenChange).toHaveBeenCalledWith(false)
+        expect(updateTaskDescription).not.toHaveBeenCalled()
+    })
+})

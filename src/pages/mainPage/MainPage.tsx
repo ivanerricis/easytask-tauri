@@ -1,13 +1,14 @@
 import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { DialogCreateWorkspace } from "./components/DialogCreateWorkspace"
-import { RefreshCcw, Loader2, LayoutGrid, LayoutList, Upload } from "lucide-react"
+import { Loader2, LayoutGrid, LayoutList, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { ErrorPage } from "@/components/pages/error-page"
 import { LoadingPage } from "@/components/pages/loading-page"
 import { MainPageLayout } from "./MainPageLayout"
 import { WorkspacesContainer } from "./components/WorkspacesContainer"
+import { ButtonTrashWorkspaces } from "./components/ButtonTrashWorkspaces"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
@@ -16,7 +17,7 @@ import { useStartupRestore } from "./startup-restore"
 
 const MainPage = () => {
     const { t } = useTranslation()
-    const { workspaces, getWorkspaces, isLoading, error } = useWorkspace()
+    const { workspaces, getWorkspaces, error } = useWorkspace()
     const [loaded, setLoaded] = useState(false)
     const { workspaceView, setWorkspaceView } = usePreferences()
     const { importWorkspace, isBusy: isImporting } = useWorkspaceTransfer()
@@ -27,7 +28,9 @@ const MainPage = () => {
         getWorkspaces().catch(error => reportError(error)).finally(() => setLoaded(true))
     }, [getWorkspaces])
 
-    const isInitialLoading = (isLoading && workspaces.length === 0) || restorePending
+    // Only the first load replaces the page: later operations (e.g. restoring a workspace from the trash) must not
+    // unmount it, or the open trash dialog would be closed
+    const isInitialLoading = !loaded || restorePending
 
     if (isInitialLoading) {
         return (
@@ -76,11 +79,7 @@ const MainPage = () => {
                                     {isList ? <LayoutGrid /> : <LayoutList />}
                                 </Button>
                             </TooltipCustom>
-                            <TooltipCustom text={t("home.reload")}>
-                                <Button onClick={() => getWorkspaces().catch(error => reportError(error, t("home.reloadError")))} variant="outline" size="icon" aria-label={t("home.reload")} disabled={isLoading}>
-                                    {isLoading ? <Loader2 className="animate-spin" /> : <RefreshCcw />}
-                                </Button>
-                            </TooltipCustom>
+                            <ButtonTrashWorkspaces />
                         </div>
                     </div>
                     <WorkspacesContainer workspaces={workspaces} view={workspaceView} />

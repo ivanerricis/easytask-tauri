@@ -10,6 +10,7 @@ import { ItemMenuButton } from "@/components/item-menu"
 import type { Folder } from "@/types/types"
 import { focusRing } from "@/lib/a11y"
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { formatDate, hexToRgba } from "@/lib/utils"
 
 type ItemFolderProps = {
@@ -28,6 +29,7 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
     const { ref, attributes, listeners, isDragging } = useTreeRow("folder", folder.id)
 
     const size = useItemSize()
+    const colorAlpha = useColorAlpha()
     const hasContent = React.Children.count(children) > 0
 
     return (
@@ -43,7 +45,7 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                     className={`${focusRing} relative group cursor-pointer gap-1 w-full pl-1 ${size.row} flex items-center rounded-xs border border-accent bg-background opacity-85 hover:opacity-100 overflow-x-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
-                    style={{ backgroundColor: `${hexToRgba(isHovered ? 0.5 : 0.3, folder.color)}` }}
+                    style={{ backgroundColor: `${hexToRgba(colorAlpha.item(isHovered), folder.color)}` }}
                 >
 
                     <DropLine zone={dropZone} />
