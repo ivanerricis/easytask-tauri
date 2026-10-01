@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-01
+
 ### Added
 
 - Hide completed tasks (`Ctrl+Shift+H`).
@@ -32,3 +34,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Portable mode no longer writes outside its folder (no window-state file in the user profile and no settings fallback in the app data folder).
 - `EASYTASK_DATA_DIR` must be an absolute path.
 - A native error dialog explains why the app cannot start when the data folder cannot be created.
+
+## [0.1.0] - 2026-10-01
+
+First public release.
+
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.1.0...v0.2.0
+[0.1.0]: https://github.com/ivanerricis/easytask-tauri/releases/tag/v0.1.0
