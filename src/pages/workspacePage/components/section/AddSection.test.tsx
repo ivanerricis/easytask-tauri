@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { AddSection } from "./AddSection"
 import { ShortcutsProvider } from "@/contexts/shortcuts-context"
+import { deferred } from "@/test/ui-render"
 
 const render = (ui: ReactElement) => rtlRender(ui, { wrapper: ShortcutsProvider })
 
@@ -51,6 +52,18 @@ describe("AddSection", () => {
         expect(ctx.createGroup).toHaveBeenCalledWith(20, "Sprint")
         expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
         expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
+    })
+
+    it("creates the group once when Enter is pressed twice while saving", async () => {
+        const user = userEvent.setup()
+        const pending = deferred<number>()
+        ctx.createGroup.mockReturnValue(pending.promise)
+        render(<AddSection />)
+        await user.type(await openGroupForm(user), "Sprint{Enter}{Enter}")
+
+        expect(ctx.createGroup).toHaveBeenCalledTimes(1)
+        pending.resolve(31)
+        await waitFor(() => expect(ctx.appendGroup).toHaveBeenCalledTimes(1))
     })
 
     it("creates an unnamed group when the name is empty", async () => {

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AddTask } from "./AddTask"
 import { toast } from "sonner"
+import { deferred } from "@/test/ui-render"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 
@@ -68,6 +69,20 @@ describe("AddTask", () => {
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("duplicate"))
         expect(screen.getByPlaceholderText("Scrivi qualcosa...")).toBeInTheDocument()
         expect(ctx.appendTask).not.toHaveBeenCalled()
+    })
+
+    it("creates the task once when Enter is pressed twice while saving", async () => {
+        const user = userEvent.setup()
+        const pending = deferred<number>()
+        ctx.createTask.mockReturnValue(pending.promise)
+        render(<AddTask sectionId={3} />)
+        const input = await open(user)
+        await user.type(input, "Once{Enter}{Enter}")
+
+        expect(ctx.createTask).toHaveBeenCalledTimes(1)
+        expect(input).toHaveAttribute("readonly")
+        pending.resolve(50)
+        await waitFor(() => expect(ctx.appendTask).toHaveBeenCalledTimes(1))
     })
 
     it("closes and clears the text on outside mousedown", async () => {

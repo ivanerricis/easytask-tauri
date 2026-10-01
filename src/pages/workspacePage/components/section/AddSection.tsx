@@ -12,6 +12,7 @@ import { CloseButton } from "./CloseButton"
 import { PlusButton } from "./PlusButton"
 import { AddButton } from "./AddButton"
 import { useShortcut } from "@/hooks/use-shortcut"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 type AddSectionFormProps = {
     inGroup?: boolean
@@ -27,6 +28,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     const { appendGroup, appendSection } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const formRef = useRef<HTMLFormElement>(null)
+    const { saving, run } = useSubmitOnce()
 
     const handleOpen = useCallback(() => {
         setOpen(prev => !prev)
@@ -52,27 +54,29 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
         // A section needs a title, a group may stay unnamed ("Gruppo N")
         if (inGroup && !name.trim()) return
 
-        try {
-            if (activeId === null) return
+        await run(async () => {
+            try {
+                if (activeId === null) return
 
-            if (inGroup) {
-                if (!groupId) {
-                    toast.error(t("errors.missingGroupId"))
-                    return
+                if (inGroup) {
+                    if (!groupId) {
+                        toast.error(t("errors.missingGroupId"))
+                        return
+                    }
+                    const id = await createSectionInGroup(groupId, name.trim())
+                    appendSection(id, groupId, name.trim())
+                    recorder.create("section", id, name.trim())
+                } else {
+                    const id = await createGroup(activeId, name.trim())
+                    appendGroup(id, activeId, name.trim())
+                    recorder.create("section_group", id, name.trim())
                 }
-                const id = await createSectionInGroup(groupId, name.trim())
-                appendSection(id, groupId, name.trim())
-                recorder.create("section", id, name.trim())
-            } else {
-                const id = await createGroup(activeId, name.trim())
-                appendGroup(id, activeId, name.trim())
-                recorder.create("section_group", id, name.trim())
-            }
 
-            handleOpen()
-        } catch (error) {
-            toast.error(getErrorMessage(error) || (inGroup ? t("errors.createSection") : t("errors.createGroup")))
-        }
+                handleOpen()
+            } catch (error) {
+                toast.error(getErrorMessage(error) || (inGroup ? t("errors.createSection") : t("errors.createGroup")))
+            }
+        })
     }
 
     return !isOpen ? (
@@ -90,11 +94,12 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                     placeholder={inGroup ? t("sections.titlePlaceholder") : t("groups.namePlaceholder")}
                     aria-label={inGroup ? t("sections.titleLabel") : t("groups.nameLabel")}
                     autoFocus
+                    readOnly={saving}
                     className={`rounded-none border-none !bg-background text-sm ${inGroup ? 'w-full' : 'w-fit'}`}
                 />
             </div>
             <div className="flex items-center w-full border-t bg-secondary divide-x">
-                <PlusButton disabled={!!inGroup && !name.trim()} />
+                <PlusButton disabled={(!!inGroup && !name.trim()) || saving} />
                 <CloseButton onClick={handleOpen} />
             </div>
         </form>

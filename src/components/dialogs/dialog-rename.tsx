@@ -2,10 +2,11 @@ import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { isUndoableType } from "@/contexts/undo/commands"
-import React, { useState } from "react"
+import React, { useId, useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
 
@@ -31,6 +32,7 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
     const { t } = useTranslation()
     const currentName = item.name ?? item.title ?? ""
     const [value, setValue] = useState(currentName)
+    const nameId = useId()
     const { renameItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
     const [error, setError] = useState<string | null>(null)
@@ -72,8 +74,9 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
                 </DialogHeader>
                 <form onSubmit={handleEdit}>
                     <div className="grid gap-3">
+                        <Label htmlFor={nameId} className="sr-only">{t("common.name")}</Label>
                         <Input
-                            id="name-1"
+                            id={nameId}
                             name="name"
                             value={value}
                             onChange={e => {

@@ -17,7 +17,8 @@ import { useWorkspace } from "@/contexts/use-workspace"
 import type { Folder } from "@/types/types"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import React, { useState } from "react"
+import React, { useId, useState } from "react"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { toast } from "sonner"
 
 type ParentFolderProps = {
@@ -37,25 +38,30 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
     // A stale selection (template deleted meanwhile) behaves as "no template"
     const template = templates.find(tpl => String(tpl.id) === templateId)
     const { currentWorkspace } = useWorkspace()
+    const { saving, run } = useSubmitOnce()
+    const nameId = useId()
+    const templateFieldId = useId()
 
     const handleCreateNote = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!currentWorkspace) return
         if (name.trim() === "") return
-        try {
-            // Both are added to the sidebar tree by the context
-            const id = template
-                ? await createNoteFromTemplate(template.id, currentWorkspace.id, parentFolder.id, name.trim(), template.color)
-                : await createNoteInFolder(currentWorkspace.id, parentFolder.id, name.trim())
-            if (typeof id === "number") recorder.create("note", id, name.trim())
-            setError(null)
-            onOpenChange(false)
-            setName("")
-            setTemplateId("")
-        } catch (err) {
-            setError(getErrorMessage(err))
-            toast.error(getErrorMessage(err))
-        }
+        await run(async () => {
+            try {
+                // Both are added to the sidebar tree by the context
+                const id = template
+                    ? await createNoteFromTemplate(template.id, currentWorkspace.id, parentFolder.id, name.trim(), template.color)
+                    : await createNoteInFolder(currentWorkspace.id, parentFolder.id, name.trim())
+                if (typeof id === "number") recorder.create("note", id, name.trim())
+                setError(null)
+                onOpenChange(false)
+                setName("")
+                setTemplateId("")
+            } catch (err) {
+                setError(getErrorMessage(err))
+                toast.error(getErrorMessage(err))
+            }
+        })
     }
 
     const handleCancel = (e: React.MouseEvent) => {
@@ -74,8 +80,9 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                     <DialogDescription />
                 </DialogHeader>
                 <form onSubmit={handleCreateNote} className="grid gap-3">
+                    <Label htmlFor={nameId} className="sr-only">{t("common.name")}</Label>
                     <Input
-                        id="name-1"
+                        id={nameId}
                         name="name"
                         value={name}
                         onChange={(e) => {
@@ -85,9 +92,9 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                     />
                     {templates.length > 0 && (
                         <>
-                            <Label htmlFor="template-1">{t("dialogs.addNote.fromTemplate")}</Label>
+                            <Label htmlFor={templateFieldId}>{t("dialogs.addNote.fromTemplate")}</Label>
                             <NativeSelect
-                                id="template-1"
+                                id={templateFieldId}
                                 value={template ? templateId : ""}
                                 onChange={e => setTemplateId(e.target.value)}
                             >
@@ -107,7 +114,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                         </Button>
                         <Button
                             type="submit"
-                            disabled={!name.trim()}
+                            disabled={!name.trim() || saving}
                         >
                             {t("dialogs.addNote.submit")}
                         </Button>
