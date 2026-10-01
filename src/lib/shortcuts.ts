@@ -45,6 +45,7 @@ export const SHORTCUTS: Shortcut[] = [
     { id: "show-shortcuts", defaultBinding: { key: "?" }, editable: false, scope: "global", category: "general" },
     { id: "go-home", defaultBinding: { key: "h", ctrl: true }, editable: true, scope: "workspace", category: "general" },
     { id: "toggle-sidebar", defaultBinding: { key: "b", ctrl: true }, editable: true, scope: "workspace", category: "general" },
+    { id: "toggle-right-sidebar", defaultBinding: { key: "b", ctrl: true, shift: true }, editable: true, scope: "workspace", category: "general" },
     // Not active in text fields (they have their own undo); Ctrl+Shift+Z is the fixed alternative of redo
     { id: "undo", defaultBinding: { key: "z", ctrl: true }, editable: true, scope: "workspace", category: "general" },
     { id: "redo", defaultBinding: { key: "y", ctrl: true }, editable: true, scope: "workspace", category: "general" },

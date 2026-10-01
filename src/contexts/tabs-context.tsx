@@ -2,7 +2,7 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react"
 import type { Note } from "@/types/types"
 import {
     ActiveIdContext, TabUiContext, TabsActionsContext, TabsContext,
-    type ScrollPosition, type TabUiStore, type TabsActionsType, type TabsContextType,
+    type ScrollPosition, type SelectedItem, type TabUiStore, type TabsActionsType, type TabsContextType,
 } from "./tabs-context-object"
 import { initialTabsState, tabsReducer } from "./tabs-reducer"
 import { reportError } from "@/lib/report-error"
@@ -20,6 +20,7 @@ function createTabUiStore(): TabUiStore {
     const collapsed = new Map<number, Set<number>>()
     const collapsedGroups = new Map<number, Set<number>>()
     const scroll = new Map<number, ScrollPosition>()
+    const selected = new Map<number, SelectedItem>()
     const listeners = new Set<() => void>()
     const emit = () => listeners.forEach(listener => listener())
 
@@ -42,12 +43,25 @@ function createTabUiStore(): TabUiStore {
             collapsedGroups.set(noteId, set)
             emit()
         },
+        getSelectedItem: noteId => selected.get(noteId) ?? null,
+        setSelectedItem: (noteId, item) => {
+            const current = selected.get(noteId)
+            if (!item) {
+                if (!current) return
+                selected.delete(noteId)
+            } else {
+                if (current?.type === item.type && current.id === item.id) return
+                selected.set(noteId, { type: item.type, id: item.id })
+            }
+            emit()
+        },
         getScroll: noteId => scroll.get(noteId),
         setScroll: (noteId, position) => { scroll.set(noteId, position) },
         retain: keep => {
             const keepSet = new Set(keep)
             for (const id of [...collapsed.keys()]) if (!keepSet.has(id)) collapsed.delete(id)
             for (const id of [...collapsedGroups.keys()]) if (!keepSet.has(id)) collapsedGroups.delete(id)
+            for (const id of [...selected.keys()]) if (!keepSet.has(id)) selected.delete(id)
             for (const id of [...scroll.keys()]) if (!keepSet.has(id)) scroll.delete(id)
         },
         subscribe: listener => {

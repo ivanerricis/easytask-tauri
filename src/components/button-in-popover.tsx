@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils"
-import { Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, HelpCircle, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2 } from "lucide-react"
+import { Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, HelpCircle, Info, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2 } from "lucide-react"
 import React from "react"
 
 type ButtonInPopoverProps = {
@@ -13,6 +13,7 @@ type ButtonInPopoverProps = {
 
 const iconMap: Record<string, React.ElementType> = {
     open: SquareArrowOutUpRight,
+    details: Info,
     addFolder: FolderPlus,
     addNote: FilePlus,
     rename: Pen,

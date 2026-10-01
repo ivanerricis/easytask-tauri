@@ -1,5 +1,5 @@
 import { createContext } from "react"
-import type { SidebarItemSize, WorkspaceView } from "@/lib/store/preferences"
+import type { RightPanelTab, SidebarItemSize, WorkspaceView } from "@/lib/store/preferences"
 import type { LanguagePreference } from "@/i18n"
 import type { AudioPlayerPosition } from "@/types/types"
 
@@ -32,6 +32,10 @@ export type PreferencesContextType = {
     setSidebarItemSize: (value: SidebarItemSize) => void
     sidebarLeftWidth: number
     setSidebarLeftWidth: (value: number) => void
+    sidebarRightWidth: number
+    setSidebarRightWidth: (value: number) => void
+    rightPanelTab: RightPanelTab
+    setRightPanelTab: (value: RightPanelTab) => void
     language: LanguagePreference
     setLanguage: (value: LanguagePreference) => void
 }

@@ -21,6 +21,8 @@ const BACKUP_KEEP_KEY = "backupKeep"
 const AUTO_BACKUP_KEY = "autoBackup"
 const CHECK_UPDATES_KEY = "checkUpdatesOnStartup"
 const SIDEBAR_LEFT_WIDTH_KEY = "sidebarLeftWidth"
+const SIDEBAR_RIGHT_WIDTH_KEY = "sidebarRightWidth"
+const RIGHT_PANEL_TAB_KEY = "rightPanelTab"
 
 const SAVE_DEBOUNCE_MS = 500
 
@@ -449,6 +451,50 @@ export const getSidebarLeftWidth = async (): Promise<number> => {
  */
 export const saveSidebarLeftWidth = async (value: number): Promise<void> => {
     await store.set(SIDEBAR_LEFT_WIDTH_KEY, clampSidebarWidth(value))
+    await persist()
+}
+
+/**
+ * Gets the width of the right sidebar in pixels.
+ * @returns A promise that resolves to the stored width clamped to the allowed range (260 by default; invalid stored values fall back to the default).
+ * @category Store
+ */
+export const getSidebarRightWidth = async (): Promise<number> => {
+    const value = await store.get<number>(SIDEBAR_RIGHT_WIDTH_KEY)
+    return typeof value === "number" && Number.isFinite(value) ? clampSidebarWidth(value) : SIDEBAR_DEFAULT_WIDTH
+}
+
+/**
+ * Saves the width of the right sidebar.
+ * @param value The width in pixels (clamped to the allowed range).
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveSidebarRightWidth = async (value: number): Promise<void> => {
+    await store.set(SIDEBAR_RIGHT_WIDTH_KEY, clampSidebarWidth(value))
+    await persist()
+}
+
+export type RightPanelTab = "details" | "history"
+
+/**
+ * Gets the tab shown in the right sidebar.
+ * @returns A promise that resolves to "details" or "history" ("details" by default and for invalid values).
+ * @category Store
+ */
+export const getRightPanelTab = async (): Promise<RightPanelTab> => {
+    const value = await store.get<string>(RIGHT_PANEL_TAB_KEY)
+    return value === "history" ? "history" : "details"
+}
+
+/**
+ * Saves the tab shown in the right sidebar.
+ * @param value The tab to remember.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveRightPanelTab = async (value: RightPanelTab): Promise<void> => {
+    await store.set(RIGHT_PANEL_TAB_KEY, value)
     await persist()
 }
 
