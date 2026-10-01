@@ -17,7 +17,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     convertFileSrc: vi.fn((path: string) => `asset://localhost/${encodeURIComponent(path)}`),
 }))
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }))
 vi.mock("@/db/queries/audio", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@/db/queries/audio")>()),
     getDBGroupAudioFiles: vi.fn(),
@@ -36,6 +36,12 @@ vi.mock("./workspace-data", () => ({
     useWorkspaceActions: () => workspaceActions,
     useWorkspaceData: () => ({ ...workspaceState, ...workspaceActions }),
 }))
+
+const prefsState = {
+    audioVolume: 1, audioPlayerVisible: true, audioPlayerScale: 1, audioPlayerOpacity: 1,
+    setAudioVolume: vi.fn(),
+}
+vi.mock("./use-preferences", () => ({ usePreferences: () => prefsState }))
 
 const file = (over: Partial<AudioFile> = {}): AudioFile => ({
     id: 1, section_groupID: 7, name: "song.mp3", path: "C:\\Music\\song.mp3", position: 0,
@@ -66,6 +72,7 @@ beforeEach(() => {
     vi.resetAllMocks()
     vi.mocked(toast.error).mockReset()
     workspaceState.trashVersion = 0
+    Object.assign(prefsState, { audioVolume: 1, audioPlayerVisible: true, audioPlayerScale: 1, audioPlayerOpacity: 1 })
     stored = [file(), file({ id: 2, name: "other.wav", path: "C:\\Music\\other.wav", position: 1 })]
     vi.mocked(getDBGroupAudioFiles).mockImplementation(async () => stored)
     vi.mocked(getDBAudioFile).mockImplementation(async (id) => stored.find(f => f.id === id) ?? null)
@@ -107,6 +114,34 @@ describe("audio files of a group", () => {
         expect(play).toHaveBeenCalledTimes(1)
         // The name is in the list and in the player
         expect(screen.getAllByText("song.mp3")).toHaveLength(2)
+    })
+
+    it("starts at the volume preference and applies size and transparency to the player", async () => {
+        Object.assign(prefsState, { audioVolume: 0.4, audioPlayerScale: 1.2, audioPlayerOpacity: 0.6 })
+        const user = userEvent.setup()
+        renderAll()
+        await user.click(await screen.findByText("song.mp3"))
+        await waitFor(() => expect(audioElement()).not.toBeNull())
+
+        expect(audioElement()!.volume).toBe(0.4)
+        const frame = screen.getByTestId("audio-player-frame")
+        expect(frame.style.opacity).toBe("0.6")
+        expect(frame.style.zoom).toBe("1.2")
+
+        fireEvent.change(screen.getByLabelText("Volume"), { target: { value: "0.7" } })
+        expect(prefsState.setAudioVolume).toHaveBeenCalledWith(0.7)
+    })
+
+    it("with the floating player turned off nothing starts and the user is told", async () => {
+        prefsState.audioPlayerVisible = false
+        const user = userEvent.setup()
+        renderAll()
+        await user.click(await screen.findByText("song.mp3"))
+
+        await waitFor(() => expect(toast.info).toHaveBeenCalledWith(expect.stringContaining("Impostazioni")))
+        expect(audioElement()).toBeNull()
+        expect(play).not.toHaveBeenCalled()
+        expect(invoke).not.toHaveBeenCalled()
     })
 
     it("clicking another file switches the track, clicking the same file restarts it", async () => {

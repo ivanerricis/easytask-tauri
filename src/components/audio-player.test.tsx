@@ -111,6 +111,26 @@ describe("AudioPlayer", () => {
         expect(screen.getByText("50")).toBeInTheDocument()
     })
 
+    it("starts from the volume preference and follows it when it changes", () => {
+        const props = { src: "a.mp3", listenersHandle: undefined, attributesHandle: attributes } as const
+        const { container, rerender } = render(<AudioPlayer {...props} volume={0.3} />)
+        const audio = container.querySelector("audio") as HTMLAudioElement
+        expect(audio.volume).toBe(0.3)
+        expect(screen.getByText("30")).toBeInTheDocument()
+        expect(screen.getByLabelText("Volume")).toHaveAttribute("aria-valuetext", "30%")
+
+        rerender(<AudioPlayer {...props} volume={0.8} />)
+        expect(audio.volume).toBe(0.8)
+        expect(screen.getByText("80")).toBeInTheDocument()
+    })
+
+    it("reports the volume the user sets", () => {
+        const onVolumeChange = vi.fn()
+        render(<AudioPlayer src="a.mp3" listenersHandle={undefined} attributesHandle={attributes} volume={1} onVolumeChange={onVolumeChange} />)
+        fireEvent.change(screen.getByLabelText("Volume"), { target: { value: "0.25" } })
+        expect(onVolumeChange).toHaveBeenCalledWith(0.25)
+    })
+
     it("pauses and calls onClose when closed", async () => {
         const user = userEvent.setup()
         const onClose = vi.fn()

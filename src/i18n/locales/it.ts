@@ -109,6 +109,7 @@ export const it = {
         addError: "Impossibile aggiungere i file audio: {{message}}",
         pathUpdated: "Percorso aggiornato",
         pathError: "Impossibile aggiornare il percorso: {{message}}",
+        playerHidden: "Il lettore flottante è disattivato: abilitalo da Impostazioni > Audio per riprodurre i file audio",
         playbackError: "Impossibile riprodurre il file audio (formato non supportato o file non leggibile)",
         referenceTrashed: "Riferimento spostato nel cestino",
         referenceError: "Impossibile eliminare il riferimento: {{message}}",
@@ -294,6 +295,30 @@ export const it = {
                 label: "Ripristina la posizione del player audio",
                 description: "Riporta il player alla posizione predefinita.",
                 button: "Reset",
+            },
+            volume: {
+                label: "Volume predefinito",
+                description: "Il volume del player audio, ricordato tra un avvio e l'altro.",
+            },
+            playerVisible: {
+                label: "Mostra il player flottante",
+                description: "Se disattivato, i file audio non vengono riprodotti perché il player contiene i comandi.",
+            },
+            playerSize: {
+                label: "Dimensione del player",
+                description: "Ingrandisce o riduce il player flottante.",
+                small: "Piccolo",
+                normal: "Normale",
+                large: "Grande",
+            },
+            playerOpacity: {
+                label: "Trasparenza del player",
+                description: "Rende il player più o meno trasparente (minimo 40%).",
+            },
+            resetAll: {
+                label: "Ripristina le impostazioni audio",
+                description: "Volume, visibilità, dimensione e trasparenza tornano ai valori predefiniti.",
+                button: "Ripristina",
             },
         },
         nav: "Categorie impostazioni",

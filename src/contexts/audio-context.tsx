@@ -8,6 +8,7 @@ import type { AudioFile } from "@/types/types"
 import {
     AUDIO_EXTENSIONS, createDBAudioFile, getDBAudioFile, updateDBAudioFilePath,
 } from "@/db/queries/audio"
+import { usePreferences } from "./use-preferences"
 import { useWorkspaceActions, useWorkspaceState } from "./workspace-data"
 import { AudioContext, type AudioContextType, type AudioTrack } from "./audio-context-object"
 import { getErrorMessage } from "@/lib/utils"
@@ -31,6 +32,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const { t } = useTranslation()
     const { trashVersion } = useWorkspaceState()
     const { deleteItem } = useWorkspaceActions()
+    const { audioPlayerVisible } = usePreferences()
     const [track, setTrack] = useState<AudioTrack | null>(null)
     const [localVersion, setLocalVersion] = useState(0)
     const [missing, setMissing] = useState<AudioFile | null>(null)
@@ -50,6 +52,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const closePlayer = useCallback(() => setTrack(null), [])
 
     const playFile = useCallback(async (file: AudioFile) => {
+        // The player holds the only controls: with it turned off in the settings nothing starts, the user is told why
+        if (!audioPlayerVisible) {
+            toast.info(i18n.t("audio.playerHidden"))
+            return
+        }
         knownFiles.current.set(file.id, file)
         try {
             await invoke("allow_audio_file", { path: file.path })
@@ -58,7 +65,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
             return
         }
         setTrack({ audioId: file.id, name: file.name, src: convertFileSrc(file.path), playId: ++playSeq.current })
-    }, [])
+    }, [audioPlayerVisible])
 
     const addFiles = useCallback(async (groupId: number) => {
         try {

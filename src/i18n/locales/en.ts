@@ -111,6 +111,7 @@ export const en: Translation = {
         addError: "Could not add the audio files: {{message}}",
         pathUpdated: "Path updated",
         pathError: "Could not update the path: {{message}}",
+        playerHidden: "The floating player is turned off: enable it in Settings > Audio to play audio files",
         playbackError: "Could not play the audio file (unsupported format or unreadable file)",
         referenceTrashed: "Reference moved to the trash",
         referenceError: "Could not delete the reference: {{message}}",
@@ -295,6 +296,30 @@ export const en: Translation = {
             resetPlayer: {
                 label: "Reset the audio player position",
                 description: "Moves the player back to its default position.",
+                button: "Reset",
+            },
+            volume: {
+                label: "Default volume",
+                description: "The volume of the audio player, remembered between launches.",
+            },
+            playerVisible: {
+                label: "Show the floating player",
+                description: "When off, audio files are not played because the player holds the controls.",
+            },
+            playerSize: {
+                label: "Player size",
+                description: "Makes the floating player bigger or smaller.",
+                small: "Small",
+                normal: "Normal",
+                large: "Large",
+            },
+            playerOpacity: {
+                label: "Player transparency",
+                description: "Makes the player more or less transparent (at least 40% opaque).",
+            },
+            resetAll: {
+                label: "Reset the audio settings",
+                description: "Volume, visibility, size and transparency go back to their defaults.",
                 button: "Reset",
             },
         },
