@@ -1,11 +1,11 @@
+import { lazy, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Settings } from "lucide-react"
-import { useState } from "react"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { SettingsNav } from "./settings/SettingsNav"
-import { SETTINGS_CATEGORIES } from "./settings/categories"
+import { LazyMount } from "@/components/lazy-mount"
+
+const DialogSettingsContent = lazy(() => import("./dialog-settings-content").then(m => ({ default: m.DialogSettingsContent })))
 
 type DialogSettingsProps = {
     className?: string
@@ -14,32 +14,12 @@ type DialogSettingsProps = {
 export const DialogSettings = ({ className }: DialogSettingsProps) => {
     const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
-    const [activeId, setActiveId] = useState(SETTINGS_CATEGORIES[0].id)
-    const active = SETTINGS_CATEGORIES.find(c => c.id === activeId) ?? SETTINGS_CATEGORIES[0]
-    const Panel = active.Panel
 
     return (
         <>
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent className="sm:max-w-3xl h-[min(560px,80vh)] grid-rows-[auto_1fr] overflow-hidden">
-                    <DialogDescription className="sr-only">
-                        {t("settings.description")}
-                    </DialogDescription>
-                    <DialogHeader>
-                        <DialogTitle>{t("settings.title")}</DialogTitle>
-                    </DialogHeader>
-                    <div className="flex flex-col sm:flex-row gap-4 min-h-0">
-                        <SettingsNav
-                            categories={SETTINGS_CATEGORIES}
-                            activeId={active.id}
-                            onSelect={setActiveId}
-                        />
-                        <div className="flex-1 min-w-0 overflow-y-auto pr-1">
-                            <Panel />
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            <LazyMount active={isOpen}>
+                <DialogSettingsContent isOpen={isOpen} onOpenChange={setIsOpen} />
+            </LazyMount>
 
             <TooltipCustom text={t("settings.title")}>
                 <Button

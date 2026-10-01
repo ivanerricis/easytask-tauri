@@ -1,10 +1,12 @@
 import { useTranslation } from "react-i18next"
-import { useEffect, useState } from "react"
+import { lazy, useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { reportError } from "@/lib/report-error"
-import { DialogTrash } from "@/components/dialogs/dialog-trash"
+import { LazyMount } from "@/components/lazy-mount"
 import { ItemFooter } from "../items/ItemFooter"
+
+const DialogTrash = lazy(() => import("@/components/dialogs/dialog-trash").then(m => ({ default: m.DialogTrash })))
 
 export const ButtonTrash = () => {
     const { t } = useTranslation()
@@ -27,7 +29,9 @@ export const ButtonTrash = () => {
     return (
         <>
             <ItemFooter type="trash" text={t("trash.title")} badge={count} badgeLabel={t("sidebar.trashBadge", { count })} onClick={() => setIsOpen(true)} />
-            <DialogTrash isOpen={isOpen} onOpenChange={setIsOpen} />
+            <LazyMount active={isOpen}>
+                <DialogTrash isOpen={isOpen} onOpenChange={setIsOpen} />
+            </LazyMount>
         </>
     )
 }

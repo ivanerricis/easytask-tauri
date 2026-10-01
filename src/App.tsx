@@ -10,11 +10,16 @@ import { DialogShortcuts } from './components/dialogs/dialog-shortcuts'
 import { TextContextMenu } from './components/text-context-menu'
 import { getEditableTarget } from './lib/editable-target'
 
-import MainPage from './pages/mainPage/MainPage'
-import WorkSpacePage from './pages/workspacePage/WorkSpacePage'
-import { useEffect } from 'react'
+import { ErrorBoundary } from './components/error-boundary'
+import { LoadingPage } from './components/pages/loading-page'
+import { lazy, Suspense, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
+
+const MainPage = lazy(() => import('./pages/mainPage/MainPage'))
+const WorkSpacePage = lazy(() => import('./pages/workspacePage/WorkSpacePage'))
 
 function App() {
+  const { t } = useTranslation()
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -38,8 +43,16 @@ function App() {
           <WorkspaceDataProvider>
             <HashRouter>
               <Routes>
-                <Route path='/' element={<MainPage />} />
-                <Route path='/workspace/:id' element={<WorkSpacePage />} />
+                <Route path='/' element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingPage text={t('home.loading')} />}><MainPage /></Suspense>
+                  </ErrorBoundary>
+                } />
+                <Route path='/workspace/:id' element={
+                  <ErrorBoundary>
+                    <Suspense fallback={<LoadingPage text={t('workspace.loading')} />}><WorkSpacePage /></Suspense>
+                  </ErrorBoundary>
+                } />
               </Routes>
             </HashRouter>
             <Toaster richColors position='top-center' />

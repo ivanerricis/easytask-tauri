@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest"
 import { openUrl } from "@tauri-apps/plugin-opener"
 import { toast } from "sonner"
 const setSidebarItemSize = vi.fn()
@@ -35,10 +35,15 @@ const open = async () => {
     const user = userEvent.setup()
     render(<DialogSettings />)
     await user.click(screen.getByRole("button"))
+    // The dialog content is a lazy chunk
+    await screen.findByRole("dialog", {}, { timeout: 5000 })
     return user
 }
 
 describe("DialogSettings", () => {
+    // Warm the lazy chunk so the first test does not pay for the import
+    beforeAll(async () => { await import("./dialog-settings-content") })
+
     beforeEach(() => {
         setSidebarItemSize.mockReset()
         vi.mocked(openUrl).mockReset().mockResolvedValue(undefined)
