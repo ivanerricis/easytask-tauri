@@ -12,12 +12,19 @@ const SECTION_A = "Section A"
 const SECTION_B = "Section B"
 const TASK = "Write the e2e tests"
 
-/** Values of the task text areas inside a section card. */
+/**
+ * Values of the task text areas inside a section card, read in a single page-side call
+ * (reading element by element races with React re-renders and ends in stale element references).
+ */
 const taskValues = async (sectionTitle: string) => {
-    const areas = await sectionCard(sectionTitle).$$(`[aria-label="${await tr("tasks.editText")}"]`)
-    const values: string[] = []
-    for (const area of areas) values.push(await area.getValue())
-    return values
+    const label = await tr("tasks.editText")
+    const card = await sectionCard(sectionTitle)
+    return browser.execute(
+        (el: HTMLElement, aria: string) =>
+            Array.from(el.querySelectorAll<HTMLTextAreaElement>(`[aria-label="${aria}"]`)).map((area) => area.value),
+        card as unknown as HTMLElement,
+        label,
+    )
 }
 
 /** Opens the "..." menu of a task (the button only shows on hover) and returns the open menu. */
@@ -59,7 +66,8 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
         await byText(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
         await byLabel(await tr("common.add")).click()
-        await expect(byLabel(await tr("groups.nameLabel"))).toHaveValue(GROUP)
+        // Once saved, the group name is a button (the input only exists while the name is being edited)
+        await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
 
         for (const title of [SECTION_A, SECTION_B]) {
             await byText(await tr("sections.new")).click()
@@ -85,8 +93,9 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
     it("moves the task to the other section", async () => {
         const menu = await openTaskMenu(TASK)
         await byText(await tr("menu.moveTo"), menu).click()
-        const destination = $(`//div[@role='menu']//button[.//span[contains(normalize-space(), '${SECTION_B}')]]`)
-        await destination.waitForDisplayed()
+        // Destinations are menu items (role="menuitem") of the submenu, labelled with the section title
+        const destination = $(`//*[@role='menuitem'][.//span[contains(normalize-space(), ${JSON.stringify(SECTION_B)})]]`)
+        await destination.waitForDisplayed({ timeoutMsg: "the move submenu did not list the destination section" })
         await destination.click()
 
         await browser.waitUntil(async () => (await taskValues(SECTION_B)).includes(TASK), { timeoutMsg: "task not moved" })

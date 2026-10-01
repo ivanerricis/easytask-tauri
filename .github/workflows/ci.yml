@@ -59,8 +59,7 @@ jobs:
         working-directory: .
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
-            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \\n            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -123,7 +122,9 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file             libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf             webkit2gtk-driver xvfb
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+            libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf \
+            webkit2gtk-driver xvfb
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -142,3 +143,10 @@ jobs:
       - name: Run e2e (Windows)
         if: runner.os == 'Windows'
         run: npm run e2e
+      - name: Upload e2e logs and screenshots
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-output-${{ matrix.os }}
+          path: e2e/output
+          if-no-files-found: ignore
