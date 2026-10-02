@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- The release notes in the update dialog and in Settings > About are shown in the language of the app (English or Italian). They come from `CHANGELOG.md` and the new `CHANGELOG.it.md`, which the release checks require for every version.
+
 ## [0.3.0] - 2026-10-02
 
 ### Added

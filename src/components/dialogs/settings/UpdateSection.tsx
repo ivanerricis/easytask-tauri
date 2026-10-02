@@ -5,6 +5,7 @@ import { toast } from "sonner"
 import { Download, ExternalLink, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { ReleaseNotes } from "@/components/release-notes"
 import { Switch } from "@/components/ui/switch"
 import { isPortable } from "@/db/appPaths"
 import { useUpdateInstall } from "@/hooks/use-update-install"
@@ -96,7 +97,7 @@ export const UpdateSection = () => {
                         {status.update.body && (
                             <div>
                                 <div className="text-xs text-muted-foreground">{t("settings.about.update.notes")}</div>
-                                <p className="whitespace-pre-wrap text-xs select-text max-h-32 overflow-y-auto">{status.update.body}</p>
+                                <div className="max-h-40 overflow-y-auto text-xs"><ReleaseNotes body={status.update.body} /></div>
                             </div>
                         )}
                         {portable ? (

@@ -4,7 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { getSkippedUpdateVersion, saveSkippedUpdateVersion } from "@/lib/store/preferences"
 import { UPDATE_AVAILABLE_EVENT, type UpdateAvailableDetail } from "@/lib/updater"
-import { DialogUpdate, ReleaseNotes } from "./dialog-update"
+import { DialogUpdate } from "./dialog-update"
+import { ReleaseNotes } from "@/components/release-notes"
 
 const relaunch = vi.fn()
 const openUrl = vi.fn()
@@ -111,6 +112,19 @@ describe("DialogUpdate", () => {
         expect(screen.queryByText("Aggiornamento disponibile")).not.toBeInTheDocument()
         act(() => other.remove())
         expect(await screen.findByText("Aggiornamento disponibile")).toBeInTheDocument()
+    })
+})
+
+describe("DialogUpdate release notes language", () => {
+    const bilingual = "## English\n\n- Duplicate notes.\n\n## Italiano\n\n- Duplica le note.\n"
+
+    it("shows the notes in the language of the app, not both", async () => {
+        render(<DialogUpdate />)
+        announce({ update: { ...fakeUpdate(), body: bilingual } as never })
+        const dialog = await screen.findByRole("dialog")
+        expect(dialog).toHaveTextContent("Duplica le note.")
+        expect(dialog).not.toHaveTextContent("Duplicate notes.")
+        expect(dialog).not.toHaveTextContent("## Italiano")
     })
 })
 

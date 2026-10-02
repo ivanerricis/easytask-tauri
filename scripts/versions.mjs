@@ -126,3 +126,12 @@ export function findMismatches(versions) {
         .filter(([, value]) => value !== reference)
         .map(([key, value]) => `${key} is ${value} but ${entries[0][0]} is ${reference}`)
 }
+
+/** True when a changelog has a "## [version]" section (Keep a Changelog heading). */
+export function hasChangelogSection(text, version) {
+    return text.split(/\r?\n/).some(line => line.startsWith(`## [${version}]`))
+}
+
+/** The changelogs every release needs a section in: the original and the Italian one shown in the app. */
+export const CHANGELOG_FILES = ['CHANGELOG.md', 'CHANGELOG.it.md']
+

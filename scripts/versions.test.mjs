@@ -5,6 +5,7 @@ import {
     getCargoTomlVersion,
     getJsonVersion,
     getPackageLockVersion,
+    hasChangelogSection,
     isSemver,
     setCargoLockVersion,
     setCargoTomlVersion,
@@ -106,3 +107,23 @@ describe('findMismatches', () => {
         expect(out[0]).toContain('cargoToml')
     })
 })
+
+describe('hasChangelogSection', () => {
+    const changelog = '# Changelog\n\n## [Unreleased]\n\n## [0.3.0] - 2026-10-02\n\n### Added\n\n- x\n\n## [0.2.0] - 2026-10-01\n'
+
+    it('finds the section of a version', () => {
+        expect(hasChangelogSection(changelog, '0.3.0')).toBe(true)
+        expect(hasChangelogSection(changelog, '0.2.0')).toBe(true)
+    })
+    it('does not find a version that has no section', () => {
+        expect(hasChangelogSection(changelog, '0.4.0')).toBe(false)
+        expect(hasChangelogSection(changelog, '0.3')).toBe(false)
+    })
+    it('does not take a mention of the version for a section', () => {
+        expect(hasChangelogSection('see [0.3.0]: https://example.com\n- fixed in [0.3.0]\n', '0.3.0')).toBe(false)
+    })
+    it('works with Windows line endings', () => {
+        expect(hasChangelogSection('## [Unreleased]\r\n\r\n## [1.0.0] - 2026-01-01\r\n', '1.0.0')).toBe(true)
+    })
+})
+
