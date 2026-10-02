@@ -10,6 +10,25 @@ const makeCommand = (label: string, over: Partial<UndoCommand> = {}): UndoComman
 }) as never
 
 describe("createUndoHistory", () => {
+    it("makes an undo asked during a tracked write wait for it and undo what it records", async () => {
+        const history = createUndoHistory()
+        const command = makeCommand("move")
+        const write = deferred<void>()
+        void history.track(write.promise.then(() => history.record(command)))
+
+        const outcome = history.undo()
+        expect(command.undo).not.toHaveBeenCalled()
+        write.resolve()
+        expect(await outcome).toEqual({ status: "done", label: "move" })
+        expect(command.undo).toHaveBeenCalledTimes(1)
+    })
+
+    it("does not wait for a tracked write that fails", async () => {
+        const history = createUndoHistory()
+        void history.track(Promise.reject(new Error("write failed"))).catch(() => {})
+        expect(await history.undo()).toEqual({ status: "empty" })
+    })
+
     it("starts empty and answers 'empty' to undo and redo", async () => {
         const history = createUndoHistory()
         expect(history.getSnapshot()).toEqual({ canUndo: false, canRedo: false, undoLabel: null, redoLabel: null })

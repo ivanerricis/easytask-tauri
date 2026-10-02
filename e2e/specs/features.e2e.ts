@@ -34,8 +34,7 @@ const sectionTitles = () =>
     )
 
 /**
- * Order saved in the database. A move is applied to the page first and recorded in the undo history only once it is
- * saved: pressing Ctrl+Z earlier would find nothing to undo, so the specs wait for the write.
+ * Order saved in the database (the specs check what was written; an undo asked before the write waits for it).
  */
 const savedOrder = async (table: "section" | "task", column: "title" | "text", names: string[]) => {
     const rows = await sql<Record<string, string>[]>(

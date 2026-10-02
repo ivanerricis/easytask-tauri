@@ -135,10 +135,21 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
         return result
     }
 
-    const execute = (direction: "undo" | "redo"): Promise<UndoOutcome> => enqueue(() => runOne(direction))
+    /** Writes that will record a command when they finish: an undo/redo asked meanwhile waits for them. */
+    const pending = new Set<Promise<unknown>>()
+    const track = <T,>(write: Promise<T>): Promise<T> => {
+        pending.add(write)
+        const done = () => { pending.delete(write) }
+        write.then(done, done)
+        return write
+    }
+    const settled = () => Promise.allSettled([...pending])
+
+    const execute = (direction: "undo" | "redo"): Promise<UndoOutcome> => enqueue(() => (pending.size > 0 ? settled().then(() => runOne(direction)) : runOne(direction)))
 
     /** Applies `index + 1` actions in sequence as one queued task (nothing can interleave); stops at the first failure. */
     const executeTo = (direction: "undo" | "redo", index: number): Promise<UndoManyOutcome> => enqueue(async (): Promise<UndoManyOutcome> => {
+        if (pending.size > 0) await settled()
         const available = () => (direction === "undo" ? undoStack : redoStack).length
         if (!Number.isInteger(index) || index < 0 || available() === 0) return { status: "empty", executed: 0 }
         const target = Math.min(index + 1, available())
@@ -157,6 +168,7 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
 
     return {
         record,
+        track,
         undo: () => execute("undo"),
         redo: () => execute("redo"),
         undoTo: (index: number) => executeTo("undo", index),
