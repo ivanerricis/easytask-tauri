@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Text and icons on the accent color (orange buttons, selected options, the check of a completed task) are dark or white depending on the accent, so they stay readable: white on the default orange gave 1.8:1 on the light theme.
 - Collapsing a group and opening it again no longer makes it shrink for a moment (and the groups next to it jump): the list of its audio files appears at once instead of a moment later.
 - The filled part of the sliders (audio player seek bar, volume and the sliders of the Settings) could stop short of the left edge on wide sliders: near the end of a track the first part of the bar was empty.
 - Borders of checkboxes, text fields and the track of switches reach about 3:1 contrast on both themes. On the light theme the `--input` color was written in an invalid way, so these borders turned black and the track of an off switch was transparent.

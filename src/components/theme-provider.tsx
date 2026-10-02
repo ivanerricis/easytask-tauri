@@ -1,3 +1,4 @@
+import { applyAccentColor } from "@/lib/accent-color"
 import { store } from "@/lib/store/initStore"
 import { useEffect, useState } from "react"
 import { ThemeProviderContext, type Theme } from "./theme-context"
@@ -48,8 +49,7 @@ export function ThemeProvider({
 
             const colorToApply = primaryColor?.hex || defaultColor;
 
-            const root = document.documentElement;
-            root.style.setProperty('--primary', colorToApply);
+            applyAccentColor(colorToApply);
         };
 
         applyInitialAccentColor();

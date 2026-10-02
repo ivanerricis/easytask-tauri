@@ -1,3 +1,4 @@
+import { applyAccentColor } from "@/lib/accent-color"
 import { useEffect, useRef, useState } from "react"
 import {
     getPrimaryColor,
@@ -159,7 +160,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         }).catch(reportError)
         getPrimaryColor().then(hex => {
             setPrimaryColorState(hex)
-            document.documentElement.style.setProperty('--primary', hex)
+            applyAccentColor(hex)
         }).catch(reportError)
         getHideCompletedTasks().then(setHideCompletedTasksState).catch(reportError)
     }, [])
@@ -191,7 +192,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
 
     const setPrimaryColor = (hex: string) => {
         setPrimaryColorState(hex)
-        document.documentElement.style.setProperty('--primary', hex)
+        applyAccentColor(hex)
         savePrimaryColor(hex).catch(reportError)
     }
 
