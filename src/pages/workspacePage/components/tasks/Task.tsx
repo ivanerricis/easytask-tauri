@@ -111,8 +111,8 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
         )}>
             {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└) */}
             {isSubtask && <>
-                <span aria-hidden className="pointer-events-none absolute -left-px -top-px -bottom-px w-px bg-border group-last/subtask:hidden" />
-                <span aria-hidden className="pointer-events-none absolute -left-px -top-px h-[19px] w-4 border-b border-border group-last/subtask:border-l" />
+                <span aria-hidden className="pointer-events-none absolute -left-px -top-px -bottom-px w-px bg-muted-foreground/45 group-last/subtask:hidden" />
+                <span aria-hidden className="pointer-events-none absolute -left-px -top-px h-[19px] w-4 border-b border-muted-foreground/45 group-last/subtask:border-l" />
             </>}
             <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)}>
                 <div
@@ -200,7 +200,8 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                                     title={t("tasks.subtaskProgress", { done: doneSubtasks, total: task.subtasks.length })}
                                     className={cn(
                                         "flex shrink-0 items-center gap-0.5 mt-0.5 ml-1 text-xs tabular-nums",
-                                        doneSubtasks === task.subtasks.length ? "text-primary" : "text-muted-foreground",
+                                        // All done: full-contrast text (the accent color is chosen by the user and can be unreadable as text)
+                                        doneSubtasks === task.subtasks.length ? "font-medium text-foreground" : "text-muted-foreground",
                                     )}>
                                     <ListTree className="size-3.5" />
                                     {doneSubtasks}/{task.subtasks.length}
