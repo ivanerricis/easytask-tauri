@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Opening a note with many tasks no longer freezes the app: every task text was sized by a script that forced a layout per task (a note with 400 tasks took half a minute, one with 3000 never finished). The webview now sizes the text boxes itself (`field-sizing: content`), and a note with 250 tasks opens in under a second.
+- The volume slider of the audio player is smooth: while it is dragged only the player updates, and the volume preference (which re-rendered the whole app and was written to disk on every step) is saved once on release.
+- The tree lines of deeply nested subtasks: the line of a subtask that is not the last of its level was hidden when one of its ancestors was the last, so the lines looked broken.
 - The description field of the right sidebar has a fixed minimum height.
 - One rule for the text on the accent color (buttons, selected options, the tick): the dark or white `--primary-foreground`, also as the light theme starts, before it is computed from the accent.
 - Opening a sidebar no longer shows its content squeezed (text in vertical) for a moment: the content keeps its final width while the panel slides open.
@@ -17,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- The color bar on the left of a task is twice as wide (4 px instead of 2).
+- A button in the header of the left sidebar to create a note from a template: choose the template (with a search box), then the name and folder of the note. The sidebar can no longer be narrower than 224 px (it was 200) so that the six header buttons fit.
 - The release notes in the update dialog and in Settings > About are shown in the language of the app (English or Italian). They come from `CHANGELOG.md` and the new `CHANGELOG.it.md`, which the release checks require for every version.
 
 ## [0.3.0] - 2026-10-02

@@ -9,7 +9,7 @@ import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { toast } from "sonner"
 import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
-import TextareaAutosize from "react-textarea-autosize"
+import { AutoTextarea } from "@/components/auto-textarea"
 import { AlignLeft, GripVertical, Info, ListTree, Plus } from "lucide-react"
 import { AddTask } from "./AddTask"
 import { DialogTaskDescription } from "./DialogTaskDescription"
@@ -107,13 +107,13 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
     return (
         <div className={cn(
             "relative flex flex-col items-center w-full border border-transparent transition-none",
-            isSubtask ? "group/subtask" : "border-b-border",
+            isSubtask ? "group/subtask subtask" : "border-b-border",
             isTextAreaOpen && "border border-primary rounded-xs"
         )}>
-            {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└) */}
+            {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└). Only the direct child of the last subtask counts (a plain descendant selector would hide the lines of every deeper level) */}
             {isSubtask && <>
-                <span aria-hidden className="pointer-events-none absolute -left-px -top-px -bottom-px w-px bg-muted-foreground/45 group-last/subtask:hidden" />
-                <span aria-hidden className="pointer-events-none absolute -left-px -top-px h-[19px] w-px group-last/subtask:bg-muted-foreground/45" />
+                <span aria-hidden className="pointer-events-none absolute -left-px -top-px -bottom-px w-px bg-muted-foreground/45 [.subtask:last-child>&]:hidden" />
+                <span aria-hidden className="pointer-events-none absolute -left-px -top-px h-[19px] w-px [.subtask:last-child>&]:bg-muted-foreground/45" />
             </>}
             <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)}>
                 <div
@@ -136,7 +136,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                         <div className={cn("pointer-events-none absolute left-0 right-0 z-10 h-0.5 bg-primary", zone === "before" ? "-top-px" : "-bottom-px")} />}
                     <div className="flex flex-col w-full">
                         {/* Color Container */}
-                        {task.color && <div className="w-0.5 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
+                        {task.color && <div className="w-1 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
 
                         {/* Task items container */}
                         <div className="relative group flex items-start justify-between w-full px-1 py-1.5">
@@ -159,7 +159,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                                     onCheckedChange={handleCheckedChange}
                                     className={isSubtask ? "mt-[3px] size-3.5" : "mt-0.5"}
                                 />
-                                {!isTextAreaOpen && <TextareaAutosize
+                                {!isTextAreaOpen && <AutoTextarea
                                     onClick={() => { setTextAreaOpen(true); setText(task.text) }}
                                     onKeyDown={e => {
                                         if (e.key === "Enter" && !e.shiftKey) {
@@ -175,7 +175,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                                         task.completed && "line-through text-muted-foreground"
                                     )}
                                 />}
-                                {isTextAreaOpen && <TextareaAutosize
+                                {isTextAreaOpen && <AutoTextarea
                                     ref={textareaRef}
                                     minRows={1}
                                     value={text}

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react"
 
 /** Sidebar widths in pixels. */
 export const SIDEBAR_DEFAULT_WIDTH = 260
-export const SIDEBAR_MIN_WIDTH = 200
+export const SIDEBAR_MIN_WIDTH = 224
 export const SIDEBAR_MAX_WIDTH = 480
 /** Keyboard step of the resizer (Shift for the large one). */
 export const SIDEBAR_KEY_STEP = 16

@@ -6,6 +6,9 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Corretto
 
+- Aprire una nota con molti task non blocca più l'app: il testo di ogni task veniva dimensionato da uno script che forzava un ricalcolo del layout per ciascuno (una nota con 400 task impiegava mezzo minuto, una con 3000 non finiva mai). Ora è la webview a dimensionare le caselle di testo (`field-sizing: content`), e una nota con 250 task si apre in meno di un secondo.
+- Lo slider del volume del lettore audio è fluido: mentre lo si trascina si aggiorna solo il lettore, e la preferenza del volume (che a ogni passo ridisegnava tutta l'app e veniva scritta su disco) si salva una volta sola al rilascio.
+- Le linee ad albero dei sottotask annidati: la linea di un sottotask che non è l'ultimo del suo livello spariva quando uno dei suoi antenati era l'ultimo, e le linee sembravano spezzate.
 - Il campo descrizione della sidebar di destra ha un'altezza minima fissa.
 - Una sola regola per il testo sul colore d'accento (pulsanti, opzioni selezionate, la spunta): il `--primary-foreground` scuro o bianco, anche all'avvio del tema chiaro, prima che sia calcolato dall'accento.
 - Aprendo una sidebar non si vede più per un istante il contenuto schiacciato (testo in verticale): il contenuto mantiene la larghezza finale mentre il pannello si apre.
@@ -15,6 +18,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Aggiunto
 
+- La barra colorata a sinistra di un task è larga il doppio (4 px invece di 2).
+- Un pulsante nell'intestazione della sidebar sinistra per creare una nota da un template: si sceglie il template (con una casella di ricerca), poi il nome e la cartella della nota. La sidebar non può più essere più stretta di 224 px (era 200) perché i sei pulsanti dell'intestazione ci stiano.
 - Le novità nella dialog di aggiornamento e in Impostazioni > Informazioni sono mostrate nella lingua dell'app (italiano o inglese). Vengono da `CHANGELOG.md` e dal nuovo `CHANGELOG.it.md`, che i controlli di release richiedono per ogni versione.
 
 ## [0.3.0] - 2026-10-02
