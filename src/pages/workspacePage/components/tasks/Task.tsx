@@ -136,7 +136,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                         <div className={cn("pointer-events-none absolute left-0 right-0 z-10 h-0.5 bg-primary", zone === "before" ? "-top-px" : "-bottom-px")} />}
                     <div className="flex flex-col w-full">
                         {/* Color Container */}
-                        {task.color && <div className="w-0.5 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
+                        {task.color && <div className="w-1 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
 
                         {/* Task items container */}
                         <div className="relative group flex items-start justify-between w-full px-1 py-1.5">

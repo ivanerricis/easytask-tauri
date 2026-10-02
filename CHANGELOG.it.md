@@ -18,6 +18,7 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Aggiunto
 
+- La barra colorata a sinistra di un task è larga il doppio (4 px invece di 2).
 - Un pulsante nell'intestazione della sidebar sinistra per creare una nota da un template: si sceglie il template (con una casella di ricerca), poi il nome e la cartella della nota. La sidebar non può più essere più stretta di 224 px (era 200) perché i sei pulsanti dell'intestazione ci stiano.
 - Le novità nella dialog di aggiornamento e in Impostazioni > Informazioni sono mostrate nella lingua dell'app (italiano o inglese). Vengono da `CHANGELOG.md` e dal nuovo `CHANGELOG.it.md`, che i controlli di release richiedono per ogni versione.
 

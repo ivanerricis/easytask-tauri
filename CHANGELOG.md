@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
+- The color bar on the left of a task is twice as wide (4 px instead of 2).
 - A button in the header of the left sidebar to create a note from a template: choose the template (with a search box), then the name and folder of the note. The sidebar can no longer be narrower than 224 px (it was 200) so that the six header buttons fit.
 - The release notes in the update dialog and in Settings > About are shown in the language of the app (English or Italian). They come from `CHANGELOG.md` and the new `CHANGELOG.it.md`, which the release checks require for every version.
 
