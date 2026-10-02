@@ -113,6 +113,20 @@ describe("Audio files and the floating player", () => {
         await treeRow(NOTE).click()
         await (await audioRow(FILE)).waitForDisplayed({ timeoutMsg: "the audio file is not listed in the group" })
         await (await audioRow(MISSING)).waitForDisplayed()
+
+        // canPlayType says "maybe" even where no decoder is installed (CI runner): the metadata tells the truth
+        await clickRow(FILE)
+        const decodes = await browser.waitUntil(
+            async () => (await audioState()).exists && (await audioState()).duration > 0,
+            { timeout: 8_000 },
+        ).catch(() => false)
+        if (decodes) {
+            await domClick(byLabel(await tr("audio.player.close")))
+            await browser.waitUntil(async () => !(await audioState()).exists, { timeoutMsg: "the player did not close" })
+        } else {
+            console.log("[e2e] this webview cannot decode the test WAV: the audio tests are skipped")
+            this.skip()
+        }
     })
 
     after(() => {

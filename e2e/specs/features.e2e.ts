@@ -164,6 +164,17 @@ const deleteFromMenu = async (menu: ChainableDialog) => {
 }
 
 describe("New features: reordering, undo, trash, templates and appearance", () => {
+    // A dialog left open by a failed test would make every following test fail on a covered sidebar
+    // (the settings tests share one open dialog on purpose)
+    afterEach(async function () {
+        if (this.currentTest?.fullTitle().includes(" settings ")) return
+        const open = () => browser.execute(() => document.querySelectorAll('[role="dialog"], [role="alertdialog"]').length)
+        for (let i = 0; i < 3 && (await open()) > 0; i++) {
+            await browser.keys("Escape")
+            await browser.waitUntil(async () => (await open()) === 0, { timeout: 1_500 }).catch(() => undefined)
+        }
+    })
+
     before(async () => {
         await waitForApp()
     })
@@ -243,8 +254,11 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         await browser.waitUntil(async () => !(await sectionTitles()).includes(SECTIONS[2]), { timeoutMsg: "section not deleted" })
 
         const trash = await openTrash()
-        await trash.$(`[aria-label=${JSON.stringify(await tr("trash.restoreAria", { name: TASKS[2] }))}]`).click()
-        await trash.$(`[aria-label=${JSON.stringify(await tr("trash.restoreAria", { name: SECTIONS[2] }))}]`).click()
+        for (const name of [TASKS[2], SECTIONS[2]]) {
+            const restore = trash.$(`[aria-label=${JSON.stringify(await tr("trash.restoreAria", { name }))}]`)
+            await domClick(restore)
+            await restore.waitForExist({ reverse: true, timeoutMsg: `"${name}" was not restored` })
+        }
         await expect(trash.$(`p=${await tr("trash.isEmpty")}`)).toBeDisplayed()
         await closeTrash(trash)
 
