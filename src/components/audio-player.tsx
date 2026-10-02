@@ -173,11 +173,29 @@ export const AudioPlayer = ({
         }
     }
 
+    // While the slider is dragged only the player moves (the sound follows at once); the preference, which re-renders
+    // the whole app and is written to disk, is updated once when the pointer is released
+    const draggingVolume = useRef(false)
+    const latestVolume = useRef(volume)
+
     const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
         const vol = Number(e.target.value)
+        latestVolume.current = vol
         setVolume(vol)
         setMuted(false)
-        onVolumeChange?.(vol)
+        if (!draggingVolume.current) onVolumeChange?.(vol)
+    }
+
+    const handleVolumePointerDown = () => {
+        draggingVolume.current = true
+        const release = () => {
+            window.removeEventListener("pointerup", release)
+            window.removeEventListener("pointercancel", release)
+            draggingVolume.current = false
+            onVolumeChange?.(latestVolume.current)
+        }
+        window.addEventListener("pointerup", release)
+        window.addEventListener("pointercancel", release)
     }
 
     const handleVolumeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -344,6 +362,7 @@ export const AudioPlayer = ({
                     step={0.01}
                     value={volume}
                     onChange={handleVolume}
+                    onPointerDown={handleVolumePointerDown}
                     onKeyDown={handleVolumeKeyDown}
                     aria-label={t("audio.player.volume")}
                     aria-valuetext={`${volumeLabel}%`}

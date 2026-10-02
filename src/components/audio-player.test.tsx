@@ -131,6 +131,28 @@ describe("AudioPlayer", () => {
         expect(onVolumeChange).toHaveBeenCalledWith(0.25)
     })
 
+    it("moves the sound while the volume slider is dragged and reports the volume once, on release", () => {
+        const onVolumeChange = vi.fn()
+        const { container } = render(<AudioPlayer src="a.mp3" listenersHandle={undefined} attributesHandle={attributes} volume={1} onVolumeChange={onVolumeChange} />)
+        const audio = container.querySelector("audio")!
+        const slider = screen.getByLabelText("Volume")
+
+        fireEvent.pointerDown(slider)
+        for (const value of ["0.9", "0.6", "0.3"]) {
+            fireEvent.change(slider, { target: { value } })
+            expect(audio.volume).toBe(Number(value))
+        }
+        expect(onVolumeChange).not.toHaveBeenCalled()
+
+        fireEvent.pointerUp(window)
+        expect(onVolumeChange).toHaveBeenCalledTimes(1)
+        expect(onVolumeChange).toHaveBeenCalledWith(0.3)
+
+        // Back to one report per change (keyboard)
+        fireEvent.change(slider, { target: { value: "0.35" } })
+        expect(onVolumeChange).toHaveBeenLastCalledWith(0.35)
+    })
+
     it("pauses and calls onClose when closed", async () => {
         const user = userEvent.setup()
         const onClose = vi.fn()
