@@ -28,6 +28,9 @@ export const en: Translation = {
         add: "Add",
     },
     dialogs: {
+        pickNote: {
+            heading: "Notes",
+        },
         confirm: {
             title: "Are you sure you want to proceed?",
             description: "This action cannot be undone.",
@@ -65,7 +68,14 @@ export const en: Translation = {
             description: "Create new notes from a saved template.",
             search: "Search templates",
             searchPlaceholder: "Search templates...",
-            empty: "No templates. Create one from a note's menu.",
+            empty: "No templates. Create one from a note with the \"New template\" button, or from the menu of the note.",
+            new: "New template",
+            noNotes: "There are no notes to make a template from.",
+            pickNote: {
+                title: "Choose a note",
+                description: "The template will be a copy of the content of the note you choose.",
+                placeholder: "Search the note to make the template from...",
+            },
             from: "From: {{name}}",
             noteDeleted: "Note deleted",
             createdOn: "Created on {{date}}",

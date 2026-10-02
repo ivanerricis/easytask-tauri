@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { FilePlus, LayoutTemplate, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react"
+import { FilePlus, LayoutTemplate, Loader2, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
@@ -12,6 +12,9 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogNoteFromTemplate } from "@/components/dialogs/dialog-note-from-template"
+import { DialogCreateTemplate } from "@/components/dialogs/dialog-create-template"
+import { DialogPickNote } from "@/components/dialogs/dialog-pick-note"
+import { useAllNotes } from "@/hooks/use-all-notes"
 import { formatDate, getErrorMessage } from "@/lib/utils"
 import { countTemplateContent, type NoteTemplate } from "@/types/template"
 
@@ -24,8 +27,8 @@ type DialogTemplatesProps = {
 }
 
 /**
- * Templates of the current workspace: create a note from a template, rename, refresh from the source note, delete
- * (soft delete: the template goes to the trash).
+ * Templates of the current workspace: create a template from one of the notes, create a note from a template, rename,
+ * refresh from the source note, delete (soft delete: the template goes to the trash).
  * @category Dialogs
  */
 export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) => {
@@ -33,6 +36,7 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     const { currentWorkspace } = useWorkspace()
     const { getTemplates, updateTemplateFromNote } = useWorkspaceActions()
     const workspaceID = currentWorkspace?.id
+    const allNotes = useAllNotes()
 
     const [templates, setTemplates] = useState<NoteTemplate[]>([])
     const [loaded, setLoaded] = useState(false)
@@ -42,6 +46,9 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     const [renaming, setRenaming] = useState<NoteTemplate | null>(null)
     const [deleting, setDeleting] = useState<NoteTemplate | null>(null)
     const [refreshing, setRefreshing] = useState<NoteTemplate | null>(null)
+    // Creating a template here: first the note is chosen, then the template gets its name
+    const [picking, setPicking] = useState(false)
+    const [source, setSource] = useState<{ id: number, name: string } | null>(null)
     const getTemplatesRef = useRef(getTemplates)
     useEffect(() => { getTemplatesRef.current = getTemplates })
 
@@ -185,10 +192,35 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                         <Button variant="outline" onClick={() => onOpenChange(false)}>
                             {t("common.close")}
                         </Button>
+                        <Button
+                            disabled={busy || allNotes.length === 0}
+                            title={allNotes.length === 0 ? t("dialogs.templates.noNotes") : undefined}
+                            onClick={() => setPicking(true)}
+                        >
+                            <Plus />
+                            {t("dialogs.templates.new")}
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
 
+            <DialogPickNote
+                isOpen={picking}
+                onOpenChange={setPicking}
+                onPick={setSource}
+                title={t("dialogs.templates.pickNote.title")}
+                description={t("dialogs.templates.pickNote.description")}
+                placeholder={t("dialogs.templates.pickNote.placeholder")}
+            />
+            {source && (
+                <DialogCreateTemplate
+                    key={source.id}
+                    note={source}
+                    isOpen
+                    onOpenChange={open => { if (!open) setSource(null) }}
+                    onCreated={() => void reload()}
+                />
+            )}
             {creating && (
                 <DialogNoteFromTemplate
                     key={creating.id}

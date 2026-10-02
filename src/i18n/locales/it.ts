@@ -26,6 +26,9 @@ export const it = {
         add: "Aggiungi",
     },
     dialogs: {
+        pickNote: {
+            heading: "Note",
+        },
         confirm: {
             title: "Sei sicuro di voler procedere?",
             description: "Questa azione non può essere annullata.",
@@ -63,7 +66,14 @@ export const it = {
             description: "Crea nuove note a partire da un template salvato.",
             search: "Cerca template",
             searchPlaceholder: "Cerca template...",
-            empty: "Nessun template. Creane uno dal menu di una nota.",
+            empty: "Nessun template. Creane uno da una nota con il pulsante \"Nuovo template\", o dal menu della nota.",
+            new: "Nuovo template",
+            noNotes: "Non ci sono note da cui creare un template.",
+            pickNote: {
+                title: "Scegli una nota",
+                description: "Il template sarà una copia del contenuto della nota scelta.",
+                placeholder: "Cerca la nota da cui creare il template...",
+            },
             from: "Da: {{name}}",
             noteDeleted: "Nota eliminata",
             createdOn: "Creato il {{date}}",
