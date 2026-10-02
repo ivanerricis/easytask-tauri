@@ -64,7 +64,7 @@ export function useNoteMoves() {
     const { applySectionMove, applySectionMoveToNewGroup, applyTaskMove, getNoteTree } = useActiveNoteActions()
     const recorder = useUndoRecorder()
 
-    const moveSectionTo = useCallback(async (sectionId: number, target: SectionTarget) => {
+    const moveSectionTo = useCallback((sectionId: number, target: SectionTarget) => recorder.track((async () => {
         const from = captureSectionPlace(getNoteTree(), sectionId)
         const rollback = target.type === "group" ? applySectionMove(sectionId, target.groupId, target.index) : null
         try {
@@ -81,9 +81,9 @@ export function useNoteMoves() {
             rollback?.()
             reportError(err, getErrorMessage(err))
         }
-    }, [moveSection, moveSectionToNewGroup, applySectionMove, applySectionMoveToNewGroup, getNoteTree, recorder])
+    })()), [moveSection, moveSectionToNewGroup, applySectionMove, applySectionMoveToNewGroup, getNoteTree, recorder])
 
-    const moveTaskTo = useCallback(async (taskId: number, target: TaskTarget) => {
+    const moveTaskTo = useCallback((taskId: number, target: TaskTarget) => recorder.track((async () => {
         const destination = { sectionId: target.sectionId, parentTaskId: target.parentTaskId }
         const from = captureTaskPlace(getNoteTree(), taskId)
         const rollback = applyTaskMove(taskId, destination, target.index)
@@ -94,7 +94,7 @@ export function useNoteMoves() {
             rollback()
             reportError(err, getErrorMessage(err))
         }
-    }, [moveTask, applyTaskMove, getNoteTree, recorder])
+    })()), [moveTask, applyTaskMove, getNoteTree, recorder])
 
     return { moveSectionTo, moveTaskTo }
 }

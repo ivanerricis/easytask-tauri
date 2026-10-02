@@ -331,18 +331,20 @@ type RecorderOf<T> = { [K in keyof T]: T[K] extends (...args: infer A) => UndoCo
 export type UndoRecorder = RecorderOf<UndoCommands> & {
     /** Records a command built by the caller (for the actions that need the state of their own component). */
     record: (command: UndoCommand) => void
+    /** Marks a write that records its command when it ends, so that an undo asked meanwhile waits for it. */
+    track: <T>(write: Promise<T>) => Promise<T>
 }
 
 /** Wraps the builders so that every call records the command. */
-export function createUndoRecorder(commands: UndoCommands, record: (command: UndoCommand) => void): UndoRecorder {
+export function createUndoRecorder(commands: UndoCommands, record: (command: UndoCommand) => void, track: UndoRecorder["track"] = write => write): UndoRecorder {
     const entries = Object.entries(commands).map(([name, build]) =>
         [name, (...args: never[]) => record((build as (...a: never[]) => UndoCommand)(...args))] as const)
-    return { ...Object.fromEntries(entries), record } as UndoRecorder
+    return { ...Object.fromEntries(entries), record, track } as UndoRecorder
 }
 
 /** A recorder that does nothing (outside an UndoProvider, e.g. in isolated component tests). */
 const noop = () => {}
 export const NOOP_RECORDER: UndoRecorder = {
     rename: noop, color: noop, taskCompletion: noop, taskPriority: noop, taskDescription: noop, remove: noop, create: noop,
-    treeMove: noop, sectionMove: noop, sectionMoveToNewGroup: noop, taskMove: noop, record: noop,
+    treeMove: noop, sectionMove: noop, sectionMoveToNewGroup: noop, taskMove: noop, record: noop, track: write => write,
 }

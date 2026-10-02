@@ -269,14 +269,9 @@ describe("Layout and appearance", () => {
     })
 
     describe("WCAG contrast", () => {
-        // Real defects of the app, measured by this spec and left out of the verdict until they are fixed:
-        // - the default Button hard-codes text-white on the orange accent (1.76:1 in both themes)
-        // - the border of an empty checkbox is 2.78:1 in the dark theme (border-input is translucent)
-        // Remove an entry once the app is fixed: the check then guards it.
-        const KNOWN_DEFECTS = ["light primary button text", "dark primary button text", "dark empty checkbox border"]
         const check = (what: string, theme: string, ratio: number, minimum: number) => {
             console.log(`[contrast] ${theme} ${what}: ${ratio.toFixed(2)} (min ${minimum})`)
-            if (ratio < minimum && !KNOWN_DEFECTS.includes(`${theme} ${what}`)) failures.push(`${theme} ${what}: ${ratio.toFixed(2)} < ${minimum}`)
+            if (ratio < minimum) failures.push(`${theme} ${what}: ${ratio.toFixed(2)} < ${minimum}`)
         }
 
         for (const theme of ["light", "dark"] as const) {

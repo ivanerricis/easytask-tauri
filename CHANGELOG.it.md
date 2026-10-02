@@ -4,6 +4,15 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+### Corretto
+
+- Il campo descrizione della sidebar di destra ha un'altezza minima fissa.
+- Una sola regola per il testo sul colore d'accento (pulsanti, opzioni selezionate, la spunta): il `--primary-foreground` scuro o bianco, anche all'avvio del tema chiaro, prima che sia calcolato dall'accento.
+- Aprendo una sidebar non si vede più per un istante il contenuto schiacciato (testo in verticale): il contenuto mantiene la larghezza finale mentre il pannello si apre.
+- Il testo dei pulsanti principali (e di ciò che sta sul colore d'accento) è scuro o bianco secondo l'accento: era sempre bianco, 1,8:1 sull'arancione predefinito.
+- Il bordo di una casella vuota e dei campi di testo arriva a 3:1 sul tema scuro (era 2,8:1).
+- Ctrl+Z subito dopo "Sposta su/giù" (o un trascinamento) lo annulla: prima non faceva nulla finché lo spostamento non era salvato.
+
 ### Aggiunto
 
 - Le novità nella dialog di aggiornamento e in Impostazioni > Informazioni sono mostrate nella lingua dell'app (italiano o inglese). Vengono da `CHANGELOG.md` e dal nuovo `CHANGELOG.it.md`, che i controlli di release richiedono per ogni versione.

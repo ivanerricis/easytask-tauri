@@ -35,6 +35,7 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
         // eslint-disable-next-line react-hooks/refs
         createUndoCommands({ getWorkspaceId: () => workspaceIdRef.current, workspace: workspaceActions, note: noteActions }),
         history.record,
+        history.track,
     ), [history, workspaceActions, noteActions])
 
     const clear = useCallback(() => history.clear(), [history])
