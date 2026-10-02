@@ -8,6 +8,7 @@ import { ThemeProvider } from './components/theme-provider'
 import { Toaster } from './components/ui/sonner'
 import { ShortcutsProvider } from './contexts/shortcuts-context'
 import { DialogShortcuts } from './components/dialogs/dialog-shortcuts'
+import { DialogUpdate } from './components/dialogs/dialog-update'
 import { TextContextMenu } from './components/text-context-menu'
 import { getEditableTarget } from './lib/editable-target'
 
@@ -60,6 +61,7 @@ function App() {
             </UndoProvider>
             <Toaster richColors position='top-center' />
             <DialogShortcuts />
+            <DialogUpdate />
             <TextContextMenu />
           </WorkspaceDataProvider>
         </WorkspaceProvider>

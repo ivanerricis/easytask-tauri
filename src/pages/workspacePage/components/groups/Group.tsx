@@ -30,7 +30,8 @@ export const Group = ({ group, index = 0 }: GroupProps) => {
         <div
             ref={setRef}
             className={cn(
-                "relative flex flex-col gap-1 h-full rounded-xs",
+                // Same minimum width as a section: an empty group would otherwise shrink to "Nuova sezione" and clip its header
+                "relative flex flex-col gap-1 h-full min-w-[250px] rounded-xs",
                 isDragging && "opacity-40",
                 !draggingGroup && zone && "ring-2 ring-primary",
             )}

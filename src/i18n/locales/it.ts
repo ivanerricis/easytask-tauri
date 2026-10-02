@@ -206,8 +206,13 @@ export const it = {
                     label: "Controlla all'avvio",
                     description: "Cerca in silenzio una nuova versione all'avvio dell'app.",
                 },
-                toastAvailable: "Aggiornamento disponibile: versione {{version}}",
-                openAbout: "Apri Informazioni",
+                dialog: {
+                    title: "Aggiornamento disponibile",
+                    description: "È disponibile EasyTask {{version}} (hai la {{current}}).",
+                    updateNow: "Aggiorna ora",
+                    later: "Più tardi",
+                    skip: "Salta questa versione",
+                },
             },
         },
         data: {

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
-import { saveCheckUpdatesOnStartup } from "@/lib/store/preferences"
-import { OPEN_SETTINGS_EVENT, runStartupUpdateCheck } from "./updater"
+import { saveCheckUpdatesOnStartup, saveSkippedUpdateVersion } from "@/lib/store/preferences"
+import { runStartupUpdateCheck, UPDATE_AVAILABLE_EVENT } from "./updater"
 
 const check = vi.fn()
 const isPortable = vi.fn()
@@ -32,17 +32,31 @@ describe("runStartupUpdateCheck", () => {
         expect(toast.error).not.toHaveBeenCalled()
     })
 
-    it("shows a toast whose action opens the About page", async () => {
-        check.mockResolvedValue({ version: "2.0.0" })
+    it("announces the update to the update dialog, with the portable flag", async () => {
+        const update = { version: "2.0.0" }
+        check.mockResolvedValue(update)
+        isPortable.mockResolvedValue(true)
         const listener = vi.fn()
-        window.addEventListener(OPEN_SETTINGS_EVENT, listener)
+        window.addEventListener(UPDATE_AVAILABLE_EVENT, listener)
+        expect(await runStartupUpdateCheck()).toBe(update)
+        expect(listener).toHaveBeenCalledTimes(1)
+        expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({ update, portable: true })
+        expect(toast).not.toHaveBeenCalled()
+        window.removeEventListener(UPDATE_AVAILABLE_EVENT, listener)
+    })
+
+    it("does not announce a version the user skipped, but does announce a newer one", async () => {
+        await saveSkippedUpdateVersion("2.0.0")
+        const listener = vi.fn()
+        window.addEventListener(UPDATE_AVAILABLE_EVENT, listener)
+        check.mockResolvedValue({ version: "2.0.0" })
+        expect(await runStartupUpdateCheck()).toBeNull()
+        expect(listener).not.toHaveBeenCalled()
+        check.mockResolvedValue({ version: "2.1.0" })
         await runStartupUpdateCheck()
-        expect(toast).toHaveBeenCalledTimes(1)
-        const [message, options] = vi.mocked(toast).mock.calls[0] as unknown as [string, { action: { onClick: () => void } }]
-        expect(message).toContain("2.0.0")
-        options.action.onClick()
-        expect((listener.mock.calls[0][0] as CustomEvent).detail).toEqual({ category: "about" })
-        window.removeEventListener(OPEN_SETTINGS_EVENT, listener)
+        expect(listener).toHaveBeenCalledTimes(1)
+        window.removeEventListener(UPDATE_AVAILABLE_EVENT, listener)
+        await saveSkippedUpdateVersion(null)
     })
 
     it("does nothing when the preference is off", async () => {

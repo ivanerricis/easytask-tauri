@@ -208,8 +208,13 @@ export const en: Translation = {
                     label: "Check at startup",
                     description: "Silently looks for a new version when the app starts.",
                 },
-                toastAvailable: "Update available: version {{version}}",
-                openAbout: "Open About",
+                dialog: {
+                    title: "Update available",
+                    description: "EasyTask {{version}} is available (you have {{current}}).",
+                    updateNow: "Update now",
+                    later: "Later",
+                    skip: "Skip this version",
+                },
             },
         },
         data: {

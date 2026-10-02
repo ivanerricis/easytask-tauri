@@ -25,6 +25,7 @@ const LANGUAGE_KEY = "language"
 const BACKUP_KEEP_KEY = "backupKeep"
 const AUTO_BACKUP_KEY = "autoBackup"
 const CHECK_UPDATES_KEY = "checkUpdatesOnStartup"
+const SKIPPED_UPDATE_KEY = "skippedUpdateVersion"
 const SIDEBAR_LEFT_WIDTH_KEY = "sidebarLeftWidth"
 const SIDEBAR_RIGHT_WIDTH_KEY = "sidebarRightWidth"
 const COLOR_INTENSITY_KEY = "colorIntensity"
@@ -631,6 +632,28 @@ export const getCheckUpdatesOnStartup = async (): Promise<boolean> => {
  */
 export const saveCheckUpdatesOnStartup = async (value: boolean): Promise<void> => {
     await store.set(CHECK_UPDATES_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets the version the user chose to skip in the update dialog (it is not offered again at startup).
+ * @returns A promise that resolves to the skipped version, or null when none was skipped.
+ * @category Store
+ */
+export const getSkippedUpdateVersion = async (): Promise<string | null> => {
+    const value = await store.get<string>(SKIPPED_UPDATE_KEY)
+    return typeof value === "string" && value.length > 0 ? value : null
+}
+
+/**
+ * Saves the version the user chose to skip in the update dialog.
+ * @param version The skipped version, or null to clear it.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveSkippedUpdateVersion = async (version: string | null): Promise<void> => {
+    if (version) await store.set(SKIPPED_UPDATE_KEY, version)
+    else await store.delete(SKIPPED_UPDATE_KEY)
     await persist()
 }
 
