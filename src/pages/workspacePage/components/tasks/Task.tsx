@@ -10,7 +10,7 @@ import { toast } from "sonner"
 import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import TextareaAutosize from "react-textarea-autosize"
-import { AlignLeft, GripVertical, Info, Plus } from "lucide-react"
+import { AlignLeft, GripVertical, Info, ListTree, Plus } from "lucide-react"
 import { AddTask } from "./AddTask"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
@@ -22,10 +22,12 @@ const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
 
 type TaskProps = {
     task: TaskType
+    /** Nesting level: 0 for a task of the section, 1+ for subtasks. */
+    depth?: number
     children?: React.ReactNode
 }
 
-export const Task = React.memo(({ task, children }: TaskProps) => {
+export const Task = React.memo(({ task, depth = 0, children }: TaskProps) => {
     const { t } = useTranslation()
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(task.text)
@@ -49,6 +51,8 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
         setDragRef(node)
     }, [setDropRef, setDragRef])
     const draggingTask = active?.kind === "task"
+    const isSubtask = depth > 0
+    const doneSubtasks = task.subtasks.filter(subtask => subtask.completed).length
 
     useEffect(() => {
         if (isTextAreaOpen && textareaRef.current) {
@@ -100,8 +104,14 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
     return (
         <div className={cn(
             "relative flex flex-col items-center w-full border border-transparent transition-none",
+            isSubtask ? "group/subtask" : "border-b-border",
             isTextAreaOpen && "border border-primary rounded-xs"
         )}>
+            {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└) */}
+            {isSubtask && <>
+                <span aria-hidden className="pointer-events-none absolute -left-px -top-px -bottom-px w-px bg-border group-last/subtask:hidden" />
+                <span aria-hidden className="pointer-events-none absolute -left-px -top-px h-[19px] w-4 border-b border-border group-last/subtask:border-l" />
+            </>}
             <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)}>
                 <div
                     ref={setRowRef}
@@ -113,7 +123,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                     }}
                     onFocus={() => selectTask(task.id)}
                     className={cn(
-                        "relative flex flex-col items-center w-full border-b",
+                        "relative flex flex-col items-center w-full",
                         selected && "bg-accent/50",
                         isDragging && "opacity-40",
                         draggingTask && (zone === "inside" || zone === "inside-start") && "bg-primary/15 ring-1 ring-inset ring-primary",
@@ -144,7 +154,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                 <Checkbox
                                     checked={!!task.completed}
                                     onCheckedChange={handleCheckedChange}
-                                    className="mt-0.5"
+                                    className={isSubtask ? "mt-[3px] size-3.5" : "mt-0.5"}
                                 />
                                 {!isTextAreaOpen && <TextareaAutosize
                                     onClick={() => { setTextAreaOpen(true); setText(task.text) }}
@@ -181,6 +191,18 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                     className="w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm"
                                 />}
                             </div>
+
+                            {/* Progress of the direct subtasks */}
+                            {task.subtasks.length > 0 &&
+                                <span
+                                    title={t("tasks.subtaskProgress", { done: doneSubtasks, total: task.subtasks.length })}
+                                    className={cn(
+                                        "flex shrink-0 items-center gap-0.5 mt-0.5 ml-1 text-xs tabular-nums",
+                                        doneSubtasks === task.subtasks.length ? "text-primary" : "text-muted-foreground",
+                                    )}>
+                                    <ListTree className="size-3.5" />
+                                    {doneSubtasks}/{task.subtasks.length}
+                                </span>}
 
                             {/* Priority circle */}
                             <div
@@ -224,7 +246,8 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                     </div>
                 </div>
             </ButtonMenuTask>
-            {(task.subtasks.length > 0 || isAddingSubtask) && <div className="flex flex-col w-full pl-6">
+            {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
+            {(task.subtasks.length > 0 || isAddingSubtask) && <div className="flex flex-col self-stretch ml-7 mb-1">
                 {children}
                 {isAddingSubtask &&
                     <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}

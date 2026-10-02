@@ -12,9 +12,9 @@ type SectionBodyProps = {
 
 // Tasks are nested recursively: subtasks (at any depth) are rendered inside their parent. A hidden completed task takes
 // its whole subtree with it; the Task still receives the full task (its progress counts every subtask).
-const renderTask = (task: TaskType, hideCompleted: boolean): React.ReactNode => (
-    <Task key={task.id} task={task}>
-        {visibleTasks(task.subtasks, hideCompleted).map(subtask => renderTask(subtask, hideCompleted))}
+const renderTask = (task: TaskType, hideCompleted: boolean, depth = 0): React.ReactNode => (
+    <Task key={task.id} task={task} depth={depth}>
+        {visibleTasks(task.subtasks, hideCompleted).map(subtask => renderTask(subtask, hideCompleted, depth + 1))}
     </Task>
 )
 

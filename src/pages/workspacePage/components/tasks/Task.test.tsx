@@ -207,3 +207,31 @@ describe("Task text editing", () => {
         expect(screen.getByRole("img", { name: "Priorità alta" })).toBeInTheDocument()
     })
 })
+
+describe("Task subtasks", () => {
+    const parent = makeTask({
+        id: 10,
+        text: "Genitore",
+        subtasks: [makeTask({ id: 11, text: "Uno", completed: true }), makeTask({ id: 12, text: "Due" })],
+    })
+
+    it("shows how many direct subtasks are completed", () => {
+        renderTasks(<Task task={parent} />)
+        expect(screen.getByTitle("1 di 2 sottotask completati")).toHaveTextContent("1/2")
+    })
+
+    it("shows no counter on a task without subtasks", () => {
+        renderTasks(<Task task={makeTask({ id: 10, text: "Solo" })} />)
+        expect(screen.queryByTitle(/sottotask completati/)).not.toBeInTheDocument()
+    })
+
+    it("draws the tree connectors only for subtasks", () => {
+        const { container } = renderTasks(<>
+            <Task task={makeTask({ id: 10, text: "Primo" })} />
+            <Task task={makeTask({ id: 11, text: "Sotto" })} depth={1} />
+        </>)
+        const subtaskBlocks = container.querySelectorAll('[class~="group/subtask"]')
+        expect(subtaskBlocks).toHaveLength(1)
+        expect(subtaskBlocks[0].querySelectorAll(":scope > span[aria-hidden]")).toHaveLength(2)
+    })
+})

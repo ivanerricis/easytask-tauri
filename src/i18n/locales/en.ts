@@ -751,6 +751,7 @@ export const en: Translation = {
         expand: "Expand section",
     },
     tasks: {
+        subtaskProgress: "{{done}} of {{total}} subtasks completed",
         hiddenCompleted_one: "{{count}} completed task hidden",
         hiddenCompleted_other: "{{count}} completed tasks hidden",
         errors: {

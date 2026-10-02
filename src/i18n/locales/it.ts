@@ -749,6 +749,7 @@ export const it = {
         expand: "Espandi sezione",
     },
     tasks: {
+        subtaskProgress: "{{done}} di {{total}} sottotask completati",
         hiddenCompleted_one: "{{count}} task completato nascosto",
         hiddenCompleted_other: "{{count}} task completati nascosti",
         errors: {
