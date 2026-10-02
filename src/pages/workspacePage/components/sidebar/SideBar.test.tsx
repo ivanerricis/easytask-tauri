@@ -92,6 +92,11 @@ describe("SideBar", () => {
         expect(onWidthChange).toHaveBeenCalledExactlyOnceWith(480)
     })
 
+    it("lays the content out at the full width of the panel, so it does not reflow while the panel opens", () => {
+        render(<Host width={300} />)
+        expect(screen.getByText("dentro").parentElement).toHaveStyle({ width: "300px" })
+    })
+
     it("collapses and expands with the toggle button, which reports its state", async () => {
         window.innerWidth = 1400
         render(<Host />)

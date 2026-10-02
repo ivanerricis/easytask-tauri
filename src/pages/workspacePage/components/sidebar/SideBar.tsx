@@ -127,7 +127,15 @@ export const SideBar = ({
                     overflow: "hidden",
                 }}
             >
-                {showPanel && children}
+                {/* Laid out at its final width from the first frame: while the panel opens (or closes) it is only revealed, so the text does not reflow */}
+                {showPanel && (
+                    <div
+                        className={`flex h-full min-h-0 shrink-0 flex-col ${position === "left" ? "self-start" : "self-end"}`}
+                        style={{ width: currentWidth, maxWidth: overlay ? "calc(100vw - 80px)" : undefined }}
+                    >
+                        {children}
+                    </div>
+                )}
                 {showPanel && !overlay && (
                     <div
                         role="separator"

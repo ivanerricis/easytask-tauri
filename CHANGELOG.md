@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Opening a sidebar no longer shows its content squeezed (text in vertical) for a moment: the content keeps its final width while the panel slides open.
 - The text of primary buttons (and of other things on the accent color) is dark or white as the accent requires: it was always white, 1.8:1 on the default orange.
 - The border of an empty checkbox and of text fields reaches 3:1 in the dark theme (it was 2.8:1).
 - Ctrl+Z right after "Move up/down" (or a drag) undoes it: it used to do nothing until the move was saved.

@@ -6,6 +6,7 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Corretto
 
+- Aprendo una sidebar non si vede più per un istante il contenuto schiacciato (testo in verticale): il contenuto mantiene la larghezza finale mentre il pannello si apre.
 - Il testo dei pulsanti principali (e di ciò che sta sul colore d'accento) è scuro o bianco secondo l'accento: era sempre bianco, 1,8:1 sull'arancione predefinito.
 - Il bordo di una casella vuota e dei campi di testo arriva a 3:1 sul tema scuro (era 2,8:1).
 - Ctrl+Z subito dopo "Sposta su/giù" (o un trascinamento) lo annulla: prima non faceva nulla finché lo spostamento non era salvato.
