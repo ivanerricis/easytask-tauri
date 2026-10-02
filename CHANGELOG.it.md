@@ -6,6 +6,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Corretto
 
+- Il campo descrizione della sidebar di destra ha un'altezza minima fissa.
+- Una sola regola per il testo sul colore d'accento (pulsanti, opzioni selezionate, la spunta): il `--primary-foreground` scuro o bianco, anche all'avvio del tema chiaro, prima che sia calcolato dall'accento.
 - Aprendo una sidebar non si vede più per un istante il contenuto schiacciato (testo in verticale): il contenuto mantiene la larghezza finale mentre il pannello si apre.
 - Il testo dei pulsanti principali (e di ciò che sta sul colore d'accento) è scuro o bianco secondo l'accento: era sempre bianco, 1,8:1 sull'arancione predefinito.
 - Il bordo di una casella vuota e dei campi di testo arriva a 3:1 sul tema scuro (era 2,8:1).

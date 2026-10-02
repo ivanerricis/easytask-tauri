@@ -103,7 +103,7 @@ const TaskDescription = ({ task }: { task: Task }) => {
                 value={value}
                 placeholder={t("sidebar.info.placeholder")}
                 onChange={e => setDraft(e.target.value)}
-                className={`${focusRing} w-full resize-y rounded-xs border bg-background px-2 py-1 text-sm`}
+                className={`${focusRing} min-h-24 w-full resize-y rounded-xs border bg-background px-2 py-1 text-sm`}
             />
             {dirty && (
                 <div className="flex justify-end gap-2">
