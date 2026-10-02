@@ -25,7 +25,7 @@ export const DialogSettingsContent = ({ isOpen, onOpenChange, requestedCategory 
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-3xl h-[min(560px,80vh)] grid-rows-[auto_1fr] overflow-hidden">
+            <DialogContent className="sm:max-w-3xl h-[min(720px,85vh)] grid-rows-[auto_1fr] overflow-hidden">
                 <DialogDescription className="sr-only">
                     {t("settings.description")}
                 </DialogDescription>

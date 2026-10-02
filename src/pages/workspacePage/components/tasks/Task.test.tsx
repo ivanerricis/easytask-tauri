@@ -27,6 +27,7 @@ vi.mock("../note-dnd-state", () => ({
     }),
 }))
 vi.mock("../NoteMoveSubmenus", () => ({ TaskMoveSubmenu: () => null }))
+vi.mock("../NoteStepMoves", () => ({ TaskStepMoves: () => null }))
 vi.mock("./AddTask", () => ({ AddTask: () => null }))
 vi.mock("./DialogTaskDescription", () => ({ DialogTaskDescription: () => <div>description dialog</div> }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => null }))

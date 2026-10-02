@@ -17,6 +17,7 @@ const removeSection = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor, duplicateSection }) }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchSection, removeSection, refreshActiveNote }) }))
 vi.mock("../NoteMoveSubmenus", () => ({ SectionMoveSubmenu: () => null }))
+vi.mock("../NoteStepMoves", () => ({ SectionStepMoves: () => null }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({
     DialogDeleteItem: ({ isOpen, optimistic }: { isOpen: boolean, optimistic: () => () => void }) =>
         isOpen ? <button onClick={() => optimistic()}>Dialog elimina</button> : null,

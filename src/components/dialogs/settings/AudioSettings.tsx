@@ -5,6 +5,7 @@ import { Switch } from "@/components/ui/switch"
 import { usePreferences } from "@/contexts/use-preferences"
 import { AUDIO_PLAYER_SCALES, MIN_AUDIO_PLAYER_OPACITY, type AudioPlayerScale } from "@/lib/store/preferences"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
+import { SectionResetButton } from "./SectionResetButton"
 
 const SIZE_KEYS: Record<AudioPlayerScale, "small" | "normal" | "large"> = { 0.85: "small", 1: "normal", 1.2: "large" }
 
@@ -40,7 +41,10 @@ export const AudioSettings = () => {
     const sizeLabel = t("settings.audio.playerSize.label")
 
     return (
-        <SettingsPanel title={t("settings.audio.title")}>
+        <SettingsPanel
+            title={t("settings.audio.title")}
+            action={<SectionResetButton title={t("settings.audio.resetAll.description")} onClick={resetAudioSettings} />}
+        >
             <SettingsRow label={t("settings.audio.volume.label")} description={t("settings.audio.volume.description")}>
                 <PercentRange label={t("settings.audio.volume.label")} value={audioVolume} min={0} onChange={setAudioVolume} />
             </SettingsRow>
@@ -74,12 +78,6 @@ export const AudioSettings = () => {
                 <Button variant="outline" size="sm" onClick={resetPlayerPosition}>
                     <RotateCcw />
                     {t("settings.audio.resetPlayer.button")}
-                </Button>
-            </SettingsRow>
-            <SettingsRow label={t("settings.audio.resetAll.label")} description={t("settings.audio.resetAll.description")}>
-                <Button variant="outline" size="sm" onClick={resetAudioSettings}>
-                    <RotateCcw />
-                    {t("settings.audio.resetAll.button")}
                 </Button>
             </SettingsRow>
         </SettingsPanel>

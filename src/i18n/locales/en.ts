@@ -122,6 +122,7 @@ export const en: Translation = {
         },
     },
     settings: {
+        resetAll: "Reset all",
         appearance: {
             language: {
                 label: "Language",
@@ -133,6 +134,12 @@ export const en: Translation = {
                 },
             },
             title: "Appearance",
+            reset: {
+                description: "Puts theme, accent color, language, size of folders and notes and color intensity back to their defaults.",
+                confirmTitle: "Reset the appearance?",
+                confirmDescription: "Theme, accent color, language, size of folders and notes and color intensity go back to their defaults. Your data is not touched.",
+                confirm: "Reset",
+            },
             theme: {
                 label: "Theme",
                 description: "Choose between light, dark or the system theme.",
@@ -162,7 +169,6 @@ export const en: Translation = {
         shortcuts: {
             title: "Shortcuts",
             hint: "Press \"Edit\" and then the new key combination. Esc cancels.",
-            resetAll: "Reset all",
             resetAllTitle: "Reset all shortcuts?",
             resetAllDescription: "Every custom shortcut will go back to its default.",
             needsModifier: "Use a combination with Ctrl or Alt.",
@@ -337,9 +343,7 @@ export const en: Translation = {
                 description: "Makes the player more or less transparent (at least 40% opaque).",
             },
             resetAll: {
-                label: "Reset the audio settings",
                 description: "Volume, visibility, size and transparency go back to their defaults.",
-                button: "Reset all",
             },
         },
         nav: "Settings categories",
@@ -648,6 +652,10 @@ export const en: Translation = {
     menu: {
         changeColor: "Change color",
         export: "Export",
+        moveUp: "Move up",
+        moveDown: "Move down",
+        moveLeft: "Move left",
+        moveRight: "Move right",
         moveTo: "Move to…",
         newGroup: "New group",
         sectionLabel: "Section {{label}}",

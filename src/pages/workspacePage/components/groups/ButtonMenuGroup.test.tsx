@@ -7,6 +7,7 @@ import { makeGroup } from "@/test/ui-fixtures"
 
 const patchGroup = vi.fn()
 const removeGroup = vi.fn()
+vi.mock("../NoteStepMoves", () => ({ GroupStepMoves: () => null }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchGroup, removeGroup }) }))
 vi.mock("@/contexts/use-audio", () => ({ useAudio: () => ({ addFiles: vi.fn() }) }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))

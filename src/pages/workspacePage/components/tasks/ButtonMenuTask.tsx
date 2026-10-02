@@ -16,6 +16,7 @@ import { ItemMenu } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { TaskMoveSubmenu } from "../NoteMoveSubmenus"
+import { TaskStepMoves } from "../NoteStepMoves"
 import { useShowTaskDetails } from "../rightbar/use-right-panel"
 import { useActiveNoteId, useSelectTask } from "@/contexts/use-tabs"
 
@@ -127,6 +128,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
                     />
                 </MenuSubContent>
             </MenuSub>
+            <TaskStepMoves taskId={task.id} onDone={menu.close} />
             <TaskMoveSubmenu taskId={task.id} onDone={menu.close} />
             <Separator />
             <ButtonInPopover

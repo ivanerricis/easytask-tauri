@@ -90,6 +90,17 @@ describe("DialogSettings", () => {
         expect(screen.getByRole("button", { name: "Ripristina" })).toBeInTheDocument()
     })
 
+    it("puts the reset of a section in the same place everywhere: in its title row, on the right", async () => {
+        const user = await open()
+        for (const section of ["Aspetto", "Audio"]) {
+            await user.click(screen.getByRole("button", { name: section }))
+            const heading = screen.getByRole("heading", { name: section })
+            const reset = screen.getByRole("button", { name: "Ripristina tutto" })
+            expect(reset.parentElement).toBe(heading.parentElement)
+            expect(heading.parentElement?.lastElementChild).toBe(reset)
+        }
+    })
+
     it("toggles the hide completed tasks preference", async () => {
         const user = await open()
         await user.click(screen.getByRole("button", { name: "Note e sezioni" }))

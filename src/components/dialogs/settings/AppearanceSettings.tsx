@@ -6,13 +6,14 @@ import { SettingsPanel, SettingsRow } from "./SettingsRow"
 import { LanguageSetting } from "./LanguageSetting"
 import { SidebarItemSizeSetting } from "./SidebarItemSizeSetting"
 import { ColorIntensitySetting } from "./ColorIntensitySetting"
+import { ResetAppearanceSetting } from "./ResetAppearanceSetting"
 
 export const AppearanceSettings = () => {
     const { t } = useTranslation()
     const { primaryColor, setPrimaryColor } = usePreferences()
 
     return (
-        <SettingsPanel title={t("settings.appearance.title")}>
+        <SettingsPanel title={t("settings.appearance.title")} action={<ResetAppearanceSetting />}>
             <SettingsRow label={t("settings.appearance.theme.label")} description={t("settings.appearance.theme.description")}>
                 <ModeToggle />
             </SettingsRow>

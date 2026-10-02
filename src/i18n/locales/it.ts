@@ -120,6 +120,7 @@ export const it = {
         },
     },
     settings: {
+        resetAll: "Ripristina tutto",
         appearance: {
             language: {
                 label: "Lingua",
@@ -131,6 +132,12 @@ export const it = {
                 },
             },
             title: "Aspetto",
+            reset: {
+                description: "Riporta tema, colore d'accento, lingua, dimensione di cartelle e note e intensità dei colori ai valori predefiniti.",
+                confirmTitle: "Ripristinare l'aspetto?",
+                confirmDescription: "Tema, colore d'accento, lingua, dimensione di cartelle e note e intensità dei colori tornano ai valori predefiniti. I tuoi dati non vengono toccati.",
+                confirm: "Ripristina",
+            },
             theme: {
                 label: "Tema",
                 description: "Scegli tra tema chiaro, scuro o quello del sistema.",
@@ -160,7 +167,6 @@ export const it = {
         shortcuts: {
             title: "Scorciatoie",
             hint: "Premi \"Modifica\" e poi la nuova combinazione di tasti. Esc annulla.",
-            resetAll: "Ripristina tutte",
             resetAllTitle: "Ripristinare tutte le scorciatoie?",
             resetAllDescription: "Tutte le scorciatoie personalizzate torneranno ai valori predefiniti.",
             needsModifier: "Usa una combinazione con Ctrl o Alt.",
@@ -335,9 +341,7 @@ export const it = {
                 description: "Rende il player più o meno trasparente (minimo 40%).",
             },
             resetAll: {
-                label: "Ripristina le impostazioni audio",
                 description: "Volume, visibilità, dimensione e trasparenza tornano ai valori predefiniti.",
-                button: "Ripristina tutto",
             },
         },
         nav: "Categorie impostazioni",
@@ -646,6 +650,10 @@ export const it = {
     menu: {
         changeColor: "Cambia colore",
         export: "Esporta",
+        moveUp: "Sposta su",
+        moveDown: "Sposta giù",
+        moveLeft: "Sposta a sinistra",
+        moveRight: "Sposta a destra",
         moveTo: "Sposta in…",
         newGroup: "Nuovo gruppo",
         sectionLabel: "Sezione {{label}}",

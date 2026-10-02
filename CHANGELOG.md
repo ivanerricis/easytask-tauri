@@ -6,8 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- "Move up" / "Move down" in the menu of tasks, subtasks and sections ("Move left" / "Move right" for groups): a keyboard- and pointer-friendly alternative to dragging. Completed tasks that are hidden are jumped over, and the move can be undone.
+- "Reset all" for the Appearance page (theme, accent color, language, size of folders and notes, color intensity), with a confirmation.
+
 ### Changed
 
+- The "Reset all" button of the Settings sections (Appearance, Audio, Shortcuts) is always in the same place: the title row of the section, on the right.
+- The Settings dialog is taller (720px, at most 85% of the window).
 - Subtasks hang from tree guide lines under the checkbox of their parent (no more stepped separators), with a slightly smaller checkbox, and a task with subtasks shows how many are done (e.g. `1/3`).
 - Settings > Notes has a switch to show or hide the number of completed subtasks of a task.
 - The subtask guide lines are easier to see (contrast about 2:1, was 1.3:1) and the counter of a task with all subtasks done uses the normal text color instead of the accent color, which was unreadable on the light theme.
@@ -16,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Borders of checkboxes, text fields and the track of switches reach about 3:1 contrast on both themes. On the light theme the `--input` color was written in an invalid way, so these borders turned black and the track of an off switch was transparent.
 - An empty group no longer shrinks and clips its header.
 - Collapsing a group no longer changes its width (it keeps the width it had while open).
 - Reloading the page of a workspace (development builds) restores the workspace from the URL instead of leaving a blank screen.
