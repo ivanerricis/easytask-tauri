@@ -220,6 +220,11 @@ describe("Task subtasks", () => {
         expect(screen.getByTitle("1 di 2 sottotask completati")).toHaveTextContent("1/2")
     })
 
+    it("hides the counter when the preference is off", () => {
+        renderTasks(<Task task={parent} showSubtaskCount={false} />)
+        expect(screen.queryByTitle(/sottotask completati/)).not.toBeInTheDocument()
+    })
+
     it("shows no counter on a task without subtasks", () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Solo" })} />)
         expect(screen.queryByTitle(/sottotask completati/)).not.toBeInTheDocument()

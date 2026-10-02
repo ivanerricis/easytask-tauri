@@ -24,10 +24,12 @@ type TaskProps = {
     task: TaskType
     /** Nesting level: 0 for a task of the section, 1+ for subtasks. */
     depth?: number
+    /** Shows how many direct subtasks are completed (preference "Show completed subtasks"). */
+    showSubtaskCount?: boolean
     children?: React.ReactNode
 }
 
-export const Task = React.memo(({ task, depth = 0, children }: TaskProps) => {
+export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, children }: TaskProps) => {
     const { t } = useTranslation()
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(task.text)
@@ -193,7 +195,7 @@ export const Task = React.memo(({ task, depth = 0, children }: TaskProps) => {
                             </div>
 
                             {/* Progress of the direct subtasks */}
-                            {task.subtasks.length > 0 &&
+                            {showSubtaskCount && task.subtasks.length > 0 &&
                                 <span
                                     title={t("tasks.subtaskProgress", { done: doneSubtasks, total: task.subtasks.length })}
                                     className={cn(

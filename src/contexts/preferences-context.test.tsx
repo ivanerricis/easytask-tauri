@@ -54,6 +54,8 @@ vi.mock("@/lib/store/preferences", async (importOriginal) => ({
     saveLanguage: vi.fn(),
     getHideCompletedTasks: vi.fn(),
     saveHideCompletedTasks: vi.fn(),
+    getShowSubtaskCount: vi.fn(),
+    saveShowSubtaskCount: vi.fn(),
 }))
 vi.mock("@/lib/report-error", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@/lib/report-error")>()),
@@ -88,6 +90,7 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getAudioPlayerOpacity).mockResolvedValue(0.6)
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
         vi.mocked(prefs.getHideCompletedTasks).mockResolvedValue(true)
+        vi.mocked(prefs.getShowSubtaskCount).mockResolvedValue(false)
         // The saves are promises (the provider reports their failures)
         for (const [name, fn] of Object.entries(prefs)) {
             if (/^(save|reset)/.test(name) && vi.isMockFunction(fn)) fn.mockResolvedValue(undefined)
@@ -322,6 +325,17 @@ describe("PreferencesContext", () => {
 
         expect(result.current.hideCompletedTasks).toBe(false)
         expect(prefs.saveHideCompletedTasks).toHaveBeenCalledWith(false)
+    })
+
+    it("loads and persists the subtask count preference (default on)", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.showSubtaskCount).toBe(true)
+        await waitFor(() => expect(result.current.showSubtaskCount).toBe(false))
+
+        act(() => result.current.setShowSubtaskCount(true))
+
+        expect(result.current.showSubtaskCount).toBe(true)
+        expect(prefs.saveShowSubtaskCount).toHaveBeenCalledWith(true)
     })
 
     it("resetPlayerPosition sets and saves the computed position once", async () => {

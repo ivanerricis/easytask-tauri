@@ -293,6 +293,10 @@ export const en: Translation = {
             },
             sectionCount: "Show number of sections",
             taskCount: "Show number of tasks",
+            subtaskCount: {
+                label: "Show completed subtasks",
+                description: "A task with subtasks shows how many of them are completed (e.g. 1/3).",
+            },
             reopenWorkspace: {
                 label: "Reopen the last workspace at startup",
                 description: "If you close the app inside a workspace, it is reopened at the next startup.",

@@ -81,7 +81,7 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("button", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
-        expect(screen.getAllByRole("switch")).toHaveLength(7)
+        expect(screen.getAllByRole("switch")).toHaveLength(8)
         expect(screen.getByRole("switch", { name: "Nascondi i task completati" })).not.toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()

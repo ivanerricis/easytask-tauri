@@ -31,6 +31,7 @@ const SIDEBAR_RIGHT_WIDTH_KEY = "sidebarRightWidth"
 const COLOR_INTENSITY_KEY = "colorIntensity"
 const RIGHT_PANEL_TAB_KEY = "rightPanelTab"
 const HIDE_COMPLETED_TASKS_KEY = "hideCompletedTasks"
+const SHOW_SUBTASK_COUNT_KEY = "showSubtaskCount"
 export const DEFAULT_PRIMARY_COLOR = "#ffb375"
 
 const SAVE_DEBOUNCE_MS = 500
@@ -695,5 +696,26 @@ export const getHideCompletedTasks = async (): Promise<boolean> => {
  */
 export const saveHideCompletedTasks = async (value: boolean): Promise<void> => {
     await store.set(HIDE_COMPLETED_TASKS_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets whether a task with subtasks shows how many of them are completed (e.g. "1/3").
+ * @returns A promise that resolves to a boolean (default true).
+ * @category Store
+ */
+export const getShowSubtaskCount = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(SHOW_SUBTASK_COUNT_KEY)
+    return value ?? true
+}
+
+/**
+ * Saves whether a task with subtasks shows how many of them are completed.
+ * @param value A boolean indicating whether the subtask count is shown.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveShowSubtaskCount = async (value: boolean): Promise<void> => {
+    await store.set(SHOW_SUBTASK_COUNT_KEY, value)
     await persist()
 }

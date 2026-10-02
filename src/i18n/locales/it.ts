@@ -291,6 +291,10 @@ export const it = {
             },
             sectionCount: "Mostra numero di sezioni",
             taskCount: "Mostra numero di task",
+            subtaskCount: {
+                label: "Mostra sottotask completati",
+                description: "Un task con sottotask mostra quanti ne sono completati (es. 1/3).",
+            },
             reopenWorkspace: {
                 label: "Riapri l'ultimo workspace all'avvio",
                 description: "Se chiudi l'app dentro un workspace, lo riapre al prossimo avvio.",

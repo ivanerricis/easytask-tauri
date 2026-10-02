@@ -9,12 +9,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Changed
 
 - Subtasks hang from tree guide lines under the checkbox of their parent (no more stepped separators), with a slightly smaller checkbox, and a task with subtasks shows how many are done (e.g. `1/3`).
+- Settings > Notes has a switch to show or hide the number of completed subtasks of a task.
 - Group names are always shown in full on one line: the group grows to fit the name instead of truncating it.
 - New versions are announced in a dialog at startup (what's new, "Update now", "Later", "Skip this version") instead of a toast that disappeared after 15 seconds.
 
 ### Fixed
 
 - An empty group no longer shrinks and clips its header.
+- Collapsing a group no longer changes its width (it keeps the width it had while open).
+- Reloading the page of a workspace (development builds) restores the workspace from the URL instead of leaving a blank screen.
 - Development and test builds (and any run with `EASYTASK_DATA_DIR`) can start while the installed app is open: the single-instance lock only applies to release builds on the default data folder.
 
 ## [0.2.0] - 2026-10-01
