@@ -97,6 +97,8 @@ export const it = {
             play: "Riproduci",
             pause: "Pausa",
             restart: "Riparti dall'inizio",
+            back: "Indietro di {{seconds}} secondi",
+            forward: "Avanti di {{seconds}} secondi",
             volume: "Volume",
             defaultTitle: "Titolo del file audio",
             position: "{{current}} di {{total}}",
@@ -629,7 +631,8 @@ export const it = {
     },
     window: {
         minimize: "Riduci a icona",
-        maximize: "Ingrandisci o ripristina",
+        maximize: "Ingrandisci",
+        restore: "Ripristina",
         close: "Chiudi la finestra",
     },
     crash: {

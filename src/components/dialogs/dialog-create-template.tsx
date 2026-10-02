@@ -1,3 +1,4 @@
+import { LayoutTemplate } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -59,6 +60,7 @@ const TemplateForm = ({ note, onOpenChange }: TemplateFormProps) => {
                     {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={!name.trim() || busy}>
+                    <LayoutTemplate />
                     {t("dialogs.createTemplate.title")}
                 </Button>
             </DialogFooter>

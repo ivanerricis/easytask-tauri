@@ -1,7 +1,7 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { RotateCcw } from "lucide-react"
+import { ConfirmDialog } from "../dialog-confirm"
 import { useTheme } from "@/components/use-theme"
 import { usePreferences } from "@/contexts/use-preferences"
 import { DEFAULT_LANGUAGE_PREFERENCE } from "@/i18n"
@@ -36,24 +36,18 @@ export const ResetAppearanceSetting = () => {
         setLanguage(DEFAULT_LANGUAGE_PREFERENCE)
         setSidebarItemSize("normal")
         setColorIntensity(DEFAULT_COLOR_INTENSITY)
-        setOpen(false)
     }
 
     return (
         <>
             <SectionResetButton disabled={isDefault} title={t("settings.appearance.reset.description")} onClick={() => setOpen(true)} />
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle>{t("settings.appearance.reset.confirmTitle")}</DialogTitle>
-                        <DialogDescription>{t("settings.appearance.reset.confirmDescription")}</DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setOpen(false)}>{t("common.cancel")}</Button>
-                        <Button onClick={handleReset}>{t("settings.appearance.reset.confirm")}</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
+            <ConfirmDialog
+                open={open}
+                onOpenChange={setOpen}
+                title={t("settings.appearance.reset.confirmTitle")}
+                description={t("settings.appearance.reset.confirmDescription")}
+                confirm={{ label: t("settings.appearance.reset.confirm"), icon: RotateCcw, onClick: handleReset }}
+            />
         </>
     )
 }

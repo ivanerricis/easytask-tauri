@@ -1,3 +1,4 @@
+import { FilePlus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -90,6 +91,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
                     {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={!name.trim() || busy}>
+                    <FilePlus />
                     {t("dialogs.noteFromTemplate.submit")}
                 </Button>
             </DialogFooter>

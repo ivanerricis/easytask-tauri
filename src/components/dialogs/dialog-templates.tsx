@@ -3,19 +3,9 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { FilePlus, LayoutTemplate, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { buttonVariants } from "@/components/ui/button-variants"
+import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -230,22 +220,15 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                     getItemData={reload}
                 />
             )}
-            <AlertDialog open={refreshing !== null} onOpenChange={open => { if (!open) setRefreshing(null) }}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t("dialogs.templates.refreshTitle")}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {t("dialogs.templates.refreshDescription", { name: refreshing?.name, note: refreshing?.sourceNoteName })}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                        <AlertDialogAction className={buttonVariants({ variant: "destructive" })} onClick={handleRefresh}>
-                            {t("dialogs.templates.overwrite")}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmDialog
+                open={refreshing !== null}
+                onOpenChange={open => { if (!open) setRefreshing(null) }}
+                destructive
+                initialFocus="cancel"
+                title={t("dialogs.templates.refreshTitle")}
+                description={t("dialogs.templates.refreshDescription", { name: refreshing?.name, note: refreshing?.sourceNoteName })}
+                confirm={{ label: t("dialogs.templates.overwrite"), icon: RefreshCw, onClick: handleRefresh }}
+            />
         </>
     )
 }

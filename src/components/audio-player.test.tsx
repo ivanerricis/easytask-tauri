@@ -390,9 +390,9 @@ describe("AudioPlayer", () => {
             act(() => handlers.seekto?.({ seekTime: 12 }))
             expect(audio.currentTime).toBe(12)
             act(() => handlers.seekforward?.({}))
-            expect(audio.currentTime).toBe(22)
+            expect(audio.currentTime).toBe(27)
             act(() => handlers.seekbackward?.({ seekOffset: 5 }))
-            expect(audio.currentTime).toBe(17)
+            expect(audio.currentTime).toBe(22)
             act(() => handlers.stop?.({}))
             expect(onClose).toHaveBeenCalledTimes(1)
         })
@@ -464,6 +464,51 @@ describe("AudioPlayer", () => {
             setup()
             fireEvent.change(screen.getByRole("slider", { name: "Volume" }), { target: { value: "0.3" } })
             expect(screen.getByRole("slider", { name: "Volume" }).style.getPropertyValue("--range-progress")).toBe("0.3")
+        })
+    })
+
+    describe("15 seconds back and forward", () => {
+        const loadedAt = (at: number, duration = 100) => {
+            const utils = setup()
+            Object.defineProperty(utils.audio, "duration", { value: duration, configurable: true })
+            Object.defineProperty(utils.audio, "currentTime", { value: at, configurable: true, writable: true })
+            act(() => { utils.audio.dispatchEvent(new Event("loadedmetadata")); utils.audio.dispatchEvent(new Event("timeupdate")) })
+            return utils
+        }
+
+        it("goes back and forward by 15 seconds, without starting or stopping the playback", async () => {
+            const user = userEvent.setup()
+            const { audio } = loadedAt(50)
+
+            await user.click(screen.getByRole("button", { name: "Indietro di 15 secondi" }))
+            expect(audio.currentTime).toBe(35)
+            expect(screen.getByText("0:35")).toBeInTheDocument()
+            await user.click(screen.getByRole("button", { name: "Avanti di 15 secondi" }))
+            await user.click(screen.getByRole("button", { name: "Avanti di 15 secondi" }))
+            expect(audio.currentTime).toBe(65)
+
+            expect(play).not.toHaveBeenCalled()
+            expect(pause).not.toHaveBeenCalled()
+        })
+
+        it("stays between the start and the end of the track", async () => {
+            const user = userEvent.setup()
+            const { audio } = loadedAt(6)
+            await user.click(screen.getByRole("button", { name: "Indietro di 15 secondi" }))
+            expect(audio.currentTime).toBe(0)
+
+            Object.defineProperty(audio, "currentTime", { value: 90, configurable: true, writable: true })
+            await user.click(screen.getByRole("button", { name: "Avanti di 15 secondi" }))
+            expect(audio.currentTime).toBe(100)
+        })
+
+        it("keeps the buttons in the row of the play button, apart from the volume", () => {
+            setup()
+            const back = screen.getByRole("button", { name: "Indietro di 15 secondi" })
+            const forward = screen.getByRole("button", { name: "Avanti di 15 secondi" })
+            expect(back.parentElement).toBe(playButton().parentElement)
+            expect(forward.parentElement).toBe(playButton().parentElement)
+            expect(back.parentElement).not.toContainElement(screen.getByRole("slider", { name: "Volume" }))
         })
     })
 })

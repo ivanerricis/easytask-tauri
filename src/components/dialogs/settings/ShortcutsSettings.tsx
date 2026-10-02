@@ -2,23 +2,13 @@ import { useTranslation } from "react-i18next"
 import { Fragment, useEffect, useState } from "react"
 import { Pencil, RotateCcw, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { buttonVariants } from "@/components/ui/button-variants"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Separator } from "@/components/ui/separator"
 import { KbdKeys } from "@/components/kbd"
 import { useShortcutsContext } from "@/contexts/use-shortcuts"
 import { SHORTCUTS, SHORTCUT_CATEGORIES, bindingFromEvent, categoryLabel, findConflictsFor, formatBinding, isValidBinding, shortcutDescription } from "@/lib/shortcuts"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 import { SectionResetButton } from "./SectionResetButton"
+import { ConfirmDialog } from "../dialog-confirm"
 
 export const ShortcutsSettings = () => {
     const { t } = useTranslation()
@@ -120,23 +110,13 @@ export const ShortcutsSettings = () => {
                     </section>
                 </Fragment>
             ))}
-            <AlertDialog open={confirmResetAll} onOpenChange={setConfirmResetAll}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t("settings.shortcuts.resetAllTitle")}</AlertDialogTitle>
-                        <AlertDialogDescription>{t("settings.shortcuts.resetAllDescription")}</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                        <AlertDialogAction
-                            className={buttonVariants({ variant: "destructive" })}
-                            onClick={() => { resetAll(); setError(null) }}
-                        >
-                            {t("settings.resetAll")}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmDialog
+                open={confirmResetAll}
+                onOpenChange={setConfirmResetAll}
+                title={t("settings.shortcuts.resetAllTitle")}
+                description={t("settings.shortcuts.resetAllDescription")}
+                confirm={{ label: t("settings.resetAll"), icon: RotateCcw, onClick: () => { resetAll(); setError(null) } }}
+            />
         </SettingsPanel>
     )
 }

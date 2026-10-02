@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useRef, useState, useEffect } from "react"
-import { Play, Pause, RotateCcw, Volume2, VolumeX, Grip, X } from "lucide-react"
+import { Play, Pause, RotateCcw, RotateCw, SkipBack, Volume2, VolumeX, Grip, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { rangeStyle } from "@/lib/range"
 import type { DraggableAttributes, useDraggable } from "@dnd-kit/core"
@@ -10,9 +10,10 @@ type SyntheticListenerMap = ReturnType<typeof useDraggable>["listeners"]
 
 /** Playback speeds the speed button cycles through. */
 const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const
-/** Seconds the arrow keys move the seek bar, and the media keys of the system (seek backward / forward). */
+/** Seconds the arrow keys move the seek bar. */
 const KEY_SEEK_SECONDS = 5
-const SYSTEM_SEEK_SECONDS = 10
+/** Seconds of the "back" and "forward" buttons, also used by the seek keys of the system. */
+const SKIP_SECONDS = 15
 
 type Props = {
     src?: string
@@ -152,6 +153,9 @@ export const AudioPlayer = ({
         setCurrentTime(clamped)
     }
 
+    // Back / forward by a fixed amount, within the track
+    const skip = (seconds: number) => seekTo((audioRef.current?.currentTime ?? 0) + seconds)
+
     const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => seekTo(Number(e.target.value))
 
     // The arrows of a range move it by its tiny step (0.1 s): here they jump by a few seconds, and Space plays or pauses
@@ -220,8 +224,8 @@ export const AudioPlayer = ({
             ["pause", () => audio()?.pause()],
             ["stop", () => closeRef.current()],
             ["seekto", details => { if (audio() && details.seekTime !== undefined) audio()!.currentTime = details.seekTime }],
-            ["seekbackward", details => { if (audio()) audio()!.currentTime -= details.seekOffset ?? SYSTEM_SEEK_SECONDS }],
-            ["seekforward", details => { if (audio()) audio()!.currentTime += details.seekOffset ?? SYSTEM_SEEK_SECONDS }],
+            ["seekbackward", details => { if (audio()) audio()!.currentTime -= details.seekOffset ?? SKIP_SECONDS }],
+            ["seekforward", details => { if (audio()) audio()!.currentTime += details.seekOffset ?? SKIP_SECONDS }],
         ]
         for (const [action, handler] of handlers) {
             try { session.setActionHandler(action, handler) } catch { /* action not supported by this webview */ }
@@ -271,23 +275,44 @@ export const AudioPlayer = ({
                 />
                 <span>{formatTime(duration)}</span>
             </div>
-            <div className="w-full flex items-center gap-2 text-xs">
+            {/* Transport: start over, 15 s back, play / pause, 15 s forward, speed */}
+            <div className="w-full flex items-center justify-center gap-1.5 text-xs">
                 <button
                     type="button"
                     onClick={restart}
                     aria-label={t("audio.player.restart")}
                     title={t("audio.player.restart")}
-                    className="shrink-0 p-1.5 rounded-full hover:bg-accent hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="shrink-0 p-2 rounded-full hover:bg-accent hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                    <RotateCcw className="size-4" />
+                    <SkipBack className="size-4" />
+                </button>
+                <button
+                    type="button"
+                    onClick={() => skip(-SKIP_SECONDS)}
+                    aria-label={t("audio.player.back", { seconds: SKIP_SECONDS })}
+                    title={t("audio.player.back", { seconds: SKIP_SECONDS })}
+                    className="relative shrink-0 p-1 rounded-full hover:bg-accent hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    <RotateCcw className="size-6" />
+                    <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[9px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
                 </button>
                 <button
                     type="button"
                     onClick={togglePlay}
                     aria-label={isPlaying ? t("audio.player.pause") : t("audio.player.play")}
-                    className="shrink-0 p-2 bg-secondary rounded-full hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="shrink-0 p-2.5 bg-secondary rounded-full hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
-                    {isPlaying ? <Pause className="size-4" /> : <Play className="size-4" />}
+                    {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
+                </button>
+                <button
+                    type="button"
+                    onClick={() => skip(SKIP_SECONDS)}
+                    aria-label={t("audio.player.forward", { seconds: SKIP_SECONDS })}
+                    title={t("audio.player.forward", { seconds: SKIP_SECONDS })}
+                    className="relative shrink-0 p-1 rounded-full hover:bg-accent hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    <RotateCw className="size-6" />
+                    <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[9px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
                 </button>
                 <button
                     type="button"
@@ -295,37 +320,37 @@ export const AudioPlayer = ({
                     aria-label={t("audio.player.speed", { rate })}
                     title={t("audio.player.speed", { rate })}
                     className={cn(
-                        "shrink-0 min-w-9 px-1 py-1 rounded-xs text-xs tabular-nums hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                        "shrink-0 min-w-10 px-1 py-1 rounded-xs text-xs tabular-nums hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
                         rate !== 1 && "text-foreground font-medium",
                     )}
                 >
                     {rate}×
                 </button>
-                <div className="flex-1 min-w-0 flex items-center justify-end gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setMuted(value => !value)}
-                        aria-label={muted ? t("audio.player.unmute") : t("audio.player.mute")}
-                        aria-pressed={muted}
-                        className="shrink-0 p-0.5 rounded-xs hover:bg-accent hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                        {silent ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-                    </button>
-                    <input
-                        type="range"
-                        min={0}
-                        max={1}
-                        step={0.01}
-                        value={volume}
-                        onChange={handleVolume}
-                        onKeyDown={handleVolumeKeyDown}
-                        aria-label={t("audio.player.volume")}
-                        aria-valuetext={`${volumeLabel}%`}
-                        style={rangeStyle(volume, 0, 1)}
-                        className="flex-1 min-w-0"
-                    />
-                    <span className="w-7 text-right tabular-nums">{volumeLabel}</span>
-                </div>
+            </div>
+            <div className="w-full flex items-center gap-2 text-xs">
+                <button
+                    type="button"
+                    onClick={() => setMuted(value => !value)}
+                    aria-label={muted ? t("audio.player.unmute") : t("audio.player.mute")}
+                    aria-pressed={muted}
+                    className="shrink-0 p-0.5 rounded-xs hover:bg-accent hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                    {silent ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
+                </button>
+                <input
+                    type="range"
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    value={volume}
+                    onChange={handleVolume}
+                    onKeyDown={handleVolumeKeyDown}
+                    aria-label={t("audio.player.volume")}
+                    aria-valuetext={`${volumeLabel}%`}
+                    style={rangeStyle(volume, 0, 1)}
+                    className="flex-1 min-w-0"
+                />
+                <span className="w-7 text-right tabular-nums">{volumeLabel}</span>
             </div>
 
             <audio

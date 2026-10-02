@@ -47,7 +47,7 @@ export const ReleaseNotes = ({ body }: { body: string }) => {
 }
 
 /** True while another dialog (settings, confirmation...) is open: the update dialog waits for it to close. */
-const otherDialogOpen = () => document.querySelector('[role="dialog"], [role="alertdialog"]') !== null
+const otherDialogOpen = () => document.querySelector('[role="dialog"]') !== null
 
 /**
  * Update dialog opened by the startup check ({@link UPDATE_AVAILABLE_EVENT}): what's new, then "Update now"

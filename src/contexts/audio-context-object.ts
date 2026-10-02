@@ -29,6 +29,11 @@ export type AudioContextType = {
     toggleSeq: number
     /** Pauses the playback, or resumes it when it is paused (nothing without a track). */
     togglePlayback: () => void
+    /**
+     * The last list of audio files loaded for each group. A group that is collapsed and opened again shows its list at
+     * once from here (and refreshes it), instead of starting empty and popping in a moment later.
+     */
+    filesCache: Map<number, AudioFile[]>
     /** Incremented whenever the audio files may have changed (add, rename, relink, delete, trash operations). */
     version: number
     /**

@@ -1,11 +1,9 @@
 import { useTranslation } from "react-i18next"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Trash2 } from "lucide-react"
+import { ConfirmDialog } from "./dialog-confirm"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getItemName, isUndoableType } from "@/contexts/undo/commands"
-import { DialogClose } from "@radix-ui/react-dialog"
-import React from "react"
 import { toast } from "sonner"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
@@ -31,8 +29,7 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
     const { deleteItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
 
-    const handleDelete = async (e: React.SyntheticEvent) => {
-        e.stopPropagation()
+    const handleDelete = async () => {
         const rollback = optimistic?.()
         try {
             await deleteItem(itemType, item.id)
@@ -47,39 +44,15 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
         }
     }
 
-    const handleEnter = (e: React.KeyboardEvent<HTMLDivElement>) => {
-        if (e.key === "Enter") {
-            handleDelete(e)
-        }
-    }
-
     return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent
-                onKeyDown={(e) => handleEnter(e)}
-            >
-                <DialogHeader>
-                    <DialogTitle className="text-destructive">
-                        {t("dialogs.delete.title")}
-                    </DialogTitle>
-                    <DialogDescription>
-                        {t("dialogs.delete.description")}
-                    </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                    <DialogClose asChild>
-                        <Button
-                            onClick={(e) => { e.stopPropagation() }}
-                            variant="outline"
-                        >
-                            {t("common.cancel")}
-                        </Button>
-                    </DialogClose>
-                    <Button variant="destructive" onClick={handleDelete}>
-                        {t("dialogs.delete.confirm")}
-                    </Button>
-                </DialogFooter>
-            </DialogContent>
-        </Dialog >
+        <ConfirmDialog
+            open={isOpen}
+            onOpenChange={onOpenChange}
+            destructive
+            autoClose={false}
+            title={t("dialogs.delete.title")}
+            description={t("dialogs.delete.description")}
+            confirm={{ label: t("dialogs.delete.confirm"), icon: Trash2, onClick: handleDelete }}
+        />
     )
 }

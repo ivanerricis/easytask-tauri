@@ -53,7 +53,7 @@ describe("ShortcutsSettings", () => {
         await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina tutto" })).toHaveProperty("disabled", false))
         fireEvent.click(screen.getByRole("button", { name: "Ripristina tutto" }))
         // A confirmation comes first: nothing is cleared until it is accepted
-        const dialog = await screen.findByRole("alertdialog")
+        const dialog = await screen.findByRole("dialog")
         expect(Object.keys(await getShortcutOverrides())).not.toHaveLength(0)
         fireEvent.click(within(dialog).getByRole("button", { name: "Ripristina tutto" }))
         await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina tutto" })).toHaveProperty("disabled", true))

@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { DndContext } from "@dnd-kit/core"
@@ -178,6 +179,46 @@ describe("audio files of a group", () => {
         expect(within(row()).getByText("In riproduzione")).toBeInTheDocument()
         // The invoke that grants the file ran once: the loaded track was not requested again
         expect(vi.mocked(invoke).mock.calls.filter(([command]) => command === "allow_audio_file")).toHaveLength(1)
+    })
+
+    it("a group that is collapsed and opened again shows its files in the first render (no empty flash)", async () => {
+        const user = userEvent.setup()
+        function Toggle() {
+            const [shown, setShown] = useState(true)
+            return (
+                <>
+                    <button onClick={() => setShown(value => !value)}>toggle-group</button>
+                    {shown && <GroupAudioFiles groupId={7} />}
+                </>
+            )
+        }
+        render(
+            <AudioProvider>
+                <DndContext><Toggle /></DndContext>
+            </AudioProvider>
+        )
+        expect(await screen.findByText("song.mp3")).toBeInTheDocument()
+
+        // Collapse: the list is unmounted. The next load never answers, so only the remembered list can be on screen
+        await user.click(screen.getByText("toggle-group"))
+        expect(screen.queryByText("song.mp3")).not.toBeInTheDocument()
+        vi.mocked(getDBGroupAudioFiles).mockImplementation(() => new Promise(() => undefined))
+
+        await user.click(screen.getByText("toggle-group"))
+        expect(screen.getByText("song.mp3")).toBeInTheDocument()
+        expect(screen.getByText("other.wav")).toBeInTheDocument()
+        // ...and the list is still asked again, so it stays up to date
+        expect(vi.mocked(getDBGroupAudioFiles).mock.calls.length).toBeGreaterThan(1)
+    })
+
+    it("a group never shown before starts empty (nothing remembered)", async () => {
+        render(
+            <AudioProvider>
+                <DndContext><GroupAudioFiles groupId={7} /></DndContext>
+            </AudioProvider>
+        )
+        expect(screen.queryByText("song.mp3")).not.toBeInTheDocument()
+        expect(await screen.findByText("song.mp3")).toBeInTheDocument()
     })
 
     it("the icon of the row follows the state: note, bars while playing, pause, stop at the end, note after the X", async () => {

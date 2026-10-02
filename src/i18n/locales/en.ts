@@ -99,6 +99,8 @@ export const en: Translation = {
             play: "Play",
             pause: "Pause",
             restart: "Restart from the beginning",
+            back: "Back {{seconds}} seconds",
+            forward: "Forward {{seconds}} seconds",
             volume: "Volume",
             defaultTitle: "Audio file title",
             position: "{{current}} of {{total}}",
@@ -631,7 +633,8 @@ export const en: Translation = {
     },
     window: {
         minimize: "Minimize",
-        maximize: "Maximize or restore",
+        maximize: "Maximize",
+        restore: "Restore",
         close: "Close the window",
     },
     crash: {

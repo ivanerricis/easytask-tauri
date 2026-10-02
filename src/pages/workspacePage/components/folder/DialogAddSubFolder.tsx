@@ -1,3 +1,4 @@
+import { FolderPlus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { getErrorMessage } from "@/lib/utils"
@@ -93,6 +94,7 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
                         <Button
                             type="submit"
                             disabled={!name.trim() || saving}>
+                            <FolderPlus />
                             {t("dialogs.addFolder.submit")}
                         </Button>
                     </DialogFooter>

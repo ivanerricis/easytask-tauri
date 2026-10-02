@@ -111,7 +111,7 @@ describe("DialogTrash", () => {
         await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
         expect(data.purgeItem).not.toHaveBeenCalled()
 
-        const alert = await screen.findByRole("alertdialog")
+        const alert = await screen.findByRole("dialog")
         await user.click(within(alert).getByRole("button", { name: "Conferma eliminazione" }))
         await waitFor(() => expect(data.purgeItem).toHaveBeenCalledWith("task", 3))
         expect(data.getWorkspaceData).toHaveBeenCalledWith(4)
@@ -121,7 +121,7 @@ describe("DialogTrash", () => {
         const user = userEvent.setup()
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
         await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
-        const alert = await screen.findByRole("alertdialog")
+        const alert = await screen.findByRole("dialog")
         await user.click(within(alert).getByRole("button", { name: "Annulla" }))
 
         expect(data.purgeItem).not.toHaveBeenCalled()
@@ -134,7 +134,7 @@ describe("DialogTrash", () => {
         await user.click(screen.getByRole("button", { name: "Svuota cestino" }))
         expect(data.emptyTrash).not.toHaveBeenCalled()
 
-        const alert = await screen.findByRole("alertdialog")
+        const alert = await screen.findByRole("dialog")
         await user.click(within(alert).getByRole("button", { name: "Conferma svuotamento" }))
         await waitFor(() => expect(data.emptyTrash).toHaveBeenCalledWith(4))
         expect(data.getWorkspaceData).toHaveBeenCalledWith(4)
@@ -162,7 +162,7 @@ describe("DialogTrash and the undo history", () => {
         const user = userEvent.setup()
         renderWithUndo()
         await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
-        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Conferma eliminazione" }))
+        await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Conferma eliminazione" }))
         await waitFor(() => expect(clear).toHaveBeenCalledTimes(1))
     })
 
@@ -171,7 +171,7 @@ describe("DialogTrash and the undo history", () => {
         renderWithUndo()
         await screen.findByText("Cartella A")
         await user.click(screen.getByRole("button", { name: "Svuota cestino" }))
-        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Conferma svuotamento" }))
+        await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Conferma svuotamento" }))
         await waitFor(() => expect(clear).toHaveBeenCalledTimes(1))
     })
 
@@ -180,7 +180,7 @@ describe("DialogTrash and the undo history", () => {
         data.purgeItem.mockRejectedValue(new Error("no"))
         renderWithUndo()
         await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
-        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Conferma eliminazione" }))
+        await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Conferma eliminazione" }))
         await waitFor(() => expect(toast.error).toHaveBeenCalled())
         expect(clear).not.toHaveBeenCalled()
     })
@@ -213,7 +213,7 @@ describe("DialogTrashWorkspaces", () => {
         render(<DialogTrashWorkspaces isOpen onOpenChange={vi.fn()} />)
         await screen.findByText("Vecchio")
         await user.click(screen.getByRole("button", { name: "Svuota cestino" }))
-        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: "Conferma svuotamento" }))
+        await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Conferma svuotamento" }))
         await waitFor(() => expect(ws.purgeWorkspace).toHaveBeenCalledWith(7))
     })
 })

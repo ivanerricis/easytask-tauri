@@ -13,11 +13,8 @@ import { useWorkspaceActions, useWorkspaceState } from "./workspace-data"
 import { AudioContext, type AudioContextType, type AudioTrack, type PlaybackState } from "./audio-context-object"
 import { getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
-import {
-    AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
-    AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { buttonVariants } from "@/components/ui/button-variants"
+import { FolderSearch, Trash2 } from "lucide-react"
+import { ConfirmDialog } from "@/components/dialogs/dialog-confirm"
 
 const getFilters = () => [{ name: i18n.t("audio.dialogFilter"), extensions: [...AUDIO_EXTENSIONS] }]
 
@@ -41,6 +38,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const playSeq = useRef(0)
     const trackRef = useRef(track)
     const knownFiles = useRef(new Map<number, AudioFile>())
+    const [filesCache] = useState(() => new Map<number, AudioFile[]>())
 
     // Both counters only grow, so their sum changes whenever either does
     const version = localVersion + (trashVersion ?? 0)
@@ -172,37 +170,25 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const playbackState: PlaybackState = track === null ? "paused" : reportedState
 
     const value = useMemo<AudioContextType>(() => ({
-        track, playbackState, setPlaybackState, toggleSeq, togglePlayback, version, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError,
-    }), [track, playbackState, toggleSeq, togglePlayback, version, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError])
+        track, playbackState, setPlaybackState, toggleSeq, togglePlayback, filesCache, version, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError,
+    }), [track, playbackState, toggleSeq, togglePlayback, filesCache, version, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError])
 
     return (
         <AudioContext.Provider value={value}>
             {children}
-            <AlertDialog open={missing !== null} onOpenChange={(isOpen) => { if (!isOpen) setMissing(null) }}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t("audio.missing.title")}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {t("audio.missing.description")}
-                        </AlertDialogDescription>
-                        <p className="text-xs text-muted-foreground break-all rounded-xs border bg-secondary p-2">
-                            {missing?.path}
-                        </p>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                        <AlertDialogAction
-                            className={buttonVariants({ variant: "destructive" })}
-                            onClick={handleDeleteReference}
-                        >
-                            {t("audio.missing.deleteReference")}
-                        </AlertDialogAction>
-                        <AlertDialogAction onClick={handleRelink}>
-                            {t("audio.updatePath")}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmDialog
+                open={missing !== null}
+                onOpenChange={(isOpen) => { if (!isOpen) setMissing(null) }}
+                title={t("audio.missing.title")}
+                description={t("audio.missing.description")}
+                secondary={{ label: t("audio.missing.deleteReference"), icon: Trash2, onClick: handleDeleteReference }}
+                secondaryDestructive
+                confirm={{ label: t("audio.updatePath"), icon: FolderSearch, onClick: handleRelink }}
+            >
+                <p className="text-xs text-muted-foreground break-all rounded-xs border bg-secondary p-2">
+                    {missing?.path}
+                </p>
+            </ConfirmDialog>
         </AudioContext.Provider>
     )
 }
