@@ -178,7 +178,7 @@ describe("left sidebar width preference", () => {
         expect(await getSidebarLeftWidth()).toBe(260)
     })
 
-    it.each([[320, 320], [10, 200], [9999, 480]])("clamps the stored width %d to %d", async (stored, expected) => {
+    it.each([[320, 320], [10, 224], [9999, 480]])("clamps the stored width %d to %d", async (stored, expected) => {
         vi.mocked(store.get).mockResolvedValue(stored)
         expect(await getSidebarLeftWidth()).toBe(expected)
         expect(store.get).toHaveBeenCalledWith("sidebarLeftWidth")
@@ -206,7 +206,7 @@ describe("right sidebar width and tab preferences", () => {
         expect(await getSidebarRightWidth()).toBe(260)
     })
 
-    it.each([[320, 320], [10, 200], [9999, 480]])("clamps the stored width %d to %d", async (stored, expected) => {
+    it.each([[320, 320], [10, 224], [9999, 480]])("clamps the stored width %d to %d", async (stored, expected) => {
         vi.mocked(store.get).mockResolvedValue(stored)
         expect(await getSidebarRightWidth()).toBe(expected)
         expect(store.get).toHaveBeenCalledWith("sidebarRightWidth")

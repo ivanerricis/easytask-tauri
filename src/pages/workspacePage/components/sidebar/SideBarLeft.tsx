@@ -14,6 +14,7 @@ import { ButtonTrash } from "./ButtonTrash"
 import { ButtonTemplates } from "./ButtonTemplates"
 import { DialogAddFolder } from "./DialogAddFolder"
 import { DialogAddNote } from "./DialogAddNote"
+import { ButtonNoteFromTemplate } from "./ButtonNoteFromTemplate"
 import { ComboboxWorkspace } from "../combobox-workspace"
 import { ButtonCloseNotes } from "../ButtonCloseNotes"
 import { ButtonCollapseItems } from "./ButtonCollapseItems"
@@ -90,6 +91,7 @@ export const SideBarLeft = () => {
                 header={<SideBarHeader className="border-b-2">
                     <DialogAddFolder />
                     <DialogAddNote />
+                    <ButtonNoteFromTemplate />
                     <ButtonUpload />
                     <ButtonCollapseItems allCollapsed={allCollapsed} onToggle={toggleAll} disabled={folders.length === 0} />
                     <ButtonCloseNotes />

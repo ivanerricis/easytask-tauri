@@ -60,7 +60,7 @@ describe("SideBar", () => {
         expect(separator()).toHaveAttribute("aria-valuenow", String(SIDEBAR_DEFAULT_WIDTH + 16))
 
         await userEvent.keyboard("{Shift>}{ArrowLeft}{/Shift}")
-        expect(onWidthChange).toHaveBeenLastCalledWith(SIDEBAR_DEFAULT_WIDTH + 16 - 64)
+        expect(onWidthChange).toHaveBeenLastCalledWith(Math.max(SIDEBAR_MIN_WIDTH, SIDEBAR_DEFAULT_WIDTH + 16 - 64))
 
         await userEvent.keyboard("{Home}")
         expect(onWidthChange).toHaveBeenLastCalledWith(SIDEBAR_MIN_WIDTH)

@@ -29,6 +29,13 @@ export const it = {
         pickNote: {
             heading: "Note",
         },
+        pickTemplate: {
+            title: "Scegli un template",
+            description: "La nuova nota sarà una copia del template scelto.",
+            placeholder: "Cerca il template da cui creare la nota...",
+            heading: "Template",
+            none: "Non ci sono ancora template. Creane uno con il pulsante \"Template\" in fondo alla sidebar.",
+        },
         confirm: {
             title: "Sei sicuro di voler procedere?",
             description: "Questa azione non può essere annullata.",
@@ -751,6 +758,7 @@ export const it = {
     sidebar: {
         addFolder: "Crea una cartella",
         addNote: "Crea una nota",
+        addNoteFromTemplate: "Crea una nota da un template",
         trashBadge_one: "{{count}} elemento nel cestino",
         trashBadge_other: "{{count}} elementi nel cestino",
         addAudioFirstGroup: "Aggiungi file audio al primo gruppo della nota",

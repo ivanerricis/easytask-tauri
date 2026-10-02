@@ -31,6 +31,13 @@ export const en: Translation = {
         pickNote: {
             heading: "Notes",
         },
+        pickTemplate: {
+            title: "Choose a template",
+            description: "The new note will be a copy of the template you choose.",
+            placeholder: "Search the template to create the note from...",
+            heading: "Templates",
+            none: "No templates yet. Create one with the \"Template\" button at the bottom of the sidebar.",
+        },
         confirm: {
             title: "Are you sure you want to proceed?",
             description: "This action cannot be undone.",
@@ -753,6 +760,7 @@ export const en: Translation = {
     sidebar: {
         addFolder: "Create a folder",
         addNote: "Create a note",
+        addNoteFromTemplate: "Create a note from a template",
         trashBadge_one: "{{count}} item in the trash",
         trashBadge_other: "{{count}} items in the trash",
         addAudioFirstGroup: "Add audio files to the first group of the note",
