@@ -6,6 +6,7 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Corretto
 
+- Le linee ad albero dei sottotask annidati: la linea di un sottotask che non è l'ultimo del suo livello spariva quando uno dei suoi antenati era l'ultimo, e le linee sembravano spezzate.
 - Il campo descrizione della sidebar di destra ha un'altezza minima fissa.
 - Una sola regola per il testo sul colore d'accento (pulsanti, opzioni selezionate, la spunta): il `--primary-foreground` scuro o bianco, anche all'avvio del tema chiaro, prima che sia calcolato dall'accento.
 - Aprendo una sidebar non si vede più per un istante il contenuto schiacciato (testo in verticale): il contenuto mantiene la larghezza finale mentre il pannello si apre.

@@ -245,6 +245,15 @@ describe("Task subtasks", () => {
         expect(spans[2].className).toContain("peer-hover/row:opacity-0")
         expect(spans[2].className).toContain("peer-focus-within/row:opacity-0")
     })
+
+    it("hides the line of the last subtask only on its own level, not on the levels below it", () => {
+        const { container } = renderTasks(<Task task={makeTask({ id: 11, text: "Sotto" })} depth={1} />)
+        const [through, elbow] = container.querySelectorAll('[class~="group/subtask"] > span[aria-hidden]')
+        // A "group-last" variant also matches the descendants of a last subtask: the lines of a deeper level would disappear
+        for (const span of [through, elbow]) expect(span.className).not.toContain("group-last")
+        expect(through.className).toContain("[.subtask:last-child>&]:hidden")
+        expect(elbow.className).toContain("[.subtask:last-child>&]:bg-muted-foreground/45")
+    })
 })
 
 describe("Task description icon", () => {

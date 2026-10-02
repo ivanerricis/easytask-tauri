@@ -107,13 +107,13 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
     return (
         <div className={cn(
             "relative flex flex-col items-center w-full border border-transparent transition-none",
-            isSubtask ? "group/subtask" : "border-b-border",
+            isSubtask ? "group/subtask subtask" : "border-b-border",
             isTextAreaOpen && "border border-primary rounded-xs"
         )}>
-            {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└) */}
+            {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└). Only the direct child of the last subtask counts (a plain descendant selector would hide the lines of every deeper level) */}
             {isSubtask && <>
-                <span aria-hidden className="pointer-events-none absolute -left-px -top-px -bottom-px w-px bg-muted-foreground/45 group-last/subtask:hidden" />
-                <span aria-hidden className="pointer-events-none absolute -left-px -top-px h-[19px] w-px group-last/subtask:bg-muted-foreground/45" />
+                <span aria-hidden className="pointer-events-none absolute -left-px -top-px -bottom-px w-px bg-muted-foreground/45 [.subtask:last-child>&]:hidden" />
+                <span aria-hidden className="pointer-events-none absolute -left-px -top-px h-[19px] w-px [.subtask:last-child>&]:bg-muted-foreground/45" />
             </>}
             <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)}>
                 <div

@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The tree lines of deeply nested subtasks: the line of a subtask that is not the last of its level was hidden when one of its ancestors was the last, so the lines looked broken.
 - The description field of the right sidebar has a fixed minimum height.
 - One rule for the text on the accent color (buttons, selected options, the tick): the dark or white `--primary-foreground`, also as the light theme starts, before it is computed from the accent.
 - Opening a sidebar no longer shows its content squeezed (text in vertical) for a moment: the content keeps its final width while the panel slides open.
