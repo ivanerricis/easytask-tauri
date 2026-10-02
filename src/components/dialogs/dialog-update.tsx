@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react"
+import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { Update } from "@tauri-apps/plugin-updater"
 import { toast } from "sonner"
@@ -6,45 +6,12 @@ import { Download, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Progress } from "@/components/ui/progress"
+import { ReleaseNotes } from "@/components/release-notes"
 import { useUpdateInstall } from "@/hooks/use-update-install"
 import { reportError } from "@/lib/report-error"
 import { saveSkippedUpdateVersion } from "@/lib/store/preferences"
 import { openReleasesPage, UPDATE_AVAILABLE_EVENT, type UpdateAvailableDetail } from "@/lib/updater"
 import { getErrorMessage } from "@/lib/utils"
-
-/** `code` spans of a line of release notes. */
-const inline = (text: string): ReactNode[] =>
-    text.split(/(`[^`]+`)/g).map((part, i) =>
-        part.startsWith("`") && part.endsWith("`") && part.length > 1
-            ? <code key={i} className="rounded-xs bg-muted px-1 text-[0.85em]">{part.slice(1, -1)}</code>
-            : part)
-
-/**
- * Minimal rendering of the release notes (the CHANGELOG.md section of the version): "### " headings,
- * "- " bullets and paragraphs. Anything else is shown as plain text.
- */
-export const ReleaseNotes = ({ body }: { body: string }) => {
-    const blocks: ReactNode[] = []
-    let items: string[] = []
-    const flush = () => {
-        if (items.length === 0) return
-        const list = items
-        blocks.push(<ul key={blocks.length} className="list-disc pl-5 flex flex-col gap-0.5">{list.map((item, i) => <li key={i}>{inline(item)}</li>)}</ul>)
-        items = []
-    }
-    for (const raw of body.split(/\r?\n/)) {
-        const line = raw.trim()
-        if (/^[-*] /.test(line)) { items.push(line.slice(2)); continue }
-        flush()
-        if (!line) continue
-        const heading = /^#{1,6}\s+(.*)$/.exec(line)
-        blocks.push(heading
-            ? <p key={blocks.length} className="font-semibold mt-1">{inline(heading[1])}</p>
-            : <p key={blocks.length}>{inline(line)}</p>)
-    }
-    flush()
-    return <div className="flex flex-col gap-1 text-sm select-text">{blocks}</div>
-}
 
 /** True while another dialog (settings, confirmation...) is open: the update dialog waits for it to close. */
 const otherDialogOpen = () => document.querySelector('[role="dialog"]') !== null

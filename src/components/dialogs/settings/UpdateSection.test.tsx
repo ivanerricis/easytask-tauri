@@ -59,6 +59,14 @@ describe("UpdateSection", () => {
         expect(install).toHaveBeenCalledTimes(1)
     })
 
+    it("shows the notes of the update in the language of the app", async () => {
+        check.mockResolvedValue({ ...fakeUpdate(), body: "## English\n\n- Duplicate notes.\n\n## Italiano\n\n- Duplica le note.\n" })
+        render(<UpdateSection />)
+        await userEvent.click(screen.getByRole("button", { name: "Controlla aggiornamenti" }))
+        expect(await screen.findByText("Duplica le note.")).toBeInTheDocument()
+        expect(screen.queryByText("Duplicate notes.")).not.toBeInTheDocument()
+    })
+
     it("reports an install failure and keeps the update available", async () => {
         check.mockResolvedValue(fakeUpdate(vi.fn().mockRejectedValue(new Error("boom"))))
         render(<UpdateSection />)

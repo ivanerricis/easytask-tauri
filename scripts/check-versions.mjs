@@ -1,15 +1,19 @@
 #!/usr/bin/env node
-// Fails (exit 1) when package.json, package-lock.json, src-tauri/Cargo.toml, src-tauri/Cargo.lock and\n// src-tauri/tauri.conf.json disagree on the version.
+// Fails (exit 1) when package.json, package-lock.json, src-tauri/Cargo.toml, src-tauri/Cargo.lock and
+// src-tauri/tauri.conf.json disagree on the version, or when CHANGELOG.md / CHANGELOG.it.md have no section for it
+// (the release notes of the app are built from both).
 // When a tag is given (first argument or GITHUB_REF_NAME like v1.2.3) it must match too.
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
+    CHANGELOG_FILES,
     findMismatches,
     getCargoLockVersion,
     getCargoTomlVersion,
     getJsonVersion,
     getPackageLockVersion,
+    hasChangelogSection,
     VERSION_FILES,
 } from './versions.mjs'
 
@@ -25,6 +29,9 @@ const versions = {
 }
 
 const problems = findMismatches(versions)
+for (const file of CHANGELOG_FILES) {
+    if (!hasChangelogSection(read(file), versions.packageJson)) problems.push(`${file} has no "## [${versions.packageJson}]" section`)
+}
 const tag = process.argv[2] ?? (/^v\d/.test(process.env.GITHUB_REF_NAME ?? '') ? process.env.GITHUB_REF_NAME : undefined)
 if (tag && tag.replace(/^v/, '') !== versions.packageJson) {
     problems.push(`tag ${tag} does not match the version ${versions.packageJson}`)
