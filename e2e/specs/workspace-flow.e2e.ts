@@ -1,7 +1,6 @@
 import { $, $$, browser, expect } from "@wdio/globals"
-import type { ChainablePromiseElement } from "webdriverio"
 import {
-    byLabel, byText, createFromSidebar, createWorkspace, openContextMenu, openSubmenu, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
+    byLabel, byText, createFromSidebar, createWorkspace, domClick, openContextMenu, openSubmenu, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
     waitForApp,
 } from "../helpers"
 
@@ -42,15 +41,6 @@ const openTaskMenu = async (text: string) => {
     const menu = $('[role="menu"]')
     await menu.waitForDisplayed()
     return menu
-}
-
-/**
- * Clicks through the DOM: on WebKitGTK a tooltip left open by the previous step can cover the target and make a
- * WebDriver click fail with "element click intercepted".
- */
-const domClick = async (element: ChainablePromiseElement) => {
-    const resolved = (await element.getElement()) as unknown as HTMLElement
-    await browser.execute((el: HTMLElement) => el.click(), resolved)
 }
 
 describe("Workspace, folders, notes, groups, sections and tasks", () => {
