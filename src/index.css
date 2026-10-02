@@ -35,10 +35,21 @@ body,
   background: var(--secondary);
 }
 
+/*
+ * Sliders: a block thumb and a filled track. The fill goes from the left edge to the middle of the thumb and is
+ * computed from --range-progress (0 to 1, set by rangeStyle() in lib/range.ts), so it is right at any width.
+ * (It used to be a huge box-shadow of the thumb, which only reached 160px to the left of it.)
+ */
 input[type='range'] {
+  --range-thumb: 10px;
   overflow: hidden;
   -webkit-appearance: none;
   background-color: var(--accent);
+  background-image: linear-gradient(
+    to right,
+    var(--primary) calc(var(--range-progress, 0) * (100% - var(--range-thumb)) + var(--range-thumb) / 2),
+    transparent 0
+  );
   border-radius: 1px;
 }
 
@@ -48,12 +59,11 @@ input[type='range']::-webkit-slider-runnable-track {
 }
 
 input[type='range']::-webkit-slider-thumb {
-  width: 10px;
+  width: var(--range-thumb);
   -webkit-appearance: none;
   height: 100%;
   cursor: pointer;
   background: var(--foreground);
-  box-shadow: -80px 0 0 80px var(--primary);
 }
 
 :focus {

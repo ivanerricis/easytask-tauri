@@ -57,6 +57,8 @@ export const SHORTCUTS: Shortcut[] = [
     { id: "close-all-notes", defaultBinding: { key: "t", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
     // Ctrl+H is go-home: the Shift variant is free
     { id: "toggle-hide-completed", defaultBinding: { key: "h", ctrl: true, shift: true }, editable: true, scope: "workspace", category: "notes" },
+    // Plays or pauses the audio player while it is open
+    { id: "toggle-audio", defaultBinding: { key: "p", alt: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "new-group", defaultBinding: { key: "n", alt: true }, editable: true, scope: "workspace", category: "groups" },
     { id: "confirm-rename", keys: ["enter"], editable: false, scope: "workspace", category: "groups" },
     { id: "cancel-rename", keys: ["escape"], editable: false, scope: "workspace", category: "groups" },

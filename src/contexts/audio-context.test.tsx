@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { DndContext } from "@dnd-kit/core"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
@@ -42,6 +42,7 @@ const prefsState = {
     setAudioVolume: vi.fn(),
 }
 vi.mock("./use-preferences", () => ({ usePreferences: () => prefsState }))
+vi.mock("@/hooks/use-shortcut", () => ({ useShortcut: vi.fn() }))
 
 const file = (over: Partial<AudioFile> = {}): AudioFile => ({
     id: 1, section_groupID: 7, name: "song.mp3", path: "C:\\Music\\song.mp3", position: 0,
@@ -144,7 +145,7 @@ describe("audio files of a group", () => {
         expect(invoke).not.toHaveBeenCalled()
     })
 
-    it("clicking another file switches the track, clicking the same file restarts it", async () => {
+    it("clicking another file switches the track and starts it from the beginning", async () => {
         const user = userEvent.setup()
         renderAll()
         await user.click(await screen.findByText("song.mp3"))
@@ -153,9 +154,80 @@ describe("audio files of a group", () => {
         await user.click(screen.getByText("other.wav"))
         await waitFor(() => expect(audioElement()!.getAttribute("src")).toContain(encodeURIComponent("C:\\Music\\other.wav")))
         expect(play).toHaveBeenCalledTimes(2)
+    })
 
-        await user.click(screen.getAllByText("other.wav")[0])
-        await waitFor(() => expect(play).toHaveBeenCalledTimes(3))
+    it("clicking the file that is loaded pauses it, and clicking it again resumes it (it does not restart)", async () => {
+        const user = userEvent.setup()
+        renderAll()
+        await user.click(await screen.findByText("song.mp3"))
+        await waitFor(() => expect(play).toHaveBeenCalledTimes(1))
+        // The name is also shown by the player: the list row is the first match
+        const row = () => screen.getAllByText("song.mp3")[0].closest("[role=button]") as HTMLElement
+        expect(within(row()).getByText("In riproduzione")).toBeInTheDocument()
+        expect(row()).toHaveAttribute("aria-current", "true")
+        audioElement()!.currentTime = 12
+
+        await user.click(row())
+        await waitFor(() => expect(HTMLMediaElement.prototype.pause).toHaveBeenCalledTimes(1))
+        expect(within(row()).getByText("In pausa")).toBeInTheDocument()
+        expect(audioElement()!.currentTime).toBe(12)
+
+        await user.click(row())
+        await waitFor(() => expect(play).toHaveBeenCalledTimes(2))
+        expect(audioElement()!.currentTime).toBe(12)
+        expect(within(row()).getByText("In riproduzione")).toBeInTheDocument()
+        // The invoke that grants the file ran once: the loaded track was not requested again
+        expect(vi.mocked(invoke).mock.calls.filter(([command]) => command === "allow_audio_file")).toHaveLength(1)
+    })
+
+    it("the icon of the row follows the state: note, bars while playing, pause, stop at the end, note after the X", async () => {
+        const user = userEvent.setup()
+        renderAll()
+        const row = () => screen.getAllByText("song.mp3")[0].closest("[role=button]") as HTMLElement
+        const icon = () => row().querySelector("svg")!
+        await screen.findByText("song.mp3")
+        expect(icon()).toHaveClass("lucide-music")
+
+        await user.click(row())
+        await waitFor(() => expect(icon()).toHaveClass("lucide-audio-lines"))
+        expect(within(row()).getByText("In riproduzione")).toBeInTheDocument()
+
+        await user.click(row())
+        await waitFor(() => expect(icon()).toHaveClass("lucide-pause"))
+        expect(within(row()).getByText("In pausa")).toBeInTheDocument()
+
+        await user.click(row())
+        await waitFor(() => expect(icon()).toHaveClass("lucide-audio-lines"))
+        fireEvent.ended(audioElement()!)
+        await waitFor(() => expect(icon()).toHaveClass("lucide-square"))
+        expect(within(row()).getByText("Terminato")).toBeInTheDocument()
+
+        await user.click(screen.getByLabelText("Chiudi il player"))
+        await waitFor(() => expect(icon()).toHaveClass("lucide-music"))
+        expect(within(row()).queryByText(/In riproduzione|In pausa|Terminato/)).toBeNull()
+    })
+
+    it("a row that is not loaded has no state text", async () => {
+        const user = userEvent.setup()
+        renderAll()
+        await user.click(await screen.findByText("song.mp3"))
+        await waitFor(() => expect(play).toHaveBeenCalledTimes(1))
+        const other = screen.getByText("other.wav").closest("[role=button]") as HTMLElement
+        expect(other).not.toHaveAttribute("aria-current")
+        expect(within(other).queryByText(/In riproduzione|In pausa/)).toBeNull()
+    })
+
+    it("the file clicked again after the player was closed starts over", async () => {
+        const user = userEvent.setup()
+        renderAll()
+        await user.click(await screen.findByText("song.mp3"))
+        await waitFor(() => expect(play).toHaveBeenCalledTimes(1))
+        await user.click(screen.getByLabelText("Chiudi il player"))
+        expect(audioElement()).toBeNull()
+
+        await user.click(screen.getByText("song.mp3"))
+        await waitFor(() => expect(play).toHaveBeenCalledTimes(2))
+        expect(audioElement()).not.toBeNull()
     })
 
     it("the X of the player closes it and pauses", async () => {

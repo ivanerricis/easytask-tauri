@@ -9,10 +9,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 ### Added
 
 - "Move up" / "Move down" in the menu of tasks, subtasks and sections ("Move left" / "Move right" for groups): a keyboard- and pointer-friendly alternative to dragging. Completed tasks that are hidden are jumped over, and the move can be undone.
+- Audio player: a restart button, a mute button, a playback speed button (0.75x to 2x), `Alt+P` to play or pause from anywhere in the workspace (it can be changed in Settings > Shortcuts), and the title and state shown to the system (media controls of Windows).
+- Audio files of a group show what they are doing: bars while playing, pause, a stop square when the track ended.
 - "Reset all" for the Appearance page (theme, accent color, language, size of folders and notes, color intensity), with a confirmation.
 
 ### Changed
 
+- Clicking the audio file that is loaded pauses or resumes it instead of starting it over (the new restart button does that).
+- Audio player: the title has a row of its own (two lines at most, the whole name in the tooltip), the handle is the same as the groups, and tracks longer than an hour show hours.
+- In the audio player the arrows move the seek bar by 5 seconds (it was 0.1) and Space plays or pauses; the position is read out in words.
 - The "Reset all" button of the Settings sections (Appearance, Audio, Shortcuts) is always in the same place: the title row of the section, on the right.
 - The Settings dialog is taller (720px, at most 85% of the window).
 - Subtasks hang from tree guide lines under the checkbox of their parent (no more stepped separators), with a slightly smaller checkbox, and a task with subtasks shows how many are done (e.g. `1/3`).
@@ -23,6 +28,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- The filled part of the sliders (audio player seek bar, volume and the sliders of the Settings) could stop short of the left edge on wide sliders: near the end of a track the first part of the bar was empty.
 - Borders of checkboxes, text fields and the track of switches reach about 3:1 contrast on both themes. On the light theme the `--input` color was written in an invalid way, so these borders turned black and the track of an off switch was transparent.
 - An empty group no longer shrinks and clips its header.
 - Collapsing a group no longer changes its width (it keeps the width it had while open).

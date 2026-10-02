@@ -3,17 +3,21 @@ import { CSS } from "@dnd-kit/utilities"
 import { AudioPlayer } from "./audio-player"
 import { useAudio } from "@/contexts/use-audio"
 import { usePreferences } from "@/contexts/use-preferences"
+import { useShortcut } from "@/hooks/use-shortcut"
 
 type Props = {
     position: { x: number; y: number, scaleX: number, scaleY: number }
 }
 
 export const DraggableAudioPlayer = ({ position }: Props) => {
-    const { track, closePlayer, reportPlaybackError } = useAudio()
+    const { track, closePlayer, reportPlaybackError, toggleSeq, setPlaybackState, togglePlayback } = useAudio()
     const { audioVolume, setAudioVolume, audioPlayerVisible, audioPlayerScale, audioPlayerOpacity } = usePreferences()
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: "audio-player",
     })
+
+    // Play / pause from anywhere in the workspace while the player is open
+    useShortcut("toggle-audio", togglePlayback, { enabled: track !== null && audioPlayerVisible })
 
     const style = {
         position: "absolute" as const,
@@ -34,6 +38,8 @@ export const DraggableAudioPlayer = ({ position }: Props) => {
                     src={track.src}
                     fileName={track.name}
                     autoPlayKey={track.playId}
+                    toggleKey={toggleSeq}
+                    onStateChange={setPlaybackState}
                     onClose={closePlayer}
                     onError={reportPlaybackError}
                     listenersHandle={listeners}

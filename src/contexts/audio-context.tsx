@@ -10,7 +10,7 @@ import {
 } from "@/db/queries/audio"
 import { usePreferences } from "./use-preferences"
 import { useWorkspaceActions, useWorkspaceState } from "./workspace-data"
-import { AudioContext, type AudioContextType, type AudioTrack } from "./audio-context-object"
+import { AudioContext, type AudioContextType, type AudioTrack, type PlaybackState } from "./audio-context-object"
 import { getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
 import {
@@ -35,6 +35,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const { audioPlayerVisible } = usePreferences()
     const [track, setTrack] = useState<AudioTrack | null>(null)
     const [localVersion, setLocalVersion] = useState(0)
+    const [reportedState, setPlaybackState] = useState<PlaybackState>("paused")
+    const [toggleSeq, setToggleSeq] = useState(0)
     const [missing, setMissing] = useState<AudioFile | null>(null)
     const playSeq = useRef(0)
     const trackRef = useRef(track)
@@ -51,10 +53,19 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
     const closePlayer = useCallback(() => setTrack(null), [])
 
+    const togglePlayback = useCallback(() => {
+        if (trackRef.current) setToggleSeq(value => value + 1)
+    }, [])
+
     const playFile = useCallback(async (file: AudioFile) => {
         // The player holds the only controls: with it turned off in the settings nothing starts, the user is told why
         if (!audioPlayerVisible) {
             toast.info(i18n.t("audio.playerHidden"))
+            return
+        }
+        // The loaded file: clicking it again pauses or resumes it (it does not start over)
+        if (trackRef.current?.audioId === file.id) {
+            setToggleSeq(value => value + 1)
             return
         }
         knownFiles.current.set(file.id, file)
@@ -158,9 +169,11 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
         if (file) void relinkFile(file, true)
     }
 
+    const playbackState: PlaybackState = track === null ? "paused" : reportedState
+
     const value = useMemo<AudioContextType>(() => ({
-        track, version, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError,
-    }), [track, version, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError])
+        track, playbackState, setPlaybackState, toggleSeq, togglePlayback, version, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError,
+    }), [track, playbackState, toggleSeq, togglePlayback, version, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError])
 
     return (
         <AudioContext.Provider value={value}>

@@ -6,6 +6,7 @@ import { usePreferences } from "@/contexts/use-preferences"
 import { AUDIO_PLAYER_SCALES, MIN_AUDIO_PLAYER_OPACITY, type AudioPlayerScale } from "@/lib/store/preferences"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 import { SectionResetButton } from "./SectionResetButton"
+import { rangeStyle } from "@/lib/range"
 
 const SIZE_KEYS: Record<AudioPlayerScale, "small" | "normal" | "large"> = { 0.85: "small", 1: "normal", 1.2: "large" }
 
@@ -22,6 +23,7 @@ const PercentRange = ({ label, value, min, onChange }: { label: string, value: n
                 onChange={e => onChange(Number(e.target.value) / 100)}
                 aria-label={label}
                 aria-valuetext={`${percent}%`}
+                style={rangeStyle(percent, min * 100, 100)}
                 className="w-32 accent-primary cursor-pointer"
             />
             <span className="w-10 text-right text-xs text-muted-foreground tabular-nums">{percent}%</span>
