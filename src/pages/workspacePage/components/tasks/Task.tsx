@@ -9,7 +9,7 @@ import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { toast } from "sonner"
 import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
-import TextareaAutosize from "react-textarea-autosize"
+import { AutoTextarea } from "@/components/auto-textarea"
 import { AlignLeft, GripVertical, Info, ListTree, Plus } from "lucide-react"
 import { AddTask } from "./AddTask"
 import { DialogTaskDescription } from "./DialogTaskDescription"
@@ -159,7 +159,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                                     onCheckedChange={handleCheckedChange}
                                     className={isSubtask ? "mt-[3px] size-3.5" : "mt-0.5"}
                                 />
-                                {!isTextAreaOpen && <TextareaAutosize
+                                {!isTextAreaOpen && <AutoTextarea
                                     onClick={() => { setTextAreaOpen(true); setText(task.text) }}
                                     onKeyDown={e => {
                                         if (e.key === "Enter" && !e.shiftKey) {
@@ -175,7 +175,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                                         task.completed && "line-through text-muted-foreground"
                                     )}
                                 />}
-                                {isTextAreaOpen && <TextareaAutosize
+                                {isTextAreaOpen && <AutoTextarea
                                     ref={textareaRef}
                                     minRows={1}
                                     value={text}
