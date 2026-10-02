@@ -39,6 +39,7 @@ Default shortcuts (all but the fixed ones can be changed in Settings > Shortcuts
 | `Ctrl+B` | Toggle the sidebar |
 | `Ctrl+Shift+B` | Toggle the right sidebar |
 | `Ctrl+Shift+H` | Hide / show completed tasks |
+| `Alt+P` | Play / pause the audio (while the player is open) |
 | `Ctrl+H` | Go to the home page |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo (not active while typing in a text field) |
 

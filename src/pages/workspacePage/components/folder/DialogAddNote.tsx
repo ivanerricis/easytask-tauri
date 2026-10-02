@@ -1,3 +1,4 @@
+import { FilePlus } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { getErrorMessage } from "@/lib/utils"
@@ -116,6 +117,7 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                             type="submit"
                             disabled={!name.trim() || saving}
                         >
+                            <FilePlus />
                             {t("dialogs.addNote.submit")}
                         </Button>
                     </DialogFooter>

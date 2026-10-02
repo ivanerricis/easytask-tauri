@@ -28,6 +28,7 @@ export const Section = ({ section }: SectionProps) => {
     return (
         <div
             ref={setRef}
+            data-section-card
             className={cn(
                 "relative min-w-[250px] border bg-accent rounded-xs flex flex-col p-1",
                 isDragging && "opacity-40",

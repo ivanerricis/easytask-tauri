@@ -10,6 +10,7 @@ import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { SectionMoveSubmenu } from "../NoteMoveSubmenus"
+import { SectionStepMoves } from "../NoteStepMoves"
 import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
@@ -87,6 +88,7 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
                     />
                 </MenuSubContent>
             </MenuSub>
+            <SectionStepMoves sectionId={section.id} onDone={menu.close} />
             <SectionMoveSubmenu sectionId={section.id} onDone={menu.close} />
             <Separator />
             <ButtonInPopover

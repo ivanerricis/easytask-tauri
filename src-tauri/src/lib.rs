@@ -272,12 +272,22 @@ fn portable_install() -> bool {
         .unwrap_or(false)
 }
 
+/// Whether the single-instance lock applies. Only release builds on the default data folder take it:
+/// a debug build (`tauri dev`, e2e) or an `EASYTASK_DATA_DIR` override uses its own data, so it must be able to
+/// run next to the installed app instead of exiting immediately.
+fn single_instance_enabled(debug_build: bool, data_dir_override: bool) -> bool {
+    !debug_build && !data_dir_override
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let mut builder = tauri::Builder::default();
     // Must be the first plugin. A second launch focuses the window of the running instance.
     #[cfg(desktop)]
-    {
+    if single_instance_enabled(
+        cfg!(debug_assertions),
+        std::env::var_os(DATA_DIR_ENV).is_some(),
+    ) {
         builder = builder.plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.unminimize();
@@ -532,6 +542,14 @@ mod tests {
             let error = resolve_data_dir(Some(dir), &exe, &docs).unwrap_err();
             assert!(error.contains(DATA_DIR_ENV), "{error}");
         }
+    }
+
+    #[test]
+    fn single_instance_only_for_release_builds_on_the_default_data_folder() {
+        assert!(single_instance_enabled(false, false));
+        assert!(!single_instance_enabled(true, false));
+        assert!(!single_instance_enabled(false, true));
+        assert!(!single_instance_enabled(true, true));
     }
 
     #[test]

@@ -63,10 +63,11 @@ describe("GroupHeader color", () => {
 })
 
 describe("GroupHeader name", () => {
-    it("keeps the name on a single line, truncated, with the full name as tooltip", () => {
+    it("keeps the whole name on a single line (the group grows instead of truncating it)", () => {
         render(<GroupHeader group={makeGroup({ name: "Da fare" })} index={2} />)
         const name = screen.getByText("Da fare")
-        expect(name).toHaveClass("truncate")
+        expect(name).toHaveClass("whitespace-nowrap", "shrink-0")
+        expect(name).not.toHaveClass("truncate")
         expect(name).not.toHaveClass("break-words")
         expect(name).toHaveAttribute("title", "Da fare")
         expect(name).not.toHaveClass("text-muted-foreground")

@@ -82,7 +82,7 @@ export function computeGroupDropZone(rect: { left: number, width: number }, poin
 type TaskInfo = { task: Task, sectionId: number, parentId: number | null }
 
 /** Flat lookups over the tree (small trees, rebuilt on demand). */
-function indexTree(tree: NoteDataTree) {
+export function indexTree(tree: NoteDataTree) {
     const sections = new Map<number, { section: Section, groupId: number }>()
     const tasks = new Map<number, TaskInfo>()
     const visit = (list: Task[], sectionId: number, parentId: number | null) => {

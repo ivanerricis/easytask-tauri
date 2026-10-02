@@ -1,3 +1,4 @@
+import { LayoutTemplate } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -13,12 +14,14 @@ type DialogCreateTemplateProps = {
     note: { id: number, name: string }
     isOpen: boolean
     onOpenChange: (open: boolean) => void
+    /** Called after the template was created (e.g. to reload a list of templates). */
+    onCreated?: () => void
 }
 
-type TemplateFormProps = Pick<DialogCreateTemplateProps, "note" | "onOpenChange">
+type TemplateFormProps = Pick<DialogCreateTemplateProps, "note" | "onOpenChange" | "onCreated">
 
 // Mounted only while the dialog is open, so the name always starts from the note name
-const TemplateForm = ({ note, onOpenChange }: TemplateFormProps) => {
+const TemplateForm = ({ note, onOpenChange, onCreated }: TemplateFormProps) => {
     const { t } = useTranslation()
     const { createTemplateFromNote } = useWorkspaceActions()
     const [name, setName] = useState(note.name)
@@ -32,6 +35,7 @@ const TemplateForm = ({ note, onOpenChange }: TemplateFormProps) => {
         try {
             await createTemplateFromNote(note.id, name.trim())
             toast.success(t("dialogs.createTemplate.created"))
+            onCreated?.()
             onOpenChange(false)
         } catch (err) {
             setError(getErrorMessage(err))
@@ -59,6 +63,7 @@ const TemplateForm = ({ note, onOpenChange }: TemplateFormProps) => {
                     {t("common.cancel")}
                 </Button>
                 <Button type="submit" disabled={!name.trim() || busy}>
+                    <LayoutTemplate />
                     {t("dialogs.createTemplate.title")}
                 </Button>
             </DialogFooter>
@@ -68,10 +73,10 @@ const TemplateForm = ({ note, onOpenChange }: TemplateFormProps) => {
 
 /**
  * Creates a template from a note: an exact copy of its current content (groups, sections, tasks and subtasks;
- * deleted items and audio files are not included). Meant to be opened from the note menu.
+ * deleted items and audio files are not included). Opened from the note menu, or from the Template dialog after choosing the note.
  * @category Dialogs
  */
-export const DialogCreateTemplate = ({ note, isOpen, onOpenChange }: DialogCreateTemplateProps) => {
+export const DialogCreateTemplate = ({ note, isOpen, onOpenChange, onCreated }: DialogCreateTemplateProps) => {
     const { t } = useTranslation()
     return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -82,7 +87,7 @@ export const DialogCreateTemplate = ({ note, isOpen, onOpenChange }: DialogCreat
                     {t("dialogs.createTemplate.description", { name: note.name })}
                 </DialogDescription>
             </DialogHeader>
-            <TemplateForm note={note} onOpenChange={onOpenChange} />
+            <TemplateForm note={note} onOpenChange={onOpenChange} onCreated={onCreated} />
         </DialogContent>
     </Dialog>
     )

@@ -27,8 +27,10 @@ vi.mock("../note-dnd-state", () => ({
     }),
 }))
 vi.mock("../NoteMoveSubmenus", () => ({ TaskMoveSubmenu: () => null }))
+vi.mock("../NoteStepMoves", () => ({ TaskStepMoves: () => null }))
 vi.mock("./AddTask", () => ({ AddTask: () => null }))
-vi.mock("./DialogTaskDescription", () => ({ DialogTaskDescription: () => <div>description dialog</div> }))
+// Like the real one, it shows only while it is open (ButtonMenuTask mounts its own copy, closed)
+vi.mock("./DialogTaskDescription", () => ({ DialogTaskDescription: ({ open }: { open: boolean }) => open ? <div>description dialog</div> : null }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => null }))
 vi.mock("@/components/dialogs/dialog-add-color", () => ({ DialogAddColor: () => null }))
 
@@ -205,5 +207,105 @@ describe("Task text editing", () => {
     it("labels the priority indicator", () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Primo", priority: true })} />)
         expect(screen.getByRole("img", { name: "Priorità alta" })).toBeInTheDocument()
+    })
+})
+
+describe("Task subtasks", () => {
+    const parent = makeTask({
+        id: 10,
+        text: "Genitore",
+        subtasks: [makeTask({ id: 11, text: "Uno", completed: true }), makeTask({ id: 12, text: "Due" })],
+    })
+
+    it("shows how many direct subtasks are completed", () => {
+        renderTasks(<Task task={parent} />)
+        expect(screen.getByTitle("1 di 2 sottotask completati")).toHaveTextContent("1/2")
+    })
+
+    it("hides the counter when the preference is off", () => {
+        renderTasks(<Task task={parent} showSubtaskCount={false} />)
+        expect(screen.queryByTitle(/sottotask completati/)).not.toBeInTheDocument()
+    })
+
+    it("shows no counter on a task without subtasks", () => {
+        renderTasks(<Task task={makeTask({ id: 10, text: "Solo" })} />)
+        expect(screen.queryByTitle(/sottotask completati/)).not.toBeInTheDocument()
+    })
+
+    it("draws the tree connectors only for subtasks", () => {
+        const { container } = renderTasks(<>
+            <Task task={makeTask({ id: 10, text: "Primo" })} />
+            <Task task={makeTask({ id: 11, text: "Sotto" })} depth={1} />
+        </>)
+        const subtaskBlocks = container.querySelectorAll('[class~="group/subtask"]')
+        expect(subtaskBlocks).toHaveLength(1)
+        const spans = subtaskBlocks[0].querySelectorAll(":scope > span[aria-hidden]")
+        expect(spans).toHaveLength(3)
+        // The horizontal tick fades while the row (and so its drag handle) is hovered or focused
+        expect(spans[2].className).toContain("peer-hover/row:opacity-0")
+        expect(spans[2].className).toContain("peer-focus-within/row:opacity-0")
+    })
+})
+
+describe("Task description icon", () => {
+    const withSubtasks = [makeTask({ id: 11, text: "Uno", completed: true }), makeTask({ id: 12, text: "Due" })]
+    const indicator = () => screen.queryByTestId("description-indicator")
+
+    it("shows an indicator, next to the subtask counter, when the task has a description", () => {
+        renderTasks(<Task task={makeTask({ id: 10, text: "Genitore", description: "Dettagli", subtasks: withSubtasks })} />)
+        expect(indicator()).not.toBeNull()
+        expect(indicator()!.querySelector("svg.lucide-align-left")).not.toBeNull()
+        // Same group as the counter of the subtasks, and no line of text under the task
+        expect(indicator()!.parentElement).toContainElement(screen.getByTitle("1 di 2 sottotask completati"))
+        expect(screen.queryByText("Dettagli")).not.toBeInTheDocument()
+    })
+
+    it("has the same button in the toolbar that shows on hover, once for the screen readers", () => {
+        renderTasks(<Task task={makeTask({ id: 10, text: "Genitore", description: "Dettagli" })} />)
+        const buttons = screen.getAllByRole("button", { name: "Mostra la descrizione" })
+        // The indicator is aria-hidden: only the button of the toolbar is exposed
+        expect(buttons).toHaveLength(1)
+        expect(buttons[0]).not.toBe(indicator())
+        expect(buttons[0].parentElement).toContainElement(screen.getByRole("button", { name: "Mostra dettagli" }))
+        expect(indicator()).toHaveAttribute("aria-hidden", "true")
+        expect(indicator()).toHaveAttribute("tabindex", "-1")
+    })
+
+    it("has neither without a description, or with a blank one", () => {
+        const { rerender } = renderTasks(<Task task={makeTask({ id: 10, text: "Genitore", description: "", subtasks: withSubtasks })} />)
+        expect(indicator()).toBeNull()
+        expect(screen.queryByRole("button", { name: "Mostra la descrizione" })).not.toBeInTheDocument()
+        rerender(
+            <TabsProvider notes={[makeNote({ id: 1 }), makeNote({ id: 2 })]} workspaceId={null}>
+                <OpenNote id={1}><Task task={makeTask({ id: 10, text: "Genitore", description: "  \n  ", subtasks: withSubtasks })} /></OpenNote>
+            </TabsProvider>,
+        )
+        expect(indicator()).toBeNull()
+        expect(screen.queryByRole("button", { name: "Mostra la descrizione" })).not.toBeInTheDocument()
+    })
+
+    it("is shown alone on a task without subtasks, and also when the subtask counter is turned off", () => {
+        const { unmount } = renderTasks(<Task task={makeTask({ id: 10, text: "Solo", description: "Dettagli" })} />)
+        expect(indicator()).not.toBeNull()
+        unmount()
+
+        renderTasks(<Task task={makeTask({ id: 10, text: "Genitore", description: "Dettagli", subtasks: withSubtasks })} showSubtaskCount={false} />)
+        expect(indicator()).not.toBeNull()
+        expect(screen.queryByTitle(/sottotask completati/)).not.toBeInTheDocument()
+    })
+
+    it("opens the description from the toolbar button and from the indicator", async () => {
+        const user = userEvent.setup()
+        renderTasks(<Task task={makeTask({ id: 10, text: "Genitore", description: "Dettagli" })} />)
+        expect(screen.queryByText("description dialog")).not.toBeInTheDocument()
+        await user.click(screen.getByRole("button", { name: "Mostra la descrizione" }))
+        expect(screen.getByText("description dialog")).toBeInTheDocument()
+    })
+
+    it("opens the description from the indicator too", async () => {
+        const user = userEvent.setup()
+        renderTasks(<Task task={makeTask({ id: 10, text: "Genitore", description: "Dettagli" })} />)
+        await user.click(indicator()!)
+        expect(screen.getByText("description dialog")).toBeInTheDocument()
     })
 })

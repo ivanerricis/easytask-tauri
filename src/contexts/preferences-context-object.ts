@@ -12,6 +12,8 @@ export type PreferencesContextType = {
     setShowSectionCount: (value: boolean) => void
     showTaskCount: boolean
     setShowTaskCount: (value: boolean) => void
+    showSubtaskCount: boolean
+    setShowSubtaskCount: (value: boolean) => void
     primaryColor: string
     setPrimaryColor: (value: string) => void
     sidebarLeftOpen: boolean

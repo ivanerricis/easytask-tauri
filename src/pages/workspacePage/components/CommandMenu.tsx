@@ -1,11 +1,10 @@
 import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
-import { useWorkspaceState } from "@/contexts/workspace-data"
+import { useAllNotes } from "@/hooks/use-all-notes"
 import { useTabsActions } from "@/contexts/use-tabs"
-import type { Folder, Note } from "@/types/types"
 import { SearchIcon } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useState } from "react"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { useOptionalUndo } from "@/contexts/undo/use-undo"
@@ -14,7 +13,6 @@ import { Redo2, Undo2 } from "lucide-react"
 export function CommandMenu() {
     const { t } = useTranslation()
     const [open, setOpen] = useState(false)
-    const { notes, folders } = useWorkspaceState()
     const { openNote } = useTabsActions()
     const undo = useOptionalUndo()
     const undoShortcut = useShortcutLabel("undo")
@@ -24,17 +22,7 @@ export function CommandMenu() {
     const searchLabel = useShortcutLabel("search-notes")
 
     // Every note once, with the path of its folder (so same-named notes can be told apart)
-    const allNotes = useMemo(() => {
-        const map = new Map<number, { note: Note, path: string }>()
-        notes.forEach(note => map.set(note.id, { note, path: "" }))
-        const walk = (list: Folder[], parentPath: string) => list.forEach(folder => {
-            const path = parentPath ? `${parentPath} / ${folder.name}` : folder.name
-            folder.notes.forEach(note => map.set(note.id, { note, path }))
-            walk(folder.subfolders ?? [], path)
-        })
-        walk(folders, "")
-        return Array.from(map.values())
-    }, [notes, folders])
+    const allNotes = useAllNotes()
 
     return (
         <>

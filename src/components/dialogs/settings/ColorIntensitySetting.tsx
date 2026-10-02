@@ -11,6 +11,7 @@ import {
     scaleAlpha,
 } from "@/lib/color-intensity"
 import { hexToRgba } from "@/lib/utils"
+import { rangeStyle } from "@/lib/range"
 import { SettingsRow } from "./SettingsRow"
 
 const SAMPLE_COLORS = ["#ef4444", "#3b82f6", "#22c55e"]
@@ -35,6 +36,7 @@ export const ColorIntensitySetting = () => {
                         onChange={e => setColorIntensity(Number(e.target.value) / 100)}
                         aria-label={label}
                         aria-valuetext={`${percent}%`}
+                        style={rangeStyle(percent, MIN_COLOR_INTENSITY * 100, MAX_COLOR_INTENSITY * 100)}
                         className="w-32 accent-primary cursor-pointer"
                     />
                     <span className="w-10 text-right text-xs text-muted-foreground tabular-nums">{percent}%</span>

@@ -26,6 +26,9 @@ export const it = {
         add: "Aggiungi",
     },
     dialogs: {
+        pickNote: {
+            heading: "Note",
+        },
         confirm: {
             title: "Sei sicuro di voler procedere?",
             description: "Questa azione non può essere annullata.",
@@ -63,7 +66,14 @@ export const it = {
             description: "Crea nuove note a partire da un template salvato.",
             search: "Cerca template",
             searchPlaceholder: "Cerca template...",
-            empty: "Nessun template. Creane uno dal menu di una nota.",
+            empty: "Nessun template. Creane uno da una nota con il pulsante \"Nuovo template\", o dal menu della nota.",
+            new: "Nuovo template",
+            noNotes: "Non ci sono note da cui creare un template.",
+            pickNote: {
+                title: "Scegli una nota",
+                description: "Il template sarà una copia del contenuto della nota scelta.",
+                placeholder: "Cerca la nota da cui creare il template...",
+            },
             from: "Da: {{name}}",
             noteDeleted: "Nota eliminata",
             createdOn: "Creato il {{date}}",
@@ -96,9 +106,19 @@ export const it = {
             close: "Chiudi il player",
             play: "Riproduci",
             pause: "Pausa",
+            restart: "Riparti dall'inizio",
+            back: "Indietro di {{seconds}} secondi",
+            forward: "Avanti di {{seconds}} secondi",
             volume: "Volume",
             defaultTitle: "Titolo del file audio",
+            position: "{{current}} di {{total}}",
+            mute: "Silenzia",
+            unmute: "Riattiva l'audio",
+            speed: "Velocità di riproduzione: {{rate}}×",
         },
+        nowPlaying: "In riproduzione",
+        paused: "In pausa",
+        ended: "Terminato",
         add: "Aggiungi file audio",
         updatePath: "Aggiorna percorso",
         fileMenu: "Menu file audio",
@@ -120,6 +140,7 @@ export const it = {
         },
     },
     settings: {
+        resetAll: "Ripristina tutto",
         appearance: {
             language: {
                 label: "Lingua",
@@ -131,6 +152,12 @@ export const it = {
                 },
             },
             title: "Aspetto",
+            reset: {
+                description: "Riporta tema, colore d'accento, lingua, dimensione di cartelle e note e intensità dei colori ai valori predefiniti.",
+                confirmTitle: "Ripristinare l'aspetto?",
+                confirmDescription: "Tema, colore d'accento, lingua, dimensione di cartelle e note e intensità dei colori tornano ai valori predefiniti. I tuoi dati non vengono toccati.",
+                confirm: "Ripristina",
+            },
             theme: {
                 label: "Tema",
                 description: "Scegli tra tema chiaro, scuro o quello del sistema.",
@@ -160,7 +187,6 @@ export const it = {
         shortcuts: {
             title: "Scorciatoie",
             hint: "Premi \"Modifica\" e poi la nuova combinazione di tasti. Esc annulla.",
-            resetAll: "Ripristina tutte",
             resetAllTitle: "Ripristinare tutte le scorciatoie?",
             resetAllDescription: "Tutte le scorciatoie personalizzate torneranno ai valori predefiniti.",
             needsModifier: "Usa una combinazione con Ctrl o Alt.",
@@ -206,8 +232,13 @@ export const it = {
                     label: "Controlla all'avvio",
                     description: "Cerca in silenzio una nuova versione all'avvio dell'app.",
                 },
-                toastAvailable: "Aggiornamento disponibile: versione {{version}}",
-                openAbout: "Apri Informazioni",
+                dialog: {
+                    title: "Aggiornamento disponibile",
+                    description: "È disponibile EasyTask {{version}} (hai la {{current}}).",
+                    updateNow: "Aggiorna ora",
+                    later: "Più tardi",
+                    skip: "Salta questa versione",
+                },
             },
         },
         data: {
@@ -286,6 +317,10 @@ export const it = {
             },
             sectionCount: "Mostra numero di sezioni",
             taskCount: "Mostra numero di task",
+            subtaskCount: {
+                label: "Mostra sottotask completati",
+                description: "Un task con sottotask mostra quanti ne sono completati (es. 1/3).",
+            },
             reopenWorkspace: {
                 label: "Riapri l'ultimo workspace all'avvio",
                 description: "Se chiudi l'app dentro un workspace, lo riapre al prossimo avvio.",
@@ -326,9 +361,7 @@ export const it = {
                 description: "Rende il player più o meno trasparente (minimo 40%).",
             },
             resetAll: {
-                label: "Ripristina le impostazioni audio",
                 description: "Volume, visibilità, dimensione e trasparenza tornano ai valori predefiniti.",
-                button: "Ripristina tutto",
             },
         },
         nav: "Categorie impostazioni",
@@ -360,6 +393,7 @@ export const it = {
             "close-note": "Chiudi la nota attiva",
             "close-all-notes": "Chiudi tutte le note",
             "toggle-hide-completed": "Nascondi o mostra i task completati",
+            "toggle-audio": "Riproduci o metti in pausa l'audio",
             "new-group": "Crea un nuovo gruppo o una nuova sezione",
             "confirm-rename": "Conferma la modifica di nome gruppo, sezione o task",
             "cancel-rename": "Annulla la rinomina del gruppo o chiudi il nuovo sottotask",
@@ -607,7 +641,8 @@ export const it = {
     },
     window: {
         minimize: "Riduci a icona",
-        maximize: "Ingrandisci o ripristina",
+        maximize: "Ingrandisci",
+        restore: "Ripristina",
         close: "Chiudi la finestra",
     },
     crash: {
@@ -637,6 +672,10 @@ export const it = {
     menu: {
         changeColor: "Cambia colore",
         export: "Esporta",
+        moveUp: "Sposta su",
+        moveDown: "Sposta giù",
+        moveLeft: "Sposta a sinistra",
+        moveRight: "Sposta a destra",
         moveTo: "Sposta in…",
         newGroup: "Nuovo gruppo",
         sectionLabel: "Sezione {{label}}",
@@ -744,6 +783,7 @@ export const it = {
         expand: "Espandi sezione",
     },
     tasks: {
+        subtaskProgress: "{{done}} di {{total}} sottotask completati",
         hiddenCompleted_one: "{{count}} task completato nascosto",
         hiddenCompleted_other: "{{count}} task completati nascosti",
         errors: {

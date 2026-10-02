@@ -22,7 +22,10 @@ const tree: WorkspaceDataTree = {
 const data = {
     getTemplates: vi.fn(),
     updateTemplateFromNote: vi.fn(),
+    createTemplateFromNote: vi.fn(),
     createNoteFromTemplate: vi.fn(),
+    notes: [] as unknown[],
+    folders: [] as unknown[],
     getWorkspaceData: vi.fn(),
     deleteItem: vi.fn(),
     renameItem: vi.fn(),
@@ -70,6 +73,9 @@ describe("DialogTemplates", () => {
     beforeEach(() => {
         vi.resetAllMocks()
         data.workspaceDataTree = tree
+        data.notes = []
+        data.folders = []
+        data.createTemplateFromNote.mockResolvedValue(77)
         data.getTemplates.mockResolvedValue(templates)
         data.updateTemplateFromNote.mockResolvedValue(undefined)
         data.createNoteFromTemplate.mockResolvedValue(55)
@@ -93,7 +99,7 @@ describe("DialogTemplates", () => {
     it("shows the empty state", async () => {
         data.getTemplates.mockResolvedValue([])
         render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
-        expect(await screen.findByText("Nessun template. Creane uno dal menu di una nota.")).toBeInTheDocument()
+        expect(await screen.findByText("Nessun template. Creane uno da una nota con il pulsante \"Nuovo template\", o dal menu della nota.")).toBeInTheDocument()
     })
 
     it("disables 'Aggiorna dalla nota' when the source note no longer exists", async () => {
@@ -196,5 +202,69 @@ describe("DialogTemplates", () => {
         render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
         await screen.findByText("Retro")
         expect(screen.queryByLabelText("Cerca template")).not.toBeInTheDocument()
+    })
+
+    describe("creating a template from an existing note", () => {
+        const note = (id: number, name: string) => ({ id, name })
+
+        beforeEach(() => {
+            // cmdk (the note picker) measures its list: jsdom has neither ResizeObserver nor scrollIntoView
+            vi.stubGlobal("ResizeObserver", class { observe() { /* none */ } unobserve() { /* none */ } disconnect() { /* none */ } })
+            Element.prototype.scrollIntoView = vi.fn()
+            data.notes = [note(1, "Appunti")]
+            data.folders = [{ id: 7, name: "Progetti", notes: [note(2, "Sprint")], subfolders: [] }]
+        })
+
+        it("has a New template button, disabled when the workspace has no notes", async () => {
+            data.notes = []
+            data.folders = []
+            render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
+            await screen.findByText("Retro")
+            const button = screen.getByRole("button", { name: "Nuovo template" })
+            expect(button).toBeDisabled()
+            expect(button).toHaveAttribute("title", "Non ci sono note da cui creare un template.")
+        })
+
+        it("lets the user choose a note, names the template after it and adds it to the list", async () => {
+            const user = userEvent.setup()
+            const onOpenChange = vi.fn()
+            render(<DialogTemplates isOpen onOpenChange={onOpenChange} />)
+            await screen.findByText("Retro")
+            expect(screen.getByRole("button", { name: "Nuovo template" })).toBeEnabled()
+
+            await user.click(screen.getByRole("button", { name: "Nuovo template" }))
+            // The picker lists every note with its folder
+            expect(await screen.findByPlaceholderText("Cerca la nota da cui creare il template...")).toBeInTheDocument()
+            expect(screen.getByText("Appunti")).toBeInTheDocument()
+            expect(screen.getByText("Progetti")).toBeInTheDocument()
+
+            await user.click(screen.getByText("Sprint"))
+            // The next step is the usual create-template dialog, with the name of the note
+            const nameInput = await screen.findByLabelText("Nome del template")
+            expect(nameInput).toHaveValue("Sprint")
+
+            data.getTemplates.mockClear()
+            await user.clear(nameInput)
+            await user.type(nameInput, "Sprint base")
+            await user.click(screen.getByRole("button", { name: "Crea template" }))
+
+            await waitFor(() => expect(data.createTemplateFromNote).toHaveBeenCalledWith(2, "Sprint base"))
+            expect(toast.success).toHaveBeenCalled()
+            // The list of the dialog is reloaded, and the Template dialog itself stays open
+            await waitFor(() => expect(data.getTemplates).toHaveBeenCalledWith(4))
+            expect(onOpenChange).not.toHaveBeenCalled()
+        })
+
+        it("creates nothing when the choice of the note is closed", async () => {
+            const user = userEvent.setup()
+            render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
+            await screen.findByText("Retro")
+            await user.click(screen.getByRole("button", { name: "Nuovo template" }))
+            await screen.findByPlaceholderText("Cerca la nota da cui creare il template...")
+            await user.keyboard("{Escape}")
+            await waitFor(() => expect(screen.queryByPlaceholderText("Cerca la nota da cui creare il template...")).not.toBeInTheDocument())
+            expect(screen.queryByLabelText("Nome del template")).not.toBeInTheDocument()
+            expect(data.createTemplateFromNote).not.toHaveBeenCalled()
+        })
     })
 })

@@ -5,15 +5,43 @@ import { ErrorPage } from "@/components/pages/error-page"
 import { LoadingPage } from "@/components/pages/loading-page"
 import { WorkSpaceLayout } from "./WorkSpacePageLayout"
 import { useWorkspaceData } from "@/contexts/workspace-data"
-import { useEffect } from "react"
+import { useEffect, useRef, useState } from "react"
+import { useNavigate, useParams } from "react-router-dom"
 import { AudioProvider } from "@/contexts/audio-context"
 import { saveLastWorkspaceId } from "@/lib/store/preferences"
 import { reportError } from "@/lib/report-error"
 
 const WorkSpacePage = () => {
     const { t } = useTranslation()
-    const { currentWorkspace } = useWorkspace()
+    const { currentWorkspace, workspaces, getWorkspaces, setCurrentWorkspace } = useWorkspace()
     const { error, getWorkspaceData, loadedWorkspaceId } = useWorkspaceData()
+    const { id } = useParams()
+    const navigate = useNavigate()
+
+    // The current workspace only lives in memory: after a reload of /workspace/:id (e.g. a full reload in development)
+    // it is restored from the URL (loading the list once if needed), or the home page is shown when it no longer exists
+    const listRequested = useRef(false)
+    const [listLoaded, setListLoaded] = useState(false)
+    useEffect(() => {
+        if (currentWorkspace) return
+        const workspace = workspaces.find(item => item.id === Number(id))
+        if (workspace) {
+            setCurrentWorkspace(workspace)
+            return
+        }
+        if (listLoaded) {
+            navigate("/", { replace: true })
+            return
+        }
+        if (listRequested.current) return
+        listRequested.current = true
+        getWorkspaces()
+            .then(() => setListLoaded(true))
+            .catch(err => {
+                reportError(err)
+                navigate("/", { replace: true })
+            })
+    }, [currentWorkspace, id, workspaces, listLoaded, getWorkspaces, setCurrentWorkspace, navigate])
 
     useEffect(() => {
         const fetchData = async () => {
@@ -41,7 +69,7 @@ const WorkSpacePage = () => {
         )
     }
 
-    if (!currentWorkspace) return null
+    if (!currentWorkspace) return <LoadingPage text={t("workspace.loading")} />
 
     // The data of the open workspace is not loaded yet (opened from the home page or switched from the combobox):
     // show the loading page instead of the (empty or previous) content

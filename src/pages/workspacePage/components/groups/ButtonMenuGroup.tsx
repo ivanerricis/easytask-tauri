@@ -10,6 +10,7 @@ import { ItemMenu } from "@/components/item-menu";
 import { useItemMenuState } from "@/hooks/use-item-menu-state";
 import { useActiveNoteActions } from "@/contexts/use-active-note";
 import { useAudio } from "@/contexts/use-audio";
+import { GroupStepMoves } from "../NoteStepMoves";
 import type { Group } from "@/types/types";
 import { useState, type ReactElement } from "react";
 
@@ -65,6 +66,7 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
                     />
                 </MenuSubContent>
             </MenuSub>
+            <GroupStepMoves groupId={group.id} onDone={menu.close} />
             <ButtonInPopover
                 text={t("audio.add")}
                 type="addAudio"

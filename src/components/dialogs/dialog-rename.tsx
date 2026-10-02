@@ -1,3 +1,4 @@
+import { Check } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -98,6 +99,7 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
                             type="submit"
                             disabled={!allowEmpty && !value.trim()}
                         >
+                            <Check />
                             {t("common.save")}
                         </Button>
                     </DialogFooter>

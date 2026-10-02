@@ -84,7 +84,7 @@ export const treeRow = (name: string) =>
 
 /** The card of a section, found through the title of its header. */
 export const sectionCard = (title: string) =>
-    $(`//div[contains(@class,'min-w-[250px]')][.//button[@title=${xpathString(title)}]]`)
+    $(`//div[@data-section-card][.//button[@title=${xpathString(title)}]]`)
 
 /** Right click on an element and return the (last) open menu. */
 export const openContextMenu = async (target: ChainablePromiseElement) => {

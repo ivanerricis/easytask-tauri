@@ -5,18 +5,8 @@ import { Briefcase, FileText, Music, Folder, Layers, LayoutList, LayoutTemplate,
 import type { LucideIcon } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { buttonVariants } from "@/components/ui/button-variants"
+import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -188,26 +178,15 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
-            <AlertDialog open={confirm !== null} onOpenChange={(open) => { if (!open) setConfirm(null) }}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>
-                            {confirm?.kind === "empty" ? t("trash.emptyTitle") : t("trash.purgeTitle")}
-                        </AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {confirm?.kind === "empty"
-                                ? t("trash.emptyDescription")
-                                : t("trash.purgeDescription")}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                        <AlertDialogAction className={buttonVariants({ variant: "destructive" })} onClick={handleConfirm}>
-                            {confirm?.kind === "empty" ? t("trash.confirmEmpty") : t("trash.confirmPurge")}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmDialog
+                open={confirm !== null}
+                onOpenChange={(open) => { if (!open) setConfirm(null) }}
+                destructive
+                initialFocus="cancel"
+                title={confirm?.kind === "empty" ? t("trash.emptyTitle") : t("trash.purgeTitle")}
+                description={confirm?.kind === "empty" ? t("trash.emptyDescription") : t("trash.purgeDescription")}
+                confirm={{ label: confirm?.kind === "empty" ? t("trash.confirmEmpty") : t("trash.confirmPurge"), icon: Trash2, onClick: handleConfirm }}
+            />
         </>
     )
 }

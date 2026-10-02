@@ -16,21 +16,26 @@ export const useAudio = () => {
 }
 
 /**
- * The audio files of a group, reloaded whenever the audio state changes.
+ * The audio files of a group, reloaded whenever the audio state changes. The last list is remembered, so a group that
+ * is collapsed and opened again (it is unmounted while collapsed) shows its files in the first render.
  * @param groupId The ID of the group.
  * @category Audio Context
  */
 export function useGroupAudioFiles(groupId: number): AudioFile[] {
-    const { version } = useAudio()
-    const [files, setFiles] = useState<AudioFile[]>([])
+    const { version, filesCache } = useAudio()
+    const [files, setFiles] = useState<AudioFile[]>(() => filesCache.get(groupId) ?? [])
 
     useEffect(() => {
         let stale = false
         getDBGroupAudioFiles(groupId)
-            .then(rows => { if (!stale) setFiles(rows) })
+            .then(rows => {
+                if (stale) return
+                filesCache.set(groupId, rows)
+                setFiles(rows)
+            })
             .catch(error => reportError(error, i18n.t("errors.loadAudio")))
         return () => { stale = true }
-    }, [groupId, version])
+    }, [groupId, version, filesCache])
 
     return files
 }

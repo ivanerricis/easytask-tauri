@@ -81,13 +81,24 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("button", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
-        expect(screen.getAllByRole("switch")).toHaveLength(7)
+        expect(screen.getAllByRole("switch")).toHaveLength(8)
         expect(screen.getByRole("switch", { name: "Nascondi i task completati" })).not.toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()
 
         await user.click(screen.getByRole("button", { name: "Audio" }))
         expect(screen.getByRole("button", { name: "Ripristina" })).toBeInTheDocument()
+    })
+
+    it("puts the reset of a section in the same place everywhere: in its title row, on the right", async () => {
+        const user = await open()
+        for (const section of ["Aspetto", "Audio"]) {
+            await user.click(screen.getByRole("button", { name: section }))
+            const heading = screen.getByRole("heading", { name: section })
+            const reset = screen.getByRole("button", { name: "Ripristina tutto" })
+            expect(reset.parentElement).toBe(heading.parentElement)
+            expect(heading.parentElement?.lastElementChild).toBe(reset)
+        }
     })
 
     it("toggles the hide completed tasks preference", async () => {

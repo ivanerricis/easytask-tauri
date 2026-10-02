@@ -18,9 +18,19 @@ export const SettingsRow = ({ label, description, children }: SettingsRowProps) 
     </div>
 )
 
-export const SettingsPanel = ({ title, children }: { title: string, children: ReactNode }) => (
+type SettingsPanelProps = {
+    title: string
+    /** Section-level action (e.g. the reset of the whole section): always in the title row, on the right. */
+    action?: ReactNode
+    children: ReactNode
+}
+
+export const SettingsPanel = ({ title, action, children }: SettingsPanelProps) => (
     <section className="flex flex-col gap-4">
-        <h3 className="text-base font-semibold">{title}</h3>
+        <div className="flex items-center justify-between gap-3 min-h-8">
+            <h3 className="text-base font-semibold">{title}</h3>
+            {action}
+        </div>
         {children}
     </section>
 )

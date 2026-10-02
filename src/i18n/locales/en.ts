@@ -28,6 +28,9 @@ export const en: Translation = {
         add: "Add",
     },
     dialogs: {
+        pickNote: {
+            heading: "Notes",
+        },
         confirm: {
             title: "Are you sure you want to proceed?",
             description: "This action cannot be undone.",
@@ -65,7 +68,14 @@ export const en: Translation = {
             description: "Create new notes from a saved template.",
             search: "Search templates",
             searchPlaceholder: "Search templates...",
-            empty: "No templates. Create one from a note's menu.",
+            empty: "No templates. Create one from a note with the \"New template\" button, or from the menu of the note.",
+            new: "New template",
+            noNotes: "There are no notes to make a template from.",
+            pickNote: {
+                title: "Choose a note",
+                description: "The template will be a copy of the content of the note you choose.",
+                placeholder: "Search the note to make the template from...",
+            },
             from: "From: {{name}}",
             noteDeleted: "Note deleted",
             createdOn: "Created on {{date}}",
@@ -98,9 +108,19 @@ export const en: Translation = {
             close: "Close the player",
             play: "Play",
             pause: "Pause",
+            restart: "Restart from the beginning",
+            back: "Back {{seconds}} seconds",
+            forward: "Forward {{seconds}} seconds",
             volume: "Volume",
             defaultTitle: "Audio file title",
+            position: "{{current}} of {{total}}",
+            mute: "Mute",
+            unmute: "Unmute",
+            speed: "Playback speed: {{rate}}×",
         },
+        nowPlaying: "Playing",
+        paused: "Paused",
+        ended: "Ended",
         add: "Add audio files",
         updatePath: "Update path",
         fileMenu: "Audio file menu",
@@ -122,6 +142,7 @@ export const en: Translation = {
         },
     },
     settings: {
+        resetAll: "Reset all",
         appearance: {
             language: {
                 label: "Language",
@@ -133,6 +154,12 @@ export const en: Translation = {
                 },
             },
             title: "Appearance",
+            reset: {
+                description: "Puts theme, accent color, language, size of folders and notes and color intensity back to their defaults.",
+                confirmTitle: "Reset the appearance?",
+                confirmDescription: "Theme, accent color, language, size of folders and notes and color intensity go back to their defaults. Your data is not touched.",
+                confirm: "Reset",
+            },
             theme: {
                 label: "Theme",
                 description: "Choose between light, dark or the system theme.",
@@ -162,7 +189,6 @@ export const en: Translation = {
         shortcuts: {
             title: "Shortcuts",
             hint: "Press \"Edit\" and then the new key combination. Esc cancels.",
-            resetAll: "Reset all",
             resetAllTitle: "Reset all shortcuts?",
             resetAllDescription: "Every custom shortcut will go back to its default.",
             needsModifier: "Use a combination with Ctrl or Alt.",
@@ -208,8 +234,13 @@ export const en: Translation = {
                     label: "Check at startup",
                     description: "Silently looks for a new version when the app starts.",
                 },
-                toastAvailable: "Update available: version {{version}}",
-                openAbout: "Open About",
+                dialog: {
+                    title: "Update available",
+                    description: "EasyTask {{version}} is available (you have {{current}}).",
+                    updateNow: "Update now",
+                    later: "Later",
+                    skip: "Skip this version",
+                },
             },
         },
         data: {
@@ -288,6 +319,10 @@ export const en: Translation = {
             },
             sectionCount: "Show number of sections",
             taskCount: "Show number of tasks",
+            subtaskCount: {
+                label: "Show completed subtasks",
+                description: "A task with subtasks shows how many of them are completed (e.g. 1/3).",
+            },
             reopenWorkspace: {
                 label: "Reopen the last workspace at startup",
                 description: "If you close the app inside a workspace, it is reopened at the next startup.",
@@ -328,9 +363,7 @@ export const en: Translation = {
                 description: "Makes the player more or less transparent (at least 40% opaque).",
             },
             resetAll: {
-                label: "Reset the audio settings",
                 description: "Volume, visibility, size and transparency go back to their defaults.",
-                button: "Reset all",
             },
         },
         nav: "Settings categories",
@@ -362,6 +395,7 @@ export const en: Translation = {
             "close-note": "Close the active note",
             "close-all-notes": "Close all notes",
             "toggle-hide-completed": "Hide or show the completed tasks",
+            "toggle-audio": "Play or pause the audio",
             "new-group": "Create a new group or section",
             "confirm-rename": "Confirm editing a group, section or task name",
             "cancel-rename": "Cancel renaming the group or close the new subtask",
@@ -609,7 +643,8 @@ export const en: Translation = {
     },
     window: {
         minimize: "Minimize",
-        maximize: "Maximize or restore",
+        maximize: "Maximize",
+        restore: "Restore",
         close: "Close the window",
     },
     crash: {
@@ -639,6 +674,10 @@ export const en: Translation = {
     menu: {
         changeColor: "Change color",
         export: "Export",
+        moveUp: "Move up",
+        moveDown: "Move down",
+        moveLeft: "Move left",
+        moveRight: "Move right",
         moveTo: "Move to…",
         newGroup: "New group",
         sectionLabel: "Section {{label}}",
@@ -746,6 +785,7 @@ export const en: Translation = {
         expand: "Expand section",
     },
     tasks: {
+        subtaskProgress: "{{done}} of {{total}} subtasks completed",
         hiddenCompleted_one: "{{count}} completed task hidden",
         hiddenCompleted_other: "{{count}} completed tasks hidden",
         errors: {

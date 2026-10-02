@@ -163,8 +163,8 @@ export function DialogAddNote() {
                                         setPaletteOpen(true)
                                     }}
                                     className="h-full">
-                                    {t("common.addColor")}
                                     <Palette />
+                                    {t("common.addColor")}
                                 </Button>
                             }
                         </div>
@@ -177,6 +177,7 @@ export function DialogAddNote() {
                                 {t("common.cancel")}
                             </Button>
                             <Button type="submit" disabled={!note.name.trim() || saving}>
+                                <FilePlus />
                                 {t("dialogs.addNote.submit")}
                             </Button>
                         </DialogFooter>

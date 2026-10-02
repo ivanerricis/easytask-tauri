@@ -10,7 +10,7 @@ import { toast } from "sonner"
 import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import TextareaAutosize from "react-textarea-autosize"
-import { AlignLeft, GripVertical, Info, Plus } from "lucide-react"
+import { AlignLeft, GripVertical, Info, ListTree, Plus } from "lucide-react"
 import { AddTask } from "./AddTask"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
@@ -22,10 +22,14 @@ const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
 
 type TaskProps = {
     task: TaskType
+    /** Nesting level: 0 for a task of the section, 1+ for subtasks. */
+    depth?: number
+    /** Shows how many direct subtasks are completed (preference "Show completed subtasks"). */
+    showSubtaskCount?: boolean
     children?: React.ReactNode
 }
 
-export const Task = React.memo(({ task, children }: TaskProps) => {
+export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, children }: TaskProps) => {
     const { t } = useTranslation()
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(task.text)
@@ -49,6 +53,9 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
         setDragRef(node)
     }, [setDropRef, setDragRef])
     const draggingTask = active?.kind === "task"
+    const isSubtask = depth > 0
+    const doneSubtasks = task.subtasks.filter(subtask => subtask.completed).length
+    const hasDescription = !!task.description?.trim()
 
     useEffect(() => {
         if (isTextAreaOpen && textareaRef.current) {
@@ -100,8 +107,14 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
     return (
         <div className={cn(
             "relative flex flex-col items-center w-full border border-transparent transition-none",
+            isSubtask ? "group/subtask" : "border-b-border",
             isTextAreaOpen && "border border-primary rounded-xs"
         )}>
+            {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└) */}
+            {isSubtask && <>
+                <span aria-hidden className="pointer-events-none absolute -left-px -top-px -bottom-px w-px bg-muted-foreground/45 group-last/subtask:hidden" />
+                <span aria-hidden className="pointer-events-none absolute -left-px -top-px h-[19px] w-px group-last/subtask:bg-muted-foreground/45" />
+            </>}
             <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)}>
                 <div
                     ref={setRowRef}
@@ -113,7 +126,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                     }}
                     onFocus={() => selectTask(task.id)}
                     className={cn(
-                        "relative flex flex-col items-center w-full border-b",
+                        "peer/row relative flex flex-col items-center w-full",
                         selected && "bg-accent/50",
                         isDragging && "opacity-40",
                         draggingTask && (zone === "inside" || zone === "inside-start") && "bg-primary/15 ring-1 ring-inset ring-primary",
@@ -135,7 +148,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                 {...listeners}
                                 aria-label={t("tasks.moveHandle")}
                                 title={t("tasks.moveHandleTitle")}
-                                className="absolute left-0.5 top-2 z-10 touch-none cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
+                                className="absolute left-0.5 top-1.5 z-10 flex h-5 items-center touch-none cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
                                 <GripVertical className="size-3.5" />
                             </div>
 
@@ -144,7 +157,7 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                 <Checkbox
                                     checked={!!task.completed}
                                     onCheckedChange={handleCheckedChange}
-                                    className="mt-0.5"
+                                    className={isSubtask ? "mt-[3px] size-3.5" : "mt-0.5"}
                                 />
                                 {!isTextAreaOpen && <TextareaAutosize
                                     onClick={() => { setTextAreaOpen(true); setText(task.text) }}
@@ -182,6 +195,35 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                                 />}
                             </div>
 
+                            {/* What the task has besides its text: a description (click to read it) and its subtasks (done / total) */}
+                            {(hasDescription || (showSubtaskCount && task.subtasks.length > 0)) &&
+                                <div className="flex shrink-0 items-center gap-1.5 mt-0.5 ml-1 text-xs">
+                                    {hasDescription &&
+                                        // The toolbar that shows on hover covers this one and has the same button: this copy is out of the
+                                        // tab order and of the accessibility tree
+                                        <button
+                                            type="button"
+                                            tabIndex={-1}
+                                            aria-hidden
+                                            data-testid="description-indicator"
+                                            title={t("tasks.showDescription")}
+                                            onClick={() => { onOpenChange(true) }}
+                                            className="flex items-center rounded-xs p-0.5 -m-0.5 text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer">
+                                            <AlignLeft className="size-3.5" />
+                                        </button>}
+                                    {showSubtaskCount && task.subtasks.length > 0 &&
+                                        <span
+                                            title={t("tasks.subtaskProgress", { done: doneSubtasks, total: task.subtasks.length })}
+                                            className={cn(
+                                                "flex items-center gap-0.5 tabular-nums",
+                                                // All done: full-contrast text (the accent color is chosen by the user and can be unreadable as text)
+                                                doneSubtasks === task.subtasks.length ? "font-medium text-foreground" : "text-muted-foreground",
+                                            )}>
+                                            <ListTree className="size-3.5" />
+                                            {doneSubtasks}/{task.subtasks.length}
+                                        </span>}
+                                </div>}
+
                             {/* Priority circle */}
                             <div
                                 role="img"
@@ -191,6 +233,15 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
 
                             {/* ButtonMenu */}
                             <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
+                                {hasDescription &&
+                                    <button
+                                        type="button"
+                                        aria-label={t("tasks.showDescription")}
+                                        title={t("tasks.showDescription")}
+                                        onClick={() => { onOpenChange(true) }}
+                                        className="p-1 rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                                        <AlignLeft className="size-4" />
+                                    </button>}
                                 <button
                                     type="button"
                                     aria-label={t("details.showTask")}
@@ -211,20 +262,13 @@ export const Task = React.memo(({ task, children }: TaskProps) => {
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-center justify-start w-full gap-1 px-2">
-                        {task.description &&
-                            <button
-                                type="button"
-                                aria-label={t("tasks.showDescription")}
-                                onClick={() => { onOpenChange(true) }}
-                                className="p-1 flex items-center justify-center hover:bg-accent rounded-xs cursor-pointer mb-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                <AlignLeft className="size-4" />
-                            </button>}
-                        {open && <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />}
-                    </div>
+                    {open && <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />}
                 </div>
             </ButtonMenuTask>
-            {(task.subtasks.length > 0 || isAddingSubtask) && <div className="flex flex-col w-full pl-6">
+            {/* The tick leaves room to the drag handle while the row is hovered or focused */}
+            {isSubtask && <span aria-hidden className="pointer-events-none absolute -left-px top-[17px] h-px w-4 bg-muted-foreground/45 transition-opacity peer-hover/row:opacity-0 peer-focus-within/row:opacity-0" />}
+            {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
+            {(task.subtasks.length > 0 || isAddingSubtask) && <div className="flex flex-col self-stretch ml-7 mb-1">
                 {children}
                 {isAddingSubtask &&
                     <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}

@@ -25,6 +25,7 @@ vi.mock("@/contexts/use-active-note", () => ({
     useActiveNoteActions: () => ({ patchTask, removeTask }),
 }))
 vi.mock("../NoteMoveSubmenus", () => ({ TaskMoveSubmenu: () => null }))
+vi.mock("../NoteStepMoves", () => ({ TaskStepMoves: () => null }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({
     DialogDeleteItem: ({ getItemData }: { getItemData: (id: number) => Promise<void> }) => (
         <button onClick={() => { void getItemData(9) }}>dialog delete done</button>

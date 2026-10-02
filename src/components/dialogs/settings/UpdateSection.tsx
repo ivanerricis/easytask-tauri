@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { relaunch } from "@tauri-apps/plugin-process"
 import type { Update } from "@tauri-apps/plugin-updater"
 import { toast } from "sonner"
 import { Download, ExternalLink, RefreshCw } from "lucide-react"
@@ -8,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { Switch } from "@/components/ui/switch"
 import { isPortable } from "@/db/appPaths"
+import { useUpdateInstall } from "@/hooks/use-update-install"
 import { reportError } from "@/lib/report-error"
 import { getCheckUpdatesOnStartup, saveCheckUpdatesOnStartup } from "@/lib/store/preferences"
 import { checkForUpdate, openReleasesPage } from "@/lib/updater"
@@ -20,7 +20,6 @@ type Status =
     | { kind: "upToDate" }
     | { kind: "available", update: Update }
     | { kind: "error", message: string }
-    | { kind: "installing", downloaded: number, total: number | null }
 
 /** Update controls of the About page: manual check, install (installed app) or link to the Releases (portable). */
 export const UpdateSection = () => {
@@ -28,6 +27,7 @@ export const UpdateSection = () => {
     const [status, setStatus] = useState<Status>({ kind: "idle" })
     const [portable, setPortable] = useState(false)
     const [onStartup, setOnStartup] = useState(true)
+    const { progress, percent, label: installLabel, install } = useUpdateInstall()
 
     useEffect(() => {
         let cancelled = false
@@ -49,20 +49,8 @@ export const UpdateSection = () => {
     }
 
     const handleInstall = async (update: Update) => {
-        let downloaded = 0
-        let total: number | null = null
-        setStatus({ kind: "installing", downloaded, total })
-        try {
-            await update.downloadAndInstall(event => {
-                if (event.event === "Started") total = event.data.contentLength ?? null
-                else if (event.event === "Progress") downloaded += event.data.chunkLength
-                setStatus({ kind: "installing", downloaded, total })
-            })
-            await relaunch()
-        } catch (error) {
-            setStatus({ kind: "available", update })
-            toast.error(t("settings.about.update.installError", { message: getErrorMessage(error) }))
-        }
+        // On success the app restarts; on failure the hook shows the error and the update stays offered
+        await install(update)
     }
 
     const handleOpenReleases = async () => {
@@ -78,10 +66,8 @@ export const UpdateSection = () => {
         void saveCheckUpdatesOnStartup(value).catch(error => reportError(error, getErrorMessage(error)))
     }
 
-    const busy = status.kind === "checking" || status.kind === "installing"
-    const percent = status.kind === "installing" && status.total
-        ? Math.min(100, Math.round((status.downloaded / status.total) * 100))
-        : null
+    const installing = progress !== null
+    const busy = status.kind === "checking" || installing
 
     return (
         <div className="flex flex-col gap-3">
@@ -104,7 +90,7 @@ export const UpdateSection = () => {
                         {t("settings.about.update.error", { message: status.message })}
                     </p>
                 )}
-                {status.kind === "available" && (
+                {status.kind === "available" && !installing && (
                     <>
                         <p>{t("settings.about.update.available", { version: status.update.version })}</p>
                         {status.update.body && (
@@ -133,15 +119,9 @@ export const UpdateSection = () => {
                         )}
                     </>
                 )}
-                {status.kind === "installing" && (
+                {installing && (
                     <>
-                        <p className="text-muted-foreground">
-                            {percent === null
-                                ? t("settings.about.update.downloadingUnknown")
-                                : percent >= 100
-                                    ? t("settings.about.update.installing")
-                                    : t("settings.about.update.downloading", { percent })}
-                        </p>
+                        <p className="text-muted-foreground">{installLabel}</p>
                         <Progress value={percent ?? 0} aria-label={t("settings.about.update.label")} />
                     </>
                 )}

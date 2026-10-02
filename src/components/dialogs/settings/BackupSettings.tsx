@@ -3,18 +3,8 @@ import { useTranslation } from "react-i18next"
 import { invoke } from "@tauri-apps/api/core"
 import { ArchiveRestore, DatabaseBackup, FolderOpen, Trash2 } from "lucide-react"
 import { toast } from "sonner"
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { buttonVariants } from "@/components/ui/button-variants"
+import { ConfirmDialog } from "../dialog-confirm"
 import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { TooltipCustom } from "@/components/tooltip-custom"
@@ -196,44 +186,24 @@ export const BackupSettings = () => {
                     </ul>
                 )}
             </div>
-            <AlertDialog open={toDelete !== null} onOpenChange={open => { if (!open) setToDelete(null) }}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t("settings.data.backup.delete.title")}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {t("settings.data.backup.delete.description", { date: toDelete?.date.toLocaleString(i18n.language) ?? "" })}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                        <AlertDialogAction
-                            className={buttonVariants({ variant: "destructive" })}
-                            onClick={() => { if (toDelete) void remove(toDelete) }}
-                        >
-                            {t("common.delete")}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
-            <AlertDialog open={toRestore !== null} onOpenChange={open => { if (!open) setToRestore(null) }}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>{t("settings.data.backup.restore.title")}</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            {t("settings.data.backup.restore.description", { date: toRestore?.date.toLocaleString(i18n.language) ?? "" })}
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-                        <AlertDialogAction
-                            className={buttonVariants({ variant: "destructive" })}
-                            onClick={() => { if (toRestore) void restore(toRestore) }}
-                        >
-                            {t("settings.data.backup.restore.confirm")}
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
+            <ConfirmDialog
+                open={toDelete !== null}
+                onOpenChange={open => { if (!open) setToDelete(null) }}
+                destructive
+                initialFocus="cancel"
+                title={t("settings.data.backup.delete.title")}
+                description={t("settings.data.backup.delete.description", { date: toDelete?.date.toLocaleString(i18n.language) ?? "" })}
+                confirm={{ label: t("common.delete"), icon: Trash2, onClick: () => { if (toDelete) void remove(toDelete) } }}
+            />
+            <ConfirmDialog
+                open={toRestore !== null}
+                onOpenChange={open => { if (!open) setToRestore(null) }}
+                destructive
+                initialFocus="cancel"
+                title={t("settings.data.backup.restore.title")}
+                description={t("settings.data.backup.restore.description", { date: toRestore?.date.toLocaleString(i18n.language) ?? "" })}
+                confirm={{ label: t("settings.data.backup.restore.confirm"), icon: ArchiveRestore, onClick: () => { if (toRestore) void restore(toRestore) } }}
+            />
         </>
     )
 }

@@ -14,7 +14,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspace } from "@/contexts/use-workspace"
-import { ArrowRight, Palette, X } from "lucide-react"
+import { ArrowRight, Palette, X, Plus } from "lucide-react"
 import { useId, useState } from "react"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { getErrorMessage } from "@/lib/utils"
@@ -134,6 +134,7 @@ export function DialogCreateWorkspace() {
                                 {t("common.cancel")}
                             </Button>
                             <Button type="submit" disabled={!workspace.name.trim() || saving}>
+                                <Plus />
                                 {t("home.createWorkspace.title")}
                             </Button>
                         </DialogFooter>

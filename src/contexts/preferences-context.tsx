@@ -1,3 +1,4 @@
+import { applyAccentColor } from "@/lib/accent-color"
 import { useEffect, useRef, useState } from "react"
 import {
     getPrimaryColor,
@@ -10,6 +11,8 @@ import {
     saveShowSectionCount,
     getShowTaskCount,
     saveShowTaskCount,
+    getShowSubtaskCount,
+    saveShowSubtaskCount,
     saveSideBarLeftOpen,
     saveSideBarRightOpen,
     getSideBarLeftOpen,
@@ -71,6 +74,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [showGroupProgressBar, setShowGroupProgressBarState] = useState(true)
     const [showSectionCount, setShowSectionCountState] = useState(true)
     const [showTaskCount, setShowTaskCountState] = useState(true)
+    const [showSubtaskCount, setShowSubtaskCountState] = useState(true)
     const [primaryColor, setPrimaryColorState] = useState("#ffb375")
     const [sidebarLeftOpen, setSidebarLeftOpenState] = useState(true)
     const [sidebarRightOpen, setSidebarRightOpenState] = useState(true)
@@ -130,6 +134,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         getShowGroupProgressBar().then(setShowGroupProgressBarState).catch(reportError)
         getShowSectionCount().then(setShowSectionCountState).catch(reportError)
         getShowTaskCount().then(setShowTaskCountState).catch(reportError)
+        getShowSubtaskCount().then(setShowSubtaskCountState).catch(reportError)
         getSideBarLeftOpen().then(setSidebarLeftOpenState).catch(reportError)
         getSideBarRightOpen().then(setSidebarRightOpenState).catch(reportError)
         getAudioPlayerPosition().then(position => {
@@ -155,7 +160,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         }).catch(reportError)
         getPrimaryColor().then(hex => {
             setPrimaryColorState(hex)
-            document.documentElement.style.setProperty('--primary', hex)
+            applyAccentColor(hex)
         }).catch(reportError)
         getHideCompletedTasks().then(setHideCompletedTasksState).catch(reportError)
     }, [])
@@ -180,9 +185,14 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         saveShowTaskCount(value).catch(reportError)
     }
 
+    const setShowSubtaskCount = (value: boolean) => {
+        setShowSubtaskCountState(value)
+        saveShowSubtaskCount(value).catch(reportError)
+    }
+
     const setPrimaryColor = (hex: string) => {
         setPrimaryColorState(hex)
-        document.documentElement.style.setProperty('--primary', hex)
+        applyAccentColor(hex)
         savePrimaryColor(hex).catch(reportError)
     }
 
@@ -320,6 +330,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             setShowSectionCount,
             showTaskCount,
             setShowTaskCount,
+            showSubtaskCount,
+            setShowSubtaskCount,
             primaryColor,
             setPrimaryColor,
             sidebarLeftOpen,

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useState } from "react"
-import { Music } from "lucide-react"
+import { AudioLines, Music, Pause, Square } from "lucide-react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
@@ -19,11 +19,14 @@ type AudioFileRowProps = {
 
 const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
     const { t } = useTranslation()
-    const { track, playFile, relinkFile, refresh } = useAudio()
+    const { track, playbackState, playFile, relinkFile, refresh } = useAudio()
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const menu = useItemMenuState()
     const isCurrent = track?.audioId === file.id
+    // What the icon says: playing (animated bars), paused (pause), played to the end (stop), or not loaded (note)
+    const state = isCurrent ? playbackState : null
+    const StateIcon = state === "playing" ? AudioLines : state === "paused" ? Pause : state === "ended" ? Square : Music
 
     // The dialogs call this with the id they were given after the change is stored
     const reload = async () => refresh()
@@ -88,12 +91,14 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
                 )}
                 role="button"
                 tabIndex={0}
+                aria-current={isCurrent ? "true" : undefined}
                 title={file.path}
                 onClick={() => void playFile(file)}
                 onKeyDown={onActivateKey(() => void playFile(file))}
             >
-                <Music className={cn("size-4 shrink-0", isCurrent ? "text-primary" : "text-muted-foreground")} />
+                <StateIcon className={cn("shrink-0", state === "ended" ? "size-3.5 mx-px fill-current" : "size-4", isCurrent ? "text-primary" : "text-muted-foreground", state === "playing" && "motion-safe:animate-pulse")} />
                 <span className="flex-1 truncate">{file.name}</span>
+                {state && <span className="sr-only">{t(`audio.${state === "playing" ? "nowPlaying" : state}`)}</span>}
                 <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                     <ItemMenuButton label={t("audio.fileMenu")} iconClassName="!h-4 !w-4" />
                 </div>

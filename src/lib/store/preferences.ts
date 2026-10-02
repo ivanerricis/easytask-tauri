@@ -25,11 +25,13 @@ const LANGUAGE_KEY = "language"
 const BACKUP_KEEP_KEY = "backupKeep"
 const AUTO_BACKUP_KEY = "autoBackup"
 const CHECK_UPDATES_KEY = "checkUpdatesOnStartup"
+const SKIPPED_UPDATE_KEY = "skippedUpdateVersion"
 const SIDEBAR_LEFT_WIDTH_KEY = "sidebarLeftWidth"
 const SIDEBAR_RIGHT_WIDTH_KEY = "sidebarRightWidth"
 const COLOR_INTENSITY_KEY = "colorIntensity"
 const RIGHT_PANEL_TAB_KEY = "rightPanelTab"
 const HIDE_COMPLETED_TASKS_KEY = "hideCompletedTasks"
+const SHOW_SUBTASK_COUNT_KEY = "showSubtaskCount"
 export const DEFAULT_PRIMARY_COLOR = "#ffb375"
 
 const SAVE_DEBOUNCE_MS = 500
@@ -635,6 +637,28 @@ export const saveCheckUpdatesOnStartup = async (value: boolean): Promise<void> =
 }
 
 /**
+ * Gets the version the user chose to skip in the update dialog (it is not offered again at startup).
+ * @returns A promise that resolves to the skipped version, or null when none was skipped.
+ * @category Store
+ */
+export const getSkippedUpdateVersion = async (): Promise<string | null> => {
+    const value = await store.get<string>(SKIPPED_UPDATE_KEY)
+    return typeof value === "string" && value.length > 0 ? value : null
+}
+
+/**
+ * Saves the version the user chose to skip in the update dialog.
+ * @param version The skipped version, or null to clear it.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveSkippedUpdateVersion = async (version: string | null): Promise<void> => {
+    if (version) await store.set(SKIPPED_UPDATE_KEY, version)
+    else await store.delete(SKIPPED_UPDATE_KEY)
+    await persist()
+}
+
+/**
  * Gets the intensity of the colors of folders, notes, groups and sections.
  * @returns A promise that resolves to a multiplier between 0.25 and 1.75 (default 1 = 100%; invalid stored values give the default).
  * @category Store
@@ -672,5 +696,26 @@ export const getHideCompletedTasks = async (): Promise<boolean> => {
  */
 export const saveHideCompletedTasks = async (value: boolean): Promise<void> => {
     await store.set(HIDE_COMPLETED_TASKS_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets whether a task with subtasks shows how many of them are completed (e.g. "1/3").
+ * @returns A promise that resolves to a boolean (default true).
+ * @category Store
+ */
+export const getShowSubtaskCount = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(SHOW_SUBTASK_COUNT_KEY)
+    return value ?? true
+}
+
+/**
+ * Saves whether a task with subtasks shows how many of them are completed.
+ * @param value A boolean indicating whether the subtask count is shown.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveShowSubtaskCount = async (value: boolean): Promise<void> => {
+    await store.set(SHOW_SUBTASK_COUNT_KEY, value)
     await persist()
 }

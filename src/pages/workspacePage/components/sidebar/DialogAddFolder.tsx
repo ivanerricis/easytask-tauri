@@ -135,8 +135,8 @@ export function DialogAddFolder() {
                                         setPaletteOpen(true)
                                     }}
                                     className="h-full">
-                                    {t("common.addColor")}
                                     <Palette />
+                                    {t("common.addColor")}
                                 </Button>
                             }
                         </div>
@@ -152,6 +152,7 @@ export function DialogAddFolder() {
                                 type="submit"
                                 disabled={!folder.name.trim() || saving}
                             >
+                                <FolderPlus />
                                 {t("dialogs.addFolder.submit")}
                             </Button>
                         </DialogFooter>
