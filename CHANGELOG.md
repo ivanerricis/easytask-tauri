@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-06
+
+### Added
+
+- Archive: folders, notes, groups and sections can be archived from their menu (or several at once from the multiple selection of the left sidebar). An archived item disappears from the note and the sidebar, with everything inside it, without going to the trash. The "Archive" button next to the Trash lists the archived items divided by kind (folders, notes, groups, sections): from there they can be restored or moved to the trash. Archiving and restoring can be undone, and archived items are kept by the workspace export and import.
+- Information about audio files: the Details tab of the right sidebar is split in two, and the lower half shows the audio file that is playing, or the one chosen with "Information" in its menu: cover, title, artist, album and the other tags, duration, format and codec, bitrate, sample rate, bit depth, channels, size and modification date.
+
+### Fixed
+
+- The audio player no longer starts partly outside the window: its position is computed from its real size (it was taken as much shorter than it is).
+- "Color content" of a folder can be undone.
+- The name of an imported workspace that clashes with an existing one gets the suffix in the language of the app ("(imported)"; it was always "(importato)"), and the errors of the backups and of the import are translated.
+- Editing a note with many tasks is lighter: a change to a task no longer redraws every task that has subtasks.
+
+### Changed
+
+- A section without tasks no longer shows its progress bar ("100 %"), as already happens for groups.
+
 ## [0.4.0] - 2026-10-06
 
 ### Fixed

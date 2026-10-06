@@ -4,6 +4,24 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-10-06
+
+### Aggiunto
+
+- Archivio: cartelle, note, gruppi e sezioni si possono archiviare dal loro menu (o più insieme dalla selezione multipla della sidebar di sinistra). Un elemento archiviato sparisce dalla nota e dalla sidebar, con tutto quello che contiene, senza finire nel cestino. Il pulsante "Archivio" accanto al Cestino elenca gli elementi archiviati divisi per tipo (cartelle, note, gruppi, sezioni): da lì si ripristinano o si spostano nel cestino. Archiviazione e ripristino si possono annullare, e l'export e l'import del workspace conservano gli elementi archiviati.
+- Informazioni sui file audio: la scheda Dettagli della sidebar di destra è divisa in due, e la metà in basso mostra il file audio in riproduzione, o quello scelto con "Informazioni" dal suo menu: copertina, titolo, artista, album e gli altri tag, durata, formato e codec, bitrate, frequenza di campionamento, profondità in bit, canali, dimensione e data di modifica.
+
+### Corretto
+
+- Il lettore audio non parte più in parte fuori dalla finestra: la sua posizione è calcolata dalla dimensione reale (era considerato molto più basso di quanto è).
+- "Colora contenuto" di una cartella si può annullare.
+- Il nome di un workspace importato che coincide con uno esistente riceve il suffisso nella lingua dell'app ("(importato)" in italiano, "(imported)" in inglese), e gli errori dei backup e dell'import sono tradotti.
+- Modificare una nota con molti task è più leggero: una modifica a un task non ridisegna più tutti i task che hanno sottotask.
+
+### Modificato
+
+- Una sezione senza task non mostra più la barra di avanzamento ("100 %"), come già avviene per i gruppi.
+
 ## [0.4.0] - 2026-10-06
 
 ### Corretto
