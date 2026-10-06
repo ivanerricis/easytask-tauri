@@ -252,7 +252,9 @@ fn read_audio_metadata(path: &Path) -> Result<AudioMetadata, String> {
 
     if let Some(tag) = tagged.primary_tag().or_else(|| tagged.first_tag()) {
         let text = |value: Option<&str>| {
-            value.map(|v| v.trim().to_string()).filter(|v| !v.is_empty())
+            value
+                .map(|v| v.trim().to_string())
+                .filter(|v| !v.is_empty())
         };
         info.title = text(tag.title().as_deref());
         info.artist = text(tag.artist().as_deref());
@@ -276,7 +278,10 @@ fn read_audio_metadata(path: &Path) -> Result<AudioMetadata, String> {
             let data = picture.data();
             if !data.is_empty() && data.len() <= MAX_COVER_BYTES {
                 use base64::Engine;
-                let mime = picture.mime_type().map(|mime| mime.as_str()).unwrap_or("image/jpeg");
+                let mime = picture
+                    .mime_type()
+                    .map(|mime| mime.as_str())
+                    .unwrap_or("image/jpeg");
                 info.cover = Some(format!(
                     "data:{mime};base64,{}",
                     base64::engine::general_purpose::STANDARD.encode(data)
@@ -658,9 +663,15 @@ mod tests {
         let dir = temp_dir("meta-reject");
         let text = dir.join("notes.txt");
         std::fs::write(&text, b"x").unwrap();
-        assert!(tauri::async_runtime::block_on(audio_metadata(text.to_str().unwrap().to_string())).is_err());
+        assert!(
+            tauri::async_runtime::block_on(audio_metadata(text.to_str().unwrap().to_string()))
+                .is_err()
+        );
         let missing = dir.join("gone.mp3");
-        assert!(tauri::async_runtime::block_on(audio_metadata(missing.to_str().unwrap().to_string())).is_err());
+        assert!(tauri::async_runtime::block_on(audio_metadata(
+            missing.to_str().unwrap().to_string()
+        ))
+        .is_err());
         let wav = dir.join("ok.wav");
         write_test_wav(&wav);
         let ok = tauri::async_runtime::block_on(audio_metadata(wav.to_str().unwrap().to_string()));
