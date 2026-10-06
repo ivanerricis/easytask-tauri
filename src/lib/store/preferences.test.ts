@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { getAudioVolume, saveAudioVolume, getAudioPlayerVisible, saveAudioPlayerVisible, getAudioPlayerScale, saveAudioPlayerScale, getAudioPlayerOpacity, saveAudioPlayerOpacity, getColorIntensity, saveColorIntensity, flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, getSidebarRightWidth, saveSidebarRightWidth, getRightPanelTab, saveRightPanelTab, saveShowGroupProgressBar, saveSidebarItemSize, getHideCompletedTasks, saveHideCompletedTasks, getPrimaryColor, getAudioPlayerPosition, getUndoLimit, saveUndoLimit, getShowAudioFileCount, getShowGroupSeparators, saveShowGroupSeparators, getWorkspaceSort, saveWorkspaceSort } from "./preferences"
+import { flushPreferences, getPref, savePref, normalizePref, UI_PREFS, APP_PREFS, clearLastWorkspaceId, getLastWorkspaceId, saveLastWorkspaceId, getReopenLastWorkspace, getRightPanelTab, getSidebarRightWidth, getPrimaryColor, getAudioPlayerPosition } from "./preferences"
 
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn(), delete: vi.fn() },
@@ -19,22 +19,22 @@ describe("sidebar item size preference", () => {
 
     it("defaults to normal when nothing is stored", async () => {
         vi.mocked(store.get).mockResolvedValue(undefined)
-        expect(await getSidebarItemSize()).toBe("normal")
+        expect(await getPref("sidebarItemSize")).toBe("normal")
     })
 
     it.each(["compact", "normal", "large"])("returns the stored value %s", async (value) => {
         vi.mocked(store.get).mockResolvedValue(value)
-        expect(await getSidebarItemSize()).toBe(value)
+        expect(await getPref("sidebarItemSize")).toBe(value)
         expect(store.get).toHaveBeenCalledWith("sidebarItemSize")
     })
 
     it.each(["huge", 3, null, ""])("falls back to normal for the invalid value %j", async (value) => {
         vi.mocked(store.get).mockResolvedValue(value)
-        expect(await getSidebarItemSize()).toBe("normal")
+        expect(await getPref("sidebarItemSize")).toBe("normal")
     })
 
     it("saves the value and flushes the store", async () => {
-        const p = saveSidebarItemSize("large")
+        const p = savePref("sidebarItemSize", "large")
         await vi.advanceTimersByTimeAsync(500)
         await p
         expect(store.set).toHaveBeenCalledWith("sidebarItemSize", "large")
@@ -50,17 +50,17 @@ describe("show group progress bar preference", () => {
 
     it("defaults to true when nothing is stored", async () => {
         vi.mocked(store.get).mockResolvedValue(undefined)
-        expect(await getShowGroupProgressBar()).toBe(true)
+        expect(await getPref("showGroupProgressBar")).toBe(true)
         expect(store.get).toHaveBeenCalledWith("showGroupProgressBar")
     })
 
     it("returns the stored value", async () => {
         vi.mocked(store.get).mockResolvedValue(false)
-        expect(await getShowGroupProgressBar()).toBe(false)
+        expect(await getPref("showGroupProgressBar")).toBe(false)
     })
 
     it("saves the value and flushes the store", async () => {
-        const p = saveShowGroupProgressBar(false)
+        const p = savePref("showGroupProgressBar", false)
         await vi.advanceTimersByTimeAsync(500)
         await p
         expect(store.set).toHaveBeenCalledWith("showGroupProgressBar", false)
@@ -83,7 +83,7 @@ describe("reopen last workspace preferences", () => {
     })
 
     it("saves the preference and flushes the store", async () => {
-        const p = saveReopenLastWorkspace(true)
+        const p = savePref("reopenLastWorkspace", true)
         await vi.advanceTimersByTimeAsync(500)
         await p
         expect(store.set).toHaveBeenCalledWith("reopenLastWorkspace", true)
@@ -116,8 +116,8 @@ describe("batched saves", () => {
     })
 
     it("sets immediately but saves once after the debounce", async () => {
-        const p1 = saveShowGroupProgressBar(true)
-        const p2 = saveSidebarItemSize("compact")
+        const p1 = savePref("showGroupProgressBar", true)
+        const p2 = savePref("sidebarItemSize", "compact")
         expect(store.set).toHaveBeenCalledTimes(2)
         expect(store.save).not.toHaveBeenCalled()
 
@@ -129,9 +129,9 @@ describe("batched saves", () => {
     })
 
     it("restarts the debounce on every change", async () => {
-        const p1 = saveSidebarItemSize("compact")
+        const p1 = savePref("sidebarItemSize", "compact")
         await vi.advanceTimersByTimeAsync(400)
-        const p2 = saveSidebarItemSize("large")
+        const p2 = savePref("sidebarItemSize", "large")
         await vi.advanceTimersByTimeAsync(400)
         expect(store.save).not.toHaveBeenCalled()
         await vi.advanceTimersByTimeAsync(100)
@@ -140,7 +140,7 @@ describe("batched saves", () => {
     })
 
     it("flushPreferences saves right away and cancels the timer", async () => {
-        const p = saveSidebarItemSize("large")
+        const p = savePref("sidebarItemSize", "large")
         await vi.advanceTimersByTimeAsync(0)
         await flushPreferences()
         await p
@@ -156,7 +156,7 @@ describe("batched saves", () => {
 
     it("rejects the pending promises when the save fails", async () => {
         vi.mocked(store.save).mockRejectedValueOnce(new Error("disk"))
-        const p = saveSidebarItemSize("large")
+        const p = savePref("sidebarItemSize", "large")
         const assertion = expect(p).rejects.toThrow("disk")
         await vi.advanceTimersByTimeAsync(500)
         await assertion
@@ -171,21 +171,21 @@ describe("left sidebar width preference", () => {
 
     it("defaults to 260 when nothing valid is stored", async () => {
         vi.mocked(store.get).mockResolvedValue(undefined)
-        expect(await getSidebarLeftWidth()).toBe(260)
+        expect(await getPref("sidebarLeftWidth")).toBe(260)
         vi.mocked(store.get).mockResolvedValue("wide")
-        expect(await getSidebarLeftWidth()).toBe(260)
+        expect(await getPref("sidebarLeftWidth")).toBe(260)
         vi.mocked(store.get).mockResolvedValue(Number.NaN)
-        expect(await getSidebarLeftWidth()).toBe(260)
+        expect(await getPref("sidebarLeftWidth")).toBe(260)
     })
 
     it.each([[320, 320], [10, 224], [9999, 480]])("clamps the stored width %d to %d", async (stored, expected) => {
         vi.mocked(store.get).mockResolvedValue(stored)
-        expect(await getSidebarLeftWidth()).toBe(expected)
+        expect(await getPref("sidebarLeftWidth")).toBe(expected)
         expect(store.get).toHaveBeenCalledWith("sidebarLeftWidth")
     })
 
     it("saves the clamped width and flushes the store", async () => {
-        const p = saveSidebarLeftWidth(9999)
+        const p = savePref("sidebarLeftWidth", 9999)
         await vi.advanceTimersByTimeAsync(500)
         await p
         expect(store.set).toHaveBeenCalledWith("sidebarLeftWidth", 480)
@@ -213,7 +213,7 @@ describe("right sidebar width and tab preferences", () => {
     })
 
     it("saves the clamped width", async () => {
-        const p = saveSidebarRightWidth(9999)
+        const p = savePref("sidebarRightWidth", 9999)
         await vi.advanceTimersByTimeAsync(500)
         await p
         expect(store.set).toHaveBeenCalledWith("sidebarRightWidth", 480)
@@ -226,7 +226,7 @@ describe("right sidebar width and tab preferences", () => {
     })
 
     it("saves the tab", async () => {
-        const p = saveRightPanelTab("history")
+        const p = savePref("rightPanelTab", "history")
         await vi.advanceTimersByTimeAsync(500)
         await p
         expect(store.set).toHaveBeenCalledWith("rightPanelTab", "history")
@@ -241,38 +241,38 @@ describe("audio player preferences", () => {
 
     it("has backwards compatible defaults when nothing is stored", async () => {
         vi.mocked(store.get).mockResolvedValue(undefined)
-        expect(await getAudioVolume()).toBe(1)
-        expect(await getAudioPlayerVisible()).toBe(true)
-        expect(await getAudioPlayerScale()).toBe(1)
-        expect(await getAudioPlayerOpacity()).toBe(1)
+        expect(await getPref("audioVolume")).toBe(1)
+        expect(await getPref("audioPlayerVisible")).toBe(true)
+        expect(await getPref("audioPlayerScale")).toBe(1)
+        expect(await getPref("audioPlayerOpacity")).toBe(1)
     })
 
     it.each([[0.4, 0.4], [-1, 0], [7, 1], ["loud", 1], [Number.NaN, 1]])("reads the volume %s as %s", async (stored, expected) => {
         vi.mocked(store.get).mockResolvedValue(stored)
-        expect(await getAudioVolume()).toBe(expected)
+        expect(await getPref("audioVolume")).toBe(expected)
         expect(store.get).toHaveBeenCalledWith("audioVolume")
     })
 
     it.each([[0.85, 0.85], [1.2, 1.2], [2, 1], ["big", 1]])("reads the scale %s as %s", async (stored, expected) => {
         vi.mocked(store.get).mockResolvedValue(stored)
-        expect(await getAudioPlayerScale()).toBe(expected)
+        expect(await getPref("audioPlayerScale")).toBe(expected)
         expect(store.get).toHaveBeenCalledWith("audioPlayerScale")
     })
 
     it.each([[0.7, 0.7], [0.1, 0.4], [3, 1], ["x", 1]])("reads the opacity %s as %s", async (stored, expected) => {
         vi.mocked(store.get).mockResolvedValue(stored)
-        expect(await getAudioPlayerOpacity()).toBe(expected)
+        expect(await getPref("audioPlayerOpacity")).toBe(expected)
         expect(store.get).toHaveBeenCalledWith("audioPlayerOpacity")
     })
 
     it("reads the visibility flag", async () => {
         vi.mocked(store.get).mockResolvedValue(false)
-        expect(await getAudioPlayerVisible()).toBe(false)
+        expect(await getPref("audioPlayerVisible")).toBe(false)
         expect(store.get).toHaveBeenCalledWith("audioPlayerVisible")
     })
 
     it("saves every value (clamped) with a debounced flush", async () => {
-        const saves = [saveAudioVolume(5), saveAudioPlayerVisible(false), saveAudioPlayerScale(1.2), saveAudioPlayerOpacity(0.1)]
+        const saves = [savePref("audioVolume", 5), savePref("audioPlayerVisible", false), savePref("audioPlayerScale", 1.2), savePref("audioPlayerOpacity", 0.1)]
         await vi.advanceTimersByTimeAsync(500)
         await Promise.all(saves)
         expect(store.set).toHaveBeenCalledWith("audioVolume", 1)
@@ -284,17 +284,17 @@ describe("audio player preferences", () => {
 
     it("has the default color intensity of 100% when nothing is stored", async () => {
         vi.mocked(store.get).mockResolvedValue(undefined)
-        expect(await getColorIntensity()).toBe(1)
+        expect(await getPref("colorIntensity")).toBe(1)
     })
 
     it.each([[1.5, 1.5], [0.25, 0.25], [0.1, 0.25], [5, 1.75], ["x", 1], [Number.NaN, 1]])("reads the color intensity %s as %s", async (stored, expected) => {
         vi.mocked(store.get).mockResolvedValue(stored)
-        expect(await getColorIntensity()).toBe(expected)
+        expect(await getPref("colorIntensity")).toBe(expected)
         expect(store.get).toHaveBeenCalledWith("colorIntensity")
     })
 
     it("saves the color intensity (clamped) with a debounced flush", async () => {
-        const save = saveColorIntensity(9)
+        const save = savePref("colorIntensity", 9)
         await vi.advanceTimersByTimeAsync(500)
         await save
         expect(store.set).toHaveBeenCalledWith("colorIntensity", 1.75)
@@ -310,17 +310,17 @@ describe("hide completed tasks preference", () => {
 
     it("is off by default", async () => {
         vi.mocked(store.get).mockResolvedValue(undefined)
-        expect(await getHideCompletedTasks()).toBe(false)
+        expect(await getPref("hideCompletedTasks")).toBe(false)
         expect(store.get).toHaveBeenCalledWith("hideCompletedTasks")
     })
 
     it("returns the stored value", async () => {
         vi.mocked(store.get).mockResolvedValue(true)
-        expect(await getHideCompletedTasks()).toBe(true)
+        expect(await getPref("hideCompletedTasks")).toBe(true)
     })
 
     it("saves the value and flushes the store", async () => {
-        const save = saveHideCompletedTasks(true)
+        const save = savePref("hideCompletedTasks", true)
         await vi.advanceTimersByTimeAsync(500)
         await save
         expect(store.set).toHaveBeenCalledWith("hideCompletedTasks", true)
@@ -369,27 +369,29 @@ describe("undo limit preference", () => {
 
     it.each([undefined, null, "100", 0, -5, 12.5, 501, NaN, 1e9])("falls back to 50 for the stored value %s", async (value) => {
         vi.mocked(store.get).mockResolvedValue(value)
-        expect(await getUndoLimit()).toBe(50)
+        expect(await getPref("undoLimit")).toBe(50)
     })
 
     it.each([1, 25, 200, 500])("returns the valid stored value %s", async (value) => {
         vi.mocked(store.get).mockResolvedValue(value)
-        expect(await getUndoLimit()).toBe(value)
+        expect(await getPref("undoLimit")).toBe(value)
         expect(store.get).toHaveBeenCalledWith("undoLimit")
     })
 
     it("saves a valid value and flushes the store", async () => {
-        const p = saveUndoLimit(100)
+        const p = savePref("undoLimit", 100)
         await vi.runAllTimersAsync()
         await p
         expect(store.set).toHaveBeenCalledWith("undoLimit", 100)
         expect(store.save).toHaveBeenCalled()
     })
 
-    it("ignores an invalid value", async () => {
-        await saveUndoLimit(0)
-        await saveUndoLimit(2.5)
-        expect(store.set).not.toHaveBeenCalled()
+    it("saves the default instead of an invalid value", async () => {
+        const p = Promise.all([savePref("undoLimit", 0), savePref("undoLimit", 2.5)])
+        await vi.runAllTimersAsync()
+        await p
+        expect(store.set).toHaveBeenNthCalledWith(1, "undoLimit", 50)
+        expect(store.set).toHaveBeenNthCalledWith(2, "undoLimit", 50)
     })
 })
 
@@ -401,12 +403,12 @@ describe("audio file count and section separators preferences", () => {
 
     it("show the audio file count by default and the separators never by default", async () => {
         vi.mocked(store.get).mockResolvedValue(undefined)
-        expect(await getShowAudioFileCount()).toBe(true)
-        expect(await getShowGroupSeparators()).toBe(false)
+        expect(await getPref("showAudioFileCount")).toBe(true)
+        expect(await getPref("showGroupSeparators")).toBe(false)
     })
 
     it("saves the separators", async () => {
-        const p = saveShowGroupSeparators(true)
+        const p = savePref("showGroupSeparators", true)
         await vi.runAllTimersAsync()
         await p
         expect(store.set).toHaveBeenCalledWith("showGroupSeparators", true)
@@ -421,12 +423,12 @@ describe("workspace sort preference", () => {
 
     it("defaults to last edited first when nothing is stored", async () => {
         vi.mocked(store.get).mockResolvedValue(undefined)
-        expect(await getWorkspaceSort()).toEqual({ by: "edited", dir: "desc" })
+        expect(await getPref("workspaceSort")).toEqual({ by: "edited", dir: "desc" })
     })
 
     it("returns the stored value", async () => {
         vi.mocked(store.get).mockResolvedValue({ by: "name", dir: "asc" })
-        expect(await getWorkspaceSort()).toEqual({ by: "name", dir: "asc" })
+        expect(await getPref("workspaceSort")).toEqual({ by: "name", dir: "asc" })
         expect(store.get).toHaveBeenCalledWith("workspaceSort")
     })
 
@@ -434,13 +436,86 @@ describe("workspace sort preference", () => {
         "falls back to the default for the invalid value %j",
         async (value) => {
             vi.mocked(store.get).mockResolvedValue(value)
-            expect(await getWorkspaceSort()).toEqual({ by: "edited", dir: "desc" })
+            expect(await getPref("workspaceSort")).toEqual({ by: "edited", dir: "desc" })
         })
 
     it("saves the value and flushes the store", async () => {
-        const p = saveWorkspaceSort({ by: "created", dir: "asc" })
+        const p = savePref("workspaceSort", { by: "created", dir: "asc" })
         await vi.runAllTimersAsync()
         await p
         expect(store.set).toHaveBeenCalledWith("workspaceSort", { by: "created", dir: "asc" })
+    })
+})
+
+describe("preference table", () => {
+    beforeEach(() => {
+        vi.resetAllMocks()
+        vi.useFakeTimers()
+    })
+
+    const all = { ...UI_PREFS, ...APP_PREFS }
+
+    it("has a unique store key per preference", () => {
+        const keys = Object.values(all).map(definition => definition.key)
+        expect(new Set(keys).size).toBe(keys.length)
+    })
+
+    it("keeps the keys saved on disk", () => {
+        expect(Object.values(all).map(definition => definition.key).sort()).toEqual([
+            "audioPlayerOpacity", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupKeep",
+            "checkUpdatesOnStartup", "colorIntensity", "hideCompletedTasks", "language", "lastWorkspaceId", "reopenLastWorkspace",
+            "reopenNotes", "rightPanelTab", "showAudioFileCount", "showGroupProgressBar", "showGroupSeparators", "showProgressBar",
+            "showSectionCount", "showSubtaskCount", "showTaskCount", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth",
+            "sidebarRightOpen", "sidebarRightWidth", "skippedUpdateVersion", "undoLimit", "workspaceSort", "workspaceView",
+        ])
+    })
+
+    it.each(Object.entries(all))("reads the default of %s when nothing is stored", async (name, definition) => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getPref(name as keyof typeof all)).toEqual(definition.default)
+        expect(store.get).toHaveBeenCalledWith(definition.key)
+    })
+
+    it.each(Object.entries(all))("gives a valid value for the stored garbage of %s", async (name) => {
+        vi.mocked(store.get).mockResolvedValue({ garbage: true })
+        const value = await getPref(name as keyof typeof all)
+        expect(normalizePref(name as keyof typeof all, value)).toEqual(value)
+    })
+
+    it("normalizes the value when saving", async () => {
+        const p = savePref("audioVolume", 5)
+        await vi.runAllTimersAsync()
+        await p
+        expect(store.set).toHaveBeenCalledWith("audioVolume", 1)
+    })
+
+    it("removes a nullable preference from the store when saving null", async () => {
+        const p = savePref("skippedUpdateVersion", null)
+        await vi.runAllTimersAsync()
+        await p
+        expect(store.delete).toHaveBeenCalledWith("skippedUpdateVersion")
+        expect(store.set).not.toHaveBeenCalled()
+    })
+
+    it("reads a skipped version only when it is a non-empty string", async () => {
+        vi.mocked(store.get).mockResolvedValue("1.2.3")
+        expect(await getPref("skippedUpdateVersion")).toBe("1.2.3")
+        vi.mocked(store.get).mockResolvedValue("")
+        expect(await getPref("skippedUpdateVersion")).toBeNull()
+    })
+
+    it("clamps the backups to keep", async () => {
+        vi.mocked(store.get).mockResolvedValue(500)
+        expect(await getPref("backupKeep")).toBe(100)
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getPref("backupKeep")).toBe(7)
+    })
+
+    it("persists with one debounced save for several preferences", async () => {
+        const saves = [savePref("showTaskCount", false), savePref("backupKeep", 0), savePref("reopenNotes", false)]
+        expect(store.set).toHaveBeenCalledWith("backupKeep", 1)
+        await vi.advanceTimersByTimeAsync(500)
+        await Promise.all(saves)
+        expect(store.save).toHaveBeenCalledTimes(1)
     })
 })

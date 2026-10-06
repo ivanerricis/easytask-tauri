@@ -2,11 +2,12 @@ import i18n from "@/i18n"
 import { reportError } from "@/lib/report-error"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import type { TaskMoveTarget } from "@/db/queries/move"
-import type { NoteDataTree, WorkspaceDataTree } from "@/types/types"
-import type { WorkspaceActionsType } from "../workspace-data"
+import type { ArchiveItemType, NoteDataTree, WorkspaceDataTree } from "@/types/types"
+import type { PreviousColor, WorkspaceActionsType } from "../workspace-data"
 import type { ActiveNoteActionsType } from "../active-note-context-object"
 import { findSection, findTask } from "../note-tree-ops"
 import { findTreeItem, type TreeItemType } from "../workspace-tree-ops"
+import { withRollback } from "../with-rollback"
 import type { UndoCommand } from "./stack"
 
 /**
@@ -18,8 +19,8 @@ export type UndoDeps = {
     /** The workspace the history belongs to (null outside a workspace). */
     getWorkspaceId: () => number | null
     workspace: Pick<WorkspaceActionsType,
-        "renameItem" | "updateItemColor" | "deleteItem" | "restoreItem" | "moveTreeItem" | "moveSection" | "moveTask" |
-        "updateTaskCompletion" | "updateTaskPriority" | "updateTaskDescription" | "getWorkspaceData">
+        "renameItem" | "updateItemColor" | "deleteItem" | "restoreItem" | "archiveItem" | "unarchiveItem" | "moveTreeItem" | "moveSection" | "moveTask" |
+        "updateTaskCompletion" | "updateTaskPriority" | "updateTaskDescription" | "updateFolderColorContent" | "getWorkspaceData">
     note: Pick<ActiveNoteActionsType,
         "patchTask" | "patchSection" | "patchGroup" | "removeGroup" | "removeSection" | "removeTask" |
         "applySectionMove" | "applyTaskMove" | "refreshActiveNote">
@@ -57,7 +58,7 @@ const shorten = (name: string | null | undefined) => {
 
 const typeName = (itemType: DBItemType) => i18n.t(`undo.itemTypes.${itemType}`)
 
-type LabelKey = "rename" | "color" | "complete" | "reopen" | "addPriority" | "removePriority" | "description" | "delete" | "create" | "move"
+type LabelKey = "rename" | "color" | "complete" | "reopen" | "addPriority" | "removePriority" | "description" | "delete" | "create" | "move" | "colorContent" | "archive" | "unarchive"
 
 /** The translated description of an action on an item, with the (shortened) name of the item when it has one. */
 export function makeLabel(key: LabelKey, itemType: DBItemType, name: string | null | undefined): string {
@@ -142,13 +143,7 @@ export function createUndoCommands(deps: UndoDeps) {
 
     /** Soft delete with the same optimistic removal as the delete dialog (folders and notes are removed by deleteItem). */
     const removeItem = async (itemType: UndoItemType, id: number) => {
-        const rollback = removeFromNote(itemType, id)
-        try {
-            await workspace.deleteItem(itemType, id)
-        } catch (error) {
-            rollback?.()
-            throw error
-        }
+        await withRollback(removeFromNote(itemType, id), () => workspace.deleteItem(itemType, id))
     }
 
     /** Restores from the trash (the ids are the same, so every reference stays valid) and reloads what changed. */
@@ -158,24 +153,24 @@ export function createUndoCommands(deps: UndoDeps) {
         else await reloadNote()
     }
 
+    /** Archives with the same optimistic removal as the archive action (folders and notes are removed by archiveItem). */
+    const archiveOne = async (itemType: ArchiveItemType, id: number) => {
+        await withRollback(removeFromNote(itemType, id), () => workspace.archiveItem(itemType, id))
+    }
+
+    /** Unarchives (the ids are the same, so every reference stays valid) and reloads what changed. */
+    const unarchiveOne = async (itemType: ArchiveItemType, id: number) => {
+        await workspace.unarchiveItem(itemType, id)
+        if (isTreeType(itemType)) await reloadTree()
+        else await reloadNote()
+    }
+
     const setName = (itemType: UndoItemType, id: number) => async (name: string) => {
-        const rollback = patchNoteItem(itemType, id, "name", name)
-        try {
-            await workspace.renameItem(itemType, id, name)
-        } catch (error) {
-            rollback?.()
-            throw error
-        }
+        await withRollback(patchNoteItem(itemType, id, "name", name), () => workspace.renameItem(itemType, id, name))
     }
 
     const setColor = (itemType: UndoItemType, id: number) => async (color: string | null) => {
-        const rollback = patchNoteItem(itemType, id, "color", color)
-        try {
-            await workspace.updateItemColor(itemType, id, color ?? undefined)
-        } catch (error) {
-            rollback?.()
-            throw error
-        }
+        await withRollback(patchNoteItem(itemType, id, "color", color), () => workspace.updateItemColor(itemType, id, color ?? undefined))
     }
 
     const moveTreeTo = (itemType: TreeItemType, id: number) => async (place: TreePlace) => {
@@ -184,48 +179,25 @@ export function createUndoCommands(deps: UndoDeps) {
     }
 
     const moveSectionTo = async (sectionId: number, groupId: number, index: number) => {
-        const rollback = note.applySectionMove(sectionId, groupId, index)
-        try {
-            await workspace.moveSection(sectionId, groupId, index)
-        } catch (error) {
-            rollback()
-            throw error
-        }
+        await withRollback(note.applySectionMove(sectionId, groupId, index), () => workspace.moveSection(sectionId, groupId, index))
     }
 
     const moveTaskTo = async (taskId: number, target: TaskMoveTarget, index: number) => {
-        const rollback = note.applyTaskMove(taskId, target, index)
-        try {
-            await workspace.moveTask(taskId, target, index)
-        } catch (error) {
-            rollback()
-            throw error
-        }
+        await withRollback(note.applyTaskMove(taskId, target, index), () => workspace.moveTask(taskId, target, index))
     }
 
     const setTaskFlag = (key: "completed" | "priority", taskId: number) => async (value: boolean) => {
-        const rollback = note.patchTask(taskId, { [key]: value })
-        try {
-            if (key === "completed") await workspace.updateTaskCompletion(taskId, value)
-            else await workspace.updateTaskPriority(taskId, value)
-        } catch (error) {
-            rollback()
-            throw error
-        }
+        await withRollback(note.patchTask(taskId, { [key]: value }), () =>
+            key === "completed" ? workspace.updateTaskCompletion(taskId, value) : workspace.updateTaskPriority(taskId, value))
     }
 
     const setTaskDescription = (taskId: number) => async (description: string) => {
-        const rollback = note.patchTask(taskId, { description })
-        try {
-            await workspace.updateTaskDescription(taskId, description !== "" ? description : undefined)
-        } catch (error) {
-            rollback()
-            throw error
-        }
+        await withRollback(note.patchTask(taskId, { description }), () =>
+            workspace.updateTaskDescription(taskId, description !== "" ? description : undefined))
     }
 
     /** The same label for every multi-selection action: the translated count ("Delete 3 items"). */
-    const manyLabel = (key: "deleteMany" | "colorMany" | "moveMany", count: number) => i18n.t(`undo.labels.${key}`, { count })
+    const manyLabel = (key: "deleteMany" | "colorMany" | "moveMany" | "archiveMany", count: number) => i18n.t(`undo.labels.${key}`, { count })
 
     return {
         /** Rename of a folder, note, group, section or task. */
@@ -314,6 +286,35 @@ export function createUndoCommands(deps: UndoDeps) {
             },
         }),
 
+        /** Archive of a folder, note, group or section: undone by unarchiving it (same id, same position). */
+        archive: (itemType: ArchiveItemType, id: number, name: string | null | undefined): UndoCommand => ({
+            label: makeLabel("archive", itemType, name),
+            undo: () => unarchiveOne(itemType, id),
+            redo: () => archiveOne(itemType, id),
+        }),
+
+        /** Unarchive of a folder, note, group or section (from the archive dialog): undone by archiving it again. */
+        unarchive: (itemType: ArchiveItemType, id: number, name: string | null | undefined): UndoCommand => ({
+            label: makeLabel("unarchive", itemType, name),
+            undo: () => archiveOne(itemType, id),
+            redo: () => unarchiveOne(itemType, id),
+        }),
+
+        /**
+         * Archive of several folders/notes as ONE step: undone by unarchiving them all (the tree is reloaded once),
+         * redone by archiving them again in the same order.
+         */
+        archiveMany: (items: TreeItemRef[]): UndoCommand => ({
+            label: manyLabel("archiveMany", items.length),
+            undo: async () => {
+                for (const item of [...items].reverse()) await workspace.unarchiveItem(item.itemType, item.id)
+                await reloadTree()
+            },
+            redo: async () => {
+                for (const item of items) await archiveOne(item.itemType, item.id)
+            },
+        }),
+
         /** Color change of several folders/notes as ONE step (null = no color). */
         colorMany: (changes: ColorChange[]): UndoCommand => ({
             label: manyLabel("colorMany", changes.length),
@@ -323,6 +324,19 @@ export function createUndoCommands(deps: UndoDeps) {
             redo: async () => {
                 for (const change of changes) await setColor(change.itemType, change.id)(change.after ?? null)
             },
+        }),
+
+        /**
+         * "Color content" of a folder (the folder, its subfolders and their notes) as ONE step: undone by giving every
+         * touched item its previous color, redone by coloring the whole content again.
+         * @param previous The previous colors, as returned by `updateFolderColorContent`.
+         */
+        colorContent: (folderId: number, name: string | null | undefined, color: string | null | undefined, previous: PreviousColor[]): UndoCommand => ({
+            label: makeLabel("colorContent", "folder", name),
+            undo: async () => {
+                for (const item of [...previous].reverse()) await setColor(item.itemType, item.id)(item.before ?? null)
+            },
+            redo: () => workspace.updateFolderColorContent(folderId, color ?? undefined).then(() => undefined),
         }),
 
         /**
@@ -403,5 +417,5 @@ export function createUndoRecorder(commands: UndoCommands, record: (command: Und
 const noop = () => {}
 export const NOOP_RECORDER: UndoRecorder = {
     rename: noop, color: noop, taskCompletion: noop, taskPriority: noop, taskDescription: noop, remove: noop, create: noop,
-    treeMove: noop, removeMany: noop, colorMany: noop, treeMoveMany: noop, sectionMove: noop, sectionMoveToNewGroup: noop, taskMove: noop, record: noop, track: write => write,
+    archive: noop, unarchive: noop, archiveMany: noop, treeMove: noop, removeMany: noop, colorMany: noop, colorContent: noop, treeMoveMany: noop, sectionMove: noop, sectionMoveToNewGroup: noop, taskMove: noop, record: noop, track: write => write,
 }

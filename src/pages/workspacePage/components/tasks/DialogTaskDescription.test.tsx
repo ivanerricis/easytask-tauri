@@ -69,6 +69,17 @@ describe("DialogTaskDescription", () => {
         await waitFor(() => expect(updateTaskDescription).toHaveBeenCalledWith(4, "Done"))
     })
 
+    it("ignores a second Ctrl+Enter while the save is pending", async () => {
+        const user = userEvent.setup()
+        let resolve: () => void = () => {}
+        updateTaskDescription.mockReturnValue(new Promise<void>(r => { resolve = r }))
+        const { onOpenChange } = setup()
+        await user.type(screen.getByRole("textbox", { name: "Descrizione" }), "Done{Control>}{Enter}{Enter}{/Control}")
+        expect(updateTaskDescription).toHaveBeenCalledTimes(1)
+        resolve()
+        await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    })
+
     it("removes the description when it is cleared", async () => {
         const user = userEvent.setup()
         setup("Old")

@@ -51,3 +51,14 @@ export const createFolderTrigger = `
         WHERE id = OLD.id;
     END;
 `
+
+/**
+ * Migration v4: adds the archive date of a folder (NULL = not archived) and makes the name unique only among the
+ * siblings that are neither in the trash nor archived (an archived folder does not block its name).
+ * @category Database Schema
+ */
+export const addFolderArchivedAt: string[] = [
+    `ALTER TABLE folder ADD COLUMN archived_at TEXT DEFAULT NULL;`,
+    `DROP INDEX IF EXISTS idx_folder_name;`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_folder_name ON folder(workspaceID, IFNULL(folderID, 0), name) WHERE deleted_at IS NULL AND archived_at IS NULL;`,
+]

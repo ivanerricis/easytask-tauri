@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next"
-import { Download, LayoutTemplate, Trash2 } from "lucide-react"
+import { Archive, Download, LayoutTemplate, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
-type IconType = 'trash' | 'download' | 'template'
+type IconType = 'trash' | 'archive' | 'download' | 'template'
 
 type ItemFooterProps = {
     text: string
@@ -17,6 +17,7 @@ type ItemFooterProps = {
 
 const iconMap: Record<IconType, LucideIcon> = {
     trash: Trash2,
+    archive: Archive,
     download: Download,
     template: LayoutTemplate
 }

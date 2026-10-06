@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { getErrorMessage } from "@/lib/utils"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 type DialogCreateTemplateProps = {
     /** The source note (only id and name are used). */
@@ -26,22 +27,21 @@ const TemplateForm = ({ note, onOpenChange, onCreated }: TemplateFormProps) => {
     const { createTemplateFromNote } = useWorkspaceActions()
     const [name, setName] = useState(note.name)
     const [error, setError] = useState<string | null>(null)
-    const [busy, setBusy] = useState(false)
+    const { saving: busy, run } = useSubmitOnce()
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!name.trim() || busy) return
-        setBusy(true)
-        try {
-            await createTemplateFromNote(note.id, name.trim())
-            toast.success(t("dialogs.createTemplate.created"))
-            onCreated?.()
-            onOpenChange(false)
-        } catch (err) {
-            setError(getErrorMessage(err))
-        } finally {
-            setBusy(false)
-        }
+        await run(async () => {
+            try {
+                await createTemplateFromNote(note.id, name.trim())
+                toast.success(t("dialogs.createTemplate.created"))
+                onCreated?.()
+                onOpenChange(false)
+            } catch (err) {
+                setError(getErrorMessage(err))
+            }
+        })
     }
 
     return (

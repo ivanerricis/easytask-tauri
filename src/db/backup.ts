@@ -5,7 +5,7 @@ import Database from "@tauri-apps/plugin-sql"
 import i18n from "@/i18n"
 import { reportError } from "@/lib/report-error"
 import { getAutoBackup, getBackupKeep } from "@/lib/store/preferences"
-import { createError } from "@/types/error"
+import { createError, isAppError } from "@/types/error"
 import { ensureAppFolder } from "./appPaths"
 import { closeDB, DB_FILE, getDB, setRestoring } from "./dbManager"
 import { APPLICATION_ID, LATEST_SCHEMA_VERSION } from "./initDb"
@@ -143,7 +143,7 @@ export async function runAutoBackup(): Promise<boolean> {
 }
 
 function assertBackupName(name: string): void {
-    if (!parseBackupName(name)) throw new Error(`Invalid backup name: ${name}`)
+    if (!parseBackupName(name)) throw createError("BACKUP_INVALID_NAME", i18n.t("errors.backup.invalidName"))
 }
 
 /**
@@ -177,7 +177,7 @@ async function validateBackupFile(path: string): Promise<void> {
         const check = await db.select<{ integrity_check: string }[]>("PRAGMA integrity_check")
         if (check.length !== 1 || check[0].integrity_check !== "ok") throw invalid()
     } catch (error) {
-        if (typeof error === "object" && error !== null && "code" in error) throw error
+        if (isAppError(error)) throw error
         throw invalid()
     } finally {
         await db.close().catch(() => false)
@@ -195,7 +195,7 @@ export async function restoreBackup(name: string): Promise<void> {
     assertBackupName(name)
     const folder = await backupFolderPath()
     const source = await join(folder, name)
-    if (!(await exists(source))) throw new Error(`Backup not found: ${name}`)
+    if (!(await exists(source))) throw createError("BACKUP_NOT_FOUND", i18n.t("errors.backup.notFound"))
 
     await validateBackupFile(source)
     await createBackup("pre-restore")

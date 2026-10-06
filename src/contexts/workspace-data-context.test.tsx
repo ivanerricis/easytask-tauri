@@ -14,8 +14,9 @@ import { createDBNoteInFolder, createDBWorkspaceNote } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder"
 import { moveDBTreeItem } from "@/db/queries/tree"
 import { moveDBSection, moveDBSectionToNewGroup, moveDBTask } from "@/db/queries/move"
-import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "@/db/queries/trash"
+import { emptyDBTrash, getDBTrash, getDBTrashCount, purgeDBItem, restoreDBItem } from "@/db/queries/trash"
 import { createDBNoteFromTemplate } from "@/db/queries/template"
+import { archiveDBItem, getDBArchive, getDBArchiveCount, unarchiveDBItem } from "@/db/queries/archive"
 import { deferred } from "@/test/ui-render"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { Folder } from "@/types/types"
@@ -49,9 +50,16 @@ vi.mock("@/db/queries/tree", () => ({ moveDBTreeItem: vi.fn() }))
 vi.mock("@/db/queries/move", () => ({ moveDBSection: vi.fn(), moveDBSectionToNewGroup: vi.fn(), moveDBTask: vi.fn() }))
 vi.mock("@/db/queries/trash", () => ({
     getDBTrash: vi.fn(),
+    getDBTrashCount: vi.fn(),
     restoreDBItem: vi.fn(),
     purgeDBItem: vi.fn(),
     emptyDBTrash: vi.fn(),
+}))
+vi.mock("@/db/queries/archive", () => ({
+    archiveDBItem: vi.fn(),
+    unarchiveDBItem: vi.fn(),
+    getDBArchive: vi.fn(),
+    getDBArchiveCount: vi.fn(),
 }))
 vi.mock("@/db/queries/template", () => ({
     countDBTemplates: vi.fn(),
@@ -292,6 +300,68 @@ describe("WorkspaceDataContext", () => {
             await act(() => result.current.deleteItem("folder", 1))
             expect(result.current.trashVersion).toBe(1)
             expect(result.current.currentFolder).toBeNull()
+        })
+
+        it("keeps the flat folders and notes derived from the tree (same references until the tree changes)", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+            const { folders, notes } = result.current
+            expect(folders.map(f => f.id)).toEqual([1, 2])
+            act(() => result.current.setCurrentFolder(folders[0]))
+            expect(result.current.folders).toBe(folders)
+            expect(result.current.notes).toBe(notes)
+            await act(() => result.current.deleteItem("note", 10))
+            expect(result.current.notes).not.toBe(notes)
+            expect(result.current.notes.map(n => n.id)).toEqual([11])
+        })
+
+        it("bumps audioVersion only for what can change the visible audio, not for task moves", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            expect(result.current.audioVersion).toBe(0)
+            await act(() => result.current.deleteItem("task", 5))
+            await act(() => result.current.moveTask(9, { sectionId: 4, parentTaskId: null }, 0))
+            await act(() => result.current.moveSection(4, 2, 1))
+            expect(result.current.audioVersion).toBe(0)
+            expect(result.current.trashVersion).toBe(3)
+
+            let expected = 0
+            const ops: Array<() => Promise<unknown>> = [
+                () => result.current.deleteItem("section_group", 3),
+                () => result.current.deleteItem("audio_file", 3),
+                () => result.current.restoreItem("section", 1),
+                () => result.current.purgeItem("note", 1),
+                () => result.current.emptyTrash(4),
+            ]
+            for (const op of ops) {
+                await act(() => op())
+                expected += 1
+                expect(result.current.audioVersion).toBe(expected)
+            }
+        })
+
+        it("does not bump audioVersion when the delete fails", async () => {
+            vi.mocked(deleteDBItem).mockRejectedValueOnce(new Error("nope"))
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await act(async () => {
+                await expect(result.current.deleteItem("section_group", 1)).rejects.toThrow("nope")
+            })
+            expect(result.current.audioVersion).toBe(0)
+        })
+
+        it("getTrashCount asks the database without touching isLoading", async () => {
+            vi.mocked(getDBTrashCount).mockResolvedValue(4)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await expect(result.current.getTrashCount(1)).resolves.toBe(4)
+            expect(getDBTrashCount).toHaveBeenCalledWith(1)
+            expect(result.current.isLoading).toBe(false)
+        })
+
+        it("updateFolderColorContent resolves with the previous colors of everything it touched", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await load(result)
+            const previous = await act(() => result.current.updateFolderColorContent(1, "#0f0"))
+            expect(previous.map(p => [p.itemType, p.id])).toEqual([["folder", 1], ["folder", 2], ["note", 10]])
+            expect(previous.every(p => p.before === undefined || typeof p.before === "string")).toBe(true)
         })
 
         it("adds a note created from a template to the tree without reloading", async () => {
@@ -676,6 +746,112 @@ describe("WorkspaceDataContext", () => {
             const { result } = renderHook(() => useAll(), { wrapper })
             await act(() => result.current.createNoteInFolder(1, 2, "x"))
             expect(createDBNoteInFolder).toHaveBeenCalledWith(1, 2, "x")
+        })
+    })
+
+    describe("archive", () => {
+        const loadTree = async (result: { current: ReturnType<typeof useAll> }) => {
+            const root = makeFolder({ id: 1, name: "Root" })
+            const child = makeFolder({ id: 2, folderID: 1, name: "Child" })
+            vi.mocked(getDBWorkspaceData).mockResolvedValue({
+                folders: [root, child], notes: [makeNote({ id: 10, folderID: 2 }), makeNote({ id: 11, folderID: null })],
+            } as never)
+            await act(() => result.current.getWorkspaceData(1))
+        }
+
+        it("archives a folder or a note by removing it from the tree at once, without reloading", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await loadTree(result)
+            vi.mocked(getDBWorkspaceData).mockClear()
+            await act(() => result.current.archiveItem("note", 10))
+            expect(archiveDBItem).toHaveBeenLastCalledWith("note", 10)
+            expect(result.current.notes.map(n => n.id)).toEqual([11])
+            await act(() => result.current.archiveItem("folder", 1))
+            expect(result.current.workspaceDataTree!.rootFolders).toEqual([])
+            expect(getDBWorkspaceData).not.toHaveBeenCalled()
+        })
+
+        it("puts the item back and keeps archiveVersion when the write fails", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await loadTree(result)
+            vi.mocked(archiveDBItem).mockRejectedValueOnce(new Error("nope"))
+            await act(async () => {
+                await expect(result.current.archiveItem("note", 11)).rejects.toThrow("nope")
+            })
+            expect(result.current.notes.map(n => n.id).sort()).toEqual([10, 11])
+            expect(result.current.archiveVersion).toBe(0)
+        })
+
+        it("clears the current folder when an archived folder contains it", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await loadTree(result)
+            act(() => result.current.setCurrentFolder(result.current.folders.find(f => f.id === 2)!))
+            await act(() => result.current.archiveItem("folder", 1))
+            expect(result.current.currentFolder).toBeNull()
+        })
+
+        it("a group or a section is archived without touching the tree (the caller updates the open note)", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await loadTree(result)
+            const tree = result.current.workspaceDataTree
+            await act(() => result.current.archiveItem("section_group", 3))
+            await act(() => result.current.archiveItem("section", 4))
+            expect(archiveDBItem).toHaveBeenCalledWith("section_group", 3)
+            expect(archiveDBItem).toHaveBeenCalledWith("section", 4)
+            expect(result.current.workspaceDataTree).toBe(tree)
+        })
+
+        it("unarchiveItem writes and does not reload; getArchive and getArchiveCount do not change any state", async () => {
+            vi.mocked(getDBArchive).mockResolvedValue([])
+            vi.mocked(getDBArchiveCount).mockResolvedValue(3)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await act(() => result.current.unarchiveItem("note", 5))
+            expect(unarchiveDBItem).toHaveBeenCalledWith("note", 5)
+            expect(getDBWorkspaceData).not.toHaveBeenCalled()
+            expect(await result.current.getArchive(4)).toEqual([])
+            expect(await result.current.getArchiveCount(4)).toBe(3)
+            expect(getDBArchive).toHaveBeenCalledWith(4)
+            expect(getDBArchiveCount).toHaveBeenCalledWith(4)
+            expect(result.current.archiveVersion).toBe(1)
+        })
+
+        it("bumps archiveVersion on archive, unarchive and every trash operation, not on unrelated writes or failures", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            expect(result.current.archiveVersion).toBe(0)
+            let expected = 0
+            const ops: Array<() => Promise<unknown>> = [
+                () => result.current.archiveItem("section", 1),
+                () => result.current.unarchiveItem("section", 1),
+                () => result.current.deleteItem("note", 1),
+                () => result.current.restoreItem("note", 1),
+                () => result.current.purgeItem("note", 1),
+                () => result.current.emptyTrash(4),
+            ]
+            for (const op of ops) {
+                await act(() => op())
+                expected += 1
+                expect(result.current.archiveVersion).toBe(expected)
+            }
+            vi.mocked(unarchiveDBItem).mockRejectedValueOnce(new Error("exists"))
+            await act(async () => {
+                await expect(result.current.unarchiveItem("note", 1)).rejects.toThrow("exists")
+            })
+            await act(() => result.current.renameItem("task", 1, "y"))
+            expect(result.current.archiveVersion).toBe(expected)
+        })
+
+        it("bumps audioVersion when a group, note or folder is archived or unarchived, not for a section", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await act(() => result.current.archiveItem("section", 1))
+            expect(result.current.audioVersion).toBe(0)
+            let expected = 0
+            for (const [type, id] of [["section_group", 1], ["note", 2], ["folder", 3]] as const) {
+                await act(() => result.current.archiveItem(type, id))
+                expected += 1
+                expect(result.current.audioVersion).toBe(expected)
+            }
+            await act(() => result.current.unarchiveItem("section_group", 1))
+            expect(result.current.audioVersion).toBe(expected + 1)
         })
     })
 

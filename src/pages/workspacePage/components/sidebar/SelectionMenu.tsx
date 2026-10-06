@@ -13,7 +13,7 @@ import { useSelectionActions } from "./selection-actions"
 import { getMultiMoveDestinations } from "./tree-multi-move"
 
 /**
- * Entries of the menu of a selected row while 2 or more items are selected: move, color, export and delete,
+ * Entries of the menu of a selected row while 2 or more items are selected: move, color, export, archive and delete,
  * all applied to the whole selection (see {@link SelectionActionsProvider}). Written once for the "…" button and the right click.
  */
 export const SelectionMenuItems = ({ menu }: { menu: ItemMenuState }) => {
@@ -70,6 +70,11 @@ export const SelectionMenuItems = ({ menu }: { menu: ItemMenuState }) => {
                 text={t("menu.selection.export")}
                 type="export"
                 onClick={() => { menu.close(); void actions.exportSelection() }}
+            />
+            <ButtonInPopover
+                text={t("menu.selection.archive", { count: targets.length })}
+                type="archive"
+                onClick={() => { menu.close(); void actions.archiveSelection() }}
             />
             <Separator />
             <ButtonInPopover

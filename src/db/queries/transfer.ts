@@ -7,29 +7,25 @@ import {
     MAX_IMPORT_ITEMS, WORKSPACE_EXPORT_FORMAT, WORKSPACE_EXPORT_VERSION,
     type ExportAudio, type ExportFolder, type ExportNote, type ExportTemplate, type WorkspaceExport,
 } from "@/types/transfer";
-import { createError, handleDBError } from "@/types/error";
+import { createError, handleDBError, isAppError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { AUDIO_EXTENSIONS } from "./audio";
-import { addNoteContent, buildContent } from "./template";
+import { addNoteContent, buildContent, parseTemplateContent } from "./template";
 import { Transaction, TransactionError, type TxRef } from "../transaction";
 
 const INVALID_FILE_MESSAGE = () => i18n.t("errors.transfer.invalidFile")
 const MALFORMED_MESSAGE = () => i18n.t("errors.transfer.malformed")
 
-// Errors built with createError are plain objects; driver errors (Error instances of any realm, or strings) must not match
-const isAppError = (error: unknown): error is { code: string, message: string } =>
-    typeof error === "object" && error !== null && Object.getPrototypeOf(error) === Object.prototype && "code" in error && "message" in error
-
 /** Exports one note (content and audio paths); `folderRef` is where the note sits inside the file. */
 async function buildNoteExport(db: Database, note: Note & { color: string | null }, folderRef: string | null): Promise<ExportNote> {
-    const content = await buildContent(note.id)
+    const content = await buildContent(note.id, true)
     const audio = await db.select<{ section_groupID: number, name: string, path: string, position: number }[]>(
         `SELECT a.section_groupID, a.name, a.path, a.position FROM audio_file a
          INNER JOIN section_group g ON g.id = a.section_groupID
          WHERE g.noteID = ? AND g.deleted_at IS NULL AND a.deleted_at IS NULL
          ORDER BY a.position, a.id`, [note.id])
-    // Group ids in content order (same criteria as buildContent: not deleted, by position)
+    // Group ids in content order (same criteria as buildContent with the archived: not deleted, by position)
     const groupRows = await db.select<{ id: number }[]>(
         'SELECT id FROM section_group WHERE noteID = ? AND deleted_at IS NULL ORDER BY position', [note.id])
     const groupIndex = new Map(groupRows.map((row, index) => [row.id, index]))
@@ -38,6 +34,7 @@ async function buildNoteExport(db: Database, note: Note & { color: string | null
         folderRef,
         name: note.name,
         color: note.color ?? null,
+        ...(note.archived_at ? { archived_at: note.archived_at } : {}),
         position: note.position,
         content,
         audio: audio.flatMap((file): ExportAudio[] => {
@@ -48,7 +45,8 @@ async function buildNoteExport(db: Database, note: Note & { color: string | null
 }
 
 /**
- * Builds the export of a workspace: folders, notes (with content and audio paths) and templates, without any trashed item.
+ * Builds the export of a workspace: folders, notes (with content and audio paths) and templates, without any trashed item
+ * (archived items are included, with their `archived_at`).
  * @param workspaceId The ID of the workspace.
  * @throws A "TRANSFER_WORKSPACE_MISSING" error when the workspace does not exist, "TRANSFER_EXPORT_FAILED" otherwise.
  * @category Database Queries
@@ -88,6 +86,7 @@ export async function buildDBWorkspaceExport(workspaceId: number): Promise<Works
             parentRef: refOf(folder.folderID),
             name: folder.name,
             color: folder.color ?? null,
+            ...(folder.archived_at ? { archived_at: folder.archived_at } : {}),
             position: folder.position,
         }))
 
@@ -96,14 +95,8 @@ export async function buildDBWorkspaceExport(workspaceId: number): Promise<Works
             exportNotes.push(await buildNoteExport(db, note, refOf(note.folderID)))
 
         const exportTemplates: ExportTemplate[] = templates.map(template => {
-            let content: NoteTemplateContent = { version: 1, groups: [] }
-            try {
-                const value = JSON.parse(template.content) as NoteTemplateContent
-                if (value && Array.isArray(value.groups)) content = value
-            } catch {
-                // A corrupted snapshot is exported as an empty template
-            }
-            return { name: template.name, color: template.color ?? null, content }
+            // A corrupted snapshot is exported as an empty template
+            return { name: template.name, color: template.color ?? null, content: parseTemplateContent(template.content) }
         })
 
         return {
@@ -190,6 +183,7 @@ export async function buildDBItemsExport(items: { type: "note" | "folder", id: n
                         parentRef: folder.id === item.id || folder.folderID === null || !subtreeOf.get(item.id)!.has(folder.folderID) ? null : `f${folder.folderID}`,
                         name: folder.name,
                         color: folder.color ?? null,
+                        ...(folder.archived_at ? { archived_at: folder.archived_at } : {}),
                         position: folder.position,
                     })
                 }
@@ -265,11 +259,11 @@ function checkContent(content: unknown, counter: Counter): NoteTemplateContent {
     for (const group of content.groups as unknown[]) {
         bump(counter)
         if (!isObject(group) || !isNumber(group.position) || !Array.isArray(group.sections) || !isNullableString(group.name)
-            || !isNullableString(group.color)) malformed()
+            || !isNullableString(group.color) || !isNullableString(group.archived_at)) malformed()
         for (const section of group.sections as unknown[]) {
             bump(counter)
             if (!isObject(section) || !isString(section.title) || !isNumber(section.position) || !Array.isArray(section.tasks)
-                || !isNullableString(section.color)) malformed()
+                || !isNullableString(section.color) || !isNullableString(section.archived_at)) malformed()
             for (const task of section.tasks as unknown[]) checkTask(task, counter)
         }
     }
@@ -350,7 +344,7 @@ export function validateWorkspaceExport(data: unknown): WorkspaceExport {
     const folderRefs = new Set<string>()
     for (const folder of folders as unknown[]) {
         if (!isObject(folder) || !isNonEmpty(folder.ref) || !isNonEmpty(folder.name) || !isNumber(folder.position)
-            || !isNullableString(folder.color) || !(folder.parentRef === null || isString(folder.parentRef))) malformed()
+            || !isNullableString(folder.color) || !isNullableString(folder.archived_at) || !(folder.parentRef === null || isString(folder.parentRef))) malformed()
         if (folderRefs.has(folder.ref)) malformed()
         folderRefs.add(folder.ref)
     }
@@ -360,7 +354,7 @@ export function validateWorkspaceExport(data: unknown): WorkspaceExport {
     const noteRefs = new Set<string>()
     for (const note of notes as unknown[]) {
         if (!isObject(note) || !isNonEmpty(note.ref) || !isNonEmpty(note.name) || !isNumber(note.position)
-            || !isNullableString(note.color) || !Array.isArray(note.audio)
+            || !isNullableString(note.color) || !isNullableString(note.archived_at) || !Array.isArray(note.audio)
             || !(note.folderRef === null || (isString(note.folderRef) && folderRefs.has(note.folderRef)))) malformed()
         if (noteRefs.has(note.ref)) malformed()
         noteRefs.add(note.ref)
@@ -420,14 +414,15 @@ const hasAudioExtension = (path: string) => {
     return dot >= 0 && (AUDIO_EXTENSIONS as readonly string[]).includes(path.slice(dot + 1).toLowerCase())
 }
 
-/** Returns the first free workspace name: "name", "name (importato)", "name (importato 2)"... */
+/** Returns the first free workspace name: "name", "name (imported)", "name (imported 2)"... (the word comes from the current language). */
 async function uniqueWorkspaceName(db: Database, name: string): Promise<string> {
     // Trashed workspaces are included: they still hold the UNIQUE constraint on the name
     const rows = await db.select<{ name: string }[]>('SELECT name FROM workspace')
     const used = new Set(rows.map(row => row.name.toLowerCase()))
     if (!used.has(name.toLowerCase())) return name
+    const word = i18n.t("errors.transfer.suffix")
     for (let counter = 1; ; counter++) {
-        const candidate = counter === 1 ? `${name} (importato)` : `${name} (importato ${counter})`
+        const candidate = counter === 1 ? `${name} (${word})` : `${name} (${word} ${counter})`
         if (!used.has(candidate.toLowerCase())) return candidate
     }
 }
@@ -457,22 +452,22 @@ async function insertItems(
     let level: PendingFolder[] = (childrenOf.get(null) ?? []).map(folder => ({ folder, parentRef: rootParent }))
     let imported = 0
     while (level.length > 0) {
-        const refs = tx.insertRows("folder", ["workspaceID", "folderID", "name", "color", "position"],
-            level.map(({ folder, parentRef }) => [workspaceRef, parentRef, folder.name.trim(), folder.color ?? null, folder.position]))
+        const refs = tx.insertRows("folder", ["workspaceID", "folderID", "name", "color", "archived_at", "position"],
+            level.map(({ folder, parentRef }) => [workspaceRef, parentRef, folder.name.trim(), folder.color ?? null, folder.archived_at || null, folder.position]))
         level.forEach(({ folder }, i) => folderRefs.set(folder.ref, refs[i]))
         imported += level.length
         level = level.flatMap(({ folder }, i) =>
             (childrenOf.get(folder.ref) ?? []).map(child => ({ folder: child, parentRef: refs[i] })))
     }
     // Folders left out are part of a parent cycle
-    if (imported !== data.folders.length) throw new Error("Invalid folder tree")
+    if (imported !== data.folders.length) throw createError("TRANSFER_INVALID_TREE", i18n.t("errors.transfer.invalidFolderTree"))
 
     let noteRefs: TxRef[] = []
     if (data.notes.length > 0) {
-        noteRefs = tx.insertRows("note", ["workspaceID", "folderID", "name", "color", "position"],
+        noteRefs = tx.insertRows("note", ["workspaceID", "folderID", "name", "color", "archived_at", "position"],
             data.notes.map(note => [
                 workspaceRef, note.folderRef === null ? rootParent : folderRefs.get(note.folderRef) ?? null,
-                note.name.trim(), note.color ?? null, note.position,
+                note.name.trim(), note.color ?? null, note.archived_at || null, note.position,
             ]))
 
         for (const [i, note] of data.notes.entries()) {
@@ -562,7 +557,8 @@ export type ImportedItems = {
 
 /**
  * Imports an items export (a note, or a folder with its subtree) into an existing workspace, under a folder or at its root.
- * The top items are appended after the existing siblings and renamed on a name clash ("name (2)", "name (3)"...); everything
+ * The top items are appended after the existing siblings, renamed on a name clash ("name (2)", "name (3)"...) and never
+ * archived (the items inside keep their archive date); everything
  * is written in ONE database transaction: on any failure nothing is created.
  * @param data A validated export with scope "items" (see validateWorkspaceExport).
  * @param workspaceId The workspace to import into.
@@ -585,7 +581,7 @@ export async function importDBItems(
         const db = await getDB()
         if (parentFolderId !== null) {
             const parents = await db.select<{ id: number }[]>(
-                'SELECT id FROM folder WHERE id = ? AND workspaceID = ? AND deleted_at IS NULL', [parentFolderId, workspaceId])
+                'SELECT id FROM folder WHERE id = ? AND workspaceID = ? AND deleted_at IS NULL AND archived_at IS NULL', [parentFolderId, workspaceId])
             if (parents.length === 0) throw createError("TRANSFER_PARENT_MISSING", i18n.t("errors.transfer.parentMissing"))
         }
 
@@ -604,6 +600,8 @@ export async function importDBItems(
             for (const item of items) {
                 item.name = uniqueSibling(item.name.trim(), used)
                 item.position = position++
+                // What the user imports on purpose shows up: only the items inside keep their archive date
+                item.archived_at = null
             }
         }
 

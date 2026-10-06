@@ -1,6 +1,9 @@
-import { useState } from "react"
+import { useContext, useEffect, useState } from "react"
+import type { AudioFile } from "@/types/types"
+import { AudioContext } from "@/contexts/audio-context-object"
+import { getDBGroupAudioFiles } from "@/db/queries/audio"
 import { usePreferences } from "@/contexts/use-preferences"
-import { useSelectTask } from "@/contexts/use-tabs"
+import { useActiveNoteId, useSelectTask } from "@/contexts/use-tabs"
 import { useCompactLayout } from "@/lib/sidebar-layout"
 import { RightPanelContext } from "./right-panel-context-object"
 
@@ -13,6 +16,15 @@ export function RightPanelProvider({ children }: { children: React.ReactNode }) 
     const { sidebarRightOpen, setSideBarRightOpen, rightPanelTab, setRightPanelTab } = usePreferences()
     const compact = useCompactLayout()
     const selectTask = useSelectTask()
+    const activeNoteId = useActiveNoteId()
+    // Optional: the panel also works (without a chosen file) where there is no audio provider
+    const audioVersion = useContext(AudioContext)?.version
+    const [audioInfoFile, setAudioInfoFile] = useState<AudioFile | null>(null)
+    const [prevNoteId, setPrevNoteId] = useState(activeNoteId)
+    if (prevNoteId !== activeNoteId) {
+        setPrevNoteId(activeNoteId)
+        setAudioInfoFile(null)
+    }
     const [overlayOpen, setOverlayOpen] = useState(false)
     const [prevCompact, setPrevCompact] = useState(compact)
     if (prevCompact !== compact) {
@@ -31,8 +43,35 @@ export function RightPanelProvider({ children }: { children: React.ReactNode }) 
         setOpen(true)
     }
 
+    const showAudioInfo = (file: AudioFile) => {
+        setAudioInfoFile(file)
+        setRightPanelTab("details")
+        setOpen(true)
+    }
+
+    // The chosen file that was deleted or trashed is dropped (the loaded track is shown again); a renamed or
+    // relinked one is refreshed. Runs when the audio files may have changed.
+    const chosenId = audioInfoFile?.id
+    const chosenGroupId = audioInfoFile?.section_groupID
+    useEffect(() => {
+        if (chosenId === undefined || chosenGroupId === undefined) return
+        let stale = false
+        getDBGroupAudioFiles(chosenGroupId)
+            .then(files => {
+                if (stale) return
+                const current = files.find(file => file.id === chosenId)
+                setAudioInfoFile(previous => {
+                    if (!previous || previous.id !== chosenId) return previous
+                    if (!current) return null
+                    return previous.name === current.name && previous.path === current.path ? previous : current
+                })
+            })
+            .catch(() => { })
+        return () => { stale = true }
+    }, [chosenId, chosenGroupId, audioVersion])
+
     return (
-        <RightPanelContext.Provider value={{ open, setOpen, tab: rightPanelTab, setTab: setRightPanelTab, showTaskDetails }}>
+        <RightPanelContext.Provider value={{ open, setOpen, tab: rightPanelTab, setTab: setRightPanelTab, showTaskDetails, audioInfoFile, showAudioInfo }}>
             {children}
         </RightPanelContext.Provider>
     )

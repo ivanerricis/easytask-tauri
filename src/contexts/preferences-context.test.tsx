@@ -9,66 +9,20 @@ import { reportError } from "@/lib/report-error"
 vi.mock("@/lib/store/initStore", () => ({ store: {} }))
 vi.mock("@/lib/store/preferences", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@/lib/store/preferences")>()),
-    getAudioVolume: vi.fn(),
-    saveAudioVolume: vi.fn(),
-    getAudioPlayerVisible: vi.fn(),
-    saveAudioPlayerVisible: vi.fn(),
-    getAudioPlayerScale: vi.fn(),
-    saveAudioPlayerScale: vi.fn(),
-    getAudioPlayerOpacity: vi.fn(),
-    saveAudioPlayerOpacity: vi.fn(),
+    getPref: vi.fn(),
+    savePref: vi.fn(),
     getPrimaryColor: vi.fn(),
     savePrimaryColor: vi.fn(),
-    getShowProgressBar: vi.fn(),
-    saveShowProgressBar: vi.fn(),
-    getShowGroupProgressBar: vi.fn(),
-    saveShowGroupProgressBar: vi.fn(),
-    getShowSectionCount: vi.fn(),
-    saveShowSectionCount: vi.fn(),
-    getShowTaskCount: vi.fn(),
-    getShowAudioFileCount: vi.fn(),
-    saveShowAudioFileCount: vi.fn(),
-    getShowGroupSeparators: vi.fn(),
-    saveShowGroupSeparators: vi.fn(),
-    getUndoLimit: vi.fn(),
-    saveUndoLimit: vi.fn(),
-    saveShowTaskCount: vi.fn(),
-    getSideBarLeftOpen: vi.fn(),
-    saveSideBarLeftOpen: vi.fn(),
-    getSideBarRightOpen: vi.fn(),
-    saveSideBarRightOpen: vi.fn(),
     getAudioPlayerPosition: vi.fn(),
     saveAudioPlayerPosition: vi.fn(),
     resetAudioPlayerPosition: vi.fn(),
-    getWorkspaceView: vi.fn(),
-    saveWorkspaceView: vi.fn(),
-    getWorkspaceSort: vi.fn(),
-    saveWorkspaceSort: vi.fn(),
-    getReopenNotes: vi.fn(),
-    saveReopenNotes: vi.fn(),
-    getReopenLastWorkspace: vi.fn(),
-    saveReopenLastWorkspace: vi.fn(),
-    getSidebarItemSize: vi.fn(),
-    saveSidebarItemSize: vi.fn(),
-    getSidebarLeftWidth: vi.fn(),
-    saveSidebarLeftWidth: vi.fn(),
-    getSidebarRightWidth: vi.fn(),
-    saveSidebarRightWidth: vi.fn(),
-    getRightPanelTab: vi.fn(),
-    saveRightPanelTab: vi.fn(),
-    getColorIntensity: vi.fn(),
-    saveColorIntensity: vi.fn(),
-    getLanguage: vi.fn(),
-    saveLanguage: vi.fn(),
-    getHideCompletedTasks: vi.fn(),
-    saveHideCompletedTasks: vi.fn(),
-    getShowSubtaskCount: vi.fn(),
-    saveShowSubtaskCount: vi.fn(),
 }))
 vi.mock("@/lib/report-error", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@/lib/report-error")>()),
     reportError: vi.fn(),
 }))
+
+let stored: Record<string, unknown> = {}
 
 const wrapper = ({ children }: { children: ReactNode }) => <PreferencesProvider>{children}</PreferencesProvider>
 
@@ -77,32 +31,35 @@ describe("PreferencesContext", () => {
         vi.resetAllMocks()
         document.documentElement.style.removeProperty("--primary")
         vi.mocked(prefs.getPrimaryColor).mockResolvedValue("#123456")
-        vi.mocked(prefs.getShowProgressBar).mockResolvedValue(false)
-        vi.mocked(prefs.getShowGroupProgressBar).mockResolvedValue(false)
-        vi.mocked(prefs.getShowSectionCount).mockResolvedValue(true)
-        vi.mocked(prefs.getShowTaskCount).mockResolvedValue(false)
-        vi.mocked(prefs.getShowAudioFileCount).mockResolvedValue(false)
-        vi.mocked(prefs.getShowGroupSeparators).mockResolvedValue(true)
-        vi.mocked(prefs.getUndoLimit).mockResolvedValue(200)
-        vi.mocked(prefs.getSideBarLeftOpen).mockResolvedValue(false)
-        vi.mocked(prefs.getSideBarRightOpen).mockResolvedValue(true)
-        vi.mocked(prefs.getWorkspaceView).mockResolvedValue("list")
-        vi.mocked(prefs.getWorkspaceSort).mockResolvedValue({ by: "name", dir: "asc" })
-        vi.mocked(prefs.getReopenNotes).mockResolvedValue(false)
-        vi.mocked(prefs.getReopenLastWorkspace).mockResolvedValue(true)
-        vi.mocked(prefs.getSidebarItemSize).mockResolvedValue("large")
-        vi.mocked(prefs.getSidebarLeftWidth).mockResolvedValue(320)
-        vi.mocked(prefs.getSidebarRightWidth).mockResolvedValue(300)
-        vi.mocked(prefs.getRightPanelTab).mockResolvedValue("history")
-        vi.mocked(prefs.getLanguage).mockResolvedValue("system")
-        vi.mocked(prefs.getColorIntensity).mockResolvedValue(1.4)
-        vi.mocked(prefs.getAudioVolume).mockResolvedValue(0.3)
-        vi.mocked(prefs.getAudioPlayerVisible).mockResolvedValue(false)
-        vi.mocked(prefs.getAudioPlayerScale).mockResolvedValue(1.2)
-        vi.mocked(prefs.getAudioPlayerOpacity).mockResolvedValue(0.6)
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
-        vi.mocked(prefs.getHideCompletedTasks).mockResolvedValue(true)
-        vi.mocked(prefs.getShowSubtaskCount).mockResolvedValue(false)
+        stored = {
+            showProgressBar: false,
+            showGroupProgressBar: false,
+            showSectionCount: true,
+            showTaskCount: false,
+            showAudioFileCount: false,
+            showGroupSeparators: true,
+            undoLimit: 200,
+            sidebarLeftOpen: false,
+            sidebarRightOpen: true,
+            workspaceView: "list",
+            workspaceSort: { by: "name", dir: "asc" },
+            reopenNotes: false,
+            reopenLastWorkspace: true,
+            sidebarItemSize: "large",
+            sidebarLeftWidth: 320,
+            sidebarRightWidth: 300,
+            rightPanelTab: "history",
+            language: "system",
+            colorIntensity: 1.4,
+            audioVolume: 0.3,
+            audioPlayerVisible: false,
+            audioPlayerScale: 1.2,
+            audioPlayerOpacity: 0.6,
+            hideCompletedTasks: true,
+            showSubtaskCount: false,
+        }
+        vi.mocked(prefs.getPref).mockImplementation(async name => name in stored ? stored[name] : prefs.UI_PREFS[name as prefs.UiPrefName].default)
         // The saves are promises (the provider reports their failures)
         for (const [name, fn] of Object.entries(prefs)) {
             if (/^(save|reset)/.test(name) && vi.isMockFunction(fn)) fn.mockResolvedValue(undefined)
@@ -127,9 +84,9 @@ describe("PreferencesContext", () => {
         expect(result.current.showAudioFileCount).toBe(true)
         expect(result.current.showGroupSeparators).toBe(false)
         expect(result.current.undoLimit).toBe(25)
-        expect(prefs.saveShowAudioFileCount).toHaveBeenCalledWith(true)
-        expect(prefs.saveShowGroupSeparators).toHaveBeenCalledWith(false)
-        expect(prefs.saveUndoLimit).toHaveBeenCalledWith(25)
+        expect(prefs.savePref).toHaveBeenCalledWith("showAudioFileCount", true)
+        expect(prefs.savePref).toHaveBeenCalledWith("showGroupSeparators", false)
+        expect(prefs.savePref).toHaveBeenCalledWith("undoLimit", 25)
     })
 
     it("throws when used outside the provider", () => {
@@ -180,15 +137,15 @@ describe("PreferencesContext", () => {
         expect(result.current.showProgressBar).toBe(true)
         expect(result.current.sidebarLeftOpen).toBe(true)
         expect(result.current.primaryColor).toBe("#abcdef")
-        expect(prefs.saveShowProgressBar).toHaveBeenCalledWith(true)
+        expect(prefs.savePref).toHaveBeenCalledWith("showProgressBar", true)
         expect(result.current.showGroupProgressBar).toBe(true)
-        expect(prefs.saveShowGroupProgressBar).toHaveBeenCalledWith(true)
-        expect(prefs.saveSideBarLeftOpen).toHaveBeenCalledWith(true)
+        expect(prefs.savePref).toHaveBeenCalledWith("showGroupProgressBar", true)
+        expect(prefs.savePref).toHaveBeenCalledWith("sidebarLeftOpen", true)
         expect(prefs.savePrimaryColor).toHaveBeenCalledWith("#abcdef")
         expect(result.current.workspaceView).toBe("grid")
-        expect(prefs.saveWorkspaceView).toHaveBeenCalledWith("grid")
+        expect(prefs.savePref).toHaveBeenCalledWith("workspaceView", "grid")
         expect(result.current.workspaceSort).toEqual({ by: "created", dir: "desc" })
-        expect(prefs.saveWorkspaceSort).toHaveBeenCalledWith({ by: "created", dir: "desc" })
+        expect(prefs.savePref).toHaveBeenCalledWith("workspaceSort", { by: "created", dir: "desc" })
         expect(document.documentElement.style.getPropertyValue("--primary")).toBe("#abcdef")
     })
 
@@ -215,12 +172,12 @@ describe("PreferencesContext", () => {
             result.current.setAudioPlayerVisible(true)
         })
         expect(result.current.audioVolume).toBe(1)
-        expect(prefs.saveAudioVolume).toHaveBeenCalledWith(1)
+        expect(prefs.savePref).toHaveBeenCalledWith("audioVolume", 1)
         expect(result.current.audioPlayerOpacity).toBe(0.4)
-        expect(prefs.saveAudioPlayerOpacity).toHaveBeenCalledWith(0.4)
+        expect(prefs.savePref).toHaveBeenCalledWith("audioPlayerOpacity", 0.4)
         expect(result.current.audioPlayerScale).toBe(0.85)
-        expect(prefs.saveAudioPlayerScale).toHaveBeenCalledWith(0.85)
-        expect(prefs.saveAudioPlayerVisible).toHaveBeenCalledWith(true)
+        expect(prefs.savePref).toHaveBeenCalledWith("audioPlayerScale", 0.85)
+        expect(prefs.savePref).toHaveBeenCalledWith("audioPlayerVisible", true)
 
         act(() => result.current.setAudioVolume(0.2))
         act(() => result.current.resetAudioSettings())
@@ -241,10 +198,10 @@ describe("PreferencesContext", () => {
         await waitFor(() => expect(result.current.colorIntensity).toBe(1.4))
         act(() => result.current.setColorIntensity(0.1))
         expect(result.current.colorIntensity).toBe(0.25)
-        expect(prefs.saveColorIntensity).toHaveBeenCalledWith(0.25)
+        expect(prefs.savePref).toHaveBeenCalledWith("colorIntensity", 0.25)
         act(() => result.current.setColorIntensity(1))
         expect(result.current.colorIntensity).toBe(1)
-        expect(prefs.saveColorIntensity).toHaveBeenCalledWith(1)
+        expect(prefs.savePref).toHaveBeenCalledWith("colorIntensity", 1)
     })
 
     it("pulls the player back inside the container when it gets bigger", async () => {
@@ -257,7 +214,7 @@ describe("PreferencesContext", () => {
         act(() => result.current.setAudioPlayerPosition({ x: 250, y: 318, scaleX: 1, scaleY: 1 }))
         act(() => result.current.setAudioPlayerScale(1.2))
         expect(result.current.audioPlayerPosition.x).toBe(180)
-        expect(result.current.audioPlayerPosition.y).toBeCloseTo(301.6)
+        expect(result.current.audioPlayerPosition.y).toBeCloseTo(400 - 140 * 1.2)
     })
 
     it("loads and persists the reopen notes preference (default on)", async () => {
@@ -268,7 +225,7 @@ describe("PreferencesContext", () => {
         act(() => result.current.setReopenNotes(true))
 
         expect(result.current.reopenNotes).toBe(true)
-        expect(prefs.saveReopenNotes).toHaveBeenCalledWith(true)
+        expect(prefs.savePref).toHaveBeenCalledWith("reopenNotes", true)
     })
 
     it("loads and persists the reopen last workspace preference (default off)", async () => {
@@ -279,7 +236,7 @@ describe("PreferencesContext", () => {
         act(() => result.current.setReopenLastWorkspace(false))
 
         expect(result.current.reopenLastWorkspace).toBe(false)
-        expect(prefs.saveReopenLastWorkspace).toHaveBeenCalledWith(false)
+        expect(prefs.savePref).toHaveBeenCalledWith("reopenLastWorkspace", false)
     })
 
     it("loads and persists the sidebar item size (default normal)", async () => {
@@ -290,7 +247,7 @@ describe("PreferencesContext", () => {
         act(() => result.current.setSidebarItemSize("compact"))
 
         expect(result.current.sidebarItemSize).toBe("compact")
-        expect(prefs.saveSidebarItemSize).toHaveBeenCalledWith("compact")
+        expect(prefs.savePref).toHaveBeenCalledWith("sidebarItemSize", "compact")
     })
 
     it("loads and persists the left sidebar width (default 260, clamped on save)", async () => {
@@ -300,7 +257,7 @@ describe("PreferencesContext", () => {
 
         act(() => result.current.setSidebarLeftWidth(400))
         expect(result.current.sidebarLeftWidth).toBe(400)
-        expect(prefs.saveSidebarLeftWidth).toHaveBeenCalledWith(400)
+        expect(prefs.savePref).toHaveBeenCalledWith("sidebarLeftWidth", 400)
 
         act(() => result.current.setSidebarLeftWidth(5000))
         expect(result.current.sidebarLeftWidth).toBe(480)
@@ -313,7 +270,7 @@ describe("PreferencesContext", () => {
 
         act(() => result.current.setSidebarRightWidth(380))
         expect(result.current.sidebarRightWidth).toBe(380)
-        expect(prefs.saveSidebarRightWidth).toHaveBeenCalledWith(380)
+        expect(prefs.savePref).toHaveBeenCalledWith("sidebarRightWidth", 380)
 
         act(() => result.current.setSidebarRightWidth(5000))
         expect(result.current.sidebarRightWidth).toBe(480)
@@ -326,7 +283,7 @@ describe("PreferencesContext", () => {
 
         act(() => result.current.setRightPanelTab("details"))
         expect(result.current.rightPanelTab).toBe("details")
-        expect(prefs.saveRightPanelTab).toHaveBeenCalledWith("details")
+        expect(prefs.savePref).toHaveBeenCalledWith("rightPanelTab", "details")
     })
 
     it("resetPlayerPosition resets the store but skips the state update without a container", async () => {
@@ -353,7 +310,7 @@ describe("PreferencesContext", () => {
 
         act(() => result.current.resetPlayerPosition())
 
-        const expected = { x: 500 - 175 * 1.2, y: 600 - 82 * 1.2, scaleX: 1, scaleY: 1 }
+        const expected = { x: 500 - 175 * 1.2, y: 600 - 140 * 1.2 - 8, scaleX: 1, scaleY: 1 }
         expect(result.current.audioPlayerPosition).toEqual(expected)
         expect(prefs.saveAudioPlayerPosition).toHaveBeenCalledWith(expected)
     })
@@ -366,7 +323,7 @@ describe("PreferencesContext", () => {
         act(() => result.current.setHideCompletedTasks(false))
 
         expect(result.current.hideCompletedTasks).toBe(false)
-        expect(prefs.saveHideCompletedTasks).toHaveBeenCalledWith(false)
+        expect(prefs.savePref).toHaveBeenCalledWith("hideCompletedTasks", false)
     })
 
     it("loads and persists the subtask count preference (default on)", async () => {
@@ -377,7 +334,7 @@ describe("PreferencesContext", () => {
         act(() => result.current.setShowSubtaskCount(true))
 
         expect(result.current.showSubtaskCount).toBe(true)
-        expect(prefs.saveShowSubtaskCount).toHaveBeenCalledWith(true)
+        expect(prefs.savePref).toHaveBeenCalledWith("showSubtaskCount", true)
     })
 
     it("resetPlayerPosition sets and saves the computed position once", async () => {
@@ -397,7 +354,40 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getAudioPlayerPosition).mockResolvedValue({ x: 99999, y: 99999, scaleX: 1, scaleY: 1 })
         const { result } = renderHook(() => usePreferences(), { wrapper })
         await waitFor(() => expect(result.current.audioPlayerPosition.x).toBe(window.innerWidth - 350))
-        expect(result.current.audioPlayerPosition.y).toBe(window.innerHeight - 82)
+        expect(result.current.audioPlayerPosition.y).toBe(window.innerHeight - 140)
+    })
+
+    it("places the default position fully inside the container using the measured size of a tall player", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(result.current.audioPlayerScale).toBe(1.2))
+        const el = document.createElement("div")
+        Object.defineProperty(el, "offsetWidth", { value: 1000 })
+        Object.defineProperty(el, "offsetHeight", { value: 600 })
+        result.current.audioPlayerContainerRef.current = el
+        act(() => result.current.reportAudioPlayerSize({ width: 300, height: 220 }))
+
+        act(() => result.current.resetPlayerPosition())
+
+        expect(result.current.audioPlayerPosition).toEqual({ x: 350, y: 600 - 220 - 8, scaleX: 1, scaleY: 1 })
+    })
+
+    it("pulls the player back inside the container when its measured size grows, saving only if it moved", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(result.current.audioPlayerScale).toBe(1.2))
+        const el = document.createElement("div")
+        Object.defineProperty(el, "offsetWidth", { value: 1000 })
+        Object.defineProperty(el, "offsetHeight", { value: 600 })
+        result.current.audioPlayerContainerRef.current = el
+        act(() => result.current.reportAudioPlayerSize({ width: 300, height: 100 }))
+        act(() => result.current.setAudioPlayerPosition({ x: 100, y: 480, scaleX: 1, scaleY: 1 }))
+        vi.mocked(prefs.saveAudioPlayerPosition).mockClear()
+
+        act(() => result.current.reportAudioPlayerSize({ width: 300, height: 100 }))
+        expect(prefs.saveAudioPlayerPosition).not.toHaveBeenCalled()
+
+        act(() => result.current.reportAudioPlayerSize({ width: 300, height: 160 }))
+        expect(result.current.audioPlayerPosition.y).toBe(440)
+        expect(prefs.saveAudioPlayerPosition).toHaveBeenCalledTimes(1)
     })
 
     it("pulls the player back inside the container when the window shrinks", async () => {
@@ -419,8 +409,11 @@ describe("PreferencesContext", () => {
     })
 
     it("reports a failing preference save and a failing initial load instead of leaving them unhandled", async () => {
-        vi.mocked(prefs.saveShowProgressBar).mockRejectedValue(new Error("save"))
-        vi.mocked(prefs.getShowTaskCount).mockRejectedValue(new Error("load"))
+        vi.mocked(prefs.savePref).mockRejectedValue(new Error("save"))
+        vi.mocked(prefs.getPref).mockImplementation(async name => {
+            if (name === "showTaskCount") throw new Error("load")
+            return prefs.UI_PREFS[name as prefs.UiPrefName].default
+        })
         const { result } = renderHook(() => usePreferences(), { wrapper })
         await waitFor(() => expect(reportError).toHaveBeenCalledTimes(1))
         act(() => result.current.setShowProgressBar(false))

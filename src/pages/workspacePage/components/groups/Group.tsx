@@ -1,5 +1,5 @@
 import type { Group as GroupType } from "@/types/types"
-import { useCallback, useLayoutEffect, useRef, type HTMLAttributes } from "react"
+import { memo, useCallback, useLayoutEffect, useRef, type HTMLAttributes } from "react"
 import { Section } from "../section/Section"
 import { AddSection } from "../section/AddSection"
 import { GroupHeader } from "./GroupHeader"
@@ -22,7 +22,7 @@ type GroupProps = {
  */
 const openWidths = new Map<number, number>()
 
-export const Group = ({ group, index = 0, audioCount = 0 }: GroupProps) => {
+export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => {
     // The empty area of a group (and its header) accepts a dragged section: it is appended to the group
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("group", group.id)
     // The group is also draggable (by the grip of its header) to reorder the groups
@@ -77,4 +77,4 @@ export const Group = ({ group, index = 0, audioCount = 0 }: GroupProps) => {
             </>}
         </div>
     )
-}
+})

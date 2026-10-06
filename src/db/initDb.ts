@@ -1,6 +1,6 @@
 import type Database from "@tauri-apps/plugin-sql";
 import i18n from "@/i18n";
-import { APPLICATION_ID, initialSchema } from "./schema/initial";
+import { APPLICATION_ID, archiveSchema, initialSchema } from "./schema/initial";
 import { addGroupColorColumn } from "./schema/section_group";
 import { createWorkspaceEditTriggers } from "./schema/workspace_edit";
 
@@ -17,6 +17,8 @@ const migrations: string[][] = [
     [addGroupColorColumn],
     // v3: any change inside a workspace refreshes its edit date/time
     createWorkspaceEditTriggers,
+    // v4: archive date on folders/notes/groups/sections, removal of the unused `archived` flags
+    archiveSchema,
 ];
 
 /**
@@ -76,8 +78,8 @@ export async function initDB(db: Database, options: InitDbOptions = {}) {
             try {
                 await db.execute(query);
             } catch (err: unknown) {
-                // ALTER TABLE ADD COLUMN has no IF NOT EXISTS: a run interrupted before the version bump is retried safely
-                if (/^\s*ALTER TABLE/i.test(query) && /duplicate column name/i.test(String((err as { message?: unknown })?.message ?? err)))
+                // ALTER TABLE ADD/DROP COLUMN have no IF [NOT] EXISTS: a run interrupted before the version bump is retried safely
+                if (/^\s*ALTER TABLE/i.test(query) && /duplicate column name|no such column/i.test(String((err as { message?: unknown })?.message ?? err)))
                     continue
                 console.error(`Migration v${version + 1} failed on query: ${query}`, err);
                 throw err;

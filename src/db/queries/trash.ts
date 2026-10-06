@@ -1,11 +1,12 @@
 import i18n from "@/i18n"
 import type { TrashItem, TrashedWorkspace, Workspace } from "@/types/types";
-import { countTemplateContent, type NoteTemplateContent } from "@/types/template";
+import { countTemplateContent } from "@/types/template";
 import { createError, handleDBError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { assertItemType, type DBItemType } from "./shared_queries";
 import { Transaction } from "../transaction";
+import { parseTemplateContent } from "./template";
 
 const RESTORE_UNIQUE_MESSAGE = () => i18n.t("errors.trash.restoreUnique")
 
@@ -61,14 +62,20 @@ const liveTasks = (sectionsSql: string) => `tt(sec, id) AS (
         UNION ALL
         SELECT tt.sec, t.id FROM task t INNER JOIN tt ON t.taskID = tt.id WHERE t.deleted_at IS NULL)`
 
+/** Column that hides an item: `deleted_at` (trash) or `archived_at` (archive). */
+export type HideColumn = "deleted_at" | "archived_at"
+
 /**
- * Counts the children that come back with each trashed item.
+ * Counts the children that come back with each trashed item (or archived one, with `column` "archived_at":
+ * the roots are then the archived items that are not in the trash).
  * Soft delete only marks the item itself: its children keep deleted_at NULL and are hidden through the parent,
  * so a child counts when neither it nor any ancestor up to the trashed item is deleted
  * (anything deleted separately earlier stays in the trash on restore and is not counted).
  * One query per type of trashed item, never one per item.
  */
-async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, workspaceId: number, types: Set<DBItemType>) {
+export async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, workspaceId: number, types: Set<DBItemType>, column: HideColumn = "deleted_at") {
+    // Condition on the root items, written with the table/alias name of the row
+    const root = (name: string) => column === "deleted_at" ? `${name}.deleted_at IS NOT NULL` : `${name}.archived_at IS NOT NULL AND ${name}.deleted_at IS NULL`
     const counts = new Map<DBItemType, Map<number, TrashCounts>>()
     const load = async (type: DBItemType, sql: string, params: number[]) => {
         if (types.has(type)) counts.set(type, toCountMap(await db.select<CountRow[]>(sql, params)))
@@ -76,7 +83,7 @@ async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, workspaceI
 
     await load("folder",
         `WITH RECURSIVE tree(root, id) AS (
-            SELECT id, id FROM folder WHERE workspaceID = ? AND deleted_at IS NOT NULL
+            SELECT id, id FROM folder WHERE workspaceID = ? AND ${root("folder")}
             UNION ALL
             SELECT tree.root, f.id FROM folder f INNER JOIN tree ON f.folderID = tree.id WHERE f.deleted_at IS NULL)
          SELECT tree.root AS id, COUNT(*) - 1 AS folders,
@@ -88,29 +95,29 @@ async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, workspaceI
         `WITH RECURSIVE ${liveTasks(`SELECT s.id FROM section s
                 INNER JOIN section_group g ON g.id = s.groupID
                 INNER JOIN note n ON n.id = g.noteID
-                WHERE n.deleted_at IS NOT NULL AND n.workspaceID = ? AND s.deleted_at IS NULL AND g.deleted_at IS NULL`)}
+                WHERE ${root("n")} AND n.workspaceID = ? AND s.deleted_at IS NULL AND g.deleted_at IS NULL`)}
          SELECT n.id,
                 (SELECT COUNT(*) FROM section_group g WHERE g.noteID = n.id AND g.deleted_at IS NULL) AS groups,
                 (SELECT COUNT(*) FROM section s INNER JOIN section_group g ON g.id = s.groupID
                   WHERE g.noteID = n.id AND g.deleted_at IS NULL AND s.deleted_at IS NULL) AS sections,
                 (SELECT COUNT(*) FROM tt INNER JOIN section s ON s.id = tt.sec INNER JOIN section_group g ON g.id = s.groupID
                   WHERE g.noteID = n.id) AS tasks
-         FROM note n WHERE n.workspaceID = ? AND n.deleted_at IS NOT NULL`, [workspaceId, workspaceId])
+         FROM note n WHERE n.workspaceID = ? AND ${root("n")}`, [workspaceId, workspaceId])
 
     await load("section_group",
         `WITH RECURSIVE ${liveTasks(`SELECT s.id FROM section s
                 INNER JOIN section_group g ON g.id = s.groupID
                 INNER JOIN note n ON n.id = g.noteID
-                WHERE g.deleted_at IS NOT NULL AND n.workspaceID = ? AND s.deleted_at IS NULL`)}
+                WHERE ${root("g")} AND n.workspaceID = ? AND s.deleted_at IS NULL`)}
          SELECT g.id,
                 (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id AND s.deleted_at IS NULL) AS sections,
                 (SELECT COUNT(*) FROM tt INNER JOIN section s ON s.id = tt.sec WHERE s.groupID = g.id) AS tasks,
                 (SELECT COUNT(*) FROM audio_file a WHERE a.section_groupID = g.id AND a.deleted_at IS NULL) AS audio
          FROM section_group g INNER JOIN note n ON n.id = g.noteID
-         WHERE g.deleted_at IS NOT NULL AND n.workspaceID = ?`, [workspaceId, workspaceId])
+         WHERE ${root("g")} AND n.workspaceID = ?`, [workspaceId, workspaceId])
 
     await load("section",
-        `WITH RECURSIVE ${liveTasks(`SELECT id FROM section WHERE deleted_at IS NOT NULL AND id IN (${WORKSPACE_SECTIONS})`)}
+        `WITH RECURSIVE ${liveTasks(`SELECT id FROM section WHERE ${root("section")} AND id IN (${WORKSPACE_SECTIONS})`)}
          SELECT sec AS id, COUNT(*) AS tasks FROM tt GROUP BY sec`, [workspaceId])
 
     await load("task",
@@ -124,14 +131,7 @@ async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, workspaceI
 }
 
 /** Counts of a trashed template, read from its JSON snapshot (a corrupted one counts as empty). */
-function countTemplateJson(content: string): TrashCounts {
-    try {
-        const value = JSON.parse(content) as NoteTemplateContent
-        return Array.isArray(value?.groups) ? countTemplateContent(value) : {}
-    } catch {
-        return {}
-    }
-}
+const countTemplateJson = (content: string): TrashCounts => countTemplateContent(parseTemplateContent(content))
 
 /**
  * Retrieves the items moved to the trash that belong to a workspace.
@@ -218,6 +218,44 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
 }
 
 /**
+ * Counts the items moved to the trash that belong to a workspace: the same number getDBTrash(workspaceId) would list,
+ * without building labels or summaries (only COUNT queries). Trashed workspaces are not items of a workspace trash.
+ * @param workspaceId The ID of the workspace.
+ * @returns The number of trashed items.
+ * @throws A createError('TRASH_LOAD_FAILED') error when a query fails.
+ * @category Database Queries
+ */
+export async function getDBTrashCount(workspaceId: number): Promise<number> {
+    try {
+        const db = await getDB()
+        const rows = await db.select<{ total: number }[]>(
+            `SELECT
+                (SELECT COUNT(*) FROM folder WHERE workspaceID = ? AND deleted_at IS NOT NULL)
+              + (SELECT COUNT(*) FROM note WHERE workspaceID = ? AND deleted_at IS NOT NULL)
+              + (SELECT COUNT(*) FROM section_group g INNER JOIN note n ON n.id = g.noteID
+                  WHERE n.workspaceID = ? AND g.deleted_at IS NOT NULL)
+              + (SELECT COUNT(*) FROM section s
+                  INNER JOIN section_group g ON g.id = s.groupID
+                  INNER JOIN note n ON n.id = g.noteID
+                  WHERE n.workspaceID = ? AND s.deleted_at IS NOT NULL)
+              + (SELECT COUNT(*) FROM task t
+                  INNER JOIN section s ON s.id = t.sectionID
+                  INNER JOIN section_group g ON g.id = s.groupID
+                  INNER JOIN note n ON n.id = g.noteID
+                  WHERE n.workspaceID = ? AND t.deleted_at IS NOT NULL)
+              + (SELECT COUNT(*) FROM audio_file a
+                  INNER JOIN section_group g ON g.id = a.section_groupID
+                  INNER JOIN note n ON n.id = g.noteID
+                  WHERE n.workspaceID = ? AND a.deleted_at IS NOT NULL)
+              + (SELECT COUNT(*) FROM note_template WHERE workspaceID = ? AND deleted_at IS NOT NULL) AS total`,
+            [workspaceId, workspaceId, workspaceId, workspaceId, workspaceId, workspaceId, workspaceId])
+        return rows[0]?.total ?? 0
+    } catch (error: unknown) {
+        throw createError("TRASH_LOAD_FAILED", i18n.t("errors.trash.load", { message: getErrorMessage(error) }))
+    }
+}
+
+/**
  * Retrieves the workspaces moved to the trash, each with a `summary` ("3 cartelle · 12 note", "Vuoto" when empty)
  * counting the folders (recursively) and notes that come back with it.
  * @returns The deleted workspaces (as TrashedWorkspace), most recently deleted first.
@@ -247,11 +285,12 @@ export async function getDBTrashedWorkspaces(): Promise<TrashedWorkspace[]> {
     }
 }
 
-type Statement = { sql: string, params: number[] }
+/** A parametrized SQL statement of a transaction. */
+export type Statement = { sql: string, params: number[] }
 
-// Restores the folder whose id is returned by startSql and every deleted ancestor folder
-const folderChain = (startSql: string, params: number[]): Statement => ({
-    sql: `UPDATE folder SET deleted_at = NULL WHERE deleted_at IS NOT NULL AND id IN (
+// Clears `column` on the folder whose id is returned by startSql and on every ancestor folder that has it set
+const folderChain = (column: HideColumn, startSql: string, params: number[]): Statement => ({
+    sql: `UPDATE folder SET ${column} = NULL WHERE ${column} IS NOT NULL AND id IN (
             WITH RECURSIVE anc(id, parent) AS (
                 SELECT id, folderID FROM folder WHERE id = (${startSql})
                 UNION
@@ -260,8 +299,8 @@ const folderChain = (startSql: string, params: number[]): Statement => ({
     params,
 })
 
-const restoreRow = (table: string, idSql: string, params: number[]): Statement => ({
-    sql: `UPDATE ${table} SET deleted_at = NULL WHERE deleted_at IS NOT NULL AND id = (${idSql})`,
+const restoreRow = (column: HideColumn, table: string, idSql: string, params: number[]): Statement => ({
+    sql: `UPDATE ${table} SET ${column} = NULL WHERE ${column} IS NOT NULL AND id = (${idSql})`,
     params,
 })
 
@@ -270,58 +309,59 @@ const GROUP_OF_SECTION = "SELECT groupID FROM section WHERE id = ?"
 const SECTION_OF_TASK = "SELECT sectionID FROM task WHERE id = ?"
 
 /**
- * Builds the statements that restore an item and its deleted ancestors, top-down
+ * Builds the statements that restore an item and its hidden ancestors, top-down
  * (ancestors first, so that a name conflict on the item leaves nothing half hidden).
+ * @param column The column that hides the item: `deleted_at` to restore from the trash, `archived_at` to unarchive.
  * @category Database Queries
  */
-function buildRestoreStatements(itemType: DBItemType, id: number): Statement[] {
+export function buildRestoreStatements(itemType: DBItemType, id: number, column: HideColumn = "deleted_at"): Statement[] {
     switch (itemType) {
         case "workspace":
-            return [restoreRow("workspace", "SELECT ?", [id])]
+            return [restoreRow(column, "workspace", "SELECT ?", [id])]
         case "folder":
-            return [folderChain("SELECT ?", [id])]
+            return [folderChain(column, "SELECT ?", [id])]
         case "note_template":
-            return [restoreRow("note_template", "SELECT ?", [id])]
+            return [restoreRow(column, "note_template", "SELECT ?", [id])]
         case "note":
             return [
-                folderChain("SELECT folderID FROM note WHERE id = ?", [id]),
-                restoreRow("note", "SELECT ?", [id]),
+                folderChain(column, "SELECT folderID FROM note WHERE id = ?", [id]),
+                restoreRow(column, "note", "SELECT ?", [id]),
             ]
         case "section_group":
             return [
-                folderChain(`SELECT folderID FROM note WHERE id = (${NOTE_OF_GROUP})`, [id]),
-                restoreRow("note", NOTE_OF_GROUP, [id]),
-                restoreRow("section_group", "SELECT ?", [id]),
+                folderChain(column, `SELECT folderID FROM note WHERE id = (${NOTE_OF_GROUP})`, [id]),
+                restoreRow(column, "note", NOTE_OF_GROUP, [id]),
+                restoreRow(column, "section_group", "SELECT ?", [id]),
             ]
         case "section": {
             const noteOfSection = `SELECT noteID FROM section_group WHERE id = (${GROUP_OF_SECTION})`
             return [
-                folderChain(`SELECT folderID FROM note WHERE id = (${noteOfSection})`, [id]),
-                restoreRow("note", noteOfSection, [id]),
-                restoreRow("section_group", GROUP_OF_SECTION, [id]),
-                restoreRow("section", "SELECT ?", [id]),
+                folderChain(column, `SELECT folderID FROM note WHERE id = (${noteOfSection})`, [id]),
+                restoreRow(column, "note", noteOfSection, [id]),
+                restoreRow(column, "section_group", GROUP_OF_SECTION, [id]),
+                restoreRow(column, "section", "SELECT ?", [id]),
             ]
         }
         case "audio_file": {
             const groupOfAudio = "SELECT section_groupID FROM audio_file WHERE id = ?"
             const noteOfAudio = `SELECT noteID FROM section_group WHERE id = (${groupOfAudio})`
             return [
-                folderChain(`SELECT folderID FROM note WHERE id = (${noteOfAudio})`, [id]),
-                restoreRow("note", noteOfAudio, [id]),
-                restoreRow("section_group", groupOfAudio, [id]),
-                restoreRow("audio_file", "SELECT ?", [id]),
+                folderChain(column, `SELECT folderID FROM note WHERE id = (${noteOfAudio})`, [id]),
+                restoreRow(column, "note", noteOfAudio, [id]),
+                restoreRow(column, "section_group", groupOfAudio, [id]),
+                restoreRow(column, "audio_file", "SELECT ?", [id]),
             ]
         }
         case "task": {
             const groupOfTask = `SELECT groupID FROM section WHERE id = (${SECTION_OF_TASK})`
             const noteOfTask = `SELECT noteID FROM section_group WHERE id = (${groupOfTask})`
             return [
-                folderChain(`SELECT folderID FROM note WHERE id = (${noteOfTask})`, [id]),
-                restoreRow("note", noteOfTask, [id]),
-                restoreRow("section_group", groupOfTask, [id]),
-                restoreRow("section", SECTION_OF_TASK, [id]),
+                folderChain(column, `SELECT folderID FROM note WHERE id = (${noteOfTask})`, [id]),
+                restoreRow(column, "note", noteOfTask, [id]),
+                restoreRow(column, "section_group", groupOfTask, [id]),
+                restoreRow(column, "section", SECTION_OF_TASK, [id]),
                 {
-                    sql: `UPDATE task SET deleted_at = NULL WHERE deleted_at IS NOT NULL AND id IN (
+                    sql: `UPDATE task SET ${column} = NULL WHERE ${column} IS NOT NULL AND id IN (
                             WITH RECURSIVE anc(id, parent) AS (
                                 SELECT id, taskID FROM task WHERE id = ?
                                 UNION

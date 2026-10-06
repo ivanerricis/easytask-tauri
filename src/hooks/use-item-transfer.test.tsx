@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react"
 import { toast } from "sonner"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { reportError } from "@/lib/report-error"
 
 const exportItemToFile = vi.fn()
 const importItemsFromFile = vi.fn()
@@ -46,7 +47,7 @@ describe("useItemTransfer", () => {
         expect(toast.success).not.toHaveBeenCalled()
         exportItemToFile.mockRejectedValueOnce(new Error("boom"))
         await act(() => result.current.exportItem("folder", { id: 2, name: "F" }))
-        expect(toast.error).toHaveBeenCalledWith("boom")
+        expect(reportError).toHaveBeenCalledWith(expect.anything(), "boom")
     })
 
     it("imports into a folder, refreshes the tree, records the creation for undo and confirms", async () => {
@@ -79,7 +80,7 @@ describe("useItemTransfer", () => {
         importItemsFromFile.mockRejectedValue(new Error("usa la pagina iniziale"))
         const { result } = renderHook(() => useItemTransfer())
         await act(() => result.current.importItems(null))
-        expect(toast.error).toHaveBeenCalledWith("usa la pagina iniziale")
+        expect(reportError).toHaveBeenCalledWith(expect.anything(), "usa la pagina iniziale")
         expect(create).not.toHaveBeenCalled()
         expect(result.current.isBusy).toBe(false)
     })

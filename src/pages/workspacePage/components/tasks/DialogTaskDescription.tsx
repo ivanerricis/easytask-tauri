@@ -9,6 +9,7 @@ import { useState } from "react";
 import { useWorkspaceActions } from "@/contexts/workspace-data";
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo";
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 type Props = {
     task: Task
@@ -19,7 +20,7 @@ type Props = {
 export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
     const { t } = useTranslation()
     const [text, setText] = useState(task.description)
-    const [saving, setSaving] = useState(false)
+    const { saving, run } = useSubmitOnce()
     const [error, setError] = useState<string | null>(null)
     const { updateTaskDescription } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
@@ -27,21 +28,20 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
     const changed = text !== (task.description ?? "")
 
     const save = async () => {
-        if (saving || !changed) return
-        setSaving(true)
-        setError(null)
-        // Optimistic: the cached tree is updated at once and restored if the write fails
-        const rollback = patchTask(task.id, { description: text })
-        try {
-            await updateTaskDescription(task.id, text !== "" ? text : undefined)
-            recorder.taskDescription(task.id, task.text, task.description ?? "", text)
-            onOpenChange(false)
-        } catch (err) {
-            rollback()
-            setError(getErrorMessage(err))
-        } finally {
-            setSaving(false)
-        }
+        if (!changed) return
+        await run(async () => {
+            setError(null)
+            // Optimistic: the cached tree is updated at once and restored if the write fails
+            const rollback = patchTask(task.id, { description: text })
+            try {
+                await updateTaskDescription(task.id, text !== "" ? text : undefined)
+                recorder.taskDescription(task.id, task.text, task.description ?? "", text)
+                onOpenChange(false)
+            } catch (err) {
+                rollback()
+                setError(getErrorMessage(err))
+            }
+        })
     }
 
     const handleSave = (e: React.MouseEvent) => {

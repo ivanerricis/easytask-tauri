@@ -44,13 +44,13 @@ async function noteTree(noteId: number) {
     const { groups, sections, tasks } = await getDBNoteData(noteId)
     const taskNode = (t: (typeof tasks)[number]): TreeTask => ({
         text: t.text, description: t.description ?? null, completed: !!t.completed, priority: !!t.priority,
-        archived: !!t.archived, color: t.color ?? null, position: t.position,
+        color: t.color ?? null, position: t.position,
         subtasks: tasks.filter(c => c.taskID === t.id).map(taskNode),
     })
     return groups.map(g => ({
         name: g.name ?? null, color: g.color ?? null, position: g.position,
         sections: sections.filter(s => s.groupID === g.id).map(s => ({
-            title: s.title, color: s.color ?? null, archived: !!s.archived, position: s.position,
+            title: s.title, color: s.color ?? null, position: s.position,
             tasks: tasks.filter(t => t.sectionID === s.id && t.taskID === null).map(taskNode),
         })),
     }))
@@ -72,20 +72,20 @@ beforeEach(() => {
         INSERT INTO note (id, workspaceID, folderID, name, position) VALUES (4, 1, 1, 'Prima', 0);
 
         INSERT INTO section_group (id, noteID, position, name, color) VALUES (1, 1, 0, 'Sprint', '#abcdef'), (2, 1, 1, NULL, NULL);
-        INSERT INTO section (id, groupID, title, color, archived, position) VALUES
-            (1, 1, 'Da fare', '#00ff00', 0, 0),
-            (2, 1, 'Archivio', NULL, 1, 1),
-            (3, 1, 'Ultima', NULL, 0, 2),
-            (4, 2, 'Idee', NULL, 0, 0),
-            (5, 1, 'Eliminata', NULL, 0, 3);
-        INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, archived, color, position) VALUES
-            (1, 1, NULL, 'Radice B', 'descrizione', 1, 1, 0, '#0000ff', 1),
-            (2, 1, NULL, 'Radice A', NULL, 0, 0, 0, NULL, 0),
-            (3, 1, 1, 'Figlio', NULL, 0, 0, 1, '#111111', 0),
-            (4, 1, 3, 'Nipote', NULL, 1, 1, 0, NULL, 0),
-            (5, 1, NULL, 'Eliminato', NULL, 0, 0, 0, NULL, 2),
-            (6, 1, 5, 'Figlio di eliminato', NULL, 0, 0, 0, NULL, 0),
-            (7, 4, NULL, 'Idea', NULL, 0, 0, 0, NULL, 0);
+        INSERT INTO section (id, groupID, title, color, position) VALUES
+            (1, 1, 'Da fare', '#00ff00', 0),
+            (2, 1, 'Archivio', NULL, 1),
+            (3, 1, 'Ultima', NULL, 2),
+            (4, 2, 'Idee', NULL, 0),
+            (5, 1, 'Eliminata', NULL, 3);
+        INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, color, position) VALUES
+            (1, 1, NULL, 'Radice B', 'descrizione', 1, 1, '#0000ff', 1),
+            (2, 1, NULL, 'Radice A', NULL, 0, 0, NULL, 0),
+            (3, 1, 1, 'Figlio', NULL, 0, 0, '#111111', 0),
+            (4, 1, 3, 'Nipote', NULL, 1, 1, NULL, 0),
+            (5, 1, NULL, 'Eliminato', NULL, 0, 0, NULL, 2),
+            (6, 1, 5, 'Figlio di eliminato', NULL, 0, 0, NULL, 0),
+            (7, 4, NULL, 'Idea', NULL, 0, 0, NULL, 0);
         UPDATE task SET deleted_at = datetime('now') WHERE id = 5;
         UPDATE section SET deleted_at = datetime('now') WHERE id = 5;
 
@@ -162,10 +162,10 @@ describe("duplicateDBNote", () => {
 })
 
 describe("duplicateDBSection", () => {
-    it("copies the section with color, archived flag and its non deleted tasks and subtasks", async () => {
+    it("copies the section with color and its non deleted tasks and subtasks", async () => {
         const id = await duplicateDBSection(1)
-        expect(rows(`SELECT groupID, title, color, archived FROM section WHERE id = ${id}`)[0])
-            .toEqual({ groupID: 1, title: "Da fare (copia)", color: "#00ff00", archived: 0 })
+        expect(rows(`SELECT groupID, title, color FROM section WHERE id = ${id}`)[0])
+            .toEqual({ groupID: 1, title: "Da fare (copia)", color: "#00ff00" })
         const tree = await noteTree(1)
         const [original, copy] = [tree[0].sections[0], tree[0].sections[1]]
         expect(copy).toEqual({ ...original, title: "Da fare (copia)", position: 1 })
@@ -175,9 +175,9 @@ describe("duplicateDBSection", () => {
         expect(rows("SELECT COUNT(*) AS n FROM task WHERE sectionID = 1")[0].n).toBe(6)
     })
 
-    it("keeps the archived flag", async () => {
+    it("copies the section as visible (the copy never carries an archive date)", async () => {
         const id = await duplicateDBSection(2)
-        expect(rows(`SELECT archived, title FROM section WHERE id = ${id}`)[0]).toEqual({ archived: 1, title: "Archivio (copia)" })
+        expect(rows(`SELECT archived_at, title FROM section WHERE id = ${id}`)[0]).toEqual({ archived_at: null, title: "Archivio (copia)" })
     })
 
     it("places the copy right after the original and shifts the following sections of the group only", async () => {

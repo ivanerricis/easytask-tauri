@@ -8,17 +8,21 @@ import type { Folder } from "@/types/types"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 const updateFolderColorContent = vi.fn()
+const colorContent = vi.fn()
+const archive = vi.fn()
+const archiveItem = vi.fn()
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ colorContent, archive }) }))
 const getWorkspaceData = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({
-    useWorkspaceData: () => ({ updateFolderColorContent, getWorkspaceData, updateItemColor: vi.fn() }),
+    useWorkspaceData: () => ({ updateFolderColorContent, getWorkspaceData, updateItemColor: vi.fn(), archiveItem }),
 }))
 const exportItem = vi.fn()
 const importItems = vi.fn()
 vi.mock("@/hooks/use-workspace-transfer", () => ({ useItemTransfer: () => ({ exportItem, importItems, isBusy: false }) }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
 vi.mock("../MoveToSubmenu", () => ({ MoveToSubmenu: () => null }))
-vi.mock("./DialogAddNote", () => ({ DialogAddNote: () => null }))
-vi.mock("./DialogAddSubFolder", () => ({ DialogAddSubFolder: () => null }))
+vi.mock("../AddNoteDialog", () => ({ AddNoteDialog: () => null }))
+vi.mock("../AddFolderDialog", () => ({ AddFolderDialog: () => null }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => null }))
 vi.mock("@/components/dialogs/dialog-rename", () => ({
     DialogRenameItem: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div>Dialog rinomina</div> : null,
@@ -28,9 +32,10 @@ const folder = { id: 3, name: "Cartella", folderID: null, color: "#00ff00" } as 
 
 beforeEach(() => {
     vi.clearAllMocks()
-    updateFolderColorContent.mockResolvedValue(undefined)
+    archiveItem.mockResolvedValue(undefined)
+    updateFolderColorContent.mockResolvedValue([{ itemType: "note", id: 9, before: "#111111" }])
 })
-const ENTRIES = ["Nuova nota", "Nuova cartella", "Rinomina", "Colora contenuto", "Cambia colore", "Importa qui", "Esporta", "Elimina"]
+const ENTRIES = ["Nuova nota", "Nuova cartella", "Rinomina", "Colora contenuto", "Cambia colore", "Importa qui", "Esporta", "Archivia", "Elimina"]
 
 const setup = () => {
     const onRowClick = vi.fn()
@@ -46,6 +51,15 @@ const setup = () => {
 }
 
 describe("ButtonMenuFolder", () => {
+    it("archives the folder and records the undo step", async () => {
+        const user = userEvent.setup()
+        const { row } = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Archivia"))
+        await waitFor(() => expect(archive).toHaveBeenCalledWith("folder", 3, "Cartella"))
+        expect(archiveItem).toHaveBeenCalledWith("folder", 3)
+    })
+
     it("opens the menu from the '…' button", async () => {
         const user = userEvent.setup()
         const { row } = setup()
@@ -67,6 +81,7 @@ describe("ButtonMenuFolder", () => {
         await user.click(await screen.findByText("Colora contenuto"))
         await waitFor(() => expect(updateFolderColorContent).toHaveBeenCalledWith(3, "#00ff00"))
         expect(getWorkspaceData).not.toHaveBeenCalled()
+        expect(colorContent).toHaveBeenCalledWith(3, "Cartella", "#00ff00", [{ itemType: "note", id: 9, before: "#111111" }])
     })
 
     it("shows a toast when coloring the content fails", async () => {
@@ -76,6 +91,7 @@ describe("ButtonMenuFolder", () => {
         fireEvent.contextMenu(row)
         await user.click(await screen.findByText("Colora contenuto"))
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("boom"))
+        expect(colorContent).not.toHaveBeenCalled()
     })
 
     it("runs the chosen entry of the context menu and closes it", async () => {

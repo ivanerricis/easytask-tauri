@@ -17,10 +17,10 @@ export type TaskParent = { sectionId: number } | { parentTaskId: number }
 /** Location of a task in the tree. */
 export type TaskLocation = { task: Task, parent: TaskParent, index: number }
 
-const clamp = (index: number | undefined, length: number) =>
+export const clamp = (index: number | undefined, length: number) =>
     index === undefined ? length : Math.max(0, Math.min(Math.trunc(index) || 0, length))
 
-const insertAt = <T,>(list: T[], item: T, index?: number): T[] => {
+export const insertAt = <T,>(list: T[], item: T, index?: number): T[] => {
     const next = list.slice()
     next.splice(clamp(index, list.length), 0, item)
     return next
@@ -55,7 +55,7 @@ export function buildSection(id: number, groupId: number, title: string, sibling
     return {
         id, groupID: groupId, title, position: position ?? nextPosition(siblings),
         creation_date: date, creation_time: time, edit_date: date, edit_time: time,
-        deleted_at: null, color: null, archived: false, tasks: [],
+        deleted_at: null, color: null, tasks: [],
     }
 }
 
@@ -65,7 +65,7 @@ export function buildTask(id: number, sectionId: number | null, parentTaskId: nu
     return {
         id, sectionID: sectionId, taskID: parentTaskId, position: nextPosition(siblings),
         creation_date: date, creation_time: time, edit_date: date, edit_time: time,
-        deleted_at: null, color: null, text, completed: false, archived: false, priority: false,
+        deleted_at: null, color: null, text, completed: false, priority: false,
         description: "", subtasks: [],
     }
 }

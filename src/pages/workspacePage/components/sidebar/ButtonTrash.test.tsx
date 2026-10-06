@@ -6,8 +6,7 @@ import { ButtonTrash } from "./ButtonTrash"
 import { makeWorkspace } from "@/test/ui-fixtures"
 
 const data = {
-    workspaceDataTree: null,
-    getTrash: vi.fn(),
+    getTrashCount: vi.fn(),
     trashVersion: 0,
 }
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => data }))
@@ -32,21 +31,21 @@ describe("ButtonTrash", () => {
     })
 
     it("shows the number of trashed items", async () => {
-        data.getTrash.mockResolvedValue([{ id: 1 }, { id: 2 }])
+        data.getTrashCount.mockResolvedValue(2)
         render(<ButtonTrash />)
         expect(await screen.findByLabelText("2 elementi nel cestino")).toBeInTheDocument()
-        expect(data.getTrash).toHaveBeenCalledWith(4)
+        expect(data.getTrashCount).toHaveBeenCalledWith(4)
     })
 
     it("refreshes the badge when trashVersion changes (e.g. after deleting a task)", async () => {
         const user = userEvent.setup()
-        data.getTrash.mockResolvedValueOnce([]).mockResolvedValue([{ id: 1 }])
+        data.getTrashCount.mockResolvedValueOnce(0).mockResolvedValue(1)
         render(<Harness />)
-        await waitFor(() => expect(data.getTrash).toHaveBeenCalledTimes(1))
+        await waitFor(() => expect(data.getTrashCount).toHaveBeenCalledTimes(1))
         expect(screen.queryByLabelText(/elementi nel cestino/)).not.toBeInTheDocument()
 
         await user.click(screen.getByText("simulate-delete"))
         expect(await screen.findByLabelText("1 elemento nel cestino")).toBeInTheDocument()
-        expect(data.getTrash).toHaveBeenCalledTimes(2)
+        expect(data.getTrashCount).toHaveBeenCalledTimes(2)
     })
 })

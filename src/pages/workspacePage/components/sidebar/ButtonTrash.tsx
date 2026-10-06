@@ -11,20 +11,20 @@ const DialogTrash = lazy(() => import("@/components/dialogs/dialog-trash").then(
 export const ButtonTrash = () => {
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
-    const { workspaceDataTree, getTrash, trashVersion } = useWorkspaceData()
+    const { getTrashCount, trashVersion } = useWorkspaceData()
     const [isOpen, setIsOpen] = useState(false)
     const [count, setCount] = useState(0)
     const workspaceID = currentWorkspace?.id
 
-    // Re-query the trash size when the tree changes, the trash content changes (trashVersion) or the dialog opens/closes
+    // Re-query the trash size when the trash content changes (every write that touches it bumps trashVersion) or the dialog opens/closes
     useEffect(() => {
         if (workspaceID === undefined) return
         let cancelled = false
-        getTrash(workspaceID)
-            .then(items => { if (!cancelled) setCount(items.length) })
+        getTrashCount(workspaceID)
+            .then(total => { if (!cancelled) setCount(total) })
             .catch(error => reportError(error))
         return () => { cancelled = true }
-    }, [workspaceID, workspaceDataTree, trashVersion, isOpen, getTrash])
+    }, [workspaceID, trashVersion, isOpen, getTrashCount])
 
     return (
         <>

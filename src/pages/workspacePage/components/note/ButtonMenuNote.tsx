@@ -8,15 +8,16 @@ import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { LazyMount } from "@/components/lazy-mount"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { Separator } from "@/components/ui/separator"
-import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
+import { ColorSubmenu } from "../ColorSubmenu"
 import { MoveToSubmenu } from "../MoveToSubmenu"
-import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
+import { MenuGroup } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
 import { useIsInMultiSelection } from "../sidebar/selection-context"
 import { SelectionMenuItems } from "../sidebar/SelectionMenu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getErrorMessage } from "@/lib/utils"
+import { reportError } from "@/lib/report-error"
 import { toast } from "sonner"
 import { useItemTransfer } from "@/hooks/use-workspace-transfer"
 
@@ -35,7 +36,7 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
     const [isTemplateOpen, setTemplateOpen] = useState(false);
     const menu = useItemMenuState()
     const multi = useIsInMultiSelection("note", note.id)
-    const { updateItemColor, duplicateNote } = useWorkspaceActions()
+    const { updateItemColor, duplicateNote, archiveItem } = useWorkspaceActions()
     const { openNote } = useTabsActions()
     const recorder = useUndoRecorder()
     const { exportItem } = useItemTransfer()
@@ -49,7 +50,18 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
             openNote(id)
             toast.success(t("duplicate.noteDone"))
         } catch (error) {
-            toast.error(getErrorMessage(error))
+            reportError(error, getErrorMessage(error))
+        }
+    }
+
+    // No confirmation: the note leaves the sidebar and the archive dialog (or undo) brings it back
+    const handleArchive = async () => {
+        menu.close()
+        try {
+            await archiveItem("note", note.id)
+            recorder.archive("note", note.id, note.name)
+        } catch (error) {
+            reportError(error, getErrorMessage(error))
         }
     }
 
@@ -70,22 +82,12 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                 type="duplicate"
                 onClick={handleDuplicate}
             />
-            <MenuSub>
-                <MenuSubTrigger>
-                    <ButtonInPopover
-                        text={t("menu.changeColor")}
-                        type="color"
-                    />
-                </MenuSubTrigger>
-                <MenuSubContent>
-                    <DialogAddColor
-                        item={note}
-                        itemType="note"
-                        addColorItem={updateItemColor}
-                        setDropDownOpen={menu.close}
-                    />
-                </MenuSubContent>
-            </MenuSub>
+            <ColorSubmenu
+                item={note}
+                itemType="note"
+                addColorItem={updateItemColor}
+                onDone={menu.close}
+            />
             <MoveToSubmenu
                 itemType="note"
                 itemId={note.id}
@@ -101,6 +103,11 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                 text={t("menu.export")}
                 type="export"
                 onClick={() => { menu.close(); void exportItem("note", note) }}
+            />
+            <ButtonInPopover
+                text={t("menu.archive")}
+                type="archive"
+                onClick={handleArchive}
             />
             <Separator />
             <ButtonInPopover

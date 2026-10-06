@@ -9,12 +9,14 @@ import { makeNote } from "@/test/ui-fixtures"
 const openNote = vi.fn()
 const duplicateNote = vi.fn()
 const create = vi.fn()
+const archive = vi.fn()
+const archiveItem = vi.fn()
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create }) }))
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create, archive }) }))
 
 vi.mock("@/contexts/workspace-data", () => ({
-    useWorkspaceActions: () => ({ getWorkspaceData: vi.fn(), updateItemColor: vi.fn(), duplicateNote }),
+    useWorkspaceActions: () => ({ getWorkspaceData: vi.fn(), updateItemColor: vi.fn(), duplicateNote, archiveItem }),
 }))
 const exportItem = vi.fn()
 vi.mock("@/hooks/use-workspace-transfer", () => ({ useItemTransfer: () => ({ exportItem, importItems: vi.fn(), isBusy: false }) }))
@@ -30,11 +32,12 @@ vi.mock("@/components/dialogs/dialog-rename", () => ({
     DialogRenameItem: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div>Dialog rinomina</div> : null,
 }))
 
-const ENTRIES = ["Apri", "Rinomina", "Duplica", "Cambia colore", "Crea template", "Esporta", "Elimina"]
+const ENTRIES = ["Apri", "Rinomina", "Duplica", "Cambia colore", "Crea template", "Esporta", "Archivia", "Elimina"]
 
 beforeEach(() => {
     vi.clearAllMocks()
     duplicateNote.mockResolvedValue(9)
+    archiveItem.mockResolvedValue(undefined)
 })
 
 const setup = () => {
@@ -120,6 +123,26 @@ describe("ButtonMenuNote", () => {
         )
         fireEvent.contextMenu(screen.getByLabelText("nome"))
         expect(screen.queryByText("Rinomina")).not.toBeInTheDocument()
+    })
+
+    it("archives the note without asking and records the undo step", async () => {
+        const user = userEvent.setup()
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Archivia"))
+        await waitFor(() => expect(archive).toHaveBeenCalledWith("note", 4, expect.any(String)))
+        expect(archiveItem).toHaveBeenCalledWith("note", 4)
+        expect(screen.queryByText("Archivia")).not.toBeInTheDocument()
+    })
+
+    it("shows the error and records nothing when the archive fails", async () => {
+        const user = userEvent.setup()
+        archiveItem.mockRejectedValueOnce(new Error("boom"))
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Archivia"))
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith("boom"))
+        expect(archive).not.toHaveBeenCalled()
     })
 
     it("exports the note from the context menu", async () => {

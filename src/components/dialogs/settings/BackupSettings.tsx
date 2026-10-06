@@ -49,7 +49,7 @@ export const BackupSettings = () => {
 
     // Errors are shown inline in the panel (and logged), not as toasts
     const fail = useCallback((err: unknown, message: string) => {
-        console.error(`${message} `, err)
+        reportError(err)
         setError(message)
     }, [])
 

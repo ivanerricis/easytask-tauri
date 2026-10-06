@@ -1,6 +1,6 @@
 import { SectionHeader } from "./SectionHeader"
 import { SectionBody } from "./SectionBody"
-import { useCallback } from "react"
+import { memo, useCallback } from "react"
 import type { HTMLAttributes } from "react"
 import type { Section as SectionType } from "@/types/types"
 import { cn } from "@/lib/utils"
@@ -11,7 +11,7 @@ type SectionProps = {
     section: SectionType
 }
 
-export const Section = ({ section }: SectionProps) => {
+export const Section = memo(({ section }: SectionProps) => {
     // Kept per note, so it survives tab switches
     const [isOpen, toggleOpen] = useSectionOpen(section.id)
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("section", section.id)
@@ -47,4 +47,4 @@ export const Section = ({ section }: SectionProps) => {
             <SectionBody isOpen={isOpen} section={section} />
         </div>
     )
-}
+})

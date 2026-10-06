@@ -15,6 +15,7 @@ import { DialogNoteFromTemplate } from "@/components/dialogs/dialog-note-from-te
 import { DialogCreateTemplate } from "@/components/dialogs/dialog-create-template"
 import { DialogPickNote } from "@/components/dialogs/dialog-pick-note"
 import { useAllNotes } from "@/hooks/use-all-notes"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { formatDate, getErrorMessage } from "@/lib/utils"
 import { countTemplateContent, type NoteTemplate } from "@/types/template"
 
@@ -40,7 +41,7 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
 
     const [templates, setTemplates] = useState<NoteTemplate[]>([])
     const [loaded, setLoaded] = useState(false)
-    const [busy, setBusy] = useState(false)
+    const { saving: busy, run } = useSubmitOnce()
     const [search, setSearch] = useState("")
     const [creating, setCreating] = useState<NoteTemplate | null>(null)
     const [renaming, setRenaming] = useState<NoteTemplate | null>(null)
@@ -74,17 +75,17 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
         const template = refreshing
         setRefreshing(null)
         if (!template) return
-        setBusy(true)
         setError(null)
-        try {
-            await updateTemplateFromNote(template.id)
-            toast.success(t("dialogs.templates.updated"))
-        } catch (err) {
-            setError(getErrorMessage(err))
-        } finally {
-            await reload()
-            setBusy(false)
-        }
+        await run(async () => {
+            try {
+                await updateTemplateFromNote(template.id)
+                toast.success(t("dialogs.templates.updated"))
+            } catch (err) {
+                setError(getErrorMessage(err))
+            } finally {
+                await reload()
+            }
+        })
     }
 
     const query = search.trim().toLowerCase()

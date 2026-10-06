@@ -7,7 +7,8 @@ import { getErrorMessage } from "@/lib/utils";
 /**
  * Retrieves the workspace data for a given workspace ID.
  * @param workspaceID The ID of the workspace to retrieve data for.
- * Folders and notes are ordered by position; soft deleted items are excluded.
+ * Folders and notes are ordered by position; soft deleted and archived items are excluded (an archived folder hides its
+ * content: the tree builders drop the orphans).
  * @returns The workspace data, including folders and notes.
  * @throws A createError('WORKSPACE_DATA_LOAD_FAILED') error when the query fails.
  * @category Database Queries
@@ -16,10 +17,10 @@ export async function getDBWorkspaceData(workspaceID: number) {
     try {
         const db = await getDB()
         const folders = await db.select<Folder[]>(
-            'SELECT * FROM folder WHERE workspaceID=? AND deleted_at IS NULL ORDER BY position, name COLLATE NOCASE ASC',
+            'SELECT * FROM folder WHERE workspaceID=? AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, name COLLATE NOCASE ASC',
             [workspaceID])
         const notes = await db.select<Note[]>(
-            'SELECT * FROM note WHERE workspaceID=? AND deleted_at IS NULL ORDER BY position, name COLLATE NOCASE ASC',
+            'SELECT * FROM note WHERE workspaceID=? AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, name COLLATE NOCASE ASC',
             [workspaceID])
 
         return { folders, notes }

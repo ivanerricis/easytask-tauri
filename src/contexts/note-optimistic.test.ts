@@ -119,7 +119,7 @@ describe("note optimistic actions", () => {
         expect(tree!.groups[2]).toMatchObject({ id: 5, noteID: 7, name: "Nuovo", position: 2, sections: [] })
 
         expect(actions.appendSection(6, 5, "Sez")).toBeTypeOf("function")
-        expect(tree!.groups[2].sections[0]).toMatchObject({ id: 6, groupID: 5, title: "Sez", position: 0, archived: false })
+        expect(tree!.groups[2].sections[0]).toMatchObject({ id: 6, groupID: 5, title: "Sez", position: 0 })
 
         expect(actions.appendTask(8, { sectionId: 10 }, "Nuovo task")).toBeTypeOf("function")
         expect(tree!.groups[0].sections[0].tasks[2]).toMatchObject({ id: 8, sectionID: 10, taskID: null, text: "Nuovo task", position: 2 })

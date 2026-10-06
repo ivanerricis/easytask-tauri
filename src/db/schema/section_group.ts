@@ -29,3 +29,11 @@ export const createSectionGroupIndexes = `
 export const addGroupColorColumn = `
     ALTER TABLE section_group ADD COLUMN color TEXT CHECK (LENGTH(color) > 0) DEFAULT NULL;
 `
+
+/**
+ * Migration v4: adds the archive date of a group (NULL = not archived).
+ * @category Database Schema
+ */
+export const addGroupArchivedAt: string[] = [
+    `ALTER TABLE section_group ADD COLUMN archived_at TEXT DEFAULT NULL;`,
+]

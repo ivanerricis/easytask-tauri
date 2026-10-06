@@ -1,6 +1,6 @@
 import i18n from "@/i18n"
 import type { AudioFile } from "@/types/types";
-import { createError, handleDBError } from "@/types/error";
+import { createError, handleDBError, isAppError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 
@@ -44,7 +44,7 @@ export function makeUniqueName(name: string, taken: string[]): string {
 }
 
 /**
- * Retrieves the audio files of a group (not deleted), in position order.
+ * Retrieves the audio files of a group (not deleted), in position order. Nothing for an archived group.
  * @param groupId The ID of the group.
  * @category Database Queries
  */
@@ -52,7 +52,10 @@ export async function getDBGroupAudioFiles(groupId: number): Promise<AudioFile[]
     try {
         const db = await getDB()
         return await db.select<AudioFile[]>(
-            `SELECT ${COLUMNS} FROM audio_file WHERE section_groupID = ? AND deleted_at IS NULL ORDER BY position, id`,
+            `SELECT a.id, a.section_groupID, a.name, a.path, a.position, a.creation_date, a.creation_time
+             FROM audio_file a INNER JOIN section_group g ON g.id = a.section_groupID
+             WHERE a.section_groupID = ? AND a.deleted_at IS NULL AND g.archived_at IS NULL
+             ORDER BY a.position, a.id`,
             [groupId])
     } catch (error: unknown) {
         throw createError("AUDIO_LOAD_FAILED", i18n.t("errors.audio.loadFiles", { message: getErrorMessage(error) }))
@@ -60,7 +63,7 @@ export async function getDBGroupAudioFiles(groupId: number): Promise<AudioFile[]
 }
 
 /**
- * Retrieves the audio files of every visible group of a note, grouped by group ID (not deleted files only).
+ * Retrieves the audio files of every visible group of a note (neither deleted nor archived), grouped by group ID (not deleted files only).
  * Groups without audio files have no entry.
  * @param noteId The ID of the note.
  * @category Database Queries
@@ -71,7 +74,7 @@ export async function getDBNoteAudioFiles(noteId: number): Promise<Record<number
         const rows = await db.select<AudioFile[]>(
             `SELECT a.id, a.section_groupID, a.name, a.path, a.position, a.creation_date, a.creation_time
              FROM audio_file a INNER JOIN section_group g ON g.id = a.section_groupID
-             WHERE g.noteID = ? AND g.deleted_at IS NULL AND a.deleted_at IS NULL
+             WHERE g.noteID = ? AND g.deleted_at IS NULL AND g.archived_at IS NULL AND a.deleted_at IS NULL
              ORDER BY a.section_groupID, a.position, a.id`, [noteId])
 
         const byGroup: Record<number, AudioFile[]> = {}
@@ -124,7 +127,7 @@ export async function createDBAudioFile(groupId: number, path: string): Promise<
         if (!created) throw createError("AUDIO_UNKNOWN_ERROR", i18n.t("errors.audio.notCreated"))
         return created
     } catch (error: unknown) {
-        if (typeof error === "object" && error !== null && "code" in error) throw error
+        if (isAppError(error)) throw error
         handleDBError(error, "AUDIO", {
             UNIQUE: i18n.t("errors.audio.unique"),
             CHECK: i18n.t("errors.audio.checkCreate"),

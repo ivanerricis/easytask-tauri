@@ -20,6 +20,8 @@ export type Folder = {
     edit_date: string
     edit_time: string
     deleted_at?: string | null
+    /** Set while the item is archived (hidden from the note/sidebar without being trashed); null/undefined = visible. */
+    archived_at?: string | null
     color?: string
     subfolders: Folder[]
     notes: Note[]
@@ -37,6 +39,8 @@ export type Note = {
     edit_date: string
     edit_time: string
     deleted_at?: string | null
+    /** Set while the item is archived (hidden from the note/sidebar without being trashed); null/undefined = visible. */
+    archived_at?: string | null
     color?: string
     groups: Group[]
 }
@@ -49,6 +53,8 @@ export type Group = {
     name?: string | null
     /** Optional color of the group (hex); null/undefined = no color. */
     color?: string | null
+    /** Set while the item is archived (hidden from the note/sidebar without being trashed); null/undefined = visible. */
+    archived_at?: string | null
     sections: Section[]
 }
 
@@ -63,7 +69,8 @@ export type Section = {
     edit_time: string
     deleted_at?: string | null
     color?: string | null
-    archived: boolean
+    /** Set while the item is archived (hidden from the note/sidebar without being trashed); null/undefined = visible. */
+    archived_at?: string | null
     tasks: Task[]
 }
 
@@ -80,7 +87,6 @@ export type Task = {
     color?: string | null
     text: string
     completed: boolean
-    archived: boolean
     priority: boolean
     description: string
     subtasks: Task[]
@@ -98,6 +104,23 @@ export type TrashItem = {
     context: string
     summary: string
     deleted_at: string
+}
+
+/** The items that can be archived. */
+export type ArchiveItemType = "folder" | "note" | "section_group" | "section"
+
+/**
+ * An archived item, as returned by getDBArchive. Only the items archived directly are listed (what they contain is
+ * archived with them). `context` is the parent folder name or "Nota X" (empty string for root items), `name` of an unnamed
+ * group is "Gruppo di N sezioni" like in the trash, `summary` describes the content ("2 gruppi · 3 sezioni · 5 task").
+ */
+export type ArchiveItem = {
+    type: ArchiveItemType
+    id: number
+    name: string
+    context: string
+    summary: string
+    archived_at: string
 }
 
 /** A trashed workspace with the summary of what it contains (see TrashItem.summary). */

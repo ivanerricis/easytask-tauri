@@ -58,24 +58,24 @@ beforeEach(() => {
         INSERT INTO note (id, workspaceID, folderID, name, position) VALUES (2, 1, 1, 'Nella cartella', 0);
 
         INSERT INTO section_group (id, noteID, position, name, color) VALUES (1, 1, 0, 'Sprint', '#abcdef'), (2, 1, 1, NULL, NULL), (3, 1, 2, 'Eliminato', NULL);
-        INSERT INTO section (id, groupID, title, color, archived, position) VALUES
-            (1, 1, 'Da fare', '#00ff00', 0, 0),
-            (2, 1, 'Archivio', NULL, 1, 1),
-            (3, 2, 'Idee', NULL, 0, 0),
-            (4, 3, 'Nel gruppo eliminato', NULL, 0, 0),
-            (5, 1, 'Sezione eliminata', NULL, 0, 2);
-        INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, archived, color, position) VALUES
-            (1, 1, NULL, 'Radice B', 'descrizione', 1, 1, 0, '#0000ff', 1),
-            (2, 1, NULL, 'Radice A', NULL, 0, 0, 0, NULL, 0),
-            (3, 1, 1, 'Figlio 2', NULL, 0, 0, 1, NULL, 1),
-            (4, 1, 1, 'Figlio 1', 'd', 1, 0, 0, '#111111', 0),
-            (5, 1, 4, 'Nipote', NULL, 1, 1, 1, '#222222', 0),
-            (6, 1, NULL, 'Eliminato', NULL, 0, 0, 0, NULL, 2),
-            (7, 1, 6, 'Figlio di eliminato', NULL, 0, 0, 0, NULL, 0),
-            (8, 1, 1, 'Figlio eliminato', NULL, 0, 0, 0, NULL, 2),
-            (9, 3, NULL, 'Idea', NULL, 0, 0, 0, NULL, 0),
-            (10, 4, NULL, 'Nel gruppo eliminato', NULL, 0, 0, 0, NULL, 0),
-            (11, 5, NULL, 'Nella sezione eliminata', NULL, 0, 0, 0, NULL, 0);
+        INSERT INTO section (id, groupID, title, color, position) VALUES
+            (1, 1, 'Da fare', '#00ff00', 0),
+            (2, 1, 'Archivio', NULL, 1),
+            (3, 2, 'Idee', NULL, 0),
+            (4, 3, 'Nel gruppo eliminato', NULL, 0),
+            (5, 1, 'Sezione eliminata', NULL, 2);
+        INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, color, position) VALUES
+            (1, 1, NULL, 'Radice B', 'descrizione', 1, 1, '#0000ff', 1),
+            (2, 1, NULL, 'Radice A', NULL, 0, 0, NULL, 0),
+            (3, 1, 1, 'Figlio 2', NULL, 0, 0, NULL, 1),
+            (4, 1, 1, 'Figlio 1', 'd', 1, 0, '#111111', 0),
+            (5, 1, 4, 'Nipote', NULL, 1, 1, '#222222', 0),
+            (6, 1, NULL, 'Eliminato', NULL, 0, 0, NULL, 2),
+            (7, 1, 6, 'Figlio di eliminato', NULL, 0, 0, NULL, 0),
+            (8, 1, 1, 'Figlio eliminato', NULL, 0, 0, NULL, 2),
+            (9, 3, NULL, 'Idea', NULL, 0, 0, NULL, 0),
+            (10, 4, NULL, 'Nel gruppo eliminato', NULL, 0, 0, NULL, 0),
+            (11, 5, NULL, 'Nella sezione eliminata', NULL, 0, 0, NULL, 0);
         UPDATE task SET deleted_at = datetime('now') WHERE id IN (6, 8);
         UPDATE section SET deleted_at = datetime('now') WHERE id = 5;
         UPDATE section_group SET deleted_at = datetime('now') WHERE id = 3;

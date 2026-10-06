@@ -8,10 +8,12 @@ import { getGroupProgress } from "./group-progress"
 import { ButtonMenuGroup } from "./ButtonMenuGroup"
 import { ItemMenuButton } from "@/components/item-menu"
 import type { Group } from "@/types/types"
-import { useEffect, useRef, useState, type HTMLAttributes } from "react"
+import type { HTMLAttributes } from "react"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { withRollback } from "@/contexts/with-rollback"
+import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import { getGroupLabel } from "./group-label"
@@ -35,55 +37,19 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps, 
     const { renameItem } = useWorkspaceActions()
     const { patchGroup } = useActiveNoteActions()
     const recorder = useUndoRecorder()
-    const [isEditing, setEditing] = useState(false)
-    const [text, setText] = useState(group.name ?? "")
-    const [error, setError] = useState<string | null>(null)
-    const inputRef = useRef<HTMLInputElement>(null)
-    const done = useRef(false)
-
     const name = group.name?.trim() ?? ""
     const label = getGroupLabel(group, index)
-
-    useEffect(() => {
-        if (isEditing && inputRef.current) {
-            const input = inputRef.current
-            input.focus()
-            input.setSelectionRange(input.value.length, input.value.length)
-        }
-    }, [isEditing])
-
-    const startEditing = () => {
-        done.current = false
-        setError(null)
-        setText(name)
-        setEditing(true)
-    }
-
-    // Enter and blur save (an empty text removes the name), Escape cancels
-    const save = async () => {
-        if (done.current) return
-        done.current = true
-        setEditing(false)
-        if (text.trim() === name) return
-        // Optimistic: the cached tree is updated at once and restored if the write fails
-        const rollback = patchGroup(group.id, { name: text.trim() || null })
-        try {
-            await renameItem("section_group", group.id, text.trim())
-            recorder.rename("section_group", group.id, group.name ?? "", text.trim())
-        } catch (err) {
-            rollback()
-            // Back to the field with the typed text, so it can be fixed
-            setError(t("groups.renameError", { message: getErrorMessage(err) }))
-            done.current = false
-            setEditing(true)
-        }
-    }
-
-    const cancel = () => {
-        done.current = true
-        setError(null)
-        setEditing(false)
-    }
+    // An empty text removes the name (a group can have none)
+    const { editing: isEditing, error, start: startEditing, inputProps } = useInlineEdit({
+        value: name,
+        allowEmpty: true,
+        errorMessage: err => t("groups.renameError", { message: getErrorMessage(err) }),
+        onCommit: async next => {
+            // Optimistic: the cached tree is updated at once and restored if the write fails
+            await withRollback(patchGroup(group.id, { name: next || null }), () => renameItem("section_group", group.id, next))
+            recorder.rename("section_group", group.id, group.name ?? "", next)
+        },
+    })
 
     return (
         <ButtonMenuGroup group={group}>
@@ -111,25 +77,10 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps, 
                 </button>}
                 {isEditing && <InlineErrorTooltip message={error}>
                     <input
-                        ref={inputRef}
+                        {...inputProps}
                         type="text"
-                        value={text}
                         placeholder={label}
                         aria-label={t("groups.nameLabel")}
-                        aria-invalid={error !== null}
-                        onChange={e => { setError(null); setText(e.target.value) }}
-                        // After a failed save, leaving the field gives up the change instead of retrying
-                        onBlur={() => { if (error) cancel(); else void save() }}
-                        onKeyDown={e => {
-                            if (e.key === "Enter") {
-                                e.preventDefault()
-                                void save()
-                            } else if (e.key === "Escape") {
-                                e.preventDefault()
-                                e.stopPropagation()
-                                cancel()
-                            }
-                        }}
                         className={`min-w-0 flex-1 mr-2 px-1 border text-sm font-semibold rounded-xs ${error ? "border-destructive" : "border-primary"}`}
                     />
                 </InlineErrorTooltip>}

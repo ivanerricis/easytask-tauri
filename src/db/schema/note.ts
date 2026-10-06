@@ -50,3 +50,14 @@ export const createNoteTrigger = `
         WHERE id = OLD.id;
     END;
 `
+
+/**
+ * Migration v4: adds the archive date of a note (NULL = not archived) and makes the name unique only among the
+ * siblings that are neither in the trash nor archived (an archived note does not block its name).
+ * @category Database Schema
+ */
+export const addNoteArchivedAt: string[] = [
+    `ALTER TABLE note ADD COLUMN archived_at TEXT DEFAULT NULL;`,
+    `DROP INDEX IF EXISTS idx_note_name;`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_note_name ON note(workspaceID, IFNULL(folderID, 0), name) WHERE deleted_at IS NULL AND archived_at IS NULL;`,
+]

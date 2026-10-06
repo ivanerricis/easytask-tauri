@@ -1,5 +1,5 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
-import type { Folder, Group, Note, TrashItem, WorkspaceDataTree } from "@/types/types"
+import type { ArchiveItem, ArchiveItemType, Folder, Group, Note, TrashItem, WorkspaceDataTree } from "@/types/types"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import type { TaskMoveTarget } from "@/db/queries/move"
 import type { NoteTemplate } from "@/types/template"
@@ -12,11 +12,24 @@ export type WorkspaceStateType = {
     error: string | null
     /** Incremented after every operation that can change the trash content (delete, restore, purge, empty, moves). */
     trashVersion: number
+    /**
+     * Incremented after every operation that can change the archive content: archive, unarchive, and every trash operation
+     * (an archived item can be moved to the trash and back, so the archive list must be reloaded).
+     */
+    archiveVersion: number
+    /**
+     * Incremented after every operation that can change which audio files are visible (delete, restore, purge and empty
+     * and archive/unarchive of groups, notes, folders and audio files). Unlike trashVersion it does not move with a task or section move.
+     */
+    audioVersion: number
     /** Incremented after every operation that can change the templates of the workspace (create, update, delete, restore, purge). */
     templatesVersion: number
     /** Id of the workspace whose data is loaded in the context (null while nothing is loaded or a load is pending). */
     loadedWorkspaceId: number | null
 }
+
+/** The color a folder or a note had before "Color content" changed it (undefined = no color). */
+export type PreviousColor = { itemType: "folder" | "note", id: number, name: string, before: string | undefined }
 
 /** What the workspace data needs from the tabs module. */
 export type TabsBridge = {
@@ -53,7 +66,8 @@ export type WorkspaceActionsType = {
     renameItem: (itemType: DBItemType, itemId: number, name: string) => Promise<void>
     updateItemColor: (itemType: DBItemType, itemId: number, color?: string) => Promise<void>
     updateGroupsPositions: (groups: Group[]) => Promise<void>
-    updateFolderColorContent: (folderID: number, color?: string) => Promise<void>
+    /** Resolves with the previous color of every folder and note it touched (the folder itself first), to undo it. */
+    updateFolderColorContent: (folderID: number, color?: string) => Promise<PreviousColor[]>
 
     moveTreeItem: (itemType: "folder" | "note", itemId: number, targetFolderId: number | null, targetIndex: number) => Promise<void>
 
@@ -64,9 +78,23 @@ export type WorkspaceActionsType = {
 
     deleteItem: (itemType: DBItemType, itemID: number) => Promise<void>
     getTrash: (workspaceID: number) => Promise<TrashItem[]>
+    /** The number of items in the trash of a workspace (cheaper than getTrash; does not touch the context state). */
+    getTrashCount: (workspaceID: number) => Promise<number>
     restoreItem: (itemType: DBItemType, itemID: number) => Promise<void>
     purgeItem: (itemType: DBItemType, itemID: number) => Promise<void>
     emptyTrash: (workspaceID: number) => Promise<void>
+
+    /**
+     * Archives a folder, note, group or section: hidden from the sidebar / the open note without going to the trash. A folder
+     * or a note is removed from the tree optimistically; for a group or a section the caller removes it from the open note
+     * (`withRollback(removeGroup(id) | removeSection(id), () => archiveItem(type, id))`, see note-optimistic).
+     */
+    archiveItem: (itemType: ArchiveItemType, itemID: number) => Promise<void>
+    /** Unarchives an item and its archived ancestors. Does not reload: the caller reloads the tree or the note, like after restoreItem. */
+    unarchiveItem: (itemType: ArchiveItemType, itemID: number) => Promise<void>
+    getArchive: (workspaceID: number) => Promise<ArchiveItem[]>
+    /** The number of archived items of a workspace (cheaper than getArchive; does not touch the context state). */
+    getArchiveCount: (workspaceID: number) => Promise<number>
     resetData: () => void
 
     getTemplates: (workspaceID: number) => Promise<NoteTemplate[]>
@@ -92,8 +120,10 @@ export type Runtime = {
     withLoading: <T>(operation: () => Promise<T>) => Promise<T>
     /** Runs an operation that can change the trash content and bumps trashVersion once it succeeds. */
     withTrashChange: <T>(operation: () => Promise<T>) => Promise<T>
-    /** Latest data for the stable actions, without making them depend on it. */
-    latest: MutableRefObject<{ folders: Folder[], currentFolder: Folder | null }>
+    /** Runs an operation that can change the archive content and bumps archiveVersion once it succeeds. */
+    withArchiveChange: <T>(operation: () => Promise<T>) => Promise<T>
+    /** Bumps audioVersion (call it once an operation that can change the visible audio files has succeeded). */
+    bumpAudioVersion: () => void
     setCurrentFolder: Dispatch<SetStateAction<Folder | null>>
     setTemplatesVersion: Dispatch<SetStateAction<number>>
     getWorkspaceData: WorkspaceActionsType["getWorkspaceData"]

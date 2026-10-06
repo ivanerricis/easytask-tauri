@@ -26,7 +26,7 @@ vi.mock("@tauri-apps/api/core", async () => {
 })
 
 import {
-    countDBTemplates, createDBNoteFromTemplate, createDBTemplateFromNote, getDBTemplates, renameDBTemplate, updateDBTemplateFromNote,
+    countDBTemplates, createDBNoteFromTemplate, createDBTemplateFromNote, getDBTemplates, parseTemplateContent, renameDBTemplate, updateDBTemplateFromNote,
 } from "./template"
 import { getDBNoteData } from "./note"
 import { deleteDBItem, renameDBItem, updateDBColor } from "./shared_queries"
@@ -50,13 +50,13 @@ async function noteTree(noteId: number) {
     const { groups, sections, tasks } = await getDBNoteData(noteId)
     const taskNode = (t: (typeof tasks)[number]): TreeTask => ({
         text: t.text, description: t.description ?? null, completed: !!t.completed, priority: !!t.priority,
-        archived: !!t.archived, color: t.color ?? null, position: t.position,
+        color: t.color ?? null, position: t.position,
         subtasks: tasks.filter(c => c.taskID === t.id).map(taskNode),
     })
     return groups.map(g => ({
         name: g.name ?? null, color: g.color ?? null, position: g.position,
         sections: sections.filter(s => s.groupID === g.id).map(s => ({
-            title: s.title, color: s.color ?? null, archived: !!s.archived, position: s.position,
+            title: s.title, color: s.color ?? null, position: s.position,
             tasks: tasks.filter(t => t.sectionID === s.id && t.taskID === null).map(taskNode),
         })),
     }))
@@ -74,24 +74,24 @@ beforeEach(() => {
         INSERT INTO note (id, workspaceID, folderID, name, position) VALUES (2, 1, 1, 'Nella cartella', 0);
 
         INSERT INTO section_group (id, noteID, position, name, color) VALUES (1, 1, 0, 'Sprint', '#abcdef'), (2, 1, 1, NULL, NULL), (3, 1, 2, 'Eliminato', NULL);
-        INSERT INTO section (id, groupID, title, color, archived, position) VALUES
-            (1, 1, 'Da fare', '#00ff00', 0, 0),
-            (2, 1, 'Archivio', NULL, 1, 1),
-            (3, 2, 'Idee', NULL, 0, 0),
-            (4, 3, 'Nel gruppo eliminato', NULL, 0, 0),
-            (5, 1, 'Sezione eliminata', NULL, 0, 2);
-        INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, archived, color, position) VALUES
-            (1, 1, NULL, 'Radice B', 'descrizione', 1, 1, 0, '#0000ff', 1),
-            (2, 1, NULL, 'Radice A', NULL, 0, 0, 0, NULL, 0),
-            (3, 1, 1, 'Figlio 2', NULL, 0, 0, 1, NULL, 1),
-            (4, 1, 1, 'Figlio 1', 'd', 1, 0, 0, '#111111', 0),
-            (5, 1, 4, 'Nipote', NULL, 1, 1, 1, '#222222', 0),
-            (6, 1, NULL, 'Eliminato', NULL, 0, 0, 0, NULL, 2),
-            (7, 1, 6, 'Figlio di eliminato', NULL, 0, 0, 0, NULL, 0),
-            (8, 1, 1, 'Figlio eliminato', NULL, 0, 0, 0, NULL, 2),
-            (9, 3, NULL, 'Idea', NULL, 0, 0, 0, NULL, 0),
-            (10, 4, NULL, 'Nel gruppo eliminato', NULL, 0, 0, 0, NULL, 0),
-            (11, 5, NULL, 'Nella sezione eliminata', NULL, 0, 0, 0, NULL, 0);
+        INSERT INTO section (id, groupID, title, color, position) VALUES
+            (1, 1, 'Da fare', '#00ff00', 0),
+            (2, 1, 'Archivio', NULL, 1),
+            (3, 2, 'Idee', NULL, 0),
+            (4, 3, 'Nel gruppo eliminato', NULL, 0),
+            (5, 1, 'Sezione eliminata', NULL, 2);
+        INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, color, position) VALUES
+            (1, 1, NULL, 'Radice B', 'descrizione', 1, 1, '#0000ff', 1),
+            (2, 1, NULL, 'Radice A', NULL, 0, 0, NULL, 0),
+            (3, 1, 1, 'Figlio 2', NULL, 0, 0, NULL, 1),
+            (4, 1, 1, 'Figlio 1', 'd', 1, 0, '#111111', 0),
+            (5, 1, 4, 'Nipote', NULL, 1, 1, '#222222', 0),
+            (6, 1, NULL, 'Eliminato', NULL, 0, 0, NULL, 2),
+            (7, 1, 6, 'Figlio di eliminato', NULL, 0, 0, NULL, 0),
+            (8, 1, 1, 'Figlio eliminato', NULL, 0, 0, NULL, 2),
+            (9, 3, NULL, 'Idea', NULL, 0, 0, NULL, 0),
+            (10, 4, NULL, 'Nel gruppo eliminato', NULL, 0, 0, NULL, 0),
+            (11, 5, NULL, 'Nella sezione eliminata', NULL, 0, 0, NULL, 0);
         UPDATE task SET deleted_at = datetime('now') WHERE id IN (6, 8);
         UPDATE section SET deleted_at = datetime('now') WHERE id = 5;
         UPDATE section_group SET deleted_at = datetime('now') WHERE id = 3;
@@ -111,30 +111,30 @@ describe("createDBTemplateFromNote", () => {
                 {
                     name: "Sprint", color: "#abcdef", position: 0, sections: [
                         {
-                            title: "Da fare", color: "#00ff00", archived: false, position: 0, tasks: [
+                            title: "Da fare", color: "#00ff00", position: 0, tasks: [
                                 {
-                                    text: "Radice A", description: null, completed: false, priority: false, archived: false, color: null, position: 0, subtasks: [],
+                                    text: "Radice A", description: null, completed: false, priority: false, color: null, position: 0, subtasks: [],
                                 },
                                 {
-                                    text: "Radice B", description: "descrizione", completed: true, priority: true, archived: false, color: "#0000ff", position: 1, subtasks: [
+                                    text: "Radice B", description: "descrizione", completed: true, priority: true, color: "#0000ff", position: 1, subtasks: [
                                         {
-                                            text: "Figlio 1", description: "d", completed: true, priority: false, archived: false, color: "#111111", position: 0, subtasks: [
-                                                { text: "Nipote", description: null, completed: true, priority: true, archived: true, color: "#222222", position: 0, subtasks: [] },
+                                            text: "Figlio 1", description: "d", completed: true, priority: false, color: "#111111", position: 0, subtasks: [
+                                                { text: "Nipote", description: null, completed: true, priority: true, color: "#222222", position: 0, subtasks: [] },
                                             ],
                                         },
-                                        { text: "Figlio 2", description: null, completed: false, priority: false, archived: true, color: null, position: 1, subtasks: [] },
+                                        { text: "Figlio 2", description: null, completed: false, priority: false, color: null, position: 1, subtasks: [] },
                                     ],
                                 },
                             ],
                         },
-                        { title: "Archivio", color: null, archived: true, position: 1, tasks: [] },
+                        { title: "Archivio", color: null, position: 1, tasks: [] },
                     ],
                 },
                 {
                     name: null, color: null, position: 1, sections: [
                         {
-                            title: "Idee", color: null, archived: false, position: 0, tasks: [
-                                { text: "Idea", description: null, completed: false, priority: false, archived: false, color: null, position: 0, subtasks: [] },
+                            title: "Idee", color: null, position: 0, tasks: [
+                                { text: "Idea", description: null, completed: false, priority: false, color: null, position: 0, subtasks: [] },
                             ],
                         },
                     ],
@@ -434,5 +434,15 @@ describe("group color", () => {
         sqlite.prepare("UPDATE note_template SET content = ? WHERE id = ?").run(oldContent, id)
         const old = await createDBNoteFromTemplate(id, 1, null, "Da vecchio")
         expect((await getDBNoteData(old)).groups.map(g => g.color ?? null)).toEqual([null])
+    })
+})
+
+describe("parseTemplateContent", () => {
+    it("returns the parsed snapshot and falls back to an empty template when it is corrupted", () => {
+        const content = { version: 1, groups: [{ sections: [] }] }
+        expect(parseTemplateContent(JSON.stringify(content))).toEqual(content)
+        expect(parseTemplateContent("not json")).toEqual({ version: 1, groups: [] })
+        expect(parseTemplateContent('{"groups":3}')).toEqual({ version: 1, groups: [] })
+        expect(parseTemplateContent("null")).toEqual({ version: 1, groups: [] })
     })
 })

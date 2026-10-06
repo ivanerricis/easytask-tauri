@@ -236,7 +236,7 @@ describe("deleteBackup", () => {
     })
 
     it("refuses names that are not backups", async () => {
-        await expect(deleteBackup("../easytask.db")).rejects.toThrow("Invalid backup name")
+        await expect(deleteBackup("../easytask.db")).rejects.toMatchObject({ code: "BACKUP_INVALID_NAME" })
     })
 })
 
@@ -265,7 +265,7 @@ describe("restoreBackup", () => {
     })
 
     it("fails before touching anything when the backup is missing", async () => {
-        await expect(restoreBackup("easytask-20260101-100000.db")).rejects.toThrow("Backup not found")
+        await expect(restoreBackup("easytask-20260101-100000.db")).rejects.toMatchObject({ code: "BACKUP_NOT_FOUND" })
         expect(closeDB).not.toHaveBeenCalled()
         expect(relaunch).not.toHaveBeenCalled()
     })

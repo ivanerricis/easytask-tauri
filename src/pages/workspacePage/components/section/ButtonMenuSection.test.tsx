@@ -10,11 +10,13 @@ vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 const duplicateSection = vi.fn()
 const refreshActiveNote = vi.fn()
 const create = vi.fn()
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create }) }))
+const archive = vi.fn()
+const archiveItem = vi.fn()
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create, archive }) }))
 const updateItemColor = vi.fn()
 const patchSection = vi.fn()
 const removeSection = vi.fn()
-vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor, duplicateSection }) }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor, duplicateSection, archiveItem }) }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchSection, removeSection, refreshActiveNote }) }))
 vi.mock("../NoteMoveSubmenus", () => ({ SectionMoveSubmenu: () => null }))
 vi.mock("../NoteStepMoves", () => ({ SectionStepMoves: () => null }))
@@ -27,7 +29,7 @@ vi.mock("@/components/dialogs/dialog-rename", () => ({
         isOpen ? <button onClick={() => optimistic("Nuovo")}>Dialog rinomina</button> : null,
 }))
 
-const ENTRIES = ["Rinomina", "Duplica", "Cambia colore", "Elimina"]
+const ENTRIES = ["Rinomina", "Duplica", "Cambia colore", "Archivia", "Elimina"]
 
 beforeEach(() => {
     vi.clearAllMocks()
@@ -35,6 +37,8 @@ beforeEach(() => {
     patchSection.mockReturnValue(vi.fn())
     duplicateSection.mockResolvedValue(12)
     refreshActiveNote.mockResolvedValue(undefined)
+    archiveItem.mockResolvedValue(undefined)
+    removeSection.mockReturnValue(vi.fn())
 })
 
 const setup = () => {
@@ -79,6 +83,29 @@ describe("ButtonMenuSection", () => {
         expect(duplicateSection).toHaveBeenCalledWith(7)
         expect(create).toHaveBeenCalledWith("section", 12, null)
         expect(refreshActiveNote).toHaveBeenCalledTimes(1)
+    })
+
+    it("removes the section from the note, archives it and records the undo step", async () => {
+        const user = userEvent.setup()
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Archivia"))
+        await waitFor(() => expect(archive).toHaveBeenCalledWith("section", 7, expect.anything()))
+        expect(removeSection).toHaveBeenCalledWith(7)
+        expect(archiveItem).toHaveBeenCalledWith("section", 7)
+    })
+
+    it("puts the section back and shows the error when the archive fails", async () => {
+        const user = userEvent.setup()
+        const rollback = vi.fn()
+        removeSection.mockReturnValue(rollback)
+        archiveItem.mockRejectedValueOnce(new Error("boom"))
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Archivia"))
+        await waitFor(() => expect(toast.error).toHaveBeenCalledWith("boom"))
+        expect(rollback).toHaveBeenCalledTimes(1)
+        expect(archive).not.toHaveBeenCalled()
     })
 
     it("shows the error when the duplication fails", async () => {

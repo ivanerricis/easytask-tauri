@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { createError, handleDBError } from "./error"
+import { createError, handleDBError, isAppError } from "./error"
 
 function catchThrown(fn: () => void): unknown {
     try {
@@ -13,6 +13,16 @@ function catchThrown(fn: () => void): unknown {
 describe("createError", () => {
     it("builds an object with code and message", () => {
         expect(createError("X", "msg")).toEqual({ code: "X", message: "msg" })
+    })
+})
+
+describe("isAppError", () => {
+    it("matches only objects built by createError", () => {
+        expect(isAppError(createError("X", "msg"))).toBe(true)
+        expect(isAppError(new Error("boom"))).toBe(false)
+        expect(isAppError("UNIQUE")).toBe(false)
+        expect(isAppError(null)).toBe(false)
+        expect(isAppError({ code: "X" })).toBe(false)
     })
 })
 

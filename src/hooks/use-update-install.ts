@@ -2,7 +2,7 @@ import { useCallback, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { relaunch } from "@tauri-apps/plugin-process"
 import type { Update } from "@tauri-apps/plugin-updater"
-import { toast } from "sonner"
+import { reportError } from "@/lib/report-error"
 import { getErrorMessage } from "@/lib/utils"
 
 /** Download progress of an update being installed: bytes received and total size (null when unknown). */
@@ -31,7 +31,7 @@ export const useUpdateInstall = () => {
             return true
         } catch (error) {
             setProgress(null)
-            toast.error(t("settings.about.update.installError", { message: getErrorMessage(error) }))
+            reportError(error, t("settings.about.update.installError", { message: getErrorMessage(error) }))
             return false
         }
     }, [t])

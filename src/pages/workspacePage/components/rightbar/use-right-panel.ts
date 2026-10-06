@@ -17,3 +17,10 @@ export const useRightPanel = () => {
  * @category RightPanel
  */
 export const useShowTaskDetails = () => useContext(RightPanelContext)?.showTaskDetails
+
+/**
+ * A function that shows the information of an audio file in the right panel, or undefined where there is no panel
+ * (outside a RightPanelProvider).
+ * @category RightPanel
+ */
+export const useShowAudioInfo = () => useContext(RightPanelContext)?.showAudioInfo

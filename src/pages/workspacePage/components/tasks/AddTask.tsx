@@ -6,11 +6,11 @@ import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { cn, getErrorMessage } from "@/lib/utils"
 import { Check, Loader2, Plus, X } from "lucide-react"
-import { toast } from "sonner"
 import { useState, useRef, useEffect } from "react"
 import type { FormEvent, KeyboardEvent } from "react"
 import { keyLabel } from "@/lib/shortcuts"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
+import { reportError } from "@/lib/report-error"
 import { PlusButton } from "../section/PlusButton"
 import { CloseButton } from "../section/CloseButton"
 
@@ -33,32 +33,29 @@ type AddTaskProps = {
 const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose?: () => void }) => {
     const { t } = useTranslation()
     const [text, setText] = useState("")
-    const [saving, setSaving] = useState(false)
+    const { saving, run } = useSubmitOnce()
     const [focused, setFocused] = useState(true)
     const { createSubTask } = useWorkspaceActions()
     const { appendTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const inputRef = useRef<HTMLInputElement>(null)
-    const savingRef = useRef(false)
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
         const value = text.trim()
-        if (!value || savingRef.current) return
-        savingRef.current = true
-        setSaving(true)
-        try {
-            const id = await createSubTask(parentTaskId, value)
-            setText("")
-            appendTask(id, { parentTaskId }, value)
-            recorder.create("task", id, value)
-        } catch (error: unknown) {
-            toast.error(getErrorMessage(error) || t("tasks.errors.createSubtask"))
-        } finally {
-            savingRef.current = false
-            setSaving(false)
-            inputRef.current?.focus()
-        }
+        if (!value) return
+        await run(async () => {
+            try {
+                const id = await createSubTask(parentTaskId, value)
+                setText("")
+                appendTask(id, { parentTaskId }, value)
+                recorder.create("task", id, value)
+            } catch (error: unknown) {
+                reportError(error, getErrorMessage(error) || t("tasks.errors.createSubtask"))
+            } finally {
+                inputRef.current?.focus()
+            }
+        })
     }
 
     return (
@@ -84,7 +81,7 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
                         }}
                         onBlur={() => {
                             setFocused(false)
-                            if (!text.trim() && !savingRef.current) onClose?.()
+                            if (!text.trim() && !saving) onClose?.()
                         }}
                         className={cn(
                             "flex-1 min-w-0 h-5 bg-transparent text-sm outline-none border-b border-transparent transition-colors",
@@ -172,7 +169,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                     appendTask(id, { sectionId }, value)
                     recorder.create("task", id, value)
                 } catch (error: unknown) {
-                    toast.error(getErrorMessage(error) || t("tasks.errors.createTask"))
+                    reportError(error, getErrorMessage(error) || t("tasks.errors.createTask"))
                 }
             })
         }

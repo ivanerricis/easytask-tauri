@@ -15,6 +15,14 @@ export function createError(code: string, message: string): Error {
     return { code, message }
 }
 
+/**
+ * Tells whether a caught value is an error built with createError (a plain object with code and message).
+ * Driver errors (Error instances of any realm, or strings) never match, so they can be wrapped by the caller.
+ */
+export function isAppError(error: unknown): error is Error {
+    return typeof error === "object" && error !== null && Object.getPrototypeOf(error) === Object.prototype && "code" in error && "message" in error
+}
+
 export function handleDBError(error: unknown, codePrefix: string, messages: DBErrorMap = {}): never {
     const message = String(error)
     if (message.includes("UNIQUE")) {

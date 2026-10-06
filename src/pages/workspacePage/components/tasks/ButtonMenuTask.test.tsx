@@ -131,7 +131,11 @@ describe("ButtonMenuTask optimistic updates", () => {
     })
 
     it("removes the task from the cached note once the delete dialog succeeded", async () => {
+        const user = userEvent.setup()
         await openMenu()
+        // The dialog is mounted only once the delete item has been chosen
+        expect(screen.queryByText("dialog delete done")).not.toBeInTheDocument()
+        await user.click(await screen.findByRole("button", { name: "Elimina" }))
         fireEvent.click(await screen.findByText("dialog delete done"))
         expect(removeTask).toHaveBeenCalledWith(5)
     })

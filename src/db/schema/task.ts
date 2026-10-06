@@ -52,3 +52,25 @@ export const createTaskTrigger = `
         WHERE id = OLD.id;
     END;
 `
+
+/**
+ * Migration v4: drops the old unused `archived` flag of the tasks (tasks cannot be archived): the trigger that lists
+ * it is dropped first and recreated without it. The DROP COLUMN is retried safely by initDb.
+ * @category Database Schema
+ */
+export const dropTaskArchivedColumn: string[] = [
+    `DROP TRIGGER IF EXISTS update_task_edit_timestamp;`,
+    `ALTER TABLE task DROP COLUMN archived;`,
+    `
+    CREATE TRIGGER IF NOT EXISTS update_task_edit_timestamp
+    AFTER UPDATE OF sectionID, taskID, text, description, completed, priority, color ON task
+    FOR EACH ROW
+    BEGIN
+        UPDATE task
+        SET
+            edit_date = DATE('now', 'localtime'),
+            edit_time = strftime('%H:%M', 'now', 'localtime')
+        WHERE id = OLD.id;
+    END;
+`,
+]

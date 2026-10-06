@@ -1,5 +1,5 @@
 import type { Folder, Note, WorkspaceDataTree } from "@/types/types"
-import { localTimestamp, nextPosition } from "./note-tree-ops"
+import { insertAt, localTimestamp, nextPosition } from "./note-tree-ops"
 
 /**
  * Pure immutable operations on the workspace tree (sidebar), used for the optimistic updates.
@@ -13,15 +13,6 @@ export type NotePatch = Partial<Omit<Note, "groups">>
 
 /** Location of an item: the parent folder (null = workspace root) and the index among its siblings of the same type. */
 export type TreeLocation = { item: Folder | Note, parentId: number | null, index: number }
-
-const clamp = (index: number | undefined, length: number) =>
-    index === undefined ? length : Math.max(0, Math.min(Math.trunc(index) || 0, length))
-
-const insertAt = <T,>(list: T[], item: T, index?: number): T[] => {
-    const next = list.slice()
-    next.splice(clamp(index, list.length), 0, item)
-    return next
-}
 
 /** Applies a change to the folder with the given id (at any depth); the same array when it is not found. */
 function mapFolder(folders: Folder[], folderId: number, change: (folder: Folder) => Folder): Folder[] {

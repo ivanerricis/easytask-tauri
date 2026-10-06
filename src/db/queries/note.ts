@@ -8,24 +8,27 @@ import { getErrorMessage } from "@/lib/utils";
 /**
  * Retrieves the data for a specific note from the database.
  * @param noteId The ID of the note for which to retrieve data.
- * Soft deleted groups, sections and tasks are excluded. Groups, sections and tasks are ordered by position (then id).
+ * Soft deleted groups, sections and tasks are excluded, and so are the archived groups and sections (with their tasks)
+ * unless `includeArchived` is set (used by the export, which keeps them). Groups, sections and tasks are ordered by position (then id).
+ * @param includeArchived Keeps the archived groups and sections (default false).
  * @returns The note data, including groups, sections, and tasks.
  * @throws A createError('NOTE_DATA_LOAD_FAILED') error when the query fails.
  * @category Database
  */
-export async function getDBNoteData(noteId: number) {
+export async function getDBNoteData(noteId: number, includeArchived = false) {
     try {
         const db = await getDB()
+        const gA = includeArchived ? "" : " AND archived_at IS NULL"
         const groups = await db.select<Group[]>(
-            'SELECT * FROM section_group WHERE noteID=? AND deleted_at IS NULL ORDER BY position', [noteId])
+            `SELECT * FROM section_group WHERE noteID=? AND deleted_at IS NULL${gA} ORDER BY position`, [noteId])
         const sections = await db.select<Section[]>(`
-            SELECT * FROM section WHERE deleted_at IS NULL AND groupID IN (
-            SELECT id FROM section_group WHERE noteID=? AND deleted_at IS NULL)
+            SELECT * FROM section WHERE deleted_at IS NULL${gA} AND groupID IN (
+            SELECT id FROM section_group WHERE noteID=? AND deleted_at IS NULL${gA})
             ORDER BY position, id`, [noteId])
         const tasks = await db.select<Task[]>(`
             SELECT * FROM task WHERE deleted_at IS NULL AND sectionID IN (
-            SELECT id FROM section WHERE deleted_at IS NULL AND groupID IN (
-            SELECT id FROM section_group WHERE noteID=? AND deleted_at IS NULL))
+            SELECT id FROM section WHERE deleted_at IS NULL${gA} AND groupID IN (
+            SELECT id FROM section_group WHERE noteID=? AND deleted_at IS NULL${gA}))
             ORDER BY position, id`, [noteId]);
         return { groups, sections, tasks }
     } catch (error: unknown) {

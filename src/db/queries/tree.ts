@@ -1,33 +1,14 @@
 import i18n from "@/i18n"
-import { createError, handleDBError } from "@/types/error";
+import { createError, handleDBError, isAppError } from "@/types/error";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
+import { buildPositionUpdate, clampIndex } from "./ordering";
 
 type TreeItemType = "folder" | "note"
 
 type TreeRow = { id: number, workspaceID: number | null, folderID: number | null }
 
 const MOVE_UNIQUE_MESSAGE = () => i18n.t("errors.tree.moveUnique")
-
-/**
- * Builds the single UPDATE that assigns the parent and the sequential positions to an ordered list of siblings.
- * @param table Table to update (already validated).
- * @param ids Sibling ids in their final order.
- * @param parentId Parent folder id shared by all the siblings (null for the workspace root).
- * @returns The SQL and its parameters.
- * @category Database Queries
- */
-function buildReorderUpdate(table: TreeItemType, ids: number[], parentId: number | null) {
-    const cases = ids.map(() => "WHEN ? THEN ?").join(" ")
-    const placeholders = ids.map(() => "?").join(",")
-    const params: (number | null)[] = [parentId]
-    ids.forEach((id, index) => params.push(id, index))
-    params.push(...ids)
-    return {
-        sql: `UPDATE ${table} SET folderID = ?, position = CASE id ${cases} END WHERE id IN (${placeholders})`,
-        params,
-    }
-}
 
 /**
  * Moves a folder or a note to a folder (or to the workspace root) at a given index among its new siblings.
@@ -37,7 +18,7 @@ function buildReorderUpdate(table: TreeItemType, ids: number[], parentId: number
  * The caller is responsible for reloading the workspace data.
  * @param itemType "folder" or "note".
  * @param itemId ID of the item to move.
- * @param targetFolderId ID of the destination folder, null for the workspace root.
+ * @param targetFolderId ID of the destination folder (neither deleted nor archived), null for the workspace root.
  * @param targetIndex Position among the destination siblings (0 based).
  * @throws FOLDER_MOVE_INVALID when a folder is moved into itself or one of its descendants.
  * @throws A "<TYPE>_EXISTS" error when the destination already contains an item with the same name.
@@ -75,7 +56,7 @@ export async function moveDBTreeItem(itemType: TreeItemType, itemId: number, tar
             }
 
             const targets = await db.select<{ id: number, workspaceID: number | null }[]>(
-                'SELECT id, workspaceID FROM folder WHERE id = ? AND deleted_at IS NULL', [targetFolderId])
+                'SELECT id, workspaceID FROM folder WHERE id = ? AND deleted_at IS NULL AND archived_at IS NULL', [targetFolderId])
             if (!targets[0] || targets[0].workspaceID !== item.workspaceID)
                 throw createError("FOLDER_MOVE_INVALID", i18n.t("errors.tree.folderTargetInvalid"))
         }
@@ -92,26 +73,25 @@ export async function moveDBTreeItem(itemType: TreeItemType, itemId: number, tar
         }
 
         const order = await loadSiblings(targetFolderId)
-        const index = Math.max(0, Math.min(Math.trunc(targetIndex) || 0, order.length))
+        const index = clampIndex(targetIndex, order.length)
         order.splice(index, 0, itemId)
 
         const tx = new Transaction()
-        const destination = buildReorderUpdate(table, order, targetFolderId)
+        const destination = buildPositionUpdate(table, order, { column: "folderID", value: targetFolderId })
         tx.add(destination.sql, destination.params)
 
         if ((item.folderID ?? null) !== targetFolderId) {
             // The moved item is excluded by loadSiblings: it already belongs to the destination
             const remaining = await loadSiblings(item.folderID ?? null)
             if (remaining.length > 0) {
-                const source = buildReorderUpdate(table, remaining, item.folderID ?? null)
+                const source = buildPositionUpdate(table, remaining, { column: "folderID", value: item.folderID ?? null })
                 tx.add(source.sql, source.params)
             }
         }
         await tx.run()
     } catch (error: unknown) {
         // createError objects are already user facing, only unexpected failures are wrapped
-        if (typeof error === "object" && error !== null && "code" in error && "message" in error)
-            throw error
+        if (isAppError(error)) throw error
         handleDBError(error, itemType.toUpperCase(), { UNIQUE: MOVE_UNIQUE_MESSAGE() })
     }
 }

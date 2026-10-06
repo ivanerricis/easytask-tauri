@@ -51,7 +51,7 @@ const RepositoryRow = () => {
 
     return (
         <div className="flex items-baseline justify-between gap-4 text-sm">
-            <span className="text-muted-foreground shrink-0">Repository</span>
+            <span className="text-muted-foreground shrink-0">{t("settings.about.repository")}</span>
             <span className="flex items-center gap-1.5 text-right">
                 <button
                     type="button"

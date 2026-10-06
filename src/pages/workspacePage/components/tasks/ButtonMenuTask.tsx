@@ -5,13 +5,14 @@ import type { Task } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { reportError } from "@/lib/report-error"
 import { toast } from "sonner"
 import { useRef, useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
-import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
-import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
+import { ColorSubmenu } from "../ColorSubmenu"
+import { MenuGroup } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
 import { DialogTaskDescription } from "./DialogTaskDescription"
@@ -63,7 +64,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
                 recorder.taskDescription(task.id, task.text, task.description ?? "", "")
             } catch (err) {
                 rollback()
-                toast.error(getErrorMessage(err))
+                reportError(err, getErrorMessage(err))
             } finally {
                 menu.close()
             }
@@ -110,24 +111,14 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
                 type={task.priority ? 'removePriority' : 'addPriority'}
                 onClick={() => { handleEditPriority(); menu.close() }}
             />
-            <MenuSub>
-                <MenuSubTrigger>
-                    <ButtonInPopover
-                        text={t("menu.changeColor")}
-                        type="color"
-                    />
-                </MenuSubTrigger>
-                <MenuSubContent>
-                    <DialogAddColor
-                        item={task}
-                        itemType="task"
-                        addColorItem={addColorItem}
-                        getItemId={activeId ?? undefined}
-                        getItemData={noReload}
-                        setDropDownOpen={menu.close}
-                    />
-                </MenuSubContent>
-            </MenuSub>
+            <ColorSubmenu
+                item={task}
+                itemType="task"
+                addColorItem={addColorItem}
+                getItemId={activeId ?? undefined}
+                getItemData={noReload}
+                onDone={menu.close}
+            />
             <TaskStepMoves taskId={task.id} onDone={menu.close} />
             <TaskMoveSubmenu taskId={task.id} onDone={menu.close} />
             <Separator />
@@ -142,20 +133,22 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
 
     const dialogs = (
         <>
-            <DialogTaskDescription
-                task={task}
-                open={isDescriptionOpen}
-                onOpenChange={setDescriptionOpen}
-            />
+            {isDescriptionOpen &&
+                <DialogTaskDescription
+                    task={task}
+                    open={isDescriptionOpen}
+                    onOpenChange={setDescriptionOpen}
+                />}
 
-            <DialogDeleteItem
-                item={task}
-                itemType="task"
-                isOpen={isDeleteTaskOpen}
-                onOpenChange={setDeleteTaskOpen}
-                getItemId={activeId ?? undefined}
-                getItemData={async () => { removeTask(task.id) }}
-            />
+            {isDeleteTaskOpen &&
+                <DialogDeleteItem
+                    item={task}
+                    itemType="task"
+                    isOpen={isDeleteTaskOpen}
+                    onOpenChange={setDeleteTaskOpen}
+                    getItemId={activeId ?? undefined}
+                    getItemData={async () => { removeTask(task.id) }}
+                />}
         </>
     )
 

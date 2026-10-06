@@ -1,7 +1,7 @@
 import i18n from "@/i18n"
 import type { NoteTemplate, NoteTemplateContent, TemplateGroup, TemplateSection, TemplateTask } from "@/types/template";
 import type { Section, Task } from "@/types/types";
-import { createError, handleDBError } from "@/types/error";
+import { createError, handleDBError, isAppError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { Transaction, TransactionError, type TxRef } from "../transaction";
@@ -17,20 +17,24 @@ type TemplateRow = Omit<NoteTemplate, "content"> & { content: string }
 
 const EMPTY_CONTENT: NoteTemplateContent = { version: 1, groups: [] }
 
-// Errors built with createError are plain objects; driver errors (Error instances of any realm, or strings) must not match
-const isAppError = (error: unknown): error is { code: string, message: string } =>
-    typeof error === "object" && error !== null && Object.getPrototypeOf(error) === Object.prototype && "code" in error && "message" in error
-
-const toTemplate = ({ content, ...row }: TemplateRow): NoteTemplate => {
-    let parsed: NoteTemplateContent = EMPTY_CONTENT
+/**
+ * Parses the JSON snapshot stored in a template. A corrupted or malformed snapshot behaves as an empty template
+ * instead of breaking the whole list.
+ * @param json The content column of a note_template row.
+ * @category Database Queries
+ */
+export function parseTemplateContent(json: string): NoteTemplateContent {
     try {
-        const value = JSON.parse(content) as NoteTemplateContent
-        if (value && Array.isArray(value.groups)) parsed = value
+        const value = JSON.parse(json) as NoteTemplateContent
+        if (value && Array.isArray(value.groups)) return value
     } catch {
-        // A corrupted snapshot behaves as an empty template instead of breaking the whole list
+        // Falls through to the empty template
     }
-    return { ...row, sourceNoteName: row.sourceNoteName ?? null, content: parsed }
+    return EMPTY_CONTENT
 }
+
+const toTemplate = ({ content, ...row }: TemplateRow): NoteTemplate =>
+    ({ ...row, sourceNoteName: row.sourceNoteName ?? null, content: parseTemplateContent(content) })
 
 /**
  * Returns a function that snapshots a section (with its tasks and subtasks at any depth) out of a list of tasks.
@@ -38,7 +42,7 @@ const toTemplate = ({ content, ...row }: TemplateRow): NoteTemplate => {
  * @param tasks The (non deleted) tasks of the sections that will be snapshotted.
  * @category Database Queries
  */
-export function createSectionSnapshotter(tasks: Task[]): (section: Pick<Section, "id" | "title" | "color" | "archived" | "position">) => TemplateSection {
+export function createSectionSnapshotter(tasks: Task[]): (section: Pick<Section, "id" | "title" | "color" | "archived_at" | "position">) => TemplateSection {
     const childrenOf = new Map<number, Task[]>()
     const topOf = new Map<number, Task[]>()
     for (const task of tasks) {
@@ -52,7 +56,6 @@ export function createSectionSnapshotter(tasks: Task[]): (section: Pick<Section,
         description: task.description ?? null,
         completed: !!task.completed,
         priority: !!task.priority,
-        archived: !!task.archived,
         color: task.color ?? null,
         position: task.position,
         subtasks: (childrenOf.get(task.id) ?? []).map(snapshotTask),
@@ -61,20 +64,21 @@ export function createSectionSnapshotter(tasks: Task[]): (section: Pick<Section,
     return section => ({
         title: section.title,
         color: section.color ?? null,
-        archived: !!section.archived,
+        ...(section.archived_at ? { archived_at: section.archived_at } : {}),
         position: section.position,
         tasks: (topOf.get(section.id) ?? []).map(snapshotTask),
     })
 }
 
 /**
- * Builds the template content of a note: an exact copy of its non deleted groups, sections and tasks
- * (subtasks at any depth; a subtask whose ancestor is in the trash is hidden with it). Audio files are not included.
+ * Builds the template content of a note: an exact copy of its visible groups, sections and tasks (neither deleted nor
+ * archived; subtasks at any depth; a subtask whose ancestor is in the trash is hidden with it). Audio files are not included.
  * @param noteId The ID of the note.
+ * @param includeArchived Keeps the archived groups and sections, with their `archived_at` (used by the export; default false).
  * @category Database Queries
  */
-export async function buildContent(noteId: number): Promise<NoteTemplateContent> {
-    const { groups, sections, tasks } = await getDBNoteData(noteId)
+export async function buildContent(noteId: number, includeArchived = false): Promise<NoteTemplateContent> {
+    const { groups, sections, tasks } = await getDBNoteData(noteId, includeArchived)
     const snapshotSection = createSectionSnapshotter(tasks)
 
     return {
@@ -82,6 +86,7 @@ export async function buildContent(noteId: number): Promise<NoteTemplateContent>
         groups: groups.map((group): TemplateGroup => ({
             name: group.name ?? null,
             color: group.color ?? null,
+            ...(group.archived_at ? { archived_at: group.archived_at } : {}),
             position: group.position,
             sections: sections.filter(section => section.groupID === group.id).map(snapshotSection),
         })),
@@ -206,8 +211,8 @@ type PendingTask = { sectionRef: TxRef, parentRef: TxRef | null, task: TemplateT
  */
 export function addNoteContent(tx: Transaction, noteRef: number | TxRef, content: NoteTemplateContent): TxRef[] {
     const { groups } = content
-    const groupRefs = tx.insertRows("section_group", ["noteID", "position", "name", "color"],
-        groups.map(group => [noteRef, group.position, group.name ?? null, group.color || null]))
+    const groupRefs = tx.insertRows("section_group", ["noteID", "position", "name", "color", "archived_at"],
+        groups.map(group => [noteRef, group.position, group.name ?? null, group.color || null, group.archived_at || null]))
 
     addSections(tx, groups.flatMap((group, i) => group.sections.map(section => ({ groupRef: groupRefs[i], section }))))
     return groupRefs
@@ -222,18 +227,18 @@ export function addNoteContent(tx: Transaction, noteRef: number | TxRef, content
  * @category Database Queries
  */
 export function addSections(tx: Transaction, sources: { groupRef: number | TxRef, section: TemplateSection }[]): TxRef[] {
-    const sectionRefs = tx.insertRows("section", ["groupID", "title", "color", "archived", "position"],
-        sources.map(({ groupRef, section }) => [groupRef, section.title, section.color ?? null, section.archived ? 1 : 0, section.position]))
+    const sectionRefs = tx.insertRows("section", ["groupID", "title", "color", "archived_at", "position"],
+        sources.map(({ groupRef, section }) => [groupRef, section.title, section.color ?? null, section.archived_at || null, section.position]))
 
     // Tasks level by level: the subtasks of a level reference the ids of their parents
     let level: PendingTask[] = sources.flatMap(({ section }, i) =>
         section.tasks.map(task => ({ sectionRef: sectionRefs[i], parentRef: null, task })))
     while (level.length > 0) {
         const refs = tx.insertRows("task",
-            ["sectionID", "taskID", "text", "description", "completed", "priority", "archived", "color", "position"],
+            ["sectionID", "taskID", "text", "description", "completed", "priority", "color", "position"],
             level.map(({ sectionRef, parentRef, task }) => [
                 sectionRef, parentRef, task.text, task.description ?? null, task.completed ? 1 : 0,
-                task.priority ? 1 : 0, task.archived ? 1 : 0, task.color ?? null, task.position,
+                task.priority ? 1 : 0, task.color ?? null, task.position,
             ]))
         level = level.flatMap(({ sectionRef, task }, i) =>
             task.subtasks.map(subtask => ({ sectionRef, parentRef: refs[i], task: subtask })))

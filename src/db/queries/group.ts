@@ -2,6 +2,7 @@ import i18n from "@/i18n"
 import type { Group } from "@/types/types";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
+import { buildPositionUpdate } from "./ordering";
 import { createError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -25,16 +26,20 @@ export async function createDBGroup(noteId: number, name: string) {
 }
 
 /**
- * Updates the positions of multiple groups in the database (all together, in one transaction).
+ * Updates the positions of multiple groups in the database (one UPDATE, so all together).
+ * The groups are renumbered 0..n-1 following the order of their `position`.
  * @param groups The list of groups to update.
  * @returns A promise that resolves when the update is complete.
  * @category Database Queries
  */
 export async function updateDBGroupPositions(groups: Group[]) {
     try {
+        if (groups.length === 0) return
+        // Positions are assigned sequentially in the order of the given positions
+        const ordered = [...groups].sort((a, b) => a.position - b.position)
+        const update = buildPositionUpdate("section_group", ordered.map(group => group.id))
         const tx = new Transaction()
-        for (const group of groups)
-            tx.add('UPDATE section_group SET position=? WHERE id=?', [group.position, group.id])
+        tx.add(update.sql, update.params)
         await tx.run()
     } catch (error: unknown) {
         throw createError('GROUP_UPDATE_ERROR', i18n.t("errors.group.updatePositions", { message: getErrorMessage(error) }))

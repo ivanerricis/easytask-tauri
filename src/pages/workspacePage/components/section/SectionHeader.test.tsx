@@ -43,6 +43,16 @@ describe("SectionHeader keyboard", () => {
         expect(screen.getByRole("button", { name: "Titolo" })).toBeInTheDocument()
     })
 
+    it("shows the progress bar only when the section has tasks", () => {
+        const { rerender } = render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ tasks: [] })} />)
+        expect(screen.queryByRole("progressbar")).toBeNull()
+        expect(screen.queryByText("100 %")).toBeNull()
+
+        rerender(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ tasks: [makeTask()] })} />)
+        expect(screen.getByRole("progressbar")).toBeInTheDocument()
+        expect(screen.getByText("0 %")).toBeInTheDocument()
+    })
+
     it("Enter saves once", async () => {
         const user = userEvent.setup()
         render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)

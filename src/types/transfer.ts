@@ -21,6 +21,8 @@ export type ExportFolder = {
     parentRef: string | null
     name: string
     color: string | null
+    /** Archive date; absent (or null) for a visible folder and in files created before the archive existed. */
+    archived_at?: string | null
     position: number
 }
 
@@ -33,6 +35,8 @@ export type ExportNote = {
     folderRef: string | null
     name: string
     color: string | null
+    /** Archive date; absent (or null) for a visible note and in files created before the archive existed. */
+    archived_at?: string | null
     position: number
     content: NoteTemplateContent
     audio: ExportAudio[]
@@ -49,7 +53,8 @@ export type ExportTemplate = {
 }
 
 /**
- * Content of a `<workspace name>.easytask.json` file: the non deleted content of a workspace.
+ * Content of a `<workspace name>.easytask.json` file: the non deleted content of a workspace (archived items included, with
+ * their `archived_at`: they are imported archived).
  * @category Types
  */
 export type WorkspaceExport = {

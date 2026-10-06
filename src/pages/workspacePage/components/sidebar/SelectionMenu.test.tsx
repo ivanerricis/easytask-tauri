@@ -28,23 +28,24 @@ const deleteItem = vi.fn()
 const updateItemColor = vi.fn()
 const moveTreeItem = vi.fn()
 const getWorkspaceData = vi.fn()
+const archiveItem = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceData: () => ({
-        workspaceDataTree, deleteItem, updateItemColor, moveTreeItem, getWorkspaceData,
+        workspaceDataTree, deleteItem, updateItemColor, moveTreeItem, getWorkspaceData, archiveItem,
         updateFolderColorContent: vi.fn(),
     }),
     useWorkspaceActions: () => ({ updateItemColor, duplicateNote: vi.fn() }),
 }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
 vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn() }) }))
-const recorder = { removeMany: vi.fn(), colorMany: vi.fn(), treeMoveMany: vi.fn(), create: vi.fn() }
+const recorder = { removeMany: vi.fn(), archiveMany: vi.fn(), colorMany: vi.fn(), treeMoveMany: vi.fn(), create: vi.fn() }
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
 const exportItem = vi.fn()
 const exportItems = vi.fn()
 vi.mock("@/hooks/use-workspace-transfer", () => ({ useItemTransfer: () => ({ exportItem, exportItems, importItems: vi.fn(), isBusy: false }) }))
 vi.mock("../MoveToSubmenu", () => ({ MoveToSubmenu: () => null }))
-vi.mock("../folder/DialogAddNote", () => ({ DialogAddNote: () => null }))
-vi.mock("../folder/DialogAddSubFolder", () => ({ DialogAddSubFolder: () => null }))
+vi.mock("../AddNoteDialog", () => ({ AddNoteDialog: () => null }))
+vi.mock("../AddFolderDialog", () => ({ AddFolderDialog: () => null }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => null }))
 vi.mock("@/components/dialogs/dialog-rename", () => ({ DialogRenameItem: () => null }))
 
@@ -70,6 +71,7 @@ beforeEach(() => {
     deleteItem.mockResolvedValue(undefined)
     updateItemColor.mockResolvedValue(undefined)
     moveTreeItem.mockResolvedValue(undefined)
+    archiveItem.mockResolvedValue(undefined)
     getWorkspaceData.mockResolvedValue(undefined)
     exportItems.mockResolvedValue(undefined)
     store = createSelectionStore()
@@ -163,6 +165,32 @@ describe("delete", () => {
         expect(recorder.removeMany).toHaveBeenLastCalledWith([
             { itemType: "note", id: 9, name: "Spesa" }, { itemType: "note", id: 10, name: "Idee" },
         ])
+    })
+})
+
+describe("archive", () => {
+    it("archives the top-most items without asking, as ONE undo step, and clears the selection", async () => {
+        const user = userEvent.setup()
+        const row = setup()
+        select("folder-1", "note-5", "note-9")
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Archivia 2 elementi"))
+        await waitFor(() => expect(recorder.archiveMany).toHaveBeenCalledTimes(1))
+        expect(archiveItem.mock.calls).toEqual([["folder", 1], ["note", 9]])
+        expect(recorder.archiveMany).toHaveBeenCalledWith([
+            { itemType: "folder", id: 1, name: "Lavoro" }, { itemType: "note", id: 9, name: "Spesa" },
+        ])
+        expect(store.getSelected().size).toBe(0)
+    })
+
+    it("records only what was archived when one fails", async () => {
+        const user = userEvent.setup()
+        const row = setup()
+        select("folder-1", "note-9")
+        archiveItem.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("disco pieno"))
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Archivia 2 elementi"))
+        await waitFor(() => expect(recorder.archiveMany).toHaveBeenCalledWith([{ itemType: "folder", id: 1, name: "Lavoro" }]))
     })
 })
 

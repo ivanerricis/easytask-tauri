@@ -7,6 +7,7 @@ import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { useState, useRef, useEffect, useCallback } from "react"
 import type { FormEvent, KeyboardEvent } from "react"
 import { toast } from "sonner"
+import { reportError } from "@/lib/report-error"
 import { getErrorMessage } from "@/lib/utils"
 import { CloseButton } from "./CloseButton"
 import { PlusButton } from "./PlusButton"
@@ -83,7 +84,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
 
                 handleOpen()
             } catch (error) {
-                toast.error(getErrorMessage(error) || (inGroup ? t("errors.createSection") : t("errors.createGroup")))
+                reportError(error, getErrorMessage(error) || (inGroup ? t("errors.createSection") : t("errors.createGroup")))
             }
         })
     }

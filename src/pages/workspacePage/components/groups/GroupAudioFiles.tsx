@@ -8,6 +8,7 @@ import { MenuGroup } from "@/components/menu-kind"
 import { ItemMenu, ItemMenuButton } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
 import { useAudio, useGroupAudioFiles } from "@/contexts/use-audio"
+import { useShowAudioInfo } from "../rightbar/use-right-panel"
 import { cn } from "@/lib/utils"
 import { focusRing, onActivateKey } from "@/lib/a11y"
 import type { AudioFile } from "@/types/types"
@@ -23,6 +24,7 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const menu = useItemMenuState()
+    const showAudioInfo = useShowAudioInfo()
     const isCurrent = track?.audioId === file.id
     // What the icon says: playing (animated bars), paused (pause), played to the end (stop), or not loaded (note)
     const state = isCurrent ? playbackState : null
@@ -33,6 +35,16 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
 
     const items = (
         <MenuGroup className="flex flex-col gap-1">
+            {showAudioInfo && (
+                <ButtonInPopover
+                    text={t("audio.info")}
+                    type="details"
+                    onClick={() => {
+                        menu.close()
+                        showAudioInfo(file)
+                    }}
+                />
+            )}
             <ButtonInPopover
                 text={t("common.rename")}
                 type="rename"

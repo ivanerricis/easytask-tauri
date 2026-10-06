@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
@@ -42,6 +42,18 @@ describe("DialogCreateTemplate", () => {
         expect(await screen.findByText("Esiste già un template con questo nome.")).toBeInTheDocument()
         expect(toast.success).not.toHaveBeenCalled()
         expect(onOpenChange).not.toHaveBeenCalled()
+    })
+
+    it("ignores a second submit while the first is pending", async () => {
+        let resolve: (id: number) => void = () => {}
+        data.createTemplateFromNote.mockReturnValue(new Promise<number>(r => { resolve = r }))
+        render(<DialogCreateTemplate note={note} isOpen onOpenChange={vi.fn()} />)
+        const input = screen.getByLabelText("Nome del template")
+        fireEvent.submit(input.closest("form")!)
+        fireEvent.submit(input.closest("form")!)
+        expect(data.createTemplateFromNote).toHaveBeenCalledTimes(1)
+        resolve(3)
+        await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1))
     })
 
     it("disables the button for an empty name and renders nothing when closed", async () => {

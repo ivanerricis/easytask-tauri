@@ -1,6 +1,6 @@
 import i18n from "@/i18n"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { Folder, Note, WorkspaceDataTree } from "@/types/types"
+import { useCallback, useMemo, useRef, useState } from "react"
+import type { Folder, WorkspaceDataTree } from "@/types/types"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
 import { reportError } from "@/lib/report-error"
 import { buildWorkspaceTree } from "../tree-builders"
@@ -12,6 +12,7 @@ import { useTreeActions } from "./tree"
 import { useNoteContentActions } from "./note-content"
 import { useTaskActions } from "./tasks"
 import { useTrashActions } from "./trash"
+import { useArchiveActions } from "./archive"
 import { useTemplateActions } from "./templates"
 import type { Runtime, TabsBridge, WorkspaceActionsType, WorkspaceStateType } from "./types"
 
@@ -22,21 +23,21 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [folders, setFolders] = useState<Folder[]>([])
-    const [notes, setNotes] = useState<Note[]>([])
     const [workspaceDataTree, setTreeState] = useState<WorkspaceDataTree | null>(null)
     const [loadedWorkspaceId, setLoadedWorkspaceId] = useState<number | null>(null)
 
     const [currentFolder, setCurrentFolder] = useState<Folder | null>(null)
 
     const [trashVersion, setTrashVersion] = useState(0)
+    const [archiveVersion, setArchiveVersion] = useState(0)
+    const [audioVersion, setAudioVersion] = useState(0)
     const [templatesVersion, setTemplatesVersion] = useState(0)
 
-    // Latest data for the stable actions (deleteItem) without making them depend on it
-    const latest = useRef({ folders, currentFolder })
-    useEffect(() => {
-        latest.current = { folders, currentFolder }
-    }, [folders, currentFolder])
+    // The flat lists follow the tree: they change identity only when the tree does
+    const { folders, notes } = useMemo(
+        () => workspaceDataTree ? flattenTree(workspaceDataTree) : { folders: [], notes: [] },
+        [workspaceDataTree])
+    const bumpAudioVersion = useCallback(() => setAudioVersion(version => version + 1), [])
 
     // The tree is also kept in a ref, so consecutive optimistic updates chain on the latest one even before a render
     const treeRef = useRef<WorkspaceDataTree | null>(null)
@@ -67,6 +68,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
     /**
      * Runs an operation that can change the trash content and bumps trashVersion once it succeeds.
+     * archiveVersion moves with it: an archived item that goes to the trash (or comes back from it) changes the archive too.
      * @param operation The operation to run.
      * @returns The result of the operation.
      * @category WorkspaceData Context
@@ -74,18 +76,28 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const withTrashChange = useCallback(<T,>(operation: () => Promise<T>): Promise<T> => withLoading(async () => {
         const result = await operation()
         setTrashVersion(version => version + 1)
+        setArchiveVersion(version => version + 1)
         return result
     }), [withLoading])
 
     /**
-     * Sets the tree; the flat folders/notes are derived from it when it does not come from a full load.
+     * Runs an operation that can change the archive content and bumps archiveVersion once it succeeds.
+     * @param operation The operation to run.
+     * @returns The result of the operation.
+     * @category WorkspaceData Context
+     */
+    const withArchiveChange = useCallback(<T,>(operation: () => Promise<T>): Promise<T> => withLoading(async () => {
+        const result = await operation()
+        setArchiveVersion(version => version + 1)
+        return result
+    }), [withLoading])
+
+    /**
+     * Sets the tree (the flat folders/notes are derived from it).
      * @category WorkspaceData Context
      */
     const setWorkspaceDataTree = useCallback((tree: WorkspaceDataTree) => {
         treeRef.current = tree
-        const flat = flattenTree(tree)
-        setFolders(flat.folders)
-        setNotes(flat.notes)
         setTreeState(tree)
     }, [])
 
@@ -108,13 +120,9 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
                 // An optimistic update of the same workspace arrived meanwhile: this response predates it, so fetch again
                 // (a bounded number of times: the last response is applied anyway, it is the freshest one)
                 if (optimisticSeq.current !== seq && loadedWorkspaceRef.current === workspaceID && attempt < MAX_RELOAD_RETRIES) continue
-                const loadedFolders = data?.folders || []
-                const loadedNotes = data?.notes || []
-                const tree = buildWorkspaceTree(loadedFolders, loadedNotes)
+                const tree = buildWorkspaceTree(data?.folders || [], data?.notes || [])
                 treeRef.current = tree
                 loadedWorkspaceRef.current = workspaceID
-                setFolders(loadedFolders)
-                setNotes(loadedNotes)
                 setTreeState(tree)
                 setLoadedWorkspaceId(workspaceID)
                 setError(null)
@@ -158,17 +166,18 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     /* ------------------------------------------------------------------------------------ */
 
     const runtime: Runtime = {
-        tabsBridge, withLoading, withTrashChange, latest, setCurrentFolder, setTemplatesVersion, getWorkspaceData, getTree, applyTree,
+        tabsBridge, withLoading, withTrashChange, withArchiveChange, bumpAudioVersion, setCurrentFolder, setTemplatesVersion, getWorkspaceData, getTree, applyTree,
     }
     const treeActions = useTreeActions(runtime)
     const noteContentActions = useNoteContentActions(runtime)
     const taskActions = useTaskActions(runtime)
     const trashActions = useTrashActions(runtime)
+    const archiveActions = useArchiveActions(runtime)
     const templateActions = useTemplateActions(runtime)
 
     const state = useMemo<WorkspaceStateType>(() => ({
-        folders, notes, workspaceDataTree, currentFolder, error, trashVersion, templatesVersion, loadedWorkspaceId
-    }), [folders, notes, workspaceDataTree, currentFolder, error, trashVersion, templatesVersion, loadedWorkspaceId])
+        folders, notes, workspaceDataTree, currentFolder, error, trashVersion, archiveVersion, audioVersion, templatesVersion, loadedWorkspaceId
+    }), [folders, notes, workspaceDataTree, currentFolder, error, trashVersion, archiveVersion, audioVersion, templatesVersion, loadedWorkspaceId])
 
     // Every group of actions is memoized on stable callbacks, so this object is created once
     const actions = useMemo<WorkspaceActionsType>(() => ({
@@ -179,9 +188,10 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         ...noteContentActions,
         ...taskActions,
         ...trashActions,
+        ...archiveActions,
         ...templateActions,
         resetData,
-    }), [getWorkspaceData, setWorkspaceDataTree, resetData, treeActions, noteContentActions, taskActions, trashActions, templateActions])
+    }), [getWorkspaceData, setWorkspaceDataTree, resetData, treeActions, noteContentActions, taskActions, trashActions, archiveActions, templateActions])
 
     return (
         <WorkspaceLoadingContext.Provider value={isLoading}>

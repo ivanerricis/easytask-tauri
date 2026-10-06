@@ -210,14 +210,14 @@ describe("builders", () => {
         expect(buildGroup(6, 1, "  ", []).name).toBeNull()
 
         const section = buildSection(7, 5, "Titolo", [])
-        expect(section).toMatchObject({ id: 7, groupID: 5, title: "Titolo", position: 0, archived: false, color: null, tasks: [] })
+        expect(section).toMatchObject({ id: 7, groupID: 5, title: "Titolo", position: 0, color: null, tasks: [] })
         expect(section.creation_date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
         expect(section.creation_time).toMatch(/^\d{2}:\d{2}$/)
 
         const task = buildTask(8, 7, 3, "Testo", [makeTask({ position: 1 })])
         expect(task).toMatchObject({
             id: 8, sectionID: 7, taskID: 3, position: 2, text: "Testo",
-            completed: false, archived: false, priority: false, description: "", color: null, subtasks: [],
+            completed: false, priority: false, description: "", color: null, subtasks: [],
         })
     })
 })

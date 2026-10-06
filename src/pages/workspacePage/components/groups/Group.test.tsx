@@ -52,7 +52,8 @@ describe("Group width when collapsed", () => {
         expect(root().style.minWidth).toBe("")
 
         groupOpen.value = false
-        rerender(<Group group={group} />)
+        // A new object: Group is memoized, and the mocked open state changes outside of it
+        rerender(<Group group={{ ...group }} />)
 
         expect(screen.queryByText("section")).not.toBeInTheDocument()
         expect(root().style.minWidth).toBe("311.4px")
@@ -66,7 +67,7 @@ describe("Group width when collapsed", () => {
         width = 340
         FakeResizeObserver.instances.at(-1)?.fire()
         groupOpen.value = false
-        rerender(<Group group={group} />)
+        rerender(<Group group={{ ...group }} />)
 
         expect(root().style.minWidth).toBe("340px")
     })
@@ -79,7 +80,7 @@ describe("Group width when collapsed", () => {
 
         groupOpen.value = false
         width = 120 // what the collapsed group would measure
-        rerender(<Group group={group} />)
+        rerender(<Group group={{ ...group }} />)
 
         expect(observer?.disconnected).toBe(true)
         expect(root().style.minWidth).toBe("320px")

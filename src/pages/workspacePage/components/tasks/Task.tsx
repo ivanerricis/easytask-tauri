@@ -6,9 +6,11 @@ import { ItemMenuButton } from "@/components/item-menu"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import { toast } from "sonner"
+import { reportError } from "@/lib/report-error"
+import { withRollback } from "@/contexts/with-rollback"
+import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { cn, getErrorMessage } from "@/lib/utils"
-import React, { useCallback, useEffect, useRef, useState } from "react"
+import React, { useCallback, useState } from "react"
 import { AutoTextarea } from "@/components/auto-textarea"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { AlignLeft, GripVertical, Info, ListTree, Plus } from "lucide-react"
@@ -17,6 +19,7 @@ import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { useIsTaskSelected, useSelectTask } from "@/contexts/use-tabs"
 import { useShowTaskDetails } from "../rightbar/use-right-panel"
+import { visibleTasks } from "../section/hide-completed"
 
 // Clicks on these keep their own action (checkbox, buttons, drag handle) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
@@ -27,22 +30,26 @@ type TaskProps = {
     depth?: number
     /** Shows how many direct subtasks are completed (preference "Show completed subtasks"). */
     showSubtaskCount?: boolean
-    children?: React.ReactNode
+    /** Hides the fully completed subtasks (see isHiddenTask). Only primitive props: the subtasks are rendered here, so the memo holds. */
+    hideCompleted?: boolean
 }
 
-export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, children }: TaskProps) => {
+export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false }: TaskProps) => {
     const { t } = useTranslation()
-    const [isTextAreaOpen, setTextAreaOpen] = useState(false)
-    const [text, setText] = useState(task.text)
-    const [error, setError] = useState<string | null>(null)
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
     const { updateTaskCompletion, renameItem } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
-    const textareaRef = useRef<HTMLTextAreaElement>(null)
-    // Set once an edit has ended (saved or cancelled): Enter + the blur on unmount, or Escape + blur, must not run twice
-    const editDoneRef = useRef(false)
+    const { editing: isTextAreaOpen, error, start: startEdit, inputProps } = useInlineEdit<HTMLTextAreaElement>({
+        value: task.text,
+        errorMessage: err => t("tasks.errors.rename", { message: getErrorMessage(err) }),
+        onCommit: async next => {
+            // Optimistic: the cached tree is updated at once and restored if the write fails
+            await withRollback(patchTask(task.id, { text: next }), () => renameItem("task", task.id, next))
+            recorder.rename("task", task.id, task.text, next)
+        },
+    })
     const selected = useIsTaskSelected(task.id)
     const selectTask = useSelectTask()
     const showTaskDetails = useShowTaskDetails()
@@ -59,16 +66,6 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
     const doneSubtasks = task.subtasks.filter(subtask => subtask.completed).length
     const hasDescription = !!task.description?.trim()
 
-    useEffect(() => {
-        if (isTextAreaOpen && textareaRef.current) {
-            editDoneRef.current = false
-            const input = textareaRef.current
-            const length = input.value.length
-            input.focus()
-            input.setSelectionRange(length, length)
-        }
-    }, [isTextAreaOpen])
-
     const handleCheckedChange = async () => {
         // Optimistic: the cached tree is updated at once and restored if the write fails
         const rollback = patchTask(task.id, { completed: !task.completed })
@@ -77,44 +74,8 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
             recorder.taskCompletion(task.id, task.text, !!task.completed, !task.completed)
         } catch (err) {
             rollback()
-            toast.error(t("tasks.errors.update", { message: getErrorMessage(err) }))
+            reportError(err, t("tasks.errors.update", { message: getErrorMessage(err) }))
         }
-    }
-
-    const startEdit = () => {
-        // Re-armed here, not only in the focus effect: a finished edit must never leave Escape/Enter disabled for the next one
-        editDoneRef.current = false
-        setTextAreaOpen(true)
-        setText(task.text)
-    }
-
-    const handleCancelEdit = () => {
-        if (editDoneRef.current) return
-        editDoneRef.current = true
-        setError(null)
-        setText(task.text)
-        setTextAreaOpen(false)
-    }
-
-    const handleChangeText = async () => {
-        if (editDoneRef.current) return
-        editDoneRef.current = true
-        // Optimistic: the cached tree is updated at once and restored if the write fails
-        const changed = text.trim() !== task.text && text.trim() !== ""
-        const rollback = changed ? patchTask(task.id, { text: text.trim() }) : null
-        try {
-            if (changed) {
-                await renameItem("task", task.id, text.trim())
-                recorder.rename("task", task.id, task.text, text.trim())
-            }
-        } catch (err) {
-            rollback?.()
-            // The field stays open with the typed text, so it can be fixed
-            setError(t("tasks.errors.rename", { message: getErrorMessage(err) }))
-            editDoneRef.current = false
-            return
-        }
-        setTextAreaOpen(false)
     }
 
     return (
@@ -188,23 +149,8 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                                     )}
                                 />}
                                 {isTextAreaOpen && <InlineErrorTooltip message={error}><AutoTextarea
-                                    ref={textareaRef}
+                                    {...inputProps}
                                     minRows={1}
-                                    value={text}
-                                    aria-invalid={error !== null}
-                                    onChange={e => { setError(null); setText(e.target.value) }}
-                                    // After a failed save, leaving the field gives up the change instead of retrying
-                                    onBlur={() => { if (error) handleCancelEdit(); else void handleChangeText() }}
-                                    onKeyDown={e => {
-                                        if (e.key === "Enter" && !e.shiftKey) {
-                                            e.preventDefault();
-                                            handleChangeText();
-                                        } else if (e.key === "Escape") {
-                                            e.preventDefault()
-                                            e.stopPropagation()
-                                            handleCancelEdit()
-                                        }
-                                    }}
                                     className="w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm"
                                 /></InlineErrorTooltip>}
                             </div>
@@ -283,7 +229,8 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
             {isSubtask && <span aria-hidden className="pointer-events-none absolute -left-px top-[17px] h-px w-4 bg-muted-foreground/45 transition-opacity peer-hover/row:opacity-0 peer-focus-within/row:opacity-0" />}
             {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
             {(task.subtasks.length > 0 || isAddingSubtask) && <div className="flex flex-col self-stretch ml-7 mb-1">
-                {children}
+                {visibleTasks(task.subtasks, hideCompleted).map(subtask =>
+                    <Task key={subtask.id} task={subtask} depth={depth + 1} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} />)}
                 {isAddingSubtask &&
                     <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}
             </div>}

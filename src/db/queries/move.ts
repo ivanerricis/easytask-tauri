@@ -1,42 +1,17 @@
 import i18n from "@/i18n"
-import { createError, handleDBError } from "@/types/error"
+import { createError, handleDBError, isAppError } from "@/types/error"
 import { getDB } from "../dbManager"
 import { Transaction, type TxRef } from "../transaction"
+import { buildPositionUpdate, clampIndex } from "./ordering"
 
 const SECTION_UNIQUE_MESSAGE = () => i18n.t("errors.move.sectionUnique")
-
-/**
- * Clamps a caller supplied index to the valid range [0, length].
- * @category Database Queries
- */
-const clampIndex = (index: number, length: number) => Math.max(0, Math.min(Math.trunc(index) || 0, length))
-
-/**
- * Builds the single UPDATE that assigns sequential positions to an ordered list of rows.
- * @param table Table to update (fixed by the callers, never user input).
- * @param ids Row ids in their final order.
- * @returns The SQL and its parameters.
- * @category Database Queries
- */
-function buildPositionUpdate(table: "section" | "task" | "section_group", ids: (number | TxRef)[]) {
-    const cases = ids.map(() => "WHEN ? THEN ?").join(" ")
-    const placeholders = ids.map(() => "?").join(",")
-    const params: unknown[] = []
-    ids.forEach((id, index) => params.push(id, index))
-    params.push(...ids)
-    return {
-        sql: `UPDATE ${table} SET position = CASE id ${cases} END WHERE id IN (${placeholders})`,
-        params,
-    }
-}
 
 /**
  * Rethrows createError objects (already user facing) and wraps anything else.
  * @category Database Queries
  */
 function rethrow(error: unknown, prefix: string, messages: { UNIQUE?: string } = {}): never {
-    if (typeof error === "object" && error !== null && "code" in error && "message" in error)
-        throw error
+    if (isAppError(error)) throw error
     handleDBError(error, prefix, messages)
     throw error
 }
@@ -49,7 +24,7 @@ function rethrow(error: unknown, prefix: string, messages: { UNIQUE?: string } =
  * A source group left without sections stays in the note (groups are removed only explicitly).
  * The caller is responsible for reloading the note data.
  * @param sectionId ID of the section to move.
- * @param targetGroupId ID of the destination group (same note, not deleted).
+ * @param targetGroupId ID of the destination group (same note, neither deleted nor archived).
  * @param targetIndex Position among the destination sections (0 based, clamped).
  * @throws SECTION_MOVE_INVALID when the section or the destination group is not valid.
  * @throws SECTION_EXISTS when the destination group already has a section with the same title.
@@ -68,7 +43,7 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
             throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.sectionMissing"))
 
         const targets = await db.select<{ id: number, noteID: number }[]>(
-            'SELECT id, noteID FROM section_group WHERE id = ? AND deleted_at IS NULL', [targetGroupId])
+            'SELECT id, noteID FROM section_group WHERE id = ? AND deleted_at IS NULL AND archived_at IS NULL', [targetGroupId])
         if (!targets[0] || targets[0].noteID !== section.noteID)
             throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.groupInvalid"))
 
@@ -78,14 +53,9 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
         const order = siblings.map(row => row.id)
         order.splice(clampIndex(targetIndex, order.length), 0, sectionId)
 
-        const cases = order.map(() => "WHEN ? THEN ?").join(" ")
-        const params: number[] = [targetGroupId]
-        order.forEach((id, index) => params.push(id, index))
-        params.push(...order)
         const tx = new Transaction()
-        tx.add(
-            `UPDATE section SET groupID = ?, position = CASE id ${cases} END WHERE id IN (${order.map(() => "?").join(",")})`,
-            params)
+        const destination = buildPositionUpdate("section", order, { column: "groupID", value: targetGroupId })
+        tx.add(destination.sql, destination.params)
 
         if (section.groupID !== targetGroupId) {
             // The moved section is excluded: it is already in the destination
@@ -169,8 +139,8 @@ export type TaskMoveTarget = {
 /**
  * Moves a task (with its whole subtree, trashed descendants included) to a section of the same note,
  * either at the top level or under another task, at a given index among its new siblings.
- * One UPDATE sets the new section/parent/positions of the destination siblings and the sectionID of every
- * descendant (invariant: every task carries the section of its root task); the old siblings are then renumbered
+ * One UPDATE sets the new section/parent of the task and the sectionID of every descendant
+ * (invariant: every task carries the section of its root task); the destination and the old siblings are then renumbered
  * (all the writes run in one transaction).
  * The caller is responsible for reloading the note data.
  * @param taskId ID of the task to move.
@@ -196,7 +166,8 @@ export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetI
         const sectionsFound = await db.select<{ id: number, noteID: number }[]>(
             `SELECT s.id, g.noteID FROM section s
              INNER JOIN section_group g ON g.id = s.groupID
-             WHERE s.id = ? AND s.deleted_at IS NULL AND g.deleted_at IS NULL`, [target.sectionId])
+             WHERE s.id = ? AND s.deleted_at IS NULL AND g.deleted_at IS NULL
+               AND s.archived_at IS NULL AND g.archived_at IS NULL`, [target.sectionId])
         if (!sectionsFound[0] || sectionsFound[0].noteID !== task.noteID)
             throw createError("TASK_MOVE_INVALID", i18n.t("errors.move.sectionTargetInvalid"))
 
@@ -230,12 +201,8 @@ export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetI
         const order = siblings.map(row => row.id)
         order.splice(clampIndex(targetIndex, order.length), 0, taskId)
 
-        // Siblings only get their position renumbered; the moved task changes parent, every row of its
-        // subtree (ELSE branch keeps their position) gets the new sectionID.
-        const cases = order.map(() => "WHEN ? THEN ?").join(" ")
-        const params: (number | null)[] = [target.sectionId, taskId, parentId]
-        order.forEach((id, index) => params.push(id, index))
-        params.push(taskId, ...order)
+        // The moved task changes parent and every row of its subtree gets the new sectionID (the siblings
+        // are only renumbered afterwards, with the shared position update)
         const tx = new Transaction()
         tx.add(
             `WITH RECURSIVE subtree AS (
@@ -245,10 +212,11 @@ export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetI
             )
             UPDATE task SET
                 sectionID = ?,
-                taskID = CASE WHEN id = ? THEN ? ELSE taskID END,
-                position = CASE id ${cases} ELSE position END
-            WHERE id IN (SELECT id FROM subtree) OR id = ? OR id IN (${order.map(() => "?").join(",")})`,
-            [taskId, ...params])
+                taskID = CASE WHEN id = ? THEN ? ELSE taskID END
+            WHERE id IN (SELECT id FROM subtree) OR id = ?`,
+            [taskId, target.sectionId, taskId, parentId, taskId])
+        const destination = buildPositionUpdate("task", order)
+        tx.add(destination.sql, destination.params)
 
         const sameParent = task.sectionID === target.sectionId && (task.taskID ?? null) === parentId
         if (!sameParent) {

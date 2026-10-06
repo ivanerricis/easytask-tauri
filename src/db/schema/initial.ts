@@ -1,10 +1,10 @@
 import { createAudioFileIndexes, createTableAudioFile } from "./audio_file";
-import { createFolderIndexes, createFolderTable, createFolderTrigger } from "./folder";
-import { createNoteIndexes, createNoteTable, createNoteTrigger } from "./note";
+import { addFolderArchivedAt, createFolderIndexes, createFolderTable, createFolderTrigger } from "./folder";
+import { addNoteArchivedAt, createNoteIndexes, createNoteTable, createNoteTrigger } from "./note";
 import { createNoteTemplateIndexes, createNoteTemplateTable, createNoteTemplateTrigger } from "./note_template";
-import { createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
-import { addGroupColorColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
-import { createTaskIndexes, createTaskTable, createTaskTrigger } from "./task";
+import { addSectionArchivedAt, createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
+import { addGroupArchivedAt, addGroupColorColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
+import { createTaskIndexes, createTaskTable, createTaskTrigger, dropTaskArchivedColumn } from "./task";
 import { createWorkspaceEditTriggers } from "./workspace_edit";
 import { createWorkspaceIndexes, createWorkspaceTable, createWorkspaceTrigger } from "./workspace";
 
@@ -49,8 +49,19 @@ export const initialSchema: string[] = [
 ];
 
 /**
+ * Migration v4: archive date (`archived_at`) on folders, notes, groups and sections, with the unique names ignoring the
+ * archived ones; removes the old unused `archived` flag of sections and tasks.
+ * @category Database Schema
+ */
+export const archiveSchema: string[] = [
+    ...addFolderArchivedAt, ...addNoteArchivedAt, ...addGroupArchivedAt, ...addSectionArchivedAt, ...dropTaskArchivedColumn,
+]
+
+/**
  * The whole schema at the latest version (initial schema plus every additive migration), as statements.
  * Used by the tests to build a database in one go: the app itself goes through the migrations in initDb.
  * @category Database Schema
  */
-export const latestSchema: string[] = [...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers]
+export const latestSchema: string[] = [
+    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema,
+]

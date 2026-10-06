@@ -16,9 +16,9 @@ function makeDeps() {
     const deps = {
         getWorkspaceId: vi.fn(() => 7 as number | null),
         workspace: {
-            renameItem: fn(), updateItemColor: fn(), deleteItem: fn(), restoreItem: fn(), moveTreeItem: fn(),
+            renameItem: fn(), updateItemColor: fn(), deleteItem: fn(), restoreItem: fn(), archiveItem: fn(), unarchiveItem: fn(), moveTreeItem: fn(),
             moveSection: fn(), moveTask: fn(), updateTaskCompletion: fn(), updateTaskPriority: fn(),
-            updateTaskDescription: fn(), getWorkspaceData: fn(),
+            updateTaskDescription: fn(), updateFolderColorContent: fn(), getWorkspaceData: fn(),
         },
         note: {
             patchTask: vi.fn(() => rollbacks.patch), patchSection: vi.fn(() => rollbacks.patch), patchGroup: vi.fn(() => rollbacks.patch),
@@ -382,6 +382,74 @@ describe("recorder", () => {
     })
 })
 
+describe("archive", () => {
+    it("an archived folder or note is unarchived (same id) with a tree reload; redo archives it again", async () => {
+        const command = commands.archive("note", 3, "Spesa")
+        expect(command.label).toBe("Archivia nota \"Spesa\"")
+        await command.undo()
+        expect(ctx.deps.workspace.unarchiveItem).toHaveBeenCalledWith("note", 3)
+        expect(ctx.deps.workspace.getWorkspaceData).toHaveBeenCalledWith(7)
+        expect(ctx.deps.note.refreshActiveNote).not.toHaveBeenCalled()
+        await command.redo()
+        expect(ctx.deps.workspace.archiveItem).toHaveBeenCalledWith("note", 3)
+        expect(ctx.deps.note.removeGroup).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ["section_group", "removeGroup"],
+        ["section", "removeSection"],
+    ] as const)("an archived %s is unarchived by id and the open note reloaded; redo removes it optimistically", async (type, removal) => {
+        const command = commands.archive(type, 11, "N")
+        await command.undo()
+        expect(ctx.deps.workspace.unarchiveItem).toHaveBeenCalledWith(type, 11)
+        expect(ctx.deps.note.refreshActiveNote).toHaveBeenCalledTimes(1)
+        expect(ctx.deps.workspace.getWorkspaceData).not.toHaveBeenCalled()
+        await command.redo()
+        expect(ctx.deps.note[removal]).toHaveBeenCalledWith(11)
+        expect(ctx.deps.workspace.archiveItem).toHaveBeenCalledWith(type, 11)
+    })
+
+    it("rolls the optimistic removal back when the archive write fails", async () => {
+        ctx.deps.workspace.archiveItem.mockRejectedValueOnce(new Error("nope"))
+        await expect(commands.archive("section", 4, "S").redo()).rejects.toThrow("nope")
+        expect(ctx.rollbacks.remove).toHaveBeenCalledTimes(1)
+    })
+
+    it("unarchive is the mirror of archive", async () => {
+        const command = commands.unarchive("folder", 2, "F")
+        expect(command.label).toBe("Ripristina cartella dall'archivio \"F\"")
+        await command.redo()
+        expect(ctx.deps.workspace.unarchiveItem).toHaveBeenCalledWith("folder", 2)
+        expect(ctx.deps.workspace.getWorkspaceData).toHaveBeenCalledWith(7)
+        await command.undo()
+        expect(ctx.deps.workspace.archiveItem).toHaveBeenCalledWith("folder", 2)
+    })
+
+    it("archiveMany is ONE step: undo unarchives all in reverse with one reload, redo archives in order", async () => {
+        const items = [{ itemType: "folder", id: 1, name: "F" }, { itemType: "note", id: 2, name: "N" }, { itemType: "note", id: 3, name: "M" }] as const
+        const command = commands.archiveMany([...items])
+        expect(command.label).toBe("Archivia 3 elementi")
+        await command.undo()
+        expect(ctx.deps.workspace.unarchiveItem.mock.calls).toEqual([["note", 3], ["note", 2], ["folder", 1]])
+        expect(ctx.deps.workspace.getWorkspaceData).toHaveBeenCalledTimes(1)
+        await command.redo()
+        expect(ctx.deps.workspace.archiveItem.mock.calls).toEqual([["folder", 1], ["note", 2], ["note", 3]])
+        expect(commands.archiveMany([items[1]]).label).toBe("Archivia 1 elemento")
+
+        const record = vi.fn()
+        createUndoRecorder(commands, record).archiveMany([...items])
+        expect(record).toHaveBeenCalledTimes(1)
+    })
+
+    it("the no-op recorder has the archive commands", () => {
+        expect(() => {
+            NOOP_RECORDER.archive("note", 1, "n")
+            NOOP_RECORDER.unarchive("note", 1, "n")
+            NOOP_RECORDER.archiveMany([])
+        }).not.toThrow()
+    })
+})
+
 describe("multi-selection commands (one undo step)", () => {
     it("removeMany trashes and restores everything, reloading the tree once on undo", async () => {
         const command = commands.removeMany([
@@ -421,6 +489,21 @@ describe("multi-selection commands (one undo step)", () => {
         ctx.deps.workspace.updateItemColor.mockClear()
         await command.redo()
         expect(ctx.deps.workspace.updateItemColor.mock.calls).toEqual([["note", 1, "#ff0000"], ["folder", 2, "#ff0000"]])
+    })
+
+    it("colorContent gives every touched item its previous color back and recolors the whole folder on redo", async () => {
+        const command = commands.colorContent(1, "F", "#ff0000", [
+            { itemType: "folder", id: 1, name: "F", before: "#111111" },
+            { itemType: "note", id: 10, name: "n", before: undefined },
+        ])
+        expect(command.label).toContain("F")
+        await command.undo()
+        expect(ctx.deps.workspace.updateItemColor.mock.calls).toEqual([["note", 10, undefined], ["folder", 1, "#111111"]])
+        await command.redo()
+        expect(ctx.deps.workspace.updateFolderColorContent).toHaveBeenCalledWith(1, "#ff0000")
+        const record = vi.fn()
+        createUndoRecorder(commands, record).colorContent(1, "F", null, [])
+        expect(record).toHaveBeenCalledTimes(1)
     })
 
     it("treeMoveMany replays the steps backwards to the old places and forwards to the new ones", async () => {

@@ -13,8 +13,10 @@ vi.mock("@/contexts/use-audio", () => ({ useAudio: () => ({ addFiles: vi.fn() })
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 const updateItemColor = vi.fn()
 const recordColor = vi.fn()
-vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor }) }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ color: recordColor }) }))
+const archive = vi.fn()
+const archiveItem = vi.fn()
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor, archiveItem }) }))
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ color: recordColor, archive }) }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({
     DialogDeleteItem: ({ isOpen, optimistic }: { isOpen: boolean, optimistic: () => () => void }) =>
         isOpen ? <button onClick={() => optimistic()}>Dialog elimina</button> : null,
@@ -33,6 +35,8 @@ beforeEach(() => {
     vi.clearAllMocks()
     updateItemColor.mockResolvedValue(undefined)
     patchGroup.mockReturnValue(vi.fn())
+    removeGroup.mockReturnValue(vi.fn())
+    archiveItem.mockResolvedValue(undefined)
 })
 
 const setup = (color?: string | null) => {
@@ -45,6 +49,16 @@ const setup = (color?: string | null) => {
 }
 
 describe("ButtonMenuGroup", () => {
+    it("archives the group, removing it from the note, and records the undo step", async () => {
+        const user = userEvent.setup()
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Archivia"))
+        await waitFor(() => expect(archive).toHaveBeenCalledWith("section_group", 3, undefined))
+        expect(removeGroup).toHaveBeenCalledWith(3)
+        expect(archiveItem).toHaveBeenCalledWith("section_group", 3)
+    })
+
     it("renames through the cached note tree, clearing the name when it is empty", async () => {
         const user = userEvent.setup()
         const row = setup()

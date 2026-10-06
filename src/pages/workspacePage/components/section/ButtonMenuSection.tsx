@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
-import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
+import { ColorSubmenu } from "../ColorSubmenu"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import type { Section } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -11,12 +11,14 @@ import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { SectionMoveSubmenu } from "../NoteMoveSubmenus"
 import { SectionStepMoves } from "../NoteStepMoves"
-import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
+import { MenuGroup } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getErrorMessage } from "@/lib/utils"
+import { reportError } from "@/lib/report-error"
 import { toast } from "sonner"
+import { withRollback } from "@/contexts/with-rollback"
 
 type ButtonMenuSectionProps = {
     section: Section
@@ -29,7 +31,7 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const menu = useItemMenuState()
-    const { updateItemColor, duplicateSection } = useWorkspaceActions()
+    const { updateItemColor, duplicateSection, archiveItem } = useWorkspaceActions()
     const { patchSection, removeSection, refreshActiveNote } = useActiveNoteActions()
     const recorder = useUndoRecorder()
 
@@ -42,7 +44,7 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
             await refreshActiveNote()
             toast.success(t("duplicate.sectionDone"))
         } catch (error) {
-            toast.error(getErrorMessage(error))
+            reportError(error, getErrorMessage(error))
         }
     }
 
@@ -54,6 +56,17 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
         } catch (error) {
             rollback()
             throw error
+        }
+    }
+
+    // Removed from the open note at once (put back if the write fails); no confirmation, undo brings it back
+    const handleArchive = async () => {
+        menu.close()
+        try {
+            await withRollback(removeSection(section.id), () => archiveItem("section", section.id))
+            recorder.archive("section", section.id, section.title)
+        } catch (error) {
+            reportError(error, getErrorMessage(error))
         }
     }
 
@@ -72,24 +85,19 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
                 type="duplicate"
                 onClick={handleDuplicate}
             />
-            <MenuSub>
-                <MenuSubTrigger>
-                    <ButtonInPopover
-                        text={t("menu.changeColor")}
-                        type="color"
-                    />
-                </MenuSubTrigger>
-                <MenuSubContent>
-                    <DialogAddColor
-                        item={section}
-                        itemType="section"
-                        addColorItem={addColorItem}
-                        setDropDownOpen={menu.close}
-                    />
-                </MenuSubContent>
-            </MenuSub>
+            <ColorSubmenu
+                item={section}
+                itemType="section"
+                addColorItem={addColorItem}
+                onDone={menu.close}
+            />
             <SectionStepMoves sectionId={section.id} onDone={menu.close} />
             <SectionMoveSubmenu sectionId={section.id} onDone={menu.close} />
+            <ButtonInPopover
+                text={t("menu.archive")}
+                type="archive"
+                onClick={handleArchive}
+            />
             <Separator />
             <ButtonInPopover
                 text={t("common.delete")}

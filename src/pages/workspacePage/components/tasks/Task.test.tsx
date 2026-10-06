@@ -8,6 +8,7 @@ import { TabsProvider } from "@/contexts/tabs-context"
 import { useSelectedTask, useTabsActions } from "@/contexts/use-tabs"
 import { RightPanelContext, type RightPanelContextType } from "../rightbar/right-panel-context-object"
 import { makeNote, makeTask } from "@/test/ui-fixtures"
+import { useNoteDrop } from "../note-dnd-state"
 
 const updateTaskCompletion = vi.fn()
 const renameItem = vi.fn()
@@ -20,7 +21,7 @@ vi.mock("@/contexts/use-active-note", () => ({
     useActiveNoteActions: () => ({ patchTask: () => () => { }, removeTask: vi.fn() }),
 }))
 vi.mock("../note-dnd-state", () => ({
-    useNoteDrop: () => ({ setNodeRef: () => { }, zone: null, active: null }),
+    useNoteDrop: vi.fn(() => ({ setNodeRef: () => { }, zone: null, active: null })),
     useNoteDrag: () => ({
         setNodeRef: () => { }, setActivatorNodeRef: () => { },
         attributes: { role: "button", "aria-roledescription": "draggable", tabIndex: 0 }, listeners: {}, isDragging: false,
@@ -35,7 +36,7 @@ vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => n
 vi.mock("@/components/dialogs/dialog-add-color", () => ({ DialogAddColor: () => null }))
 
 const showTaskDetails = vi.fn()
-const panel: RightPanelContextType = { open: false, setOpen: vi.fn(), tab: "history", setTab: vi.fn(), showTaskDetails }
+const panel: RightPanelContextType = { open: false, setOpen: vi.fn(), tab: "history", setTab: vi.fn(), showTaskDetails, audioInfoFile: null, showAudioInfo: vi.fn() }
 
 function OpenNote({ id, children }: { id: number, children: ReactNode }) {
     const { openNote } = useTabsActions()
@@ -353,5 +354,38 @@ describe("Task description icon", () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Genitore", description: "Dettagli" })} />)
         await user.click(indicator()!)
         expect(screen.getByText("description dialog")).toBeInTheDocument()
+    })
+})
+
+describe("Task rendering", () => {
+    it("renders its own subtasks, hiding the completed ones only when asked", () => {
+        const parent = makeTask({ id: 10, text: "Genitore", subtasks: [makeTask({ id: 11, text: "Uno", completed: true }), makeTask({ id: 12, text: "Due" })] })
+        const { unmount } = renderTasks(<Task task={parent} />)
+        expect(screen.getByText("Uno")).toBeInTheDocument()
+        unmount()
+        renderTasks(<Task task={parent} hideCompleted />)
+        expect(screen.queryByText("Uno")).not.toBeInTheDocument()
+        expect(screen.getByText("Due")).toBeInTheDocument()
+    })
+
+    it("does not re-render a sibling parent when a leaf of another one changes", () => {
+        const leaf = makeTask({ id: 11, text: "Foglia", sectionID: 1 })
+        const a = makeTask({ id: 10, text: "A", subtasks: [leaf] })
+        const b = makeTask({ id: 20, text: "B", subtasks: [makeTask({ id: 21, text: "Altra foglia" })] })
+        const ui = (x: typeof a) => (
+            <TabsProvider notes={[makeNote({ id: 1 })]} workspaceId={null}>
+                <Task task={x} />
+                <Task task={b} />
+            </TabsProvider>
+        )
+        const { rerender } = render(ui(a))
+        const rendersOf = (id: number) => vi.mocked(useNoteDrop).mock.calls.filter(call => call[1] === id).length
+        const before = { a: rendersOf(10), b: rendersOf(20), bLeaf: rendersOf(21) }
+        // Structural sharing: only the changed leaf and its ancestor are new objects
+        rerender(ui({ ...a, subtasks: [{ ...leaf, completed: true }] }))
+        expect(rendersOf(10)).toBeGreaterThan(before.a)
+        expect(rendersOf(11)).toBeGreaterThan(0)
+        expect(rendersOf(20)).toBe(before.b)
+        expect(rendersOf(21)).toBe(before.bLeaf)
     })
 })

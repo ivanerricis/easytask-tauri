@@ -24,7 +24,7 @@ vi.mock("@tauri-apps/api/core", async () => {
 })
 
 import { moveDBTreeItem } from "./tree"
-import { emptyDBTrash, formatTrashSummary, getDBTrash, getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from "./trash"
+import { emptyDBTrash, formatTrashSummary, getDBTrash, getDBTrashCount, getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from "./trash"
 import { deleteDBItem, renameDBItem } from "./shared_queries"
 import { createDBSubFolder, createDBWorkspaceFolder } from "./folder"
 import { createDBNoteInFolder, createDBWorkspaceNote, getDBNoteData } from "./note"
@@ -277,6 +277,28 @@ describe("soft delete, trash and restore", () => {
         `)
         await deleteDBItem("workspace", 2)
         expect(await getDBTrashedWorkspaces()).toEqual([expect.objectContaining({ id: 2, summary: "2 cartelle · 2 note" })])
+    })
+
+    it("counts the trashed items like getDBTrash lists them, workspaces excluded", async () => {
+        await seedNote()
+        sqlite.exec(`
+            INSERT INTO folder (id, workspaceID, folderID, name) VALUES (3, 1, 1, 'A2');
+            INSERT INTO section_group (id, noteID, position) VALUES (2, 1, 1);
+            INSERT INTO task (id, sectionID, taskID, text) VALUES (3, 1, 2, 'subsub');
+            INSERT INTO audio_file (section_groupID, name, path) VALUES (1, 'a.mp3', '/a.mp3');
+            INSERT INTO note_template (workspaceID, name, content, deleted_at) VALUES (1, 'T', '{"version":1,"groups":[]}', datetime('now'));
+            INSERT INTO workspace (id, name) VALUES (3, 'Gone');
+        `)
+        expect(await getDBTrashCount(1)).toBe(1)
+        await deleteDBItem("folder", 3)
+        await deleteDBItem("section_group", 2)
+        await deleteDBItem("task", 3)
+        sqlite.exec("UPDATE audio_file SET deleted_at = datetime('now')")
+        await deleteDBItem("workspace", 3)
+        const listed = await getDBTrash(1)
+        expect(listed.length).toBe(4 + 1)
+        expect(await getDBTrashCount(1)).toBe(listed.length)
+        expect(await getDBTrashCount(2)).toBe((await getDBTrash(2)).length)
     })
 
     it("restoring a note restores its deleted folder chain", async () => {

@@ -92,7 +92,7 @@ export const SideBarRight = () => {
                     role="tabpanel"
                     id={panelId(tab)}
                     aria-labelledby={tabId(tab)}
-                    className="min-h-0 flex-1 overflow-y-auto"
+                    className={cn("min-h-0 flex-1", tab === "details" ? "overflow-hidden" : "overflow-y-auto")}
                 >
                     {tab === "details" ? <DetailsPanel /> : <HistoryPanel />}
                 </div>

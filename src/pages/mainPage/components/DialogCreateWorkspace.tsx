@@ -13,41 +13,37 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { OptionalColorField } from "@/components/optional-color-field"
 import { useWorkspace } from "@/contexts/use-workspace"
-import { ArrowRight, Palette, X, Plus } from "lucide-react"
+import { ArrowRight, Plus } from "lucide-react"
 import { useId, useState } from "react"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { getErrorMessage } from "@/lib/utils"
 
-const defaultWorkspace = {
-    name: "",
-    color: "#ffb375"
-}
-
 export function DialogCreateWorkspace() {
     const { t } = useTranslation()
-    const [workspace, setWorkspace] = useState(defaultWorkspace)
+    const [name, setName] = useState("")
+    const [color, setColor] = useState<string | undefined>(undefined)
     const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
-    const [paletteIsOpen, setPaletteOpen] = useState(false);
     const { createWorkspace, getWorkspaces } = useWorkspace()
     const { saving, run } = useSubmitOnce()
     const nameId = useId()
-    const colorId = useId()
 
     useShortcut("new-workspace", () => setIsOpen(true), { allowInInputs: true })
     const shortcutLabel = useShortcutLabel("new-workspace")
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
-        if (workspace.name.trim() === "") return
+        if (name.trim() === "") return
         await run(async () => {
             try {
-                await createWorkspace(workspace.name.trim(), paletteIsOpen ? workspace.color : undefined)
+                await createWorkspace(name.trim(), color)
                 await getWorkspaces()
                 setError(null)
                 setIsOpen(false)
-                setWorkspace(defaultWorkspace)
+                setName("")
+                setColor(undefined)
             } catch (err) {
                 setError(getErrorMessage(err))
             }
@@ -55,7 +51,8 @@ export function DialogCreateWorkspace() {
     }
 
     const handleCancel = () => {
-        setWorkspace(defaultWorkspace)
+        setName("")
+        setColor(undefined)
         setError(null)
         setIsOpen(false)
     }
@@ -75,55 +72,15 @@ export function DialogCreateWorkspace() {
                                 <Input
                                     id={nameId}
                                     name="name"
-                                    value={workspace.name}
+                                    value={name}
                                     onChange={e => {
                                         setError(null)
-                                        setWorkspace({
-                                            ...workspace,
-                                            name: e.target.value
-                                        })
+                                        setName(e.target.value)
                                     }}
                                 />
                                 {error && (<p className="text-sm text-destructive">{error}</p>)}
                             </div>
-                            {paletteIsOpen ?
-                                <div className="flex items-center justify-between gap-1">
-                                    <div
-                                        className="flex items-center justify-center h-full w-full border rounded-xs"
-                                        style={{ backgroundColor: workspace.color }}
-                                    >
-                                        <Input
-                                            id={colorId}
-                                            name="color"
-                                            type="color"
-                                            className="opacity-0 cursor-pointer"
-                                            value={workspace.color}
-                                            onChange={e => setWorkspace({
-                                                ...workspace,
-                                                color: e.target.value
-                                            })}
-                                        />
-                                    </div>
-                                    <Button
-                                        type="button"
-                                        onClick={(e) => { e.preventDefault(); setPaletteOpen(false) }}
-                                        variant={"buttonIcon"}
-                                        aria-label={t("home.createWorkspace.closePalette")}
-                                        className="h-full"
-                                    >
-                                        <X />
-                                    </Button>
-                                </div>
-                                :
-                                <Button
-                                    type="button"
-                                    variant={"outline"}
-                                    onClick={(e) => { e.preventDefault(); setPaletteOpen(true) }}
-                                    className="h-full">
-                                    {t("home.createWorkspace.addColor")}
-                                    <Palette />
-                                </Button>
-                            }
+                            <OptionalColorField value={color} onChange={setColor} />
                         </div>
                         <DialogFooter className="mt-4">
                             <Button
@@ -133,7 +90,7 @@ export function DialogCreateWorkspace() {
                             >
                                 {t("common.cancel")}
                             </Button>
-                            <Button type="submit" disabled={!workspace.name.trim() || saving}>
+                            <Button type="submit" disabled={!name.trim() || saving}>
                                 <Plus />
                                 {t("home.createWorkspace.title")}
                             </Button>

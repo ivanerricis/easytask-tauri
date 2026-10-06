@@ -47,13 +47,13 @@ const content: NoteTemplateContent = {
         {
             name: null, position: 0, sections: [
                 {
-                    title: "S1", color: null, archived: false, position: 0, tasks: [
-                        { text: "A", description: null, completed: false, priority: false, archived: false, color: null, position: 0, subtasks: [
-                            { text: "A1", description: null, completed: false, priority: false, archived: false, color: null, position: 0, subtasks: [] },
+                    title: "S1", color: null, position: 0, tasks: [
+                        { text: "A", description: null, completed: false, priority: false, color: null, position: 0, subtasks: [
+                            { text: "A1", description: null, completed: false, priority: false, color: null, position: 0, subtasks: [] },
                         ] },
                     ],
                 },
-                { title: "S2", color: null, archived: false, position: 1, tasks: [] },
+                { title: "S2", color: null, position: 1, tasks: [] },
             ],
         },
     ],

@@ -4,10 +4,10 @@ import type { Workspace } from "@/types/types";
 import { ButtonInPopover } from "@/components/button-in-popover";
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename";
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete";
-import { DialogAddColor } from "@/components/dialogs/dialog-add-color";
+import { ColorSubmenu } from "@/pages/workspacePage/components/ColorSubmenu";
 import { useWorkspace } from "@/contexts/use-workspace";
 import { useWorkspaceData } from "@/contexts/workspace-data";
-import { MenuGroup, MenuSeparator, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind";
+import { MenuGroup, MenuSeparator } from "@/components/menu-kind";
 import { ItemMenu } from "@/components/item-menu";
 import { useItemMenuState } from "@/hooks/use-item-menu-state";
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer";
@@ -39,24 +39,14 @@ export const ButtonMenuWorkspace = ({ workspace, children }: ButtonMenuProps) =>
                 }}
             />
 
-            <MenuSub>
-                <MenuSubTrigger>
-                    <ButtonInPopover
-                        text={t("menu.changeColor")}
-                        type="color"
-                    />
-                </MenuSubTrigger>
-                <MenuSubContent>
-                    <DialogAddColor
-                        item={workspace}
-                        itemType="workspace"
-                        addColorItem={updateItemColor}
-                        getItemId={workspace.id}
-                        getItemData={getWorkspaces}
-                        setDropDownOpen={menu.close}
-                    />
-                </MenuSubContent>
-            </MenuSub>
+            <ColorSubmenu
+                item={workspace}
+                itemType="workspace"
+                addColorItem={updateItemColor}
+                getItemId={workspace.id}
+                getItemData={getWorkspaces}
+                onDone={menu.close}
+            />
             <ButtonInPopover
                 text={t("menu.export")}
                 type="export"

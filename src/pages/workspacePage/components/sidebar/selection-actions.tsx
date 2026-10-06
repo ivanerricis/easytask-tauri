@@ -1,7 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { toast } from "sonner"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
@@ -21,6 +20,8 @@ export type SelectionActions = {
     getTargets: () => TreeItemRef[]
     /** Opens the confirmation to move the selection to the trash. */
     requestDelete: () => void
+    /** Archives the selection (no confirmation) in one undo step, then clears the selection. */
+    archiveSelection: () => Promise<void>
     /** Sets (or, with null, removes) the color of every selected item; one undo step. */
     applyColor: (color: string | null) => Promise<void>
     /** Moves the selection to the end of a folder (null = workspace root); one undo step. */
@@ -47,14 +48,14 @@ const describe = (tree: WorkspaceDataTree | null, refs: TreeRef[]): TreeItemRef[
 }
 
 /**
- * Implements what the menu of a multi-selection does (delete, move, color, export) and renders the delete confirmation.
+ * Implements what the menu of a multi-selection does (delete, archive, move, color, export) and renders the delete confirmation.
  * Every action is ONE undo step, even if it touches many items. It must be inside a SelectionProvider.
  */
 export function SelectionActionsProvider({ children }: { children: ReactNode }) {
     const { t } = useTranslation()
     const store = useSelectionStore()
     const { currentWorkspace } = useWorkspace()
-    const { workspaceDataTree, updateItemColor, moveTreeItem, getWorkspaceData } = useWorkspaceData()
+    const { workspaceDataTree, updateItemColor, moveTreeItem, getWorkspaceData, archiveItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
     const { exportItems } = useItemTransfer()
     const [deleting, setDeleting] = useState<{ items: TreeItemRef[], open: boolean }>({ items: [], open: false })
@@ -74,6 +75,20 @@ export function SelectionActionsProvider({ children }: { children: ReactNode }) 
         if (targets.length > 0) setDeleting({ items: targets, open: true })
     }, [getTargets])
 
+    const archiveSelection = useCallback(async () => {
+        const done: TreeItemRef[] = []
+        try {
+            for (const item of getTargets()) {
+                await archiveItem(item.itemType, item.id)
+                done.push(item)
+            }
+        } catch (error) {
+            reportError(error, getErrorMessage(error))
+        }
+        if (done.length > 0) recorder.archiveMany(done)
+        store?.reset()
+    }, [getTargets, archiveItem, recorder, store])
+
     const applyColor = useCallback(async (color: string | null) => {
         const { folders, notes } = listTreeItems(tree)
         const changes: ColorChange[] = []
@@ -86,7 +101,7 @@ export function SelectionActionsProvider({ children }: { children: ReactNode }) 
                 changes.push({ itemType: ref.type, id: ref.id, name: item.name, before: item.color ?? null, after: color })
             }
         } catch (error) {
-            toast.error(getErrorMessage(error))
+            reportError(error, getErrorMessage(error))
         }
         if (changes.length > 0) recorder.colorMany(changes)
     }, [tree, store, updateItemColor, recorder])
@@ -128,8 +143,8 @@ export function SelectionActionsProvider({ children }: { children: ReactNode }) 
     }, [getTargets, exportItems, t])
 
     const value = useMemo<SelectionActions>(
-        () => ({ getTargets, requestDelete, applyColor, moveTo, executeMove, planDrop, exportSelection }),
-        [getTargets, requestDelete, applyColor, moveTo, executeMove, planDrop, exportSelection],
+        () => ({ getTargets, requestDelete, archiveSelection, applyColor, moveTo, executeMove, planDrop, exportSelection }),
+        [getTargets, requestDelete, archiveSelection, applyColor, moveTo, executeMove, planDrop, exportSelection],
     )
 
     return (

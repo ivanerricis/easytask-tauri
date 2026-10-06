@@ -7,7 +7,6 @@ export type TemplateTask = {
     description: string | null
     completed: boolean
     priority: boolean
-    archived: boolean
     color: string | null
     position: number
     subtasks: TemplateTask[]
@@ -20,7 +19,8 @@ export type TemplateTask = {
 export type TemplateSection = {
     title: string
     color: string | null
-    archived: boolean
+    /** Archive date: only in the export files (a template never contains archived items). */
+    archived_at?: string | null
     position: number
     tasks: TemplateTask[]
 }
@@ -33,6 +33,8 @@ export type TemplateGroup = {
     name: string | null
     /** Absent in templates and export files created before groups had a color. */
     color?: string | null
+    /** Archive date: only in the export files (a template never contains archived items). */
+    archived_at?: string | null
     position: number
     sections: TemplateSection[]
 }

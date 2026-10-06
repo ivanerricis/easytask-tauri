@@ -21,7 +21,7 @@ export function useWorkspaceTransfer() {
         try {
             if (await exportWorkspaceToFile(workspace)) toast.success(i18n.t("transfer.exported"))
         } catch (error) {
-            toast.error(getErrorMessage(error))
+            reportError(error, getErrorMessage(error))
         } finally {
             setBusy(false)
         }
@@ -35,7 +35,7 @@ export function useWorkspaceTransfer() {
             await getWorkspaces()
             toast.success(result.skippedAudio > 0 ? i18n.t("transfer.importedSkipped", { count: result.skippedAudio }) : i18n.t("transfer.imported"))
         } catch (error) {
-            toast.error(getErrorMessage(error))
+            reportError(error, getErrorMessage(error))
         } finally {
             setBusy(false)
         }
@@ -60,7 +60,7 @@ export function useItemTransfer() {
         try {
             if (await exportItemToFile(itemType, item)) toast.success(i18n.t("transfer.exportedItem"))
         } catch (error) {
-            toast.error(getErrorMessage(error))
+            reportError(error, getErrorMessage(error))
         } finally {
             setBusy(false)
         }
@@ -72,7 +72,7 @@ export function useItemTransfer() {
         try {
             if (await exportItemsToFile(items, name)) toast.success(i18n.t("transfer.exportedItem"))
         } catch (error) {
-            toast.error(getErrorMessage(error))
+            reportError(error, getErrorMessage(error))
         } finally {
             setBusy(false)
         }
@@ -92,7 +92,7 @@ export function useItemTransfer() {
                 ? i18n.t("transfer.importedItemsSkipped", { count: result.skippedAudio })
                 : i18n.t("transfer.importedItems"))
         } catch (error) {
-            toast.error(getErrorMessage(error))
+            reportError(error, getErrorMessage(error))
         } finally {
             setBusy(false)
         }

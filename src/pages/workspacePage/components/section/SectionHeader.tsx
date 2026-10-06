@@ -6,11 +6,12 @@ import type { Section as SectionType, Task } from "@/types/types"
 import { ChevronDown, GripVertical } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 import { ItemMenuButton } from "@/components/item-menu"
-import { useEffect, useRef, useState } from "react"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
+import { withRollback } from "@/contexts/with-rollback"
+import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { usePreferences } from "@/contexts/use-preferences"
 import type { HTMLAttributes } from "react"
 
@@ -38,56 +39,20 @@ const calculateCompletionPercentage = (tasks: Task[]): number => {
 
 export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dragHandleProps }: SectionHeaderProps) => {
     const { t } = useTranslation()
-    const [isTextAreaOpen, setTextAreaOpen] = useState(false)
-    const [text, setText] = useState(section.title)
-    const [error, setError] = useState<string | null>(null)
     const { renameItem } = useWorkspaceActions()
     const { patchSection } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const { showProgressBar } = usePreferences()
     const colorAlpha = useColorAlpha()
-    const textareaRef = useRef<HTMLInputElement>(null)
-    // Set once an edit has ended (saved or cancelled): the blur that follows Escape/Enter must not save a second time
-    const done = useRef(false)
-
-    useEffect(() => {
-        if (isTextAreaOpen && textareaRef.current) {
-            done.current = false
-            const input = textareaRef.current
-            const length = input.value.length
-            input.focus()
-            input.setSelectionRange(length, length)
-        }
-    }, [isTextAreaOpen])
-
-    const handleChangeText = async () => {
-        if (done.current) return
-        done.current = true
-        // Optimistic: the cached tree is updated at once and restored if the write fails
-        const changed = section.title !== text && text.trim() !== ""
-        const rollback = changed ? patchSection(section.id, { title: text.trim() }) : null
-        try {
-            if (changed) {
-                await renameItem("section", section.id, text.trim())
-                recorder.rename("section", section.id, section.title, text.trim())
-            }
-        } catch (err) {
-            rollback?.()
-            // The field stays open with the typed text, so it can be fixed
-            setError(t("sections.renameError", { message: getErrorMessage(err) }))
-            done.current = false
-            return
-        }
-        setTextAreaOpen(false)
-    }
-
-    const handleCancel = () => {
-        if (done.current) return
-        done.current = true
-        setError(null)
-        setText(section.title)
-        setTextAreaOpen(false)
-    }
+    const { editing: isTextAreaOpen, error, start: startEdit, inputProps } = useInlineEdit({
+        value: section.title,
+        errorMessage: err => t("sections.renameError", { message: getErrorMessage(err) }),
+        onCommit: async next => {
+            // Optimistic: the cached tree is updated at once and restored if the write fails
+            await withRollback(patchSection(section.id, { title: next }), () => renameItem("section", section.id, next))
+            recorder.rename("section", section.id, section.title, next)
+        },
+    })
 
     const handleOpen = () => {
         onOpenChange(!isOpen)
@@ -124,35 +89,20 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
                     <div className="flex items-center justify-between gap-2 w-full min-w-0">
                         {!isTextAreaOpen && <button
                             type="button"
-                            onClick={() => { setTextAreaOpen(true) }}
+                            onClick={startEdit}
                             title={section.title}
                             className="text-sm ml-2 min-w-0 flex-1 truncate cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             {section.title}
                         </button>}
                         {isTextAreaOpen && <InlineErrorTooltip message={error}>
                             <input
-                                ref={textareaRef}
+                                {...inputProps}
                                 type="text"
-                                value={text}
                                 aria-label={t("sections.titleLabel")}
-                                aria-invalid={error !== null}
-                                onChange={e => { setError(null); setText(e.target.value) }}
-                                // After a failed save, leaving the field gives up the change instead of retrying
-                                onBlur={() => { if (error) handleCancel(); else void handleChangeText() }}
-                                onKeyDown={e => {
-                                    if (e.key === "Enter" && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleChangeText();
-                                    } else if (e.key === "Escape") {
-                                        e.preventDefault()
-                                        e.stopPropagation()
-                                        handleCancel()
-                                    }
-                                }}
                                 className={`min-w-0 flex-1 px-1 ml-2 border resize-none text-sm rounded-xs ${error ? "border-destructive" : "border-primary"}`}
                             />
                         </InlineErrorTooltip>}
-                        {showProgressBar && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
+                        {showProgressBar && section.tasks.length > 0 && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
                             <Progress className="w-20" value={completionPercentage} />
                             <span className="text-xs">
                                 {Math.round(completionPercentage)} %

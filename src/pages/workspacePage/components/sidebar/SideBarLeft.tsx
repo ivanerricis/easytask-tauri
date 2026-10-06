@@ -13,6 +13,7 @@ import { SelectionProvider } from "./selection-context"
 import { SelectionActionsProvider } from "./selection-actions"
 import { ItemFooter } from "../items/ItemFooter"
 import { ButtonTrash } from "./ButtonTrash"
+import { ButtonArchive } from "./ButtonArchive"
 import { ButtonTemplates } from "./ButtonTemplates"
 import { DialogAddFolder } from "./DialogAddFolder"
 import { DialogAddNote } from "./DialogAddNote"
@@ -104,6 +105,7 @@ export const SideBarLeft = () => {
                         </SideBarHeader>}
                         footer={<div className="flex flex-col gap-1 border-t p-1 w-full">
                             <ButtonTemplates />
+                            <ButtonArchive />
                             <ButtonTrash />
                             <ItemFooter
                                 type="download"

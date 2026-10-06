@@ -11,6 +11,7 @@ import { useWorkspaceActions, useWorkspaceState } from "@/contexts/workspace-dat
 import { useTabsActions } from "@/contexts/use-tabs"
 import { getFolderDestinations } from "@/pages/workspacePage/components/sidebar/tree-dnd"
 import { getErrorMessage } from "@/lib/utils"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 import type { NoteTemplate } from "@/types/template"
 
 type DialogNoteFromTemplateProps = {
@@ -34,27 +35,26 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
     const [name, setName] = useState(template.name)
     const [destination, setDestination] = useState(ROOT_VALUE)
     const [error, setError] = useState<string | null>(null)
-    const [busy, setBusy] = useState(false)
+    const { saving: busy, run } = useSubmitOnce()
 
     const destinations = workspaceDataTree ? getFolderDestinations(workspaceDataTree) : [{ id: null, name: null, depth: 0 }]
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!name.trim() || busy) return
-        setBusy(true)
-        try {
-            const folderID = destination === ROOT_VALUE ? null : Number(destination)
-            // The context adds the note to the sidebar tree
-            const noteID = await createNoteFromTemplate(template.id, template.workspaceID, folderID, name.trim(), template.color)
-            openNote(noteID)
-            toast.success(t("dialogs.noteFromTemplate.created"))
-            onOpenChange(false)
-            onCreated?.(noteID)
-        } catch (err) {
-            setError(getErrorMessage(err))
-        } finally {
-            setBusy(false)
-        }
+        await run(async () => {
+            try {
+                const folderID = destination === ROOT_VALUE ? null : Number(destination)
+                // The context adds the note to the sidebar tree
+                const noteID = await createNoteFromTemplate(template.id, template.workspaceID, folderID, name.trim(), template.color)
+                openNote(noteID)
+                toast.success(t("dialogs.noteFromTemplate.created"))
+                onOpenChange(false)
+                onCreated?.(noteID)
+            } catch (err) {
+                setError(getErrorMessage(err))
+            }
+        })
     }
 
     return (

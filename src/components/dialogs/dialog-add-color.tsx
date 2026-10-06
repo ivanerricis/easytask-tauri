@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next"
 import { Plus, X } from "lucide-react"
 import React, { useState } from "react"
-import { toast } from "sonner"
+import { reportError } from "@/lib/report-error"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getItemName, isUndoableType } from "@/contexts/undo/commands"
 
-type DialogAddColorProps<T> = {
+export type DialogAddColorProps<T> = {
     /** The item to color; not needed with `onPick`. */
     item?: T
     itemType?: DBItemType
@@ -60,7 +60,7 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
                 if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, colorToSave)
             }
         } catch (err) {
-            toast.error(getErrorMessage(err))
+            reportError(err, getErrorMessage(err))
         } finally {
             setInputColor("#000000")
         }
@@ -78,7 +78,7 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
                 if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, null)
             }
         } catch (err) {
-            toast.error(getErrorMessage(err))
+            reportError(err, getErrorMessage(err))
         }
     }
 

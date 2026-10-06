@@ -1,4 +1,3 @@
-import type { ReactNode } from "react"
 import { render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { SectionBody } from "./SectionBody"
@@ -7,12 +6,18 @@ import { makeSection, makeTask } from "@/test/ui-fixtures"
 const prefs = { hideCompletedTasks: false }
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("../tasks/AddTask", () => ({ AddTask: () => <div>add task</div> }))
-// Shows the task and, nested, its children (what the real Task does with its subtasks)
-vi.mock("../tasks/Task", () => ({
-    Task: ({ task, children }: { task: { text: string, subtasks: unknown[] }, children?: ReactNode }) => (
-        <div data-testid="task" data-subtasks={task.subtasks.length}>{task.text}<div>{children}</div></div>
-    ),
-}))
+// Shows the task and, nested, its visible subtasks (what the real Task does: it renders them itself)
+vi.mock("../tasks/Task", async () => {
+    const { visibleTasks } = await import("../section/hide-completed")
+    type MockTask = { id: number, text: string, subtasks: MockTask[] }
+    const Task = ({ task, hideCompleted }: { task: MockTask, hideCompleted?: boolean }) => (
+        <div data-testid="task" data-subtasks={task.subtasks.length}>
+            {task.text}
+            <div>{visibleTasks(task.subtasks as never, !!hideCompleted).map(sub => <Task key={sub.id} task={sub as MockTask} hideCompleted={hideCompleted} />)}</div>
+        </div>
+    )
+    return { Task }
+})
 
 const section = makeSection({
     id: 1,

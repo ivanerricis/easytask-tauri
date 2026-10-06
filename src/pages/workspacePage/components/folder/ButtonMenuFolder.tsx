@@ -1,18 +1,19 @@
 import { useTranslation } from "react-i18next"
 import type { Folder } from "@/types/types"
 import { getErrorMessage } from "@/lib/utils"
-import { DialogAddSubFolder } from "./DialogAddSubFolder"
-import { DialogAddNote } from "./DialogAddNote"
+import { reportError } from "@/lib/report-error"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { AddFolderDialog } from "../AddFolderDialog"
+import { AddNoteDialog } from "../AddNoteDialog"
 import { useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
-import { toast } from "sonner"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
-import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 import { MoveToSubmenu } from "../MoveToSubmenu"
-import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
+import { ColorSubmenu } from "../ColorSubmenu"
+import { MenuGroup } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
 import { useIsInMultiSelection } from "../sidebar/selection-context"
 import { SelectionMenuItems } from "../sidebar/SelectionMenu"
@@ -35,14 +36,27 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
     const multi = useIsInMultiSelection("folder", folder.id)
     const { exportItem, importItems } = useItemTransfer()
     // Rename, color and delete are applied to the sidebar tree by the context: the dialogs need no reload
-    const { updateFolderColorContent, updateItemColor } = useWorkspaceData()
+    const { updateFolderColorContent, updateItemColor, archiveItem } = useWorkspaceData()
+    const recorder = useUndoRecorder()
 
     const handleColorContent = async () => {
         try {
             // Applied to the sidebar tree by the context
-            await updateFolderColorContent(folder.id, folder.color ?? undefined)
+            const previous = await updateFolderColorContent(folder.id, folder.color ?? undefined)
+            recorder.colorContent(folder.id, folder.name, folder.color, previous)
         } catch (err) {
-            toast.error(getErrorMessage(err))
+            reportError(err, getErrorMessage(err))
+        }
+    }
+
+    // No confirmation: the folder (with what it contains) leaves the sidebar and the archive dialog (or undo) brings it back
+    const handleArchive = async () => {
+        menu.close()
+        try {
+            await archiveItem("folder", folder.id)
+            recorder.archive("folder", folder.id, folder.name)
+        } catch (err) {
+            reportError(err, getErrorMessage(err))
         }
     }
 
@@ -68,22 +82,12 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
                 type="colorContent"
                 onClick={() => { handleColorContent(); menu.close() }}
             />
-            <MenuSub>
-                <MenuSubTrigger>
-                    <ButtonInPopover
-                        text={t("menu.changeColor")}
-                        type="color"
-                    />
-                </MenuSubTrigger>
-                <MenuSubContent>
-                    <DialogAddColor
-                        item={folder}
-                        itemType="folder"
-                        addColorItem={updateItemColor}
-                        setDropDownOpen={menu.close}
-                    />
-                </MenuSubContent>
-            </MenuSub>
+            <ColorSubmenu
+                item={folder}
+                itemType="folder"
+                addColorItem={updateItemColor}
+                onDone={menu.close}
+            />
             <MoveToSubmenu
                 itemType="folder"
                 itemId={folder.id}
@@ -100,6 +104,11 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
                 type="export"
                 onClick={() => { menu.close(); void exportItem("folder", folder) }}
             />
+            <ButtonInPopover
+                text={t("menu.archive")}
+                type="archive"
+                onClick={handleArchive}
+            />
             <Separator />
             <ButtonInPopover
                 text={t("common.delete")}
@@ -115,14 +124,14 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
 
     const dialogs = (
         <>
-            <DialogAddNote
-                parentFolder={folder}
-                isOpen={isAddNoteOpen}
+            <AddNoteDialog
+                parentId={folder.id}
+                open={isAddNoteOpen}
                 onOpenChange={setAddNoteOpen}
             />
-            <DialogAddSubFolder
-                parentFolder={folder}
-                isOpen={isAddSubFolderOpen}
+            <AddFolderDialog
+                parentId={folder.id}
+                open={isAddSubFolderOpen}
                 onOpenChange={setAddSubFolderOpen}
             />
             <DialogRenameItem

@@ -1,14 +1,10 @@
 import i18n from "@/i18n"
 import type { Task } from "@/types/types"
-import { createError, handleDBError } from "@/types/error"
+import { createError, handleDBError, isAppError } from "@/types/error"
 import { getErrorMessage } from "@/lib/utils"
 import { getDB } from "../dbManager"
 import { Transaction, TransactionError } from "../transaction"
 import { addNoteContent, addSections, buildContent, createSectionSnapshotter } from "./template"
-
-// Errors built with createError are plain objects; driver errors (Error instances of any realm, or strings) must not match
-const isAppError = (error: unknown): error is { code: string, message: string } =>
-    typeof error === "object" && error !== null && Object.getPrototypeOf(error) === Object.prototype && "code" in error && "message" in error
 
 /**
  * The name of a copy: "<name> (copy)", then "<name> (copy 2)", "<name> (copy 3)"... the first one not in `taken`.
@@ -25,7 +21,7 @@ export function uniqueCopyName(name: string, taken: ReadonlySet<string>): string
 }
 
 type NoteRow = { workspaceID: number, folderID: number | null, name: string, color: string | null, position: number }
-type SectionRow = { groupID: number, title: string, color: string | null, archived: boolean, position: number, id: number }
+type SectionRow = { groupID: number, title: string, color: string | null, position: number, id: number }
 
 /**
  * Duplicates a note in the same workspace and folder, right after the original (the following siblings shift by one).
@@ -78,7 +74,7 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
 
 /**
  * Duplicates a section in the same group, right after the original (the following sections shift by one).
- * The copy is titled "<title> (copy)" ("(copy 2)"... when taken) and has the same color, archived flag and an exact
+ * The copy is titled "<title> (copy)" ("(copy 2)"... when taken) and has the same color and an exact
  * copy of the non deleted tasks and subtasks. Everything is written in ONE database transaction.
  * @param sectionId The ID of the section to duplicate (it must not be deleted).
  * @returns The ID of the new section.
@@ -92,7 +88,7 @@ export async function duplicateDBSection(sectionId: number): Promise<number> {
     try {
         const db = await getDB()
         const rows = await db.select<SectionRow[]>(
-            'SELECT id, groupID, title, color, archived, position FROM section WHERE id = ? AND deleted_at IS NULL', [sectionId])
+            'SELECT id, groupID, title, color, position FROM section WHERE id = ? AND deleted_at IS NULL', [sectionId])
         if (rows.length === 0)
             throw createError("DUPLICATE_SOURCE_MISSING", i18n.t("errors.duplicate.sectionMissing"))
         source = rows[0]

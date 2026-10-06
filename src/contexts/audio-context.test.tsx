@@ -31,7 +31,7 @@ const workspaceActions = {
     deleteItem: vi.fn(),
     renameItem: vi.fn(),
 }
-const workspaceState = { trashVersion: 0 }
+const workspaceState = { audioVersion: 0 }
 vi.mock("./workspace-data", () => ({
     useWorkspaceState: () => workspaceState,
     useWorkspaceActions: () => workspaceActions,
@@ -41,6 +41,7 @@ vi.mock("./workspace-data", () => ({
 const prefsState = {
     audioVolume: 1, audioPlayerVisible: true, audioPlayerScale: 1, audioPlayerOpacity: 1,
     setAudioVolume: vi.fn(),
+    reportAudioPlayerSize: vi.fn(),
 }
 vi.mock("./use-preferences", () => ({ usePreferences: () => prefsState }))
 vi.mock("@/hooks/use-shortcut", () => ({ useShortcut: vi.fn() }))
@@ -73,7 +74,7 @@ const audioElement = () => document.querySelector("audio") as HTMLAudioElement |
 beforeEach(() => {
     vi.resetAllMocks()
     vi.mocked(toast.error).mockReset()
-    workspaceState.trashVersion = 0
+    workspaceState.audioVersion = 0
     Object.assign(prefsState, { audioVolume: 1, audioPlayerVisible: true, audioPlayerScale: 1, audioPlayerOpacity: 1 })
     stored = [file(), file({ id: 2, name: "other.wav", path: "C:\\Music\\other.wav", position: 1 })]
     vi.mocked(getDBGroupAudioFiles).mockImplementation(async () => stored)
@@ -289,7 +290,7 @@ describe("audio files of a group", () => {
         await waitFor(() => expect(audioElement()).not.toBeNull())
 
         stored = stored.filter(f => f.id !== 1)
-        workspaceState.trashVersion = 1
+        workspaceState.audioVersion = 1
         rerender(
             <AudioProvider>
                 <DndContext>

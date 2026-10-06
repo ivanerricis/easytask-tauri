@@ -27,7 +27,7 @@ const getFilters = () => [{ name: i18n.t("audio.dialogFilter"), extensions: [...
  */
 export function AudioProvider({ children }: { children: React.ReactNode }) {
     const { t } = useTranslation()
-    const { trashVersion } = useWorkspaceState()
+    const { audioVersion } = useWorkspaceState()
     const { deleteItem } = useWorkspaceActions()
     const { audioPlayerVisible } = usePreferences()
     const [track, setTrack] = useState<AudioTrack | null>(null)
@@ -40,8 +40,9 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const knownFiles = useRef(new Map<number, AudioFile>())
     const [filesCache] = useState(() => new Map<number, AudioFile[]>())
 
-    // Both counters only grow, so their sum changes whenever either does
-    const version = localVersion + (trashVersion ?? 0)
+    // Both counters only grow, so their sum changes whenever either does (audioVersion, not trashVersion: that one
+    // moves with every task move and would reload the audio of every group)
+    const version = localVersion + (audioVersion ?? 0)
 
     useEffect(() => {
         trackRef.current = track

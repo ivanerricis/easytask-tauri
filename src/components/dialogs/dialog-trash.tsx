@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Briefcase, FileText, Music, Folder, Layers, LayoutList, LayoutTemplate, Loader2, RotateCcw, SquareCheck, Trash2 } from "lucide-react"
-import type { LucideIcon } from "lucide-react"
+import { Loader2, RotateCcw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
@@ -12,7 +11,9 @@ import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useOptionalUndo } from "@/contexts/undo/use-undo"
-import { formatDate, getErrorMessage } from "@/lib/utils"
+import { getErrorMessage } from "@/lib/utils"
+import { ItemRow } from "./item-list-parts"
+import { ITEM_ICONS, formatStoredDate } from "./item-list-utils"
 import type { TrashItem } from "@/types/types"
 
 type TrashSource = {
@@ -22,27 +23,11 @@ type TrashSource = {
     empty: (items: TrashItem[]) => Promise<void>
 }
 
-const groups: { type: TrashItem["type"], icon: LucideIcon }[] = [
-    { type: "workspace", icon: Briefcase },
-    { type: "folder", icon: Folder },
-    { type: "note", icon: FileText },
-    { type: "section_group", icon: Layers },
-    { type: "section", icon: LayoutList },
-    { type: "task", icon: SquareCheck },
-    { type: "audio_file", icon: Music },
-    { type: "note_template", icon: LayoutTemplate },
-]
-
-// "YYYY-MM-DD HH:MM:SS" -> date in the current language + "HH:MM"
-const formatTrashDate = (value: string) => {
-    if (!value) return ""
-    const [date, time] = value.split(" ")
-    return time ? `${formatDate(date)} ${time.slice(0, 5)}` : formatDate(date)
-}
+const groups: TrashItem["type"][] = ["workspace", "folder", "note", "section_group", "section", "task", "audio_file", "note_template"]
 
 // Second line of a row: where it was, what it contained and when it was deleted
 const details = (item: TrashItem) =>
-    [item.context, item.summary, i18n.t("trash.deletedOn", { date: formatTrashDate(item.deleted_at) })].filter(Boolean).join(" · ")
+    [item.context, item.summary, i18n.t("trash.deletedOn", { date: formatStoredDate(item.deleted_at) })].filter(Boolean).join(" · ")
 
 type Confirm = { kind: "purge", item: TrashItem } | { kind: "empty" } | null
 
@@ -124,7 +109,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                         ) : items.length === 0 ? (
                             <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
                         ) : (
-                            groups.map(({ type, icon: Icon }) => {
+                            groups.map(type => {
                                 const label = t(`trash.groups.${type}`)
                                 const groupItems = items.filter(i => i.type === type)
                                 if (groupItems.length === 0) return null
@@ -132,14 +117,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                                     <section key={type} className="flex flex-col gap-1" aria-label={label}>
                                         <h3 className="text-xs font-semibold uppercase text-muted-foreground">{label}</h3>
                                         {groupItems.map(item => (
-                                            <div key={`${item.type}-${item.id}`} className="flex items-center gap-2 rounded-xs border p-2">
-                                                <Icon className="size-4 shrink-0" />
-                                                <div className="flex flex-col min-w-0 flex-1">
-                                                    <span className="truncate text-sm" title={item.name}>{item.name}</span>
-                                                    <span className="truncate text-xs text-muted-foreground" title={details(item)}>
-                                                        {details(item)}
-                                                    </span>
-                                                </div>
+                                            <ItemRow key={`${item.type}-${item.id}`} icon={ITEM_ICONS[type]} name={item.name} details={details(item)}>
                                                 <TooltipCustom text={t("trash.restore")}>
                                                     <Button
                                                         variant="outline"
@@ -162,7 +140,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                                                         <Trash2 />
                                                     </Button>
                                                 </TooltipCustom>
-                                            </div>
+                                            </ItemRow>
                                         ))}
                                     </section>
                                 )

@@ -47,3 +47,30 @@ export const createSectionTrigger = `
         WHERE id = OLD.id;
     END;
 `
+
+/**
+ * Migration v4: adds the archive date of a section (NULL = not archived), makes the title unique only among the
+ * sections of the group that are neither in the trash nor archived, and drops the old unused `archived` flag
+ * (the trigger that lists it is dropped first and recreated without it).
+ * The DROP COLUMN is retried safely by initDb when a previous run was interrupted after it.
+ * @category Database Schema
+ */
+export const addSectionArchivedAt: string[] = [
+    `DROP TRIGGER IF EXISTS update_section_edit_timestamp;`,
+    `ALTER TABLE section ADD COLUMN archived_at TEXT DEFAULT NULL;`,
+    `ALTER TABLE section DROP COLUMN archived;`,
+    `DROP INDEX IF EXISTS idx_section_title;`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_section_title ON section(groupID, title) WHERE deleted_at IS NULL AND archived_at IS NULL;`,
+    `
+    CREATE TRIGGER IF NOT EXISTS update_section_edit_timestamp
+    AFTER UPDATE OF groupID, title, color ON section
+    FOR EACH ROW
+    BEGIN
+        UPDATE section
+        SET
+            edit_date = DATE('now', 'localtime'),
+            edit_time = strftime('%H:%M', 'now', 'localtime')
+        WHERE id = OLD.id;
+    END;
+`,
+]
