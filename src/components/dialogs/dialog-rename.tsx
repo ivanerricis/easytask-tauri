@@ -60,14 +60,19 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
         }
     }
 
-    const handleCancel = () => {
-        setValue(currentName)
-        setError(null)
-        onOpenChange(false)
+    // Every way of closing (Cancel, Escape, click outside) drops the typed value and the error
+    const handleOpenChange = (open: boolean) => {
+        if (!open) {
+            setValue(currentName)
+            setError(null)
+        }
+        onOpenChange(open)
     }
 
+    const handleCancel = () => handleOpenChange(false)
+
     return (
-        <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <Dialog open={isOpen} onOpenChange={handleOpenChange}>
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>{t("common.rename")}</DialogTitle>

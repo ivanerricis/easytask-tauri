@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
-import { FileText } from "lucide-react"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { useAllNotes } from "@/hooks/use-all-notes"
+import { NoteSearchLabel } from "@/components/note-search-label"
 
 type DialogPickNoteProps = {
     isOpen: boolean
@@ -39,9 +39,7 @@ export const DialogPickNote = ({ isOpen, onOpenChange, onPick, title, descriptio
                                 onPick({ id: note.id, name: note.name })
                             }}
                         >
-                            <FileText className="size-4" />
-                            <span className="truncate">{note.name}</span>
-                            {path && <span className="ml-auto truncate text-xs text-muted-foreground">{path}</span>}
+                            <NoteSearchLabel name={note.name} path={path} />
                         </CommandItem>
                     ))}
                 </CommandGroup>

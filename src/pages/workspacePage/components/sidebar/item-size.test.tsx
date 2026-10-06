@@ -11,7 +11,7 @@ let size: SidebarItemSize = "normal"
 vi.mock("@/contexts/use-preferences", () => ({
     usePreferences: () => ({ sidebarItemSize: size }),
 }))
-vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn() }) }))
+vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn() }), useActiveNoteId: () => null }))
 vi.mock("../folder/ButtonMenuFolder", () => ({ ButtonMenuFolder: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("../note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("@/components/tooltip-custom", () => ({
@@ -22,6 +22,7 @@ vi.mock("./tree-row", () => ({
     isInsideZone: () => false,
     stopDragActivation: {},
     wasTreeJustDragged: () => false,
+    treeRowKey: (type: string, id: number) => `${type}-${id}`,
     treeRowKeyDown: () => undefined,
 }))
 

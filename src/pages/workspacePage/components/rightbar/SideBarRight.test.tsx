@@ -96,6 +96,11 @@ describe("SideBarRight tabs", () => {
         expect(tab("Cronologia")).toHaveAttribute("tabindex", "-1")
     })
 
+    it("has the height of the left sidebar header and of the note tabs", async () => {
+        renderPanel()
+        expect((await screen.findByRole("tablist")).className).toContain("min-h-[42px]")
+    })
+
     it("switches tab with a click and remembers it", async () => {
         const user = userEvent.setup()
         renderPanel()

@@ -61,11 +61,13 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     const sourceRef = useRef(source)
     useEffect(() => { sourceRef.current = source })
 
+    const [error, setError] = useState<string | null>(null)
+
     const reload = useCallback(async () => {
         try {
             setItems(await sourceRef.current.load())
         } catch (err) {
-            toast.error(getErrorMessage(err))
+            setError(getErrorMessage(err))
         }
     }, [])
 
@@ -76,13 +78,16 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     }, [isOpen, reload])
     const isLoading = isOpen && !loaded
 
-    const run = async (action: () => Promise<void>, successMessage: string) => {
+    const run = async (action: () => Promise<void>, successMessage: string): Promise<boolean> => {
         setBusy(true)
+        setError(null)
         try {
             await action()
             toast.success(successMessage)
+            return true
         } catch (err) {
-            toast.error(getErrorMessage(err))
+            setError(getErrorMessage(err))
+            return false
         } finally {
             await reload()
             setBusy(false)
@@ -96,7 +101,8 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
         if (current.kind === "purge") {
             await run(() => sourceRef.current.purge(current.item), t("trash.purged"))
         } else {
-            await run(() => sourceRef.current.empty(items), t("trash.emptied"))
+            // Emptied: nothing left to show, close the dialog (on failure it stays open with the error)
+            if (await run(() => sourceRef.current.empty(items), t("trash.emptied"))) onOpenChange(false)
         }
     }
 
@@ -163,6 +169,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                             })
                         )}
                     </div>
+                    {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
                     <DialogFooter>
                         <Button
                             variant="destructive"

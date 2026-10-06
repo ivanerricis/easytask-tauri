@@ -107,6 +107,34 @@ describe("createUndoHistory", () => {
         expect(done).toBe(2)
     })
 
+    it("setLimit trims the oldest actions at once and applies to the next records", async () => {
+        const history = createUndoHistory()
+        const commands = Array.from({ length: 10 }, (_, i) => makeCommand(`c${i}`))
+        commands.forEach(command => history.record(command))
+        history.setLimit(3)
+        expect(history.getEntries().undo).toEqual(["c9", "c8", "c7"])
+        history.record(makeCommand("c10"))
+        expect(history.getEntries().undo).toEqual(["c10", "c9", "c8"])
+        history.setLimit(100)
+        history.record(makeCommand("c11"))
+        expect(history.getEntries().undo).toHaveLength(4)
+    })
+
+    it("setLimit also trims the redo stack and ignores invalid values", async () => {
+        const history = createUndoHistory()
+        for (let i = 0; i < 6; i++) history.record(makeCommand(`c${i}`))
+        for (let i = 0; i < 6; i++) await history.undo()
+        expect(history.getEntries().redo).toHaveLength(6)
+        history.setLimit(2)
+        expect(history.getEntries().redo).toEqual(["c0", "c1"])
+        history.setLimit(0)
+        history.setLimit(1.5)
+        history.setLimit(NaN)
+        expect(history.getEntries().redo).toHaveLength(2)
+        history.record(makeCommand("x"))
+        expect(history.getEntries().undo).toEqual(["x"])
+    })
+
     it("ignores the actions recorded while an undo or redo runs", async () => {
         const history = createUndoHistory()
         const during = makeCommand("during")

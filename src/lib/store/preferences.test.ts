@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { getAudioVolume, saveAudioVolume, getAudioPlayerVisible, saveAudioPlayerVisible, getAudioPlayerScale, saveAudioPlayerScale, getAudioPlayerOpacity, saveAudioPlayerOpacity, getColorIntensity, saveColorIntensity, flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, getSidebarRightWidth, saveSidebarRightWidth, getRightPanelTab, saveRightPanelTab, saveShowGroupProgressBar, saveSidebarItemSize, getHideCompletedTasks, saveHideCompletedTasks, getPrimaryColor, getAudioPlayerPosition } from "./preferences"
+import { getAudioVolume, saveAudioVolume, getAudioPlayerVisible, saveAudioPlayerVisible, getAudioPlayerScale, saveAudioPlayerScale, getAudioPlayerOpacity, saveAudioPlayerOpacity, getColorIntensity, saveColorIntensity, flushPreferences, clearLastWorkspaceId, getLastWorkspaceId, getReopenLastWorkspace, saveLastWorkspaceId, saveReopenLastWorkspace, getShowGroupProgressBar, getSidebarItemSize, getSidebarLeftWidth, saveSidebarLeftWidth, getSidebarRightWidth, saveSidebarRightWidth, getRightPanelTab, saveRightPanelTab, saveShowGroupProgressBar, saveSidebarItemSize, getHideCompletedTasks, saveHideCompletedTasks, getPrimaryColor, getAudioPlayerPosition, getUndoLimit, saveUndoLimit, getShowAudioFileCount, getShowGroupSeparators, saveShowGroupSeparators, getWorkspaceSort, saveWorkspaceSort } from "./preferences"
 
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn(), delete: vi.fn() },
@@ -338,7 +338,7 @@ describe("primary color preference validation", () => {
 
     it.each([undefined, null, {}, { hex: 3 }, { hex: "red" }, { hex: "#12" }, { hex: "#12345g" }, { hex: "url(x)" }, "#fff"])("falls back to the default for %j", async (stored) => {
         vi.mocked(store.get).mockResolvedValue(stored)
-        expect(await getPrimaryColor()).toBe("#ffb375")
+        expect(await getPrimaryColor()).toBe("#f97316")
     })
 })
 
@@ -358,5 +358,89 @@ describe("audio player position validation", () => {
     it("defaults a missing or invalid scale to 1", async () => {
         vi.mocked(store.get).mockResolvedValue({ x: 1, y: 2, scaleX: "a" })
         expect(await getAudioPlayerPosition()).toEqual({ x: 1, y: 2, scaleX: 1, scaleY: 1 })
+    })
+})
+
+describe("undo limit preference", () => {
+    beforeEach(() => {
+        vi.resetAllMocks()
+        vi.useFakeTimers()
+    })
+
+    it.each([undefined, null, "100", 0, -5, 12.5, 501, NaN, 1e9])("falls back to 50 for the stored value %s", async (value) => {
+        vi.mocked(store.get).mockResolvedValue(value)
+        expect(await getUndoLimit()).toBe(50)
+    })
+
+    it.each([1, 25, 200, 500])("returns the valid stored value %s", async (value) => {
+        vi.mocked(store.get).mockResolvedValue(value)
+        expect(await getUndoLimit()).toBe(value)
+        expect(store.get).toHaveBeenCalledWith("undoLimit")
+    })
+
+    it("saves a valid value and flushes the store", async () => {
+        const p = saveUndoLimit(100)
+        await vi.runAllTimersAsync()
+        await p
+        expect(store.set).toHaveBeenCalledWith("undoLimit", 100)
+        expect(store.save).toHaveBeenCalled()
+    })
+
+    it("ignores an invalid value", async () => {
+        await saveUndoLimit(0)
+        await saveUndoLimit(2.5)
+        expect(store.set).not.toHaveBeenCalled()
+    })
+})
+
+describe("audio file count and section separators preferences", () => {
+    beforeEach(() => {
+        vi.resetAllMocks()
+        vi.useFakeTimers()
+    })
+
+    it("show the audio file count by default and the separators never by default", async () => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getShowAudioFileCount()).toBe(true)
+        expect(await getShowGroupSeparators()).toBe(false)
+    })
+
+    it("saves the separators", async () => {
+        const p = saveShowGroupSeparators(true)
+        await vi.runAllTimersAsync()
+        await p
+        expect(store.set).toHaveBeenCalledWith("showGroupSeparators", true)
+    })
+})
+
+describe("workspace sort preference", () => {
+    beforeEach(() => {
+        vi.resetAllMocks()
+        vi.useFakeTimers()
+    })
+
+    it("defaults to last edited first when nothing is stored", async () => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getWorkspaceSort()).toEqual({ by: "edited", dir: "desc" })
+    })
+
+    it("returns the stored value", async () => {
+        vi.mocked(store.get).mockResolvedValue({ by: "name", dir: "asc" })
+        expect(await getWorkspaceSort()).toEqual({ by: "name", dir: "asc" })
+        expect(store.get).toHaveBeenCalledWith("workspaceSort")
+    })
+
+    it.each([null, "name", 3, {}, { by: "name" }, { by: "size", dir: "asc" }, { by: "name", dir: "up" }])(
+        "falls back to the default for the invalid value %j",
+        async (value) => {
+            vi.mocked(store.get).mockResolvedValue(value)
+            expect(await getWorkspaceSort()).toEqual({ by: "edited", dir: "desc" })
+        })
+
+    it("saves the value and flushes the store", async () => {
+        const p = saveWorkspaceSort({ by: "created", dir: "asc" })
+        await vi.runAllTimersAsync()
+        await p
+        expect(store.set).toHaveBeenCalledWith("workspaceSort", { by: "created", dir: "asc" })
     })
 })

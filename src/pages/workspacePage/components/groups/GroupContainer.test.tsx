@@ -6,6 +6,7 @@ import { GroupContainer } from "./GroupContainer"
 import { useTabsActions } from "@/contexts/use-tabs"
 import { useGroupMoves } from "../note-dnd-state"
 import { getDBNoteData } from "@/db/queries/note"
+import { getDBNoteAudioFiles } from "@/db/queries/audio"
 import { updateDBGroupPositions } from "@/db/queries/group"
 import { deferred, renderWithProviders } from "@/test/ui-render"
 import { makeGroup } from "@/test/ui-fixtures"
@@ -20,6 +21,10 @@ vi.mock("@/db/queries/task", () => ({
 }))
 vi.mock("@/db/queries/group", () => ({ updateDBGroupPositions: vi.fn() }))
 vi.mock("@/db/queries/shared_queries", () => ({ renameDBItem: vi.fn(), updateDBColor: vi.fn(), deleteDBItem: vi.fn() }))
+
+const prefs = { showAudioFileCount: true, showGroupSeparators: false }
+vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
+vi.mock("@/db/queries/audio", () => ({ getDBGroupAudioFiles: vi.fn(), getDBNoteAudioFiles: vi.fn() }))
 
 // The group stub exposes the move the drag & drop runs on drop (the real dnd-kit drag is not drivable in jsdom)
 let moveGroupTo: (groupId: number, index: number) => Promise<void>
@@ -42,6 +47,8 @@ const order = () => screen.getAllByTestId("group").map(el => el.textContent)
 describe("GroupContainer reorder", () => {
     beforeEach(() => {
         vi.resetAllMocks()
+        prefs.showGroupSeparators = false
+        vi.mocked(getDBNoteAudioFiles).mockResolvedValue({})
         vi.mocked(getDBNoteData).mockResolvedValue({
             groups: [makeGroup({ id: 1, position: 0 }), makeGroup({ id: 2, position: 1 }), makeGroup({ id: 3, position: 2 })],
             sections: [],
@@ -106,5 +113,18 @@ describe("GroupContainer reorder", () => {
     it("does not show the empty note hints when there are groups", async () => {
         await renderLoaded()
         expect(screen.queryByText("Nota vuota")).toBeNull()
+    })
+
+    it("draws no guide line between groups by default", async () => {
+        await renderLoaded()
+        expect(screen.queryAllByTestId("group-separator")).toHaveLength(0)
+    })
+
+    it("draws an aria-hidden vertical line between adjacent groups when enabled", async () => {
+        prefs.showGroupSeparators = true
+        await renderLoaded()
+        const lines = screen.getAllByTestId("group-separator")
+        expect(lines).toHaveLength(2)
+        lines.forEach(line => expect(line).toHaveAttribute("aria-hidden", "true"))
     })
 })

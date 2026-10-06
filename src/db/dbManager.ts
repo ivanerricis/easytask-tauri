@@ -3,6 +3,7 @@ import Database from "@tauri-apps/plugin-sql";
 import i18n from "@/i18n";
 import { createError } from "@/types/error";
 import { ensureAppFolder } from "./appPaths";
+import { reportError } from "@/lib/report-error";
 import { initDB } from "./initDb";
 
 export const DB_FILE = "easytask.db";
@@ -31,7 +32,18 @@ async function createDB(): Promise<Database> {
     const db = await Database.load(`sqlite:${filePath}`);
 
     try {
-        await initDB(db);
+        await initDB(db, {
+            // An existing database about to change its schema is copied first (best effort: never blocks the start).
+            // Imported lazily because the backup module depends on this one.
+            beforeMigrate: async (opened) => {
+                try {
+                    const { createBackup } = await import("./backup");
+                    await createBackup("pre-migration", opened);
+                } catch (error) {
+                    reportError(error);
+                }
+            },
+        });
     } catch (err: unknown) {
         await db.close().catch(() => false);
         throw err;

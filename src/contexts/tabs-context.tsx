@@ -181,6 +181,7 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
         closeAllNotes: () => dispatch({ type: "closeAll" }),
         reorderTabs: (from, to) => dispatch({ type: "reorder", from, to }),
         activateNote: id => dispatch({ type: "activate", id }),
+        cycleNote: direction => dispatch({ type: "cycle", direction }),
     }), [])
 
     const value = useMemo<TabsContextType>(() => {

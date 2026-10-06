@@ -35,13 +35,16 @@ describe("SectionBody hiding the completed tasks", () => {
         expect(screen.queryByTestId("hidden-completed")).not.toBeInTheDocument()
     })
 
-    it("hides the completed tasks with their whole subtree and the completed subtasks of the open ones", () => {
+    it("hides fully completed subtrees, keeps a completed task with open work below it, and hides the completed subtasks of the open ones", () => {
         prefs.hideCompletedTasks = true
         render(<SectionBody isOpen section={section} />)
         expect(screen.getByText("Aperto")).toBeInTheDocument()
         expect(screen.getByText("Padre")).toBeInTheDocument()
         expect(screen.getByText("Figlio aperto")).toBeInTheDocument()
-        for (const text of ["Fatto", "Sub aperto", "Sub fatto", "Figlio fatto"]) expect(screen.queryByText(text)).not.toBeInTheDocument()
+        // "Fatto" is completed but "Sub aperto" is open: it stays, and its own completed subtask goes
+        expect(screen.getByText("Fatto")).toBeInTheDocument()
+        expect(screen.getByText("Sub aperto")).toBeInTheDocument()
+        for (const text of ["Sub fatto", "Figlio fatto"]) expect(screen.queryByText(text)).not.toBeInTheDocument()
     })
 
     it("still hands the full task to the Task (its progress counts the hidden subtasks)", () => {
@@ -54,8 +57,17 @@ describe("SectionBody hiding the completed tasks", () => {
     it("tells how many completed tasks are hidden (plural)", () => {
         prefs.hideCompletedTasks = true
         render(<SectionBody isOpen section={section} />)
-        // Fatto + Sub fatto + Figlio fatto
-        expect(screen.getByTestId("hidden-completed")).toHaveTextContent("3 task completati nascosti")
+        // Sub fatto + Figlio fatto (Fatto stays visible)
+        expect(screen.getByTestId("hidden-completed")).toHaveTextContent("2 task completati nascosti")
+    })
+
+    it("hides a completed task together with its completed subtasks and counts them all", () => {
+        prefs.hideCompletedTasks = true
+        const tree = makeSection({ id: 3, tasks: [makeTask({ id: 1, text: "Chiuso", completed: true, subtasks: [makeTask({ id: 11, text: "Chiuso figlio", completed: true })] })] })
+        render(<SectionBody isOpen section={tree} />)
+        expect(screen.queryByText("Chiuso")).not.toBeInTheDocument()
+        expect(screen.queryByText("Chiuso figlio")).not.toBeInTheDocument()
+        expect(screen.getByTestId("hidden-completed")).toHaveTextContent("2 task completati nascosti")
     })
 
     it("uses the singular for one hidden task and shows nothing when none is hidden", () => {

@@ -12,6 +12,9 @@ const getWorkspaceData = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceData: () => ({ updateFolderColorContent, getWorkspaceData, updateItemColor: vi.fn() }),
 }))
+const exportItem = vi.fn()
+const importItems = vi.fn()
+vi.mock("@/hooks/use-workspace-transfer", () => ({ useItemTransfer: () => ({ exportItem, importItems, isBusy: false }) }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
 vi.mock("../MoveToSubmenu", () => ({ MoveToSubmenu: () => null }))
 vi.mock("./DialogAddNote", () => ({ DialogAddNote: () => null }))
@@ -27,7 +30,7 @@ beforeEach(() => {
     vi.clearAllMocks()
     updateFolderColorContent.mockResolvedValue(undefined)
 })
-const ENTRIES = ["Nuova nota", "Nuova cartella", "Rinomina", "Colora contenuto", "Cambia colore", "Elimina"]
+const ENTRIES = ["Nuova nota", "Nuova cartella", "Rinomina", "Colora contenuto", "Cambia colore", "Importa qui", "Esporta", "Elimina"]
 
 const setup = () => {
     const onRowClick = vi.fn()
@@ -81,6 +84,18 @@ describe("ButtonMenuFolder", () => {
         fireEvent.contextMenu(row)
         await user.click(await screen.findByText("Rinomina"))
         expect(await screen.findByText("Dialog rinomina")).toBeInTheDocument()
+        expect(screen.queryByText("Elimina")).not.toBeInTheDocument()
+    })
+
+    it("exports the folder and imports into it from the menu", async () => {
+        const user = userEvent.setup()
+        const { row } = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Esporta"))
+        expect(exportItem).toHaveBeenCalledWith("folder", folder)
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Importa qui"))
+        expect(importItems).toHaveBeenCalledWith(3)
         expect(screen.queryByText("Elimina")).not.toBeInTheDocument()
     })
 })

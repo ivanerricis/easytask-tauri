@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { toast } from "sonner"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { makeTask } from "@/test/ui-fixtures"
 
@@ -78,7 +77,7 @@ describe("DialogTaskDescription", () => {
         await waitFor(() => expect(updateTaskDescription).toHaveBeenCalledWith(4, undefined))
     })
 
-    it("rolls back and shows an error when the write fails", async () => {
+    it("rolls back and shows an inline error when the write fails", async () => {
         const user = userEvent.setup()
         const { onOpenChange } = setup()
         updateTaskDescription.mockRejectedValueOnce(new Error("disk full"))
@@ -86,7 +85,7 @@ describe("DialogTaskDescription", () => {
         await user.click(screen.getByRole("button", { name: "Salva" }))
 
         await waitFor(() => expect(rollback).toHaveBeenCalled())
-        expect(toast.error).toHaveBeenCalled()
+        expect(await screen.findByRole("alert")).toBeInTheDocument()
         expect(taskDescription).not.toHaveBeenCalled()
         expect(onOpenChange).not.toHaveBeenCalledWith(false)
     })
@@ -98,5 +97,22 @@ describe("DialogTaskDescription", () => {
         await user.click(screen.getByRole("button", { name: "Annulla" }))
         expect(onOpenChange).toHaveBeenCalledWith(false)
         expect(updateTaskDescription).not.toHaveBeenCalled()
+    })
+
+    it("Escape closes without saving and drops the unsaved text for the next open", async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn()
+        const task = makeTask({ id: 4, text: "Write the report", description: "Old" })
+        const ui = (open: boolean) => <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />
+        const { rerender } = render(ui(true))
+        await user.type(screen.getByRole("textbox", { name: "Descrizione" }), "xyz")
+        await user.keyboard("{Escape}")
+
+        expect(onOpenChange).toHaveBeenCalledWith(false)
+        expect(updateTaskDescription).not.toHaveBeenCalled()
+
+        rerender(ui(false))
+        rerender(ui(true))
+        expect(screen.getByRole("textbox", { name: "Descrizione" })).toHaveValue("Old")
     })
 })

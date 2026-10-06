@@ -96,13 +96,13 @@ describe("DialogTrash", () => {
         await waitFor(() => expect(data.getTrash).toHaveBeenCalledTimes(2))
     })
 
-    it("shows the error toast when restore fails", async () => {
+    it("shows the error inline when restore fails", async () => {
         const user = userEvent.setup()
         data.restoreItem.mockRejectedValue(new Error("Esiste già un elemento con questo nome"))
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
         await user.click(await screen.findByRole("button", { name: "Ripristina Nota B" }))
 
-        await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Esiste già un elemento con questo nome"))
+        expect(await screen.findByRole("alert")).toHaveTextContent("Esiste già un elemento con questo nome")
     })
 
     it("purge requires confirmation", async () => {
@@ -138,6 +138,28 @@ describe("DialogTrash", () => {
         await user.click(within(alert).getByRole("button", { name: "Conferma svuotamento" }))
         await waitFor(() => expect(data.emptyTrash).toHaveBeenCalledWith(4))
         expect(data.getWorkspaceData).toHaveBeenCalledWith(4)
+    })
+
+    it("closes the dialog after emptying the trash", async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn()
+        render(<DialogTrash isOpen onOpenChange={onOpenChange} />)
+        await screen.findByText("Cartella A")
+        await user.click(screen.getByRole("button", { name: "Svuota cestino" }))
+        await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Conferma svuotamento" }))
+        await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
+    })
+
+    it("stays open and shows the error when emptying fails", async () => {
+        const user = userEvent.setup()
+        const onOpenChange = vi.fn()
+        data.emptyTrash.mockRejectedValue(new Error("boom"))
+        render(<DialogTrash isOpen onOpenChange={onOpenChange} />)
+        await screen.findByText("Cartella A")
+        await user.click(screen.getByRole("button", { name: "Svuota cestino" }))
+        await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Conferma svuotamento" }))
+        expect(await screen.findByText(/boom/)).toBeInTheDocument()
+        expect(onOpenChange).not.toHaveBeenCalled()
     })
 })
 
@@ -181,7 +203,7 @@ describe("DialogTrash and the undo history", () => {
         renderWithUndo()
         await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
         await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Conferma eliminazione" }))
-        await waitFor(() => expect(toast.error).toHaveBeenCalled())
+        expect(await screen.findByRole("alert")).toHaveTextContent("no")
         expect(clear).not.toHaveBeenCalled()
     })
 })

@@ -26,6 +26,12 @@ vi.mock("@/lib/store/preferences", async (importOriginal) => ({
     getShowSectionCount: vi.fn(),
     saveShowSectionCount: vi.fn(),
     getShowTaskCount: vi.fn(),
+    getShowAudioFileCount: vi.fn(),
+    saveShowAudioFileCount: vi.fn(),
+    getShowGroupSeparators: vi.fn(),
+    saveShowGroupSeparators: vi.fn(),
+    getUndoLimit: vi.fn(),
+    saveUndoLimit: vi.fn(),
     saveShowTaskCount: vi.fn(),
     getSideBarLeftOpen: vi.fn(),
     saveSideBarLeftOpen: vi.fn(),
@@ -36,6 +42,8 @@ vi.mock("@/lib/store/preferences", async (importOriginal) => ({
     resetAudioPlayerPosition: vi.fn(),
     getWorkspaceView: vi.fn(),
     saveWorkspaceView: vi.fn(),
+    getWorkspaceSort: vi.fn(),
+    saveWorkspaceSort: vi.fn(),
     getReopenNotes: vi.fn(),
     saveReopenNotes: vi.fn(),
     getReopenLastWorkspace: vi.fn(),
@@ -73,9 +81,13 @@ describe("PreferencesContext", () => {
         vi.mocked(prefs.getShowGroupProgressBar).mockResolvedValue(false)
         vi.mocked(prefs.getShowSectionCount).mockResolvedValue(true)
         vi.mocked(prefs.getShowTaskCount).mockResolvedValue(false)
+        vi.mocked(prefs.getShowAudioFileCount).mockResolvedValue(false)
+        vi.mocked(prefs.getShowGroupSeparators).mockResolvedValue(true)
+        vi.mocked(prefs.getUndoLimit).mockResolvedValue(200)
         vi.mocked(prefs.getSideBarLeftOpen).mockResolvedValue(false)
         vi.mocked(prefs.getSideBarRightOpen).mockResolvedValue(true)
         vi.mocked(prefs.getWorkspaceView).mockResolvedValue("list")
+        vi.mocked(prefs.getWorkspaceSort).mockResolvedValue({ by: "name", dir: "asc" })
         vi.mocked(prefs.getReopenNotes).mockResolvedValue(false)
         vi.mocked(prefs.getReopenLastWorkspace).mockResolvedValue(true)
         vi.mocked(prefs.getSidebarItemSize).mockResolvedValue("large")
@@ -97,6 +109,29 @@ describe("PreferencesContext", () => {
         }
     })
 
+    it("has defaults for the audio count, the separators and the undo limit before the store answers", () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.showAudioFileCount).toBe(true)
+        expect(result.current.showGroupSeparators).toBe(false)
+        expect(result.current.undoLimit).toBe(50)
+    })
+
+    it("updates and saves the audio count, the separators and the undo limit", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(result.current.undoLimit).toBe(200))
+        act(() => {
+            result.current.setShowAudioFileCount(true)
+            result.current.setShowGroupSeparators(false)
+            result.current.setUndoLimit(25)
+        })
+        expect(result.current.showAudioFileCount).toBe(true)
+        expect(result.current.showGroupSeparators).toBe(false)
+        expect(result.current.undoLimit).toBe(25)
+        expect(prefs.saveShowAudioFileCount).toHaveBeenCalledWith(true)
+        expect(prefs.saveShowGroupSeparators).toHaveBeenCalledWith(false)
+        expect(prefs.saveUndoLimit).toHaveBeenCalledWith(25)
+    })
+
     it("throws when used outside the provider", () => {
         const spy = vi.spyOn(console, "error").mockImplementation(() => {})
         expect(() => renderHook(() => usePreferences())).toThrow(/PreferencesProvider/)
@@ -105,7 +140,7 @@ describe("PreferencesContext", () => {
 
     it("has defaults before the store answers", async () => {
         const { result } = renderHook(() => usePreferences(), { wrapper })
-        expect(result.current.primaryColor).toBe("#ffb375")
+        expect(result.current.primaryColor).toBe("#f97316")
         expect(result.current.showProgressBar).toBe(true)
         expect(result.current.showGroupProgressBar).toBe(true)
         expect(result.current.workspaceView).toBe("grid")
@@ -119,8 +154,12 @@ describe("PreferencesContext", () => {
         expect(result.current.showProgressBar).toBe(false)
         expect(result.current.showGroupProgressBar).toBe(false)
         expect(result.current.showTaskCount).toBe(false)
+        expect(result.current.showAudioFileCount).toBe(false)
+        expect(result.current.showGroupSeparators).toBe(true)
+        expect(result.current.undoLimit).toBe(200)
         expect(result.current.sidebarLeftOpen).toBe(false)
         expect(result.current.workspaceView).toBe("list")
+        expect(result.current.workspaceSort).toEqual({ by: "name", dir: "asc" })
         expect(result.current.audioPlayerPosition).toEqual({ x: 5, y: 6, scaleX: 2, scaleY: 2 })
         expect(document.documentElement.style.getPropertyValue("--primary")).toBe("#123456")
     })
@@ -135,6 +174,7 @@ describe("PreferencesContext", () => {
             result.current.setSideBarLeftOpen(true)
             result.current.setPrimaryColor("#abcdef")
             result.current.setWorkspaceView("grid")
+            result.current.setWorkspaceSort({ by: "created", dir: "desc" })
         })
 
         expect(result.current.showProgressBar).toBe(true)
@@ -147,6 +187,8 @@ describe("PreferencesContext", () => {
         expect(prefs.savePrimaryColor).toHaveBeenCalledWith("#abcdef")
         expect(result.current.workspaceView).toBe("grid")
         expect(prefs.saveWorkspaceView).toHaveBeenCalledWith("grid")
+        expect(result.current.workspaceSort).toEqual({ by: "created", dir: "desc" })
+        expect(prefs.saveWorkspaceSort).toHaveBeenCalledWith({ by: "created", dir: "desc" })
         expect(document.documentElement.style.getPropertyValue("--primary")).toBe("#abcdef")
     })
 

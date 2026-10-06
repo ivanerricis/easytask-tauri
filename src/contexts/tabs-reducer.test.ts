@@ -19,6 +19,32 @@ describe("tabsReducer", () => {
         })
     })
 
+    describe("cycle", () => {
+        const current = state([1, 2, 3], 2)
+
+        it("moves to the next and previous tab", () => {
+            expect(tabsReducer(current, { type: "cycle", direction: 1 })).toEqual(state([1, 2, 3], 3))
+            expect(tabsReducer(current, { type: "cycle", direction: -1 })).toEqual(state([1, 2, 3], 1))
+        })
+
+        it("wraps around the ends", () => {
+            expect(tabsReducer(state([1, 2, 3], 3), { type: "cycle", direction: 1 })).toEqual(state([1, 2, 3], 1))
+            expect(tabsReducer(state([1, 2, 3], 1), { type: "cycle", direction: -1 })).toEqual(state([1, 2, 3], 3))
+        })
+
+        it("does nothing with fewer than two tabs", () => {
+            const single = state([1], 1)
+            expect(tabsReducer(single, { type: "cycle", direction: 1 })).toBe(single)
+            const none = state([], null)
+            expect(tabsReducer(none, { type: "cycle", direction: -1 })).toBe(none)
+        })
+
+        it("picks the first / last tab when none is active", () => {
+            expect(tabsReducer(state([1, 2, 3], null), { type: "cycle", direction: 1 }).activeId).toBe(1)
+            expect(tabsReducer(state([1, 2, 3], null), { type: "cycle", direction: -1 }).activeId).toBe(3)
+        })
+    })
+
     describe("activate", () => {
         it("activates an open tab and ignores unknown ids", () => {
             const current = state([1, 2], 1)

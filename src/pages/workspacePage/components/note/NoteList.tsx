@@ -90,7 +90,9 @@ export const NoteList = () => {
             onDragEnd={event => handleDragEnd(Number(event.active.id))}
             onDragCancel={() => updateHover(null)}
         >
-            <div className="flex shrink-0 w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1">
+            {/* The line under the tabs: drawn by every inactive tab and, as an inset shadow, by the empty part of the bar.
+                The active tab paints over it, so it opens onto the note below. */}
+            <div className="flex shrink-0 w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1 shadow-[inset_0_-1px_0_0_var(--color-primary)]">
                 {tabs.map(note => <Tab key={note.id} note={note} hover={hover} />)}
             </div>
         </DndContext>

@@ -1,3 +1,10 @@
+/**
+ * The accent color of a new install and of the reset: an orange (Tailwind orange-500) that carries the dark text of the
+ * accent at about 6:1 (the light orange it replaces, #ffb375, was too pale to stand out on white).
+ * Keep it in sync with `--primary` in index.css.
+ */
+export const DEFAULT_PRIMARY_COLOR = "#f97316"
+
 /** Text colors on the accent: the dark one is the `--primary-foreground` of the dark theme, the other is white. */
 const DARK_TEXT = "oklch(0.215 0 0)"
 const LIGHT_TEXT = "oklch(1 0 0)"

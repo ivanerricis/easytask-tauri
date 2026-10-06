@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import { Separator } from "@/components/ui/separator"
 
 type SettingsRowProps = {
     label: string
@@ -33,4 +34,15 @@ export const SettingsPanel = ({ title, action, children }: SettingsPanelProps) =
         </div>
         {children}
     </section>
+)
+
+/** Titled group of rows inside a panel, set apart from what precedes it by a separator. */
+export const SettingsSubsection = ({ title, children }: { title: string, children: ReactNode }) => (
+    <>
+        <Separator />
+        <section aria-label={title} className="flex flex-col gap-3">
+            <h4 className="text-sm font-semibold">{title}</h4>
+            {children}
+        </section>
+    </>
 )

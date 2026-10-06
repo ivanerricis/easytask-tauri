@@ -65,7 +65,8 @@ export const SideBarRight = () => {
             toggleLabels={{ toggle: t("rightPanel.toggle"), show: t("rightPanel.show"), hide: t("rightPanel.hide") }}
         >
             <div className="flex h-full w-full flex-col bg-secondary">
-                <div role="tablist" aria-label={t("rightPanel.tabs")} className="flex shrink-0 border-b-2" onKeyDown={handleTabKeyDown}>
+                {/* Same height as the left sidebar header and the note tabs */}
+                <div role="tablist" aria-label={t("rightPanel.tabs")} className="flex shrink-0 min-h-[42px] border-b-2" onKeyDown={handleTabKeyDown}>
                     {TABS.map(item => (
                         <button
                             key={item}

@@ -21,6 +21,32 @@ const MALFORMED_MESSAGE = () => i18n.t("errors.transfer.malformed")
 const isAppError = (error: unknown): error is { code: string, message: string } =>
     typeof error === "object" && error !== null && Object.getPrototypeOf(error) === Object.prototype && "code" in error && "message" in error
 
+/** Exports one note (content and audio paths); `folderRef` is where the note sits inside the file. */
+async function buildNoteExport(db: Database, note: Note & { color: string | null }, folderRef: string | null): Promise<ExportNote> {
+    const content = await buildContent(note.id)
+    const audio = await db.select<{ section_groupID: number, name: string, path: string, position: number }[]>(
+        `SELECT a.section_groupID, a.name, a.path, a.position FROM audio_file a
+         INNER JOIN section_group g ON g.id = a.section_groupID
+         WHERE g.noteID = ? AND g.deleted_at IS NULL AND a.deleted_at IS NULL
+         ORDER BY a.position, a.id`, [note.id])
+    // Group ids in content order (same criteria as buildContent: not deleted, by position)
+    const groupRows = await db.select<{ id: number }[]>(
+        'SELECT id FROM section_group WHERE noteID = ? AND deleted_at IS NULL ORDER BY position', [note.id])
+    const groupIndex = new Map(groupRows.map((row, index) => [row.id, index]))
+    return {
+        ref: `n${note.id}`,
+        folderRef,
+        name: note.name,
+        color: note.color ?? null,
+        position: note.position,
+        content,
+        audio: audio.flatMap((file): ExportAudio[] => {
+            const index = groupIndex.get(file.section_groupID)
+            return index === undefined ? [] : [{ groupIndex: index, name: file.name, path: file.path, position: file.position }]
+        }),
+    }
+}
+
 /**
  * Builds the export of a workspace: folders, notes (with content and audio paths) and templates, without any trashed item.
  * @param workspaceId The ID of the workspace.
@@ -66,30 +92,8 @@ export async function buildDBWorkspaceExport(workspaceId: number): Promise<Works
         }))
 
         const exportNotes: ExportNote[] = []
-        for (const note of notes.filter(note => isReachable(note.folderID))) {
-            const content = await buildContent(note.id)
-            const audio = await db.select<{ section_groupID: number, name: string, path: string, position: number }[]>(
-                `SELECT a.section_groupID, a.name, a.path, a.position FROM audio_file a
-                 INNER JOIN section_group g ON g.id = a.section_groupID
-                 WHERE g.noteID = ? AND g.deleted_at IS NULL AND a.deleted_at IS NULL
-                 ORDER BY a.position, a.id`, [note.id])
-            // Group ids in content order (same criteria as buildContent: not deleted, by position)
-            const groupRows = await db.select<{ id: number }[]>(
-                'SELECT id FROM section_group WHERE noteID = ? AND deleted_at IS NULL ORDER BY position', [note.id])
-            const groupIndex = new Map(groupRows.map((row, index) => [row.id, index]))
-            exportNotes.push({
-                ref: `n${note.id}`,
-                folderRef: refOf(note.folderID),
-                name: note.name,
-                color: note.color ?? null,
-                position: note.position,
-                content,
-                audio: audio.flatMap((file): ExportAudio[] => {
-                    const index = groupIndex.get(file.section_groupID)
-                    return index === undefined ? [] : [{ groupIndex: index, name: file.name, path: file.path, position: file.position }]
-                }),
-            })
-        }
+        for (const note of notes.filter(note => isReachable(note.folderID)))
+            exportNotes.push(await buildNoteExport(db, note, refOf(note.folderID)))
 
         const exportTemplates: ExportTemplate[] = templates.map(template => {
             let content: NoteTemplateContent = { version: 1, groups: [] }
@@ -110,6 +114,114 @@ export async function buildDBWorkspaceExport(workspaceId: number): Promise<Works
             folders: exportFolders,
             notes: exportNotes,
             templates: exportTemplates,
+        }
+    } catch (error: unknown) {
+        if (isAppError(error)) throw error
+        throw createError("TRANSFER_EXPORT_FAILED", i18n.t("errors.transfer.export", { message: getErrorMessage(error) }))
+    }
+}
+
+/**
+ * Builds the export of a single note, or of a folder with its whole subtree (subfolders and notes, without any trashed item).
+ * The file is a "mini workspace" (`scope: "items"`): `workspace` holds the name and color of the item, the item itself sits at
+ * the root of the file (parentRef / folderRef null) and `templates` is empty.
+ * @param itemType "note" or "folder".
+ * @param itemId The ID of the note or folder.
+ * @throws A "TRANSFER_ITEM_MISSING" error when the item does not exist (or is trashed), "TRANSFER_EXPORT_FAILED" otherwise.
+ * @category Database Queries
+ */
+export async function buildDBItemExport(itemType: "note" | "folder", itemId: number): Promise<WorkspaceExport> {
+    return buildDBItemsExport([{ type: itemType, id: itemId }])
+}
+
+/**
+ * Builds the export of several notes and folders (each folder with its whole subtree) in ONE file with scope "items",
+ * the same format as the export of a single item: every selected item sits at the root of the file, in the given order.
+ * An item that is inside another selected folder is not exported twice (it comes with that folder), and so is a repeated one.
+ * `workspace` carries `name` and, for a single item, the color of that item.
+ * @param items The notes and folders to export (at least one).
+ * @param name The name stored in the file; defaults to the name of the first item.
+ * @throws A "TRANSFER_ITEM_MISSING" error when an item does not exist (or is trashed), "TRANSFER_EXPORT_FAILED" otherwise.
+ * @category Database Queries
+ */
+export async function buildDBItemsExport(items: { type: "note" | "folder", id: number }[], name?: string): Promise<WorkspaceExport> {
+    try {
+        const db = await getDB()
+        const missing = () => createError("TRANSFER_ITEM_MISSING", i18n.t("errors.transfer.itemMissing"))
+        if (items.length === 0) throw missing()
+
+        // The living subtree (ids) of every selected folder, to leave out what another selected folder already brings
+        const subtreeOf = new Map<number, Set<number>>()
+        for (const item of items) {
+            if (item.type !== "folder" || subtreeOf.has(item.id)) continue
+            const rows = await db.select<{ id: number }[]>(
+                `WITH RECURSIVE subtree(id) AS (
+                    SELECT id FROM folder WHERE id = ? AND deleted_at IS NULL
+                    UNION ALL
+                    SELECT f.id FROM folder f INNER JOIN subtree s ON f.folderID = s.id WHERE f.deleted_at IS NULL
+                 )
+                 SELECT id FROM subtree`, [item.id])
+            if (rows.length === 0) throw missing()
+            subtreeOf.set(item.id, new Set(rows.map(row => row.id)))
+        }
+        const insideOther = (folderId: number) =>
+            [...subtreeOf].some(([topId, ids]) => topId !== folderId && ids.has(folderId))
+        const topFolderIds = [...new Set(items.filter(item => item.type === "folder").map(item => item.id))].filter(id => !insideOther(id))
+        const folderIds = new Set(topFolderIds.flatMap(id => [...subtreeOf.get(id)!]))
+
+        const exportNotes: ExportNote[] = []
+        const exportFolders: ExportFolder[] = []
+        let root: { name: string, color: string | null } | null = null
+        const topFolders = new Set(topFolderIds)
+
+        const folderRows = folderIds.size === 0 ? [] : await db.select<(Folder & { color: string | null })[]>(
+            `SELECT * FROM folder WHERE id IN (${[...folderIds].map(() => "?").join(", ")}) ORDER BY position, id`, [...folderIds])
+        const folderById = new Map(folderRows.map(folder => [folder.id, folder]))
+        const exported = new Set<number>()
+        // Folders in the order of the selection, each followed by its subtree
+        for (const item of items) {
+            if (item.type === "folder") {
+                if (!topFolders.has(item.id) || exported.has(item.id)) continue
+                root ??= { name: folderById.get(item.id)!.name, color: folderById.get(item.id)!.color ?? null }
+                for (const folder of folderRows.filter(row => subtreeOf.get(item.id)!.has(row.id))) {
+                    exported.add(folder.id)
+                    exportFolders.push({
+                        ref: `f${folder.id}`,
+                        parentRef: folder.id === item.id || folder.folderID === null || !subtreeOf.get(item.id)!.has(folder.folderID) ? null : `f${folder.folderID}`,
+                        name: folder.name,
+                        color: folder.color ?? null,
+                        position: folder.position,
+                    })
+                }
+            } else {
+                const notes = await db.select<(Note & { color: string | null })[]>(
+                    'SELECT * FROM note WHERE id = ? AND deleted_at IS NULL', [item.id])
+                if (notes.length === 0) throw missing()
+                // Inside a selected folder: exported with it
+                if (notes[0].folderID !== null && folderIds.has(notes[0].folderID)) continue
+                if (exportNotes.some(note => note.ref === `n${item.id}`)) continue
+                root ??= { name: notes[0].name, color: notes[0].color ?? null }
+                exportNotes.push(await buildNoteExport(db, notes[0], null))
+            }
+        }
+        if (!root) throw missing()
+        if (folderIds.size > 0) {
+            const inFolders = await db.select<(Note & { color: string | null })[]>(
+                `SELECT * FROM note WHERE deleted_at IS NULL AND folderID IN (${[...folderIds].map(() => "?").join(", ")}) ORDER BY position, id`,
+                [...folderIds])
+            for (const note of inFolders) exportNotes.push(await buildNoteExport(db, note, `f${note.folderID}`))
+        }
+
+        const single = exportFolders.filter(folder => folder.parentRef === null).length + exportNotes.filter(note => note.folderRef === null).length === 1
+        return {
+            format: WORKSPACE_EXPORT_FORMAT,
+            version: WORKSPACE_EXPORT_VERSION,
+            scope: "items",
+            exportedAt: new Date().toISOString(),
+            workspace: { name: name ?? root.name, color: single ? root.color : null },
+            folders: exportFolders,
+            notes: exportNotes,
+            templates: [],
         }
     } catch (error: unknown) {
         if (isAppError(error)) throw error
@@ -228,7 +340,8 @@ export function validateWorkspaceExport(data: unknown): WorkspaceExport {
     if (data.version !== WORKSPACE_EXPORT_VERSION)
         throw createError("TRANSFER_UNSUPPORTED_VERSION", i18n.t("errors.transfer.unsupportedVersion"))
 
-    const { workspace, folders, notes, templates } = data
+    const { workspace, folders, notes, templates, scope } = data
+    if (scope !== undefined && scope !== "workspace" && scope !== "items") malformed()
     if (!isObject(workspace) || !isNonEmpty(workspace.name) || !isNullableString(workspace.color)) malformed()
     if (!Array.isArray(folders) || !Array.isArray(notes) || !Array.isArray(templates)) malformed()
     const counter: Counter = { count: 0 }
@@ -260,6 +373,13 @@ export function validateWorkspaceExport(data: unknown): WorkspaceExport {
     for (const template of templates as unknown[]) {
         if (!isObject(template) || !isNonEmpty(template.name) || !isNullableString(template.color)) malformed()
         checkContent(template.content, counter)
+    }
+
+    if (scope === "items") {
+        // A part of a workspace: no templates and at least one item at the top
+        const hasRoot = (folders as ExportFolder[]).some(folder => folder.parentRef === null)
+            || (notes as ExportNote[]).some(note => note.folderRef === null)
+        if (templates.length > 0 || !hasRoot) malformed()
     }
 
     const result = data as unknown as WorkspaceExport
@@ -312,7 +432,77 @@ async function uniqueWorkspaceName(db: Database, name: string): Promise<string> 
     }
 }
 
-type PendingFolder = { folder: ExportFolder, parentRef: TxRef | null }
+type PendingFolder = { folder: ExportFolder, parentRef: TxRef | number | null }
+
+type InsertedItems = { skippedAudio: number, folderRefs: Map<string, TxRef>, noteRefs: TxRef[] }
+
+/**
+ * Adds to `tx` the folders, notes (with their content) and audio files of an export. The top items of the file go under
+ * `rootParent` (a folder id or reference, null = workspace root). Audio files that are missing, have no audio extension or
+ * clash on the name inside the group are skipped and counted.
+ */
+async function insertItems(
+    tx: Transaction, data: WorkspaceExport, workspaceRef: TxRef | number, rootParent: TxRef | number | null,
+    audioExists: (path: string) => Promise<boolean>,
+): Promise<InsertedItems> {
+    let skippedAudio = 0
+    // Folders level by level: children reference the ids of their parents
+    const folderRefs = new Map<string, TxRef>()
+    const childrenOf = new Map<string | null, ExportFolder[]>()
+    for (const folder of data.folders) {
+        const siblings = childrenOf.get(folder.parentRef)
+        if (siblings) siblings.push(folder)
+        else childrenOf.set(folder.parentRef, [folder])
+    }
+    let level: PendingFolder[] = (childrenOf.get(null) ?? []).map(folder => ({ folder, parentRef: rootParent }))
+    let imported = 0
+    while (level.length > 0) {
+        const refs = tx.insertRows("folder", ["workspaceID", "folderID", "name", "color", "position"],
+            level.map(({ folder, parentRef }) => [workspaceRef, parentRef, folder.name.trim(), folder.color ?? null, folder.position]))
+        level.forEach(({ folder }, i) => folderRefs.set(folder.ref, refs[i]))
+        imported += level.length
+        level = level.flatMap(({ folder }, i) =>
+            (childrenOf.get(folder.ref) ?? []).map(child => ({ folder: child, parentRef: refs[i] })))
+    }
+    // Folders left out are part of a parent cycle
+    if (imported !== data.folders.length) throw new Error("Invalid folder tree")
+
+    let noteRefs: TxRef[] = []
+    if (data.notes.length > 0) {
+        noteRefs = tx.insertRows("note", ["workspaceID", "folderID", "name", "color", "position"],
+            data.notes.map(note => [
+                workspaceRef, note.folderRef === null ? rootParent : folderRefs.get(note.folderRef) ?? null,
+                note.name.trim(), note.color ?? null, note.position,
+            ]))
+
+        for (const [i, note] of data.notes.entries()) {
+            const groupRefs = addNoteContent(tx, noteRefs[i], note.content)
+            const rows: unknown[][] = []
+            const taken = new Set<string>()
+            for (const file of note.audio) {
+                let keep = hasAudioExtension(file.path)
+                if (keep) {
+                    try {
+                        keep = await audioExists(file.path)
+                    } catch {
+                        keep = false
+                    }
+                }
+                // UNIQUE(name, section_groupID): a duplicated name in the file is skipped instead of failing the import
+                const key = `${file.groupIndex}^@${file.name.toLowerCase()}`
+                if (!keep || taken.has(key)) {
+                    skippedAudio += 1
+                    continue
+                }
+                taken.add(key)
+                rows.push([groupRefs[file.groupIndex], file.name, file.path, file.position])
+            }
+            if (rows.length > 0) tx.insertRows("audio_file", ["section_groupID", "name", "path", "position"], rows)
+        }
+    }
+    return { skippedAudio, folderRefs, noteRefs }
+}
+
 
 /**
  * Imports an export as a new workspace. The name is made unique ("name (importato)", "name (importato 2)"...).
@@ -327,6 +517,7 @@ export async function importDBWorkspace(
     data: WorkspaceExport,
     options: { audioExists?: (path: string) => Promise<boolean> } = {},
 ): Promise<{ workspaceId: number, skippedAudio: number }> {
+    if (data.scope === "items") throw createError("TRANSFER_ITEMS_FILE", i18n.t("errors.transfer.itemsFile"))
     const audioExists = options.audioExists ?? defaultAudioExists
     const tx = new Transaction()
     let workspace: number
@@ -341,62 +532,9 @@ export async function importDBWorkspace(
         })
     }
 
-    let skippedAudio = 0
     try {
         const workspaceRef = tx.idOf(workspace)
-        // Folders level by level: children reference the ids of their parents
-        const folderRefs = new Map<string, TxRef>()
-        const childrenOf = new Map<string | null, ExportFolder[]>()
-        for (const folder of data.folders) {
-            const siblings = childrenOf.get(folder.parentRef)
-            if (siblings) siblings.push(folder)
-            else childrenOf.set(folder.parentRef, [folder])
-        }
-        let level: PendingFolder[] = (childrenOf.get(null) ?? []).map(folder => ({ folder, parentRef: null }))
-        let imported = 0
-        while (level.length > 0) {
-            const refs = tx.insertRows("folder", ["workspaceID", "folderID", "name", "color", "position"],
-                level.map(({ folder, parentRef }) => [workspaceRef, parentRef, folder.name.trim(), folder.color ?? null, folder.position]))
-            level.forEach(({ folder }, i) => folderRefs.set(folder.ref, refs[i]))
-            imported += level.length
-            level = level.flatMap(({ folder }, i) =>
-                (childrenOf.get(folder.ref) ?? []).map(child => ({ folder: child, parentRef: refs[i] })))
-        }
-        // Folders left out are part of a parent cycle
-        if (imported !== data.folders.length) throw new Error("Invalid folder tree")
-
-        if (data.notes.length > 0) {
-            const noteRefs = tx.insertRows("note", ["workspaceID", "folderID", "name", "color", "position"],
-                data.notes.map(note => [
-                    workspaceRef, note.folderRef === null ? null : folderRefs.get(note.folderRef) ?? null,
-                    note.name.trim(), note.color ?? null, note.position,
-                ]))
-
-            for (const [i, note] of data.notes.entries()) {
-                const groupRefs = addNoteContent(tx, noteRefs[i], note.content)
-                const rows: unknown[][] = []
-                const taken = new Set<string>()
-                for (const file of note.audio) {
-                    let keep = hasAudioExtension(file.path)
-                    if (keep) {
-                        try {
-                            keep = await audioExists(file.path)
-                        } catch {
-                            keep = false
-                        }
-                    }
-                    // UNIQUE(name, section_groupID): a duplicated name in the file is skipped instead of failing the import
-                    const key = `${file.groupIndex} ${file.name.toLowerCase()}`
-                    if (!keep || taken.has(key)) {
-                        skippedAudio += 1
-                        continue
-                    }
-                    taken.add(key)
-                    rows.push([groupRefs[file.groupIndex], file.name, file.path, file.position])
-                }
-                if (rows.length > 0) tx.insertRows("audio_file", ["section_groupID", "name", "path", "position"], rows)
-            }
-        }
+        const { skippedAudio } = await insertItems(tx, data, workspaceRef, null, audioExists)
 
         if (data.templates.length > 0) {
             tx.insertRows("note_template", ["workspaceID", "sourceNoteID", "name", "color", "content"],
@@ -412,6 +550,76 @@ export async function importDBWorkspace(
                 UNIQUE: i18n.t("errors.workspace.unique"),
                 CHECK: i18n.t("errors.workspace.check"),
             })
+        throw createError("TRANSFER_IMPORT_FAILED", i18n.t("errors.transfer.import", { message: getErrorMessage(error) }))
+    }
+}
+
+/** The notes and folders created by an items import, with their name after the renaming of the clashes. */
+export type ImportedItems = {
+    skippedAudio: number
+    items: { type: "folder" | "note", id: number, name: string }[]
+}
+
+/**
+ * Imports an items export (a note, or a folder with its subtree) into an existing workspace, under a folder or at its root.
+ * The top items are appended after the existing siblings and renamed on a name clash ("name (2)", "name (3)"...); everything
+ * is written in ONE database transaction: on any failure nothing is created.
+ * @param data A validated export with scope "items" (see validateWorkspaceExport).
+ * @param workspaceId The workspace to import into.
+ * @param parentFolderId The destination folder, null for the workspace root.
+ * @param options `audioExists` decides whether an audio file is kept (see importDBWorkspace).
+ * @returns The skipped audio files and the top items created (with their new ids), for the caller to refresh and undo.
+ * @throws "TRANSFER_WORKSPACE_FILE" for a whole-workspace file, "TRANSFER_PARENT_MISSING" when the destination folder is gone,
+ * "TRANSFER_IMPORT_FAILED" otherwise.
+ * @category Database Queries
+ */
+export async function importDBItems(
+    data: WorkspaceExport,
+    workspaceId: number,
+    parentFolderId: number | null,
+    options: { audioExists?: (path: string) => Promise<boolean> } = {},
+): Promise<ImportedItems> {
+    if (data.scope !== "items") throw createError("TRANSFER_WORKSPACE_FILE", i18n.t("errors.transfer.workspaceFile"))
+    const audioExists = options.audioExists ?? defaultAudioExists
+    try {
+        const db = await getDB()
+        if (parentFolderId !== null) {
+            const parents = await db.select<{ id: number }[]>(
+                'SELECT id FROM folder WHERE id = ? AND workspaceID = ? AND deleted_at IS NULL', [parentFolderId, workspaceId])
+            if (parents.length === 0) throw createError("TRANSFER_PARENT_MISSING", i18n.t("errors.transfer.parentMissing"))
+        }
+
+        // Top items: after the existing siblings, with a free name among them
+        const parentKey = parentFolderId ?? 0
+        const siblings = async (table: "folder" | "note") => db.select<{ name: string, position: number }[]>(
+            `SELECT name, position FROM ${table} WHERE workspaceID = ? AND IFNULL(folderID, 0) = ? AND deleted_at IS NULL`,
+            [workspaceId, parentKey])
+        const topFolders = data.folders.filter(folder => folder.parentRef === null)
+        const topNotes = data.notes.filter(note => note.folderRef === null)
+        for (const [items, table] of [[topFolders, "folder"], [topNotes, "note"]] as const) {
+            if (items.length === 0) continue
+            const existing = await siblings(table)
+            const used = new Set(existing.map(row => row.name))
+            let position = existing.reduce((max, row) => Math.max(max, row.position + 1), 0)
+            for (const item of items) {
+                item.name = uniqueSibling(item.name.trim(), used)
+                item.position = position++
+            }
+        }
+
+        const tx = new Transaction()
+        const { skippedAudio, folderRefs, noteRefs } = await insertItems(tx, data, workspaceId, parentFolderId, audioExists)
+        const results = await tx.run()
+        const idOf = (ref: TxRef) => results[ref.$ref].lastInsertId - ref.offset
+        return {
+            skippedAudio,
+            items: [
+                ...topFolders.map(folder => ({ type: "folder" as const, id: idOf(folderRefs.get(folder.ref)!), name: folder.name })),
+                ...topNotes.map(note => ({ type: "note" as const, id: idOf(noteRefs[data.notes.indexOf(note)]), name: note.name })),
+            ],
+        }
+    } catch (error: unknown) {
+        if (isAppError(error)) throw error
         throw createError("TRANSFER_IMPORT_FAILED", i18n.t("errors.transfer.import", { message: getErrorMessage(error) }))
     }
 }

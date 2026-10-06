@@ -3,6 +3,7 @@ import { Fragment, useEffect, useState } from "react"
 import { Pencil, RotateCcw, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { KbdKeys } from "@/components/kbd"
 import { useShortcutsContext } from "@/contexts/use-shortcuts"
 import { SHORTCUTS, SHORTCUT_CATEGORIES, bindingFromEvent, categoryLabel, findConflictsFor, formatBinding, isValidBinding, shortcutDescription } from "@/lib/shortcuts"
@@ -79,25 +80,27 @@ export const ShortcutsSettings = () => {
                                             {isRecording
                                                 ? <span className="text-xs text-muted-foreground">{t("settings.shortcuts.pressKeys")}</span>
                                                 : <KbdKeys keys={formatBinding(bindings[s.id])} />}
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                aria-label={t("settings.shortcuts.editAria", { name: shortcutDescription(s.id) })}
-                                                onClick={() => isRecording ? setRecordingId(null) : startRecording(s.id)}
-                                            >
-                                                {isRecording ? <X /> : <Pencil />}
-                                                {isRecording ? t("common.cancel") : t("settings.shortcuts.edit")}
-                                            </Button>
-                                            {s.id in overrides && !isRecording && (
+                                            <TooltipCustom text={isRecording ? t("common.cancel") : t("settings.shortcuts.edit")}>
                                                 <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    aria-label={t("settings.shortcuts.resetAria", { name: shortcutDescription(s.id) })}
-                                                    onClick={() => { resetBinding(s.id); setError(null) }}
+                                                    variant="outline"
+                                                    size="icon"
+                                                    aria-label={t("settings.shortcuts.editAria", { name: shortcutDescription(s.id) })}
+                                                    onClick={() => isRecording ? setRecordingId(null) : startRecording(s.id)}
                                                 >
-                                                    <RotateCcw />
-                                                    {t("settings.shortcuts.reset")}
+                                                    {isRecording ? <X /> : <Pencil />}
                                                 </Button>
+                                            </TooltipCustom>
+                                            {s.id in overrides && !isRecording && (
+                                                <TooltipCustom text={t("settings.shortcuts.reset")}>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        aria-label={t("settings.shortcuts.resetAria", { name: shortcutDescription(s.id) })}
+                                                        onClick={() => { resetBinding(s.id); setError(null) }}
+                                                    >
+                                                        <RotateCcw />
+                                                    </Button>
+                                                </TooltipCustom>
                                             )}
                                         </div>
                                         {error?.id === s.id && (

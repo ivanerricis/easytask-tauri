@@ -60,6 +60,14 @@ describe("getTaskStep", () => {
         expect(getTaskStep(buildTree(), 1, 1, false)?.index).toBe(1)
     })
 
+    it("does not jump over a completed task that stays visible because of an open subtask", () => {
+        const tree = buildTree()
+        const section = tree.groups.find(g => g.id === 1)!.sections[0]
+        section.tasks[1].subtasks = [makeTask({ id: 21, sectionID: 1, taskID: 2, text: "B1" })]
+        // A down: B is completed but shown (B1 is open), so it is the next sibling
+        expect(getTaskStep(tree, 1, 1, true)).toEqual({ sectionId: 1, parentTaskId: null, index: 1 })
+    })
+
     it("gives the expected order once applied (the index is the final one among the siblings)", () => {
         const order = (ids: number[], id: number, index: number) => { const rest = ids.filter(x => x !== id); rest.splice(index, 0, id); return rest }
         expect(order([1, 2, 3], 1, getTaskStep(buildTree(), 1, 1, false)!.index)).toEqual([2, 1, 3])

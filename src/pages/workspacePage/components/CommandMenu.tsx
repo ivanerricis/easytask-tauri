@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { useAllNotes } from "@/hooks/use-all-notes"
+import { NoteSearchLabel } from "@/components/note-search-label"
 import { useTabsActions } from "@/contexts/use-tabs"
 import { SearchIcon } from "lucide-react"
 import { useState } from "react"
@@ -21,7 +22,7 @@ export function CommandMenu() {
     useShortcut("search-notes", () => setOpen(open => !open), { allowInInputs: true })
     const searchLabel = useShortcutLabel("search-notes")
 
-    // Every note once, with the path of its folder (so same-named notes can be told apart)
+    // Every note once, with the path of its folder (shown in full, workspace included, under the name)
     const allNotes = useAllNotes()
 
     return (
@@ -60,8 +61,7 @@ export function CommandMenu() {
                                     openNote(note.id)
                                 }}
                             >
-                                {note.name}
-                                {path && <span className="ml-1 truncate text-xs text-muted-foreground">{path}</span>}
+                                <NoteSearchLabel name={note.name} path={path} />
                             </CommandItem>))}
                     </CommandGroup>
                 </CommandList>

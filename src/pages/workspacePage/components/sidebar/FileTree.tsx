@@ -23,6 +23,10 @@ import {
 import { useItemSize } from "./item-size"
 import { markTreeDragEnd, treeRowKey } from "./tree-row"
 import { VIRTUALIZE_THRESHOLD, flattenTree } from "./flat-tree"
+import { rowKeys, selectionKey } from "./selection"
+import { useSelectionStore } from "./selection-context"
+import { useSelectionActions } from "./selection-actions"
+import type { PlannedMove } from "./tree-multi-move"
 import { VirtualTree } from "./VirtualTree"
 
 const ROOT_ID = "root"
@@ -72,13 +76,15 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, over
     return <ItemNote note={item} dropZone={overKey === treeRowKey("note", item.id) ? overZone : null} />
 }
 
-const DragPreview = ({ item, isFolder }: { item: Folder | Note, isFolder: boolean }) => {
+/** What follows the pointer: the dragged item, or "N items" when the whole selection is dragged. */
+const DragPreview = ({ item, isFolder, count }: { item: Folder | Note, isFolder: boolean, count: number }) => {
+    const { t } = useTranslation()
     const size = useItemSize()
     const Icon = isFolder ? FolderIcon : File
     return (
         <div className={`flex items-center gap-1 ${size.row} px-1 rounded-xs border border-accent bg-background shadow-md opacity-90 w-48`}>
             <Icon className={`${size.icon} shrink-0`} />
-            <span className={`${size.text} truncate`}>{item.name}</span>
+            <span className={`${size.text} truncate`}>{count > 1 ? t("menu.selection.dragCount", { count }) : item.name}</span>
         </div>
     )
 }
@@ -140,6 +146,11 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
     const [hover, setHover] = useState<HoverState>(NO_HOVER)
     const [activeRef, setActiveRef] = useState<TreeRef | null>(null)
     const targetRef = useRef<DropTarget | null>(null)
+    // Dragging a selected row drags the whole selection: the plan of the move being hovered (null = no valid target)
+    const store = useSelectionStore()
+    const selectionActions = useSelectionActions()
+    const [multiCount, setMultiCount] = useState(0)
+    const multiPlanRef = useRef<PlannedMove[] | null>(null)
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -159,6 +170,8 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
 
     const reset = useCallback(() => {
         targetRef.current = null
+        multiPlanRef.current = null
+        setMultiCount(0)
         setActiveRef(null)
         setHover(NO_HOVER)
     }, [])
@@ -166,6 +179,8 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
     const handleDragStart = (event: DragStartEvent) => {
         const data = event.active.data.current as TreeRef | undefined
         setActiveRef(data ?? null)
+        const dragsSelection = !!data && !!store && !!selectionActions && store.has(selectionKey(data.type, data.id)) && store.getSelected().size >= 2
+        setMultiCount(dragsSelection ? selectionActions.getTargets().length : 0)
     }
 
     const handleDragMove = (event: DragMoveEvent) => {
@@ -173,6 +188,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         const over = event.over
         if (!active || !over) {
             targetRef.current = null
+            multiPlanRef.current = null
             setHover(prev => prev === NO_HOVER ? prev : NO_HOVER)
             return
         }
@@ -190,12 +206,15 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         }
 
         // Invalid or no-op targets (e.g. a folder into its own descendant) show no indicator
-        const target = computeDropTarget(tree, active, overRef, zone)
+        const plan = multiCount > 0 && selectionActions ? selectionActions.planDrop(overRef, zone) : null
+        multiPlanRef.current = plan
+        const target = multiCount > 0 ? null : computeDropTarget(tree, active, overRef, zone)
         targetRef.current = target
+        const valid = multiCount > 0 ? !!plan : !!target
         const next: HoverState = {
-            overKey: overRef && target ? treeRowKey(overRef.type, overRef.id) : null,
-            zone: target ? zone : null,
-            rootActive: !overRef && !!target,
+            overKey: overRef && valid ? treeRowKey(overRef.type, overRef.id) : null,
+            zone: valid ? zone : null,
+            rootActive: !overRef && valid,
         }
         setHover(prev => prev.overKey === next.overKey && prev.zone === next.zone && prev.rootActive === next.rootActive ? prev : next)
     }
@@ -204,7 +223,14 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         markTreeDragEnd()
         const active = event.active.data.current as TreeRef | undefined
         const target = targetRef.current
+        const plan = multiPlanRef.current
         reset()
+        if (active && event.over && plan && selectionActions) {
+            await selectionActions.executeMove(plan)
+            const folderId = plan[0].to.folderId
+            if (folderId != null) onExpandFolder(folderId)
+            return
+        }
         if (!active || !event.over || !target) return
 
         try {
@@ -240,6 +266,8 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
     const activeItem = activeRef ? findTreeItem(tree, activeRef) : undefined
     const rootElRef = useRef<HTMLDivElement | null>(null)
     const flatRows = useMemo(() => flattenTree(tree, collapsedIds), [tree, collapsedIds])
+    // The selection follows the rows in view: what disappears from the tree (or gets hidden) is deselected
+    useEffect(() => { store?.sync(rowKeys(flatRows)) }, [store, flatRows])
     const virtualized = flatRows.length > VIRTUALIZE_THRESHOLD
     const getScrollElement = useCallback(
         () => rootElRef.current?.closest<HTMLElement>("[data-tree-scroll]") ?? rootElRef.current?.parentElement ?? null,
@@ -299,7 +327,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
                 )}
             </RootDropArea>
             <DragOverlay dropAnimation={null}>
-                {activeItem && activeRef ? <DragPreview item={activeItem} isFolder={activeRef.type === "folder"} /> : null}
+                {activeItem && activeRef ? <DragPreview item={activeItem} isFolder={activeRef.type === "folder"} count={multiCount} /> : null}
             </DragOverlay>
         </DndContext>
     )

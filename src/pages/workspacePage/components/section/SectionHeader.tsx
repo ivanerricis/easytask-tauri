@@ -10,7 +10,7 @@ import { useEffect, useRef, useState } from "react"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import { toast } from "sonner"
+import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { usePreferences } from "@/contexts/use-preferences"
 import type { HTMLAttributes } from "react"
 
@@ -40,15 +40,19 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
     const { t } = useTranslation()
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(section.title)
+    const [error, setError] = useState<string | null>(null)
     const { renameItem } = useWorkspaceActions()
     const { patchSection } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const { showProgressBar } = usePreferences()
     const colorAlpha = useColorAlpha()
     const textareaRef = useRef<HTMLInputElement>(null)
+    // Set once an edit has ended (saved or cancelled): the blur that follows Escape/Enter must not save a second time
+    const done = useRef(false)
 
     useEffect(() => {
         if (isTextAreaOpen && textareaRef.current) {
+            done.current = false
             const input = textareaRef.current
             const length = input.value.length
             input.focus()
@@ -57,6 +61,8 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
     }, [isTextAreaOpen])
 
     const handleChangeText = async () => {
+        if (done.current) return
+        done.current = true
         // Optimistic: the cached tree is updated at once and restored if the write fails
         const changed = section.title !== text && text.trim() !== ""
         const rollback = changed ? patchSection(section.id, { title: text.trim() }) : null
@@ -67,8 +73,19 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
             }
         } catch (err) {
             rollback?.()
-            toast.error(t("sections.renameError", { message: getErrorMessage(err) }))
+            // The field stays open with the typed text, so it can be fixed
+            setError(t("sections.renameError", { message: getErrorMessage(err) }))
+            done.current = false
+            return
         }
+        setTextAreaOpen(false)
+    }
+
+    const handleCancel = () => {
+        if (done.current) return
+        done.current = true
+        setError(null)
+        setText(section.title)
         setTextAreaOpen(false)
     }
 
@@ -112,20 +129,29 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
                             className="text-sm ml-2 min-w-0 flex-1 truncate cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             {section.title}
                         </button>}
-                        {isTextAreaOpen && <input
-                            ref={textareaRef}
-                            type="text"
-                            value={text}
-                            onChange={e => setText(e.target.value)}
-                            onBlur={handleChangeText}
-                            onKeyDown={e => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleChangeText();
-                                }
-                            }}
-                            className="min-w-0 flex-1 px-1 ml-2 border border-primary resize-none text-sm rounded-xs"
-                        />}
+                        {isTextAreaOpen && <InlineErrorTooltip message={error}>
+                            <input
+                                ref={textareaRef}
+                                type="text"
+                                value={text}
+                                aria-label={t("sections.titleLabel")}
+                                aria-invalid={error !== null}
+                                onChange={e => { setError(null); setText(e.target.value) }}
+                                // After a failed save, leaving the field gives up the change instead of retrying
+                                onBlur={() => { if (error) handleCancel(); else void handleChangeText() }}
+                                onKeyDown={e => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleChangeText();
+                                    } else if (e.key === "Escape") {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        handleCancel()
+                                    }
+                                }}
+                                className={`min-w-0 flex-1 px-1 ml-2 border resize-none text-sm rounded-xs ${error ? "border-destructive" : "border-primary"}`}
+                            />
+                        </InlineErrorTooltip>}
                         {showProgressBar && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
                             <Progress className="w-20" value={completionPercentage} />
                             <span className="text-xs">

@@ -7,6 +7,7 @@ import { createMockDb, type MockDb } from "@/test/db-mock"
 import { initDB, legacyDbMessage, newerDbMessage } from "./initDb"
 import { APPLICATION_ID, initialSchema } from "./schema/initial"
 import { addGroupColorColumn } from "./schema/section_group"
+import { createWorkspaceEditTriggers } from "./schema/workspace_edit"
 
 // Runs initDB against a real SQLite database through a minimal adapter of the plugin API
 let sqlite: DatabaseSync
@@ -41,8 +42,8 @@ describe("initDB final schema", () => {
         await initDB(adapter())
     })
 
-    it("sets user_version to 2 and the application id", () => {
-        expect(pragma("user_version")).toBe(2)
+    it("sets user_version to 3 and the application id", () => {
+        expect(pragma("user_version")).toBe(3)
         expect(pragma("application_id")).toBe(APPLICATION_ID)
     })
 
@@ -69,7 +70,9 @@ describe("initDB final schema", () => {
         expect(names("trigger")).toEqual([
             "update_folder_edit_timestamp", "update_note_edit_timestamp", "update_note_template_edit_timestamp",
             "update_section_edit_timestamp", "update_task_edit_timestamp", "update_workspace_edit_timestamp",
-        ])
+            ...["audio_file", "folder", "note", "note_template", "section", "section_group", "task"]
+                .flatMap(t => ["delete", "insert", "update"].map(e => `workspace_edit_on_${t}_${e}`)),
+        ].sort())
     })
 
     it("has the soft delete and ordering columns", () => {
@@ -108,12 +111,12 @@ describe("initDB behaviour", () => {
         await initDB(adapter())
         expect(sqlite.prepare("SELECT type, name, sql FROM sqlite_master ORDER BY name").all()).toEqual(snapshot)
         expect(sqlite.prepare("SELECT name FROM workspace").all()).toEqual([{ name: "WS" }])
-        expect(pragma("user_version")).toBe(2)
+        expect(pragma("user_version")).toBe(3)
     })
 
     it("does not execute anything when already at the latest version", async () => {
         const db: MockDb = createMockDb()
-        db.select.mockResolvedValueOnce([{ user_version: 2 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
+        db.select.mockResolvedValueOnce([{ user_version: 3 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
         await initDB(db as unknown as Database)
         expect(db.execute).not.toHaveBeenCalled()
     })
@@ -122,14 +125,14 @@ describe("initDB behaviour", () => {
         const db: MockDb = createMockDb()
         db.select.mockResolvedValueOnce([{ user_version: 0 }])
         await initDB(db as unknown as Database)
-        expect(db.execute.mock.calls.map(c => c[0])).toEqual([...initialSchema, "PRAGMA user_version = 1", addGroupColorColumn, "PRAGMA user_version = 2"])
+        expect(db.execute.mock.calls.map(c => c[0])).toEqual([...initialSchema, "PRAGMA user_version = 1", addGroupColorColumn, "PRAGMA user_version = 2", ...createWorkspaceEditTriggers, "PRAGMA user_version = 3"])
     })
 
     it("treats an empty PRAGMA result as a fresh database", async () => {
         const db: MockDb = createMockDb()
         db.select.mockResolvedValueOnce([])
         await initDB(db as unknown as Database)
-        expect(db.execute.mock.calls.at(-1)?.[0]).toBe("PRAGMA user_version = 2")
+        expect(db.execute.mock.calls.at(-1)?.[0]).toBe("PRAGMA user_version = 3")
     })
 
     it("refuses a legacy database (user_version > 0 without the application id) and leaves it untouched", async () => {
@@ -150,7 +153,7 @@ describe("initDB behaviour", () => {
 
     it("refuses a database of a newer version", async () => {
         const db: MockDb = createMockDb()
-        db.select.mockResolvedValueOnce([{ user_version: 3 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
+        db.select.mockResolvedValueOnce([{ user_version: 4 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
         await expect(initDB(db as unknown as Database)).rejects.toThrow(newerDbMessage())
         expect(db.execute).not.toHaveBeenCalled()
     })
@@ -201,7 +204,7 @@ describe("initDB v2 (group color)", () => {
     it("migrates a real v1 database to v2 preserving its data and application id", async () => {
         makeV1()
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(2)
+        expect(pragma("user_version")).toBe(3)
         expect(pragma("application_id")).toBe(APPLICATION_ID)
         expect(sqlite.prepare("SELECT id, name, color FROM section_group").all()).toEqual([{ id: 1, name: "Idee", color: null }])
         expect(sqlite.prepare("SELECT name FROM note").all()).toEqual([{ name: "N" }])
@@ -218,7 +221,7 @@ describe("initDB v2 (group color)", () => {
         makeV1()
         sqlite.exec("ALTER TABLE section_group ADD COLUMN color TEXT CHECK (LENGTH(color) > 0) DEFAULT NULL")
         await expect(initDB(adapter())).resolves.toBeUndefined()
-        expect(pragma("user_version")).toBe(2)
+        expect(pragma("user_version")).toBe(3)
     })
 
     it("still fails on other ALTER errors", async () => {
@@ -226,5 +229,130 @@ describe("initDB v2 (group color)", () => {
         db.select.mockResolvedValueOnce([{ user_version: 1 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
         db.execute.mockRejectedValueOnce(new Error("disk full"))
         await expect(initDB(db as unknown as Database)).rejects.toThrow("disk full")
+    })
+})
+
+describe("initDB v3 (workspace edit triggers)", () => {
+    const setup = () => sqlite.exec(`
+        INSERT INTO workspace (id, name) VALUES (1, 'WS'), (2, 'Other');
+        INSERT INTO note (id, workspaceID, name, position) VALUES (1, 1, 'N', 0);
+        INSERT INTO section_group (id, noteID, position) VALUES (1, 1, 0);
+        INSERT INTO section (id, groupID, title, position) VALUES (1, 1, 'S', 0);
+        INSERT INTO audio_file (name, section_groupID, path, position) VALUES ('a', 1, 'p', 0);
+    `)
+    const old = () => sqlite.exec("UPDATE workspace SET edit_date='2000-01-01', edit_time='00:00'")
+    const edit = (id: number) => sqlite.prepare("SELECT edit_date d, edit_time t FROM workspace WHERE id = ?").get(id) as { d: string, t: string }
+    const touched = (id: number) => edit(id).d !== "2000-01-01"
+
+    it("insert, update, soft delete and delete of a task or subtask bump only the owning workspace", async () => {
+        await initDB(adapter())
+        setup()
+        const steps = [
+            "INSERT INTO task (id, sectionID, text) VALUES (1, 1, 't')",
+            "INSERT INTO task (id, sectionID, taskID, text) VALUES (2, 1, 1, 'sub')",
+            "UPDATE task SET text = 'x' WHERE id = 1",
+            "UPDATE task SET deleted_at = '2025-01-01' WHERE id = 2",
+            "DELETE FROM task WHERE id = 2",
+        ]
+        for (const q of steps) {
+            old()
+            sqlite.exec(q)
+            expect(touched(1), q).toBe(true)
+            expect(edit(1).t).toMatch(/^[0-9]{2}:[0-9]{2}$/)
+            expect(touched(2), q).toBe(false)
+        }
+    })
+
+    it("every table bumps its workspace", async () => {
+        await initDB(adapter())
+        setup()
+        const qs = [
+            "INSERT INTO folder (id, workspaceID, name, position) VALUES (1, 1, 'F', 0)",
+            "UPDATE folder SET position = 3 WHERE id = 1",
+            "DELETE FROM folder WHERE id = 1",
+            "INSERT INTO note_template (id, workspaceID, name, content) VALUES (1, 1, 'T', '{}')",
+            "UPDATE note_template SET deleted_at = '2025-01-01' WHERE id = 1",
+            "DELETE FROM note_template WHERE id = 1",
+            "UPDATE note SET position = 4 WHERE id = 1",
+            "INSERT INTO section_group (noteID, position) VALUES (1, 1)",
+            "UPDATE section_group SET position = 5 WHERE id = 1",
+            "INSERT INTO section (groupID, title, position) VALUES (1, 'S2', 1)",
+            "UPDATE section SET position = 2 WHERE id = 1",
+            "INSERT INTO audio_file (name, section_groupID, path, position) VALUES ('b', 1, 'p', 1)",
+            "UPDATE audio_file SET position = 7 WHERE name = 'a'",
+            "DELETE FROM audio_file WHERE name = 'b'",
+            "DELETE FROM section WHERE title = 'S2'",
+            "DELETE FROM section_group WHERE position = 1",
+        ]
+        for (const q of qs) {
+            old()
+            sqlite.exec(q)
+            expect(touched(1), q).toBe(true)
+            expect(touched(2), q).toBe(false)
+        }
+    })
+
+    it("moving a note to another workspace bumps both", async () => {
+        await initDB(adapter())
+        setup()
+        old()
+        sqlite.exec("UPDATE note SET workspaceID = 2 WHERE id = 1")
+        expect(touched(1)).toBe(true)
+        expect(touched(2)).toBe(true)
+    })
+
+    it("deleting a whole workspace (cascade) works", async () => {
+        await initDB(adapter())
+        setup()
+        sqlite.exec("INSERT INTO task (sectionID, text) VALUES (1, 't')")
+        expect(() => sqlite.exec("DELETE FROM workspace WHERE id = 1")).not.toThrow()
+    })
+
+    it("a v2 database gets the triggers once on migration", async () => {
+        for (const q of [...initialSchema, addGroupColorColumn]) sqlite.exec(q)
+        sqlite.exec("PRAGMA user_version = 2")
+        await initDB(adapter())
+        expect(pragma("user_version")).toBe(3)
+        expect(names("trigger").filter(n => n.startsWith("workspace_edit_on_"))).toHaveLength(21)
+    })
+})
+
+describe("initDB beforeMigrate", () => {
+    const latest = 3
+
+    it("is not called for a new database", async () => {
+        const beforeMigrate = vi.fn()
+        await initDB(adapter(), { beforeMigrate })
+        expect(beforeMigrate).not.toHaveBeenCalled()
+        expect(pragma("user_version")).toBe(latest)
+    })
+
+    it("is not called when the database is already up to date", async () => {
+        await initDB(adapter())
+        const beforeMigrate = vi.fn()
+        await initDB(adapter(), { beforeMigrate })
+        expect(beforeMigrate).not.toHaveBeenCalled()
+    })
+
+    it("is called once, before anything changes, for an existing database that needs migrating", async () => {
+        sqlite.exec(`PRAGMA application_id = ${APPLICATION_ID}`)
+        for (const query of initialSchema) sqlite.exec(query)
+        sqlite.exec("PRAGMA user_version = 1")
+        let versionSeen = -1
+        const beforeMigrate = vi.fn(async () => { versionSeen = pragma("user_version") })
+        const db = adapter()
+        await initDB(db, { beforeMigrate })
+        expect(beforeMigrate).toHaveBeenCalledTimes(1)
+        expect(beforeMigrate).toHaveBeenCalledWith(db, 1, latest)
+        expect(versionSeen).toBe(1)
+        expect(pragma("user_version")).toBe(latest)
+    })
+
+    it("a rejection stops the migration", async () => {
+        sqlite.exec(`PRAGMA application_id = ${APPLICATION_ID}`)
+        for (const query of initialSchema) sqlite.exec(query)
+        sqlite.exec("PRAGMA user_version = 1")
+        await expect(initDB(adapter(), { beforeMigrate: async () => { throw new Error("no space") } })).rejects.toThrow("no space")
+        expect(pragma("user_version")).toBe(1)
     })
 })

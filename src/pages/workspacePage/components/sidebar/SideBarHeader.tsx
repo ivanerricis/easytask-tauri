@@ -12,7 +12,7 @@ export const SideBarHeader = ({ children, text, className }: SideBarHeaderProps)
             {text && <span className="font-semibold text-left w-full">
                 {text}
             </span>}
-            {children && <div className="flex items-center justify-start w-full gap-1">
+            {children && <div className="flex flex-wrap items-center justify-start w-full gap-1">
                 {children}
             </div>}
         </div>

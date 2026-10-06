@@ -1,9 +1,13 @@
 import { useTranslation } from "react-i18next"
+import { useActiveNoteId } from "@/contexts/use-tabs"
 import { ChevronDown, Folder as FolderIcon, FolderOpen } from "lucide-react"
 import React, { useState } from "react"
 import { DropLine } from "../sidebar/DropLine"
 import { useItemSize } from "../sidebar/item-size"
-import { isInsideZone, stopDragActivation, treeRowKeyDown, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { isInsideZone, stopDragActivation, treeRowKey, treeRowKeyDown, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { SelectionMark } from "../sidebar/SelectionMark"
+import { handleSelectionClick } from "../sidebar/selection"
+import { useIsSelected, useSelectionStore } from "../sidebar/selection-context"
 import type { DropZone } from "../sidebar/tree-dnd"
 import { ButtonMenuFolder } from "./ButtonMenuFolder"
 import { ItemMenuButton } from "@/components/item-menu"
@@ -12,6 +16,10 @@ import { focusRing } from "@/lib/a11y"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { formatDate, hexToRgba } from "@/lib/utils"
+
+/** Whether the note is anywhere inside the folder (subfolders included). */
+const holdsNote = (folder: Folder, noteId: number): boolean =>
+    folder.notes.some(note => note.id === noteId) || (folder.subfolders ?? []).some(sub => holdsNote(sub, noteId))
 
 type ItemFolderProps = {
     folder: Folder
@@ -31,6 +39,22 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
     const size = useItemSize()
     const colorAlpha = useColorAlpha()
     const hasContent = React.Children.count(children) > 0
+    const store = useSelectionStore()
+    const selected = useIsSelected("folder", folder.id)
+    // A collapsed folder hides the open note: it gets a discreet mark so that the note can be found again
+    const activeNoteId = useActiveNoteId()
+    const holdsActiveNote = !isOpen && activeNoteId !== null && holdsNote(folder, activeNoteId)
+
+    // Ctrl/Cmd+click and Shift+click only select; a plain click toggles the folder and clears the selection
+    const handleClick = (e: React.MouseEvent) => {
+        if (wasTreeJustDragged()) return
+        if (handleSelectionClick(store, treeRowKey("folder", folder.id), e)) return
+        onToggle(folder.id)
+    }
+    const handleActivate = () => {
+        store?.reset(treeRowKey("folder", folder.id))
+        onToggle(folder.id)
+    }
 
     return (
         <div className="relative flex flex-col gap-1 w-full">
@@ -40,15 +64,18 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                     {...listeners}
                     ref={ref}
                     role="button"
-                    onClick={() => { if (!wasTreeJustDragged()) onToggle(folder.id) }}
-                    onKeyDown={treeRowKeyDown(listeners, () => onToggle(folder.id))}
+                    onClick={handleClick}
+                    aria-selected={selected}
+                    data-holds-active={holdsActiveNote || undefined}
+                    onKeyDown={treeRowKeyDown(listeners, handleActivate)}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
-                    className={`${focusRing} relative group cursor-pointer gap-1 w-full pl-1 ${size.row} flex items-center rounded-xs border border-accent bg-background opacity-85 hover:opacity-100 overflow-x-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
+                    className={`${focusRing} relative group cursor-pointer gap-1 w-full pl-1 ${size.row} flex items-center rounded-xs border select-none ${selected ? "border-primary" : holdsActiveNote ? "border-primary/60" : "border-accent"} bg-background opacity-85 hover:opacity-100 overflow-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
                     style={{ backgroundColor: `${hexToRgba(colorAlpha.item(isHovered), folder.color)}` }}
                 >
 
                     <DropLine zone={dropZone} />
+                    <SelectionMark selected={selected} />
                     <TooltipCustom
                         side="right"
                         sideOffset={size.folderTooltipOffset}
@@ -68,7 +95,7 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                             </span>
                         </div>
                     </TooltipCustom>
-                    <div className={`shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
+                    <div className={`flex items-center leading-none shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
                         <ItemMenuButton />
                     </div>
                 </div>
@@ -77,7 +104,7 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
             {
                 isOpen && hasContent && (
                     <div className="relative w-full">
-                        <div className={`absolute ${size.guide} h-full w-[1px] bg-foreground/15`} />
+                        <div className={`absolute ${size.guide} h-full w-[1px] bg-foreground/25`} />
                         <div className={`${size.indent} flex flex-col gap-1`}>
                             {children}
                         </div>

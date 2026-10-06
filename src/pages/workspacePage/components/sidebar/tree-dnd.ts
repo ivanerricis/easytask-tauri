@@ -32,7 +32,7 @@ export function computeDropZone(
     return "inside"
 }
 
-const lists = (tree: TreeData) => {
+export const listTreeItems = (tree: TreeData) => {
     const folders = new Map<number, Folder>()
     const notes = new Map<number, Note>()
     const walkFolders = (items: Folder[]) => {
@@ -47,15 +47,15 @@ const lists = (tree: TreeData) => {
     return { folders, notes }
 }
 
-const childFolders = (tree: TreeData, parentId: number | null, byId: Map<number, Folder>): Folder[] =>
+export const childFolders = (tree: TreeData, parentId: number | null, byId: Map<number, Folder>): Folder[] =>
     parentId == null ? tree.rootFolders : byId.get(parentId)?.subfolders ?? []
 
-const childNotes = (tree: TreeData, parentId: number | null, byId: Map<number, Folder>): Note[] =>
+export const childNotes = (tree: TreeData, parentId: number | null, byId: Map<number, Folder>): Note[] =>
     parentId == null ? tree.rootNotes : byId.get(parentId)?.notes ?? []
 
 /** Ids of a folder and of all its descendant folders. */
 export function getFolderSubtreeIds(tree: TreeData, folderId: number): Set<number> {
-    const { folders } = lists(tree)
+    const { folders } = listTreeItems(tree)
     const result = new Set<number>()
     const visit = (id: number) => {
         result.add(id)
@@ -77,7 +77,7 @@ export function computeDropTarget(
     over: TreeRef | null,
     zone: DropZone,
 ): DropTarget | null {
-    const { folders, notes } = lists(tree)
+    const { folders, notes } = listTreeItems(tree)
     const activeItem = active.type === "folder" ? folders.get(active.id) : notes.get(active.id)
     if (!activeItem) return null
     if (over && over.type === active.type && over.id === active.id) return null
@@ -168,6 +168,6 @@ export function getFolderDestinations(tree: TreeData): MoveDestination[] {
 
 /** Finds a folder or note in the tree. */
 export function findTreeItem(tree: TreeData, ref: TreeRef): Folder | Note | undefined {
-    const { folders, notes } = lists(tree)
+    const { folders, notes } = listTreeItems(tree)
     return ref.type === "folder" ? folders.get(ref.id) : notes.get(ref.id)
 }

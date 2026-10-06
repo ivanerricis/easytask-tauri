@@ -10,6 +10,7 @@ import { toast } from "sonner"
 import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState } from "react"
 import { AutoTextarea } from "@/components/auto-textarea"
+import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { AlignLeft, GripVertical, Info, ListTree, Plus } from "lucide-react"
 import { AddTask } from "./AddTask"
 import { DialogTaskDescription } from "./DialogTaskDescription"
@@ -33,6 +34,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
     const { t } = useTranslation()
     const [isTextAreaOpen, setTextAreaOpen] = useState(false)
     const [text, setText] = useState(task.text)
+    const [error, setError] = useState<string | null>(null)
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
     const { updateTaskCompletion, renameItem } = useWorkspaceActions()
@@ -79,9 +81,17 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
         }
     }
 
+    const startEdit = () => {
+        // Re-armed here, not only in the focus effect: a finished edit must never leave Escape/Enter disabled for the next one
+        editDoneRef.current = false
+        setTextAreaOpen(true)
+        setText(task.text)
+    }
+
     const handleCancelEdit = () => {
         if (editDoneRef.current) return
         editDoneRef.current = true
+        setError(null)
         setText(task.text)
         setTextAreaOpen(false)
     }
@@ -99,7 +109,10 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
             }
         } catch (err) {
             rollback?.()
-            toast.error(t("tasks.errors.rename", { message: getErrorMessage(err) }))
+            // The field stays open with the typed text, so it can be fixed
+            setError(t("tasks.errors.rename", { message: getErrorMessage(err) }))
+            editDoneRef.current = false
+            return
         }
         setTextAreaOpen(false)
     }
@@ -108,7 +121,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
         <div className={cn(
             "relative flex flex-col items-center w-full border border-transparent transition-none",
             isSubtask ? "group/subtask subtask" : "border-b-border",
-            isTextAreaOpen && "border border-primary rounded-xs"
+            isTextAreaOpen && (error ? "border border-destructive rounded-xs" : "border border-primary rounded-xs")
         )}>
             {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└). Only the direct child of the last subtask counts (a plain descendant selector would hide the lines of every deeper level) */}
             {isSubtask && <>
@@ -160,12 +173,11 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                                     className={isSubtask ? "mt-[3px] size-3.5" : "mt-0.5"}
                                 />
                                 {!isTextAreaOpen && <AutoTextarea
-                                    onClick={() => { setTextAreaOpen(true); setText(task.text) }}
+                                    onClick={startEdit}
                                     onKeyDown={e => {
                                         if (e.key === "Enter" && !e.shiftKey) {
                                             e.preventDefault()
-                                            setTextAreaOpen(true)
-                                            setText(task.text)
+                                            startEdit()
                                         }
                                     }}
                                     aria-label={t("tasks.editText")}
@@ -175,12 +187,14 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                                         task.completed && "line-through text-muted-foreground"
                                     )}
                                 />}
-                                {isTextAreaOpen && <AutoTextarea
+                                {isTextAreaOpen && <InlineErrorTooltip message={error}><AutoTextarea
                                     ref={textareaRef}
                                     minRows={1}
                                     value={text}
-                                    onChange={e => setText(e.target.value)}
-                                    onBlur={handleChangeText}
+                                    aria-invalid={error !== null}
+                                    onChange={e => { setError(null); setText(e.target.value) }}
+                                    // After a failed save, leaving the field gives up the change instead of retrying
+                                    onBlur={() => { if (error) handleCancelEdit(); else void handleChangeText() }}
                                     onKeyDown={e => {
                                         if (e.key === "Enter" && !e.shiftKey) {
                                             e.preventDefault();
@@ -192,7 +206,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, chil
                                         }
                                     }}
                                     className="w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm"
-                                />}
+                                /></InlineErrorTooltip>}
                             </div>
 
                             {/* What the task has besides its text: a description (click to read it) and its subtasks (done / total) */}

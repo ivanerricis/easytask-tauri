@@ -27,6 +27,8 @@ export type TabsActionsType = {
     reorderTabs: (from: number, to: number) => void
     /** Makes an open tab the active one. */
     activateNote: (noteId: number) => void
+    /** Activates the next (1) or previous (-1) tab, wrapping around the ends. */
+    cycleNote: (direction: 1 | -1) => void
 }
 
 /** What is selected in a note (shown in the details panel). */

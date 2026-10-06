@@ -4,7 +4,7 @@ import { ConfirmDialog } from "./dialog-confirm"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getItemName, isUndoableType } from "@/contexts/undo/commands"
-import { toast } from "sonner"
+import { useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
 
@@ -29,7 +29,10 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
     const { deleteItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
 
+    const [error, setError] = useState<string | null>(null)
+
     const handleDelete = async () => {
+        setError(null)
         const rollback = optimistic?.()
         try {
             await deleteItem(itemType, item.id)
@@ -40,19 +43,21 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             onOpenChange(false)
         } catch (error) {
             rollback?.()
-            toast.error(t("dialogs.delete.error", { message: getErrorMessage(error) }))
+            setError(t("dialogs.delete.error", { message: getErrorMessage(error) }))
         }
     }
 
     return (
         <ConfirmDialog
             open={isOpen}
-            onOpenChange={onOpenChange}
+            onOpenChange={(open) => { if (!open) setError(null); onOpenChange(open) }}
             destructive
             autoClose={false}
             title={t("dialogs.delete.title")}
             description={t("dialogs.delete.description")}
             confirm={{ label: t("dialogs.delete.confirm"), icon: Trash2, onClick: handleDelete }}
-        />
+        >
+            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+        </ConfirmDialog>
     )
 }

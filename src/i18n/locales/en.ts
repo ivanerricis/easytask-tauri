@@ -57,6 +57,13 @@ export const en: Translation = {
             confirm: "Move to trash",
             error: "Could not delete the item: {{message}}",
         },
+        deleteSelection: {
+            description_one: "{{count}} item will be moved to the trash. You can restore it later.",
+            description_other: "{{count}} items will be moved to the trash. You can restore them later.",
+            confirm_one: "Move {{count}} item to the trash",
+            confirm_other: "Move {{count}} items to the trash",
+            error: "Could not delete all the items ({{done}} of {{total}} moved to the trash): {{message}}",
+        },
         noteFromTemplate: {
             title: "Create note from template",
             description: "Template: {{name}}",
@@ -177,6 +184,7 @@ export const en: Translation = {
             accent: {
                 label: "Accent color",
                 description: "Used for buttons, selections and highlights.",
+                reset: "Reset the accent color",
             },
             sidebarSize: {
                 label: "Size of folders and notes",
@@ -252,6 +260,16 @@ export const en: Translation = {
         },
         data: {
             title: "Data",
+            sections: {
+                transfer: "Import / Export",
+                folder: "Data folder",
+                backup: "Backup",
+                history: "History",
+            },
+            undoLimit: {
+                label: "Undoable actions",
+                description: "How many of the latest actions can be undone. Older ones are forgotten.",
+            },
             import: {
                 label: "Import workspace",
                 description: "Create a new workspace from an EasyTask export file.",
@@ -316,6 +334,12 @@ export const en: Translation = {
         },
         notes: {
             title: "Notes and sections",
+            sections: {
+                progress: "Progress bars",
+                counts: "Counters",
+                display: "Display",
+                startup: "On startup",
+            },
             progressBar: {
                 label: "Show progress bar in sections",
                 description: "Shows the percentage of completed tasks.",
@@ -326,6 +350,11 @@ export const en: Translation = {
             },
             sectionCount: "Show number of sections",
             taskCount: "Show number of tasks",
+            audioFileCount: "Show number of audio files",
+            groupSeparators: {
+                label: "Lines between groups",
+                description: "Draws a thin vertical guide line between the groups of a note.",
+            },
             subtaskCount: {
                 label: "Show completed subtasks",
                 description: "A task with subtasks shows how many of them are completed (e.g. 1/3).",
@@ -401,6 +430,10 @@ export const en: Translation = {
             "new-folder": "Create a new folder",
             "close-note": "Close the active note",
             "close-all-notes": "Close all notes",
+            "next-note": "Go to the next open note",
+            "previous-note": "Go to the previous open note",
+            "next-note-alt": "Go to the next open note (alternative)",
+            "previous-note-alt": "Go to the previous open note (alternative)",
             "toggle-hide-completed": "Hide or show the completed tasks",
             "toggle-audio": "Play or pause the audio",
             "new-group": "Create a new group or section",
@@ -459,6 +492,12 @@ export const en: Translation = {
             delete: "Delete {{type}}",
             create: "Create {{type}}",
             move: "Move {{type}}",
+            deleteMany_one: "Delete {{count}} item",
+            deleteMany_other: "Delete {{count}} items",
+            colorMany_one: "Change color of {{count}} item",
+            colorMany_other: "Change color of {{count}} items",
+            moveMany_one: "Move {{count}} item",
+            moveMany_other: "Move {{count}} items",
         },
         errors: {
             unavailable: "The item is no longer available",
@@ -618,6 +657,10 @@ export const en: Translation = {
             import: "Import failed: {{message}}",
             fileTooLarge: "The file is too large to import (maximum {{max}} MB).",
             tooManyItems: "The file contains too many items to import (maximum {{max}}).",
+            itemsFile: "This file contains a single note or folder: import it from inside a workspace.",
+            workspaceFile: "This file contains a whole workspace: import it from the start page.",
+            itemMissing: "The item to export no longer exists.",
+            parentMissing: "The destination folder no longer exists.",
             untitled: "(untitled)",
         },
         backup: {
@@ -681,6 +724,7 @@ export const en: Translation = {
     menu: {
         changeColor: "Change color",
         export: "Export",
+        importHere: "Import here",
         moveUp: "Move up",
         moveDown: "Move down",
         moveLeft: "Move left",
@@ -695,6 +739,15 @@ export const en: Translation = {
         open: "Open",
         createTemplate: "Create template",
         duplicate: "Duplicate",
+        selection: {
+            delete_one: "Delete {{count}} item",
+            delete_other: "Delete {{count}} items",
+            move: "Move",
+            color: "Color",
+            export: "Export",
+            dragCount_one: "{{count}} item",
+            dragCount_other: "{{count}} items",
+        },
     },
     home: {
         loading: "Loading Workspaces...",
@@ -703,6 +756,18 @@ export const en: Translation = {
         recent: "Open a recent Workspace:",
         viewGrid: "View as grid",
         viewList: "View as list",
+        sort: {
+            label: "Sort",
+            by: "Sort by",
+            direction: "Direction",
+            edited: "Last edited",
+            created: "Creation date",
+            name: "Name",
+            nameAsc: "A to Z",
+            nameDesc: "Z to A",
+            dateAsc: "Oldest first",
+            dateDesc: "Newest first",
+        },
         createWorkspace: {
             title: "Create Workspace",
             name: "Name",
@@ -761,6 +826,7 @@ export const en: Translation = {
         addFolder: "Create a folder",
         addNote: "Create a note",
         addNoteFromTemplate: "Create a note from a template",
+        importItems: "Import a note or folder",
         trashBadge_one: "{{count}} item in the trash",
         trashBadge_other: "{{count}} items in the trash",
         addAudioFirstGroup: "Add audio files to the first group of the note",
@@ -831,6 +897,12 @@ export const en: Translation = {
         imported: "Workspace imported",
         importedSkipped_one: "Workspace imported · {{count}} audio file skipped",
         importedSkipped_other: "Workspace imported · {{count}} audio files skipped",
+        exportedItem: "Exported",
+        importedItems: "Imported",
+        importedItemsSkipped_one: "Imported · {{count}} audio file skipped",
+        importedItemsSkipped_other: "Imported · {{count}} audio files skipped",
+        itemsFileName_one: "{{count}} item",
+        itemsFileName_other: "{{count}} items",
     },
     dnd: {
         unknownItem: "item",

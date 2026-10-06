@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { PreferencesContext } from "../preferences-context-object"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { useWorkspace } from "../use-workspace"
 import { useActiveNoteActions } from "../use-active-note"
@@ -6,7 +7,7 @@ import { useWorkspaceActions } from "../workspace-data"
 import { createUndoCommands, createUndoRecorder } from "./commands"
 import { UndoContext, type UndoContextType } from "./context"
 import { runHistory, runHistoryTo } from "./run-history"
-import { createUndoHistory } from "./stack"
+import { UNDO_LIMIT, createUndoHistory } from "./stack"
 
 /**
  * Keeps the undo/redo history of the open workspace (it is emptied when the workspace changes) and binds the
@@ -18,7 +19,9 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
     const { currentWorkspace } = useWorkspace()
     const workspaceActions = useWorkspaceActions()
     const noteActions = useActiveNoteActions()
-    const [history] = useState(() => createUndoHistory())
+    // Optional: without preferences the default limit applies
+    const undoLimit = useContext(PreferencesContext)?.undoLimit ?? UNDO_LIMIT
+    const [history] = useState(() => createUndoHistory(undoLimit))
     const workspaceId = currentWorkspace?.id ?? null
     const workspaceIdRef = useRef(workspaceId)
 
@@ -27,6 +30,9 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
         workspaceIdRef.current = workspaceId
         history.clear()
     }, [workspaceId, history])
+
+    // The limit can change in the settings: the history is trimmed at once
+    useEffect(() => { history.setLimit(undoLimit) }, [history, undoLimit])
 
     const snapshot = useSyncExternalStore(history.subscribe, history.getSnapshot)
 

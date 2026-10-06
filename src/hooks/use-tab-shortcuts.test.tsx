@@ -87,6 +87,30 @@ describe("useTabShortcuts", () => {
         expect(latest.current.activeId).toBeNull()
     })
 
+    it("Ctrl+PageDown / Ctrl+PageUp move to the next / previous tab, wrapping around", () => {
+        const { latest } = setup()
+        act(() => latest.current.activateNote(2))
+
+        fireEvent.keyDown(document, { key: "PageDown", ctrlKey: true })
+        expect(latest.current.activeId).toBe(3)
+        fireEvent.keyDown(document, { key: "PageDown", ctrlKey: true })
+        expect(latest.current.activeId).toBe(1)
+        fireEvent.keyDown(document, { key: "PageUp", ctrlKey: true })
+        expect(latest.current.activeId).toBe(3)
+        // tabs keep their order
+        expect(latest.current.openIds).toEqual([1, 2, 3])
+    })
+
+    it("Ctrl+Tab and Ctrl+Shift+Tab do the same", () => {
+        const { latest } = setup()
+        act(() => latest.current.activateNote(1))
+
+        fireEvent.keyDown(document, { key: "Tab", ctrlKey: true })
+        expect(latest.current.activeId).toBe(2)
+        fireEvent.keyDown(document, { key: "Tab", ctrlKey: true, shiftKey: true })
+        expect(latest.current.activeId).toBe(1)
+    })
+
     it("ignores the keys without Ctrl/Cmd and other shortcuts", () => {
         const { latest } = setup()
         fireEvent.keyDown(document, { key: "l" })

@@ -2,7 +2,10 @@ import i18n from "@/i18n"
 import { useCallback, useState } from "react"
 import { toast } from "sonner"
 import { useWorkspace } from "@/contexts/use-workspace"
-import { exportWorkspaceToFile, importWorkspaceFromFile } from "@/lib/workspace-transfer"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { reportError } from "@/lib/report-error"
+import { exportItemToFile, exportItemsToFile, exportWorkspaceToFile, importItemsFromFile, importWorkspaceFromFile } from "@/lib/workspace-transfer"
 import { getErrorMessage } from "@/lib/utils"
 
 /**
@@ -39,4 +42,61 @@ export function useWorkspaceTransfer() {
     }, [getWorkspaces])
 
     return { exportWorkspace, importWorkspace, isBusy }
+}
+
+/**
+ * Click handlers for the export/import of single notes and folders, with their toasts. Used inside an open workspace
+ * (it needs the workspace data and undo providers): the import refreshes the sidebar tree and is undoable.
+ * @category Hooks
+ */
+export function useItemTransfer() {
+    const { currentWorkspace } = useWorkspace()
+    const { getWorkspaceData } = useWorkspaceActions()
+    const recorder = useUndoRecorder()
+    const [isBusy, setBusy] = useState(false)
+
+    const exportItem = useCallback(async (itemType: "note" | "folder", item: { id: number, name: string }) => {
+        setBusy(true)
+        try {
+            if (await exportItemToFile(itemType, item)) toast.success(i18n.t("transfer.exportedItem"))
+        } catch (error) {
+            toast.error(getErrorMessage(error))
+        } finally {
+            setBusy(false)
+        }
+    }, [])
+
+    /** Exports several notes and folders in one file (the name is the default file name). */
+    const exportItems = useCallback(async (items: { type: "note" | "folder", id: number }[], name: string) => {
+        setBusy(true)
+        try {
+            if (await exportItemsToFile(items, name)) toast.success(i18n.t("transfer.exportedItem"))
+        } catch (error) {
+            toast.error(getErrorMessage(error))
+        } finally {
+            setBusy(false)
+        }
+    }, [])
+
+    /** Imports a note or folder file into a folder (null = workspace root) of the current workspace. */
+    const importItems = useCallback(async (parentFolderId: number | null) => {
+        if (!currentWorkspace) return
+        setBusy(true)
+        try {
+            const result = await importItemsFromFile(currentWorkspace.id, parentFolderId)
+            if (!result) return
+            // The new rows are on disk: a failing refresh must not hide the success
+            await getWorkspaceData(currentWorkspace.id).catch(error => reportError(error, i18n.t("errors.refreshTree")))
+            for (const item of result.items) recorder.create(item.type, item.id, item.name)
+            toast.success(result.skippedAudio > 0
+                ? i18n.t("transfer.importedItemsSkipped", { count: result.skippedAudio })
+                : i18n.t("transfer.importedItems"))
+        } catch (error) {
+            toast.error(getErrorMessage(error))
+        } finally {
+            setBusy(false)
+        }
+    }, [currentWorkspace, getWorkspaceData, recorder])
+
+    return { exportItem, exportItems, importItems, isBusy }
 }

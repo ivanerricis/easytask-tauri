@@ -93,3 +93,4 @@ describe("Group width when collapsed", () => {
         expect(FakeResizeObserver.instances).toHaveLength(0)
     })
 })
+

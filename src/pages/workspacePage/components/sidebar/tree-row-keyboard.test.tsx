@@ -9,7 +9,7 @@ const openNote = vi.fn()
 vi.mock("@/contexts/use-preferences", () => ({
     usePreferences: () => ({ sidebarItemSize: "normal" }),
 }))
-vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote }) }))
+vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote }), useActiveNoteId: () => null }))
 vi.mock("../note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("@/components/tooltip-custom", () => ({
     TooltipCustom: ({ children }: { children: React.ReactNode }) => <>{children}</>,

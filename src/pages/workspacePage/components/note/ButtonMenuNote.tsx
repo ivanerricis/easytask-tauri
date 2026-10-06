@@ -12,10 +12,13 @@ import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 import { MoveToSubmenu } from "../MoveToSubmenu"
 import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
+import { useIsInMultiSelection } from "../sidebar/selection-context"
+import { SelectionMenuItems } from "../sidebar/SelectionMenu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getErrorMessage } from "@/lib/utils"
 import { toast } from "sonner"
+import { useItemTransfer } from "@/hooks/use-workspace-transfer"
 
 const DialogCreateTemplate = lazy(() => import("@/components/dialogs/dialog-create-template").then(m => ({ default: m.DialogCreateTemplate })))
 
@@ -31,9 +34,11 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [isTemplateOpen, setTemplateOpen] = useState(false);
     const menu = useItemMenuState()
+    const multi = useIsInMultiSelection("note", note.id)
     const { updateItemColor, duplicateNote } = useWorkspaceActions()
     const { openNote } = useTabsActions()
     const recorder = useUndoRecorder()
+    const { exportItem } = useItemTransfer()
 
     // The copy is added to the tree by the context: open it in a tab and make the creation undoable
     const handleDuplicate = async () => {
@@ -48,7 +53,7 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
         }
     }
 
-    const items = (
+    const singleItems = (
         <MenuGroup className="flex flex-col gap-1">
             <ButtonInPopover
                 text={t("menu.open")}
@@ -92,6 +97,11 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                 type="createTemplate"
                 onClick={() => { setTemplateOpen(true); menu.close() }}
             />
+            <ButtonInPopover
+                text={t("menu.export")}
+                type="export"
+                onClick={() => { menu.close(); void exportItem("note", note) }}
+            />
             <Separator />
             <ButtonInPopover
                 text={t("common.delete")}
@@ -101,6 +111,9 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
             />
         </MenuGroup>
     )
+
+    // A selected row of a multi-selection acts on the whole selection
+    const items = multi ? <SelectionMenuItems menu={menu} /> : singleItems
 
     const dialogs = (
         <>

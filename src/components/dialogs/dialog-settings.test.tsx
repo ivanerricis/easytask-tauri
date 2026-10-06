@@ -37,6 +37,9 @@ vi.mock("@/contexts/use-preferences", () => ({
         showGroupProgressBar: true, setShowGroupProgressBar: vi.fn(),
         showSectionCount: true, setShowSectionCount: vi.fn(),
         showTaskCount: true, setShowTaskCount: vi.fn(),
+        showAudioFileCount: true, setShowAudioFileCount: vi.fn(),
+        showGroupSeparators: false, setShowGroupSeparators: vi.fn(),
+        undoLimit: 50, setUndoLimit: vi.fn(),
         hideCompletedTasks: false, setHideCompletedTasks: (value: boolean) => setHideCompletedTasks(value),
         reopenNotes: true, setReopenNotes: vi.fn(),
         reopenLastWorkspace: false, setReopenLastWorkspace: vi.fn(),
@@ -81,7 +84,7 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("button", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
-        expect(screen.getAllByRole("switch")).toHaveLength(8)
+        expect(screen.getAllByRole("switch")).toHaveLength(10)
         expect(screen.getByRole("switch", { name: "Nascondi i task completati" })).not.toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()

@@ -45,13 +45,21 @@ export const BackupSettings = () => {
     const [toRestore, setToRestore] = useState<BackupInfo | null>(null)
     const [toDelete, setToDelete] = useState<BackupInfo | null>(null)
 
+    const [error, setError] = useState<string | null>(null)
+
+    // Errors are shown inline in the panel (and logged), not as toasts
+    const fail = useCallback((err: unknown, message: string) => {
+        console.error(`${message} `, err)
+        setError(message)
+    }, [])
+
     const refresh = useCallback(async () => {
         try {
             setBackups(await listBackups())
-        } catch (error) {
-            reportError(error, t("settings.data.backup.errors.list"))
+        } catch (err) {
+            fail(err, t("settings.data.backup.errors.list"))
         }
-    }, [t])
+    }, [t, fail])
 
     useEffect(() => {
         let cancelled = false
@@ -67,10 +75,11 @@ export const BackupSettings = () => {
 
     const run = async (action: () => Promise<void>, errorMessage: string) => {
         setBusy(true)
+        setError(null)
         try {
             await action()
-        } catch (error) {
-            reportError(error, `${errorMessage} ${getErrorMessage(error)}`)
+        } catch (err) {
+            fail(err, `${errorMessage} ${getErrorMessage(err)}`)
         } finally {
             setBusy(false)
         }
@@ -92,10 +101,11 @@ export const BackupSettings = () => {
     }, t("settings.data.backup.errors.restore"))
 
     const openFolder = async () => {
+        setError(null)
         try {
             await invoke("open_data_folder", { subfolder: "backups" })
-        } catch (error) {
-            toast.error(getErrorMessage(error))
+        } catch (err) {
+            setError(getErrorMessage(err))
         }
     }
 
@@ -103,18 +113,19 @@ export const BackupSettings = () => {
     const changeKeep = (value: string) => {
         setKeep(value)
         if (value.trim() === "" || !Number.isFinite(Number(value))) return
-        void saveBackupKeep(clampBackupKeep(Number(value))).catch(error => reportError(error, t("settings.data.backup.errors.save")))
+        void saveBackupKeep(clampBackupKeep(Number(value))).catch(err => fail(err, t("settings.data.backup.errors.save")))
     }
 
     const normalizeKeep = () => setKeep(String(clampBackupKeep(keep.trim() === "" ? DEFAULT_BACKUP_KEEP : Number(keep))))
 
     const changeAuto = (value: boolean) => {
         setAuto(value)
-        void saveAutoBackup(value).catch(error => reportError(error, t("settings.data.backup.errors.save")))
+        void saveAutoBackup(value).catch(err => fail(err, t("settings.data.backup.errors.save")))
     }
 
     return (
         <>
+            {error && <p role="alert" className="text-xs text-destructive break-words">{error}</p>}
             <SettingsRow label={t("settings.data.backup.now.label")} description={t("settings.data.backup.now.description")}>
                 <Button variant="outline" size="sm" disabled={busy} onClick={() => void backupNow()}>
                     <DatabaseBackup />

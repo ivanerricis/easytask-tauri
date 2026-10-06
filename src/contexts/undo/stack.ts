@@ -84,8 +84,10 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
         return true
     }
 
-    const trim =() => {
+    const trim = () => {
         if (undoStack.length > limit) undoStack = undoStack.slice(undoStack.length - limit)
+        // The redo stack is bounded too
+        if (redoStack.length > limit) redoStack = redoStack.slice(redoStack.length - limit)
     }
 
     const record = (command: UndoCommand) => {
@@ -169,6 +171,13 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
     return {
         record,
         track,
+        /** Changes the limit: the oldest actions beyond it are dropped at once. Invalid values are ignored. */
+        setLimit: (next: number) => {
+            if (!Number.isInteger(next) || next < 1) return
+            limit = next
+            trim()
+            emit()
+        },
         undo: () => execute("undo"),
         redo: () => execute("redo"),
         undoTo: (index: number) => executeTo("undo", index),

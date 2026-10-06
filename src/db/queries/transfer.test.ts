@@ -32,7 +32,7 @@ vi.mock("@tauri-apps/api/core", async () => {
     }
 })
 
-import { buildDBWorkspaceExport, importDBWorkspace, validateWorkspaceExport } from "./transfer"
+import { buildDBItemExport, buildDBItemsExport, buildDBWorkspaceExport, importDBItems, importDBWorkspace, validateWorkspaceExport } from "./transfer"
 
 const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
 
@@ -288,5 +288,195 @@ describe("import hardening", () => {
         data.notes[0].content.groups[0].sections[0].tasks = Array.from({ length: MAX_IMPORT_ITEMS + 1 }, (_, i) =>
             ({ text: "t", position: i, subtasks: [] }))
         expect(() => validateWorkspaceExport(data)).toThrow(expect.objectContaining({ code: "TRANSFER_TOO_MANY_ITEMS" }))
+    })
+})
+
+describe("items export and import", () => {
+    const json = async (type: "note" | "folder", id: number) => JSON.parse(JSON.stringify(await buildDBItemExport(type, id)))
+    const counts = () => ["folder", "note", "section_group", "section", "task", "audio_file"]
+        .map(table => rows(`SELECT COUNT(*) AS c FROM ${table}`)[0].c)
+
+    beforeEach(() => {
+        sqlite.exec(`
+            INSERT INTO folder (id, workspaceID, folderID, name, position, color) VALUES (5, 1, 1, 'Sotto', 0, '#112233');
+            INSERT INTO folder (id, workspaceID, folderID, name, position) VALUES (6, 1, 1, 'Cestinata', 1);
+            INSERT INTO note (id, workspaceID, folderID, name) VALUES (6, 1, 5, 'Profonda');
+            INSERT INTO note (id, workspaceID, folderID, name) VALUES (7, 1, 6, 'Dentro la cestinata');
+            UPDATE folder SET deleted_at = datetime('now') WHERE id = 6;
+        `)
+    })
+
+    it("exports a note as an items file with the note at the top", async () => {
+        const data = await json("note", 1)
+        expect(data).toMatchObject({ format: "easytask-workspace", version: 1, scope: "items", workspace: { name: "Sorgente", color: "#ff0000" }, folders: [], templates: [] })
+        expect(data.notes).toHaveLength(1)
+        expect(data.notes[0]).toMatchObject({ name: "Sorgente", folderRef: null })
+        expect(data.notes[0].content.groups.map((g: { name: string | null }) => g.name)).toEqual(["Sprint", null])
+        expect(data.notes[0].audio).toEqual([{ groupIndex: 0, name: "song.mp3", path: "/x/song.mp3", position: 0 }])
+        expect(() => validateWorkspaceExport(data)).not.toThrow()
+    })
+
+    it("exports a folder with its subtree, without trashed items and without anything outside", async () => {
+        const data = await json("folder", 1)
+        expect(data.scope).toBe("items")
+        expect(data.workspace.name).toBe("Cartella")
+        expect(data.folders.map((f: { name: string }) => f.name)).toEqual(["Cartella", "Sotto"])
+        expect(data.folders[0].parentRef).toBeNull()
+        expect(data.folders[1].parentRef).toBe(data.folders[0].ref)
+        expect(data.notes.map((n: { name: string }) => n.name).sort()).toEqual(["Nella cartella", "Profonda"])
+        expect(data.notes.find((n: { name: string }) => n.name === "Profonda").folderRef).toBe(data.folders[1].ref)
+        expect(data.notes.find((n: { name: string }) => n.name === "Nella cartella").folderRef).toBe(data.folders[0].ref)
+        expect(data.notes.find((n: { name: string }) => n.name === "Sorgente")).toBeUndefined()
+        // A subfolder exported alone becomes the top of the file
+        const sub = await json("folder", 5)
+        expect(sub.folders).toMatchObject([{ name: "Sotto", parentRef: null, color: "#112233" }])
+        expect(sub.notes.map((n: { name: string }) => n.name)).toEqual(["Profonda"])
+    })
+
+    it("fails for a missing or trashed item", async () => {
+        expect(await thrown(buildDBItemExport("note", 99))).toMatchObject({ code: "TRANSFER_ITEM_MISSING" })
+        expect(await thrown(buildDBItemExport("folder", 6))).toMatchObject({ code: "TRANSFER_ITEM_MISSING" })
+    })
+
+    it("validates the scope", async () => {
+        const data = await json("note", 1)
+        expect(() => validateWorkspaceExport({ ...data, scope: "other" })).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
+        expect(() => validateWorkspaceExport({ ...data, notes: [] })).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
+        expect(() => validateWorkspaceExport({ ...data, templates: [{ name: "T", color: null, content: { version: 1, groups: [] } }] }))
+            .toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
+        // Old workspace files (no scope) and an explicit "workspace" scope still validate
+        const ws = JSON.parse(JSON.stringify(await exportOf()))
+        expect(ws.scope).toBeUndefined()
+        expect(() => validateWorkspaceExport(ws)).not.toThrow()
+        expect(() => validateWorkspaceExport({ ...ws, scope: "workspace" })).not.toThrow()
+    })
+
+    it("imports a note at the root with a free name, appended after the siblings", async () => {
+        const data = validateWorkspaceExport(await json("note", 1))
+        const result = await importDBItems(data, 1, null)
+        expect(result.skippedAudio).toBe(0)
+        expect(result.items).toHaveLength(1)
+        expect(result.items[0]).toMatchObject({ type: "note", name: "Sorgente (2)" })
+        const created = rows(`SELECT * FROM note WHERE id = ${result.items[0].id}`)[0]
+        expect(created).toMatchObject({ workspaceID: 1, folderID: null, name: "Sorgente (2)", color: "#ff0000" })
+        expect(created.position).toBe(1)
+        expect(created.id).not.toBe(1)
+        // Content is a copy with new ids
+        expect(rows(`SELECT COUNT(*) AS c FROM section_group WHERE noteID = ${result.items[0].id}`)[0].c).toBe(2)
+        expect(rows(`SELECT COUNT(*) AS c FROM audio_file a JOIN section_group g ON g.id = a.section_groupID WHERE g.noteID = ${result.items[0].id}`)[0].c).toBe(1)
+        expect(rows(`SELECT COUNT(*) AS c FROM workspace`)[0].c).toBe(2)
+    })
+
+    it("imports a folder subtree into a folder, remapping ids and deduping names", async () => {
+        const data = validateWorkspaceExport(await json("folder", 1))
+        const result = await importDBItems(data, 1, 1)
+        expect(result.items).toEqual([{ type: "folder", id: expect.any(Number), name: "Cartella" }])
+        const top = result.items[0].id
+        expect(rows(`SELECT folderID, workspaceID FROM folder WHERE id = ${top}`)).toEqual([{ folderID: 1, workspaceID: 1 }])
+        const sub = rows(`SELECT id, name, color FROM folder WHERE folderID = ${top}`)
+        expect(sub).toMatchObject([{ name: "Sotto", color: "#112233" }])
+        expect(rows(`SELECT name FROM note WHERE folderID = ${top}`)).toEqual([{ name: "Nella cartella" }])
+        expect(rows(`SELECT name FROM note WHERE folderID = ${sub[0].id}`)).toEqual([{ name: "Profonda" }])
+        // A second import into the same place clashes on the top folder only
+        const again = await importDBItems(validateWorkspaceExport(await json("folder", 1)), 1, 1)
+        expect(again.items[0].name).toBe("Cartella (2)")
+        expect(rows(`SELECT COUNT(*) AS c FROM folder WHERE workspaceID = 2`)[0].c).toBe(0)
+    })
+
+    it("imports a folder into the root and a note into a folder", async () => {
+        const root = await importDBItems(validateWorkspaceExport(await json("folder", 5)), 1, null)
+        expect(rows(`SELECT folderID, name FROM folder WHERE id = ${root.items[0].id}`)).toEqual([{ folderID: null, name: "Sotto" }])
+        const inFolder = await importDBItems(validateWorkspaceExport(await json("note", 6)), 1, 1)
+        expect(rows(`SELECT folderID, name FROM note WHERE id = ${inFolder.items[0].id}`)).toEqual([{ folderID: 1, name: "Profonda" }])
+    })
+
+    it("skips missing audio and reports it", async () => {
+        const data = validateWorkspaceExport(await json("note", 1))
+        const { skippedAudio, items } = await importDBItems(data, 1, null, { audioExists: async () => false })
+        expect(skippedAudio).toBe(1)
+        expect(rows(`SELECT COUNT(*) AS c FROM audio_file a JOIN section_group g ON g.id = a.section_groupID WHERE g.noteID = ${items[0].id}`)[0].c).toBe(0)
+    })
+
+    it("is one transaction: a failure creates nothing", async () => {
+        const before = counts()
+        for (const [type, id, stage] of [["folder", 1, "INSERT INTO note"], ["note", 1, "INSERT INTO task"], ["note", 1, "INSERT INTO audio_file"]] as const) {
+            failOn = stage
+            const data = validateWorkspaceExport(await json(type, id))
+            expect(await thrown(importDBItems(data, 1, null))).toMatchObject({ code: "TRANSFER_IMPORT_FAILED" })
+            expect(counts()).toEqual(before)
+        }
+    })
+
+    it("rejects a missing destination folder, a trashed one and one of another workspace", async () => {
+        const data = validateWorkspaceExport(await json("note", 1))
+        sqlite.exec("INSERT INTO folder (id, workspaceID, name) VALUES (50, 2, 'Altrove')")
+        for (const id of [99, 6, 50])
+            expect(await thrown(importDBItems(data, 1, id))).toMatchObject({ code: "TRANSFER_PARENT_MISSING" })
+    })
+
+    describe("several items in one file", () => {
+        const jsonMany = async (items: { type: "note" | "folder", id: number }[], name?: string) =>
+            JSON.parse(JSON.stringify(await buildDBItemsExport(items, name)))
+        const top = (data: { folders: { parentRef: string | null, name: string }[], notes: { folderRef: string | null, name: string }[] }) =>
+            [...data.folders.filter(f => f.parentRef === null), ...data.notes.filter(n => n.folderRef === null)].map(item => item.name)
+
+        it("puts every selected item at the top of one items file", async () => {
+            const data = await jsonMany([{ type: "note", id: 1 }, { type: "folder", id: 5 }, { type: "folder", id: 1 }], "3 elementi")
+            expect(data).toMatchObject({ scope: "items", workspace: { name: "3 elementi", color: null }, templates: [] })
+            // Sotto is selected on its own AND is inside the selected Cartella: it is exported once, with Cartella
+            expect(top(data).sort()).toEqual(["Cartella", "Sorgente"])
+            expect(data.folders.map((f: { name: string }) => f.name)).toEqual(["Cartella", "Sotto"])
+            expect(data.folders.find((f: { name: string }) => f.name === "Sotto").parentRef).not.toBeNull()
+            expect(data.notes.map((n: { name: string }) => n.name).sort()).toEqual(["Nella cartella", "Profonda", "Sorgente"])
+            expect(() => validateWorkspaceExport(data)).not.toThrow()
+        })
+
+        it("keeps the format of the single item export (name and color of the only item)", async () => {
+            const one = await jsonMany([{ type: "note", id: 1 }])
+            const old = await json("note", 1)
+            expect({ ...one, exportedAt: "" }).toEqual({ ...old, exportedAt: "" })
+            expect(one.workspace).toEqual({ name: "Sorgente", color: "#ff0000" })
+            // The same item twice, or a note that comes with its selected folder, still counts as one item
+            const twice = await jsonMany([{ type: "note", id: 1 }, { type: "note", id: 1 }])
+            expect(twice.notes).toHaveLength(1)
+            const withFolder = await jsonMany([{ type: "note", id: 2 }, { type: "folder", id: 1 }])
+            expect(top(withFolder)).toEqual(["Cartella"])
+            expect(withFolder.notes.filter((n: { name: string }) => n.name === "Nella cartella")).toHaveLength(1)
+        })
+
+        it("fails when an item is missing or trashed, or nothing is selected", async () => {
+            expect(await thrown(buildDBItemsExport([{ type: "note", id: 1 }, { type: "note", id: 99 }]))).toMatchObject({ code: "TRANSFER_ITEM_MISSING" })
+            expect(await thrown(buildDBItemsExport([{ type: "note", id: 1 }, { type: "folder", id: 6 }]))).toMatchObject({ code: "TRANSFER_ITEM_MISSING" })
+            expect(await thrown(buildDBItemsExport([]))).toMatchObject({ code: "TRANSFER_ITEM_MISSING" })
+        })
+
+        it("imports every top item, deduping names among the siblings of the destination", async () => {
+            // Two top notes with the same name coming from different folders
+            sqlite.exec("INSERT INTO folder (id, workspaceID, name) VALUES (9, 1, 'Altro'); INSERT INTO note (id, workspaceID, folderID, name) VALUES (8, 1, 9, 'Sorgente')")
+            const data = validateWorkspaceExport(await jsonMany([{ type: "note", id: 1 }, { type: "note", id: 8 }, { type: "folder", id: 5 }]))
+            const result = await importDBItems(data, 1, 1)
+            expect(result.items.map(item => `${item.type}:${item.name}`)).toEqual(["folder:Sotto (2)", "note:Sorgente", "note:Sorgente (2)"])
+            for (const item of result.items)
+                expect(rows(`SELECT folderID FROM ${item.type} WHERE id = ${item.id}`)).toEqual([{ folderID: 1 }])
+            // The folder came with its note
+            const folder = result.items.find(item => item.type === "folder")!
+            expect(rows(`SELECT name FROM note WHERE folderID = ${folder.id} ORDER BY name`)).toEqual([{ name: "Profonda" }])
+        })
+
+        it("is still one transaction", async () => {
+            const before = counts()
+            failOn = "INSERT INTO task"
+            const data = validateWorkspaceExport(await jsonMany([{ type: "note", id: 1 }, { type: "folder", id: 1 }]))
+            expect(await thrown(importDBItems(data, 1, null))).toMatchObject({ code: "TRANSFER_IMPORT_FAILED" })
+            expect(counts()).toEqual(before)
+        })
+    })
+
+    it("keeps whole-workspace and items files apart", async () => {
+        const items = validateWorkspaceExport(await json("note", 1))
+        const workspace = validateWorkspaceExport(JSON.parse(JSON.stringify(await exportOf())))
+        expect(await thrown(importDBWorkspace(items))).toMatchObject({ code: "TRANSFER_ITEMS_FILE" })
+        expect(await thrown(importDBItems(workspace, 1, null))).toMatchObject({ code: "TRANSFER_WORKSPACE_FILE" })
+        expect(rows(`SELECT COUNT(*) AS c FROM workspace`)[0].c).toBe(2)
     })
 })

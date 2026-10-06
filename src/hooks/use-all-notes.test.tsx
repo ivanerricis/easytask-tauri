@@ -30,6 +30,28 @@ describe("useAllNotes", () => {
         ])
     })
 
+    it("builds the full path from the flat list of folders the workspace state holds", () => {
+        const flatFolder = (id: number, name: string, folderID: number | null, notes: Note[] = []) =>
+            ({ id, name, folderID, notes, subfolders: [] }) as unknown as Folder
+        const flatNote = (id: number, name: string, folderID: number | null) => ({ id, name, folderID }) as Note
+        // Like the state: every folder at the top level (subfolders too), parents first or last
+        state.folders = [flatFolder(12, "2026", 11), flatFolder(10, "Progetti", null), flatFolder(11, "Interni", 10)]
+        state.notes = [flatNote(1, "Root", null), flatNote(3, "Retro", 11), flatNote(4, "Q3", 12)]
+        const { result } = renderHook(() => useAllNotes())
+        expect(result.current.map(({ note: n, path }) => [n.name, path])).toEqual([
+            ["Root", ""],
+            ["Retro", "Progetti / Interni"],
+            ["Q3", "Progetti / Interni / 2026"],
+        ])
+    })
+
+    it("keeps the full path when a subfolder is both nested and listed flat", () => {
+        const sub = folder(11, "Interni", [note(3, "Retro")])
+        state.folders = [folder(10, "Progetti", [], [sub]), sub]
+        const { result } = renderHook(() => useAllNotes())
+        expect(result.current[0].path).toBe("Progetti / Interni")
+    })
+
     it("lists a note once even if the root list and a folder both carry it", () => {
         state.notes = [note(1, "Doppia")]
         state.folders = [folder(10, "Cartella", [note(1, "Doppia")])]

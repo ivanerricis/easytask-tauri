@@ -9,7 +9,6 @@ import { useState } from "react";
 import { useWorkspaceActions } from "@/contexts/workspace-data";
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo";
-import { toast } from "sonner";
 
 type Props = {
     task: Task
@@ -21,6 +20,7 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
     const { t } = useTranslation()
     const [text, setText] = useState(task.description)
     const [saving, setSaving] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const { updateTaskDescription } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
@@ -29,6 +29,7 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
     const save = async () => {
         if (saving || !changed) return
         setSaving(true)
+        setError(null)
         // Optimistic: the cached tree is updated at once and restored if the write fails
         const rollback = patchTask(task.id, { description: text })
         try {
@@ -37,7 +38,7 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
             onOpenChange(false)
         } catch (err) {
             rollback()
-            toast.error(getErrorMessage(err))
+            setError(getErrorMessage(err))
         } finally {
             setSaving(false)
         }
@@ -48,13 +49,22 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
         void save()
     }
 
+    // Every way of closing (Cancel, Escape, click outside) gives up the unsaved text and the error
+    const handleOpenChange = (value: boolean) => {
+        if (!value) {
+            setText(task.description)
+            setError(null)
+        }
+        onOpenChange(value)
+    }
+
     const handleClose = (e: React.MouseEvent) => {
         e.stopPropagation()
-        onOpenChange(false)
+        handleOpenChange(false)
     }
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleOpenChange}>
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{t("tasks.descriptionDialog.title")}</DialogTitle>
@@ -68,7 +78,7 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
                     placeholder={t("tasks.descriptionDialog.placeholder")}
                     className="resize-none border rounded-xs py-1 px-2 text-sm focus-visible:border-primary"
                     value={text}
-                    onChange={(e) => setText(e.target.value)}
+                    onChange={(e) => { setError(null); setText(e.target.value) }}
                     // The caret starts at the end of the existing text
                     onFocus={(e) => { const end = e.currentTarget.value.length; e.currentTarget.setSelectionRange(end, end) }}
                     onKeyDown={(e) => {
@@ -78,6 +88,7 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
                         }
                     }}
                 />
+                {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
                 <DialogFooter className="items-center sm:justify-between">
                     <span className="hidden text-xs text-muted-foreground sm:inline">{t("tasks.descriptionDialog.hint")}</span>
                     <div className="flex flex-col-reverse gap-2 sm:flex-row">

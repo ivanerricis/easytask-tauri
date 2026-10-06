@@ -55,6 +55,11 @@ export const SHORTCUTS: Shortcut[] = [
     { id: "new-folder", defaultBinding: { key: "m", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "close-note", defaultBinding: { key: "l", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "close-all-notes", defaultBinding: { key: "t", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    // Move between the open notes (wrapping around); Ctrl+Tab / Ctrl+Shift+Tab are the fixed alternatives
+    { id: "next-note", defaultBinding: { key: "PageDown", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    { id: "previous-note", defaultBinding: { key: "PageUp", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    { id: "next-note-alt", defaultBinding: { key: "Tab", ctrl: true }, editable: false, scope: "workspace", category: "notes" },
+    { id: "previous-note-alt", defaultBinding: { key: "Tab", ctrl: true, shift: true }, editable: false, scope: "workspace", category: "notes" },
     // Ctrl+H is go-home: the Shift variant is free
     { id: "toggle-hide-completed", defaultBinding: { key: "h", ctrl: true, shift: true }, editable: true, scope: "workspace", category: "notes" },
     // Plays or pauses the audio player while it is open

@@ -12,6 +12,8 @@ type GroupProps = {
     group: GroupType
     /** Position of the group in the note (0-based), used for the default label "Gruppo N". */
     index?: number
+    /** Number of audio files of the group, shown in the header. */
+    audioCount?: number
 }
 
 /**
@@ -20,7 +22,7 @@ type GroupProps = {
  */
 const openWidths = new Map<number, number>()
 
-export const Group = ({ group, index = 0 }: GroupProps) => {
+export const Group = ({ group, index = 0, audioCount = 0 }: GroupProps) => {
     // The empty area of a group (and its header) accepts a dragged section: it is appended to the group
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("group", group.id)
     // The group is also draggable (by the grip of its header) to reorder the groups
@@ -62,18 +64,14 @@ export const Group = ({ group, index = 0 }: GroupProps) => {
             <GroupHeader
                 group={group}
                 index={index}
+                audioCount={audioCount}
                 dragHandleRef={setActivatorNodeRef}
                 dragHandleProps={{ ...attributes, ...listeners } as HTMLAttributes<HTMLDivElement>}
             />
             {isOpen && <>
                 <GroupAudioFiles groupId={group.id} />
                 <div className="flex flex-col gap-1 overflow-y-auto">
-                    {group.sections.map((section) => (
-                        <Section
-                            key={section.id}
-                            section={section}
-                        />
-                    ))}
+                    {group.sections.map(section => <Section key={section.id} section={section} />)}
                 </div>
                 <AddSection inGroup groupId={group.id} />
             </>}

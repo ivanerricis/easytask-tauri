@@ -12,6 +12,10 @@ vi.mock("@tauri-apps/api/path", () => ({
 }))
 vi.mock("./appPaths", () => ({ ensureAppFolder: () => ensureAppFolder() }))
 vi.mock("./initDb", () => ({ initDB: (...a: unknown[]) => initDB(...a) }))
+const createBackup = vi.fn()
+const reportError = vi.fn()
+vi.mock("./backup", () => ({ createBackup: (...a: unknown[]) => createBackup(...a) }))
+vi.mock("@/lib/report-error", async (importOriginal) => ({ ...(await importOriginal<object>()), reportError: (...a: unknown[]) => reportError(...a) }))
 
 let db: MockDb
 
@@ -26,6 +30,8 @@ beforeEach(() => {
     load.mockReset().mockImplementation(async () => db)
     ensureAppFolder.mockReset().mockResolvedValue("/docs/EasyTask")
     initDB.mockReset().mockResolvedValue(undefined)
+    createBackup.mockReset().mockResolvedValue(undefined)
+    reportError.mockReset()
 })
 
 describe("getDB", () => {
@@ -34,7 +40,24 @@ describe("getDB", () => {
         const result = await getDB()
         expect(result).toBe(db)
         expect(load).toHaveBeenCalledWith("sqlite:/docs/EasyTask/easytask.db")
-        expect(initDB).toHaveBeenCalledWith(db)
+        expect(initDB).toHaveBeenCalledWith(db, expect.objectContaining({ beforeMigrate: expect.any(Function) }))
+    })
+
+    it("takes a pre-migration backup of the connection being opened", async () => {
+        const getDB = await freshGetDB()
+        await getDB()
+        const { beforeMigrate } = initDB.mock.calls[0][1] as { beforeMigrate: (d: unknown) => Promise<void> }
+        await beforeMigrate(db)
+        expect(createBackup).toHaveBeenCalledWith("pre-migration", db)
+    })
+
+    it("does not block the start when that backup fails", async () => {
+        const getDB = await freshGetDB()
+        await getDB()
+        createBackup.mockRejectedValueOnce(new Error("disk full"))
+        const { beforeMigrate } = initDB.mock.calls[0][1] as { beforeMigrate: (d: unknown) => Promise<void> }
+        await expect(beforeMigrate(db)).resolves.toBeUndefined()
+        expect(reportError).toHaveBeenCalledWith(expect.objectContaining({ message: "disk full" }))
     })
 
     it("creates the database once for concurrent calls", async () => {

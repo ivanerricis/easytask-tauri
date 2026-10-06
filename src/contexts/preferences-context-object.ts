@@ -1,5 +1,5 @@
 import { createContext } from "react"
-import type { AudioPlayerScale, RightPanelTab, SidebarItemSize, WorkspaceView } from "@/lib/store/preferences"
+import type { AudioPlayerScale, RightPanelTab, SidebarItemSize, WorkspaceSort, WorkspaceView } from "@/lib/store/preferences"
 import type { LanguagePreference } from "@/i18n"
 import type { AudioPlayerPosition } from "@/types/types"
 
@@ -10,6 +10,12 @@ export type PreferencesContextType = {
     setShowGroupProgressBar: (value: boolean) => void
     showSectionCount: boolean
     setShowSectionCount: (value: boolean) => void
+    showAudioFileCount: boolean
+    setShowAudioFileCount: (value: boolean) => void
+    showGroupSeparators: boolean
+    setShowGroupSeparators: (value: boolean) => void
+    undoLimit: number
+    setUndoLimit: (value: number) => void
     showTaskCount: boolean
     setShowTaskCount: (value: boolean) => void
     showSubtaskCount: boolean
@@ -35,6 +41,8 @@ export type PreferencesContextType = {
     resetAudioSettings: () => void
     workspaceView: WorkspaceView
     setWorkspaceView: (value: WorkspaceView) => void
+    workspaceSort: WorkspaceSort
+    setWorkspaceSort: (value: WorkspaceSort) => void
     reopenNotes: boolean
     setReopenNotes: (value: boolean) => void
     reopenLastWorkspace: boolean

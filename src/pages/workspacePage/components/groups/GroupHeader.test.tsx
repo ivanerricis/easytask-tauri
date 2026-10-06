@@ -1,16 +1,17 @@
 import { render, screen, waitFor } from "@testing-library/react"
-import { toast } from "sonner"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { GroupHeader } from "./GroupHeader"
 import { PreferencesContext, type PreferencesContextType } from "@/contexts/preferences-context-object"
 import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 
+// Radix tooltips measure their arrow with a ResizeObserver, which jsdom lacks
+vi.stubGlobal("ResizeObserver", class { observe() { } unobserve() { } disconnect() { } })
+
 const renameItem = vi.fn()
 const patchGroup = vi.fn()
 const rollback = vi.fn()
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 vi.mock("./ButtonMenuGroup", () => ({ ButtonMenuGroup: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ renameItem }),
@@ -18,7 +19,7 @@ vi.mock("@/contexts/workspace-data", () => ({
 vi.mock("@/contexts/use-active-note", () => ({
     useActiveNoteActions: () => ({ patchGroup }),
 }))
-const prefs = { showSectionCount: true, showTaskCount: true, showGroupProgressBar: true }
+const prefs = { showSectionCount: true, showTaskCount: true, showAudioFileCount: true, showGroupProgressBar: true }
 vi.mock("@/contexts/use-preferences", () => ({
     usePreferences: () => prefs,
 }))
@@ -30,6 +31,7 @@ vi.mock("@/contexts/use-tabs", () => ({
 
 beforeEach(() => {
     prefs.showGroupProgressBar = true
+    prefs.showAudioFileCount = true
     isOpen = true
     toggleOpen.mockReset()
     renameItem.mockReset().mockResolvedValue(undefined)
@@ -108,14 +110,17 @@ describe("GroupHeader name", () => {
         expect(renameItem).toHaveBeenCalledWith("section_group", 7, "AB")
     })
 
-    it("rolls the optimistic name back and shows a toast when the write fails", async () => {
+    it("rolls the optimistic name back and shows the error inline when the write fails", async () => {
         const user = userEvent.setup()
         renameItem.mockRejectedValue(new Error("boom"))
         render(<GroupHeader group={makeGroup({ id: 7, name: "A" })} />)
         await user.click(screen.getByText("A"))
         await user.type(screen.getByLabelText("Nome del gruppo"), "B{Enter}")
         await waitFor(() => expect(rollback).toHaveBeenCalledTimes(1))
-        expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("Impossibile cambiare il nome del gruppo"))
+        expect(await screen.findByRole("alert")).toHaveTextContent("Impossibile cambiare il nome del gruppo")
+        // The field stays open with the typed text
+        expect(screen.getByLabelText("Nome del gruppo")).toHaveValue("AB")
+        expect(screen.getByLabelText("Nome del gruppo")).toBeInvalid()
     })
 
     it("cancels on Escape without saving", async () => {
@@ -123,6 +128,7 @@ describe("GroupHeader name", () => {
         render(<GroupHeader group={makeGroup({ id: 7, name: "A" })} />)
         await user.click(screen.getByText("A"))
         await user.type(screen.getByLabelText("Nome del gruppo"), "B{Escape}")
+        await user.click(document.body)
         expect(renameItem).not.toHaveBeenCalled()
         expect(screen.getByText("A")).toBeInTheDocument()
     })
@@ -188,5 +194,26 @@ describe("GroupHeader drag handle", () => {
         rerender(<GroupHeader group={makeGroup()} dragHandleRef={ref} dragHandleProps={{ "data-drag-handle": "" } as never} />)
         expect(document.querySelector("[data-drag-handle]")).not.toBeNull()
         expect(ref).toHaveBeenCalled()
+    })
+})
+
+describe("GroupHeader audio file count", () => {
+    const badge = (container: HTMLElement) => container.querySelector("svg.lucide-file-audio")
+
+    it("shows the number of audio files", () => {
+        const { container } = render(<GroupHeader group={makeGroup({ name: "G" })} audioCount={3} />)
+        expect(badge(container)).toBeInTheDocument()
+        expect(badge(container)?.parentElement).toHaveTextContent("3")
+    })
+
+    it("is hidden when the group has no audio files", () => {
+        const { container } = render(<GroupHeader group={makeGroup({ name: "G" })} audioCount={0} />)
+        expect(badge(container)).not.toBeInTheDocument()
+    })
+
+    it("is hidden when the preference is off", () => {
+        prefs.showAudioFileCount = false
+        const { container } = render(<GroupHeader group={makeGroup({ name: "G" })} audioCount={3} />)
+        expect(badge(container)).not.toBeInTheDocument()
     })
 })

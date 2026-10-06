@@ -1,5 +1,6 @@
-import { applyAccentColor } from "@/lib/accent-color"
+import { DEFAULT_PRIMARY_COLOR, applyAccentColor } from "@/lib/accent-color"
 import { useEffect, useRef, useState } from "react"
+import { UNDO_LIMIT } from "@/contexts/undo/stack"
 import {
     getPrimaryColor,
     savePrimaryColor,
@@ -9,6 +10,12 @@ import {
     saveShowGroupProgressBar,
     getShowSectionCount,
     saveShowSectionCount,
+    getShowAudioFileCount,
+    saveShowAudioFileCount,
+    getShowGroupSeparators,
+    saveShowGroupSeparators,
+    getUndoLimit,
+    saveUndoLimit,
     getShowTaskCount,
     saveShowTaskCount,
     getShowSubtaskCount,
@@ -36,6 +43,10 @@ import {
     DEFAULT_AUDIO_PLAYER_OPACITY,
     type AudioPlayerScale,
     getWorkspaceView,
+    getWorkspaceSort,
+    saveWorkspaceSort,
+    DEFAULT_WORKSPACE_SORT,
+    type WorkspaceSort,
     saveWorkspaceView,
     getReopenNotes,
     saveReopenNotes,
@@ -74,8 +85,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [showGroupProgressBar, setShowGroupProgressBarState] = useState(true)
     const [showSectionCount, setShowSectionCountState] = useState(true)
     const [showTaskCount, setShowTaskCountState] = useState(true)
+    const [showAudioFileCount, setShowAudioFileCountState] = useState(true)
+    const [showGroupSeparators, setShowGroupSeparatorsState] = useState(false)
+    const [undoLimit, setUndoLimitState] = useState(UNDO_LIMIT)
     const [showSubtaskCount, setShowSubtaskCountState] = useState(true)
-    const [primaryColor, setPrimaryColorState] = useState("#ffb375")
+    const [primaryColor, setPrimaryColorState] = useState(DEFAULT_PRIMARY_COLOR)
     const [sidebarLeftOpen, setSidebarLeftOpenState] = useState(true)
     const [sidebarRightOpen, setSidebarRightOpenState] = useState(true)
     const [audioPlayerPosition, setAudioPlayerPositionState] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 })
@@ -84,6 +98,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [audioPlayerScale, setAudioPlayerScaleState] = useState<AudioPlayerScale>(DEFAULT_AUDIO_PLAYER_SCALE)
     const [audioPlayerOpacity, setAudioPlayerOpacityState] = useState(DEFAULT_AUDIO_PLAYER_OPACITY)
     const [workspaceView, setWorkspaceViewState] = useState<WorkspaceView>("grid")
+    const [workspaceSort, setWorkspaceSortState] = useState<WorkspaceSort>(DEFAULT_WORKSPACE_SORT)
     const [reopenNotes, setReopenNotesState] = useState(true)
     const [reopenLastWorkspace, setReopenLastWorkspaceState] = useState(false)
     const [sidebarItemSize, setSidebarItemSizeState] = useState<SidebarItemSize>("normal")
@@ -134,6 +149,9 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         getShowGroupProgressBar().then(setShowGroupProgressBarState).catch(reportError)
         getShowSectionCount().then(setShowSectionCountState).catch(reportError)
         getShowTaskCount().then(setShowTaskCountState).catch(reportError)
+        getShowAudioFileCount().then(setShowAudioFileCountState).catch(reportError)
+        getShowGroupSeparators().then(setShowGroupSeparatorsState).catch(reportError)
+        getUndoLimit().then(setUndoLimitState).catch(reportError)
         getShowSubtaskCount().then(setShowSubtaskCountState).catch(reportError)
         getSideBarLeftOpen().then(setSidebarLeftOpenState).catch(reportError)
         getSideBarRightOpen().then(setSidebarRightOpenState).catch(reportError)
@@ -147,6 +165,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         getAudioPlayerScale().then(setAudioPlayerScaleState).catch(reportError)
         getAudioPlayerOpacity().then(setAudioPlayerOpacityState).catch(reportError)
         getWorkspaceView().then(setWorkspaceViewState).catch(reportError)
+        getWorkspaceSort().then(setWorkspaceSortState).catch(reportError)
         getReopenNotes().then(setReopenNotesState).catch(reportError)
         getReopenLastWorkspace().then(setReopenLastWorkspaceState).catch(reportError)
         getSidebarItemSize().then(setSidebarItemSizeState).catch(reportError)
@@ -180,6 +199,21 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         saveShowSectionCount(value).catch(reportError)
     }
 
+    const setShowAudioFileCount = (value: boolean) => {
+        setShowAudioFileCountState(value)
+        saveShowAudioFileCount(value).catch(reportError)
+    }
+
+    const setShowGroupSeparators = (value: boolean) => {
+        setShowGroupSeparatorsState(value)
+        saveShowGroupSeparators(value).catch(reportError)
+    }
+
+    const setUndoLimit = (value: number) => {
+        setUndoLimitState(value)
+        saveUndoLimit(value).catch(reportError)
+    }
+
     const setShowTaskCount = (value: boolean) => {
         setShowTaskCountState(value)
         saveShowTaskCount(value).catch(reportError)
@@ -209,6 +243,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const setWorkspaceView = (value: WorkspaceView) => {
         setWorkspaceViewState(value)
         saveWorkspaceView(value).catch(reportError)
+    }
+
+    const setWorkspaceSort = (value: WorkspaceSort) => {
+        setWorkspaceSortState(value)
+        saveWorkspaceSort(value).catch(reportError)
     }
 
     const setReopenNotes = (value: boolean) => {
@@ -328,6 +367,12 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             setShowGroupProgressBar,
             showSectionCount,
             setShowSectionCount,
+            showAudioFileCount,
+            setShowAudioFileCount,
+            showGroupSeparators,
+            setShowGroupSeparators,
+            undoLimit,
+            setUndoLimit,
             showTaskCount,
             setShowTaskCount,
             showSubtaskCount,
@@ -353,6 +398,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             resetAudioSettings,
             workspaceView,
             setWorkspaceView,
+            workspaceSort,
+            setWorkspaceSort,
             reopenNotes,
             setReopenNotes,
             reopenLastWorkspace,

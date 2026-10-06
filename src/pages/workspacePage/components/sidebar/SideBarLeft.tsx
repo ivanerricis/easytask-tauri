@@ -9,12 +9,15 @@ import { SideBar } from "./SideBar"
 import { SideBarContainer } from "./SideBarContainer"
 import { SideBarHeader } from "./SideBarHeader"
 import { FileTree } from "./FileTree"
+import { SelectionProvider } from "./selection-context"
+import { SelectionActionsProvider } from "./selection-actions"
 import { ItemFooter } from "../items/ItemFooter"
 import { ButtonTrash } from "./ButtonTrash"
 import { ButtonTemplates } from "./ButtonTemplates"
 import { DialogAddFolder } from "./DialogAddFolder"
 import { DialogAddNote } from "./DialogAddNote"
 import { ButtonNoteFromTemplate } from "./ButtonNoteFromTemplate"
+import { ButtonImportItems } from "./ButtonImportItems"
 import { ComboboxWorkspace } from "../combobox-workspace"
 import { ButtonCloseNotes } from "../ButtonCloseNotes"
 import { ButtonCollapseItems } from "./ButtonCollapseItems"
@@ -78,38 +81,43 @@ export const SideBarLeft = () => {
     }, [allCollapsed, folders])
 
     return (
-        <SideBar
-            position="left"
-            open={open}
-            onOpenChange={setOpen}
-            width={sidebarLeftWidth}
-            onWidthChange={setSidebarLeftWidth}
-            overlay={compact}
-            bottomContainer={<DialogSettings className="relative top-0 left-0" />}
-        >
-            <SideBarContainer
-                header={<SideBarHeader className="border-b-2">
-                    <DialogAddFolder />
-                    <DialogAddNote />
-                    <ButtonNoteFromTemplate />
-                    <ButtonUpload />
-                    <ButtonCollapseItems allCollapsed={allCollapsed} onToggle={toggleAll} disabled={folders.length === 0} />
-                    <ButtonCloseNotes />
-                </SideBarHeader>}
-                footer={<div className="flex flex-col gap-1 border-t p-1 w-full">
-                    <ButtonTemplates />
-                    <ButtonTrash />
-                    <ItemFooter
-                        type="download"
-                        text={t("sidebar.exportWorkspace")}
-                        disabled={!currentWorkspace || isTransferring}
-                        onClick={() => { if (currentWorkspace) void exportWorkspace(currentWorkspace) }}
-                    />
-                    <ComboboxWorkspace />
-                </div>}
-            >
-                <FileTree collapsedIds={collapsedIds} onToggleFolder={toggleFolder} onExpandFolder={expandFolder} />
-            </SideBarContainer>
-        </SideBar>
+        <SelectionProvider>
+            <SelectionActionsProvider>
+                <SideBar
+                    position="left"
+                    open={open}
+                    onOpenChange={setOpen}
+                    width={sidebarLeftWidth}
+                    onWidthChange={setSidebarLeftWidth}
+                    overlay={compact}
+                    bottomContainer={<DialogSettings className="relative top-0 left-0" />}
+                >
+                    <SideBarContainer
+                        header={<SideBarHeader className="border-b-2">
+                            <DialogAddFolder />
+                            <DialogAddNote />
+                            <ButtonNoteFromTemplate />
+                            <ButtonImportItems />
+                            <ButtonUpload />
+                            <ButtonCollapseItems allCollapsed={allCollapsed} onToggle={toggleAll} disabled={folders.length === 0} />
+                            <ButtonCloseNotes />
+                        </SideBarHeader>}
+                        footer={<div className="flex flex-col gap-1 border-t p-1 w-full">
+                            <ButtonTemplates />
+                            <ButtonTrash />
+                            <ItemFooter
+                                type="download"
+                                text={t("sidebar.exportWorkspace")}
+                                disabled={!currentWorkspace || isTransferring}
+                                onClick={() => { if (currentWorkspace) void exportWorkspace(currentWorkspace) }}
+                            />
+                            <ComboboxWorkspace />
+                        </div>}
+                    >
+                        <FileTree collapsedIds={collapsedIds} onToggleFolder={toggleFolder} onExpandFolder={expandFolder} />
+                    </SideBarContainer>
+                </SideBar>
+            </SelectionActionsProvider>
+        </SelectionProvider>
     )
 }

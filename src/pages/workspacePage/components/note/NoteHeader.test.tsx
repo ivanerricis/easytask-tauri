@@ -76,3 +76,42 @@ describe("NoteHeader hide completed toggle", () => {
         expect(prefs.setHideCompletedTasks).not.toHaveBeenCalled()
     })
 })
+
+describe("NoteHeader active tab", () => {
+    // Both tabs reserve the same border, so activating one never moves the others
+    const tab = (name: string) => screen.getByText(name).closest("[role='button']") as HTMLElement
+
+    it("marks the active tab with a primary border, bold text and aria-current", async () => {
+        setup()
+        await act(async () => { })
+
+        // Opened last, "Due" is the active one
+        expect(tab("Due")).toHaveAttribute("aria-current", "true")
+        expect(tab("Due").className).toContain("border-x-primary")
+        // no line under the active tab: it opens onto the note
+        expect(tab("Due").className).toContain("border-b-transparent")
+        expect(screen.getByText("Due").className).toContain("font-medium")
+
+        expect(tab("Uno")).not.toHaveAttribute("aria-current")
+        expect(tab("Uno").className).toContain("border-x-transparent")
+        expect(tab("Uno").className).toContain("border-b-primary")
+        expect(tab("Uno").className).toContain("border-x")
+        expect(screen.getByText("Uno").className).not.toContain("font-medium")
+    })
+
+    it("has the height of the sidebar header, whatever the state", async () => {
+        setup()
+        await act(async () => { })
+        expect(tab("Uno").className).toContain("min-h-[42px]")
+        expect(tab("Due").className).toContain("min-h-[42px]")
+    })
+
+    it("moves the marks when another tab is activated", async () => {
+        setup()
+        await act(async () => { })
+        await userEvent.click(screen.getByText("Uno"))
+
+        expect(tab("Uno")).toHaveAttribute("aria-current", "true")
+        expect(tab("Due")).not.toHaveAttribute("aria-current")
+    })
+})

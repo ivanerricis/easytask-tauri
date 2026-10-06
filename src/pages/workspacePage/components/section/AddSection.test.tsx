@@ -132,6 +132,25 @@ describe("AddSection", () => {
         expect(await openGroupForm(user)).toHaveValue("")
     })
 
+    it("closes the group form on Escape, discarding the name, without creating", async () => {
+        const user = userEvent.setup()
+        render(<AddSection />)
+        await user.type(await openGroupForm(user), "draft{Escape}")
+
+        expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
+        expect(ctx.createGroup).not.toHaveBeenCalled()
+        expect(await openGroupForm(user)).toHaveValue("")
+    })
+
+    it("closes the section form on Escape, discarding the title, without creating", async () => {
+        const user = userEvent.setup()
+        render(<AddSection inGroup groupId={5} />)
+        await user.type(await openSectionForm(user), "draft{Escape}")
+
+        expect(screen.queryByPlaceholderText(SECTION_PLACEHOLDER)).not.toBeInTheDocument()
+        expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
+    })
+
     it("toggles with Alt+N only when not inside a group", async () => {
         const { unmount } = render(<AddSection />)
         fireEvent.keyDown(document, { key: "n", altKey: true })

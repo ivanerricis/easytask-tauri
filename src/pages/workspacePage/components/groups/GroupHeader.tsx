@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
-import { ChevronDown, Grip, LayoutList, SquareCheckBig } from "lucide-react"
+import { ChevronDown, FileAudio, Grip, LayoutList, SquareCheckBig } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { useGroupOpen } from "@/contexts/use-tabs"
 import { getGroupProgress } from "./group-progress"
@@ -12,7 +12,7 @@ import { useEffect, useRef, useState, type HTMLAttributes } from "react"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import { toast } from "sonner"
+import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import { getGroupLabel } from "./group-label"
 
@@ -22,11 +22,13 @@ type GroupHeaderProps = {
     index?: number
     dragHandleRef?: (element: HTMLElement | null) => void
     dragHandleProps?: HTMLAttributes<HTMLDivElement>
+    /** Number of audio files of the group (the badge is hidden when 0). */
+    audioCount?: number
 }
 
-export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }: GroupHeaderProps) => {
+export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps, audioCount = 0 }: GroupHeaderProps) => {
     const { t } = useTranslation()
-    const { showSectionCount, showTaskCount, showGroupProgressBar } = usePreferences()
+    const { showSectionCount, showTaskCount, showAudioFileCount, showGroupProgressBar } = usePreferences()
     const colorAlpha = useColorAlpha()
     const [isOpen, toggleOpen] = useGroupOpen(group.id)
     const progress = getGroupProgress(group)
@@ -35,6 +37,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
     const recorder = useUndoRecorder()
     const [isEditing, setEditing] = useState(false)
     const [text, setText] = useState(group.name ?? "")
+    const [error, setError] = useState<string | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const done = useRef(false)
 
@@ -51,6 +54,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
 
     const startEditing = () => {
         done.current = false
+        setError(null)
         setText(name)
         setEditing(true)
     }
@@ -68,8 +72,17 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
             recorder.rename("section_group", group.id, group.name ?? "", text.trim())
         } catch (err) {
             rollback()
-            toast.error(t("groups.renameError", { message: getErrorMessage(err) }))
+            // Back to the field with the typed text, so it can be fixed
+            setError(t("groups.renameError", { message: getErrorMessage(err) }))
+            done.current = false
+            setEditing(true)
         }
+    }
+
+    const cancel = () => {
+        done.current = true
+        setError(null)
+        setEditing(false)
     }
 
     return (
@@ -96,26 +109,30 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
                     className={`text-sm font-semibold mr-2 flex-1 shrink-0 whitespace-nowrap cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${name ? "" : "text-muted-foreground"}`}>
                     {label}
                 </button>}
-                {isEditing && <input
-                    ref={inputRef}
-                    type="text"
-                    value={text}
-                    placeholder={label}
-                    aria-label={t("groups.nameLabel")}
-                    onChange={e => setText(e.target.value)}
-                    onBlur={() => { void save() }}
-                    onKeyDown={e => {
-                        if (e.key === "Enter") {
-                            e.preventDefault()
-                            void save()
-                        } else if (e.key === "Escape") {
-                            e.preventDefault()
-                            done.current = true
-                            setEditing(false)
-                        }
-                    }}
-                    className="min-w-0 flex-1 mr-2 px-1 border border-primary text-sm font-semibold rounded-xs"
-                />}
+                {isEditing && <InlineErrorTooltip message={error}>
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        value={text}
+                        placeholder={label}
+                        aria-label={t("groups.nameLabel")}
+                        aria-invalid={error !== null}
+                        onChange={e => { setError(null); setText(e.target.value) }}
+                        // After a failed save, leaving the field gives up the change instead of retrying
+                        onBlur={() => { if (error) cancel(); else void save() }}
+                        onKeyDown={e => {
+                            if (e.key === "Enter") {
+                                e.preventDefault()
+                                void save()
+                            } else if (e.key === "Escape") {
+                                e.preventDefault()
+                                e.stopPropagation()
+                                cancel()
+                            }
+                        }}
+                        className={`min-w-0 flex-1 mr-2 px-1 border text-sm font-semibold rounded-xs ${error ? "border-destructive" : "border-primary"}`}
+                    />
+                </InlineErrorTooltip>}
                 {showGroupProgressBar && progress.total > 0 && <div className="flex items-center gap-2 min-w-0 shrink mr-2">
                     <Progress className="w-16 min-w-4 shrink" value={progress.percent} />
                     <span className="text-xs shrink-0">
@@ -133,6 +150,12 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps }
                         <SquareCheckBig className="size-4" />
                         <span className="text-xs">
                             {group.sections.reduce((sum, section) => sum + section.tasks.length, 0)}
+                        </span>
+                    </div>}
+                    {showAudioFileCount && audioCount > 0 && <div className="flex items-center gap-1">
+                        <FileAudio className="size-4" />
+                        <span className="text-xs">
+                            {audioCount}
                         </span>
                     </div>}
                 </div>

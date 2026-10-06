@@ -1,4 +1,4 @@
-import { applyAccentColor } from "@/lib/accent-color"
+import { DEFAULT_PRIMARY_COLOR, applyAccentColor } from "@/lib/accent-color"
 import { store } from "@/lib/store/initStore"
 import { useEffect, useState } from "react"
 import { ThemeProviderContext, type Theme } from "./theme-context"
@@ -45,9 +45,7 @@ export function ThemeProvider({
     useEffect(() => {
         const applyInitialAccentColor = async () => {
             const primaryColor = await store.get<StoredColor>('primaryColor');
-            const defaultColor = '#ffb375';
-
-            const colorToApply = primaryColor?.hex || defaultColor;
+            const colorToApply = primaryColor?.hex || DEFAULT_PRIMARY_COLOR;
 
             applyAccentColor(colorToApply);
         };

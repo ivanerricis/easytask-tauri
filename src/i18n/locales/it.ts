@@ -55,6 +55,13 @@ export const it = {
             confirm: "Sposta nel cestino",
             error: "Impossibile eliminare l'elemento: {{message}}",
         },
+        deleteSelection: {
+            description_one: "{{count}} elemento verrà spostato nel cestino. Potrai ripristinarlo in seguito.",
+            description_other: "{{count}} elementi verranno spostati nel cestino. Potrai ripristinarli in seguito.",
+            confirm_one: "Sposta {{count}} elemento nel cestino",
+            confirm_other: "Sposta {{count}} elementi nel cestino",
+            error: "Impossibile eliminare tutti gli elementi ({{done}} su {{total}} spostati nel cestino): {{message}}",
+        },
         noteFromTemplate: {
             title: "Crea nota da template",
             description: "Template: {{name}}",
@@ -175,6 +182,7 @@ export const it = {
             accent: {
                 label: "Colore d'accento",
                 description: "Usato per pulsanti, selezioni ed evidenziazioni.",
+                reset: "Ripristina il colore d'accento",
             },
             sidebarSize: {
                 label: "Dimensione di cartelle e note",
@@ -250,6 +258,16 @@ export const it = {
         },
         data: {
             title: "Dati",
+            sections: {
+                transfer: "Importa / Esporta",
+                folder: "Cartella dati",
+                backup: "Backup",
+                history: "Cronologia",
+            },
+            undoLimit: {
+                label: "Azioni annullabili",
+                description: "Quante delle ultime azioni si possono annullare. Le più vecchie vengono dimenticate.",
+            },
             import: {
                 label: "Importa workspace",
                 description: "Crea un nuovo workspace da un file di esportazione EasyTask.",
@@ -314,6 +332,12 @@ export const it = {
         },
         notes: {
             title: "Note e sezioni",
+            sections: {
+                progress: "Barre d'avanzamento",
+                counts: "Contatori",
+                display: "Visualizzazione",
+                startup: "All'avvio",
+            },
             progressBar: {
                 label: "Mostra barra d'avanzamento nelle sezioni",
                 description: "Indica la percentuale di task completati.",
@@ -324,6 +348,11 @@ export const it = {
             },
             sectionCount: "Mostra numero di sezioni",
             taskCount: "Mostra numero di task",
+            audioFileCount: "Mostra numero di file audio",
+            groupSeparators: {
+                label: "Linee tra i gruppi",
+                description: "Disegna una sottile linea guida verticale tra i gruppi di una nota.",
+            },
             subtaskCount: {
                 label: "Mostra sottotask completati",
                 description: "Un task con sottotask mostra quanti ne sono completati (es. 1/3).",
@@ -399,6 +428,10 @@ export const it = {
             "new-folder": "Crea una nuova cartella",
             "close-note": "Chiudi la nota attiva",
             "close-all-notes": "Chiudi tutte le note",
+            "next-note": "Vai alla nota aperta successiva",
+            "previous-note": "Vai alla nota aperta precedente",
+            "next-note-alt": "Vai alla nota aperta successiva (alternativa)",
+            "previous-note-alt": "Vai alla nota aperta precedente (alternativa)",
             "toggle-hide-completed": "Nascondi o mostra i task completati",
             "toggle-audio": "Riproduci o metti in pausa l'audio",
             "new-group": "Crea un nuovo gruppo o una nuova sezione",
@@ -457,6 +490,12 @@ export const it = {
             delete: "Elimina {{type}}",
             create: "Crea {{type}}",
             move: "Sposta {{type}}",
+            deleteMany_one: "Elimina {{count}} elemento",
+            deleteMany_other: "Elimina {{count}} elementi",
+            colorMany_one: "Cambia colore di {{count}} elemento",
+            colorMany_other: "Cambia colore di {{count}} elementi",
+            moveMany_one: "Sposta {{count}} elemento",
+            moveMany_other: "Sposta {{count}} elementi",
         },
         errors: {
             unavailable: "L'elemento non è più disponibile",
@@ -616,6 +655,10 @@ export const it = {
             import: "Importazione non riuscita: {{message}}",
             fileTooLarge: "Il file è troppo grande per essere importato (massimo {{max}} MB).",
             tooManyItems: "Il file contiene troppi elementi da importare (massimo {{max}}).",
+            itemsFile: "Questo file contiene una nota o una cartella: importalo dall'interno di un workspace.",
+            workspaceFile: "Questo file contiene un intero workspace: importalo dalla pagina iniziale.",
+            itemMissing: "L'elemento da esportare non esiste più.",
+            parentMissing: "La cartella di destinazione non esiste più.",
             untitled: "(senza titolo)",
         },
         backup: {
@@ -679,6 +722,7 @@ export const it = {
     menu: {
         changeColor: "Cambia colore",
         export: "Esporta",
+        importHere: "Importa qui",
         moveUp: "Sposta su",
         moveDown: "Sposta giù",
         moveLeft: "Sposta a sinistra",
@@ -693,6 +737,15 @@ export const it = {
         open: "Apri",
         createTemplate: "Crea template",
         duplicate: "Duplica",
+        selection: {
+            delete_one: "Elimina {{count}} elemento",
+            delete_other: "Elimina {{count}} elementi",
+            move: "Sposta",
+            color: "Colore",
+            export: "Esporta",
+            dragCount_one: "{{count}} elemento",
+            dragCount_other: "{{count}} elementi",
+        },
     },
     home: {
         loading: "Caricamento dei Workspace...",
@@ -701,6 +754,18 @@ export const it = {
         recent: "Apri un Workspace recente:",
         viewGrid: "Visualizza come griglia",
         viewList: "Visualizza come lista",
+        sort: {
+            label: "Ordina",
+            by: "Ordina per",
+            direction: "Direzione",
+            edited: "Ultima modifica",
+            created: "Data creazione",
+            name: "Nome",
+            nameAsc: "Dalla A alla Z",
+            nameDesc: "Dalla Z alla A",
+            dateAsc: "Prima i meno recenti",
+            dateDesc: "Prima i più recenti",
+        },
         createWorkspace: {
             title: "Crea Workspace",
             name: "Nome",
@@ -759,6 +824,7 @@ export const it = {
         addFolder: "Crea una cartella",
         addNote: "Crea una nota",
         addNoteFromTemplate: "Crea una nota da un template",
+        importItems: "Importa una nota o una cartella",
         trashBadge_one: "{{count}} elemento nel cestino",
         trashBadge_other: "{{count}} elementi nel cestino",
         addAudioFirstGroup: "Aggiungi file audio al primo gruppo della nota",
@@ -829,6 +895,12 @@ export const it = {
         imported: "Workspace importato",
         importedSkipped_one: "Workspace importato · {{count}} audio saltato",
         importedSkipped_other: "Workspace importato · {{count}} audio saltati",
+        exportedItem: "Esportato",
+        importedItems: "Importato",
+        importedItemsSkipped_one: "Importato · {{count}} audio saltato",
+        importedItemsSkipped_other: "Importato · {{count}} audio saltati",
+        itemsFileName_one: "{{count}} elemento",
+        itemsFileName_other: "{{count}} elementi",
     },
     dnd: {
         unknownItem: "elemento",

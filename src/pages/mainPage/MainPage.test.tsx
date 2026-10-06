@@ -18,6 +18,8 @@ vi.mock("./startup-restore", () => ({ useStartupRestore: () => startup }))
 const prefs = {
     workspaceView: "grid" as "grid" | "list",
     setWorkspaceView: vi.fn(),
+    workspaceSort: { by: "edited", dir: "desc" } as { by: string; dir: string },
+    setWorkspaceSort: vi.fn(),
 }
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("./MainPageLayout", () => ({ MainPageLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
@@ -39,12 +41,15 @@ const renderLoaded = async () => {
 
 describe("MainPage", () => {
     beforeEach(() => {
+        // Radix (dropdown menu) measures its content: jsdom has no ResizeObserver
+        vi.stubGlobal("ResizeObserver", class { observe() { /* none */ } unobserve() { /* none */ } disconnect() { /* none */ } })
         vi.resetAllMocks()
         ctx.workspaces = []
         ctx.isLoading = false
         ctx.error = null
         startup.pending = false
         prefs.workspaceView = "grid"
+        prefs.workspaceSort = { by: "edited", dir: "desc" }
         ctx.getWorkspaces.mockResolvedValue(undefined)
     })
 
@@ -134,5 +139,35 @@ describe("MainPage", () => {
         await renderLoaded()
         await user.click(screen.getByRole("button", { name: "Visualizza come griglia" }))
         expect(prefs.setWorkspaceView).toHaveBeenCalledWith("grid")
+    })
+
+    it("offers the sort button next to the view toggle", async () => {
+        await renderLoaded()
+        const sort = screen.getByRole("button", { name: "Ordina" })
+        expect(sort.parentElement).toBe(screen.getByText("trash-button").parentElement)
+    })
+
+    it("changes the sort criterion keeping the direction", async () => {
+        const user = userEvent.setup()
+        await renderLoaded()
+        await user.click(screen.getByRole("button", { name: "Ordina" }))
+        await user.click(await screen.findByRole("menuitemradio", { name: "Nome" }))
+        expect(prefs.setWorkspaceSort).toHaveBeenCalledWith({ by: "name", dir: "desc" })
+    })
+
+    it("changes the sort direction keeping the criterion", async () => {
+        const user = userEvent.setup()
+        await renderLoaded()
+        await user.click(screen.getByRole("button", { name: "Ordina" }))
+        await user.click(await screen.findByRole("menuitemradio", { name: "Prima i meno recenti" }))
+        expect(prefs.setWorkspaceSort).toHaveBeenCalledWith({ by: "edited", dir: "asc" })
+    })
+
+    it("uses A-Z labels for the direction when sorting by name", async () => {
+        const user = userEvent.setup()
+        prefs.workspaceSort = { by: "name", dir: "asc" }
+        await renderLoaded()
+        await user.click(screen.getByRole("button", { name: "Ordina" }))
+        expect(await screen.findByRole("menuitemradio", { name: "Dalla A alla Z" })).toBeChecked()
     })
 })

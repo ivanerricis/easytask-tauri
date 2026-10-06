@@ -20,7 +20,6 @@ import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import React, { useId, useState } from "react"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
-import { toast } from "sonner"
 
 type ParentFolderProps = {
     parentFolder: Folder
@@ -60,7 +59,6 @@ export function DialogAddNote({ parentFolder, isOpen, onOpenChange }: ParentFold
                 setTemplateId("")
             } catch (err) {
                 setError(getErrorMessage(err))
-                toast.error(getErrorMessage(err))
             }
         })
     }

@@ -382,6 +382,63 @@ describe("recorder", () => {
     })
 })
 
+describe("multi-selection commands (one undo step)", () => {
+    it("removeMany trashes and restores everything, reloading the tree once on undo", async () => {
+        const command = commands.removeMany([
+            { itemType: "folder", id: 1, name: "F" }, { itemType: "note", id: 2, name: "N" }, { itemType: "note", id: 3, name: "M" },
+        ])
+        expect(command.label).toBe("Elimina 3 elementi")
+        await command.undo()
+        expect(ctx.deps.workspace.restoreItem.mock.calls).toEqual([["note", 3], ["note", 2], ["folder", 1]])
+        expect(ctx.deps.workspace.getWorkspaceData).toHaveBeenCalledTimes(1)
+        expect(ctx.deps.workspace.getWorkspaceData).toHaveBeenCalledWith(7)
+        await command.redo()
+        expect(ctx.deps.workspace.deleteItem.mock.calls).toEqual([["folder", 1], ["note", 2], ["note", 3]])
+    })
+
+    it("removeMany has a singular label and records as a single history entry", () => {
+        expect(commands.removeMany([{ itemType: "note", id: 2, name: "N" }]).label).toBe("Elimina 1 elemento")
+        const record = vi.fn()
+        const recorder = createUndoRecorder(commands, record)
+        recorder.removeMany([{ itemType: "note", id: 1, name: "a" }, { itemType: "note", id: 2, name: "b" }])
+        expect(record).toHaveBeenCalledTimes(1)
+    })
+
+    it("removeMany stops at the first failure", async () => {
+        ctx.deps.workspace.restoreItem.mockRejectedValueOnce(new Error("gone"))
+        await expect(commands.removeMany([{ itemType: "note", id: 1, name: "a" }, { itemType: "note", id: 2, name: "b" }]).undo()).rejects.toThrow("gone")
+        expect(ctx.deps.workspace.restoreItem).toHaveBeenCalledTimes(1)
+    })
+
+    it("colorMany restores every previous color (none = remove) and reapplies the new one", async () => {
+        const command = commands.colorMany([
+            { itemType: "note", id: 1, name: "a", before: "#111111", after: "#ff0000" },
+            { itemType: "folder", id: 2, name: "b", before: null, after: "#ff0000" },
+        ])
+        expect(command.label).toBe("Cambia colore di 2 elementi")
+        await command.undo()
+        expect(ctx.deps.workspace.updateItemColor.mock.calls).toEqual([["folder", 2, undefined], ["note", 1, "#111111"]])
+        ctx.deps.workspace.updateItemColor.mockClear()
+        await command.redo()
+        expect(ctx.deps.workspace.updateItemColor.mock.calls).toEqual([["note", 1, "#ff0000"], ["folder", 2, "#ff0000"]])
+    })
+
+    it("treeMoveMany replays the steps backwards to the old places and forwards to the new ones", async () => {
+        const command = commands.treeMoveMany([
+            { itemType: "note", id: 1, name: "a", from: { folderId: null, index: 0 }, to: { folderId: 5, index: 0 } },
+            { itemType: "folder", id: 2, name: "b", from: { folderId: 3, index: 1 }, to: { folderId: 5, index: 2 } },
+        ])
+        expect(command.label).toBe("Sposta 2 elementi")
+        await command.undo()
+        expect(ctx.deps.workspace.moveTreeItem.mock.calls).toEqual([["folder", 2, 3, 1], ["note", 1, null, 0]])
+        expect(ctx.deps.workspace.getWorkspaceData).toHaveBeenCalledTimes(1)
+        ctx.deps.workspace.moveTreeItem.mockClear()
+        await command.redo()
+        expect(ctx.deps.workspace.moveTreeItem.mock.calls).toEqual([["note", 1, 5, 0], ["folder", 2, 5, 2]])
+        expect(ctx.deps.workspace.getWorkspaceData).toHaveBeenCalledTimes(2)
+    })
+})
+
 describe("place capture", () => {
     it("finds the parent and index of a folder or a note in the sidebar tree", () => {
         const tree = {

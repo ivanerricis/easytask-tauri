@@ -37,6 +37,12 @@ const isTreeType = (itemType: UndoItemType): itemType is TreeItemType => itemTyp
 
 /** Where a folder or a note sits: the parent folder (null = workspace root) and the index among its siblings of the same type. */
 export type TreePlace = { folderId: number | null, index: number }
+/** One item of a multi-selection action, with its name for the label. */
+export type TreeItemRef = { itemType: TreeItemType, id: number, name: string | null | undefined }
+/** One color change of a multi-selection action. */
+export type ColorChange = TreeItemRef & { before: string | null | undefined, after: string | null | undefined }
+/** One step of a multi move: the item and where it is before / after the step. */
+export type TreeMoveStep = { itemType: TreeItemType, id: number, name: string, from: TreePlace, to: TreePlace }
 /** Where a section sits in the open note. */
 export type SectionPlace = { groupId: number, index: number }
 /** Where a task sits in the open note: a section (top level, parentTaskId null) or under another task. */
@@ -218,6 +224,9 @@ export function createUndoCommands(deps: UndoDeps) {
         }
     }
 
+    /** The same label for every multi-selection action: the translated count ("Delete 3 items"). */
+    const manyLabel = (key: "deleteMany" | "colorMany" | "moveMany", count: number) => i18n.t(`undo.labels.${key}`, { count })
+
     return {
         /** Rename of a folder, note, group, section or task. */
         rename: (itemType: UndoItemType, id: number, before: string, after: string): UndoCommand => {
@@ -290,6 +299,54 @@ export function createUndoCommands(deps: UndoDeps) {
             }
         },
 
+        /**
+         * Move to the trash of several folders/notes as ONE step: undone by restoring them all (the tree is reloaded once),
+         * redone by trashing them again in the same order.
+         */
+        removeMany: (items: TreeItemRef[]): UndoCommand => ({
+            label: manyLabel("deleteMany", items.length),
+            undo: async () => {
+                for (const item of [...items].reverse()) await workspace.restoreItem(item.itemType, item.id)
+                await reloadTree()
+            },
+            redo: async () => {
+                for (const item of items) await removeItem(item.itemType, item.id)
+            },
+        }),
+
+        /** Color change of several folders/notes as ONE step (null = no color). */
+        colorMany: (changes: ColorChange[]): UndoCommand => ({
+            label: manyLabel("colorMany", changes.length),
+            undo: async () => {
+                for (const change of [...changes].reverse()) await setColor(change.itemType, change.id)(change.before ?? null)
+            },
+            redo: async () => {
+                for (const change of changes) await setColor(change.itemType, change.id)(change.after ?? null)
+            },
+        }),
+
+        /**
+         * Move of several folders/notes as ONE step. `steps` are in the order they were run, each with the place the item
+         * had right before its step: undone by running them backwards (one reload), redone in order.
+         */
+        treeMoveMany: (steps: TreeMoveStep[]): UndoCommand => ({
+            label: manyLabel("moveMany", steps.length),
+            undo: async () => {
+                try {
+                    for (const step of [...steps].reverse()) await workspace.moveTreeItem(step.itemType, step.id, step.from.folderId, step.from.index)
+                } finally {
+                    await reloadTree()
+                }
+            },
+            redo: async () => {
+                try {
+                    for (const step of steps) await workspace.moveTreeItem(step.itemType, step.id, step.to.folderId, step.to.index)
+                } finally {
+                    await reloadTree()
+                }
+            },
+        }),
+
         /** Move of a section into another group (or elsewhere in its group). */
         sectionMove: (sectionId: number, name: string, from: SectionPlace, to: SectionPlace): UndoCommand => ({
             label: makeLabel("move", "section", name),
@@ -346,5 +403,5 @@ export function createUndoRecorder(commands: UndoCommands, record: (command: Und
 const noop = () => {}
 export const NOOP_RECORDER: UndoRecorder = {
     rename: noop, color: noop, taskCompletion: noop, taskPriority: noop, taskDescription: noop, remove: noop, create: noop,
-    treeMove: noop, sectionMove: noop, sectionMoveToNewGroup: noop, taskMove: noop, record: noop, track: write => write,
+    treeMove: noop, removeMany: noop, colorMany: noop, treeMoveMany: noop, sectionMove: noop, sectionMoveToNewGroup: noop, taskMove: noop, record: noop, track: write => write,
 }

@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useEffect, useRef, useState } from "react"
 import { LayoutTemplate } from "lucide-react"
-import { toast } from "sonner"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -26,6 +25,7 @@ export const DialogPickTemplate = ({ isOpen, onOpenChange, onPick }: DialogPickT
     const workspaceID = currentWorkspace?.id
     const [templates, setTemplates] = useState<NoteTemplate[]>([])
     const [loaded, setLoaded] = useState(false)
+    const [error, setError] = useState<string | null>(null)
     const getTemplatesRef = useRef(getTemplates)
     useEffect(() => { getTemplatesRef.current = getTemplates })
 
@@ -34,9 +34,9 @@ export const DialogPickTemplate = ({ isOpen, onOpenChange, onPick }: DialogPickT
         let cancelled = false
         getTemplatesRef.current(workspaceID)
             .then(list => { if (!cancelled) setTemplates(list) })
-            .catch(err => toast.error(getErrorMessage(err)))
+            .catch(err => { if (!cancelled) setError(getErrorMessage(err)) })
             .finally(() => { if (!cancelled) setLoaded(true) })
-        return () => { cancelled = true; setLoaded(false) }
+        return () => { cancelled = true; setLoaded(false); setError(null) }
     }, [isOpen, workspaceID])
 
     return (
@@ -49,6 +49,7 @@ export const DialogPickTemplate = ({ isOpen, onOpenChange, onPick }: DialogPickT
         >
             <CommandInput placeholder={t("dialogs.pickTemplate.placeholder")} />
             <CommandList>
+                {error && <p role="alert" className="px-3 py-2 text-xs text-destructive break-words">{error}</p>}
                 <CommandEmpty>{loaded && templates.length === 0 ? t("dialogs.pickTemplate.none") : t("common.noResults")}</CommandEmpty>
                 <CommandGroup heading={t("dialogs.pickTemplate.heading")}>
                     {templates.map(template => {

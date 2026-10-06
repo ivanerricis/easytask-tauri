@@ -134,6 +134,16 @@ describe("createBackup", () => {
         expect(files.has(backup.path)).toBe(true)
     })
 
+    it("copies the connection it is given instead of opening the shared one", async () => {
+        const other = createMockDb()
+        const backup = await createBackup("pre-migration", other as never)
+        expect(other.execute).toHaveBeenCalledTimes(1)
+        expect(String(other.execute.mock.calls[0][0])).toMatch(/^VACUUM INTO '\/data\/backups\/easytask-\d{8}-\d{6}\.db'$/)
+        expect(db.execute).not.toHaveBeenCalled()
+        // a regular backup: not a pre-restore copy
+        expect(backup.preRestore).toBe(false)
+    })
+
     it("escapes single quotes in the path", async () => {
         const { join } = await import("@tauri-apps/api/path")
         vi.mocked(join).mockImplementationOnce(async () => BACKUPS).mockImplementationOnce(async () => "/da'ta/x.db")

@@ -144,4 +144,27 @@ describe("DialogRenameItem", () => {
         expect(onOpenChange).toHaveBeenCalledWith(false)
         expect(renameItem).not.toHaveBeenCalled()
     })
+
+    it("Escape closes without renaming and clears the typed value and the error for the next open", async () => {
+        const user = userEvent.setup()
+        renameItem.mockRejectedValue(new Error("boom"))
+        const onOpenChange = vi.fn()
+        const ui = (isOpen: boolean) => (
+            <DialogRenameItem item={{ id: 5, name: "Old name" }} itemType="task" isOpen={isOpen} onOpenChange={onOpenChange} />
+        )
+        const { rerender } = render(ui(true))
+        await user.type(screen.getByRole("textbox"), "zzz")
+        await user.click(screen.getByRole("button", { name: "Salva" }))
+        expect(await screen.findByText("boom")).toBeInTheDocument()
+        renameItem.mockClear()
+
+        await user.keyboard("{Escape}")
+        expect(onOpenChange).toHaveBeenCalledWith(false)
+        expect(renameItem).not.toHaveBeenCalled()
+
+        rerender(ui(false))
+        rerender(ui(true))
+        expect(screen.getByRole("textbox")).toHaveValue("Old name")
+        expect(screen.queryByText("boom")).toBeNull()
+    })
 })

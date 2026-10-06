@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DataSettings } from "./DataSettings"
@@ -7,6 +8,8 @@ const invoke = vi.fn()
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: (...a: unknown[]) => invoke(...a) }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+const setUndoLimit = vi.fn()
+vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ undoLimit: 50, setUndoLimit }) }))
 vi.mock("./BackupSettings", () => ({ BackupSettings: () => null }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: null }) }))
 vi.mock("@/hooks/use-workspace-transfer", () => ({
@@ -16,7 +19,8 @@ vi.mock("@/hooks/use-workspace-transfer", () => ({
 const renderSettings = () => render(<MemoryRouter><DataSettings /></MemoryRouter>)
 
 beforeEach(() => {
-    invoke.mockReset()
+    invoke.mockReset().mockResolvedValue(false)
+    setUndoLimit.mockReset()
 })
 
 describe("DataSettings OneDrive warning", () => {
@@ -39,5 +43,16 @@ describe("DataSettings OneDrive warning", () => {
         renderSettings()
         await waitFor(() => expect(invoke).toHaveBeenCalledWith("data_dir_in_onedrive"))
         expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    })
+})
+
+describe("DataSettings history", () => {
+    it("offers the limits and saves the chosen one", async () => {
+        renderSettings()
+        const select = screen.getByRole("combobox", { name: "Azioni annullabili" })
+        expect(select).toHaveValue("50")
+        expect(Array.from((select as HTMLSelectElement).options).map(o => o.value)).toEqual(["25", "50", "100", "200", "500"])
+        await userEvent.selectOptions(select, "200")
+        expect(setUndoLimit).toHaveBeenCalledWith(200)
     })
 })

@@ -15,7 +15,7 @@ export const BACKUP_FOLDER = "backups"
 const REGULAR_PATTERN = /^easytask-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:-(\d+))?\.db$/
 const PRE_RESTORE_PATTERN = /^easytask-pre-restore-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:-(\d+))?\.db$/
 
-export type BackupKind = "manual" | "auto" | "pre-restore"
+export type BackupKind = "manual" | "auto" | "pre-restore" | "pre-migration"
 
 export type BackupInfo = {
     /** File name inside the backups folder. */
@@ -91,10 +91,12 @@ export async function rotateBackups(keep: number): Promise<number> {
 /**
  * Writes a consistent copy of the database (VACUUM INTO, outside any transaction) in the backups folder.
  * Regular backups are then rotated according to the "keep" preference; only the newest pre-restore copy is kept.
+ * @param kind Why the backup is taken; "pre-migration" copies are regular ones (named and rotated like the others).
+ * @param database Connection to copy; the shared one when omitted. Needed while that one is still being opened.
  * @returns The created backup.
  * @category Database
  */
-export async function createBackup(kind: BackupKind = "manual"): Promise<BackupInfo> {
+export async function createBackup(kind: BackupKind = "manual", database?: Database): Promise<BackupInfo> {
     const folder = await backupFolderPath()
     const date = new Date()
     const preRestore = kind === "pre-restore"
@@ -106,7 +108,7 @@ export async function createBackup(kind: BackupKind = "manual"): Promise<BackupI
         path = await join(folder, name)
     }
 
-    const db = await getDB()
+    const db = database ?? await getDB()
     // The file name goes into the SQL as a literal: single quotes are escaped by doubling them
     await db.execute(`VACUUM INTO '${path.replace(/'/g, "''")}'`)
 

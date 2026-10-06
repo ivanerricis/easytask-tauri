@@ -52,12 +52,14 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     const getTemplatesRef = useRef(getTemplates)
     useEffect(() => { getTemplatesRef.current = getTemplates })
 
+    const [error, setError] = useState<string | null>(null)
+
     const reload = useCallback(async () => {
         if (workspaceID === undefined) return
         try {
             setTemplates(await getTemplatesRef.current(workspaceID))
         } catch (err) {
-            toast.error(getErrorMessage(err))
+            setError(getErrorMessage(err))
         }
     }, [workspaceID])
 
@@ -73,11 +75,12 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
         setRefreshing(null)
         if (!template) return
         setBusy(true)
+        setError(null)
         try {
             await updateTemplateFromNote(template.id)
             toast.success(t("dialogs.templates.updated"))
         } catch (err) {
-            toast.error(getErrorMessage(err))
+            setError(getErrorMessage(err))
         } finally {
             await reload()
             setBusy(false)
@@ -188,6 +191,7 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                             })
                         )}
                     </div>
+                    {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
                     <DialogFooter>
                         <Button variant="outline" onClick={() => onOpenChange(false)}>
                             {t("common.close")}

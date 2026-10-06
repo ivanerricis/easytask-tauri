@@ -14,14 +14,32 @@ export function useAllNotes(): NoteWithPath[] {
     const { notes, folders } = useWorkspaceState()
 
     return useMemo(() => {
-        const map = new Map<number, NoteWithPath>()
-        notes?.forEach(note => map.set(note.id, { note, path: "" }))
-        const walk = (list: Folder[], parentPath: string) => list.forEach(folder => {
-            const path = parentPath ? `${parentPath} / ${folder.name}` : folder.name
-            folder.notes.forEach(note => map.set(note.id, { note, path }))
-            walk(folder.subfolders ?? [], path)
+        // The folder list of the state is flat (subfolders included) and may also be nested: each folder is
+        // collected once with its parent, then the path is built by walking up the parents
+        const parents = new Map<number, { folder: Folder, parentId: number | null }>()
+        const collect = (list: Folder[], parentId: number | null) => list.forEach(folder => {
+            const known = parents.get(folder.id)
+            parents.set(folder.id, { folder, parentId: folder.folderID ?? parentId ?? known?.parentId ?? null })
+            collect(folder.subfolders ?? [], folder.id)
         })
-        walk(folders ?? [], "")
+        collect(folders ?? [], null)
+
+        const paths = new Map<number, string>()
+        const pathOf = (id: number, depth = 0): string => {
+            const cached = paths.get(id)
+            if (cached !== undefined) return cached
+            const entry = parents.get(id)
+            if (!entry) return ""
+            // The depth guard stops a (corrupted) cycle of parents
+            const parentPath = entry.parentId !== null && depth < 64 ? pathOf(entry.parentId, depth + 1) : ""
+            const path = parentPath ? `${parentPath} / ${entry.folder.name}` : entry.folder.name
+            paths.set(id, path)
+            return path
+        }
+
+        const map = new Map<number, NoteWithPath>()
+        notes?.forEach(note => map.set(note.id, { note, path: note.folderID ? pathOf(note.folderID) : "" }))
+        parents.forEach(({ folder }) => folder.notes?.forEach(note => map.set(note.id, { note, path: pathOf(folder.id) })))
         return Array.from(map.values())
     }, [notes, folders])
 }

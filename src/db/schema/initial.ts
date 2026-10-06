@@ -5,6 +5,7 @@ import { createNoteTemplateIndexes, createNoteTemplateTable, createNoteTemplateT
 import { createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
 import { addGroupColorColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
 import { createTaskIndexes, createTaskTable, createTaskTrigger } from "./task";
+import { createWorkspaceEditTriggers } from "./workspace_edit";
 import { createWorkspaceIndexes, createWorkspaceTable, createWorkspaceTrigger } from "./workspace";
 
 /**
@@ -52,4 +53,4 @@ export const initialSchema: string[] = [
  * Used by the tests to build a database in one go: the app itself goes through the migrations in initDb.
  * @category Database Schema
  */
-export const latestSchema: string[] = [...initialSchema, addGroupColorColumn]
+export const latestSchema: string[] = [...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers]

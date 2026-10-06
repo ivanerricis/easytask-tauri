@@ -1,0 +1,49 @@
+const NOW_SET = `
+            edit_date = DATE('now', 'localtime'),
+            edit_time = strftime('%H:%M', 'now', 'localtime')`
+
+/** Table -> SQL expression (using the row alias) resolving the id of the owning workspace. */
+const workspaceOf: Record<string, (row: "NEW" | "OLD") => string> = {
+    folder: r => `${r}.workspaceID`,
+    note: r => `${r}.workspaceID`,
+    note_template: r => `${r}.workspaceID`,
+    section_group: r => `(SELECT workspaceID FROM note WHERE id = ${r}.noteID)`,
+    section: r => `(SELECT n.workspaceID FROM section_group g JOIN note n ON n.id = g.noteID WHERE g.id = ${r}.groupID)`,
+    task: r => `(SELECT n.workspaceID FROM section s JOIN section_group g ON g.id = s.groupID JOIN note n ON n.id = g.noteID WHERE s.id = ${r}.sectionID)`,
+    audio_file: r => `(SELECT n.workspaceID FROM section_group g JOIN note n ON n.id = g.noteID WHERE g.id = ${r}.section_groupID)`,
+}
+
+const bump = (ws: string, extra = "") => `
+        UPDATE workspace SET${NOW_SET}
+        WHERE id = ${ws}${extra};`
+
+function trigger(table: string, event: "INSERT" | "UPDATE" | "DELETE", body: string): string {
+    return `
+    CREATE TRIGGER IF NOT EXISTS workspace_edit_on_${table}_${event.toLowerCase()}
+    AFTER ${event} ON ${table}
+    FOR EACH ROW
+    BEGIN${body}
+    END;
+`
+}
+
+function triggersFor(table: string): string[] {
+    const of = workspaceOf[table]
+    // folder/note can move to another workspace: the old one changed too
+    const moved = table === "folder" || table === "note"
+        ? bump("OLD.workspaceID", " AND OLD.workspaceID IS NOT NEW.workspaceID")
+        : ""
+    return [
+        trigger(table, "INSERT", bump(of("NEW"))),
+        trigger(table, "UPDATE", bump(of("NEW")) + moved),
+        trigger(table, "DELETE", bump(of("OLD"))),
+    ]
+}
+
+/**
+ * Migration v3: inserting, updating (soft delete included) or deleting any element of a workspace
+ * refreshes the edit date/time of the workspace that owns it.
+ * No recursion: the workspace trigger fires only on name/color and recursive_triggers is off.
+ * @category Database Schema
+ */
+export const createWorkspaceEditTriggers: string[] = Object.keys(workspaceOf).flatMap(triggersFor)

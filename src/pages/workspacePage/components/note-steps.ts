@@ -1,5 +1,6 @@
 import type { NoteDataTree } from "@/types/types"
 import { findGroup, indexTree, type SectionTarget, type TaskTarget } from "./note-dnd"
+import { isHiddenTask } from "./section/hide-completed"
 
 /** One step of the "Sposta su / giù" menu items: towards the start (-1) or the end (+1) of the siblings. */
 export type Step = -1 | 1
@@ -23,7 +24,7 @@ function stepIndex<T extends { id: number }>(siblings: T[], id: number, step: St
 
 /**
  * Destination of a task (or subtask) moved one step among its siblings, null when it is already first/last.
- * @param hideCompleted Completed siblings are not on screen, so they are jumped over.
+ * @param hideCompleted Siblings hidden by the "hide completed" rule (isHiddenTask) are not on screen, so they are jumped over.
  * @category Note DnD
  */
 export function getTaskStep(tree: NoteDataTree, taskId: number, step: Step, hideCompleted: boolean): TaskTarget | null {
@@ -33,7 +34,7 @@ export function getTaskStep(tree: NoteDataTree, taskId: number, step: Step, hide
     const siblings = info.parentId === null
         ? sections.get(info.sectionId)?.section.tasks ?? []
         : tasks.get(info.parentId)?.task.subtasks ?? []
-    const index = stepIndex(siblings, taskId, step, task => !(hideCompleted && task.completed))
+    const index = stepIndex(siblings, taskId, step, task => !isHiddenTask(task, hideCompleted))
     return index === null ? null : { sectionId: info.sectionId, parentTaskId: info.parentId, index }
 }
 

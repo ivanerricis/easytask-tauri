@@ -1,7 +1,9 @@
 import type { AudioPlayerPosition } from "@/types/types"
 import { store } from "./initStore"
+import { DEFAULT_PRIMARY_COLOR } from "@/lib/accent-color"
 import { SIDEBAR_DEFAULT_WIDTH, clampSidebarWidth } from "@/lib/sidebar-layout"
 import { DEFAULT_COLOR_INTENSITY, clampColorIntensity } from "@/lib/color-intensity"
+import { UNDO_LIMIT } from "@/contexts/undo/stack"
 import { DEFAULT_LANGUAGE_PREFERENCE, isLanguagePreference, type LanguagePreference } from "@/i18n"
 
 const SHOW_PROGRESSBAR_KEY = "showProgressBar"
@@ -9,6 +11,9 @@ const SHOW_GROUP_PROGRESSBAR_KEY = "showGroupProgressBar"
 const PRIMARY_COLOR_KEY = "primaryColor"
 const SHOW_SECTION_COUNT_KEY = "showSectionCount"
 const SHOW_TASK_COUNT_KEY = "showTaskCount"
+const SHOW_AUDIO_FILE_COUNT_KEY = "showAudioFileCount"
+const SHOW_GROUP_SEPARATORS_KEY = "showGroupSeparators"
+const UNDO_LIMIT_KEY = "undoLimit"
 const SIDEBAR_LEFT_OPEN_KEY = "sidebarLeftOpen"
 const SIDEBAR_RIGHT_OPEN_KEY = "sidebarRightOpen"
 const AUDIOPLAYER_POSITION_KEY = "audioPlayerPosition"
@@ -17,6 +22,7 @@ const AUDIOPLAYER_VISIBLE_KEY = "audioPlayerVisible"
 const AUDIOPLAYER_SCALE_KEY = "audioPlayerScale"
 const AUDIOPLAYER_OPACITY_KEY = "audioPlayerOpacity"
 const WORKSPACE_VIEW_KEY = "workspaceView"
+const WORKSPACE_SORT_KEY = "workspaceSort"
 const REOPEN_NOTES_KEY = "reopenNotes"
 const REOPEN_LAST_WORKSPACE_KEY = "reopenLastWorkspace"
 const LAST_WORKSPACE_ID_KEY = "lastWorkspaceId"
@@ -32,7 +38,7 @@ const COLOR_INTENSITY_KEY = "colorIntensity"
 const RIGHT_PANEL_TAB_KEY = "rightPanelTab"
 const HIDE_COMPLETED_TASKS_KEY = "hideCompletedTasks"
 const SHOW_SUBTASK_COUNT_KEY = "showSubtaskCount"
-export const DEFAULT_PRIMARY_COLOR = "#ffb375"
+export { DEFAULT_PRIMARY_COLOR }
 
 const SAVE_DEBOUNCE_MS = 500
 
@@ -178,6 +184,10 @@ export const saveAudioPlayerOpacity = async (value: number): Promise<void> => {
 }
 
 export type WorkspaceView ="grid" | "list"
+export type WorkspaceSortBy = "edited" | "created" | "name"
+export type WorkspaceSortDir = "asc" | "desc"
+export type WorkspaceSort = { by: WorkspaceSortBy, dir: WorkspaceSortDir }
+export const DEFAULT_WORKSPACE_SORT: WorkspaceSort = { by: "edited", dir: "desc" }
 export type SidebarItemSize = "compact" | "normal" | "large"
 
 
@@ -225,7 +235,7 @@ export const saveShowGroupProgressBar = async (value: boolean): Promise<void> =>
 
 /**
  * Gets the primary color preference.
- * If no value is set (or it is not a hex color), it defaults to "#ffb375".
+ * If no value is set (or it is not a hex color), it defaults to DEFAULT_PRIMARY_COLOR.
  * @returns A promise that resolves to the primary color hex code.
  * @category Store
  */
@@ -381,6 +391,32 @@ export const getWorkspaceView = async (): Promise<WorkspaceView> => {
  */
 export const saveWorkspaceView = async (value: WorkspaceView): Promise<void> => {
     await store.set(WORKSPACE_VIEW_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets the order used to list the workspaces on the start page.
+ * @returns A promise that resolves to the stored order, or the default (last edited first) if missing or invalid.
+ * @category Store
+ */
+export const getWorkspaceSort = async (): Promise<WorkspaceSort> => {
+    const value = await store.get<Partial<WorkspaceSort>>(WORKSPACE_SORT_KEY)
+    const by = value?.by
+    const dir = value?.dir
+    if ((by === "edited" || by === "created" || by === "name") && (dir === "asc" || dir === "desc")) {
+        return { by, dir }
+    }
+    return { ...DEFAULT_WORKSPACE_SORT }
+}
+
+/**
+ * Saves the order used to list the workspaces on the start page.
+ * @param value The order to save.
+ * @returns A promise that resolves when the value is saved.
+ * @category Store
+ */
+export const saveWorkspaceSort = async (value: WorkspaceSort): Promise<void> => {
+    await store.set(WORKSPACE_SORT_KEY, value)
     await persist()
 }
 
@@ -717,5 +753,73 @@ export const getShowSubtaskCount = async (): Promise<boolean> => {
  */
 export const saveShowSubtaskCount = async (value: boolean): Promise<void> => {
     await store.set(SHOW_SUBTASK_COUNT_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets the value of the show audio file count preference.
+ * @returns A promise that resolves to a boolean indicating whether the audio file count of a group should be shown.
+ * @category Store
+ */
+export const getShowAudioFileCount = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(SHOW_AUDIO_FILE_COUNT_KEY)
+    return value ?? true
+}
+
+/**
+ * Saves the value of the show audio file count preference.
+ * @param value A boolean indicating whether to show the audio file count.
+ * @category Store
+ */
+export const saveShowAudioFileCount = async (value: boolean): Promise<void> => {
+    await store.set(SHOW_AUDIO_FILE_COUNT_KEY, value)
+    await persist()
+}
+
+/**
+ * Gets the value of the show section separators preference.
+ * @returns A promise that resolves to a boolean indicating whether a guide line is drawn between the sections.
+ * @category Store
+ */
+export const getShowGroupSeparators = async (): Promise<boolean> => {
+    const value = await store.get<boolean>(SHOW_GROUP_SEPARATORS_KEY)
+    return value === true
+}
+
+/**
+ * Saves the value of the show section separators preference.
+ * @param value A boolean indicating whether to draw a guide line between the sections.
+ * @category Store
+ */
+export const saveShowGroupSeparators = async (value: boolean): Promise<void> => {
+    await store.set(SHOW_GROUP_SEPARATORS_KEY, value)
+    await persist()
+}
+
+/** The values offered for the undo history limit. */
+export const UNDO_LIMIT_OPTIONS = [25, 50, 100, 200, 500] as const
+
+/** Whether a stored value is a valid undo limit (a positive integer up to the largest option). */
+export const isValidUndoLimit = (value: unknown): value is number =>
+    typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= UNDO_LIMIT_OPTIONS[UNDO_LIMIT_OPTIONS.length - 1]
+
+/**
+ * Gets how many undoable actions are kept.
+ * @returns A promise that resolves to the limit (the default when nothing valid is stored).
+ * @category Store
+ */
+export const getUndoLimit = async (): Promise<number> => {
+    const value = await store.get<number>(UNDO_LIMIT_KEY)
+    return isValidUndoLimit(value) ? value : UNDO_LIMIT
+}
+
+/**
+ * Saves how many undoable actions are kept.
+ * @param value The limit (an invalid value is ignored).
+ * @category Store
+ */
+export const saveUndoLimit = async (value: number): Promise<void> => {
+    if (!isValidUndoLimit(value)) return
+    await store.set(UNDO_LIMIT_KEY, value)
     await persist()
 }

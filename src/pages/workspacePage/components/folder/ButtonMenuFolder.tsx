@@ -14,7 +14,10 @@ import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 import { MoveToSubmenu } from "../MoveToSubmenu"
 import { MenuGroup, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
+import { useIsInMultiSelection } from "../sidebar/selection-context"
+import { SelectionMenuItems } from "../sidebar/SelectionMenu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
+import { useItemTransfer } from "@/hooks/use-workspace-transfer"
 
 type ButtonMenuFolderProps = {
     folder: Folder
@@ -29,6 +32,8 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
     const [isRenameOpen, setRenameOpen] = useState(false);
     const [isDeleteFolderOpen, setDeleteFolderOpen] = useState(false);
     const menu = useItemMenuState()
+    const multi = useIsInMultiSelection("folder", folder.id)
+    const { exportItem, importItems } = useItemTransfer()
     // Rename, color and delete are applied to the sidebar tree by the context: the dialogs need no reload
     const { updateFolderColorContent, updateItemColor } = useWorkspaceData()
 
@@ -41,7 +46,7 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
         }
     }
 
-    const items = (
+    const singleItems = (
         <MenuGroup className="flex flex-col gap-1 p-1">
             <ButtonInPopover
                 text={t("menu.newNote")}
@@ -85,6 +90,16 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
                 folderID={folder.folderID}
                 onDone={menu.close}
             />
+            <ButtonInPopover
+                text={t("menu.importHere")}
+                type="import"
+                onClick={() => { menu.close(); void importItems(folder.id) }}
+            />
+            <ButtonInPopover
+                text={t("menu.export")}
+                type="export"
+                onClick={() => { menu.close(); void exportItem("folder", folder) }}
+            />
             <Separator />
             <ButtonInPopover
                 text={t("common.delete")}
@@ -94,6 +109,9 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
             />
         </MenuGroup>
     )
+
+    // A selected row of a multi-selection acts on the whole selection
+    const items = multi ? <SelectionMenuItems menu={menu} /> : singleItems
 
     const dialogs = (
         <>

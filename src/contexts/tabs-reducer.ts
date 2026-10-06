@@ -14,6 +14,8 @@ export type TabsAction =
     | { type: "close", id: number }
     | { type: "closeMany", ids: readonly number[] }
     | { type: "closeActive" }
+    /** Activates the next (1) or previous (-1) tab, wrapping around the ends. */
+    | { type: "cycle", direction: 1 | -1 }
     | { type: "closeAll" }
     | { type: "reorder", from: number, to: number }
     /** Closes the tabs whose id is not in `existing` (deleted, trashed or from another workspace). */
@@ -69,6 +71,16 @@ export function tabsReducer(state: TabsState, action: TabsAction): TabsState {
             return closeTabs(state, new Set([action.id]))
         case "closeMany":
             return closeTabs(state, new Set(action.ids))
+        case "cycle": {
+            const { openIds, activeId } = state
+            if (openIds.length < 2) return state
+            const index = activeId === null ? -1 : openIds.indexOf(activeId)
+            // Without an active tab, the first (next) or the last (previous) one is picked
+            const target = index === -1
+                ? (action.direction === 1 ? 0 : openIds.length - 1)
+                : (index + action.direction + openIds.length) % openIds.length
+            return { ...state, activeId: openIds[target] }
+        }
         case "closeActive":
             return state.activeId === null ? state : closeTabs(state, new Set([state.activeId]))
         case "closeAll":

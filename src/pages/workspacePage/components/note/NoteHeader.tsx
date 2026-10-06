@@ -49,8 +49,9 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                 tabIndex={0}
                 onClick={setCurrent}
                 onKeyDown={onActivateKey(() => activateNote(note.id))}
-                className={`${focusRing} relative flex flex-col items-center cursor-pointer
-                    ${isActive ? 'bg-background' : 'bg-secondary hover:bg-background/40'}`}
+                aria-current={isActive ? "true" : undefined}
+                className={`${focusRing} relative flex flex-col items-center cursor-pointer border-x border-b min-h-[42px]
+                    ${isActive ? 'bg-background border-x-primary border-b-transparent' : 'bg-secondary border-x-transparent border-b-primary hover:bg-background/40'}`}
             >
                 {/* Color container */}
                 {note.color && <div
@@ -60,8 +61,9 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                 </div>}
 
                 {/* Text + Close button */}
-                <div className="flex items-center justify-between pb-1 pt-1.5 pl-2 pr-1 gap-2 h-full">
-                    <span className={`w-full text-left text-sm text-nowrap ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
+                {/* Same height as the sidebar header (32px buttons + padding + border), the content centered in it */}
+                <div className="flex flex-1 items-center justify-between py-1 pl-2 pr-1 gap-2">
+                    <span className={`w-full text-left text-sm text-nowrap ${isActive ? "font-medium text-foreground" : "text-muted-foreground"}`}>
                         {note.name}
                     </span>
                     {isActive &&

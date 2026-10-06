@@ -5,7 +5,7 @@ import { useActiveNoteId } from "@/contexts/use-tabs"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { useState, useRef, useEffect, useCallback } from "react"
-import type { FormEvent } from "react"
+import type { FormEvent, KeyboardEvent } from "react"
 import { toast } from "sonner"
 import { getErrorMessage } from "@/lib/utils"
 import { CloseButton } from "./CloseButton"
@@ -49,6 +49,15 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
 
+    // Escape closes the form and discards the text, like the X button
+    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key !== "Escape") return
+        e.preventDefault()
+        e.stopPropagation()
+        setOpen(false)
+        setName("")
+    }
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
         // A section needs a title, a group may stay unnamed ("Gruppo N")
@@ -91,6 +100,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                 <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    onKeyDown={handleKeyDown}
                     placeholder={inGroup ? t("sections.titlePlaceholder") : t("groups.namePlaceholder")}
                     aria-label={inGroup ? t("sections.titleLabel") : t("groups.nameLabel")}
                     autoFocus

@@ -16,6 +16,8 @@ vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create })
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ getWorkspaceData: vi.fn(), updateItemColor: vi.fn(), duplicateNote }),
 }))
+const exportItem = vi.fn()
+vi.mock("@/hooks/use-workspace-transfer", () => ({ useItemTransfer: () => ({ exportItem, importItems: vi.fn(), isBusy: false }) }))
 vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote }) }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
 vi.mock("../MoveToSubmenu", () => ({ MoveToSubmenu: () => null }))
@@ -28,7 +30,7 @@ vi.mock("@/components/dialogs/dialog-rename", () => ({
     DialogRenameItem: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div>Dialog rinomina</div> : null,
 }))
 
-const ENTRIES = ["Apri", "Rinomina", "Duplica", "Cambia colore", "Crea template", "Elimina"]
+const ENTRIES = ["Apri", "Rinomina", "Duplica", "Cambia colore", "Crea template", "Esporta", "Elimina"]
 
 beforeEach(() => {
     vi.clearAllMocks()
@@ -118,5 +120,14 @@ describe("ButtonMenuNote", () => {
         )
         fireEvent.contextMenu(screen.getByLabelText("nome"))
         expect(screen.queryByText("Rinomina")).not.toBeInTheDocument()
+    })
+
+    it("exports the note from the context menu", async () => {
+        const user = userEvent.setup()
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Esporta"))
+        expect(exportItem).toHaveBeenCalledWith("note", expect.objectContaining({ id: 4 }))
+        expect(screen.queryByText("Elimina")).not.toBeInTheDocument()
     })
 })

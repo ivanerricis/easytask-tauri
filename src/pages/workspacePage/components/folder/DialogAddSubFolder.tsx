@@ -19,7 +19,6 @@ import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import React, { useId, useState } from "react"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
-import { toast } from "sonner"
 
 type ParentFolderProps = {
     parentFolder: Folder
@@ -50,7 +49,6 @@ export function DialogAddSubFolder({ parentFolder, isOpen, onOpenChange }: Paren
                 setName("")
             } catch (err) {
                 setError(getErrorMessage(err))
-                toast.error(getErrorMessage(err))
             }
         })
     }

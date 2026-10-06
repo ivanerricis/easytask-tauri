@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { toast } from "sonner"
 import { DialogDeleteItem } from "./dialog-delete"
 
 const deleteItem = vi.fn()
@@ -61,13 +60,13 @@ describe("DialogDeleteItem", () => {
         expect(getItemData).not.toHaveBeenCalled()
     })
 
-    it("shows a toast and stays open when the delete fails", async () => {
+    it("shows the error inline and stays open when the delete fails", async () => {
         const user = userEvent.setup()
         deleteItem.mockRejectedValue(new Error("constraint"))
         const { onOpenChange } = setup()
         await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
 
-        await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("constraint")))
+        expect(await screen.findByRole("alert")).toHaveTextContent("constraint")
         expect(onOpenChange).not.toHaveBeenCalledWith(false)
     })
 
@@ -84,14 +83,14 @@ describe("DialogDeleteItem", () => {
         expect(getItemData).not.toHaveBeenCalled()
     })
 
-    it("restores the item and shows a toast when the delete fails", async () => {
+    it("restores the item and shows the error inline when the delete fails", async () => {
         const user = userEvent.setup()
         const rollback = vi.fn()
         deleteItem.mockRejectedValue(new Error("constraint"))
         setup({ optimistic: () => rollback })
         await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
 
-        await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("constraint")))
+        expect(await screen.findByRole("alert")).toHaveTextContent("constraint")
         expect(rollback).toHaveBeenCalledTimes(1)
     })
 

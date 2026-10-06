@@ -8,7 +8,7 @@ import { cn, getErrorMessage } from "@/lib/utils"
 import { Check, Loader2, Plus, X } from "lucide-react"
 import { toast } from "sonner"
 import { useState, useRef, useEffect } from "react"
-import type { FormEvent } from "react"
+import type { FormEvent, KeyboardEvent } from "react"
 import { keyLabel } from "@/lib/shortcuts"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { PlusButton } from "../section/PlusButton"
@@ -152,6 +152,15 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
         setText("")
     }
 
+    // Escape closes the row and discards the text, like the X button
+    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key !== "Escape") return
+        e.preventDefault()
+        e.stopPropagation()
+        setOpen(false)
+        setText("")
+    }
+
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
         if (text.trim() && sectionId !== null) {
@@ -189,6 +198,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                     <Input
                         value={text}
                         onChange={(e) => setText(e.target.value)}
+                        onKeyDown={handleKeyDown}
                         placeholder={t("tasks.placeholder")}
                         autoFocus
                         readOnly={saving}

@@ -8,10 +8,13 @@ import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getItemName, isUndoableType } from "@/contexts/undo/commands"
 
 type DialogAddColorProps<T> = {
-    item: T
-    itemType: DBItemType
+    /** The item to color; not needed with `onPick`. */
+    item?: T
+    itemType?: DBItemType
     getItemId?: number | undefined
-    addColorItem: (itemType: DBItemType, id: number, color?: string) => Promise<void>
+    addColorItem?: (itemType: DBItemType, id: number, color?: string) => Promise<void>
+    /** Takes over the change (e.g. a color for several items): called with the chosen color, null to remove it. Nothing is saved or recorded here. */
+    onPick?: (color: string | null) => void | Promise<void>
     /** Reloads the data after the change; not needed when `addColorItem` updates the cached data itself. */
     getItemData?: (id: number) => Promise<void>
     setDropDownOpen?: (open: boolean) => void
@@ -30,10 +33,10 @@ const COLORS = [
     '#9a6324', '#fffac8', '#000075',
 ] as const
 
-export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getItemId, addColorItem, getItemData, setDropDownOpen, className }: DialogAddColorProps<T>) => {
+export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getItemId, addColorItem, onPick, getItemData, setDropDownOpen, className }: DialogAddColorProps<T>) => {
     const { t } = useTranslation()
     const recorder = useUndoRecorder()
-    const [color, setColor] = useState(item.color)
+    const [color, setColor] = useState(item?.color)
     const dialogRef = React.useRef<HTMLDivElement>(null);
     const [inputColor, setInputColor] = useState("#000000")
     // Reloading needs the id; without a reload hook the change is saved as is
@@ -49,7 +52,9 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
         if (setDropDownOpen) setDropDownOpen(false)
         try {
             const colorToSave = selectedColor ?? color
-            if (item.color !== colorToSave && colorToSave && canSave) {
+            if (onPick) {
+                if (colorToSave) await onPick(colorToSave)
+            } else if (item && itemType && addColorItem && item.color !== colorToSave && colorToSave && canSave) {
                 await addColorItem(itemType, item.id, colorToSave)
                 if (getItemData && getItemId) await getItemData(getItemId)
                 if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, colorToSave)
@@ -65,7 +70,9 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
         e.stopPropagation()
         if (setDropDownOpen) setDropDownOpen(false)
         try {
-            if (item.color && canSave) {
+            if (onPick) {
+                await onPick(null)
+            } else if (item && itemType && addColorItem && item.color && canSave) {
                 await addColorItem(itemType, item.id)
                 if (getItemData && getItemId) await getItemData(getItemId)
                 if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, null)

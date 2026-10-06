@@ -2,6 +2,7 @@ import type Database from "@tauri-apps/plugin-sql";
 import i18n from "@/i18n";
 import { APPLICATION_ID, initialSchema } from "./schema/initial";
 import { addGroupColorColumn } from "./schema/section_group";
+import { createWorkspaceEditTriggers } from "./schema/workspace_edit";
 
 /**
  * Ordered list of migrations, applied once each and tracked with PRAGMA user_version.
@@ -14,6 +15,8 @@ const migrations: string[][] = [
     initialSchema,
     // v2: color of the groups
     [addGroupColorColumn],
+    // v3: any change inside a workspace refreshes its edit date/time
+    createWorkspaceEditTriggers,
 ];
 
 /**
@@ -36,15 +39,24 @@ export const legacyDbMessage = () => i18n.t("errors.db.legacy");
  */
 export const newerDbMessage = () => i18n.t("errors.db.newer");
 
+export type InitDbOptions = {
+    /**
+     * Called once, before the first migration is applied, only when an existing database (user_version > 0) has
+     * migrations to run: the place to take a safety copy. A rejection aborts the migration.
+     */
+    beforeMigrate?: (db: Database, fromVersion: number, toVersion: number) => Promise<void>
+}
+
 /**
  * Applies the pending migrations to the database.
  * Databases created before the migrations were squashed (user_version > 0 without the EasyTask
  * application_id) are rejected with a clear error instead of being touched.
  * Errors are rethrown, so a half-initialized database is retried on the next start.
  * @param db Database instance to migrate.
+ * @param options See {@link InitDbOptions}.
  * @category Database
  */
-export async function initDB(db: Database) {
+export async function initDB(db: Database, options: InitDbOptions = {}) {
     const versionRows = await db.select<{ user_version: number }[]>("PRAGMA user_version");
     const current = versionRows[0]?.user_version ?? 0;
 
@@ -55,6 +67,9 @@ export async function initDB(db: Database) {
     }
     if (current > migrations.length)
         throw new Error(newerDbMessage());
+
+    if (current > 0 && current < migrations.length)
+        await options.beforeMigrate?.(db, current, migrations.length);
 
     for (let version = current; version < migrations.length; version++) {
         for (const query of migrations[version]) {

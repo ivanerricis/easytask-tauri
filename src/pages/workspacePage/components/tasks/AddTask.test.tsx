@@ -108,6 +108,18 @@ describe("AddTask", () => {
         expect(ctx.createTask).not.toHaveBeenCalled()
     })
 
+    it("closes on Escape, discarding the text, without creating", async () => {
+        const user = userEvent.setup()
+        render(<AddTask sectionId={3} />)
+        await open(user)
+        await user.type(screen.getByPlaceholderText("Scrivi qualcosa..."), "bozza{Escape}")
+
+        expect(screen.queryByPlaceholderText("Scrivi qualcosa...")).not.toBeInTheDocument()
+        expect(ctx.createTask).not.toHaveBeenCalled()
+        await open(user)
+        expect(screen.getByPlaceholderText("Scrivi qualcosa...")).toHaveValue("")
+    })
+
     describe("subtask mode", () => {
         const placeholder = "Nuovo sottotask…"
 

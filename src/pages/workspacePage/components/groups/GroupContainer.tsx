@@ -5,6 +5,8 @@ import { useActiveNote } from "@/contexts/use-active-note"
 import { useActiveNoteId, useTabUiStore } from "@/contexts/use-tabs"
 import { NoteDndProvider } from "../NoteDndProvider"
 import { NewGroupEnd, NewGroupSlot } from "./NewGroupSlot"
+import { usePreferences } from "@/contexts/use-preferences"
+import { useNoteAudioCounts } from "@/contexts/use-audio"
 import { EmptyNoteHints } from "../EmptyNoteHints"
 
 export const GroupContainer = () => {
@@ -13,7 +15,9 @@ export const GroupContainer = () => {
     const uiStore = useTabUiStore()
     const scrollRef = useRef<HTMLDivElement | null>(null)
 
+    const { showAudioFileCount, showGroupSeparators } = usePreferences()
     const groups = noteDataTree?.groups
+    const audioCounts = useNoteAudioCounts(activeId, showAudioFileCount)
     const hasData = groups !== undefined
 
     // The data is loaded by the active note provider. Here the scroll position of each note is restored
@@ -45,8 +49,11 @@ export const GroupContainer = () => {
                     .sort((a, b) => a.position - b.position)
                     .map((group, index) => (
                         <div key={group.id} className="relative h-full w-fit">
+                            {/* Vertical guide line centered in the gap (space-x-2) before every group but the first */}
+                            {showGroupSeparators && index > 0 &&
+                                <div data-testid="group-separator" aria-hidden className="pointer-events-none absolute -left-1 top-0 h-full w-px -translate-x-1/2 bg-border" />}
                             <NewGroupSlot index={index} />
-                            <Group group={group} index={index} />
+                            <Group group={group} index={index} audioCount={audioCounts[group.id] ?? 0} />
                         </div>
                     ))}
             <NewGroupEnd index={groups?.length ?? 0}>

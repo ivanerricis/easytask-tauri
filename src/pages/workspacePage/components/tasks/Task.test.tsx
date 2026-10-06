@@ -186,6 +186,43 @@ describe("Task text editing", () => {
         expect(screen.getByLabelText("Modifica il testo del task")).toHaveValue("Primo")
     })
 
+    it("opening the edit focuses the field, and Escape works from the keyboard alone", async () => {
+        const user = userEvent.setup()
+        const field = await edit(user)
+        expect(field).toHaveFocus()
+        await user.keyboard("x{Escape}")
+
+        expect(renameItem).not.toHaveBeenCalled()
+        expect(screen.getByLabelText("Modifica il testo del task")).toHaveValue("Primo")
+        expect(document.activeElement).not.toBeNull()
+    })
+
+    it("Escape also cancels while the rename error is shown", async () => {
+        const user = userEvent.setup()
+        // The error tooltip (Radix popper) measures with ResizeObserver, which jsdom lacks
+        vi.stubGlobal("ResizeObserver", class { observe() { /* none */ } unobserve() { /* none */ } disconnect() { /* none */ } })
+        renameItem.mockRejectedValueOnce(new Error("boom"))
+        const field = await edit(user)
+        await user.type(field, "x{Enter}")
+        await screen.findAllByText(/boom/)
+        expect(field).toHaveFocus()
+        await user.keyboard("{Escape}")
+
+        expect(screen.getByLabelText("Modifica il testo del task")).toHaveValue("Primo")
+        expect(screen.queryByRole("alert")).toBeNull()
+    })
+
+    it("Escape works on every edit, not just the first", async () => {
+        const user = userEvent.setup()
+        const field = await edit(user)
+        await user.type(field, "x{Escape}")
+        await user.click(screen.getByLabelText("Modifica il testo del task"))
+        await user.keyboard("y{Escape}")
+
+        expect(renameItem).not.toHaveBeenCalled()
+        expect(screen.getByLabelText("Modifica il testo del task")).toHaveValue("Primo")
+    })
+
     it("Enter saves once (the blur on unmount does not save again)", async () => {
         const user = userEvent.setup()
         const field = await edit(user)

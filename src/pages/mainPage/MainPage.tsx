@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { DialogCreateWorkspace } from "./components/DialogCreateWorkspace"
-import { Loader2, LayoutGrid, LayoutList, Upload } from "lucide-react"
+import { Loader2, LayoutGrid, LayoutList, Upload, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { ErrorPage } from "@/components/pages/error-page"
@@ -14,14 +14,17 @@ import { usePreferences } from "@/contexts/use-preferences"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
 import { reportError } from "@/lib/report-error"
 import { useStartupRestore } from "./startup-restore"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import type { WorkspaceSortBy, WorkspaceSortDir } from "@/lib/store/preferences"
 
 const MainPage = () => {
     const { t } = useTranslation()
     const { workspaces, getWorkspaces, error } = useWorkspace()
     const [loaded, setLoaded] = useState(false)
-    const { workspaceView, setWorkspaceView } = usePreferences()
+    const { workspaceView, setWorkspaceView, workspaceSort, setWorkspaceSort } = usePreferences()
     const { importWorkspace, isBusy: isImporting } = useWorkspaceTransfer()
     const isList = workspaceView === "list"
+    const isNameSort = workspaceSort.by === "name"
     const { pending: restorePending } = useStartupRestore(loaded)
 
     useEffect(() => {
@@ -79,10 +82,41 @@ const MainPage = () => {
                                     {isList ? <LayoutGrid /> : <LayoutList />}
                                 </Button>
                             </TooltipCustom>
+                            <DropdownMenu>
+                                <TooltipCustom text={t("home.sort.label")}>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button variant="outline" size="icon" aria-label={t("home.sort.label")}>
+                                            <ArrowUpDown />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                </TooltipCustom>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuLabel>{t("home.sort.by")}</DropdownMenuLabel>
+                                    <DropdownMenuRadioGroup
+                                        value={workspaceSort.by}
+                                        onValueChange={(by) => setWorkspaceSort({ ...workspaceSort, by: by as WorkspaceSortBy })}>
+                                        <DropdownMenuRadioItem value="edited">{t("home.sort.edited")}</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="created">{t("home.sort.created")}</DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="name">{t("home.sort.name")}</DropdownMenuRadioItem>
+                                    </DropdownMenuRadioGroup>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuLabel>{t("home.sort.direction")}</DropdownMenuLabel>
+                                    <DropdownMenuRadioGroup
+                                        value={workspaceSort.dir}
+                                        onValueChange={(dir) => setWorkspaceSort({ ...workspaceSort, dir: dir as WorkspaceSortDir })}>
+                                        <DropdownMenuRadioItem value="asc">
+                                            {t(isNameSort ? "home.sort.nameAsc" : "home.sort.dateAsc")}
+                                        </DropdownMenuRadioItem>
+                                        <DropdownMenuRadioItem value="desc">
+                                            {t(isNameSort ? "home.sort.nameDesc" : "home.sort.dateDesc")}
+                                        </DropdownMenuRadioItem>
+                                    </DropdownMenuRadioGroup>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
                             <ButtonTrashWorkspaces />
                         </div>
                     </div>
-                    <WorkspacesContainer workspaces={workspaces} view={workspaceView} />
+                    <WorkspacesContainer workspaces={workspaces} view={workspaceView} sort={workspaceSort} />
                 </div>
             </div>
         </MainPageLayout>
