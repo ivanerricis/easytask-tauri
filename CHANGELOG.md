@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-06
+
 ### Fixed
 
 - Opening a note with many tasks no longer freezes the app: every task text was sized by a script that forced a layout per task (a note with 400 tasks took half a minute, one with 3000 never finished). The webview now sizes the text boxes itself (`field-sizing: content`), and a note with 250 tasks opens in under a second.
@@ -17,12 +19,36 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - The text of primary buttons (and of other things on the accent color) is dark or white as the accent requires: it was always white, 1.8:1 on the default orange.
 - The border of an empty checkbox and of text fields reaches 3:1 in the dark theme (it was 2.8:1).
 - Ctrl+Z right after "Move up/down" (or a drag) undoes it: it used to do nothing until the move was saved.
+- The modification date of a workspace is updated by any change inside it (add, edit, move, delete or restore of folders, notes, groups, sections, tasks, audio files): it only changed when the workspace itself was renamed or recolored. The start page lists the workspaces by that date.
+- Esc works in the fields that create a new task, group or section (it closes them and drops the text), and after Esc the title of a section is no longer saved when the field loses focus. The rename and task description dialogs forget what was typed when they are closed with Esc.
+- In the compact size of the sidebar the note and folder rows no longer show scroll bars.
+- "Empty the trash" closes the trash dialog when it succeeds.
+- Completed tasks that are hidden no longer take their open subtasks with them: a completed task with an open subtask stays visible until everything under it is done.
+- The accent color picker no longer lags: while the color is dragged only the preview changes; the preference is stored once, when the picker rests.
+- The note search (Ctrl+O) shows the whole path of a note: a note in a subfolder showed only the last folder.
+- The buttons in the header of the left sidebar wrap onto a second row when the sidebar is narrow, instead of disappearing.
+- Errors of the delete, trash and rename dialogs and of the inline editing of tasks, groups and sections are shown next to the field instead of in a toast.
 
 ### Added
 
 - The color bar on the left of a task is twice as wide (4 px instead of 2).
 - A button in the header of the left sidebar to create a note from a template: choose the template (with a search box), then the name and folder of the note. The sidebar can no longer be narrower than 224 px (it was 200) so that the six header buttons fit.
 - The release notes in the update dialog and in Settings > About are shown in the language of the app (English or Italian). They come from `CHANGELOG.md` and the new `CHANGELOG.it.md`, which the release checks require for every version.
+- Export and import of notes and folders. "Export" is in the menu of every note and folder (a folder with everything in it). "Import" is a button in the header of the left sidebar (it imports into the root of the workspace) and "Import here" is in the menu of a folder. The file has the format of a workspace export; names that clash are renamed, missing audio files are skipped, and the import can be undone.
+- Multiple selection in the left sidebar: Ctrl+click (Cmd on macOS) adds or removes an item, Shift+click selects a range, Esc clears it. For several items at once: delete, move (by dragging or from the menu), change color and export, each as a single step of the history.
+- The note open in the active tab is highlighted in the sidebar (and a collapsed folder that holds it is marked), and the active tab has side borders and a line under the other tabs, so it opens onto the note.
+- Sort of the workspaces on the start page: last edit, creation date or name, ascending or descending; the choice is remembered.
+- The number of audio files of a group in its header (Settings > Notes), and lines between the groups of a note (off by default).
+- A limit for the history of undoable actions (25 to 500, default 50) in Settings > Data.
+- Shortcuts to move between the open notes: Ctrl+PageDown / Ctrl+PageUp (can be changed) and Ctrl+Tab / Ctrl+Shift+Tab.
+- A button to reset the accent color, next to the picker.
+- A backup of the database is taken before it is migrated to a new version of the schema (the copy is in the backups folder; if it fails the app starts anyway).
+
+### Changed
+
+- The default accent color is a stronger orange (#f97316): the pale one was hard to see on a light background.
+- Settings: the buttons of the shortcuts are icons only, the Data page has sections (import and export, data folder, backup, history) and so does the Notes page.
+- The header of the left sidebar, the note tabs and the tabs of the right panel have the same height, and the tree lines of the sidebar are centered under the folder arrows and a little more visible.
 
 ## [0.3.0] - 2026-10-02
 
@@ -96,7 +122,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ivanerricis/easytask-tauri/releases/tag/v0.1.0

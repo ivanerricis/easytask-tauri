@@ -4,6 +4,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-06
+
 ### Corretto
 
 - Aprire una nota con molti task non blocca più l'app: il testo di ogni task veniva dimensionato da uno script che forzava un ricalcolo del layout per ciascuno (una nota con 400 task impiegava mezzo minuto, una con 3000 non finiva mai). Ora è la webview a dimensionare le caselle di testo (`field-sizing: content`), e una nota con 250 task si apre in meno di un secondo.
@@ -15,12 +17,36 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 - Il testo dei pulsanti principali (e di ciò che sta sul colore d'accento) è scuro o bianco secondo l'accento: era sempre bianco, 1,8:1 sull'arancione predefinito.
 - Il bordo di una casella vuota e dei campi di testo arriva a 3:1 sul tema scuro (era 2,8:1).
 - Ctrl+Z subito dopo "Sposta su/giù" (o un trascinamento) lo annulla: prima non faceva nulla finché lo spostamento non era salvato.
+- La data di modifica di un workspace si aggiorna a ogni cambiamento al suo interno (aggiunta, modifica, spostamento, eliminazione o ripristino di cartelle, note, gruppi, sezioni, task, file audio): prima cambiava solo rinominando o ricolorando il workspace. La pagina iniziale ordina i workspace per quella data.
+- Esc funziona nei campi che creano un nuovo task, gruppo o sezione (li chiude e scarta il testo), e dopo Esc il titolo di una sezione non viene più salvato quando il campo perde il focus. Le dialog di rinomina e di descrizione del task dimenticano quanto scritto quando si chiudono con Esc.
+- Nella dimensione compatta della sidebar le righe di note e cartelle non mostrano più le barre di scorrimento.
+- "Svuota cestino" chiude la dialog del cestino quando riesce.
+- I task completati nascosti non si portano più via i sottotask aperti: un task completato con un sottotask aperto resta visibile finché tutto ciò che ha sotto non è finito.
+- Il selettore del colore d'accento non è più lento: mentre si trascina il colore cambia solo l'anteprima; la preferenza si salva una volta sola, quando il selettore si ferma.
+- La ricerca delle note (Ctrl+O) mostra il percorso completo di una nota: una nota in una sottocartella mostrava solo l'ultima cartella.
+- I pulsanti nell'intestazione della sidebar sinistra vanno a capo su una seconda riga quando la sidebar è stretta, invece di sparire.
+- Gli errori delle dialog di eliminazione, cestino e rinomina e della modifica sul posto di task, gruppi e sezioni sono mostrati accanto al campo invece che in un toast.
 
 ### Aggiunto
 
 - La barra colorata a sinistra di un task è larga il doppio (4 px invece di 2).
 - Un pulsante nell'intestazione della sidebar sinistra per creare una nota da un template: si sceglie il template (con una casella di ricerca), poi il nome e la cartella della nota. La sidebar non può più essere più stretta di 224 px (era 200) perché i sei pulsanti dell'intestazione ci stiano.
 - Le novità nella dialog di aggiornamento e in Impostazioni > Informazioni sono mostrate nella lingua dell'app (italiano o inglese). Vengono da `CHANGELOG.md` e dal nuovo `CHANGELOG.it.md`, che i controlli di release richiedono per ogni versione.
+- Esportazione e importazione di note e cartelle. "Esporta" è nel menu di ogni nota e cartella (una cartella con tutto il suo contenuto). "Importa" è un pulsante nell'intestazione della sidebar sinistra (importa nella radice del workspace) e "Importa qui" è nel menu di una cartella. Il file ha il formato dell'esportazione di un workspace; i nomi uguali vengono rinominati, i file audio mancanti saltati, e l'importazione si può annullare.
+- Selezione multipla nella sidebar sinistra: Ctrl+clic (Cmd su macOS) aggiunge o toglie un elemento, Maiusc+clic seleziona un intervallo, Esc la annulla. Su più elementi insieme: elimina, sposta (trascinando o dal menu), cambia colore ed esporta, ognuno come un solo passo della cronologia.
+- La nota aperta nella scheda attiva è evidenziata nella sidebar (e una cartella chiusa che la contiene è segnata), e la scheda attiva ha i bordi laterali e una linea sotto le altre schede, così si apre sulla nota.
+- Ordinamento dei workspace nella pagina iniziale: ultima modifica, data di creazione o nome, crescente o decrescente; la scelta viene ricordata.
+- Il numero di file audio di un gruppo nella sua intestazione (Impostazioni > Note), e linee tra i gruppi di una nota (spente di default).
+- Un limite per la cronologia delle azioni annullabili (da 25 a 500, predefinito 50) in Impostazioni > Dati.
+- Scorciatoie per spostarsi tra le note aperte: Ctrl+PagGiù / Ctrl+PagSù (modificabili) e Ctrl+Tab / Ctrl+Maiusc+Tab.
+- Un pulsante per ripristinare il colore d'accento, accanto al selettore.
+- Un backup del database viene fatto prima di migrarlo a una nuova versione dello schema (la copia è nella cartella dei backup; se fallisce l'app parte lo stesso).
+
+### Modificato
+
+- Il colore d'accento predefinito è un arancione più deciso (#f97316): quello pallido si vedeva poco su sfondo chiaro.
+- Impostazioni: i pulsanti delle scorciatoie sono solo icone, la pagina Dati ha delle sezioni (importa ed esporta, cartella dati, backup, cronologia) e così la pagina Note.
+- L'intestazione della sidebar sinistra, le schede delle note e le linguette del pannello di destra hanno la stessa altezza, e le linee ad albero della sidebar sono centrate sotto le frecce delle cartelle e un po' più visibili.
 
 ## [0.3.0] - 2026-10-02
 
@@ -94,7 +120,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/ivanerricis/easytask-tauri/releases/tag/v0.1.0
