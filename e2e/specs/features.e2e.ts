@@ -150,6 +150,12 @@ const openTrash = async () => {
     return trash
 }
 
+/** Shows the tab of a kind of item of the trash (the trash lists one kind at a time). */
+const openTrashTab = async (trash: ChainableDialog, type: string) => {
+    await domClick(trash.$(`#trash-tab-${type}`))
+    await trash.$(`#trash-panel-${type}`).waitForExist()
+}
+
 const closeTrash = async (trash: ChainableDialog) => {
     await domClick(byText(await tr("common.close"), trash))
     await trash.waitForExist({ reverse: true })
@@ -253,7 +259,8 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         await browser.waitUntil(async () => !(await sectionTitles()).includes(SECTIONS[2]), { timeoutMsg: "section not deleted" })
 
         const trash = await openTrash()
-        for (const name of [TASKS[2], SECTIONS[2]]) {
+        for (const [type, name] of [["task", TASKS[2]], ["section", SECTIONS[2]]]) {
+            await openTrashTab(trash, type)
             const restore = trash.$(`[aria-label=${JSON.stringify(await tr("trash.restoreAria", { name }))}]`)
             await domClick(restore)
             await restore.waitForExist({ reverse: true, timeoutMsg: `"${name}" was not restored` })
@@ -270,6 +277,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         await browser.waitUntil(async () => !(await taskValues(SECTIONS[0])).includes(TASKS[1]), { timeoutMsg: "task not deleted" })
 
         const trash = await openTrash()
+        await openTrashTab(trash, "task")
         await trash.$(`[aria-label=${JSON.stringify(await tr("trash.purgeAria", { name: TASKS[1] }))}]`).click()
         const dialog = await expectConfirmDialog("trash.purgeTitle", true)
         await confirmAndClose(dialog, await tr("trash.confirmPurge"))
@@ -283,6 +291,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         await browser.waitUntil(async () => !(await sectionTitles()).includes(SECTIONS[2]), { timeoutMsg: "section not deleted" })
 
         const trash = await openTrash()
+        await openTrashTab(trash, "task")
         await expect(trash.$(`[aria-label=${JSON.stringify(await tr("trash.restoreAria", { name: TASKS[0] }))}]`)).toBeDisplayed()
         await byText(await tr("trash.empty"), trash).click()
         const dialog = await expectConfirmDialog("trash.emptyTitle", true)
