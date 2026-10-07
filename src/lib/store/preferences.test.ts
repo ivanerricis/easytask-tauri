@@ -508,7 +508,7 @@ describe("preference table", () => {
         vi.mocked(store.get).mockResolvedValue(500)
         expect(await getPref("backupKeep")).toBe(100)
         vi.mocked(store.get).mockResolvedValue(undefined)
-        expect(await getPref("backupKeep")).toBe(7)
+        expect(await getPref("backupKeep")).toBe(5)
     })
 
     it("persists with one debounced save for several preferences", async () => {

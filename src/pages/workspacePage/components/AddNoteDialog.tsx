@@ -89,15 +89,18 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
                     <div className="grid gap-4">
                         <div className="grid gap-3">
                             <Label htmlFor={nameId}>{t("common.name")}</Label>
-                            <Input
-                                id={nameId}
-                                name="name"
-                                value={name}
-                                onChange={e => {
-                                    setError(null)
-                                    setName(e.target.value)
-                                }}
-                            />
+                            <div className="flex gap-2">
+                                <Input
+                                    id={nameId}
+                                    name="name"
+                                    value={name}
+                                    onChange={e => {
+                                        setError(null)
+                                        setName(e.target.value)
+                                    }}
+                                />
+                                {withColor && !template && <OptionalColorField value={color} onChange={setColor} />}
+                            </div>
                         </div>
                         {templates.length > 0 && (
                             <div className="grid gap-3">
@@ -113,7 +116,6 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
                             </div>
                         )}
                         {error && (<p className="text-xs text-destructive">{error}</p>)}
-                        {withColor && !template && <OptionalColorField value={color} onChange={setColor} />}
                     </div>
                     <DialogFooter className="mt-4">
                         <Button

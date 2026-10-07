@@ -82,24 +82,6 @@ const readRange = (label: string) =>
         }
     }, label)
 
-/** Geometry of the drag handle, the checkbox and the first line of the text of a task row. */
-const gripGeometry = async (id: number) =>
-    browser.execute((taskId: number, handleLabel: string) => {
-        const row = document.querySelector(`[data-task-id="${taskId}"]`)!
-        const center = (el: Element) => { const r = el.getBoundingClientRect(); return r.top + r.height / 2 }
-        const grip = row.querySelector(`[aria-label="${handleLabel}"]`)!
-        const area = row.querySelector("textarea")!
-        const style = getComputedStyle(area)
-        const lineHeight = parseFloat(style.lineHeight) || parseFloat(style.fontSize) * 1.2
-        const firstLine = area.getBoundingClientRect().top + parseFloat(style.paddingTop) + parseFloat(style.borderTopWidth) + lineHeight / 2
-        return {
-            grip: center(grip.querySelector("svg")!),
-            gripBox: center(grip),
-            checkbox: center(row.querySelector('[role="checkbox"]')!),
-            firstLine,
-        }
-    }, id, await tr("tasks.moveHandle"))
-
 /** Computed colors settle after the theme class changes (transitions): read until two reads agree. */
 const settled = async <T>(read: () => Promise<T>): Promise<T> => {
     let last = JSON.stringify(await read())
@@ -251,21 +233,6 @@ describe("Layout and appearance", () => {
         const worst = Math.max(...widths.map(width => Math.abs(width - before)))
         expect(worst).toBeLessThan(1)
         await byLabel(collapse).waitForDisplayed()
-    })
-
-    it("centers the drag handle of tasks and subtasks on the checkbox and on the first line", async () => {
-        for (const [kind, id] of [["task", taskId], ["subtask", subtaskId]] as const) {
-            const g = await gripGeometry(id)
-            console.log(`[layout] ${kind}: ${JSON.stringify(g)}`)
-            // Offsets from the checkbox and from the first line of text (the message names the failing one)
-            const offsets = {
-                [`${kind} grip-checkbox`]: Math.abs(g.grip - g.checkbox),
-                [`${kind} grip-firstLine`]: Math.abs(g.grip - g.firstLine),
-                [`${kind} gripBox-checkbox`]: Math.abs(g.gripBox - g.checkbox),
-            }
-            const off = Object.entries(offsets).filter(([, value]) => value > 1)
-            expect(off).toEqual([])
-        }
     })
 
     describe("WCAG contrast", () => {

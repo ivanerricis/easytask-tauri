@@ -1,27 +1,23 @@
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { ArchiveRestore, Loader2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { ItemRow } from "./item-list-parts"
-import { ITEM_ICONS, formatStoredDate } from "./item-list-utils"
+import { ItemRow, TypeTabs } from "./item-list-parts"
+import { ITEM_ICONS, formatStoredDate, typePanelId, typeTabId } from "./item-list-utils"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import { cn, getErrorMessage } from "@/lib/utils"
-import { focusRing } from "@/lib/a11y"
+import { getErrorMessage } from "@/lib/utils"
 import type { ArchiveItem, ArchiveItemType } from "@/types/types"
 
 /** The kinds of items that can be archived, in the order of the tabs. */
 const TYPES: ArchiveItemType[] = ["folder", "note", "section_group", "section"]
-
-const tabId = (type: ArchiveItemType) => `archive-tab-${type}`
-const panelId = (type: ArchiveItemType) => `archive-panel-${type}`
 
 // Second line of a row: where it was, what it contained and when it was archived
 const details = (item: ArchiveItem) =>
@@ -47,7 +43,6 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
     const [error, setError] = useState<string | null>(null)
     const [selected, setSelected] = useState<ArchiveItemType | null>(null)
     const [toTrash, setToTrash] = useState<ArchiveItem | null>(null)
-    const tabRefs = useRef(new Map<ArchiveItemType, HTMLButtonElement>())
 
     // The handlers come from the context: keep the latest one without re-running the load effect
     const loadRef = useRef<() => Promise<ArchiveItem[]>>(async () => [])
@@ -119,20 +114,6 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
     const activeItems = items.filter(i => i.type === active)
     const Icon = ITEM_ICONS[active]
 
-    // Arrows move between the tabs (Home/End jump to the ends), like the keyboard pattern of a tablist
-    const handleTabKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-        const index = TYPES.indexOf(active)
-        let next: number
-        if (e.key === "ArrowDown" || e.key === "ArrowRight") next = (index + 1) % TYPES.length
-        else if (e.key === "ArrowUp" || e.key === "ArrowLeft") next = (index - 1 + TYPES.length) % TYPES.length
-        else if (e.key === "Home") next = 0
-        else if (e.key === "End") next = TYPES.length - 1
-        else return
-        e.preventDefault()
-        setSelected(TYPES[next])
-        tabRefs.current.get(TYPES[next])?.focus()
-    }
-
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
@@ -151,44 +132,19 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
                         <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.isEmpty")}</p>
                     ) : (
                         <div className="flex flex-col sm:flex-row gap-4 min-h-0 flex-1">
-                            <div
-                                role="tablist"
-                                aria-label={t("archive.nav")}
-                                aria-orientation="vertical"
-                                onKeyDown={handleTabKeyDown}
-                                className="flex sm:flex-col gap-1 overflow-x-auto sm:overflow-visible sm:w-48 shrink-0 border-b sm:border-b-0 sm:border-r pb-2 sm:pb-0 sm:pr-3"
-                            >
-                                {TYPES.map(type => {
-                                    const TypeIcon = ITEM_ICONS[type]
-                                    const isActive = type === active
-                                    return (
-                                        <button
-                                            key={type}
-                                            ref={node => { if (node) tabRefs.current.set(type, node); else tabRefs.current.delete(type) }}
-                                            type="button"
-                                            role="tab"
-                                            id={tabId(type)}
-                                            aria-selected={isActive}
-                                            aria-controls={panelId(type)}
-                                            tabIndex={isActive ? 0 : -1}
-                                            onClick={() => setSelected(type)}
-                                            className={cn(
-                                                "flex items-center gap-2 rounded-xs px-3 py-2 text-sm text-left whitespace-nowrap transition-colors hover:bg-accent",
-                                                focusRing,
-                                                isActive && "bg-primary/10 text-primary font-medium"
-                                            )}
-                                        >
-                                            <TypeIcon className="size-4 shrink-0" />
-                                            {t(`archive.types.${type}`)}
-                                            <span className="ml-auto text-xs text-muted-foreground">{countOf(type)}</span>
-                                        </button>
-                                    )
-                                })}
-                            </div>
+                            <TypeTabs
+                                types={TYPES}
+                                active={active}
+                                onSelect={setSelected}
+                                count={countOf}
+                                label={type => t(`archive.types.${type}`)}
+                                ariaLabel={t("archive.nav")}
+                                idPrefix="archive"
+                            />
                             <div
                                 role="tabpanel"
-                                id={panelId(active)}
-                                aria-labelledby={tabId(active)}
+                                id={typePanelId("archive", active)}
+                                aria-labelledby={typeTabId("archive", active)}
                                 className="flex-1 min-w-0 overflow-y-auto pr-1 flex flex-col gap-1"
                             >
                                 {activeItems.length === 0 ? (

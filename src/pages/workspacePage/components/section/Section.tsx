@@ -1,7 +1,6 @@
 import { SectionHeader } from "./SectionHeader"
 import { SectionBody } from "./SectionBody"
 import { memo, useCallback } from "react"
-import type { HTMLAttributes } from "react"
 import type { Section as SectionType } from "@/types/types"
 import { cn } from "@/lib/utils"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
@@ -15,7 +14,7 @@ export const Section = memo(({ section }: SectionProps) => {
     // Kept per note, so it survives tab switches
     const [isOpen, toggleOpen] = useSectionOpen(section.id)
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("section", section.id)
-    const { setNodeRef: setDragRef, setActivatorNodeRef, attributes, listeners, isDragging } = useNoteDrag("section", section.id)
+    const { setNodeRef: setDragRef, dragProps, isDragging } = useNoteDrag("section", section.id)
 
     // The card is both a drop target (sections and tasks) and the dimmed source while it is dragged
     const setRef = useCallback((node: HTMLElement | null) => {
@@ -41,8 +40,7 @@ export const Section = memo(({ section }: SectionProps) => {
                 isOpen={isOpen}
                 onOpenChange={toggleOpen}
                 section={section}
-                dragHandleRef={setActivatorNodeRef}
-                dragHandleProps={{ ...attributes, ...listeners } as HTMLAttributes<HTMLDivElement>}
+                dragProps={dragProps}
             />
             <SectionBody isOpen={isOpen} section={section} />
         </div>

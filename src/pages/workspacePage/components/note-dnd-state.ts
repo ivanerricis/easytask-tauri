@@ -1,5 +1,5 @@
 import i18n from "@/i18n"
-import { createContext, useCallback, useContext } from "react"
+import { createContext, useCallback, useContext, type HTMLAttributes, type PointerEvent } from "react"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { reportError } from "@/lib/report-error"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -43,14 +43,19 @@ export function useNoteDrop(kind: NoteOverKind, id: number) {
 }
 
 /**
- * Registers a draggable (section or task) whose activator is a separate drag handle.
+ * Registers a draggable (group, section or task). There is no drag handle: `dragProps` goes on the element that
+ * starts the drag (the header of a group or section, the row of a task); a click without moving (5px) is not a drag.
  * The whole item is dimmed while it is dragged (the preview is rendered by the DragOverlay).
+ * The pointer events of portals rendered inside that element (dialogs) do not start a drag.
  * @category Note DnD
  */
 export function useNoteDrag(kind: NoteDragKind, id: number) {
-    const { setNodeRef, setActivatorNodeRef, attributes, listeners, isDragging } =
-        useDraggable({ id: `drag-${kind}-${id}`, data: { kind, id } })
-    return { setNodeRef, setActivatorNodeRef, attributes, listeners, isDragging }
+    const { setNodeRef, listeners, isDragging } = useDraggable({ id: `drag-${kind}-${id}`, data: { kind, id } })
+    const start = listeners?.onPointerDown as ((event: PointerEvent<HTMLElement>) => void) | undefined
+    const dragProps: HTMLAttributes<HTMLElement> = start
+        ? { onPointerDown: event => { if (event.currentTarget.contains(event.target as Node)) start(event) } }
+        : {}
+    return { setNodeRef, dragProps, isDragging }
 }
 
 /**

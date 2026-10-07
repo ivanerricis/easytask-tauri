@@ -32,6 +32,10 @@ const items: TrashItem[] = [
     { type: "task", id: 3, name: "Task C", context: "Nota B › Sezione 1", summary: "Vuoto", deleted_at: "2026-09-03 12:00:00" },
 ]
 
+/** Opens the tab of a kind of item (the trash shows one kind at a time). */
+const openTab = async (user: ReturnType<typeof userEvent.setup>, name: RegExp) =>
+    user.click(await screen.findByRole("tab", { name }))
+
 describe("DialogTrash templates", () => {
     it("shows a deleted template in its own group and restores it as a template", async () => {
         const user = userEvent.setup()
@@ -41,7 +45,7 @@ describe("DialogTrash templates", () => {
         data.getWorkspaceData.mockResolvedValue(undefined)
         note.refreshActiveNote.mockResolvedValue(undefined)
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
-        expect(await screen.findByRole("region", { name: "Template" })).toBeInTheDocument()
+        expect(await screen.findByRole("tab", { name: /Template/ })).toHaveAttribute("aria-selected", "true")
         expect(screen.getByText(/Da: Sprint · 2 gruppi · 3 sezioni · 6 task · Eliminato il 04-09-2026 09:00/)).toBeInTheDocument()
         await user.click(screen.getByRole("button", { name: "Ripristina Retro" }))
         await waitFor(() => expect(data.restoreItem).toHaveBeenCalledWith("note_template", 5))
@@ -59,21 +63,47 @@ describe("DialogTrash", () => {
         note.refreshActiveNote.mockResolvedValue(undefined)
     })
 
-    it("renders items grouped by type with context and date", async () => {
+    it("shows one tab per type with its count and the first type that has items", async () => {
+        const user = userEvent.setup()
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
         expect(await screen.findByText("Cartella A")).toBeInTheDocument()
         expect(data.getTrash).toHaveBeenCalledWith(4)
-        expect(screen.getByRole("region", { name: "Cartelle" })).toBeInTheDocument()
-        expect(screen.getByRole("region", { name: "Note" })).toBeInTheDocument()
-        expect(screen.getByRole("region", { name: "Task" })).toBeInTheDocument()
-        expect(screen.queryByRole("region", { name: "Sezioni" })).not.toBeInTheDocument()
+        expect(screen.getByRole("tablist")).toBeInTheDocument()
+        expect(screen.getByRole("tab", { name: /Cartelle/ })).toHaveTextContent("1")
+        expect(screen.getByRole("tab", { name: /Sezioni/ })).toHaveTextContent("0")
+        expect(screen.getByRole("tab", { name: /Cartelle/ })).toHaveAttribute("aria-selected", "true")
+        // Only the selected type is listed
+        expect(screen.queryByText("Nota B")).not.toBeInTheDocument()
+
+        await openTab(user, /Note/)
         expect(screen.getByText(/Cartella A · Eliminato il 02-09-2026 08:05/)).toBeInTheDocument()
+        expect(screen.queryByText("Cartella A")).not.toBeInTheDocument()
+    })
+
+    it("says so when the selected type has no items", async () => {
+        const user = userEvent.setup()
+        render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        await screen.findByText("Cartella A")
+        await openTab(user, /Sezioni/)
+        expect(screen.getByText("Nessun elemento di questo tipo nel cestino")).toBeInTheDocument()
+    })
+
+    it("moves between the tabs with the arrow keys", async () => {
+        const user = userEvent.setup()
+        render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        await screen.findByText("Cartella A")
+        screen.getByRole("tab", { name: /Cartelle/ }).focus()
+        await user.keyboard("{ArrowDown}")
+        expect(screen.getByRole("tab", { name: /Note/ })).toHaveAttribute("aria-selected", "true")
+        expect(screen.getByRole("tab", { name: /Note/ })).toHaveFocus()
     })
 
     it("shows what a deleted item contained between context and date, with the full text as title", async () => {
+        const user = userEvent.setup()
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
         const folderLine = await screen.findByText("1 sottocartella · 2 note · Eliminato il 01-09-2026 10:30")
         expect(folderLine).toHaveAttribute("title", "1 sottocartella · 2 note · Eliminato il 01-09-2026 10:30")
+        await openTab(user, /Task/)
         expect(screen.getByText("Nota B › Sezione 1 · Vuoto · Eliminato il 03-09-2026 12:00")).toBeInTheDocument()
     })
 
@@ -87,6 +117,7 @@ describe("DialogTrash", () => {
     it("restores an item and reloads workspace and note data", async () => {
         const user = userEvent.setup()
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        await openTab(user, /Note/)
         await user.click(await screen.findByRole("button", { name: "Ripristina Nota B" }))
 
         await waitFor(() => expect(data.restoreItem).toHaveBeenCalledWith("note", 2))
@@ -100,6 +131,7 @@ describe("DialogTrash", () => {
         const user = userEvent.setup()
         data.restoreItem.mockRejectedValue(new Error("Esiste già un elemento con questo nome"))
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        await openTab(user, /Note/)
         await user.click(await screen.findByRole("button", { name: "Ripristina Nota B" }))
 
         expect(await screen.findByRole("alert")).toHaveTextContent("Esiste già un elemento con questo nome")
@@ -108,6 +140,7 @@ describe("DialogTrash", () => {
     it("purge requires confirmation", async () => {
         const user = userEvent.setup()
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        await openTab(user, /Task/)
         await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
         expect(data.purgeItem).not.toHaveBeenCalled()
 
@@ -120,6 +153,7 @@ describe("DialogTrash", () => {
     it("cancelling the purge confirmation does nothing", async () => {
         const user = userEvent.setup()
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        await openTab(user, /Task/)
         await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
         const alert = await screen.findByRole("dialog")
         await user.click(within(alert).getByRole("button", { name: "Annulla" }))
@@ -183,6 +217,7 @@ describe("DialogTrash and the undo history", () => {
     it("clears the history after a purge (ids can be reused by new rows)", async () => {
         const user = userEvent.setup()
         renderWithUndo()
+        await openTab(user, /Task/)
         await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
         await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Conferma eliminazione" }))
         await waitFor(() => expect(clear).toHaveBeenCalledTimes(1))
@@ -201,6 +236,7 @@ describe("DialogTrash and the undo history", () => {
         const user = userEvent.setup()
         data.purgeItem.mockRejectedValue(new Error("no"))
         renderWithUndo()
+        await openTab(user, /Task/)
         await user.click(await screen.findByRole("button", { name: "Elimina definitivamente Task C" }))
         await user.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Conferma eliminazione" }))
         expect(await screen.findByRole("alert")).toHaveTextContent("no")

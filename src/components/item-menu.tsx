@@ -29,10 +29,12 @@ type ItemMenuProps = {
     children: React.ReactElement
 }
 
-// Right click inside a text field or on the (portaled) menu content does not open the item menu
+// Right click inside a writable text field or on the (portaled) menu content does not open the item menu
+// (a read only field, like the text of a task before it is edited, is just text of the row)
 const ignoreContextMenu = (event: React.MouseEvent<HTMLElement>) => {
     const target = event.target as HTMLElement
-    if (!event.currentTarget.contains(target) || target.closest("input, textarea, [contenteditable='true']")) {
+    const field = target.closest<HTMLInputElement>("input, textarea, [contenteditable='true']")
+    if (!event.currentTarget.contains(target) || (field && !field.readOnly)) {
         event.preventDefault()
     }
 }

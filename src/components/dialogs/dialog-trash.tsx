@@ -12,18 +12,22 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useOptionalUndo } from "@/contexts/undo/use-undo"
 import { getErrorMessage } from "@/lib/utils"
-import { ItemRow } from "./item-list-parts"
-import { ITEM_ICONS, formatStoredDate } from "./item-list-utils"
+import { ItemRow, TypeTabs } from "./item-list-parts"
+import { ITEM_ICONS, formatStoredDate, typePanelId, typeTabId } from "./item-list-utils"
 import type { TrashItem } from "@/types/types"
 
 type TrashSource = {
+    /** The kinds of items this trash can hold, in the order of the tabs (a single one needs no tabs). */
+    types: readonly TrashItem["type"][]
     load: () => Promise<TrashItem[]>
     restore: (item: TrashItem) => Promise<void>
     purge: (item: TrashItem) => Promise<void>
     empty: (items: TrashItem[]) => Promise<void>
 }
 
-const groups: TrashItem["type"][] = ["workspace", "folder", "note", "section_group", "section", "task", "audio_file", "note_template"]
+/** The kinds of items of the trash of a workspace, in the order of the tabs. */
+const WORKSPACE_TYPES: TrashItem["type"][] = ["folder", "note", "section_group", "section", "task", "audio_file", "note_template"]
+const WORKSPACES_TYPES: TrashItem["type"][] = ["workspace"]
 
 // Second line of a row: where it was, what it contained and when it was deleted
 const details = (item: TrashItem) =>
@@ -43,6 +47,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     const [loaded, setLoaded] = useState(false)
     const [busy, setBusy] = useState(false)
     const [confirm, setConfirm] = useState<Confirm>(null)
+    const [selected, setSelected] = useState<TrashItem["type"] | null>(null)
     const sourceRef = useRef(source)
     useEffect(() => { sourceRef.current = source })
 
@@ -50,7 +55,11 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
 
     const reload = useCallback(async () => {
         try {
-            setItems(await sourceRef.current.load())
+            const list = await sourceRef.current.load()
+            setItems(list)
+            // The first time: show the first type that has something in it
+            const types = sourceRef.current.types
+            setSelected(current => current ?? types.find(type => list.some(i => i.type === type)) ?? types[0])
         } catch (err) {
             setError(getErrorMessage(err))
         }
@@ -59,7 +68,10 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     useEffect(() => {
         if (!isOpen) return
         reload().finally(() => setLoaded(true))
-        return () => setLoaded(false)
+        return () => {
+            setLoaded(false)
+            setSelected(null)
+        }
     }, [isOpen, reload])
     const isLoading = isOpen && !loaded
 
@@ -79,6 +91,12 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
         }
     }
 
+    const types = source.types
+    const active = selected && types.includes(selected) ? selected : types[0]
+    const activeItems = items.filter(i => i.type === active)
+    const Icon = ITEM_ICONS[active]
+    const hasTabs = types.length > 1
+
     const handleConfirm = async () => {
         const current = confirm
         setConfirm(null)
@@ -94,59 +112,67 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className={hasTabs ? "flex flex-col sm:max-w-3xl h-[min(560px,85vh)] overflow-hidden" : "sm:max-w-xl"}>
                     <DialogHeader>
                         <DialogTitle>{t("trash.title")}</DialogTitle>
                         <DialogDescription>
                             {t("trash.description")}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="flex flex-col gap-3 max-h-[50vh] overflow-y-auto pr-1">
-                        {isLoading ? (
-                            <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-                                <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
+                    {isLoading ? (
+                        <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
+                            <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
+                        </div>
+                    ) : items.length === 0 ? (
+                        <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
+                    ) : (
+                        <div className="flex flex-col sm:flex-row gap-4 min-h-0 flex-1">
+                            {hasTabs && <TypeTabs
+                                types={types}
+                                active={active}
+                                onSelect={setSelected}
+                                count={type => items.filter(i => i.type === type).length}
+                                label={type => t(`trash.groups.${type}`)}
+                                ariaLabel={t("trash.nav")}
+                                idPrefix="trash"
+                            />}
+                            <div
+                                role={hasTabs ? "tabpanel" : undefined}
+                                id={hasTabs ? typePanelId("trash", active) : undefined}
+                                aria-labelledby={hasTabs ? typeTabId("trash", active) : undefined}
+                                className="flex-1 min-w-0 overflow-y-auto pr-1 flex flex-col gap-1"
+                            >
+                                {activeItems.length === 0 ? (
+                                    <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.emptyType")}</p>
+                                ) : activeItems.map(item => (
+                                    <ItemRow key={`${item.type}-${item.id}`} icon={Icon} name={item.name} details={details(item)}>
+                                        <TooltipCustom text={t("trash.restore")}>
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                aria-label={t("trash.restoreAria", { name: item.name })}
+                                                disabled={busy}
+                                                onClick={() => run(() => sourceRef.current.restore(item), t("trash.restored"))}
+                                            >
+                                                <RotateCcw />
+                                            </Button>
+                                        </TooltipCustom>
+                                        <TooltipCustom text={t("trash.purge")}>
+                                            <Button
+                                                variant="destructive"
+                                                size="icon"
+                                                aria-label={t("trash.purgeAria", { name: item.name })}
+                                                disabled={busy}
+                                                onClick={() => setConfirm({ kind: "purge", item })}
+                                            >
+                                                <Trash2 />
+                                            </Button>
+                                        </TooltipCustom>
+                                    </ItemRow>
+                                ))}
                             </div>
-                        ) : items.length === 0 ? (
-                            <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
-                        ) : (
-                            groups.map(type => {
-                                const label = t(`trash.groups.${type}`)
-                                const groupItems = items.filter(i => i.type === type)
-                                if (groupItems.length === 0) return null
-                                return (
-                                    <section key={type} className="flex flex-col gap-1" aria-label={label}>
-                                        <h3 className="text-xs font-semibold uppercase text-muted-foreground">{label}</h3>
-                                        {groupItems.map(item => (
-                                            <ItemRow key={`${item.type}-${item.id}`} icon={ITEM_ICONS[type]} name={item.name} details={details(item)}>
-                                                <TooltipCustom text={t("trash.restore")}>
-                                                    <Button
-                                                        variant="outline"
-                                                        size="icon"
-                                                        aria-label={t("trash.restoreAria", { name: item.name })}
-                                                        disabled={busy}
-                                                        onClick={() => run(() => sourceRef.current.restore(item), t("trash.restored"))}
-                                                    >
-                                                        <RotateCcw />
-                                                    </Button>
-                                                </TooltipCustom>
-                                                <TooltipCustom text={t("trash.purge")}>
-                                                    <Button
-                                                        variant="destructive"
-                                                        size="icon"
-                                                        aria-label={t("trash.purgeAria", { name: item.name })}
-                                                        disabled={busy}
-                                                        onClick={() => setConfirm({ kind: "purge", item })}
-                                                    >
-                                                        <Trash2 />
-                                                    </Button>
-                                                </TooltipCustom>
-                                            </ItemRow>
-                                        ))}
-                                    </section>
-                                )
-                            })
-                        )}
-                    </div>
+                        </div>
+                    )}
                     {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
                     <DialogFooter>
                         <Button
@@ -197,6 +223,7 @@ export const DialogTrash = ({ isOpen, onOpenChange }: DialogTrashProps) => {
 
     // Ids of purged rows can be reused by new ones (no AUTOINCREMENT): the undo history must not outlive a purge
     const source: TrashSource = {
+        types: WORKSPACE_TYPES,
         load: async () => workspaceID === undefined ? [] : getTrash(workspaceID),
         restore: async (item) => { await restoreItem(item.type, item.id); await refresh() },
         purge: async (item) => { await purgeItem(item.type, item.id); clearUndo?.(); await refresh() },
@@ -211,6 +238,7 @@ export const DialogTrashWorkspaces = ({ isOpen, onOpenChange }: DialogTrashProps
     const { getTrashedWorkspaces, restoreWorkspace, purgeWorkspace } = useWorkspace()
 
     const source: TrashSource = {
+        types: WORKSPACES_TYPES,
         load: async () => (await getTrashedWorkspaces()).map(w => ({
             type: "workspace" as const,
             id: w.id,

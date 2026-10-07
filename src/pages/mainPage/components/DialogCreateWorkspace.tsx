@@ -69,18 +69,20 @@ export function DialogCreateWorkspace() {
                         <div className="grid gap-4">
                             <div className="grid gap-3">
                                 <Label htmlFor={nameId}>{t("home.createWorkspace.name")}</Label>
-                                <Input
-                                    id={nameId}
-                                    name="name"
-                                    value={name}
-                                    onChange={e => {
-                                        setError(null)
-                                        setName(e.target.value)
-                                    }}
-                                />
+                                <div className="flex gap-2">
+                                    <Input
+                                        id={nameId}
+                                        name="name"
+                                        value={name}
+                                        onChange={e => {
+                                            setError(null)
+                                            setName(e.target.value)
+                                        }}
+                                    />
+                                    <OptionalColorField value={color} onChange={setColor} />
+                                </div>
                                 {error && (<p className="text-sm text-destructive">{error}</p>)}
                             </div>
-                            <OptionalColorField value={color} onChange={setColor} />
                         </div>
                         <DialogFooter className="mt-4">
                             <Button

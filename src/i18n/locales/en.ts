@@ -44,6 +44,7 @@ export const en: Translation = {
         },
         color: {
             swatch: "Color {{color}}",
+            custom: "Pick another color",
         },
         createTemplate: {
             title: "Create template",
@@ -55,6 +56,8 @@ export const en: Translation = {
             title: "Move to trash?",
             description: "The item will be moved to the trash. You can restore it later.",
             confirm: "Move to trash",
+            done_one: "Item moved to the trash",
+            done_other: "{{count}} items moved to the trash",
             error: "Could not delete the item: {{message}}",
         },
         deleteSelection: {
@@ -544,6 +547,8 @@ export const en: Translation = {
             audio_file: "Audio files",
             note_template: "Templates",
         },
+        nav: "Types of items in the trash",
+        emptyType: "No items of this type in the trash",
         deletedOn: "Deleted on {{date}}",
         purged: "Item permanently deleted",
         emptied: "Trash emptied",
@@ -894,8 +899,6 @@ export const en: Translation = {
         titlePlaceholder: "Section title...",
         titleLabel: "Section title",
         renameError: "Could not change the section title - {{message}}",
-        moveHandle: "Move section",
-        moveHandleTitle: "Drag to move the section",
         collapse: "Collapse section",
         expand: "Expand section",
     },
@@ -919,7 +922,6 @@ export const en: Translation = {
         newSubtaskPlaceholder: "New subtask…",
         newSubtask: "New subtask",
         addSubtask: "Add subtask",
-        subtaskHint: "Enter to add · Esc to close",
         add: "Add task",
         placeholder: "Write something...",
         menu: {
@@ -928,8 +930,6 @@ export const en: Translation = {
             addPriority: "Add priority",
             removePriority: "Remove priority",
         },
-        moveHandle: "Move task",
-        moveHandleTitle: "Drag to move the task",
         editText: "Edit the task text",
         showDescription: "Show the description",
     },

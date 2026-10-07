@@ -42,6 +42,7 @@ export const it = {
         },
         color: {
             swatch: "Colore {{color}}",
+            custom: "Scegli un altro colore",
         },
         createTemplate: {
             title: "Crea template",
@@ -53,6 +54,8 @@ export const it = {
             title: "Spostare nel cestino?",
             description: "L'elemento verrà spostato nel cestino. Potrai ripristinarlo in seguito.",
             confirm: "Sposta nel cestino",
+            done_one: "Elemento spostato nel cestino",
+            done_other: "{{count}} elementi spostati nel cestino",
             error: "Impossibile eliminare l'elemento: {{message}}",
         },
         deleteSelection: {
@@ -542,6 +545,8 @@ export const it = {
             audio_file: "File audio",
             note_template: "Template",
         },
+        nav: "Tipi di elementi nel cestino",
+        emptyType: "Nessun elemento di questo tipo nel cestino",
         deletedOn: "Eliminato il {{date}}",
         purged: "Elemento eliminato definitivamente",
         emptied: "Cestino svuotato",
@@ -892,8 +897,6 @@ export const it = {
         titlePlaceholder: "Titolo della sezione...",
         titleLabel: "Titolo della sezione",
         renameError: "Impossibile cambiare il titolo della sezione - {{message}}",
-        moveHandle: "Sposta sezione",
-        moveHandleTitle: "Trascina per spostare la sezione",
         collapse: "Compatta sezione",
         expand: "Espandi sezione",
     },
@@ -917,7 +920,6 @@ export const it = {
         newSubtaskPlaceholder: "Nuovo sottotask…",
         newSubtask: "Nuovo sottotask",
         addSubtask: "Aggiungi sottotask",
-        subtaskHint: "Invio per aggiungere · Esc per chiudere",
         add: "Aggiungi task",
         placeholder: "Scrivi qualcosa...",
         menu: {
@@ -926,8 +928,6 @@ export const it = {
             addPriority: "Aggiungi priorità",
             removePriority: "Rimuovi priorità",
         },
-        moveHandle: "Sposta task",
-        moveHandleTitle: "Trascina per spostare il task",
         editText: "Modifica il testo del task",
         showDescription: "Mostra la descrizione",
     },

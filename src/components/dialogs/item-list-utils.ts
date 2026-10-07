@@ -20,3 +20,7 @@ export const formatStoredDate = (value: string) => {
     const [date, time] = value.split(" ")
     return time ? `${formatDate(date)} ${time.slice(0, 5)}` : formatDate(date)
 }
+
+/** Ids of the tab and of the panel of a kind of item (aria-controls / aria-labelledby). */
+export const typeTabId = (prefix: string, type: string) => `${prefix}-tab-${type}`
+export const typePanelId = (prefix: string, type: string) => `${prefix}-panel-${type}`

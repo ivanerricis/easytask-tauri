@@ -11,7 +11,8 @@ import { reportError } from "@/lib/report-error"
 import type { Folder, Note } from "@/types/types"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
-import { getErrorMessage } from "@/lib/utils"
+import { getErrorMessage, hexToRgba } from "@/lib/utils"
+import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { captureTreePlace } from "@/contexts/undo/commands"
 import { ItemNote } from "../note/Note"
@@ -80,9 +81,15 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, over
 const DragPreview = ({ item, isFolder, count }: { item: Folder | Note, isFolder: boolean, count: number }) => {
     const { t } = useTranslation()
     const size = useItemSize()
+    const colorAlpha = useColorAlpha()
     const Icon = isFolder ? FolderIcon : File
+    // The color of the item, over the background, like its row (a dragged selection has no single color)
+    const tint = count > 1 || !item.color ? undefined : hexToRgba(colorAlpha.item(false), item.color)
     return (
-        <div className={`flex items-center gap-1 ${size.row} px-1 rounded-xs border border-accent bg-background shadow-md opacity-90 w-48`}>
+        <div
+            className={`flex items-center gap-1 ${size.row} px-1 rounded-xs border border-accent bg-background shadow-md opacity-90 w-48`}
+            style={tint ? { backgroundImage: `linear-gradient(${tint}, ${tint})` } : undefined}
+        >
             <Icon className={`${size.icon} shrink-0`} />
             <span className={`${size.text} truncate`}>{count > 1 ? t("menu.selection.dragCount", { count }) : item.name}</span>
         </div>

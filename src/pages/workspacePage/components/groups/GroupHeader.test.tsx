@@ -186,14 +186,15 @@ describe("GroupHeader progress and collapse", () => {
     })
 })
 
-describe("GroupHeader drag handle", () => {
-    it("renders the grip only when a drag handle is given and forwards its props", () => {
+describe("GroupHeader drag", () => {
+    it("puts the drag props on the whole header, only when they are given", () => {
         const { rerender } = render(<GroupHeader group={makeGroup()} />)
         expect(document.querySelector("[data-drag-handle]")).toBeNull()
-        const ref = vi.fn()
-        rerender(<GroupHeader group={makeGroup()} dragHandleRef={ref} dragHandleProps={{ "data-drag-handle": "" } as never} />)
-        expect(document.querySelector("[data-drag-handle]")).not.toBeNull()
-        expect(ref).toHaveBeenCalled()
+        rerender(<GroupHeader group={makeGroup()} dragProps={{ "data-drag-handle": "" } as never} />)
+        const header = document.querySelector("[data-drag-handle]")!
+        expect(header).not.toBeNull()
+        // The header holds the chevron and the name: it is the drag area, not a separate grip
+        expect(header).toContainElement(screen.getByLabelText("Compatta gruppo"))
     })
 })
 

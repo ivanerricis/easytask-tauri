@@ -101,7 +101,7 @@ describe("ButtonMenuGroup", () => {
         const user = userEvent.setup()
         const row = setup("#e6194b")
         await openColorMenu(user, row)
-        await user.click(await screen.findByText("Elimina", { selector: "button.flex.items-center.p-1" }))
+        await user.click(await screen.findByText("Elimina", { selector: "button[type=button]" }))
 
         expect(patchGroup).toHaveBeenCalledWith(3, { color: null })
         expect(updateItemColor).toHaveBeenCalledWith("section_group", 3, undefined)

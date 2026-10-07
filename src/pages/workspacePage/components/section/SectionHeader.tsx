@@ -3,7 +3,7 @@ import { Progress } from "@/components/ui/progress"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import type { Section as SectionType, Task } from "@/types/types"
-import { ChevronDown, GripVertical } from "lucide-react"
+import { ChevronDown } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 import { ItemMenuButton } from "@/components/item-menu"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -19,9 +19,8 @@ type SectionHeaderProps = {
     isOpen: boolean
     onOpenChange: (isOpen: boolean) => void
     section: SectionType
-    /** Drag handle of the section (drag & drop inside the open note); omitted when the section is not draggable. */
-    dragHandleRef?: (element: HTMLElement | null) => void
-    dragHandleProps?: HTMLAttributes<HTMLDivElement>
+    /** Starts the drag of the section from the whole header (drag & drop inside the open note); omitted when not draggable. */
+    dragProps?: HTMLAttributes<HTMLElement>
 }
 
 const calculateCompletionPercentage = (tasks: Task[]): number => {
@@ -37,7 +36,7 @@ const calculateCompletionPercentage = (tasks: Task[]): number => {
     return (completedTasks / totalTasks) * 100
 }
 
-export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dragHandleProps }: SectionHeaderProps) => {
+export const SectionHeader = ({ isOpen, onOpenChange, section, dragProps }: SectionHeaderProps) => {
     const { t } = useTranslation()
     const { renameItem } = useWorkspaceActions()
     const { patchSection } = useActiveNoteActions()
@@ -65,18 +64,10 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
 
             <ButtonMenuSection section={section}>
                 <div
-                    className={`group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs ${section.color ? "" : "bg-background border"}`}
+                    className={`group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs ${section.color ? "" : "bg-background border"} ${dragProps ? "touch-none cursor-grab active:cursor-grabbing" : ""}`}
                     style={section.color ? { backgroundColor: hexToRgba(colorAlpha.header(), section.color) } : undefined}
+                    {...dragProps}
                 >
-                    {dragHandleProps &&
-                        <div
-                            ref={dragHandleRef}
-                            {...dragHandleProps}
-                            aria-label={t("sections.moveHandle")}
-                            title={t("sections.moveHandleTitle")}
-                            className="shrink-0 touch-none cursor-grab active:cursor-grabbing text-muted-foreground opacity-0 hover:text-foreground group-hover:opacity-100 focus-visible:opacity-100">
-                            <GripVertical className="size-4" />
-                        </div>}
                     {(section.tasks.length > 0) &&
                         <button
                             type="button"
@@ -97,6 +88,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragHandleRef, dr
                         {isTextAreaOpen && <InlineErrorTooltip message={error}>
                             <input
                                 {...inputProps}
+                                onPointerDown={e => e.stopPropagation()}
                                 type="text"
                                 aria-label={t("sections.titleLabel")}
                                 className={`min-w-0 flex-1 px-1 ml-2 border resize-none text-sm rounded-xs ${error ? "border-destructive" : "border-primary"}`}

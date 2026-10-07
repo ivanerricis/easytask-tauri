@@ -55,7 +55,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
             >
                 {/* Color container */}
                 {note.color && <div
-                    className="w-full h-0.5 absolute top-0"
+                    className="w-full h-1 absolute top-0"
                     style={{ backgroundColor: note.color }}
                 >
                 </div>}

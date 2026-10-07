@@ -16,3 +16,16 @@ export function computeTabMove(ids: number[], activeId: number, overId: number, 
     const to = zone === "after" ? overIndex + 1 : overIndex
     return to === from ? null : { from, to }
 }
+
+/**
+ * The tab a drag at horizontal position `x` is over: the one under it, else the first (pointer before the bar) or
+ * the last (pointer past it, in the empty part of the bar or outside) so that a tab can be dropped at either end.
+ */
+export function pickTabByX<T extends string | number>(tabs: { id: T, left: number, right: number }[], x: number): T | null {
+    if (tabs.length === 0) return null
+    const under = tabs.find(tab => x >= tab.left && x <= tab.right)
+    if (under) return under.id
+    const first = tabs.reduce((a, b) => b.left < a.left ? b : a)
+    if (x < first.left) return first.id
+    return tabs.reduce((a, b) => b.right > a.right ? b : a).id
+}

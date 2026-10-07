@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
-import { ChevronDown, FileAudio, Grip, LayoutList, SquareCheckBig } from "lucide-react"
+import { ChevronDown, FileAudio, LayoutList, SquareCheckBig } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { useGroupOpen } from "@/contexts/use-tabs"
 import { getGroupProgress } from "./group-progress"
@@ -22,13 +22,13 @@ type GroupHeaderProps = {
     group: Group
     /** Position of the group in the note (0-based), used for the default label "Gruppo N". */
     index?: number
-    dragHandleRef?: (element: HTMLElement | null) => void
-    dragHandleProps?: HTMLAttributes<HTMLDivElement>
+    /** Starts the drag of the group from the whole header (drag & drop inside the open note); omitted when not draggable. */
+    dragProps?: HTMLAttributes<HTMLElement>
     /** Number of audio files of the group (the badge is hidden when 0). */
     audioCount?: number
 }
 
-export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps, audioCount = 0 }: GroupHeaderProps) => {
+export const GroupHeader = ({ group, index = 0, dragProps, audioCount = 0 }: GroupHeaderProps) => {
     const { t } = useTranslation()
     const { showSectionCount, showTaskCount, showAudioFileCount, showGroupProgressBar } = usePreferences()
     const colorAlpha = useColorAlpha()
@@ -55,11 +55,9 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps, 
         <ButtonMenuGroup group={group}>
             <div
                 // Everything stays on one row: the name is truncated (full name in the tooltip) and the progress bar shrinks
-                className={`group flex items-center border px-2 py-1 w-full rounded-xs ${group.color ? "" : "bg-background hover:bg-secondary"}`}
-                style={group.color ? { backgroundColor: hexToRgba(colorAlpha.header(), group.color) } : undefined}>
-                {dragHandleProps && <div ref={dragHandleRef} className="group flex items-center justify-center touch-none cursor-grab active:cursor-grabbing" {...dragHandleProps}>
-                    <Grip className="text-muted-foreground group-hover:text-foreground w-4 h-4 mr-2" />
-                </div>}
+                className={`group flex items-center border px-2 py-1 w-full rounded-xs ${group.color ? "" : "bg-background hover:bg-secondary"} ${dragProps ? "touch-none cursor-grab active:cursor-grabbing" : ""}`}
+                style={group.color ? { backgroundColor: hexToRgba(colorAlpha.header(), group.color) } : undefined}
+                {...dragProps}>
                 <button
                     type="button"
                     onClick={toggleOpen}
@@ -78,6 +76,7 @@ export const GroupHeader = ({ group, index = 0, dragHandleRef, dragHandleProps, 
                 {isEditing && <InlineErrorTooltip message={error}>
                     <input
                         {...inputProps}
+                        onPointerDown={e => e.stopPropagation()}
                         type="text"
                         placeholder={label}
                         aria-label={t("groups.nameLabel")}

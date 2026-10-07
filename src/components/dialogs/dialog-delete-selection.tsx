@@ -3,9 +3,10 @@ import { Trash2 } from "lucide-react"
 import { useRef, useState } from "react"
 import { ConfirmDialog } from "./dialog-confirm"
 import { useWorkspaceData } from "@/contexts/workspace-data"
-import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { useOptionalUndo, useUndoRecorder } from "@/contexts/undo/use-undo"
 import type { TreeItemRef } from "@/contexts/undo/commands"
 import { getErrorMessage } from "@/lib/utils"
+import { toastTrashed } from "@/lib/toast-trashed"
 
 type DialogDeleteSelectionProps = {
     /** The folders and notes to move to the trash (already reduced to the top-most ones). */
@@ -23,6 +24,7 @@ export const DialogDeleteSelection = ({ items, isOpen, onOpenChange }: DialogDel
     const { t } = useTranslation()
     const { deleteItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
+    const undo = useOptionalUndo()?.undo
     const [error, setError] = useState<string | null>(null)
     // Trashed by an earlier attempt of this same confirmation
     const trashed = useRef(new Set<string>())
@@ -39,6 +41,7 @@ export const DialogDeleteSelection = ({ items, isOpen, onOpenChange }: DialogDel
                 done.push(item)
             }
             trashed.current.clear()
+            toastTrashed(items.length, undo)
             onOpenChange(false)
         } catch (err) {
             setError(t("dialogs.deleteSelection.error", { done: trashed.current.size, total: items.length, message: getErrorMessage(err) }))

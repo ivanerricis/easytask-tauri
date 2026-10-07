@@ -10,20 +10,21 @@ import { useTranslation } from "react-i18next"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { cn } from "@/lib/utils"
 import { NoteHeader } from "./NoteHeader"
-import { computeTabMove, computeTabZone, type TabZone } from "./tab-reorder"
+import { computeTabMove, computeTabZone, pickTabByX, type TabZone } from "./tab-reorder"
 import type { Note } from "@/types/types"
 
 type Hover = { overId: number, zone: TabZone } | null
 
-// Only the horizontal position matters: the tab under the pointer's x wins, whatever the y
+// Only the horizontal position matters: the tab under the pointer's x wins, whatever the y.
+// Past either end of the bar the first / last tab wins, so a tab can be dropped at the very start or end.
 const collisionDetection: CollisionDetection = ({ droppableContainers, droppableRects, pointerCoordinates }) => {
     if (!pointerCoordinates) return []
-    for (const container of droppableContainers) {
+    const tabs = droppableContainers.flatMap(container => {
         const rect = droppableRects.get(container.id)
-        if (rect && pointerCoordinates.x >= rect.left && pointerCoordinates.x <= rect.right)
-            return [{ id: container.id }]
-    }
-    return []
+        return rect ? [{ id: container.id, left: rect.left, right: rect.right }] : []
+    })
+    const id = pickTabByX(tabs, pointerCoordinates.x)
+    return id === null ? [] : [{ id }]
 }
 
 const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {

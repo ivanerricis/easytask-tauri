@@ -2,6 +2,7 @@ import type { ReactNode } from "react"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { toast } from "sonner"
 import { UndoContext } from "@/contexts/undo/context"
 import { DialogAddColor } from "./dialog-add-color"
 import { DialogDeleteItem } from "./dialog-delete"
@@ -11,14 +12,15 @@ import { DialogRenameItem } from "./dialog-rename"
 const deleteItem = vi.fn()
 const renameItem = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => ({ deleteItem, renameItem }) }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
 const recorder = { rename: vi.fn(), color: vi.fn(), remove: vi.fn() }
+const undo = vi.fn()
 const withUndo = (ui: ReactNode) => (
     <UndoContext.Provider value={{
         canUndo: false, canRedo: false, undoLabel: null, redoLabel: null,
         entries: { undo: [], redo: [] }, undoTo: vi.fn(), redoTo: vi.fn(),
-        undo: vi.fn(), redo: vi.fn(), clear: vi.fn(), recorder: recorder as never,
+        undo, redo: vi.fn(), clear: vi.fn(), recorder: recorder as never,
     }}>
         {ui}
     </UndoContext.Provider>
@@ -39,6 +41,34 @@ describe("DialogDeleteItem and undo", () => {
 
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
         expect(recorder.remove).toHaveBeenCalledWith("note", 3, "Spesa")
+    })
+
+    it("tells it with a toast whose button undoes the delete", async () => {
+        const user = userEvent.setup()
+        render(withUndo(<DialogDeleteItem item={{ id: 3, name: "Spesa" }} itemType="note" isOpen onOpenChange={vi.fn()} />))
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
+
+        await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(1))
+        expect(toast.success).toHaveBeenCalledWith("Elemento spostato nel cestino", expect.objectContaining({ action: expect.objectContaining({ label: "Annulla" }) }))
+        const options = vi.mocked(toast.success).mock.calls[0][1] as unknown as { action: { onClick: () => void } }
+        options.action.onClick()
+        expect(undo).toHaveBeenCalledTimes(1)
+    })
+
+    it("has no undo button in the toast of the types that cannot be undone", async () => {
+        const user = userEvent.setup()
+        render(withUndo(<DialogDeleteItem item={{ id: 3 }} itemType="audio_file" isOpen onOpenChange={vi.fn()} />))
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
+        await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Elemento spostato nel cestino", undefined))
+    })
+
+    it("shows no toast when the delete fails", async () => {
+        const user = userEvent.setup()
+        deleteItem.mockRejectedValue(new Error("constraint"))
+        render(withUndo(<DialogDeleteItem item={{ id: 3 }} itemType="task" isOpen onOpenChange={vi.fn()} />))
+        await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
+        await waitFor(() => expect(deleteItem).toHaveBeenCalled())
+        expect(toast.success).not.toHaveBeenCalled()
     })
 
     it("records nothing when the delete fails", async () => {

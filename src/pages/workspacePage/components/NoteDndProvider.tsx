@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from "react"
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { createPortal } from "react-dom"
 import {
@@ -8,6 +8,8 @@ import {
 } from "@dnd-kit/core"
 import { getGroupLabel } from "./groups/group-label"
 import { useActiveNote } from "@/contexts/use-active-note"
+import { useColorAlpha } from "@/contexts/use-color-alpha"
+import { hexToRgba } from "@/lib/utils"
 import {
     computeDropZone, computeGroupDropZone, computeGroupTarget, computeSectionTarget, findGroup, computeTaskTarget, findSection, findTask,
     type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverKind, type NoteOverRef, type SectionTarget, type TaskTarget,
@@ -39,6 +41,12 @@ const collisionDetection: CollisionDetection = ({ active, droppableContainers, d
     return hits.sort((a, b) => (a.data?.value as number) - (b.data?.value as number))
 }
 
+/** The color of an item over the background of its preview, like its header (none: the preview keeps its own background). */
+const tintOf = (color: string | null | undefined, alpha: number): CSSProperties | undefined => {
+    const tint = color ? hexToRgba(alpha, color) : undefined
+    return tint ? { backgroundImage: `linear-gradient(${tint}, ${tint})` } : undefined
+}
+
 const getPointer = (event: DragMoveEvent): { x: number, y: number } | null => {
     const origin = event.activatorEvent as { clientX?: number, clientY?: number } | null
     if (origin && typeof origin.clientX === "number" && typeof origin.clientY === "number")
@@ -66,6 +74,7 @@ const getPointer = (event: DragMoveEvent): { x: number, y: number } | null => {
 export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
     useTranslation() // re-renders on language change so the screen reader texts follow it
     const { noteDataTree } = useActiveNote()
+    const colorAlpha = useColorAlpha()
     const { moveSectionTo, moveTaskTo } = useNoteMoves()
     const [active, setActive] = useState<NoteDragRef | null>(null)
     const [hover, setHover] = useState<NoteHover>(NO_HOVER)
@@ -153,7 +162,10 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         if (active.kind === "group") {
             const found = findGroup(noteDataTree, active.id)
             return found ? (
-                <div className="min-w-[200px] max-w-[320px] truncate rounded-xs border bg-background p-2 text-sm font-semibold shadow-lg">
+                <div
+                    className="min-w-[200px] max-w-[320px] truncate rounded-xs border bg-background p-2 text-sm font-semibold shadow-lg"
+                    style={tintOf(found.group.color, colorAlpha.header())}
+                >
                     {getGroupLabel(found.group, found.index)}
                 </div>
             ) : null
@@ -161,18 +173,24 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         if (active.kind === "section") {
             const section = findSection(noteDataTree, active.id)
             return section ? (
-                <div className="min-w-[250px] max-w-[320px] truncate rounded-xs border bg-accent p-2 text-sm shadow-lg">
+                <div
+                    className="min-w-[250px] max-w-[320px] truncate rounded-xs border bg-accent p-2 text-sm shadow-lg"
+                    style={tintOf(section.color, colorAlpha.header())}
+                >
                     {section.title}
                 </div>
             ) : null
         }
         const task = findTask(noteDataTree, active.id)
         return task ? (
-            <div className="max-w-[320px] truncate rounded-xs border bg-background p-2 text-sm shadow-lg">
+            <div
+                className="max-w-[320px] truncate rounded-xs border bg-background p-2 text-sm shadow-lg border-l-4"
+                style={task.color ? { borderLeftColor: task.color } : undefined}
+            >
                 {task.text}
             </div>
         ) : null
-    }, [active, noteDataTree])
+    }, [active, noteDataTree, colorAlpha])
 
     return (
         <NoteDndContext.Provider value={state}>

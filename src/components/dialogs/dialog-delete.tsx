@@ -2,11 +2,12 @@ import { useTranslation } from "react-i18next"
 import { Trash2 } from "lucide-react"
 import { ConfirmDialog } from "./dialog-confirm"
 import { useWorkspaceData } from "@/contexts/workspace-data"
-import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { useOptionalUndo, useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getItemName, isUndoableType } from "@/contexts/undo/commands"
 import { useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
+import { toastTrashed } from "@/lib/toast-trashed"
 
 type DialogDeleteProps<T> = {
     item: T
@@ -28,6 +29,7 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
     const { t } = useTranslation()
     const { deleteItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
+    const undo = useOptionalUndo()?.undo
 
     const [error, setError] = useState<string | null>(null)
 
@@ -39,7 +41,9 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             if (typeof getItemId === "number") {
                 await getItemData?.(getItemId)
             }
-            if (isUndoableType(itemType)) recorder.remove(itemType, item.id, getItemName(item))
+            const undoable = isUndoableType(itemType)
+            if (undoable) recorder.remove(itemType, item.id, getItemName(item))
+            toastTrashed(1, undoable ? undo : undefined)
             onOpenChange(false)
         } catch (error) {
             rollback?.()

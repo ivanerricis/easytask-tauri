@@ -23,7 +23,7 @@ Everything is stored locally on your computer.
 - **Customizable keyboard shortcuts** (Settings > Shortcuts); press `?` to see the list
 - **Italian and English** interface: choose the language in Settings, the default follows the system language
 - **Light, dark or system theme**, accent color and sidebar size
-- **Automatic backups** (at startup, at most once a day, 7 kept by default), manual backups and one-click restore
+- **Automatic backups** (at startup, at most once a day, 5 kept by default), manual backups and one-click restore
 - **Export / import** a workspace as an `.easytask.json` file
 - **Update check** at startup (can be turned off) and from Settings > About
 

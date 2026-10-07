@@ -7,7 +7,7 @@ const deleteItem = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceData: () => ({ deleteItem }),
 }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
 const setup = (over: Partial<Parameters<typeof DialogDeleteItem>[0]> = {}) => {
     const onOpenChange = vi.fn()

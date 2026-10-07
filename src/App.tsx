@@ -18,10 +18,17 @@ import { lazy, Suspense, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 const MainPage = lazy(() => import('./pages/mainPage/MainPage'))
-const WorkSpacePage = lazy(() => import('./pages/workspacePage/WorkSpacePage'))
+const loadWorkSpacePage = () => import('./pages/workspacePage/WorkSpacePage')
+const WorkSpacePage = lazy(loadWorkSpacePage)
 
 function App() {
   const { t } = useTranslation()
+
+  // The note page is the biggest chunk: load it once the home page is up, so opening the first workspace does not wait for it
+  useEffect(() => {
+    const timer = window.setTimeout(() => { void loadWorkSpacePage() }, 1000)
+    return () => window.clearTimeout(timer)
+  }, [])
 
   useEffect(() => {
     const handler = (e: MouseEvent) => {
@@ -44,7 +51,8 @@ function App() {
         <WorkspaceProvider>
           <WorkspaceDataProvider>
             <UndoProvider>
-            <HashRouter>
+            {/* No transitions: a route that is not ready yet shows its loading page at once, instead of the old page frozen until the new one is ready */}
+            <HashRouter useTransitions={false}>
               <Routes>
                 <Route path='/' element={
                   <ErrorBoundary>
@@ -59,7 +67,7 @@ function App() {
               </Routes>
             </HashRouter>
             </UndoProvider>
-            <Toaster richColors position='top-center' />
+            <Toaster richColors closeButton position='top-center' toastOptions={{ closeButtonAriaLabel: t('common.close') }} />
             <DialogShortcuts />
             <DialogUpdate />
             <TextContextMenu />

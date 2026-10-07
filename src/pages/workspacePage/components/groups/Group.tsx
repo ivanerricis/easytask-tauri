@@ -1,5 +1,5 @@
 import type { Group as GroupType } from "@/types/types"
-import { memo, useCallback, useLayoutEffect, useRef, type HTMLAttributes } from "react"
+import { memo, useCallback, useLayoutEffect, useRef } from "react"
 import { Section } from "../section/Section"
 import { AddSection } from "../section/AddSection"
 import { GroupHeader } from "./GroupHeader"
@@ -25,8 +25,8 @@ const openWidths = new Map<number, number>()
 export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => {
     // The empty area of a group (and its header) accepts a dragged section: it is appended to the group
     const { setNodeRef: setDropRef, zone, active } = useNoteDrop("group", group.id)
-    // The group is also draggable (by the grip of its header) to reorder the groups
-    const { setNodeRef: setDragRef, setActivatorNodeRef, attributes, listeners, isDragging } = useNoteDrag("group", group.id)
+    // The group is also draggable (by its header) to reorder the groups
+    const { setNodeRef: setDragRef, dragProps, isDragging } = useNoteDrag("group", group.id)
     const nodeRef = useRef<HTMLElement | null>(null)
     const setRef = useCallback((node: HTMLElement | null) => {
         nodeRef.current = node
@@ -65,8 +65,7 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
                 group={group}
                 index={index}
                 audioCount={audioCount}
-                dragHandleRef={setActivatorNodeRef}
-                dragHandleProps={{ ...attributes, ...listeners } as HTMLAttributes<HTMLDivElement>}
+                dragProps={dragProps}
             />
             {isOpen && <>
                 <GroupAudioFiles groupId={group.id} />

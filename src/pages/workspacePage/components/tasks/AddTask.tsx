@@ -34,7 +34,6 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
     const { t } = useTranslation()
     const [text, setText] = useState("")
     const { saving, run } = useSubmitOnce()
-    const [focused, setFocused] = useState(true)
     const { createSubTask } = useWorkspaceActions()
     const { appendTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
@@ -74,13 +73,11 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
                         autoComplete="off"
                         readOnly={saving}
                         aria-busy={saving}
-                        onFocus={() => setFocused(true)}
                         onKeyDown={(e) => {
                             if (e.key === "Escape") { e.preventDefault(); onClose?.() }
                             else if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault()
                         }}
                         onBlur={() => {
-                            setFocused(false)
                             if (!text.trim() && !saving) onClose?.()
                         }}
                         className={cn(
@@ -113,11 +110,6 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
                     </div>
                 </div>
             </div>
-            {focused && !text && (
-                <p className="px-1 pb-1 ml-10 text-[11px] leading-none text-muted-foreground">
-                    {t("tasks.subtaskHint")}
-                </p>
-            )}
         </form>
     )
 }

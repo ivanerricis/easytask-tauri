@@ -1,11 +1,9 @@
-import { useId } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Palette, X } from "lucide-react"
+import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-
-/** The color proposed when the user chooses to add one. */
-export const DEFAULT_NEW_COLOR = "#ffb375"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 
 type OptionalColorFieldProps = {
     /** The chosen color; undefined while no color is wanted. */
@@ -13,54 +11,37 @@ type OptionalColorFieldProps = {
     onChange: (color: string | undefined) => void
 }
 
-/** "Add color" button that turns into a color picker with a remove button (creation dialogs). */
+/**
+ * "+" button for the creation dialogs, next to the name: it opens the usual color palette of the menus and takes the
+ * color that was chosen. Without a color it is a plain "+" button.
+ */
 export const OptionalColorField = ({ value, onChange }: OptionalColorFieldProps) => {
     const { t } = useTranslation()
-    const colorId = useId()
-
-    if (value === undefined) {
-        return (
-            <Button
-                type="button"
-                variant={"outline"}
-                onClick={(e) => {
-                    e.preventDefault()
-                    onChange(DEFAULT_NEW_COLOR)
-                }}
-                className="h-full">
-                <Palette />
-                {t("common.addColor")}
-            </Button>
-        )
-    }
+    const [open, setOpen] = useState(false)
+    const label = value ? t("menu.changeColor") : t("common.addColor")
 
     return (
-        <div className="flex items-center justify-between gap-1">
-            <div
-                className="flex items-center justify-center h-full w-full border rounded-xs"
-                style={{ backgroundColor: value }}
-            >
-                <Input
-                    id={colorId}
-                    name="color"
-                    type="color"
-                    className="opacity-0 cursor-pointer"
-                    value={value}
-                    onChange={e => onChange(e.target.value)}
+        <Popover open={open} onOpenChange={setOpen}>
+            <PopoverTrigger asChild>
+                <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    aria-label={label}
+                    title={label}
+                    className="size-9 shrink-0"
+                    style={value ? { backgroundColor: value } : undefined}
+                >
+                    <Plus className={value ? "text-background dark:text-foreground" : undefined} />
+                </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-auto p-0">
+                <DialogAddColor
+                    item={{ id: 0, color: value }}
+                    onPick={color => onChange(color ?? undefined)}
+                    setDropDownOpen={setOpen}
                 />
-            </div>
-            <Button
-                type="button"
-                onClick={(e) => {
-                    e.preventDefault()
-                    onChange(undefined)
-                }}
-                variant={"buttonIcon"}
-                aria-label={t("common.closePalette")}
-                className="h-full"
-            >
-                <X />
-            </Button>
-        </div>
+            </PopoverContent>
+        </Popover>
     )
 }

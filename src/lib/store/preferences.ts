@@ -80,7 +80,7 @@ export const DEFAULT_WORKSPACE_SORT: WorkspaceSort = { by: "edited", dir: "desc"
 export type SidebarItemSize = "compact" | "normal" | "large"
 export type RightPanelTab = "details" | "history"
 
-export const DEFAULT_BACKUP_KEEP = 7
+export const DEFAULT_BACKUP_KEEP = 5
 export const MIN_BACKUP_KEEP = 1
 export const MAX_BACKUP_KEEP = 100
 

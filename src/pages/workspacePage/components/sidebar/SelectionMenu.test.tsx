@@ -39,7 +39,7 @@ vi.mock("@/contexts/workspace-data", () => ({
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
 vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn() }) }))
 const recorder = { removeMany: vi.fn(), archiveMany: vi.fn(), colorMany: vi.fn(), treeMoveMany: vi.fn(), create: vi.fn() }
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder, useOptionalUndo: () => null }))
 const exportItem = vi.fn()
 const exportItems = vi.fn()
 vi.mock("@/hooks/use-workspace-transfer", () => ({ useItemTransfer: () => ({ exportItem, exportItems, importItems: vi.fn(), isBusy: false }) }))

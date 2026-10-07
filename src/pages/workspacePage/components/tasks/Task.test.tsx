@@ -118,11 +118,10 @@ describe("Task selection", () => {
         expect(screen.getByDisplayValue("Primo")).not.toHaveAttribute("aria-label")
     })
 
-    it("a click on the checkbox, the drag handle or a toolbar button does not select the row", async () => {
+    it("a click on the checkbox or a toolbar button does not select the row", async () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />)
         // userEvent focuses on mousedown: use fireEvent.click to look at the click alone
         fireEvent.click(screen.getByRole("checkbox"))
-        fireEvent.click(screen.getByLabelText("Sposta task"))
         fireEvent.click(screen.getByRole("button", { name: "Aggiungi sottotask" }))
         expect(screen.getByTestId("selected-1")).toHaveTextContent("null")
     })
@@ -160,6 +159,16 @@ describe("Task selection", () => {
         const entries = await screen.findAllByRole("button", { name: "Mostra dettagli", hidden: true })
         fireEvent.click(entries[entries.length - 1])
         expect(showTaskDetails).toHaveBeenCalledWith(10)
+    })
+
+    it("a right click on the text of the task opens the menu of the task, not the one of a text field", async () => {
+        renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />)
+        const text = screen.getByLabelText("Modifica il testo del task")
+        // Read only until the editing opens: the menu of the text fields (cut, copy, paste) does not apply to it
+        expect(text).toHaveAttribute("readonly")
+        fireEvent.contextMenu(text)
+        const entries = await screen.findAllByRole("button", { name: "Mostra dettagli", hidden: true })
+        expect(entries.length).toBeGreaterThan(0)
     })
 
     it("does not break the toggle of the completion", async () => {
@@ -279,9 +288,8 @@ describe("Task subtasks", () => {
         expect(subtaskBlocks).toHaveLength(1)
         const spans = subtaskBlocks[0].querySelectorAll(":scope > span[aria-hidden]")
         expect(spans).toHaveLength(3)
-        // The horizontal tick fades while the row (and so its drag handle) is hovered or focused
-        expect(spans[2].className).toContain("peer-hover/row:opacity-0")
-        expect(spans[2].className).toContain("peer-focus-within/row:opacity-0")
+        // The horizontal tick is always visible: there is no drag handle to make room for
+        expect(spans[2].className).not.toContain("opacity-0")
     })
 
     it("hides the line of the last subtask only on its own level, not on the levels below it", () => {

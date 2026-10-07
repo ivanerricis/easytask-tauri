@@ -1,21 +1,40 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
-import { DEFAULT_NEW_COLOR, OptionalColorField } from "./optional-color-field"
+import { OptionalColorField } from "./optional-color-field"
 
 describe("OptionalColorField", () => {
-    it("offers the add button when there is no color and proposes the default one", async () => {
+    it("is a plain + button without a color, that opens the palette of the menus", async () => {
+        render(<OptionalColorField value={undefined} onChange={vi.fn()} />)
+        const button = screen.getByRole("button", { name: "Aggiungi colore" })
+        expect(button.style.backgroundColor).toBe("")
+        expect(screen.queryByRole("button", { name: "Colore #e6194b" })).not.toBeInTheDocument()
+        await userEvent.click(button)
+        expect(screen.getByRole("button", { name: "Colore #e6194b" })).toBeInTheDocument()
+    })
+
+    it("takes the color of a swatch and closes the palette", async () => {
         const onChange = vi.fn()
         render(<OptionalColorField value={undefined} onChange={onChange} />)
         await userEvent.click(screen.getByRole("button", { name: "Aggiungi colore" }))
-        expect(onChange).toHaveBeenCalledWith(DEFAULT_NEW_COLOR)
+        await userEvent.click(screen.getByRole("button", { name: "Colore #4363d8" }))
+        expect(onChange).toHaveBeenCalledWith("#4363d8")
+        expect(screen.queryByRole("button", { name: "Colore #4363d8" })).not.toBeInTheDocument()
     })
 
-    it("shows the picker and removes the color with the labelled X button", async () => {
+    it("paints the button with the chosen color and marks it in the palette", async () => {
+        render(<OptionalColorField value="#4363d8" onChange={vi.fn()} />)
+        const button = screen.getByRole("button", { name: "Cambia colore" })
+        expect(button).toHaveStyle({ backgroundColor: "#4363d8" })
+        await userEvent.click(button)
+        expect(screen.getByRole("button", { name: "Colore #4363d8" })).toHaveAttribute("aria-pressed", "true")
+    })
+
+    it("removes the color with Elimina", async () => {
         const onChange = vi.fn()
-        const { container } = render(<OptionalColorField value="#112233" onChange={onChange} />)
-        expect(container.querySelector("input[type=color]")).toHaveValue("#112233")
-        await userEvent.click(screen.getByRole("button", { name: "Chiudi la tavolozza" }))
+        render(<OptionalColorField value="#4363d8" onChange={onChange} />)
+        await userEvent.click(screen.getByRole("button", { name: "Cambia colore" }))
+        await userEvent.click(screen.getByRole("button", { name: "Elimina" }))
         expect(onChange).toHaveBeenCalledWith(undefined)
     })
 })

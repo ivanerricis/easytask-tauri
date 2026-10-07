@@ -126,7 +126,7 @@ describe("ButtonMenuSection", () => {
         const trigger = (await screen.findByText("Cambia colore")).closest("[data-slot=context-menu-sub-trigger]") as HTMLElement
         trigger.focus()
         await user.keyboard("{ArrowRight}")
-        expect(await screen.findByText("Elimina", { selector: "button.flex.items-center.p-1" })).toBeInTheDocument()
+        expect(await screen.findByText("Elimina", { selector: "button[type=button]" })).toBeInTheDocument()
     })
 
     it("renames and deletes through the cached note tree, without reloading it", async () => {
