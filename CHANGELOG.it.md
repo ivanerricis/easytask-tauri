@@ -4,6 +4,21 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-07
+
+### Aggiunto
+
+- Una palette colori nelle finestre di creazione: il pulsante "Aggiungi colore" delle finestre di nuovo workspace, nuova cartella e nuova nota è ora un pulsante "+" accanto al nome che apre la stessa palette dei menu (con "Scegli un altro colore" per qualsiasi altro colore).
+- Cestino e Archivio sono divisi in schede per tipo di elemento (cartelle, note, gruppi, sezioni...), ognuna con il proprio conteggio e un messaggio quando un tipo è vuoto.
+- Una notifica di conferma quando un elemento viene spostato nel cestino.
+
+### Modificato
+
+- Cartelle, note, gruppi, sezioni e task si trascinano da tutta la riga o l'intestazione: le maniglie sono state tolte. L'anteprima mostrata durante il trascinamento ha il colore dell'elemento.
+- Una scheda si può rilasciare a entrambe le estremità della barra delle schede.
+- Il pulsante di chiusura delle notifiche è dentro la notifica, a destra.
+- I backup automatici conservano 5 copie per impostazione predefinita (erano 7). Il valore scelto nelle Impostazioni non cambia.
+
 ## [0.5.0] - 2026-10-06
 
 ### Aggiunto
@@ -138,7 +153,9 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.1.0...v0.2.0

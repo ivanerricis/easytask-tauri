@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-10-07
+
+### Added
+
+- A color palette in the creation dialogs: the "Add color" button of the new workspace, folder and note dialogs is now a "+" button next to the name that opens the same palette of the menus (with "Pick another color" for any other color).
+- Trash and Archive are divided in tabs by kind of item (folders, notes, groups, sections...), each with its own count and a message when a kind is empty.
+- A confirmation toast when an item is moved to the trash.
+
+### Changed
+
+- Folders, notes, groups, sections and tasks are dragged from the whole row or header: the grip handles are gone. The preview shown while dragging has the color of the item.
+- A tab can be dropped at either end of the tab bar.
+- The close button of the toasts is inside the toast, on the right.
+- Automatic backups keep 5 copies by default (it was 7). The value chosen in Settings is not changed.
+
 ## [0.5.0] - 2026-10-06
 
 ### Added
@@ -140,7 +155,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.1.0...v0.2.0
