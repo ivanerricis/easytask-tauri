@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next"
 import { Navbar } from "@/components/navbar"
+import { AppMenu } from "@/components/app-menu"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
-import { ArrowLeft } from "lucide-react"
+import { House } from "lucide-react"
 import React, { useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { CommandMenu } from "./components/CommandMenu"
@@ -36,15 +37,16 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
     return (
         <div className="flex flex-col w-full h-full">
             <Navbar
+                leftContainer={<AppMenu page="workspace" />}
                 centerContainer={
-                    <div className="flex">
+                    <div className="flex items-center gap-1">
                         <ButtonNavbar
                             onClick={handleGoHome}
-                            className={"text-foreground pr-1"}
+                            className="text-foreground rounded-[4px]"
                             textTooltip={t("workspace.backHome")}
                             textTooltipShortcut={homeLabel}
                         >
-                            <ArrowLeft className="w-5 h-5" />
+                            <House className="w-5 h-5" />
                         </ButtonNavbar>
                         <CommandMenu />
                     </div>

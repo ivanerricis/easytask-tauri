@@ -26,6 +26,7 @@ import { ButtonUpload } from "./ButtonUpload"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
 import { useShortcut } from "@/hooks/use-shortcut"
+import { useAppCommand } from "@/lib/app-commands"
 import { useCompactLayout } from "@/lib/sidebar-layout"
 
 export const SideBarLeft = () => {
@@ -49,6 +50,7 @@ export const SideBarLeft = () => {
     }, [compact, setSideBarLeftOpen])
     useShortcut("toggle-sidebar", () => setOpen(!open), { allowInInputs: true })
     const { exportWorkspace, isBusy: isTransferring } = useWorkspaceTransfer()
+    useAppCommand("export-workspace", () => { if (currentWorkspace && !isTransferring) void exportWorkspace(currentWorkspace) })
 
     useEffect(() => {
         if (currentWorkspace?.id) {

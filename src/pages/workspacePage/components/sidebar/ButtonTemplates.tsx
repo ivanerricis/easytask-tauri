@@ -4,6 +4,7 @@ import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { reportError } from "@/lib/report-error"
 import { LazyMount } from "@/components/lazy-mount"
+import { useAppCommand } from "@/lib/app-commands"
 import { ItemFooter } from "../items/ItemFooter"
 
 const DialogTemplates = lazy(() => import("@/components/dialogs/dialog-templates").then(m => ({ default: m.DialogTemplates })))
@@ -19,6 +20,7 @@ export const ButtonTemplates = () => {
     const [isOpen, setIsOpen] = useState(false)
     const [count, setCount] = useState(0)
     const workspaceID = currentWorkspace?.id
+    useAppCommand("open-templates", () => setIsOpen(true))
 
     // Re-query the number of templates when they change (templatesVersion) or the dialog opens/closes
     useEffect(() => {

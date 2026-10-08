@@ -4,6 +4,7 @@ import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { reportError } from "@/lib/report-error"
 import { LazyMount } from "@/components/lazy-mount"
+import { useAppCommand } from "@/lib/app-commands"
 import { ItemFooter } from "../items/ItemFooter"
 
 const DialogTrash = lazy(() => import("@/components/dialogs/dialog-trash").then(m => ({ default: m.DialogTrash })))
@@ -15,6 +16,7 @@ export const ButtonTrash = () => {
     const [isOpen, setIsOpen] = useState(false)
     const [count, setCount] = useState(0)
     const workspaceID = currentWorkspace?.id
+    useAppCommand("open-trash", () => setIsOpen(true))
 
     // Re-query the trash size when the trash content changes (every write that touches it bumps trashVersion) or the dialog opens/closes
     useEffect(() => {

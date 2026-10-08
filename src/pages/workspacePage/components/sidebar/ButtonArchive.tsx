@@ -4,6 +4,7 @@ import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { reportError } from "@/lib/report-error"
 import { LazyMount } from "@/components/lazy-mount"
+import { useAppCommand } from "@/lib/app-commands"
 import { ItemFooter } from "../items/ItemFooter"
 
 const DialogArchive = lazy(() => import("@/components/dialogs/dialog-archive").then(m => ({ default: m.DialogArchive })))
@@ -15,6 +16,7 @@ export const ButtonArchive = () => {
     const [isOpen, setIsOpen] = useState(false)
     const [count, setCount] = useState(0)
     const workspaceID = currentWorkspace?.id
+    useAppCommand("open-archive", () => setIsOpen(true))
 
     // Re-query the archive size when its content changes (every write that touches it bumps archiveVersion) or the dialog opens/closes
     useEffect(() => {

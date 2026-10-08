@@ -4,6 +4,7 @@ import { lazy, useState } from "react"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import { LazyMount } from "@/components/lazy-mount"
+import { useAppCommand } from "@/lib/app-commands"
 import type { NoteTemplate } from "@/types/template"
 
 const DialogPickTemplate = lazy(() => import("@/components/dialogs/dialog-pick-template").then(m => ({ default: m.DialogPickTemplate })))
@@ -17,6 +18,7 @@ export const ButtonNoteFromTemplate = () => {
     const { t } = useTranslation()
     const [picking, setPicking] = useState(false)
     const [template, setTemplate] = useState<NoteTemplate | null>(null)
+    useAppCommand("note-from-template", () => setPicking(true))
 
     return (
         <>

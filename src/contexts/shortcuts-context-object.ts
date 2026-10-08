@@ -17,6 +17,10 @@ export type ShortcutsContextType = {
     // While true no shortcut fires (the settings recorder is capturing keys)
     setRecording: (recording: boolean) => void
     register: (id: string, entry: { current: ShortcutEntry }) => () => void
+    // Runs the enabled handlers of a shortcut as if its keys were pressed (the app menu); false when none is active
+    trigger: (id: string) => boolean
+    // Whether a handler of the shortcut is mounted and enabled right now
+    isActive: (id: string) => boolean
 }
 
 export const ShortcutsContext = createContext<ShortcutsContextType | undefined>(undefined)

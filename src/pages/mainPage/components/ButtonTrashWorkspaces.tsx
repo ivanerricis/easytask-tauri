@@ -4,12 +4,14 @@ import { Trash2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LazyMount } from "@/components/lazy-mount"
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { useAppCommand } from "@/lib/app-commands"
 
 const DialogTrashWorkspaces = lazy(() => import("@/components/dialogs/dialog-trash").then(m => ({ default: m.DialogTrashWorkspaces })))
 
 export const ButtonTrashWorkspaces = () => {
     const { t } = useTranslation()
     const [isOpen, setIsOpen] = useState(false)
+    useAppCommand("open-workspace-trash", () => setIsOpen(true))
 
     return (
         <>

@@ -91,9 +91,21 @@ export const ShortcutsProvider = ({ children }: { children: React.ReactNode }) =
         }
     }, [])
 
+    const activeEntries = useCallback((id: string) =>
+        [...(registry.current.get(id) ?? [])].map(ref => ref.current).filter(entry => entry.enabled), [])
+
+    const isActive = useCallback((id: string) => activeEntries(id).length > 0, [activeEntries])
+
+    const trigger = useCallback((id: string) => {
+        const entries = activeEntries(id)
+        const event = new KeyboardEvent("keydown")
+        entries.forEach(entry => entry.handler(event))
+        return entries.length > 0
+    }, [activeEntries])
+
     const value = useMemo(
-        () => ({ bindings, overrides, getBinding, setBinding, resetBinding, resetAll, setRecording, register }),
-        [bindings, overrides, getBinding, setBinding, resetBinding, resetAll, setRecording, register]
+        () => ({ bindings, overrides, getBinding, setBinding, resetBinding, resetAll, setRecording, register, trigger, isActive }),
+        [bindings, overrides, getBinding, setBinding, resetBinding, resetAll, setRecording, register, trigger, isActive]
     )
 
     return <ShortcutsContext.Provider value={value}>{children}</ShortcutsContext.Provider>
