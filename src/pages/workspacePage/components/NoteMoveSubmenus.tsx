@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useMemo } from "react"
+import { FolderInput } from "lucide-react"
 import { MenuItem, MenuSeparator, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
-import { ButtonInPopover } from "@/components/button-in-popover"
 import { useActiveNote } from "@/contexts/use-active-note"
 import { END_INDEX, getSectionMoveDestinations, getTaskMoveDestinations } from "./note-dnd"
 import { useNoteMoves } from "./note-dnd-state"
@@ -33,7 +33,8 @@ export const SectionMoveSubmenu = ({ sectionId, onDone }: SectionMoveSubmenuProp
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <ButtonInPopover text={t("menu.moveTo")} type="move" />
+                <FolderInput className="size-4" />
+                {t("menu.moveTo")}
             </MenuSubTrigger>
             <MenuSubContent className="max-h-64 min-w-40 overflow-y-auto">
                 {destinations.groups.map(group => (
@@ -88,7 +89,8 @@ export const TaskMoveSubmenu = ({ taskId, onDone }: TaskMoveSubmenuProps) => {
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <ButtonInPopover text={t("menu.moveTo")} type="move" />
+                <FolderInput className="size-4" />
+                {t("menu.moveTo")}
             </MenuSubTrigger>
             <MenuSubContent className="max-h-72 min-w-48 max-w-80 overflow-y-auto">
                 {destinations.map(destination => (

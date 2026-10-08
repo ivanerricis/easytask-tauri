@@ -55,7 +55,7 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
             />
             <ButtonInPopover
                 text={t("audio.updatePath")}
-                type="move"
+                type="relink"
                 onClick={() => {
                     menu.close()
                     void relinkFile(file)

@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils"
-import { Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, HelpCircle, Info, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2, Upload, Zap } from "lucide-react"
+import { MenuItem } from "@/components/menu-kind"
+import { Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, HelpCircle, Info, Link2, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2, Upload, Zap } from "lucide-react"
 import React from "react"
 
 type ButtonInPopoverProps = {
@@ -34,8 +34,9 @@ const iconMap: Record<string, React.ElementType> = {
     addAudio: Music,
     createTemplate: LayoutTemplate,
     duplicate: Copy,
-    export: Download,
-    import: Upload,
+    export: Upload,
+    import: Download,
+    relink: Link2,
     archive: Archive,
     automations: Zap,
     delete: Trash2,
@@ -44,24 +45,16 @@ const iconMap: Record<string, React.ElementType> = {
 export const ButtonInPopover = React.memo(({ text, type, children, className, destructive, disabled, onClick }: ButtonInPopoverProps) => {
     const IconComponent = iconMap[type] || HelpCircle
 
-    const handleClick = (e: React.MouseEvent) => {
-        e.stopPropagation()
-        e.preventDefault()
-        if (!disabled) onClick?.()
-    }
-
     return (
-        <button
-            onClick={handleClick}
+        <MenuItem
+            variant={destructive ? "destructive" : "default"}
             disabled={disabled}
-            className={cn(`${destructive ? "text-destructive hover:text-destructive hover:!bg-destructive/15" : "hover:text-foreground"}
-                flex justify-start items-center w-full rounded-xs text-xs px-1 py-1.5 text-left hover:bg-accent cursor-pointer gap-2 text-nowrap`,
-                disabled && "opacity-40 pointer-events-none cursor-default",
-                className)}
+            className={className}
+            onSelect={() => { void onClick?.() }}
         >
-            <IconComponent className="size-4" />
+            <IconComponent />
             {text}
             {children}
-        </button>
+        </MenuItem>
     )
 })

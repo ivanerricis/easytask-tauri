@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
-import { ButtonInPopover } from "@/components/button-in-popover"
+import { Palette } from "lucide-react"
 import { DialogAddColor, type DialogAddColorProps } from "@/components/dialogs/dialog-add-color"
 
 type ColorSubmenuProps<T> = Omit<DialogAddColorProps<T>, "setDropDownOpen" | "className"> & {
@@ -14,7 +14,8 @@ export const ColorSubmenu = <T extends { id: number, color?: string | null }>({ 
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <ButtonInPopover text={t("menu.changeColor")} type="color" />
+                <Palette className="size-4" />
+                {t("menu.changeColor")}
             </MenuSubTrigger>
             <MenuSubContent>
                 <DialogAddColor {...props} setDropDownOpen={onDone} />

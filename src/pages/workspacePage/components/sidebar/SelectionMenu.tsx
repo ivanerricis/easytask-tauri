@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useMemo } from "react"
-import { Folder as FolderIcon, FolderInput } from "lucide-react"
+import { Folder as FolderIcon, FolderInput, Palette } from "lucide-react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 import { MenuGroup, MenuItem, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
@@ -41,7 +41,8 @@ export const SelectionMenuItems = ({ menu }: { menu: ItemMenuState }) => {
             {destinations.length > 0 && (
                 <MenuSub>
                     <MenuSubTrigger>
-                        <ButtonInPopover text={t("menu.selection.move")} type="move" />
+                        <FolderInput className="size-4" />
+                        {t("menu.selection.move")}
                     </MenuSubTrigger>
                     <MenuSubContent className="max-h-64 overflow-y-auto">
                         {destinations.map(destination => (
@@ -60,7 +61,8 @@ export const SelectionMenuItems = ({ menu }: { menu: ItemMenuState }) => {
             )}
             <MenuSub>
                 <MenuSubTrigger>
-                    <ButtonInPopover text={t("menu.selection.color")} type="color" />
+                    <Palette className="size-4" />
+                    {t("menu.selection.color")}
                 </MenuSubTrigger>
                 <MenuSubContent>
                     <DialogAddColor onPick={color => actions.applyColor(color)} setDropDownOpen={menu.close} />

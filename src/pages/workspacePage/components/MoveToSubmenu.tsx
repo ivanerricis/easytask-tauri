@@ -3,7 +3,6 @@ import { useMemo } from "react"
 import { reportError } from "@/lib/report-error"
 import { Folder as FolderIcon, FolderInput } from "lucide-react"
 import { MenuItem, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
-import { ButtonInPopover } from "@/components/button-in-popover"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { getErrorMessage } from "@/lib/utils"
@@ -53,7 +52,8 @@ export const MoveToSubmenu = ({ itemType, itemId, folderID, onDone }: MoveToSubm
     return (
         <MenuSub>
             <MenuSubTrigger>
-                <ButtonInPopover text={t("menu.moveTo")} type="move" />
+                <FolderInput className="size-4" />
+                {t("menu.moveTo")}
             </MenuSubTrigger>
             <MenuSubContent className="max-h-64 overflow-y-auto">
                 {destinations.map(destination => (

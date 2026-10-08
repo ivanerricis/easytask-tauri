@@ -55,7 +55,7 @@ describe("ButtonMenuTask optimistic updates", () => {
 
     // The color palette lives in a submenu: open it with the keyboard like the user would
     const pickColor = async (user: ReturnType<typeof userEvent.setup>) => {
-        const trigger = (await screen.findByRole("button", { name: "Cambia colore" })).closest("[role=menuitem]") as HTMLElement
+        const trigger = (await screen.findByRole("menuitem", { name: "Cambia colore" })).closest("[role=menuitem]") as HTMLElement
         trigger.focus()
         await user.keyboard("{ArrowRight}")
         await user.click(await screen.findByText("pick color"))
@@ -64,7 +64,7 @@ describe("ButtonMenuTask optimistic updates", () => {
     it("'Mostra dettagli' selects the task and opens the details panel", async () => {
         const user = userEvent.setup()
         await openMenu(makeTask({ id: 5 }))
-        await user.click(await screen.findByRole("button", { name: "Mostra dettagli" }))
+        await user.click(await screen.findByRole("menuitem", { name: "Mostra dettagli" }))
         expect(showTaskDetails).toHaveBeenCalledWith(5)
         expect(selectTask).not.toHaveBeenCalled()
     })
@@ -73,14 +73,14 @@ describe("ButtonMenuTask optimistic updates", () => {
         const user = userEvent.setup()
         panelAvailable = false
         await openMenu(makeTask({ id: 5 }))
-        await user.click(await screen.findByRole("button", { name: "Mostra dettagli" }))
+        await user.click(await screen.findByRole("menuitem", { name: "Mostra dettagli" }))
         expect(selectTask).toHaveBeenCalledWith(5)
     })
 
     it("toggles the priority optimistically and keeps it on success", async () => {
         const user = userEvent.setup()
         await openMenu(makeTask({ id: 5, priority: false }))
-        await user.click(await screen.findByRole("button", { name: "Aggiungi priorità" }))
+        await user.click(await screen.findByRole("menuitem", { name: "Aggiungi priorità" }))
         await waitFor(() => expect(updateTaskPriority).toHaveBeenCalledWith(5, true))
         expect(patchTask).toHaveBeenCalledWith(5, { priority: true })
         expect(rollback).not.toHaveBeenCalled()
@@ -90,7 +90,7 @@ describe("ButtonMenuTask optimistic updates", () => {
         const user = userEvent.setup()
         updateTaskPriority.mockRejectedValue(new Error("boom"))
         await openMenu(makeTask({ id: 5, priority: false }))
-        await user.click(await screen.findByRole("button", { name: "Aggiungi priorità" }))
+        await user.click(await screen.findByRole("menuitem", { name: "Aggiungi priorità" }))
         await waitFor(() => expect(rollback).toHaveBeenCalledTimes(1))
         expect(toast.error).toHaveBeenCalled()
     })
@@ -98,7 +98,7 @@ describe("ButtonMenuTask optimistic updates", () => {
     it("removes the description optimistically, without reloading", async () => {
         const user = userEvent.setup()
         await openMenu(makeTask({ id: 5, description: "note" }))
-        await user.click(await screen.findByRole("button", { name: "Rimuovi descrizione" }))
+        await user.click(await screen.findByRole("menuitem", { name: "Rimuovi descrizione" }))
         await waitFor(() => expect(updateTaskDescription).toHaveBeenCalledWith(5, undefined))
         expect(patchTask).toHaveBeenCalledWith(5, { description: "" })
         expect(rollback).not.toHaveBeenCalled()
@@ -108,7 +108,7 @@ describe("ButtonMenuTask optimistic updates", () => {
         const user = userEvent.setup()
         updateTaskDescription.mockRejectedValue(new Error("boom"))
         await openMenu(makeTask({ id: 5, description: "note" }))
-        await user.click(await screen.findByRole("button", { name: "Rimuovi descrizione" }))
+        await user.click(await screen.findByRole("menuitem", { name: "Rimuovi descrizione" }))
         await waitFor(() => expect(rollback).toHaveBeenCalledTimes(1))
         expect(toast.error).toHaveBeenCalledWith("boom")
     })
@@ -135,7 +135,7 @@ describe("ButtonMenuTask optimistic updates", () => {
         await openMenu()
         // The dialog is mounted only once the delete item has been chosen
         expect(screen.queryByText("dialog delete done")).not.toBeInTheDocument()
-        await user.click(await screen.findByRole("button", { name: "Elimina" }))
+        await user.click(await screen.findByRole("menuitem", { name: "Elimina" }))
         fireEvent.click(await screen.findByText("dialog delete done"))
         expect(removeTask).toHaveBeenCalledWith(5)
     })
@@ -152,10 +152,10 @@ describe("ButtonMenuTask", () => {
         )
 
         await user.click(container.querySelector("svg")!)
-        await user.click(await screen.findByRole("button", { name: "Aggiungi sottotask" }))
+        await user.click(await screen.findByRole("menuitem", { name: "Aggiungi sottotask" }))
 
         expect(onAddSubtask).toHaveBeenCalledTimes(1)
-        expect(screen.queryByRole("button", { name: "Aggiungi sottotask" })).not.toBeInTheDocument()
+        expect(screen.queryByRole("menuitem", { name: "Aggiungi sottotask" })).not.toBeInTheDocument()
     })
 
     it("opens the same entries with a right click on the row, and 'Aggiungi sottotask' still opens the input", async () => {
@@ -169,10 +169,10 @@ describe("ButtonMenuTask", () => {
 
         fireEvent.contextMenu(screen.getByTestId("row"))
         for (const entry of ["Aggiungi sottotask", "Aggiungi descrizione", "Aggiungi priorità", "Cambia colore", "Elimina"])
-            expect(await screen.findByRole("button", { name: entry })).toBeInTheDocument()
+            expect(await screen.findByRole("menuitem", { name: entry })).toBeInTheDocument()
 
-        await user.click(screen.getByRole("button", { name: "Aggiungi sottotask" }))
+        await user.click(screen.getByRole("menuitem", { name: "Aggiungi sottotask" }))
         expect(onAddSubtask).toHaveBeenCalledTimes(1)
-        expect(screen.queryByRole("button", { name: "Aggiungi sottotask" })).not.toBeInTheDocument()
+        expect(screen.queryByRole("menuitem", { name: "Aggiungi sottotask" })).not.toBeInTheDocument()
     })
 })
