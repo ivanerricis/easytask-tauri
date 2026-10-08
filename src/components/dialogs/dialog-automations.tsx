@@ -172,7 +172,8 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
     return (
         <>
             <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-                <DialogContent className="sm:max-w-xl">
+                {/* The header and the footer stay visible: only the editor scrolls when the rule is taller than the window */}
+                <DialogContent className="sm:max-w-xl flex flex-col overflow-hidden">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Zap className="size-4" />
@@ -186,12 +187,14 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                             <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
                         </div>
                     ) : editing ? (
-                        <AutomationEditor
-                            draft={editing.draft}
-                            groups={groups}
-                            sections={sections}
-                            onChange={draft => { setError(null); setEditing({ ...editing, draft }) }}
-                        />
+                        <div className="min-h-0 flex-1 overflow-y-auto -mx-1 px-1 py-1">
+                            <AutomationEditor
+                                draft={editing.draft}
+                                groups={groups}
+                                sections={sections}
+                                onChange={draft => { setError(null); setEditing({ ...editing, draft }) }}
+                            />
+                        </div>
                     ) : sections.length === 0 ? (
                         <p className="py-6 text-center text-muted-foreground text-sm">{t("automations.noSections")}</p>
                     ) : rules.length === 0 ? (
@@ -392,7 +395,7 @@ const AutomationEditor = ({ draft, groups, sections, onChange }: AutomationEdito
                         <ActionParams action={action} groups={groups} sections={sections} onChange={next => setAction(index, next)} />
                     </div>
                 ))}
-                <Button variant="outline" size="sm" type="button" className="self-start"
+                <Button variant="outline" size="sm" type="button" className="justify-self-start"
                     onClick={() => onChange({ ...draft, actions: [...actions, defaultAction("setPriority", sections, trigger.sectionId)] })}>
                     <Plus />
                     {t("automations.addAction")}
