@@ -106,7 +106,7 @@ export function DialogCreateWorkspace() {
             <TooltipCustom text={t("home.createWorkspace.title")} shortcut={shortcutLabel}>
                 <Button
                     onClick={() => setIsOpen(true)}
-                    className="flex items-center justify-center w-[280px] p-6 rounded-full gap-2 text-lg transition-all"
+                    className="flex items-center justify-center w-full min-w-0 p-6 rounded-full gap-2 text-lg transition-all"
                 >
                     {t("home.createWorkspace.open")}
                     <ArrowRight className="h-5! w-5!" />

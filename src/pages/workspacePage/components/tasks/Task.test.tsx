@@ -397,3 +397,17 @@ describe("Task rendering", () => {
         expect(rendersOf(21)).toBe(before.bLeaf)
     })
 })
+
+describe("Task priority flag", () => {
+    // SQLite returns the flags as 0/1: a 0 must not be rendered as text next to the task
+    it("shows nothing for a priority read from the database as 0", () => {
+        renderTasks(<Task task={makeTask({ id: 10, text: "Primo", priority: 0 as unknown as boolean })} />)
+        expect(screen.queryByText("0")).not.toBeInTheDocument()
+        expect(screen.queryByRole("img", { name: "Priorità alta" })).not.toBeInTheDocument()
+    })
+
+    it("shows the flag for a priority read from the database as 1", () => {
+        renderTasks(<Task task={makeTask({ id: 10, text: "Primo", priority: 1 as unknown as boolean })} />)
+        expect(screen.getByRole("img", { name: "Priorità alta" })).toBeInTheDocument()
+    })
+})

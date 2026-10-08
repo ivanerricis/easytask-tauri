@@ -197,7 +197,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                                 </div>}
 
                             {/* Priority: a flag (not just a color) */}
-                            {task.priority &&
+                            {!!task.priority &&
                                 <TooltipCustom text={t("details.priority")}>
                                     <span role="img" aria-label={t("details.priority")} className="flex shrink-0 mx-2 mt-1 text-priority">
                                         <Flag className="size-3.5 fill-current" />

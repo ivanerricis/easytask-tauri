@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { useEffect, useState } from "react"
 import { DialogCreateWorkspace } from "./components/DialogCreateWorkspace"
-import { Loader2, LayoutGrid, LayoutList, Upload, ArrowUpDown } from "lucide-react"
+import { Loader2, LayoutGrid, LayoutList, Download, ArrowUpDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { ErrorPage } from "@/components/pages/error-page"
@@ -55,16 +55,17 @@ const MainPage = () => {
         <MainPageLayout>
             <div className="flex flex-col w-full max-w-[600px] px-4 h-full items-center justify-center gap-8">
                 <h1 className="text-4xl">{t("home.welcome")}</h1>
-                <div className="flex w-full flex-wrap items-center justify-center gap-3">
+                {/* The two actions side by side, same width */}
+                <div className="grid w-full grid-cols-2 gap-3">
                     <DialogCreateWorkspace />
                     <Button
                         variant="outline"
                         onClick={() => void importWorkspace()}
                         disabled={isImporting}
-                        className="flex items-center justify-center w-[280px] max-w-full p-6 rounded-full gap-2 text-lg border-primary transition-all"
+                        className="flex items-center justify-center w-full min-w-0 p-6 rounded-full gap-2 text-lg border-primary transition-all"
                     >
                         {t("home.import")}
-                        {isImporting ? <Loader2 className="h-5! w-5! animate-spin" /> : <Upload className="h-5! w-5!" />}
+                        {isImporting ? <Loader2 className="h-5! w-5! animate-spin" /> : <Download className="h-5! w-5!" />}
                     </Button>
                 </div>
                 <div className="flex flex-col items-center justify-center w-full p-2 gap-2 border rounded-xs">
