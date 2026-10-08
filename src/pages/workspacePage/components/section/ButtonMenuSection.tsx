@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { useState, type ReactElement } from "react"
+import { lazy, useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { ColorSubmenu } from "../ColorSubmenu"
 import type { DBItemType } from "@/db/queries/shared_queries"
@@ -19,6 +19,10 @@ import { getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
 import { toast } from "sonner"
 import { withRollback } from "@/contexts/with-rollback"
+import { LazyMount } from "@/components/lazy-mount"
+import { useActiveNoteId } from "@/contexts/use-tabs"
+
+const DialogAutomations = lazy(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
 
 type ButtonMenuSectionProps = {
     section: Section
@@ -30,6 +34,8 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
     const { t } = useTranslation()
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
+    const [isAutomationsOpen, setAutomationsOpen] = useState(false)
+    const noteId = useActiveNoteId()
     const menu = useItemMenuState()
     const { updateItemColor, duplicateSection, archiveItem } = useWorkspaceActions()
     const { patchSection, removeSection, refreshActiveNote } = useActiveNoteActions()
@@ -93,6 +99,14 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
             />
             <SectionStepMoves sectionId={section.id} onDone={menu.close} />
             <SectionMoveSubmenu sectionId={section.id} onDone={menu.close} />
+            {noteId !== null && <ButtonInPopover
+                text={t("automations.menu")}
+                type="automations"
+                onClick={() => {
+                    setAutomationsOpen(true)
+                    menu.close()
+                }}
+            />}
             <ButtonInPopover
                 text={t("menu.archive")}
                 type="archive"
@@ -120,6 +134,14 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
                 onOpenChange={setRenameOpen}
                 optimistic={title => patchSection(section.id, { title })}
             />
+            {noteId !== null && <LazyMount active={isAutomationsOpen}>
+                <DialogAutomations
+                    noteId={noteId}
+                    sectionId={section.id}
+                    isOpen={isAutomationsOpen}
+                    onOpenChange={setAutomationsOpen}
+                />
+            </LazyMount>}
             <DialogDeleteItem
                 item={section}
                 itemType="section"

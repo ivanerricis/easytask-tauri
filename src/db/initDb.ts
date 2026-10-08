@@ -3,6 +3,7 @@ import i18n from "@/i18n";
 import { APPLICATION_ID, archiveSchema, initialSchema } from "./schema/initial";
 import { addGroupColorColumn } from "./schema/section_group";
 import { createWorkspaceEditTriggers } from "./schema/workspace_edit";
+import { automationSchema } from "./schema/automation";
 
 /**
  * Ordered list of migrations, applied once each and tracked with PRAGMA user_version.
@@ -19,6 +20,8 @@ const migrations: string[][] = [
     createWorkspaceEditTriggers,
     // v4: archive date on folders/notes/groups/sections, removal of the unused `archived` flags
     archiveSchema,
+    // v5: automations of the notes
+    automationSchema,
 ];
 
 /**

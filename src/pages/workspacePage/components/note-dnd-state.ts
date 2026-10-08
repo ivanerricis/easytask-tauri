@@ -6,6 +6,7 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { getErrorMessage } from "@/lib/utils"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { useAutomations } from "@/hooks/use-automations"
 import { captureSectionPlace, captureTaskPlace, makeLabel } from "@/contexts/undo/commands"
 import { getGroupLabel } from "./groups/group-label"
 import type { Group } from "@/types/types"
@@ -68,6 +69,7 @@ export function useNoteMoves() {
     const { moveSection, moveSectionToNewGroup, moveTask } = useWorkspaceActions()
     const { applySectionMove, applySectionMoveToNewGroup, applyTaskMove, getNoteTree } = useActiveNoteActions()
     const recorder = useUndoRecorder()
+    const { dispatch } = useAutomations()
 
     const moveSectionTo = useCallback((sectionId: number, target: SectionTarget) => recorder.track((async () => {
         const from = captureSectionPlace(getNoteTree(), sectionId)
@@ -95,11 +97,12 @@ export function useNoteMoves() {
         try {
             await moveTask(taskId, destination, target.index)
             if (from) recorder.taskMove(taskId, from.name, from, target)
+            if (from && from.sectionId !== target.sectionId) void dispatch({ type: "task.moved", taskId, fromSectionId: from.sectionId })
         } catch (err) {
             rollback()
             reportError(err, getErrorMessage(err))
         }
-    })()), [moveTask, applyTaskMove, getNoteTree, recorder])
+    })()), [moveTask, applyTaskMove, getNoteTree, recorder, dispatch])
 
     return { moveSectionTo, moveTaskTo }
 }

@@ -3,6 +3,7 @@ import { HashRouter, Route, Routes } from 'react-router-dom'
 import { WorkspaceProvider } from './contexts/workspace-context'
 import { WorkspaceDataProvider } from './contexts/workspace-data'
 import { UndoProvider } from './contexts/undo'
+import { AutomationsProvider } from './contexts/automations-context'
 import { PreferencesProvider } from './contexts/preferences-context'
 import { ThemeProvider } from './components/theme-provider'
 import { Toaster } from './components/ui/sonner'
@@ -51,6 +52,7 @@ function App() {
         <WorkspaceProvider>
           <WorkspaceDataProvider>
             <UndoProvider>
+            <AutomationsProvider>
             {/* No transitions: a route that is not ready yet shows its loading page at once, instead of the old page frozen until the new one is ready */}
             <HashRouter useTransitions={false}>
               <Routes>
@@ -66,6 +68,7 @@ function App() {
                 } />
               </Routes>
             </HashRouter>
+            </AutomationsProvider>
             </UndoProvider>
             <Toaster richColors closeButton position='top-center' toastOptions={{ closeButtonAriaLabel: t('common.close') }} />
             <DialogShortcuts />

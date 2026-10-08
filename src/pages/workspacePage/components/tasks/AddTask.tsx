@@ -10,6 +10,7 @@ import { useState, useRef, useEffect } from "react"
 import type { FormEvent, KeyboardEvent } from "react"
 import { keyLabel } from "@/lib/shortcuts"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
+import { useAutomations } from "@/hooks/use-automations"
 import { reportError } from "@/lib/report-error"
 import { PlusButton } from "../section/PlusButton"
 import { CloseButton } from "../section/CloseButton"
@@ -121,6 +122,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
     const { createTask } = useWorkspaceActions()
     const { appendTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
+    const { dispatch } = useAutomations()
     const formRef = useRef<HTMLFormElement>(null)
     const { saving, run } = useSubmitOnce()
 
@@ -160,6 +162,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                     handleOpen()
                     appendTask(id, { sectionId }, value)
                     recorder.create("task", id, value)
+                    void dispatch({ type: "task.created", taskId: id })
                 } catch (error: unknown) {
                     reportError(error, getErrorMessage(error) || t("tasks.errors.createTask"))
                 }
