@@ -1,5 +1,4 @@
 import i18n from "@/i18n"
-import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
@@ -11,7 +10,6 @@ import { SideBarHeader } from "./SideBarHeader"
 import { FileTree } from "./FileTree"
 import { SelectionProvider } from "./selection-context"
 import { SelectionActionsProvider } from "./selection-actions"
-import { ItemFooter } from "../items/ItemFooter"
 import { ButtonTrash } from "./ButtonTrash"
 import { ButtonArchive } from "./ButtonArchive"
 import { ButtonTemplates } from "./ButtonTemplates"
@@ -30,8 +28,6 @@ import { useAppCommand } from "@/lib/app-commands"
 import { useCompactLayout } from "@/lib/sidebar-layout"
 
 export const SideBarLeft = () => {
-    const { t } = useTranslation()
-
     const { currentWorkspace } = useWorkspace()
     const { folders, getWorkspaceData } = useWorkspaceData()
     const { sidebarLeftOpen, setSideBarLeftOpen, sidebarLeftWidth, setSidebarLeftWidth } = usePreferences()
@@ -109,12 +105,6 @@ export const SideBarLeft = () => {
                             <ButtonTemplates />
                             <ButtonArchive />
                             <ButtonTrash />
-                            <ItemFooter
-                                type="download"
-                                text={t("sidebar.exportWorkspace")}
-                                disabled={!currentWorkspace || isTransferring}
-                                onClick={() => { if (currentWorkspace) void exportWorkspace(currentWorkspace) }}
-                            />
                             <ComboboxWorkspace />
                         </div>}
                     >

@@ -91,7 +91,6 @@ export const sidebar: Translation["sidebar"] = {
         description: "Description",
         placeholder: "Write something to describe the task...",
     },
-    exportWorkspace: "Export Workspace",
     toggle: "Show or hide the sidebar",
     emptyTree: "No folders or files",
 }

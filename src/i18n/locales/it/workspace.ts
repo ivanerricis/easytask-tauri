@@ -89,7 +89,6 @@ export const sidebar = {
         description: "Descrizione",
         placeholder: "Scrivi qualcosa per descrivere il task...",
     },
-    exportWorkspace: "Esporta Workspace",
     toggle: "Mostra o nascondi la barra laterale",
     emptyTree: "Nessuna cartella o file",
 }
