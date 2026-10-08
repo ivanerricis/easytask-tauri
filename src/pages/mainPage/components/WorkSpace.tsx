@@ -76,7 +76,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                 />}
 
                 {/* Workspace Info */}
-                <div className="pointer-events-none flex flex-col justify-between p-2 ml-2 relative w-full">
+                <div className="pointer-events-none flex flex-col justify-between py-2 pl-4 pr-2 relative w-full min-w-0">
                     <span className="text-muted-foreground group-hover:text-foreground text-xl truncate overflow-hidden whitespace-nowrap mr-8">
                         {workspace.name}
                     </span>
