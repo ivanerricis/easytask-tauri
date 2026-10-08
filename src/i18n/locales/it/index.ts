@@ -1,0 +1,49 @@
+import { common, ui, layout, dnd } from "./common"
+import { dialogs } from "./dialogs"
+import { audio } from "./audio"
+import { shortcuts } from "./shortcuts"
+import { settings } from "./settings"
+import { undo, archive, trash, history } from "./archive"
+import { errors, crash, errorPage } from "./errors"
+import { window, appMenu, textMenu, menu } from "./menus"
+import { home, workspace, notes, groups, sidebar, templates, sections } from "./workspace"
+import { tasks, transfer, duplicate } from "./tasks"
+import { details, rightPanel } from "./details"
+import { automations } from "./automations"
+
+export const it = {
+    common,
+    dialogs,
+    audio,
+    settings,
+    shortcuts,
+    undo,
+    archive,
+    trash,
+    errors,
+    window,
+    appMenu,
+    crash,
+    errorPage,
+    textMenu,
+    duplicate,
+    menu,
+    home,
+    workspace,
+    notes,
+    groups,
+    sidebar,
+    templates,
+    ui,
+    sections,
+    tasks,
+    transfer,
+    dnd,
+    layout,
+    history,
+    rightPanel,
+    details,
+    automations,
+}
+
+export type Translation = typeof it
