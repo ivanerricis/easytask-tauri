@@ -329,7 +329,8 @@ function ChoiceSelect<T extends string>({ value, options, onChange, label, class
 }
 
 const ColorDot = ({ color }: { color: string | null }) => (
-    <span aria-hidden className="size-3.5 shrink-0 rounded-full ring-1 ring-inset ring-foreground/20" style={color ? { backgroundColor: color } : undefined} />
+    // Inline so the trigger can truncate its value; inside the list the item already spaces it with a gap
+    <span aria-hidden className="inline-block size-3.5 shrink-0 rounded-full align-[-0.2em] ring-1 ring-inset ring-foreground/20 in-data-[slot=select-value]:me-2" style={color ? { backgroundColor: color } : undefined} />
 )
 
 /** The translated name of a color: the palette ones have their own, any other is "custom color". */
@@ -356,7 +357,7 @@ const AutomationEditor = ({ draft, groups, sections, onChange }: AutomationEdito
 
             <fieldset className="grid gap-2">
                 <legend className="text-sm font-medium">{t("automations.when")}</legend>
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                     <ChoiceSelect label={t("automations.when")} value={trigger.type}
                         options={TRIGGER_TYPES.map(type => ({ value: type, label: triggerLabel(type) }))}
                         onChange={type => onChange({ ...draft, trigger: defaultTrigger(type, trigger.sectionId, sections) })} />
@@ -374,17 +375,21 @@ const AutomationEditor = ({ draft, groups, sections, onChange }: AutomationEdito
             <fieldset className="grid gap-2">
                 <legend className="text-sm font-medium">{t("automations.then")}</legend>
                 {actions.map((action, index) => (
-                    <div key={index} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto] items-center">
-                        <ChoiceSelect label={t("automations.actionType")} value={action.type}
-                            options={ACTION_TYPES.map(type => ({ value: type, label: actionLabel(type) }))}
-                            onChange={type => setAction(index, defaultAction(type, sections, trigger.sectionId))} />
+                    // One block per action: the type on the first line, its parameters on the second, so the layout never
+                    // depends on the chosen action or on the length of the section names
+                    <div key={index} className="grid gap-2 rounded-xs border p-2">
+                        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
+                            <ChoiceSelect label={t("automations.actionType")} value={action.type}
+                                options={ACTION_TYPES.map(type => ({ value: type, label: actionLabel(type) }))}
+                                onChange={type => setAction(index, defaultAction(type, sections, trigger.sectionId))} />
+                            <TooltipCustom text={t("automations.removeAction")}>
+                                <Button variant="ghost" size="icon" aria-label={t("automations.removeAction")}
+                                    onClick={() => onChange({ ...draft, actions: actions.filter((_, i) => i !== index) })}>
+                                    <X />
+                                </Button>
+                            </TooltipCustom>
+                        </div>
                         <ActionParams action={action} groups={groups} sections={sections} onChange={next => setAction(index, next)} />
-                        <TooltipCustom text={t("automations.removeAction")}>
-                            <Button variant="ghost" size="icon" aria-label={t("automations.removeAction")} className="shrink-0 justify-self-end"
-                                onClick={() => onChange({ ...draft, actions: actions.filter((_, i) => i !== index) })}>
-                                <X />
-                            </Button>
-                        </TooltipCustom>
                     </div>
                 ))}
                 <Button variant="outline" size="sm" type="button" className="self-start"
@@ -405,10 +410,10 @@ const ActionParams = ({ action, groups, sections, onChange }: {
     switch (action.type) {
         case "moveTo":
             return (
-                <div className="flex flex-wrap gap-2 min-w-0">
-                    <SectionSelect label={label} className="flex-1 min-w-40 basis-40" value={action.sectionId} groups={groups} sections={sections}
+                <div className="grid grid-cols-[minmax(0,1fr)_8rem] gap-2">
+                    <SectionSelect label={label} value={action.sectionId} groups={groups} sections={sections}
                         onChange={id => { if (id !== null) onChange({ ...action, sectionId: id }) }} />
-                    <ChoiceSelect label={t("automations.position")} className="w-32 shrink-0" value={action.at}
+                    <ChoiceSelect label={t("automations.position")} value={action.at}
                         options={[{ value: "top", label: t("automations.values.top") }, { value: "bottom", label: t("automations.values.bottom") }]}
                         onChange={at => onChange({ ...action, at })} />
                 </div>
@@ -440,6 +445,6 @@ const ActionParams = ({ action, groups, sections, onChange }: {
             )
         }
         case "completeSubtasks":
-            return <div />
+            return null
     }
 }
