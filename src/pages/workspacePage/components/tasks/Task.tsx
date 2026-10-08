@@ -9,6 +9,7 @@ import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { reportError } from "@/lib/report-error"
 import { withRollback } from "@/contexts/with-rollback"
 import { useInlineEdit } from "@/hooks/use-inline-edit"
+import { useAutomations } from "@/hooks/use-automations"
 import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useState } from "react"
 import { AutoTextarea } from "@/components/auto-textarea"
@@ -41,6 +42,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
     const { updateTaskCompletion, renameItem } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
+    const { dispatch } = useAutomations()
     const { editing: isTextAreaOpen, error, start: startEdit, inputProps } = useInlineEdit<HTMLTextAreaElement>({
         value: task.text,
         errorMessage: err => t("tasks.errors.rename", { message: getErrorMessage(err) }),
@@ -76,6 +78,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
         try {
             await updateTaskCompletion(task.id, !task.completed)
             recorder.taskCompletion(task.id, task.text, !!task.completed, !task.completed)
+            void dispatch({ type: task.completed ? "task.reopened" : "task.completed", taskId: task.id })
         } catch (err) {
             rollback()
             reportError(err, t("tasks.errors.update", { message: getErrorMessage(err) }))

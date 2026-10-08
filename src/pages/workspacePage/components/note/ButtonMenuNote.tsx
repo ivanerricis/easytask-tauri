@@ -21,6 +21,7 @@ import { reportError } from "@/lib/report-error"
 import { toast } from "sonner"
 import { useItemTransfer } from "@/hooks/use-workspace-transfer"
 
+const DialogAutomations = lazy(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
 const DialogCreateTemplate = lazy(() => import("@/components/dialogs/dialog-create-template").then(m => ({ default: m.DialogCreateTemplate })))
 
 type ButtonMenuNoteProps = {
@@ -34,6 +35,7 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
     const [isRenameOpen, setRenameOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [isTemplateOpen, setTemplateOpen] = useState(false);
+    const [isAutomationsOpen, setAutomationsOpen] = useState(false);
     const menu = useItemMenuState()
     const multi = useIsInMultiSelection("note", note.id)
     const { updateItemColor, duplicateNote, archiveItem } = useWorkspaceActions()
@@ -100,6 +102,11 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                 onClick={() => { setTemplateOpen(true); menu.close() }}
             />
             <ButtonInPopover
+                text={t("automations.menu")}
+                type="automations"
+                onClick={() => { setAutomationsOpen(true); menu.close() }}
+            />
+            <ButtonInPopover
                 text={t("menu.export")}
                 type="export"
                 onClick={() => { menu.close(); void exportItem("note", note) }}
@@ -135,6 +142,13 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                     note={note}
                     isOpen={isTemplateOpen}
                     onOpenChange={setTemplateOpen}
+                />
+            </LazyMount>
+            <LazyMount active={isAutomationsOpen}>
+                <DialogAutomations
+                    noteId={note.id}
+                    isOpen={isAutomationsOpen}
+                    onOpenChange={setAutomationsOpen}
                 />
             </LazyMount>
             <DialogDeleteItem
