@@ -1,7 +1,8 @@
-import { $, browser, expect } from "@wdio/globals"
+import { $, $$, browser, expect } from "@wdio/globals"
 import {
     byLabel, byText, createFromSidebar, createWorkspace, cssColor, currentLang, domClick, openContextMenu, openWorkspace, sectionCard, tr, treeRow,
     typeInto, waitForApp,
+    addTaskButton, menuButton, topDialog,
 } from "../helpers"
 
 const WORKSPACE = "Auto Workspace"
@@ -65,7 +66,7 @@ const isCompleted = async (text: string) => (await (await checkbox(text)).getAtt
 
 const addTask = async (section: string, text: string) => {
     const before = (await taskValues(section)).length
-    await sectionCard(section).$(`[aria-label="${await tr("tasks.add")}"]`).click()
+    await (await addTaskButton(sectionCard(section))).click()
     await typeInto(sectionCard(section).$("input"), text)
     await sectionCard(section).$(`[aria-label="${await tr("common.add")}"]`).click()
     await browser.waitUntil(async () => (await taskValues(section)).length === before + 1, { timeoutMsg: `task "${text}" not created` })
@@ -77,7 +78,7 @@ const openTaskMenu = async (text: string) => {
     if (!found) throw new Error(`task "${text}" not found`)
     const row = $(`[data-task-id="${found.id}"]`)
     await row.moveTo()
-    await row.$(`button[aria-label="${await tr("common.openMenu")}"]`).click()
+    await (await menuButton(row)).click()
     const menu = $('[role="menu"]')
     await menu.waitForDisplayed()
     return menu
@@ -322,6 +323,19 @@ describe("Automations", () => {
         const LONG_B = "Auto layout section bravo with an extremely long title that keeps going on and on and on"
         let previousSize: { width: number, height: number } | undefined
 
+        // Below 900px the sidebar is a modal overlay, closed by default: open it to reach the notes, close it to reach the page
+        const sidebarOpen = () => browser.execute(() => document.querySelector('[data-testid="sidebar-panel"]') !== null)
+        const showSidebar = async () => {
+            if (await sidebarOpen()) return
+            await byLabel(await tr("sidebar.toggle")).click()
+            await browser.waitUntil(sidebarOpen, { timeoutMsg: "the sidebar did not open" })
+        }
+        const hideSidebar = async () => {
+            if (!(await sidebarOpen())) return
+            await browser.keys("Escape")
+            await browser.waitUntil(async () => !(await sidebarOpen()), { timeoutMsg: "the sidebar did not close" })
+        }
+
         before(async () => {
             previousSize = await browser.getWindowSize()
             // The minimum window size of the app
@@ -367,8 +381,16 @@ describe("Automations", () => {
             })
 
         it("creates a note with two sections whose titles are very long", async () => {
-            await createFromSidebar("sidebar.addNote", "dialogs.addNote.submit", LONG_NOTE)
+            await showSidebar()
+            // The sidebar is itself a dialog here: the new note's dialog is the one on top of it
+            await byLabel(await tr("sidebar.addNote")).click()
+            await browser.waitUntil(async () => Array.from(await $$('[role="dialog"]')).length > 1, { timeoutMsg: "the new note dialog did not open" })
+            const noteDialog = await topDialog()
+            await typeInto(noteDialog.$('input[name="name"]'), LONG_NOTE)
+            await byText(await tr("dialogs.addNote.submit"), noteDialog).click()
+            await browser.waitUntil(async () => Array.from(await $$('[role="dialog"]')).length === 1, { timeoutMsg: "the new note dialog did not close" })
             await treeRow(LONG_NOTE).click()
+            await hideSidebar()
             await byLabel(await tr("notes.closeCurrent")).waitForDisplayed()
             await byText(await tr("menu.newGroup")).click()
             await typeInto(byLabel(await tr("groups.nameLabel")), "Auto Layout Group")
@@ -382,6 +404,7 @@ describe("Automations", () => {
         })
 
         it("keeps every trigger and action inside the dialog", async () => {
+            await showSidebar()
             const dialog = await openAutomations(LONG_NOTE)
             await byText(await tr("automations.add"), dialog).click()
             await expect(dialog.$(`h2=${await tr("automations.newTitle")}`)).toBeDisplayed()

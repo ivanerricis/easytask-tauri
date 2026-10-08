@@ -2,6 +2,7 @@ import { $, $$, browser, expect } from "@wdio/globals"
 import {
     byLabel, byText, createFromSidebar, createWorkspace, domClick, openContextMenu, openSubmenu, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
     waitForApp,
+    addTaskButton, menuButton, menuButtonPredicate,
 } from "../helpers"
 
 const WORKSPACE = "E2E Workspace"
@@ -35,9 +36,9 @@ const openTaskMenu = async (text: string) => {
         if ((await candidate.getValue()) === text) target = candidate
     }
     if (!target) throw new Error(`task "${text}" not found`)
-    const row = await target.$(`./ancestor::div[.//button[@aria-label="${await tr("common.openMenu")}"]][1]`)
+    const row = await target.$(`./ancestor::div[.//button[${await menuButtonPredicate()}]][1]`)
     await row.moveTo()
-    await row.$(`button[aria-label="${await tr("common.openMenu")}"]`).click()
+    await (await menuButton(row)).click()
     const menu = $('[role="menu"]')
     await menu.waitForDisplayed()
     return menu
@@ -76,7 +77,7 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
             await sectionCard(title).waitForDisplayed()
         }
 
-        await sectionCard(SECTION_A).$(`[aria-label="${await tr("tasks.add")}"]`).click()
+        await (await addTaskButton(sectionCard(SECTION_A))).click()
         await typeInto(sectionCard(SECTION_A).$("input"), TASK)
         await sectionCard(SECTION_A).$(`[aria-label="${await tr("common.add")}"]`).click()
         await browser.waitUntil(async () => (await taskValues(SECTION_A)).includes(TASK), { timeoutMsg: "task not created" })
@@ -165,7 +166,7 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
 
     it("duplicates a section with its tasks", async () => {
         const copy = `${SECTION_B} (${await tr("duplicate.suffix")})`
-        await sectionCard(SECTION_B).$(`button[aria-label="${await tr("common.openMenu")}"]`).click()
+        await (await menuButton(sectionCard(SECTION_B))).click()
         const menu = $('[role="menu"]')
         await menu.waitForDisplayed()
         await byText(await tr("menu.duplicate"), menu).click()

@@ -5,6 +5,7 @@ import { $, $$, browser, expect } from "@wdio/globals"
 import {
     byLabel, byText, createFromSidebar, createWorkspace, currentLang, dataDir, domClick, openWorkspace, sectionCard, topDialog, tr, trIn,
     treeRow, typeInto, waitForApp,
+    addTaskButton,
 } from "../helpers"
 
 /**
@@ -51,7 +52,8 @@ const openSettings = async (category: "appearance" | "notes") => {
     await domClick(byLabel(await tr("settings.title")))
     const dialog = $('[role="dialog"]')
     await dialog.waitForDisplayed()
-    await domClick(byText(await tr(`settings.categories.${category}`), dialog))
+    // A real click: Radix tabs activate on mouse down, which the DOM click of domClick does not dispatch
+    await byText(await tr(`settings.categories.${category}`), dialog).click()
     return dialog
 }
 
@@ -68,7 +70,11 @@ const closeSettings = async () => {
 }
 
 // The note header has a button with the same label: the switch is the one in the dialog
-const hideCompletedSwitch = async () => $(`[role="dialog"] [role="switch"][aria-label=${JSON.stringify(await tr("settings.notes.hideCompleted.label"))}]`)
+const hideCompletedSwitch = async () => {
+    // The switch is named by its <label for>, not by an aria-label
+    const label = JSON.stringify(await tr("settings.notes.hideCompleted.label")).replace(/^"|"$/g, "'")
+    return $(`//*[@role="dialog"]//*[@role="switch"][@id=//label[normalize-space()=${label}]/@for]`)
+}
 const accentInput = async () => $(`[role="dialog"] input[type="color"]`)
 
 /** Values of the task text areas of a section card, read in one page-side call. */
@@ -102,7 +108,7 @@ describe("Settings and data survive an app restart", () => {
             const dialog = await openSettings("notes")
             const hide = await hideCompletedSwitch()
             if ((await hide.getAttribute("aria-checked")) === "true") await domClick(hide)
-            await domClick(byText(await tr("settings.categories.appearance"), dialog))
+            await byText(await tr("settings.categories.appearance"), dialog).click()
             const reset = $(`[title=${JSON.stringify(await tr("settings.appearance.reset.description"))}]`)
             if (await reset.isEnabled()) {
                 await domClick(reset)
@@ -132,7 +138,7 @@ describe("Settings and data survive an app restart", () => {
         await typeInto(byLabel(await tr("sections.titleLabel")), SECTION)
         await byLabel(await tr("common.add")).click()
         await sectionCard(SECTION).waitForDisplayed()
-        await sectionCard(SECTION).$(`[aria-label="${await tr("tasks.add")}"]`).click()
+        await (await addTaskButton(sectionCard(SECTION))).click()
         await typeInto(sectionCard(SECTION).$("input"), TASK)
         await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
         await browser.waitUntil(async () => (await taskValues(SECTION)).includes(TASK), { timeoutMsg: "task not created" })
@@ -145,7 +151,7 @@ describe("Settings and data survive an app restart", () => {
         await domClick(hide)
         await expect(hide).toHaveAttribute("aria-checked", "true")
 
-        await domClick(byText(await tr("settings.categories.appearance"), dialog))
+        await byText(await tr("settings.categories.appearance"), dialog).click()
         const accent = await accentInput()
         await accent.waitForExist()
         const element = (await accent.getElement()) as unknown as HTMLInputElement
@@ -194,7 +200,7 @@ describe("Settings and data survive an app restart", () => {
         await accent.waitForExist()
         expect(await accent.getValue()).toBe(ACCENT)
 
-        await domClick(byText(await tr("settings.categories.notes"), dialog))
+        await byText(await tr("settings.categories.notes"), dialog).click()
         await expect(await hideCompletedSwitch()).toHaveAttribute("aria-checked", "true")
         await closeSettings()
     })

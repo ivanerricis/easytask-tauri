@@ -2,6 +2,7 @@ import { $, $$, browser, expect } from "@wdio/globals"
 import {
     byLabel, byText, createFromSidebar, createWorkspace, cssColor, domClick, openWorkspace, sectionCard, sql, tr, treeRow, typeInto,
     waitForApp, type Rgba,
+    addTaskButton, menuButton, menuButtonPredicate,
 } from "../helpers"
 
 const WORKSPACE = "Feat Workspace"
@@ -71,16 +72,16 @@ const openTaskMenu = async (text: string) => {
         if ((await candidate.getValue()) === text) target = candidate
     }
     if (!target) throw new Error(`task "${text}" not found`)
-    const row = await target.$(`./ancestor::div[.//button[@aria-label="${await tr("common.openMenu")}"]][1]`)
+    const row = await target.$(`./ancestor::div[.//button[${await menuButtonPredicate()}]][1]`)
     await row.moveTo()
-    await row.$(`button[aria-label="${await tr("common.openMenu")}"]`).click()
+    await (await menuButton(row)).click()
     const menu = $('[role="menu"]')
     await menu.waitForDisplayed()
     return menu
 }
 
 const openSectionMenu = async (title: string) => {
-    await sectionCard(title).$(`button[aria-label="${await tr("common.openMenu")}"]`).click()
+    await (await menuButton(sectionCard(title))).click()
     const menu = $('[role="menu"]')
     await menu.waitForDisplayed()
     return menu
@@ -88,7 +89,7 @@ const openSectionMenu = async (title: string) => {
 
 const addTask = async (section: string, text: string) => {
     const before = (await taskValues(section)).length
-    await sectionCard(section).$(`[aria-label="${await tr("tasks.add")}"]`).click()
+    await (await addTaskButton(sectionCard(section))).click()
     await typeInto(sectionCard(section).$("input"), text)
     await sectionCard(section).$(`[aria-label="${await tr("common.add")}"]`).click()
     await browser.waitUntil(async () => (await taskValues(section)).length === before + 1, { timeoutMsg: `task "${text}" not created` })
@@ -152,7 +153,8 @@ const openTrash = async () => {
 
 /** Shows the tab of a kind of item of the trash (the trash lists one kind at a time). */
 const openTrashTab = async (trash: ChainableDialog, type: string) => {
-    await domClick(trash.$(`[role="tab"][data-type="${type}"]`))
+    // A real click: Radix tabs activate on mouse down, which the DOM click of domClick does not dispatch
+    await trash.$(`[role="tab"][data-type="${type}"]`).click()
     await trash.$(`[role="tab"][data-type="${type}"][aria-selected="true"]`).waitForExist()
 }
 
@@ -210,8 +212,8 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
     it("moves a task down from its menu, then undoes and redoes with Ctrl+Z / Ctrl+Y", async () => {
         // First task: "Move up" is disabled
         let menu = await openTaskMenu(TASKS[0])
-        await expect(byText(await tr("menu.moveUp"), menu)).toBeDisabled()
-        await expect(byText(await tr("menu.moveDown"), menu)).toBeEnabled()
+        await expect(byText(await tr("menu.moveUp"), menu)).toHaveAttribute("aria-disabled", "true")
+        await expect(byText(await tr("menu.moveDown"), menu)).not.toHaveAttribute("aria-disabled", "true")
         await byText(await tr("menu.moveDown"), menu).click()
         await waitForTasks(SECTIONS[0], [TASKS[1], TASKS[0], TASKS[2]])
 
@@ -222,7 +224,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
 
         // Last task: "Move down" is disabled, "Move up" brings it one place up
         menu = await openTaskMenu(TASKS[2])
-        await expect(byText(await tr("menu.moveDown"), menu)).toBeDisabled()
+        await expect(byText(await tr("menu.moveDown"), menu)).toHaveAttribute("aria-disabled", "true")
         await byText(await tr("menu.moveUp"), menu).click()
         await waitForTasks(SECTIONS[0], [TASKS[1], TASKS[2], TASKS[0]])
         await pressCtrl("z")
@@ -234,7 +236,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
 
     it("moves a section down from its menu, then undoes and redoes", async () => {
         let menu = await openSectionMenu(SECTIONS[0])
-        await expect(byText(await tr("menu.moveUp"), menu)).toBeDisabled()
+        await expect(byText(await tr("menu.moveUp"), menu)).toHaveAttribute("aria-disabled", "true")
         await byText(await tr("menu.moveDown"), menu).click()
         await waitForSections([SECTIONS[1], SECTIONS[0], SECTIONS[2]])
 
@@ -246,8 +248,8 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         await waitForSections(SECTIONS)
 
         menu = await openSectionMenu(SECTIONS[2])
-        await expect(byText(await tr("menu.moveDown"), menu)).toBeDisabled()
-        await expect(byText(await tr("menu.moveUp"), menu)).toBeEnabled()
+        await expect(byText(await tr("menu.moveDown"), menu)).toHaveAttribute("aria-disabled", "true")
+        await expect(byText(await tr("menu.moveUp"), menu)).not.toHaveAttribute("aria-disabled", "true")
         await browser.keys("Escape")
         await menu.waitForExist({ reverse: true })
     })
@@ -278,7 +280,8 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
 
         const trash = await openTrash()
         await openTrashTab(trash, "task")
-        await trash.$(`[aria-label=${JSON.stringify(await tr("trash.purgeAria", { name: TASKS[1] }))}]`).click()
+        // The list re-renders while the tab settles: click through the DOM, which cannot hit a stale node
+        await domClick(trash.$(`[aria-label=${JSON.stringify(await tr("trash.purgeAria", { name: TASKS[1] }))}]`))
         const dialog = await expectConfirmDialog("trash.purgeTitle", true)
         await confirmAndClose(dialog, await tr("trash.confirmPurge"))
         await expect(trash.$(`p=${await tr("trash.isEmpty")}`)).toBeDisplayed()
@@ -383,7 +386,8 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
             )
             await expectResetInTitleRow("settings.appearance.title")
             await expect(await resetButton()).toBeDisabled()
-            await expect($(`[role="radiogroup"][aria-label=${JSON.stringify(sizeLabel)}]`)).toBeDisplayed()
+            // The segmented control is a radiogroup named (aria-labelledby) by the label of its row
+            await expect($(`//*[@role='radiogroup'][@aria-labelledby=//label[normalize-space()=${xpathString(sizeLabel)}]/@id]`)).toBeDisplayed()
             const normalHeight = await rowHeight()
 
             await (await radio("large")).click()

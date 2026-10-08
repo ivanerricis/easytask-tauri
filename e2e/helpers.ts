@@ -32,7 +32,25 @@ export const allByLabel = (label: string) => $$(`[aria-label=${cssString(label)}
 
 /** Button (or any element) whose visible text is exactly `text`, optionally inside `scope`. */
 export const byText = (text: string, scope?: ChainablePromiseElement | WebdriverIO.Element) =>
-    (scope ?? $("body")).$(`.//*[self::button or @role='button' or @role='radio'][normalize-space()=${xpathString(text)}]`)
+    (scope ?? $("body")).$(`.//*[self::button or @role='button' or @role='radio' or @role='menuitem' or @role='menuitemradio' or @role='tab'][normalize-space()=${xpathString(text)}]`)
+
+/**
+ * The "add task" button of a section card (it shows the visible text, it has no aria-label). The input that replaces
+ * it carries the same label, so only buttons are matched.
+ */
+export const addTaskButton = async (scope: ChainablePromiseElement | WebdriverIO.Element) =>
+    byText(await tr("tasks.add"), scope)
+
+/**
+ * The "..." menu button inside `scope`: labelled "Menu: <name>" when the item has a name, "Apri menu" otherwise.
+ */
+export const menuButtonPredicate = async (): Promise<string> => {
+    const prefix = (await tr("common.menuOf", { name: "" })).trim()
+    return `@aria-label=${xpathString(await tr("common.openMenu"))} or starts-with(@aria-label, ${xpathString(prefix)})`
+}
+
+export const menuButton = async (scope: ChainablePromiseElement | WebdriverIO.Element) =>
+    scope.$(`.//button[${await menuButtonPredicate()}]`)
 
 export const topDialog = async () => {
     const dialogs = Array.from(await $$('[role="dialog"], [role="alertdialog"]'))

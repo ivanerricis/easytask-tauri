@@ -6,6 +6,7 @@ import type { ChainablePromiseElement } from "webdriverio"
 import {
     backgroundOf, byLabel, byText, compose, contrastRatio, createFromSidebar, createWorkspace, cssColor, domClick, inTheme,
     openWorkspace, sql, tr, treeRow, typeInto, waitForApp, type Rgba,
+    addTaskButton,
 } from "../helpers"
 
 const WORKSPACE = "Layout Workspace"
@@ -51,7 +52,7 @@ const idOf = async (table: "task" | "section_group", column: "text" | "name", va
 /** Adds a task to the section through the "+" of its header. */
 const addTask = async (text: string) => {
     const card = $(`//div[@data-section-card][.//button[@title=${JSON.stringify(SECTION)}]]`)
-    await card.$(`[aria-label="${await tr("tasks.add")}"]`).click()
+    await (await addTaskButton(card)).click()
     await typeInto(card.$("input"), text)
     await card.$(`[aria-label="${await tr("common.add")}"]`).click()
     await browser.waitUntil(
@@ -172,12 +173,20 @@ describe("Layout and appearance", () => {
 
         it("fills the seek bar up to the playback position", async () => {
             const label = await tr("audio.player.seek")
-            for (const value of [0, 2, 3.8, 4]) {
-                await browser.execute((time: number) => { document.querySelector("audio")!.currentTime = time }, value)
-                await browser.waitUntil(async () => Math.abs((await readRange(label)).currentTime - value) < 0.15, { timeoutMsg: `seek to ${value} s` })
+            const thumb = byLabel(label)
+            // Moved the way a user does (the paused element is not buffered: seeking it from the page never completes)
+            const steps: [string, () => Promise<void>, number][] = [
+                ["Home", async () => { await browser.keys("Home") }, 0],
+                ["a click in the middle of the bar", async () => { await $('[data-slot="slider"]').click() }, 0.5],
+                ["End", async () => { await browser.keys("End") }, 1],
+            ]
+            for (const [what, move, fraction] of steps) {
+                await browser.execute((el: HTMLElement) => el.focus(), (await thumb.getElement()) as unknown as HTMLElement)
+                await move()
+                await browser.waitUntil(async () => Math.abs((await readRange(label)).currentTime / 4 - fraction) < 0.1, { timeoutMsg: `seek: ${what}` })
                 const state = await settled(() => readRange(label))
                 expect(Math.abs(state.progress - state.currentTime / state.duration)).toBeLessThan(0.02)
-                expect(Math.abs(state.progress - value / 4)).toBeLessThan(0.05)
+                expect(Math.abs(state.progress - fraction)).toBeLessThan(0.1)
             }
         })
 
