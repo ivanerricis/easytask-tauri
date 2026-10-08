@@ -4,7 +4,9 @@ import { createError, handleDBError, isAppError } from "@/types/error"
 import { getErrorMessage } from "@/lib/utils"
 import { getDB } from "../dbManager"
 import { Transaction, TransactionError } from "../transaction"
-import { addNoteContent, addSections, buildContent, createSectionSnapshotter } from "./template"
+import type { PortableAutomation } from "@/lib/automations/portable"
+import { addNoteContent, addSections, buildContentWithSectionIds, createSectionSnapshotter } from "./template"
+import { addNoteAutomations, getDBPortableAutomations } from "./automation"
 
 /**
  * The name of a copy: "<name> (copy)", then "<name> (copy 2)", "<name> (copy 3)"... the first one not in `taken`.
@@ -26,7 +28,8 @@ type SectionRow = { groupID: number, title: string, color: string | null, positi
 /**
  * Duplicates a note in the same workspace and folder, right after the original (the following siblings shift by one).
  * The copy is named "<name> (copy)" ("(copy 2)"... when taken), has the same color and an exact copy of the non deleted
- * groups, sections, tasks and subtasks. Audio files are not copied. Everything is written in ONE database transaction.
+ * groups, sections, tasks and subtasks, and the automations that only refer to those sections (pointing to the copied
+ * sections). Audio files are not copied. Everything is written in ONE database transaction.
  * @param noteId The ID of the note to duplicate (it must not be deleted).
  * @returns The ID of the new note.
  * @throws "DUPLICATE_SOURCE_MISSING" when the note does not exist, "NOTE_EXISTS" on a name clash, "DUPLICATE_FAILED" otherwise.
@@ -35,7 +38,8 @@ type SectionRow = { groupID: number, title: string, color: string | null, positi
 export async function duplicateDBNote(noteId: number): Promise<number> {
     let source: NoteRow
     let name: string
-    let content: Awaited<ReturnType<typeof buildContent>>
+    let content: Awaited<ReturnType<typeof buildContentWithSectionIds>>["content"]
+    let automations: PortableAutomation[]
     try {
         const db = await getDB()
         const rows = await db.select<NoteRow[]>(
@@ -47,7 +51,9 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
             'SELECT name FROM note WHERE workspaceID = ? AND IFNULL(folderID, 0) = ? AND deleted_at IS NULL',
             [source.workspaceID, source.folderID ?? 0])
         name = uniqueCopyName(source.name, new Set(siblings.map(row => row.name)))
-        content = await buildContent(noteId)
+        const built = await buildContentWithSectionIds(noteId)
+        content = built.content
+        automations = await getDBPortableAutomations(noteId, content, built.sectionIds)
     } catch (error: unknown) {
         if (isAppError(error)) throw error
         throw createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.load", { message: getErrorMessage(error) }))
@@ -60,7 +66,8 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
     const note = tx.add(
         'INSERT INTO note (workspaceID, folderID, name, color, position) VALUES (?, ?, ?, ?, ?)',
         [source.workspaceID, source.folderID, name, source.color, source.position + 1])
-    addNoteContent(tx, tx.idOf(note), content)
+    const { sections } = addNoteContent(tx, tx.idOf(note), content)
+    addNoteAutomations(tx, tx.idOf(note), automations, content, sections)
 
     try {
         const results = await tx.run()

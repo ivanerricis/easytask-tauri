@@ -11,7 +11,9 @@ import { createError, handleDBError, isAppError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { AUDIO_EXTENSIONS } from "./audio";
-import { addNoteContent, buildContent, parseTemplateContent } from "./template";
+import { isPortableAutomation } from "@/lib/automations/portable";
+import { addNoteContent, buildContentWithSectionIds, parseTemplateContent } from "./template";
+import { addNoteAutomations, getDBPortableAutomations } from "./automation";
 import { Transaction, TransactionError, type TxRef } from "../transaction";
 
 const INVALID_FILE_MESSAGE = () => i18n.t("errors.transfer.invalidFile")
@@ -19,7 +21,8 @@ const MALFORMED_MESSAGE = () => i18n.t("errors.transfer.malformed")
 
 /** Exports one note (content and audio paths); `folderRef` is where the note sits inside the file. */
 async function buildNoteExport(db: Database, note: Note & { color: string | null }, folderRef: string | null): Promise<ExportNote> {
-    const content = await buildContent(note.id, true)
+    const { content, sectionIds } = await buildContentWithSectionIds(note.id, true)
+    const automations = await getDBPortableAutomations(note.id, content, sectionIds)
     const audio = await db.select<{ section_groupID: number, name: string, path: string, position: number }[]>(
         `SELECT a.section_groupID, a.name, a.path, a.position FROM audio_file a
          INNER JOIN section_group g ON g.id = a.section_groupID
@@ -37,6 +40,7 @@ async function buildNoteExport(db: Database, note: Note & { color: string | null
         ...(note.archived_at ? { archived_at: note.archived_at } : {}),
         position: note.position,
         content,
+        ...(automations.length > 0 ? { automations } : {}),
         audio: audio.flatMap((file): ExportAudio[] => {
             const index = groupIndex.get(file.section_groupID)
             return index === undefined ? [] : [{ groupIndex: index, name: file.name, path: file.path, position: file.position }]
@@ -359,6 +363,12 @@ export function validateWorkspaceExport(data: unknown): WorkspaceExport {
         if (noteRefs.has(note.ref)) malformed()
         noteRefs.add(note.ref)
         const content = checkContent(note.content, counter)
+        if (note.automations !== undefined) {
+            if (!Array.isArray(note.automations)) malformed()
+            bump(counter, note.automations.length)
+            for (const automation of note.automations as unknown[])
+                if (!isPortableAutomation(automation, content)) malformed()
+        }
         for (const audio of note.audio as unknown[]) {
             if (!isObject(audio) || !isNumber(audio.groupIndex) || !isNonEmpty(audio.name) || !isNonEmpty(audio.path)
                 || !isNumber(audio.position) || audio.groupIndex < 0 || audio.groupIndex >= content.groups.length) malformed()
@@ -471,7 +481,8 @@ async function insertItems(
             ]))
 
         for (const [i, note] of data.notes.entries()) {
-            const groupRefs = addNoteContent(tx, noteRefs[i], note.content)
+            const { groups: groupRefs, sections: sectionRefs } = addNoteContent(tx, noteRefs[i], note.content)
+            if (note.automations?.length) addNoteAutomations(tx, noteRefs[i], note.automations, note.content, sectionRefs)
             const rows: unknown[][] = []
             const taken = new Set<string>()
             for (const file of note.audio) {

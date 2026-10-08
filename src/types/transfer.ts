@@ -1,4 +1,5 @@
 import type { NoteTemplateContent } from "@/types/template"
+import type { PortableAutomation } from "@/lib/automations/portable"
 
 /**
  * An audio file of a note group in a workspace export. Only the path is stored, the file itself is not copied.
@@ -39,6 +40,11 @@ export type ExportNote = {
     archived_at?: string | null
     position: number
     content: NoteTemplateContent
+    /**
+     * The automations of the note; their sections are positions in `content`. Absent in files created before the
+     * automations existed (and for a note without rules).
+     */
+    automations?: PortableAutomation[]
     audio: ExportAudio[]
 }
 

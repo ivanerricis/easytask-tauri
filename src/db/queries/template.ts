@@ -1,6 +1,6 @@
 import i18n from "@/i18n"
 import type { NoteTemplate, NoteTemplateContent, TemplateGroup, TemplateSection, TemplateTask } from "@/types/template";
-import type { Section, Task } from "@/types/types";
+import type { Group, Section, Task } from "@/types/types";
 import { createError, handleDBError, isAppError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
@@ -78,18 +78,33 @@ export function createSectionSnapshotter(tasks: Task[]): (section: Pick<Section,
  * @category Database Queries
  */
 export async function buildContent(noteId: number, includeArchived = false): Promise<NoteTemplateContent> {
+    return (await buildContentWithSectionIds(noteId, includeArchived)).content
+}
+
+/**
+ * Like buildContent, and also returns the ids of the source sections in content order (the groups first, then the
+ * sections of each group): the position `i` of a section in the content is `sectionIds[i]`.
+ * @param noteId The ID of the note.
+ * @param includeArchived Keeps the archived groups and sections (default false).
+ * @category Database Queries
+ */
+export async function buildContentWithSectionIds(noteId: number, includeArchived = false): Promise<{ content: NoteTemplateContent, sectionIds: number[] }> {
     const { groups, sections, tasks } = await getDBNoteData(noteId, includeArchived)
     const snapshotSection = createSectionSnapshotter(tasks)
+    const sectionsOf = (group: Group) => sections.filter(section => section.groupID === group.id)
 
     return {
-        version: 1,
-        groups: groups.map((group): TemplateGroup => ({
-            name: group.name ?? null,
-            color: group.color ?? null,
-            ...(group.archived_at ? { archived_at: group.archived_at } : {}),
-            position: group.position,
-            sections: sections.filter(section => section.groupID === group.id).map(snapshotSection),
-        })),
+        content: {
+            version: 1,
+            groups: groups.map((group): TemplateGroup => ({
+                name: group.name ?? null,
+                color: group.color ?? null,
+                ...(group.archived_at ? { archived_at: group.archived_at } : {}),
+                position: group.position,
+                sections: sectionsOf(group).map(snapshotSection),
+            })),
+        },
+        sectionIds: groups.flatMap(group => sectionsOf(group).map(section => section.id)),
     }
 }
 
@@ -206,16 +221,17 @@ type PendingTask = { sectionRef: TxRef, parentRef: TxRef | null, task: TemplateT
  * @param tx The transaction collecting the statements.
  * @param noteRef The note: its id or a reference to the statement that creates it.
  * @param content The content to insert.
- * @returns References to the created groups, in the order of `content.groups`.
+ * @returns References to the created groups (in the order of `content.groups`) and sections (in content order: the
+ * sections of the first group, then those of the second...).
  * @category Database Queries
  */
-export function addNoteContent(tx: Transaction, noteRef: number | TxRef, content: NoteTemplateContent): TxRef[] {
+export function addNoteContent(tx: Transaction, noteRef: number | TxRef, content: NoteTemplateContent): { groups: TxRef[], sections: TxRef[] } {
     const { groups } = content
     const groupRefs = tx.insertRows("section_group", ["noteID", "position", "name", "color", "archived_at"],
         groups.map(group => [noteRef, group.position, group.name ?? null, group.color || null, group.archived_at || null]))
 
-    addSections(tx, groups.flatMap((group, i) => group.sections.map(section => ({ groupRef: groupRefs[i], section }))))
-    return groupRefs
+    const sections = addSections(tx, groups.flatMap((group, i) => group.sections.map(section => ({ groupRef: groupRefs[i], section }))))
+    return { groups: groupRefs, sections }
 }
 
 /**

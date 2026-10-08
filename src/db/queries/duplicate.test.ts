@@ -26,6 +26,7 @@ vi.mock("@tauri-apps/api/core", async () => {
 
 import { duplicateDBNote, duplicateDBSection, uniqueCopyName } from "./duplicate"
 import { getDBNoteData } from "./note"
+import { getDBAutomations } from "./automation"
 
 const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
 
@@ -201,5 +202,35 @@ describe("duplicateDBSection", () => {
         failOn = "INSERT INTO task"
         expect(await thrown(duplicateDBSection(1))).toMatchObject({ code: "DUPLICATE_FAILED" })
         expect(order("section", "groupID = 1")).toEqual(["Da fare@0", "Archivio@1", "Ultima@2"])
+    })
+})
+
+describe("duplicateDBNote automations", () => {
+    const rule = (id: number, name: string | null, position: number, trigger: object, actions: object[], enabled = 1) =>
+        sqlite.prepare("INSERT INTO automation (id, noteID, name, enabled, trigger, actions, position) VALUES (?, 1, ?, ?, ?, ?, ?)")
+            .run(id, name, enabled, JSON.stringify(trigger), JSON.stringify(actions), position)
+
+    it("copies the rules pointing to the sections of the copy, skipping those on sections not copied", async () => {
+        sqlite.exec("UPDATE section SET archived_at = datetime('now') WHERE id = 2")
+        rule(1, "Sposta", 0, { type: "task.movedInto", sectionId: 1 }, [{ type: "setPriority", value: true }, { type: "moveTo", sectionId: 4, at: "top" }])
+        rule(2, null, 1, { type: "task.completed", sectionId: null }, [{ type: "moveTo", sectionId: 3, at: "bottom" }], 0)
+        rule(3, "Archiviata", 2, { type: "task.completed", sectionId: 2 }, [{ type: "setCompleted", value: false }])
+        rule(4, "Verso archiviata", 3, { type: "task.created", sectionId: null }, [{ type: "moveTo", sectionId: 2, at: "top" }])
+
+        const id = await duplicateDBNote(1)
+        const data = await getDBNoteData(id)
+        // content order: by group, then by position
+        const sections = data.groups.flatMap(g => data.sections.filter(s => s.groupID === g.id))
+        const [a, c, d] = sections.map(s => s.id)
+        expect(sections.map(s => s.title)).toEqual(["Da fare", "Ultima", "Idee"])
+
+        const copied = await getDBAutomations(id)
+        expect(copied.map(r => ({ name: r.name, enabled: r.enabled, position: r.position, trigger: r.trigger, actions: r.actions }))).toEqual([
+            { name: "Sposta", enabled: true, position: 0, trigger: { type: "task.movedInto", sectionId: a }, actions: [{ type: "setPriority", value: true }, { type: "moveTo", sectionId: d, at: "top" }] },
+            { name: null, enabled: false, position: 1, trigger: { type: "task.completed", sectionId: null }, actions: [{ type: "moveTo", sectionId: c, at: "bottom" }] },
+        ])
+        // the original rules are untouched
+        expect(await getDBAutomations(1)).toHaveLength(4)
+        expect((await getDBAutomations(1))[0].trigger).toEqual({ type: "task.movedInto", sectionId: 1 })
     })
 })

@@ -32,6 +32,8 @@ vi.mock("@tauri-apps/api/core", async () => {
     }
 })
 
+import { getDBNoteData } from "./note"
+import { getDBAutomations } from "./automation"
 import { buildDBItemExport, buildDBItemsExport, buildDBWorkspaceExport, importDBItems, importDBWorkspace, validateWorkspaceExport } from "./transfer"
 
 const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
@@ -478,5 +480,119 @@ describe("items export and import", () => {
         expect(await thrown(importDBWorkspace(items))).toMatchObject({ code: "TRANSFER_ITEMS_FILE" })
         expect(await thrown(importDBItems(workspace, 1, null))).toMatchObject({ code: "TRANSFER_WORKSPACE_FILE" })
         expect(rows(`SELECT COUNT(*) AS c FROM workspace`)[0].c).toBe(2)
+    })
+})
+
+describe("automations in export/import", () => {
+    const addRules = () => {
+        sqlite.exec(`
+            UPDATE section SET archived_at = datetime('now') WHERE id = 2;
+            INSERT INTO automation (noteID, name, enabled, trigger, actions, position) VALUES
+                (1, 'Sposta', 1, '{"type":"task.movedInto","sectionId":1}', '[{"type":"setCompleted","value":true},{"type":"moveTo","sectionId":3,"at":"top"}]', 0),
+                (1, NULL, 0, '{"type":"task.completed","sectionId":2}', '[{"type":"setPriority","value":false}]', 1),
+                (1, 'Ovunque', 1, '{"type":"task.created","sectionId":null}', '[{"type":"setColor","color":null}]', 2);
+        `)
+    }
+    // Sections in content order: by group, then by position
+    const sectionsOf = async (noteId: number) => {
+        const { groups, sections } = await getDBNoteData(noteId, true)
+        return groups.flatMap(g => sections.filter(s => s.groupID === g.id)).map(s => ({ id: s.id, title: s.title }))
+    }
+    const ruleView = (rules: Awaited<ReturnType<typeof getDBAutomations>>) => rules.map(r => ({
+        name: r.name, enabled: r.enabled, position: r.position, trigger: r.trigger, actions: r.actions,
+    }))
+
+    it("exports the rules with positions in the content, including those on archived sections", async () => {
+        addRules()
+        const data = await exportOf()
+        const note = data.notes.find(n => n.name === "Sorgente")!
+        expect(note.content.groups.map(g => g.sections.map(s => s.title))).toEqual([["Da fare", "Archivio"], ["Idee"]])
+        expect(note.automations).toEqual([
+            {
+                name: "Sposta", enabled: true, trigger: { type: "task.movedInto", sectionId: { group: 0, section: 0 } },
+                actions: [{ type: "setCompleted", value: true }, { type: "moveTo", sectionId: { group: 1, section: 0 }, at: "top" }],
+            },
+            {
+                name: null, enabled: false, trigger: { type: "task.completed", sectionId: { group: 0, section: 1 } },
+                actions: [{ type: "setPriority", value: false }],
+            },
+            { name: "Ovunque", enabled: true, trigger: { type: "task.created", sectionId: null }, actions: [{ type: "setColor", color: null }] },
+        ])
+        // a note without rules has no field
+        expect(data.notes.find(n => n.name === "Nella cartella")).not.toHaveProperty("automations")
+    })
+
+    it("round trips a workspace: the rules point to the sections of the imported note", async () => {
+        addRules()
+        const data = JSON.parse(JSON.stringify(await exportOf()))
+        const { workspaceId } = await importDBWorkspace(validateWorkspaceExport(data))
+        const noteId = rows(`SELECT id FROM note WHERE workspaceID = ${workspaceId} AND name = 'Sorgente'`)[0].id as number
+        const [a, b, c] = await sectionsOf(noteId)
+        expect([a.title, b.title, c.title]).toEqual(["Da fare", "Archivio", "Idee"])
+        expect(ruleView(await getDBAutomations(noteId))).toEqual([
+            {
+                name: "Sposta", enabled: true, position: 0, trigger: { type: "task.movedInto", sectionId: a.id },
+                actions: [{ type: "setCompleted", value: true }, { type: "moveTo", sectionId: c.id, at: "top" }],
+            },
+            { name: null, enabled: false, position: 1, trigger: { type: "task.completed", sectionId: b.id }, actions: [{ type: "setPriority", value: false }] },
+            { name: "Ovunque", enabled: true, position: 2, trigger: { type: "task.created", sectionId: null }, actions: [{ type: "setColor", color: null }] },
+        ])
+        expect([a.id, b.id, c.id]).not.toContain(1)
+    })
+
+    it("round trips a single note through an items import", async () => {
+        addRules()
+        const data = validateWorkspaceExport(JSON.parse(JSON.stringify(await buildDBItemExport("note", 1))))
+        const { items } = await importDBItems(data, 1, null)
+        const [a, , c] = await sectionsOf(items[0].id)
+        const rules = await getDBAutomations(items[0].id)
+        expect(rules).toHaveLength(3)
+        expect(rules[0].trigger).toEqual({ type: "task.movedInto", sectionId: a.id })
+        expect(rules[0].actions[1]).toEqual({ type: "moveTo", sectionId: c.id, at: "top" })
+        // the source rules are untouched
+        expect((await getDBAutomations(1))[0].trigger).toEqual({ type: "task.movedInto", sectionId: 1 })
+    })
+
+    it("still imports a file without automations", async () => {
+        const data = JSON.parse(JSON.stringify(await exportOf()))
+        for (const note of data.notes) expect(note.automations).toBeUndefined()
+        const { workspaceId } = await importDBWorkspace(validateWorkspaceExport(data))
+        expect(rows("SELECT COUNT(*) AS c FROM automation")[0].c).toBe(0)
+        expect(workspaceId).toBeGreaterThan(2)
+    })
+
+    it("rejects malformed automations", async () => {
+        addRules()
+        const good = JSON.parse(JSON.stringify(await exportOf()))
+        const withRules = (automations: unknown) => ({
+            ...good, notes: good.notes.map((n: { name: string }) => n.name === "Sorgente" ? { ...n, automations } : n),
+        })
+        const rule = good.notes.find((n: { name: string }) => n.name === "Sorgente").automations[0]
+        const bad: unknown[] = [
+            {},
+            [null],
+            [{ ...rule, enabled: "yes" }],
+            [{ ...rule, name: 3 }],
+            [{ ...rule, trigger: { type: "nope", sectionId: null } }],
+            [{ ...rule, trigger: { type: "task.movedInto", sectionId: null } }],
+            [{ ...rule, trigger: { type: "task.completed", sectionId: 1 } }],
+            [{ ...rule, trigger: { type: "task.completed", sectionId: { group: 5, section: 0 } } }],
+            [{ ...rule, trigger: { type: "task.completed", sectionId: { group: 0, section: 9 } } }],
+            [{ ...rule, actions: [{ type: "moveTo", sectionId: { group: 0, section: 0 } }] }],
+            [{ ...rule, actions: [{ type: "moveTo", sectionId: 3, at: "top" }] }],
+            [{ ...rule, actions: [{ type: "explode" }] }],
+            [{ ...rule, actions: "x" }],
+        ]
+        for (const automations of bad)
+            expect(() => validateWorkspaceExport(withRules(automations))).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
+        expect(() => validateWorkspaceExport(withRules([rule]))).not.toThrow()
+    })
+
+    it("counts the automations toward the maximum number of items", async () => {
+        addRules()
+        const good = JSON.parse(JSON.stringify(await exportOf()))
+        const rule = good.notes.find((n: { name: string }) => n.name === "Sorgente").automations[0]
+        good.notes[0].automations = Array.from({ length: MAX_IMPORT_ITEMS }, () => rule)
+        expect(() => validateWorkspaceExport(good)).toThrow(expect.objectContaining({ code: "TRANSFER_TOO_MANY_ITEMS" }))
     })
 })

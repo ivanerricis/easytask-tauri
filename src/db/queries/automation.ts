@@ -2,8 +2,10 @@ import i18n from "@/i18n"
 import { createError } from "@/types/error"
 import { getErrorMessage } from "@/lib/utils"
 import { isAutomationAction, isAutomationTrigger, type Automation, type AutomationDraft } from "@/lib/automations/types"
+import { buildSectionIndex, sectionOffsets, toPortable, type PortableAutomation } from "@/lib/automations/portable"
+import type { NoteTemplateContent } from "@/types/template"
 import { getDB } from "../dbManager"
-import { runTransaction, type TxStatement } from "../transaction"
+import { runTransaction, type Transaction, type TxRef, type TxStatement } from "../transaction"
 
 type AutomationRow = {
     id: number
@@ -52,6 +54,70 @@ export async function getDBAutomations(noteId: number): Promise<Automation[]> {
     } catch (error: unknown) {
         return fail("load", error)
     }
+}
+
+/**
+ * The rules of a note in their portable form (sections by position in `content`), for a copy or an export. A rule that
+ * refers to a section that is not in the content is left out.
+ * @param noteId The note.
+ * @param content The content that will be copied or exported.
+ * @param sectionIds The ids of the sections of `content`, in content order (see buildContentWithSectionIds).
+ * @category Database Queries
+ */
+export async function getDBPortableAutomations(noteId: number, content: NoteTemplateContent, sectionIds: readonly number[]): Promise<PortableAutomation[]> {
+    const index = buildSectionIndex(content, sectionIds)
+    return (await getDBAutomations(noteId))
+        .map(rule => toPortable(rule, index))
+        .filter(rule => rule !== null)
+}
+
+/**
+ * Adds to a transaction the statements that insert portable rules into a note, with their sections remapped to the
+ * sections created in the same transaction (the section ids are written by SQLite with json_set, so they are known
+ * only when the transaction runs). The rules keep their order.
+ * @param tx The transaction collecting the statements.
+ * @param noteRef The note: its id or a reference to the statement that creates it.
+ * @param rules The rules, valid for `content` (see isPortableAutomation).
+ * @param content The content inserted in the note.
+ * @param sectionRefs References to the created sections in content order (see addNoteContent).
+ * @category Database Queries
+ */
+export function addNoteAutomations(
+    tx: Transaction, noteRef: number | TxRef, rules: readonly PortableAutomation[],
+    content: NoteTemplateContent, sectionRefs: readonly TxRef[],
+) {
+    const offsets = sectionOffsets(content)
+    const refOf = ({ group, section }: { group: number, section: number }) => sectionRefs[offsets[group] + section]
+    // Placeholder written in the JSON until json_set replaces it with the id of the new section
+    const PLACEHOLDER = 0
+
+    rules.forEach((rule, position) => {
+        const params: unknown[] = [noteRef, rule.name?.trim() || null, rule.enabled ? 1 : 0]
+
+        let triggerSql = "?"
+        if (rule.trigger.sectionId === null) {
+            params.push(JSON.stringify(rule.trigger))
+        } else {
+            params.push(JSON.stringify({ ...rule.trigger, sectionId: PLACEHOLDER }), refOf(rule.trigger.sectionId))
+            triggerSql = "json_set(?, '$.sectionId', CAST(? AS INTEGER))"
+        }
+
+        const moves: [number, TxRef][] = []
+        const actions = rule.actions.map((action, i) => {
+            if (action.type !== "moveTo") return action
+            moves.push([i, refOf(action.sectionId)])
+            return { ...action, sectionId: PLACEHOLDER }
+        })
+        params.push(JSON.stringify(actions))
+        let actionsSql = "?"
+        if (moves.length > 0) {
+            actionsSql = `json_set(?, ${moves.map(([i]) => `'$[${i}].sectionId', CAST(? AS INTEGER)`).join(", ")})`
+            params.push(...moves.map(([, ref]) => ref))
+        }
+
+        params.push(position)
+        tx.add(`INSERT INTO automation (noteID, name, enabled, trigger, actions, position) VALUES (?, ?, ?, ${triggerSql}, ${actionsSql}, ?)`, params)
+    })
 }
 
 /**
