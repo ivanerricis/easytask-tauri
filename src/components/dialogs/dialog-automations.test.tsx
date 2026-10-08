@@ -58,8 +58,8 @@ describe("DialogAutomations", () => {
     it("lists the rules with their description", async () => {
         mocked(getDBAutomations).mockResolvedValue([rule(), rule({ id: 11, name: null, trigger: { type: "task.created", sectionId: null }, actions: [{ type: "setPriority", value: true }] })])
         renderDialog()
-        expect(await screen.findByText("Chiudi")).toBeInTheDocument()
-        expect(screen.getByText("Quando un task viene completato in \"Doing\", sposta in fondo a \"Done\"")).toBeInTheDocument()
+        // Waits for the list itself: the close button of the dialog is there from the start, while the rules load
+        expect(await screen.findByText("Quando un task viene completato in \"Doing\", sposta in fondo a \"Done\"")).toBeInTheDocument()
         expect(screen.getByText("Quando un task viene creato, aggiungi la priorità")).toBeInTheDocument()
     })
 

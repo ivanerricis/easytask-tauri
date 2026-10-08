@@ -338,7 +338,7 @@ describe("primary color preference validation", () => {
 
     it.each([undefined, null, {}, { hex: 3 }, { hex: "red" }, { hex: "#12" }, { hex: "#12345g" }, { hex: "url(x)" }, "#fff"])("falls back to the default for %j", async (stored) => {
         vi.mocked(store.get).mockResolvedValue(stored)
-        expect(await getPrimaryColor()).toBe("#f97316")
+        expect(await getPrimaryColor()).toBe("#c2410c")
     })
 })
 

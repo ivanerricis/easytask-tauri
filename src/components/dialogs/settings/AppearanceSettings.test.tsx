@@ -70,15 +70,15 @@ describe("accent color picker", () => {
         fireEvent.click(screen.getByRole("button", { name: "Ripristina il colore d'accento" }))
 
         expect(prefs.setPrimaryColor).toHaveBeenCalledOnce()
-        expect(prefs.setPrimaryColor).toHaveBeenCalledWith("#f97316")
-        expect(document.documentElement.style.getPropertyValue("--primary")).toBe("#f97316")
+        expect(prefs.setPrimaryColor).toHaveBeenCalledWith("#c2410c")
+        expect(document.documentElement.style.getPropertyValue("--primary")).toBe("#c2410c")
         act(() => { vi.advanceTimersByTime(1000) })
         // the dropped change is not stored afterwards
         expect(prefs.setPrimaryColor).toHaveBeenCalledOnce()
     })
 
     it("disables the reset button while the color is the default", () => {
-        prefs.primaryColor = "#F97316"
+        prefs.primaryColor = "#C2410C"
         render(<AppearanceSettings />)
         expect(screen.getByRole("button", { name: "Ripristina il colore d'accento" })).toBeDisabled()
     })

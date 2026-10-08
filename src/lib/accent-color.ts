@@ -1,9 +1,9 @@
 /**
- * The accent color of a new install and of the reset: an orange (Tailwind orange-500) that carries the dark text of the
- * accent at about 6:1 (the light orange it replaces, #ffb375, was too pale to stand out on white).
- * Keep it in sync with `--primary` in index.css.
+ * The accent color of a new install and of the reset: a deep orange (Tailwind orange-700) that carries white text at
+ * about 5.2:1, so the buttons read white on both themes (the brighter orange-500 it replaces needed dark text).
+ * Keep it in sync with `--primary` and `--primary-foreground` in index.css.
  */
-export const DEFAULT_PRIMARY_COLOR = "#f97316"
+export const DEFAULT_PRIMARY_COLOR = "#c2410c"
 
 /** Text colors on the accent: the dark one is the `--primary-foreground` of the dark theme, the other is white. */
 const DARK_TEXT = "oklch(0.215 0 0)"
@@ -27,7 +27,7 @@ const contrast = (a: number, b: number) => (Math.max(a, b) + 0.05) / (Math.min(a
 
 /**
  * The color of the text and icons on the accent color: dark or white, whichever reads better on it.
- * (The accent is chosen by the user: white on the default light orange gives 1.8:1, dark gives 10:1.)
+ * (The accent is chosen by the user: on the default deep orange white gives 5.2:1, on a bright orange like #f97316 dark text wins.)
  * @param hex The accent color, "#rgb" or "#rrggbb".
  * @returns A CSS color; the dark one when `hex` is not a valid color.
  * @category Theme

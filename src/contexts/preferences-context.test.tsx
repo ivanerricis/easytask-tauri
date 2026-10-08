@@ -97,7 +97,7 @@ describe("PreferencesContext", () => {
 
     it("has defaults before the store answers", async () => {
         const { result } = renderHook(() => usePreferences(), { wrapper })
-        expect(result.current.primaryColor).toBe("#f97316")
+        expect(result.current.primaryColor).toBe("#c2410c")
         expect(result.current.showProgressBar).toBe(true)
         expect(result.current.showGroupProgressBar).toBe(true)
         expect(result.current.workspaceView).toBe("grid")
