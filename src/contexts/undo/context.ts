@@ -1,6 +1,6 @@
 import { createContext } from "react"
 import type { UndoRecorder } from "./commands"
-import type { UndoEntries, UndoSnapshot } from "./stack"
+import type { UndoCommand, UndoEntries, UndoSnapshot } from "./stack"
 
 export type UndoContextType = UndoSnapshot & {
     /** Labels of the undoable (most recent first) and redoable (next to redo first) actions. Stable identity until they change. */
@@ -13,6 +13,8 @@ export type UndoContextType = UndoSnapshot & {
     undo: () => Promise<void>
     /** Redoes the last undone action. Never rejects. */
     redo: () => Promise<void>
+    /** True when the command is still the last recorded action (nothing was done or undone after it). Stable identity. */
+    isLatest: (command: UndoCommand) => boolean
     /** Empties the history (undo and redo). Used after a purge: the ids of purged rows can be reused by new ones. Stable identity. */
     clear: () => void
     /** Records the actions as they are done by the user. Stable: it never changes identity. */

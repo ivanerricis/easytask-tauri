@@ -20,7 +20,7 @@ const withUndo = (ui: ReactNode) => (
     <UndoContext.Provider value={{
         canUndo: false, canRedo: false, undoLabel: null, redoLabel: null,
         entries: { undo: [], redo: [] }, undoTo: vi.fn(), redoTo: vi.fn(),
-        undo, redo: vi.fn(), clear: vi.fn(), recorder: recorder as never,
+        undo, redo: vi.fn(), isLatest: vi.fn(), clear: vi.fn(), recorder: recorder as never,
     }}>
         {ui}
     </UndoContext.Provider>

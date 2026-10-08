@@ -42,6 +42,8 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
     const undoContext = useOptionalUndo()
     const undoRef = useRef(undoContext?.undo)
     useEffect(() => { undoRef.current = undoContext?.undo }, [undoContext?.undo])
+    const isLatestRef = useRef(undoContext?.isLatest)
+    useEffect(() => { isLatestRef.current = undoContext?.isLatest }, [undoContext?.isLatest])
 
     /** Gives the tasks of a note what an automation changed on them, as it is in `source`, on the latest data of the note. */
     const restore = useCallback(async (noteId: number, source: NoteDataTree, changes: TaskChange[]) => {
@@ -87,9 +89,14 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         }
         recorder.record(command)
         const undo = undoRef.current
+        // The global undo reverts the newest entry: only offer it while the automation is still that one
+        const undoAutomation = () => {
+            if (isLatestRef.current?.(command)) void undo?.()
+            else toast.info(i18n.t("automations.undoUnavailable"))
+        }
         toast.success(
             names.length === 1 ? i18n.t("automations.ran", { name: names[0] }) : i18n.t("automations.ranMany", { names: names.join(", ") }),
-            undo ? { action: { label: i18n.t("undo.undo"), onClick: () => { void undo() } } } : undefined,
+            undo ? { action: { label: i18n.t("undo.undo"), onClick: undoAutomation } } : undefined,
         )
     }, [getNoteTree, setNoteDataTree, refreshActiveNote, recorder, restore])
 

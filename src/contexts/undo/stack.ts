@@ -188,6 +188,8 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
             redoStack = []
             emit()
         },
+        /** True when `command` is the next one an undo would apply (identity check on the top of the undo stack). */
+        isLatest: (command: UndoCommand) => undoStack.at(-1) === command,
         getSnapshot: () => snapshot,
         getEntries: () => entries,
         subscribe: (listener: () => void) => {

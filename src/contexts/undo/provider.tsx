@@ -7,7 +7,7 @@ import { useWorkspaceActions } from "../workspace-data"
 import { createUndoCommands, createUndoRecorder } from "./commands"
 import { UndoContext, type UndoContextType } from "./context"
 import { runHistory, runHistoryTo } from "./run-history"
-import { UNDO_LIMIT, createUndoHistory } from "./stack"
+import { UNDO_LIMIT, createUndoHistory, type UndoCommand } from "./stack"
 
 /**
  * Keeps the undo/redo history of the open workspace (it is emptied when the workspace changes) and binds the
@@ -44,6 +44,7 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
         history.track,
     ), [history, workspaceActions, noteActions])
 
+    const isLatest = useCallback((command: UndoCommand) => history.isLatest(command), [history])
     const clear = useCallback(() => history.clear(), [history])
     const undo = useCallback(() => runHistory(history, "undo"), [history])
     const redo = useCallback(() => runHistory(history, "redo"), [history])
@@ -58,8 +59,8 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
     const entries = useSyncExternalStore(history.subscribe, history.getEntries)
 
     const value = useMemo<UndoContextType>(
-        () => ({ ...snapshot, entries, undo, redo, undoTo, redoTo, clear, recorder }),
-        [snapshot, entries, clear, undo, redo, undoTo, redoTo, recorder],
+        () => ({ ...snapshot, entries, undo, redo, undoTo, redoTo, isLatest, clear, recorder }),
+        [snapshot, entries, isLatest, clear, undo, redo, undoTo, redoTo, recorder],
     )
 
     return <UndoContext.Provider value={value}>{children}</UndoContext.Provider>

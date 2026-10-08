@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
 import { useCallback, useEffect, useId, useMemo, useState } from "react"
-import { Check, Loader2, Pencil, Plus, Trash2, X, Zap } from "lucide-react"
+import { Check, Loader2, Pencil, Plus, Trash2, TriangleAlert, X, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -74,9 +74,11 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
     const [groups, setGroups] = useState<GroupOption[]>([])
     const [loaded, setLoaded] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    // The rule being edited (id null = a new one), null while the list is shown
-    const [editing, setEditing] = useState<{ id: number | null, draft: AutomationDraft } | null>(null)
+    // The rule being edited (id null = a new one), null while the list is shown; `initial` is the draft as the editor opened
+    const [editing, setEditing] = useState<{ id: number | null, draft: AutomationDraft, initial: string } | null>(null)
     const [deleting, setDeleting] = useState<Automation | null>(null)
+    // Closing or cancelling an edited draft asks first: which of the two is waiting for the answer
+    const [discarding, setDiscarding] = useState<"close" | "cancel" | null>(null)
     const { saving, run } = useSubmitOnce()
 
     const sections = useMemo(() => groups.flatMap(group => group.sections), [groups])
@@ -97,10 +99,15 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
         return () => setLoaded(false)
     }, [isOpen, noteId, apply, fail])
 
+    const openEditor = (id: number | null, draft: AutomationDraft) => {
+        setError(null)
+        setEditing({ id, draft, initial: JSON.stringify(draft) })
+    }
+    const dirty = editing !== null && JSON.stringify(editing.draft) !== editing.initial
+
     const startNew = () => {
         const trigger: AutomationTrigger = { type: "task.completed", sectionId: sectionId ?? null }
-        setError(null)
-        setEditing({ id: null, draft: { name: null, enabled: true, trigger, actions: [defaultAction("moveTo", sections, trigger.sectionId)] } })
+        openEditor(null, { name: null, enabled: true, trigger, actions: [defaultAction("moveTo", sections, trigger.sectionId)] })
     }
 
     const save = () => run(async () => {
@@ -139,6 +146,10 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
     }
 
     const handleOpenChange = (open: boolean) => {
+        if (!open && dirty) {
+            setDiscarding("close")
+            return
+        }
         if (!open) {
             setEditing(null)
             setError(null)
@@ -146,10 +157,22 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
         onOpenChange(open)
     }
 
+    const cancelEditing = () => {
+        if (dirty) setDiscarding("cancel")
+        else { setEditing(null); setError(null) }
+    }
+
+    const discard = () => {
+        const wasClosing = discarding === "close"
+        setEditing(null)
+        setError(null)
+        if (wasClosing) onOpenChange(false)
+    }
+
     return (
         <>
             <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent className="sm:max-w-xl">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Zap className="size-4" />
@@ -159,7 +182,9 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                     </DialogHeader>
 
                     {!loaded ? (
-                        <div className="flex justify-center py-6"><Loader2 className="size-5 animate-spin" /></div>
+                        <div role="status" className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
+                            <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
+                        </div>
                     ) : editing ? (
                         <AutomationEditor
                             draft={editing.draft}
@@ -168,9 +193,9 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                             onChange={draft => { setError(null); setEditing({ ...editing, draft }) }}
                         />
                     ) : sections.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-4">{t("automations.noSections")}</p>
+                        <p className="py-6 text-center text-muted-foreground text-sm">{t("automations.noSections")}</p>
                     ) : rules.length === 0 ? (
-                        <p className="text-sm text-muted-foreground py-4">{t("automations.empty")}</p>
+                        <p className="py-6 text-center text-muted-foreground text-sm">{t("automations.empty")}</p>
                     ) : (
                         <ul className="flex flex-col divide-y border rounded-xs max-h-[50vh] overflow-y-auto">
                             {rules.map(rule => {
@@ -180,23 +205,28 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                                         <Switch
                                             checked={rule.enabled}
                                             onCheckedChange={checked => void toggle(rule, checked)}
-                                            aria-label={t("automations.enabled")}
+                                            aria-label={t("automations.enabledAria", { name: automationName(rule, titleOf) })}
                                         />
                                         <div className="flex flex-col min-w-0 flex-1">
                                             {rule.name && <span className="text-sm font-medium truncate">{rule.name}</span>}
-                                            <span className={rule.name ? "text-xs text-muted-foreground" : "text-sm"}>
+                                            <span className={cn("break-words", rule.name ? "text-xs text-muted-foreground" : "text-sm")}>
                                                 {describeAutomation(rule, titleOf)}
                                             </span>
-                                            {paused && <span className="text-xs text-destructive">{t("automations.paused")}</span>}
+                                            {paused && (
+                                                <span className="flex items-start gap-1 text-xs text-destructive break-words">
+                                                    <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
+                                                    {t("automations.paused")}
+                                                </span>
+                                            )}
                                         </div>
                                         <TooltipCustom text={t("automations.edit")}>
-                                            <Button variant="ghost" size="icon" aria-label={t("automations.edit")}
-                                                onClick={() => { setError(null); setEditing({ id: rule.id, draft: { name: rule.name, enabled: rule.enabled, trigger: rule.trigger, actions: rule.actions } }) }}>
+                                            <Button variant="ghost" size="icon" aria-label={t("automations.editAria", { name: automationName(rule, titleOf) })}
+                                                onClick={() => openEditor(rule.id, { name: rule.name, enabled: rule.enabled, trigger: rule.trigger, actions: rule.actions })}>
                                                 <Pencil />
                                             </Button>
                                         </TooltipCustom>
                                         <TooltipCustom text={t("automations.delete")}>
-                                            <Button variant="ghost" size="icon" aria-label={t("automations.delete")} className="text-destructive hover:text-destructive"
+                                            <Button variant="ghost" size="icon" aria-label={t("automations.deleteAria", { name: automationName(rule, titleOf) })} className="text-destructive hover:text-destructive"
                                                 onClick={() => setDeleting(rule)}>
                                                 <Trash2 />
                                             </Button>
@@ -207,15 +237,15 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                         </ul>
                     )}
 
-                    {error && <p className="text-sm text-destructive">{error}</p>}
+                    {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
 
                     <DialogFooter>
                         {editing ? (
                             <>
-                                <Button variant="outline" type="button" onClick={() => { setEditing(null); setError(null) }}>
+                                <Button variant="outline" type="button" onClick={cancelEditing}>
                                     {t("common.cancel")}
                                 </Button>
-                                <Button type="button" onClick={() => void save()} disabled={saving}>
+                                <Button type="button" onClick={() => void save()} disabled={saving || editing.draft.actions.length === 0}>
                                     {saving ? <Loader2 className="animate-spin" /> : <Check />}
                                     {t("common.save")}
                                 </Button>
@@ -229,6 +259,14 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+            <ConfirmDialog
+                open={discarding !== null}
+                onOpenChange={open => { if (!open) setDiscarding(null) }}
+                title={t("automations.discardConfirm.title")}
+                description={t("automations.discardConfirm.description")}
+                destructive
+                confirm={{ label: t("automations.discardConfirm.confirm"), icon: Trash2, onClick: discard }}
+            />
             <ConfirmDialog
                 open={deleting !== null}
                 onOpenChange={open => { if (!open) setDeleting(null) }}
@@ -291,8 +329,14 @@ function ChoiceSelect<T extends string>({ value, options, onChange, label, class
 }
 
 const ColorDot = ({ color }: { color: string | null }) => (
-    <span aria-hidden className="size-3.5 shrink-0 rounded-full border" style={color ? { backgroundColor: color } : undefined} />
+    <span aria-hidden className="size-3.5 shrink-0 rounded-full ring-1 ring-inset ring-foreground/20" style={color ? { backgroundColor: color } : undefined} />
 )
+
+/** The translated name of a color: the palette ones have their own, any other is "custom color". */
+function colorName(color: string): string {
+    const index = (PALETTE_COLORS as readonly string[]).indexOf(color.toLowerCase())
+    return i18n.t(index >= 0 ? (`automations.colors.c${index + 1}` as "automations.colors.c1") : "automations.colors.custom")
+}
 
 const AutomationEditor = ({ draft, groups, sections, onChange }: AutomationEditorProps) => {
     const { t } = useTranslation()
@@ -306,12 +350,12 @@ const AutomationEditor = ({ draft, groups, sections, onChange }: AutomationEdito
         <div className="flex flex-col gap-4">
             <div className="grid gap-2">
                 <Label htmlFor={nameId}>{t("automations.name")}</Label>
-                <Input id={nameId} value={draft.name ?? ""} placeholder={t("automations.namePlaceholder")}
+                <Input id={nameId} value={draft.name ?? ""}
                     onChange={e => onChange({ ...draft, name: e.target.value || null })} />
             </div>
 
             <fieldset className="grid gap-2">
-                <legend className="text-sm font-medium mb-2">{t("automations.when")}</legend>
+                <legend className="text-sm font-medium">{t("automations.when")}</legend>
                 <div className="grid gap-2 sm:grid-cols-2">
                     <ChoiceSelect label={t("automations.when")} value={trigger.type}
                         options={TRIGGER_TYPES.map(type => ({ value: type, label: triggerLabel(type) }))}
@@ -328,15 +372,15 @@ const AutomationEditor = ({ draft, groups, sections, onChange }: AutomationEdito
             </fieldset>
 
             <fieldset className="grid gap-2">
-                <legend className="text-sm font-medium mb-2">{t("automations.then")}</legend>
+                <legend className="text-sm font-medium">{t("automations.then")}</legend>
                 {actions.map((action, index) => (
-                    <div key={index} className="flex items-center gap-2">
-                        <ChoiceSelect label={t("automations.then")} className="w-48 shrink-0" value={action.type}
+                    <div key={index} className="grid gap-2 sm:grid-cols-[12rem_1fr_auto] items-center">
+                        <ChoiceSelect label={t("automations.actionType")} value={action.type}
                             options={ACTION_TYPES.map(type => ({ value: type, label: actionLabel(type) }))}
                             onChange={type => setAction(index, defaultAction(type, sections, trigger.sectionId))} />
                         <ActionParams action={action} groups={groups} sections={sections} onChange={next => setAction(index, next)} />
                         <TooltipCustom text={t("automations.removeAction")}>
-                            <Button variant="ghost" size="icon" aria-label={t("automations.removeAction")} className="shrink-0"
+                            <Button variant="ghost" size="icon" aria-label={t("automations.removeAction")} className="shrink-0 justify-self-end"
                                 onClick={() => onChange({ ...draft, actions: actions.filter((_, i) => i !== index) })}>
                                 <X />
                             </Button>
@@ -361,23 +405,23 @@ const ActionParams = ({ action, groups, sections, onChange }: {
     switch (action.type) {
         case "moveTo":
             return (
-                <div className="flex flex-1 gap-2 min-w-0">
-                    <SectionSelect label={label} className="flex-1 min-w-0" value={action.sectionId} groups={groups} sections={sections}
+                <div className="flex flex-wrap gap-2 min-w-0">
+                    <SectionSelect label={label} className="flex-1 min-w-40 basis-40" value={action.sectionId} groups={groups} sections={sections}
                         onChange={id => { if (id !== null) onChange({ ...action, sectionId: id }) }} />
-                    <ChoiceSelect label={label} className="w-32 shrink-0" value={action.at}
+                    <ChoiceSelect label={t("automations.position")} className="w-32 shrink-0" value={action.at}
                         options={[{ value: "top", label: t("automations.values.top") }, { value: "bottom", label: t("automations.values.bottom") }]}
                         onChange={at => onChange({ ...action, at })} />
                 </div>
             )
         case "setCompleted":
             return (
-                <ChoiceSelect label={label} className="flex-1" value={String(action.value)}
+                <ChoiceSelect label={label} className="w-full" value={String(action.value)}
                     options={[{ value: "true", label: t("automations.values.completed") }, { value: "false", label: t("automations.values.open") }]}
                     onChange={value => onChange({ ...action, value: value === "true" })} />
             )
         case "setPriority":
             return (
-                <ChoiceSelect label={label} className="flex-1" value={String(action.value)}
+                <ChoiceSelect label={label} className="w-full" value={String(action.value)}
                     options={[{ value: "true", label: t("automations.values.add") }, { value: "false", label: t("automations.values.remove") }]}
                     onChange={value => onChange({ ...action, value: value === "true" })} />
             )
@@ -387,15 +431,15 @@ const ActionParams = ({ action, groups, sections, onChange }: {
             if (action.color && !colors.includes(action.color)) colors.unshift(action.color)
             return (
                 <Select value={action.color ?? NO_COLOR} onValueChange={color => onChange({ ...action, color: color === NO_COLOR ? null : color })}>
-                    <SelectTrigger aria-label={label} className="flex-1"><SelectValue /></SelectTrigger>
+                    <SelectTrigger aria-label={label} className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
                         <SelectItem value={NO_COLOR}><ColorDot color={null} />{t("automations.values.noColor")}</SelectItem>
-                        {colors.map(color => <SelectItem key={color} value={color}><ColorDot color={color} />{color}</SelectItem>)}
+                        {colors.map(color => <SelectItem key={color} value={color}><ColorDot color={color} />{colorName(color)}</SelectItem>)}
                     </SelectContent>
                 </Select>
             )
         }
         case "completeSubtasks":
-            return <div className="flex-1" />
+            return <div />
     }
 }
