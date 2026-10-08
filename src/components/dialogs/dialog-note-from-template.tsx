@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { NativeSelect } from "@/components/native-select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useWorkspaceActions, useWorkspaceState } from "@/contexts/workspace-data"
 import { useTabsActions } from "@/contexts/use-tabs"
 import { getFolderDestinations } from "@/pages/workspacePage/components/sidebar/tree-dnd"
@@ -71,20 +71,25 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
                 }}
             />
             <Label htmlFor="note-from-template-destination">{t("dialogs.noteFromTemplate.destination")}</Label>
-            <NativeSelect
-                id="note-from-template-destination"
+            <Select
                 value={destination}
-                onChange={e => {
+                onValueChange={value => {
                     setError(null)
-                    setDestination(e.target.value)
+                    setDestination(value)
                 }}
             >
-                {destinations.map(item => (
-                    <option key={item.id ?? ROOT_VALUE} value={item.id ?? ROOT_VALUE}>
-                        {item.id === null ? t("dialogs.noteFromTemplate.root") : `${"  ".repeat(item.depth)}${item.name}`}
-                    </option>
-                ))}
-            </NativeSelect>
+                <SelectTrigger id="note-from-template-destination" className="w-full">
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                    {destinations.map(item => (
+                        // Subfolders are indented in the list only (the trigger shows the plain name)
+                        <SelectItem key={item.id ?? ROOT_VALUE} value={String(item.id ?? ROOT_VALUE)} style={{ paddingLeft: `${0.5 + item.depth * 0.75}rem` }}>
+                            {item.id === null ? t("dialogs.noteFromTemplate.root") : item.name}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
             {error && <p className="text-xs text-destructive">{error}</p>}
             <DialogFooter className="mt-4">
                 <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>

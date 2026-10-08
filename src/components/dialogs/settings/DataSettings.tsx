@@ -6,7 +6,7 @@ import { Download, FolderOpen, Upload } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { usePreferences } from "@/contexts/use-preferences"
-import { NativeSelect } from "@/components/native-select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UNDO_LIMIT_OPTIONS } from "@/lib/store/preferences"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
 import { getErrorMessage } from "@/lib/utils"
@@ -79,16 +79,16 @@ export const DataSettings = () => {
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.data.sections.history")}>
                 <SettingsRow label={t("settings.data.undoLimit.label")} description={t("settings.data.undoLimit.description")}>
-                    <NativeSelect
-                        aria-label={t("settings.data.undoLimit.label")}
-                        className="w-24"
-                        value={undoLimit}
-                        onChange={e => setUndoLimit(Number(e.target.value))}
-                    >
-                        {/* A limit outside the options (not reachable from the UI) is still shown */}
-                        {!(UNDO_LIMIT_OPTIONS as readonly number[]).includes(undoLimit) && <option value={undoLimit}>{undoLimit}</option>}
-                        {UNDO_LIMIT_OPTIONS.map(value => <option key={value} value={value}>{value}</option>)}
-                    </NativeSelect>
+                    <Select value={String(undoLimit)} onValueChange={value => setUndoLimit(Number(value))}>
+                        <SelectTrigger aria-label={t("settings.data.undoLimit.label")} className="w-24">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {/* A limit outside the options (not reachable from the UI) is still shown */}
+                            {!(UNDO_LIMIT_OPTIONS as readonly number[]).includes(undoLimit) && <SelectItem value={String(undoLimit)}>{undoLimit}</SelectItem>}
+                            {UNDO_LIMIT_OPTIONS.map(value => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
                 </SettingsRow>
             </SettingsSubsection>
             {/* Further subsections are appended here as <SettingsSubsection> */}

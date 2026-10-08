@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
-import { NativeSelect } from "@/components/native-select"
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { ConfirmDialog } from "./dialog-confirm"
 import { getDBNoteData } from "@/db/queries/note"
@@ -20,7 +20,7 @@ import {
     type Automation, type AutomationAction, type AutomationActionType, type AutomationDraft, type AutomationTrigger, type AutomationTriggerType,
 } from "@/lib/automations/types"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
-import { getErrorMessage } from "@/lib/utils"
+import { cn, getErrorMessage } from "@/lib/utils"
 
 type SectionOption = { id: number, title: string }
 type GroupOption = { id: number, label: string, sections: SectionOption[] }
@@ -248,31 +248,51 @@ type AutomationEditorProps = {
     onChange: (draft: AutomationDraft) => void
 }
 
-/** The options of a section select, grouped by group. */
-const SectionOptions = ({ groups }: { groups: GroupOption[] }) => (
-    <>
-        {groups.filter(group => group.sections.length > 0).map(group => (
-            <optgroup key={group.id} label={group.label}>
-                {group.sections.map(section => <option key={section.id} value={section.id}>{section.title}</option>)}
-            </optgroup>
-        ))}
-    </>
-)
+// Radix Select items cannot have an empty value: these stand for "any section" and "no color"
+const ANY = "any"
+const NO_COLOR = "none"
 
-/** A select whose value is a section id; a missing section is shown as such instead of silently picking another one. */
-const SectionSelect = ({ value, groups, sections, onChange, allowAny, label }: {
-    value: number | null, groups: GroupOption[], sections: SectionOption[], onChange: (id: number | null) => void, allowAny?: boolean, label: string,
+/** A select whose value is a section id (grouped by group); a missing section is shown as such instead of silently picking another one. */
+const SectionSelect = ({ value, groups, sections, onChange, allowAny, label, className }: {
+    value: number | null, groups: GroupOption[], sections: SectionOption[], onChange: (id: number | null) => void,
+    allowAny?: boolean, label: string, className?: string,
 }) => {
     const { t } = useTranslation()
     const missing = value !== null && !sections.some(section => section.id === value)
     return (
-        <NativeSelect aria-label={label} value={value ?? ""} onChange={e => onChange(e.target.value === "" ? null : Number(e.target.value))}>
-            {allowAny && <option value="">{t("automations.anySection")}</option>}
-            {missing && <option value={value}>{t("automations.describe.missingSection")}</option>}
-            <SectionOptions groups={groups} />
-        </NativeSelect>
+        <Select value={value === null ? ANY : String(value)} onValueChange={next => onChange(next === ANY ? null : Number(next))}>
+            <SelectTrigger aria-label={label} className={cn("w-full", className)}><SelectValue /></SelectTrigger>
+            <SelectContent>
+                {allowAny && <SelectItem value={ANY}>{t("automations.anySection")}</SelectItem>}
+                {missing && <SelectItem value={String(value)}>{t("automations.describe.missingSection")}</SelectItem>}
+                {groups.filter(group => group.sections.length > 0).map(group => (
+                    <SelectGroup key={group.id}>
+                        <SelectLabel>{group.label}</SelectLabel>
+                        {group.sections.map(section => <SelectItem key={section.id} value={String(section.id)}>{section.title}</SelectItem>)}
+                    </SelectGroup>
+                ))}
+            </SelectContent>
+        </Select>
     )
 }
+
+/** A select of fixed choices (label = translated text). */
+function ChoiceSelect<T extends string>({ value, options, onChange, label, className }: {
+    value: T, options: readonly { value: T, label: string }[], onChange: (value: T) => void, label: string, className?: string,
+}) {
+    return (
+        <Select value={value} onValueChange={next => onChange(next as T)}>
+            <SelectTrigger aria-label={label} className={cn("w-full", className)}><SelectValue /></SelectTrigger>
+            <SelectContent>
+                {options.map(option => <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>)}
+            </SelectContent>
+        </Select>
+    )
+}
+
+const ColorDot = ({ color }: { color: string | null }) => (
+    <span aria-hidden className="size-3.5 shrink-0 rounded-full border" style={color ? { backgroundColor: color } : undefined} />
+)
 
 const AutomationEditor = ({ draft, groups, sections, onChange }: AutomationEditorProps) => {
     const { t } = useTranslation()
@@ -293,10 +313,9 @@ const AutomationEditor = ({ draft, groups, sections, onChange }: AutomationEdito
             <fieldset className="grid gap-2">
                 <legend className="text-sm font-medium mb-2">{t("automations.when")}</legend>
                 <div className="grid gap-2 sm:grid-cols-2">
-                    <NativeSelect aria-label={t("automations.when")} value={trigger.type}
-                        onChange={e => onChange({ ...draft, trigger: defaultTrigger(e.target.value as AutomationTriggerType, trigger.sectionId, sections) })}>
-                        {TRIGGER_TYPES.map(type => <option key={type} value={type}>{triggerLabel(type)}</option>)}
-                    </NativeSelect>
+                    <ChoiceSelect label={t("automations.when")} value={trigger.type}
+                        options={TRIGGER_TYPES.map(type => ({ value: type, label: triggerLabel(type) }))}
+                        onChange={type => onChange({ ...draft, trigger: defaultTrigger(type, trigger.sectionId, sections) })} />
                     <SectionSelect
                         label={t("automations.where")}
                         value={trigger.sectionId}
@@ -312,10 +331,9 @@ const AutomationEditor = ({ draft, groups, sections, onChange }: AutomationEdito
                 <legend className="text-sm font-medium mb-2">{t("automations.then")}</legend>
                 {actions.map((action, index) => (
                     <div key={index} className="flex items-center gap-2">
-                        <NativeSelect aria-label={t("automations.then")} className="sm:w-56 shrink-0" value={action.type}
-                            onChange={e => setAction(index, defaultAction(e.target.value as AutomationActionType, sections, trigger.sectionId))}>
-                            {ACTION_TYPES.map(type => <option key={type} value={type}>{actionLabel(type)}</option>)}
-                        </NativeSelect>
+                        <ChoiceSelect label={t("automations.then")} className="w-48 shrink-0" value={action.type}
+                            options={ACTION_TYPES.map(type => ({ value: type, label: actionLabel(type) }))}
+                            onChange={type => setAction(index, defaultAction(type, sections, trigger.sectionId))} />
                         <ActionParams action={action} groups={groups} sections={sections} onChange={next => setAction(index, next)} />
                         <TooltipCustom text={t("automations.removeAction")}>
                             <Button variant="ghost" size="icon" aria-label={t("automations.removeAction")} className="shrink-0"
@@ -339,45 +357,44 @@ const ActionParams = ({ action, groups, sections, onChange }: {
     action: AutomationAction, groups: GroupOption[], sections: SectionOption[], onChange: (action: AutomationAction) => void,
 }) => {
     const { t } = useTranslation()
+    const label = actionLabel(action.type)
     switch (action.type) {
         case "moveTo":
             return (
                 <div className="flex flex-1 gap-2 min-w-0">
-                    <SectionSelect label={actionLabel("moveTo")} value={action.sectionId} groups={groups} sections={sections}
+                    <SectionSelect label={label} className="flex-1 min-w-0" value={action.sectionId} groups={groups} sections={sections}
                         onChange={id => { if (id !== null) onChange({ ...action, sectionId: id }) }} />
-                    <NativeSelect aria-label={actionLabel("moveTo")} className="w-36 shrink-0" value={action.at}
-                        onChange={e => onChange({ ...action, at: e.target.value as "top" | "bottom" })}>
-                        <option value="top">{t("automations.values.top")}</option>
-                        <option value="bottom">{t("automations.values.bottom")}</option>
-                    </NativeSelect>
+                    <ChoiceSelect label={label} className="w-32 shrink-0" value={action.at}
+                        options={[{ value: "top", label: t("automations.values.top") }, { value: "bottom", label: t("automations.values.bottom") }]}
+                        onChange={at => onChange({ ...action, at })} />
                 </div>
             )
         case "setCompleted":
             return (
-                <NativeSelect aria-label={actionLabel(action.type)} value={String(action.value)} onChange={e => onChange({ ...action, value: e.target.value === "true" })}>
-                    <option value="true">{t("automations.values.completed")}</option>
-                    <option value="false">{t("automations.values.open")}</option>
-                </NativeSelect>
+                <ChoiceSelect label={label} className="flex-1" value={String(action.value)}
+                    options={[{ value: "true", label: t("automations.values.completed") }, { value: "false", label: t("automations.values.open") }]}
+                    onChange={value => onChange({ ...action, value: value === "true" })} />
             )
         case "setPriority":
             return (
-                <NativeSelect aria-label={actionLabel(action.type)} value={String(action.value)} onChange={e => onChange({ ...action, value: e.target.value === "true" })}>
-                    <option value="true">{t("automations.values.add")}</option>
-                    <option value="false">{t("automations.values.remove")}</option>
-                </NativeSelect>
+                <ChoiceSelect label={label} className="flex-1" value={String(action.value)}
+                    options={[{ value: "true", label: t("automations.values.add") }, { value: "false", label: t("automations.values.remove") }]}
+                    onChange={value => onChange({ ...action, value: value === "true" })} />
             )
-        case "setColor":
+        case "setColor": {
+            // A color picked elsewhere (not in the palette) stays selectable
+            const colors: string[] = [...PALETTE_COLORS]
+            if (action.color && !colors.includes(action.color)) colors.unshift(action.color)
             return (
-                <div className="flex flex-1 items-center gap-2 min-w-0">
-                    <span aria-hidden className="size-5 shrink-0 rounded-xs border" style={{ backgroundColor: action.color ?? "transparent" }} />
-                    <NativeSelect aria-label={actionLabel(action.type)} value={action.color ?? ""} onChange={e => onChange({ ...action, color: e.target.value || null })}>
-                        <option value="">{t("automations.values.noColor")}</option>
-                        {/* A color picked elsewhere (not in the palette) stays selectable */}
-                        {action.color && !(PALETTE_COLORS as readonly string[]).includes(action.color) && <option value={action.color}>{action.color}</option>}
-                        {PALETTE_COLORS.map(color => <option key={color} value={color}>{color}</option>)}
-                    </NativeSelect>
-                </div>
+                <Select value={action.color ?? NO_COLOR} onValueChange={color => onChange({ ...action, color: color === NO_COLOR ? null : color })}>
+                    <SelectTrigger aria-label={label} className="flex-1"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value={NO_COLOR}><ColorDot color={null} />{t("automations.values.noColor")}</SelectItem>
+                        {colors.map(color => <SelectItem key={color} value={color}><ColorDot color={color} />{color}</SelectItem>)}
+                    </SelectContent>
+                </Select>
             )
+        }
         case "completeSubtasks":
             return <div className="flex-1" />
     }

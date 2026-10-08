@@ -18,6 +18,14 @@ vi.mock("@/lib/store/initStore", () => {
     }
 })
 
+// Radix Select uses pointer capture and scrollIntoView, which jsdom does not implement
+if (typeof Element !== "undefined") {
+    Element.prototype.hasPointerCapture ??= () => false
+    Element.prototype.setPointerCapture ??= () => {}
+    Element.prototype.releasePointerCapture ??= () => {}
+    Element.prototype.scrollIntoView ??= () => {}
+}
+
 // The UI tests assert Italian strings: the system language is Italian and i18n starts in Italian
 if (typeof window !== "undefined") vi.spyOn(window.navigator, "language", "get").mockReturnValue("it-IT")
 initI18n("it")

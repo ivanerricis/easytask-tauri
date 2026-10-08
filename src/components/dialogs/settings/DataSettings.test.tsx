@@ -49,10 +49,12 @@ describe("DataSettings OneDrive warning", () => {
 describe("DataSettings history", () => {
     it("offers the limits and saves the chosen one", async () => {
         renderSettings()
+        const user = userEvent.setup()
         const select = screen.getByRole("combobox", { name: "Azioni annullabili" })
-        expect(select).toHaveValue("50")
-        expect(Array.from((select as HTMLSelectElement).options).map(o => o.value)).toEqual(["25", "50", "100", "200", "500"])
-        await userEvent.selectOptions(select, "200")
+        expect(select).toHaveTextContent("50")
+        await user.click(select)
+        expect(screen.getAllByRole("option").map(o => o.textContent)).toEqual(["25", "50", "100", "200", "500"])
+        await user.click(screen.getByRole("option", { name: "200" }))
         expect(setUndoLimit).toHaveBeenCalledWith(200)
     })
 })

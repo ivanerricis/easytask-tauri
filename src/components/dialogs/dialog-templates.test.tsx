@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
@@ -121,8 +121,10 @@ describe("DialogTemplates", () => {
         await user.type(name, "Retro di settembre")
 
         const destination = screen.getByLabelText("Destinazione")
-        expect(within(destination).getAllByRole("option").map(o => o.textContent?.trim())).toEqual(["Radice del workspace", "Progetti", "Interni"])
-        await user.selectOptions(destination, "8")
+        expect(destination).toHaveTextContent("Radice del workspace")
+        await user.click(destination)
+        expect(screen.getAllByRole("option").map(o => o.textContent?.trim())).toEqual(["Radice del workspace", "Progetti", "Interni"])
+        await user.click(screen.getByRole("option", { name: "Interni" }))
         await user.click(screen.getByRole("button", { name: "Crea nota" }))
 
         await waitFor(() => expect(data.createNoteFromTemplate).toHaveBeenCalledWith(1, 4, 8, "Retro di settembre", null))

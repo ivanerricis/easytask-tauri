@@ -13,13 +13,15 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { NativeSelect } from "@/components/native-select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { OptionalColorField } from "@/components/optional-color-field"
 import { useTemplates } from "@/hooks/use-templates"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
+
+const NO_TEMPLATE = "none"
 
 type AddNoteDialogProps = {
     open: boolean
@@ -105,14 +107,16 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
                         {templates.length > 0 && (
                             <div className="grid gap-3">
                                 <Label htmlFor={templateFieldId}>{t("dialogs.addNote.fromTemplate")}</Label>
-                                <NativeSelect
-                                    id={templateFieldId}
-                                    value={template ? templateId : ""}
-                                    onChange={e => setTemplateId(e.target.value)}
-                                >
-                                    <option value="">{t("dialogs.addNote.noTemplate")}</option>
-                                    {templates.map(tpl => <option key={tpl.id} value={tpl.id}>{tpl.name}</option>)}
-                                </NativeSelect>
+                                {/* Radix Select items cannot have an empty value: NO_TEMPLATE stands for "no template" */}
+                                <Select value={template ? templateId : NO_TEMPLATE} onValueChange={value => setTemplateId(value === NO_TEMPLATE ? "" : value)}>
+                                    <SelectTrigger id={templateFieldId} className="w-full">
+                                        <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value={NO_TEMPLATE}>{t("dialogs.addNote.noTemplate")}</SelectItem>
+                                        {templates.map(tpl => <SelectItem key={tpl.id} value={String(tpl.id)}>{tpl.name}</SelectItem>)}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         )}
                         {error && (<p className="text-xs text-destructive">{error}</p>)}
