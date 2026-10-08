@@ -30,7 +30,8 @@ export const Section = memo(({ section }: SectionProps) => {
             ref={setRef}
             data-section-card
             className={cn(
-                "relative min-w-[250px] border bg-accent rounded-xs flex flex-col p-1",
+                // Readable column: long task texts wrap inside the section instead of widening the whole group to the window
+                "relative min-w-[250px] max-w-[32rem] border bg-accent rounded-xs flex flex-col p-1",
                 isDragging && "opacity-40",
                 !draggingSection && zone && "ring-2 ring-primary",
             )}
