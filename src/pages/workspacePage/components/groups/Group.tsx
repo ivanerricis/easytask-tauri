@@ -54,8 +54,9 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
             ref={setRef}
             style={isOpen ? undefined : { minWidth: openWidths.get(group.id) }}
             className={cn(
-                // Same minimum width as a section: an empty group would otherwise shrink to "Nuova sezione" and clip its header
-                "relative flex flex-col gap-1 h-full min-w-[250px] rounded-xs",
+                // Same minimum width as a section: an empty group would otherwise shrink to "Nuova sezione" and clip its header.
+                // Readable column: at most 32rem, so long task texts and audio names wrap or truncate instead of widening it
+                "relative flex flex-col gap-1 h-full min-w-[250px] max-w-[32rem] rounded-xs",
                 isDragging && "opacity-40",
                 !draggingGroup && zone && "ring-2 ring-primary",
             )}
