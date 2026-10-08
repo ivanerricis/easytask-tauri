@@ -42,21 +42,21 @@ describe("NoteHeader hide completed toggle", () => {
     it("shows a single toggle, on the active tab, reflecting the preference with aria-pressed", async () => {
         const { unmount } = setup()
         await act(async () => { })
-        const button = screen.getByRole("button", { name: "Nascondi i task completati" })
+        const button = screen.getByRole("button", { name: "Nascondi task completati" })
         expect(button).toHaveAttribute("aria-pressed", "false")
-        expect(screen.getAllByRole("button", { name: "Nascondi i task completati" })).toHaveLength(1)
+        expect(screen.getAllByRole("button", { name: "Nascondi task completati" })).toHaveLength(1)
         unmount()
 
         prefs.hideCompletedTasks = true
         setup()
         await act(async () => { })
-        expect(screen.getByRole("button", { name: "Nascondi i task completati" })).toHaveAttribute("aria-pressed", "true")
+        expect(screen.getByRole("button", { name: "Nascondi task completati" })).toHaveAttribute("aria-pressed", "true")
     })
 
     it("toggles the preference on click without activating another tab", async () => {
         setup()
         await act(async () => { })
-        await userEvent.click(screen.getByRole("button", { name: "Nascondi i task completati" }))
+        await userEvent.click(screen.getByRole("button", { name: "Nascondi task completati" }))
         expect(prefs.setHideCompletedTasks).toHaveBeenCalledTimes(1)
         expect(prefs.setHideCompletedTasks).toHaveBeenCalledWith(true)
     })

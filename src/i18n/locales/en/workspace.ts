@@ -1,10 +1,10 @@
 import type { Translation } from "../it"
 
 export const home: Translation["home"] = {
-    loading: "Loading Workspaces…",
+    loading: "Loading workspaces…",
     welcome: "Welcome back!",
-    import: "Import a Workspace",
-    recent: "Open a recent Workspace:",
+    import: "Import a workspace",
+    recent: "Open a recent workspace",
     viewGrid: "View as grid",
     viewList: "View as list",
     sort: {
@@ -20,27 +20,27 @@ export const home: Translation["home"] = {
         dateDesc: "Newest first",
     },
     createWorkspace: {
-        title: "Create Workspace",
+        title: "Create workspace",
         name: "Name",
-        open: "Create a new Workspace",
+        open: "New workspace",
     },
     workspace: {
         open: "Open the workspace {{name}}",
-        createdOn: "Created on: {{date}} - {{time}}",
-        editedOn: "Edited on: {{date}} - {{time}}",
+        createdOn: "Created on {{date}} at {{time}}",
+        editedOn: "Modified on {{date}} at {{time}}",
     },
-    noWorkspaces: "No workspace found",
+    noWorkspaces: "No workspace found.",
     noWorkspacesHint: "Create your first workspace to get started.",
 }
 
 export const workspace: Translation["workspace"] = {
-    loading: "Loading Workspace data…",
+    loading: "Loading workspace data…",
     combobox: {
-        select: "Select Workspace…",
-        search: "Search a Workspace…",
-        empty: "No Workspace found.",
+        select: "Select workspace…",
+        search: "Search a workspace…",
+        empty: "No workspace found.",
     },
-    backHome: "Back to Home",
+    backHome: "Back to home",
 }
 
 export const notes: Translation["notes"] = {
@@ -75,17 +75,17 @@ export const groups: Translation["groups"] = {
     collapse: "Collapse group",
     expand: "Expand group",
     nameLabel: "Group name",
-    renameError: "Could not change the group name - {{message}}",
-    namePlaceholder: "Group name (optional)…",
+    renameError: "Could not change the group name: {{message}}",
+    namePlaceholder: "Group name…",
     progress: "Group progress",
     audioCount_one: "{{count}} audio file",
     audioCount_other: "{{count}} audio files",
 }
 
 export const sidebar: Translation["sidebar"] = {
-    addFolder: "Create a folder",
-    addNote: "Create a note",
-    addNoteFromTemplate: "Create a note from a template",
+    addFolder: "New folder",
+    addNote: "New note",
+    addNoteFromTemplate: "New note from template",
     importItems: "Import a note or folder",
     trashBadge_one: "{{count}} item in the trash",
     trashBadge_other: "{{count}} items in the trash",
@@ -99,7 +99,7 @@ export const sidebar: Translation["sidebar"] = {
         placeholder: "Write something to describe the task…",
     },
     toggle: "Show or hide the sidebar",
-    emptyTree: "No folders or files",
+    emptyTree: "No folders or notes",
     emptyTreeHint: "Create a note or a folder to get started.",
     treeLabel: "Folders and notes",
 }
@@ -113,7 +113,7 @@ export const sections: Translation["sections"] = {
     new: "New section",
     titlePlaceholder: "Section title…",
     titleLabel: "Section title",
-    renameError: "Could not change the section title - {{message}}",
+    renameError: "Could not change the section title: {{message}}",
     collapse: "Collapse section",
     expand: "Expand section",
     progress: "Section progress",

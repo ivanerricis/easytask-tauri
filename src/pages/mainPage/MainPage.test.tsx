@@ -58,14 +58,14 @@ describe("MainPage", () => {
         startup.pending = true
         ctx.workspaces = [makeWorkspace({ name: "Alpha" })]
         render(<MainPage />)
-        expect(screen.getByText("Caricamento dei Workspace…")).toBeInTheDocument()
+        expect(screen.getByText("Caricamento dei workspace…")).toBeInTheDocument()
         expect(screen.queryByText("Bentornato!")).not.toBeInTheDocument()
         expect(screen.queryByText("Alpha")).not.toBeInTheDocument()
     })
 
     it("offers the import button next to the create dialog", async () => {
         await renderLoaded()
-        expect(screen.getByRole("button", { name: "Importa un Workspace" })).toBeEnabled()
+        expect(screen.getByRole("button", { name: "Importa un workspace" })).toBeEnabled()
     })
 
     it("requests the workspaces on mount", () => {
@@ -76,7 +76,7 @@ describe("MainPage", () => {
     it("shows the loading page during the initial load", () => {
         ctx.isLoading = true
         render(<MainPage />)
-        expect(screen.getByText("Caricamento dei Workspace…")).toBeInTheDocument()
+        expect(screen.getByText("Caricamento dei workspace…")).toBeInTheDocument()
         expect(screen.queryByText("Bentornato!")).not.toBeInTheDocument()
     })
 
@@ -85,7 +85,7 @@ describe("MainPage", () => {
         ctx.workspaces = [makeWorkspace({ name: "Alpha" })]
         await renderLoaded()
         expect(screen.getByText("Alpha")).toBeInTheDocument()
-        expect(screen.queryByText("Caricamento dei Workspace…")).not.toBeInTheDocument()
+        expect(screen.queryByText("Caricamento dei workspace…")).not.toBeInTheDocument()
     })
 
     it("does not replace the page with the loading page when an operation runs on an empty list", async () => {
@@ -95,7 +95,7 @@ describe("MainPage", () => {
         // e.g. restoring a workspace from the trash: the page (and the open trash dialog) must stay mounted
         rerender(<MainPage />)
         expect(screen.getByText("trash-button")).toBeInTheDocument()
-        expect(screen.queryByText("Caricamento dei Workspace…")).not.toBeInTheDocument()
+        expect(screen.queryByText("Caricamento dei workspace…")).not.toBeInTheDocument()
     })
 
     it("offers the trash button next to the view toggle", async () => {

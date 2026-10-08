@@ -108,8 +108,8 @@ export const trash: Translation["trash"] = {
     purgeTitle: "Delete permanently?",
     emptyDescription: "All the items in the trash will be deleted forever. This action cannot be undone.",
     purgeDescription: "The item will be deleted forever. This action cannot be undone.",
-    confirmEmpty: "Confirm emptying",
-    confirmPurge: "Confirm deletion",
+    confirmEmpty: "Empty trash",
+    confirmPurge: "Delete permanently",
     summary: {
         empty: "Empty",
         folders_one: "{{count}} folder",

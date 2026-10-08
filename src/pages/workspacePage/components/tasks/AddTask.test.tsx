@@ -17,7 +17,7 @@ vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }
 
 const open = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.click(screen.getByRole("button"))
-    return screen.getByPlaceholderText("Scrivi qualcosa…")
+    return screen.getByPlaceholderText("Nuovo task…")
 }
 
 describe("AddTask", () => {
@@ -30,10 +30,10 @@ describe("AddTask", () => {
     it("starts collapsed and opens the input on click", async () => {
         const user = userEvent.setup()
         render(<AddTask sectionId={3} />)
-        expect(screen.queryByPlaceholderText("Scrivi qualcosa…")).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
 
         await open(user)
-        expect(screen.getByPlaceholderText("Scrivi qualcosa…")).toHaveFocus()
+        expect(screen.getByPlaceholderText("Nuovo task…")).toHaveFocus()
     })
 
     it("creates the trimmed task, appends it to the note without reloading and collapses", async () => {
@@ -45,7 +45,7 @@ describe("AddTask", () => {
 
         await waitFor(() => expect(ctx.appendTask).toHaveBeenCalledWith(50, { sectionId: 3 }, "Buy milk"))
         expect(ctx.createTask).toHaveBeenCalledWith(3, "Buy milk")
-        expect(screen.queryByPlaceholderText("Scrivi qualcosa…")).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
     })
 
     it("does not create a task for an empty or blank name", async () => {
@@ -67,7 +67,7 @@ describe("AddTask", () => {
         await user.type(await open(user), "Task{Enter}")
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("duplicate"))
-        expect(screen.getByPlaceholderText("Scrivi qualcosa…")).toBeInTheDocument()
+        expect(screen.getByPlaceholderText("Nuovo task…")).toBeInTheDocument()
         expect(ctx.appendTask).not.toHaveBeenCalled()
     })
 
@@ -91,7 +91,7 @@ describe("AddTask", () => {
         await user.type(await open(user), "draft")
 
         fireEvent.mouseDown(document.body)
-        expect(screen.queryByPlaceholderText("Scrivi qualcosa…")).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
 
         // Reopening shows an empty input
         expect(await open(user)).toHaveValue("")
@@ -104,7 +104,7 @@ describe("AddTask", () => {
         const close = screen.getAllByRole("button").find(b => b.getAttribute("type") === "button")!
         await user.click(close)
 
-        expect(screen.queryByPlaceholderText("Scrivi qualcosa…")).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
         expect(ctx.createTask).not.toHaveBeenCalled()
     })
 
@@ -112,12 +112,12 @@ describe("AddTask", () => {
         const user = userEvent.setup()
         render(<AddTask sectionId={3} />)
         await open(user)
-        await user.type(screen.getByPlaceholderText("Scrivi qualcosa…"), "bozza{Escape}")
+        await user.type(screen.getByPlaceholderText("Nuovo task…"), "bozza{Escape}")
 
-        expect(screen.queryByPlaceholderText("Scrivi qualcosa…")).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
         expect(ctx.createTask).not.toHaveBeenCalled()
         await open(user)
-        expect(screen.getByPlaceholderText("Scrivi qualcosa…")).toHaveValue("")
+        expect(screen.getByPlaceholderText("Nuovo task…")).toHaveValue("")
     })
 
     describe("subtask mode", () => {

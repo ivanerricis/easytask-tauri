@@ -433,7 +433,7 @@ describe("UI tour", () => {
         await byLabel(await tr("sidebar.addFolder")).click()
         await fillDialogName(FOLDER_A)
         await attempt("sidebar-new-folder-dialog", async () => {
-            await shot(30, "sidebar-new-folder-dialog", "New folder dialog", "Dialog opened by the 'Create a folder' sidebar button.")
+            await shot(30, "sidebar-new-folder-dialog", "New folder dialog", "Dialog opened by the 'New folder' sidebar button.")
         })
         await submitDialog()
         await byLabel(await tr("sidebar.addFolder")).click()
@@ -445,7 +445,7 @@ describe("UI tour", () => {
         await byLabel(await tr("sidebar.addNote")).click()
         await fillDialogName(NOTE_MAIN)
         await attempt("sidebar-new-note-dialog", async () => {
-            await shot(31, "sidebar-new-note-dialog", "New note dialog", "Dialog opened by the 'Create a note' sidebar button.")
+            await shot(31, "sidebar-new-note-dialog", "New note dialog", "Dialog opened by the 'New note' sidebar button.")
         })
         await submitDialog()
         await byLabel(await tr("sidebar.addNote")).click()

@@ -40,7 +40,7 @@ describe("UpdateSection", () => {
         check.mockRejectedValue(new Error("offline"))
         render(<UpdateSection />)
         await userEvent.click(screen.getByRole("button", { name: "Controlla aggiornamenti" }))
-        expect(await screen.findByText(/Impossibile controllare gli aggiornamenti - offline/)).toBeInTheDocument()
+        expect(await screen.findByText(/Impossibile controllare gli aggiornamenti: offline/)).toBeInTheDocument()
         expect(screen.getByRole("button", { name: "Controlla aggiornamenti" })).toBeEnabled()
     })
 

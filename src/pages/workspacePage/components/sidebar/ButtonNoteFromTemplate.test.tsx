@@ -18,7 +18,7 @@ describe("ButtonNoteFromTemplate", () => {
         const user = userEvent.setup()
         render(<><ButtonNoteFromTemplate /><SidebarDialogs /></>)
         expect(screen.queryByText("scegli")).not.toBeInTheDocument()
-        await user.click(screen.getByRole("button", { name: "Crea una nota da un template" }))
+        await user.click(screen.getByRole("button", { name: "Nuova nota da template" }))
         await user.click(await screen.findByText("scegli"))
         expect(await screen.findByText("Nota da Sprint")).toBeInTheDocument()
     })

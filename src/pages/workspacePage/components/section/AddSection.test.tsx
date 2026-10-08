@@ -22,7 +22,7 @@ vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ctx }))
 vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => ctx.activeId }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }))
 
-const GROUP_PLACEHOLDER = "Nome del gruppo (facoltativo)…"
+const GROUP_PLACEHOLDER = "Nome del gruppo…"
 const SECTION_PLACEHOLDER = "Titolo della sezione…"
 
 const openGroupForm = async (user: ReturnType<typeof userEvent.setup>) => {

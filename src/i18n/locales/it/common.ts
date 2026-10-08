@@ -22,8 +22,8 @@ export const common = {
     name: "Nome",
     addColor: "Aggiungi colore",
     closePalette: "Chiudi la tavolozza",
-    creationDate: "Data creazione: {{date}} {{time}}",
-    editDate: "Data modifica: {{date}} {{time}}",
+    creationDate: "Creato il {{date}} alle {{time}}",
+    editDate: "Modificato il {{date}} alle {{time}}",
     add: "Aggiungi",
     colors: {
         c1: "Rosso",

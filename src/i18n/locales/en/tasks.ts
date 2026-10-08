@@ -5,11 +5,11 @@ export const tasks: Translation["tasks"] = {
     hiddenCompleted_one: "{{count}} completed task hidden",
     hiddenCompleted_other: "{{count}} completed tasks hidden",
     errors: {
-        createSubtask: "Error while creating the subtask",
-        createTask: "Error while creating the task",
+        createSubtask: "Could not create the subtask",
+        createTask: "Could not create the task",
         priority: "Could not change the priority",
-        update: "Could not change the task - {{message}}",
-        rename: "Could not change the task text - {{message}}",
+        update: "Could not change the task: {{message}}",
+        rename: "Could not change the task text: {{message}}",
     },
     descriptionDialog: {
         title: "Task description",
@@ -21,7 +21,7 @@ export const tasks: Translation["tasks"] = {
     newSubtask: "New subtask",
     addSubtask: "Add subtask",
     add: "Add task",
-    placeholder: "Write something…",
+    placeholder: "New task…",
     menu: {
         addDescription: "Add description",
         removeDescription: "Remove description",

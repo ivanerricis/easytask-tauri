@@ -85,7 +85,7 @@ describe("DialogSettings", () => {
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
         expect(screen.getAllByRole("switch")).toHaveLength(10)
-        expect(screen.getByRole("switch", { name: "Nascondi i task completati" })).not.toBeChecked()
+        expect(screen.getByRole("switch", { name: "Nascondi task completati" })).not.toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()
 
@@ -108,7 +108,7 @@ describe("DialogSettings", () => {
     it("toggles the hide completed tasks preference", async () => {
         const user = await open()
         await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
-        await user.click(screen.getByRole("switch", { name: "Nascondi i task completati" }))
+        await user.click(screen.getByRole("switch", { name: "Nascondi task completati" }))
         expect(setHideCompletedTasks).toHaveBeenCalledWith(true)
     })
 

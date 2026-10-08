@@ -174,7 +174,7 @@ describe("GroupHeader progress and collapse", () => {
     it("toggles the collapse state from the chevron", async () => {
         const user = userEvent.setup()
         render(<GroupHeader group={withTasks} />)
-        await user.click(screen.getByLabelText("Compatta gruppo"))
+        await user.click(screen.getByLabelText("Comprimi gruppo"))
         expect(toggleOpen).toHaveBeenCalled()
     })
 
@@ -193,7 +193,7 @@ describe("GroupHeader drag", () => {
         const header = document.querySelector("[data-drag-handle]")!
         expect(header).not.toBeNull()
         // The header holds the chevron and the name: it is the drag area, not a separate grip
-        expect(header).toContainElement(screen.getByLabelText("Compatta gruppo"))
+        expect(header).toContainElement(screen.getByLabelText("Comprimi gruppo"))
     })
 })
 

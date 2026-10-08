@@ -27,18 +27,18 @@ describe("ShortcutsSettings", () => {
         edit("Cerca una nota")
         press({ key: "h", ctrlKey: true })
 
-        expect((await screen.findByRole("alert")).textContent).toContain("Torna alla Home")
+        expect((await screen.findByRole("alert")).textContent).toContain("Torna alla home")
         expect(await getShortcutOverrides()).toEqual({})
         expect(screen.getByText("Premi i tasti…")).toBeTruthy()
     })
 
     it("does not conflict across scopes and needs a modifier", async () => {
         setup()
-        edit("Crea un nuovo workspace")
+        edit("Nuovo workspace")
         press({ key: "q" })
         expect((await screen.findByRole("alert")).textContent).toContain("Ctrl o Alt")
         press({ key: "m", ctrlKey: true })
-        await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina: Crea un nuovo workspace" })).toBeTruthy())
+        await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina: Nuovo workspace" })).toBeTruthy())
     })
 
     it("Esc cancels and Ripristina tutte clears every override", async () => {
@@ -48,7 +48,7 @@ describe("ShortcutsSettings", () => {
         expect(screen.queryByText("Premi i tasti…")).toBeNull()
         expect(await getShortcutOverrides()).toEqual({})
 
-        edit("Torna alla Home")
+        edit("Torna alla home")
         press({ key: "j", altKey: true })
         await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina tutto" })).toHaveProperty("disabled", false))
         fireEvent.click(screen.getByRole("button", { name: "Ripristina tutto" }))

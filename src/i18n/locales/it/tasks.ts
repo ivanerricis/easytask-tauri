@@ -3,11 +3,11 @@ export const tasks = {
     hiddenCompleted_one: "{{count}} task completato nascosto",
     hiddenCompleted_other: "{{count}} task completati nascosti",
     errors: {
-        createSubtask: "Errore nella creazione del sottotask",
-        createTask: "Errore nella creazione del task",
+        createSubtask: "Impossibile creare il sottotask",
+        createTask: "Impossibile creare il task",
         priority: "Impossibile modificare la priorità",
-        update: "Impossibile modificare il task - {{message}}",
-        rename: "Impossibile cambiare il testo del task - {{message}}",
+        update: "Impossibile modificare il task: {{message}}",
+        rename: "Impossibile cambiare il testo del task: {{message}}",
     },
     descriptionDialog: {
         title: "Descrizione del task",
@@ -19,7 +19,7 @@ export const tasks = {
     newSubtask: "Nuovo sottotask",
     addSubtask: "Aggiungi sottotask",
     add: "Aggiungi task",
-    placeholder: "Scrivi qualcosa…",
+    placeholder: "Nuovo task…",
     menu: {
         addDescription: "Aggiungi descrizione",
         removeDescription: "Rimuovi descrizione",

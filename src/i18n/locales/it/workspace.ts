@@ -1,8 +1,8 @@
 export const home = {
-    loading: "Caricamento dei Workspace…",
+    loading: "Caricamento dei workspace…",
     welcome: "Bentornato!",
-    import: "Importa un Workspace",
-    recent: "Apri un Workspace recente:",
+    import: "Importa un workspace",
+    recent: "Apri un workspace recente",
     viewGrid: "Visualizza come griglia",
     viewList: "Visualizza come lista",
     sort: {
@@ -18,27 +18,27 @@ export const home = {
         dateDesc: "Prima i più recenti",
     },
     createWorkspace: {
-        title: "Crea Workspace",
+        title: "Crea workspace",
         name: "Nome",
-        open: "Crea un nuovo Workspace",
+        open: "Nuovo workspace",
     },
     workspace: {
         open: "Apri il workspace {{name}}",
-        createdOn: "Creato il: {{date}} - {{time}}",
-        editedOn: "Modificato il: {{date}} - {{time}}",
+        createdOn: "Creato il {{date}} alle {{time}}",
+        editedOn: "Modificato il {{date}} alle {{time}}",
     },
-    noWorkspaces: "Nessun workspace trovato",
+    noWorkspaces: "Nessun workspace trovato.",
     noWorkspacesHint: "Crea il tuo primo workspace per iniziare.",
 }
 
 export const workspace = {
-    loading: "Caricamento dati del Workspace…",
+    loading: "Caricamento dati del workspace…",
     combobox: {
-        select: "Seleziona Workspace…",
-        search: "Cerca un Workspace…",
-        empty: "Nessun Workspace trovato.",
+        select: "Seleziona workspace…",
+        search: "Cerca un workspace…",
+        empty: "Nessun workspace trovato.",
     },
-    backHome: "Torna alla Home",
+    backHome: "Torna alla home",
 }
 
 export const notes = {
@@ -60,7 +60,7 @@ export const notes = {
         suggestions: "Suggerimenti",
         short: "Cerca…",
     },
-    hideCompleted: "Nascondi i task completati",
+    hideCompleted: "Nascondi task completati",
     closeCurrent: "Chiudi nota corrente",
     close: "Chiudi nota",
     openTabs: "Note aperte",
@@ -70,20 +70,20 @@ export const notes = {
 
 export const groups = {
     defaultLabel: "Gruppo {{index}}",
-    collapse: "Compatta gruppo",
+    collapse: "Comprimi gruppo",
     expand: "Espandi gruppo",
     nameLabel: "Nome del gruppo",
-    renameError: "Impossibile cambiare il nome del gruppo - {{message}}",
-    namePlaceholder: "Nome del gruppo (facoltativo)…",
+    renameError: "Impossibile cambiare il nome del gruppo: {{message}}",
+    namePlaceholder: "Nome del gruppo…",
     progress: "Avanzamento del gruppo",
     audioCount_one: "{{count}} file audio",
     audioCount_other: "{{count}} file audio",
 }
 
 export const sidebar = {
-    addFolder: "Crea una cartella",
-    addNote: "Crea una nota",
-    addNoteFromTemplate: "Crea una nota da un template",
+    addFolder: "Nuova cartella",
+    addNote: "Nuova nota",
+    addNoteFromTemplate: "Nuova nota da template",
     importItems: "Importa una nota o una cartella",
     trashBadge_one: "{{count}} elemento nel cestino",
     trashBadge_other: "{{count}} elementi nel cestino",
@@ -97,7 +97,7 @@ export const sidebar = {
         placeholder: "Scrivi qualcosa per descrivere il task…",
     },
     toggle: "Mostra o nascondi la barra laterale",
-    emptyTree: "Nessuna cartella o file",
+    emptyTree: "Nessuna cartella o nota",
     emptyTreeHint: "Crea una nota o una cartella per iniziare.",
     treeLabel: "Cartelle e note",
 }
@@ -111,8 +111,8 @@ export const sections = {
     new: "Nuova sezione",
     titlePlaceholder: "Titolo della sezione…",
     titleLabel: "Titolo della sezione",
-    renameError: "Impossibile cambiare il titolo della sezione - {{message}}",
-    collapse: "Compatta sezione",
+    renameError: "Impossibile cambiare il titolo della sezione: {{message}}",
+    collapse: "Comprimi sezione",
     expand: "Espandi sezione",
     progress: "Avanzamento della sezione",
 }

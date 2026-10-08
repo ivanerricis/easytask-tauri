@@ -125,7 +125,7 @@ describe("DialogTemplates", () => {
         await user.click(destination)
         expect(screen.getAllByRole("option").map(o => o.textContent?.trim())).toEqual(["Radice del workspace", "Progetti", "Interni"])
         await user.click(screen.getByRole("option", { name: "Interni" }))
-        await user.click(screen.getByRole("button", { name: "Crea nota" }))
+        await user.click(screen.getByRole("button", { name: "Crea" }))
 
         await waitFor(() => expect(data.createNoteFromTemplate).toHaveBeenCalledWith(1, 4, 8, "Retro di settembre", null))
         expect(data.getWorkspaceData).not.toHaveBeenCalled()
@@ -139,7 +139,7 @@ describe("DialogTemplates", () => {
         data.createNoteFromTemplate.mockRejectedValueOnce({ code: "NOTE_EXISTS", message: "Esiste già una nota con questo nome nella cartella di destinazione." })
         render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
         await user.click(await screen.findByRole("button", { name: "Crea nota da Retro" }))
-        await user.click(screen.getByRole("button", { name: "Crea nota" }))
+        await user.click(screen.getByRole("button", { name: "Crea" }))
 
         expect(await screen.findByText("Esiste già una nota con questo nome nella cartella di destinazione.")).toBeInTheDocument()
         expect(data.createNoteFromTemplate).toHaveBeenCalledWith(1, 4, null, "Retro", null)

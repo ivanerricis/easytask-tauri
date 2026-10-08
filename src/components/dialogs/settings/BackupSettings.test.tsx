@@ -66,7 +66,7 @@ describe("BackupSettings", () => {
         await screen.findByText("2 KB")
         await user.click(screen.getByRole("button", { name: "Esegui backup" }))
         expect(createBackup).toHaveBeenCalledWith("manual")
-        await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Backup creato."))
+        await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Backup creato"))
         expect(listBackups).toHaveBeenCalledTimes(2)
     })
 

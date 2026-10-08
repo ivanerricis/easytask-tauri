@@ -25,7 +25,7 @@ export const details: Translation["details"] = {
     audio: {
         title: "Audio",
         fileTitle: "Audio file title",
-        empty: "No audio file: play a file or choose Information from its menu.",
+        empty: "No audio file: play a file or choose Show details from its menu.",
         loading: "Reading the audio file…",
         error: "File not found or not readable.",
         cover: "Cover art",

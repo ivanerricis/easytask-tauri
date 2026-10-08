@@ -147,7 +147,7 @@ describe("WorkspaceDataContext", () => {
             await act(async () => {
                 await expect(result.current.getWorkspaceData(1)).rejects.toThrow("boom")
             })
-            expect(result.current.error).toBe("Errore caricamento dati del Workspace")
+            expect(result.current.error).toBe("Impossibile caricare i dati del workspace")
             expect(result.current.isLoading).toBe(false)
         })
     })

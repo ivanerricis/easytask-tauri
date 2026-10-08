@@ -19,7 +19,7 @@ export const appMenu = {
     exportWorkspace: "Esporta workspace…",
     closeNote: "Chiudi nota",
     closeAllNotes: "Chiudi tutte le note",
-    goHome: "Torna alla Home",
+    goHome: "Torna alla home",
     newWorkspace: "Nuovo workspace…",
     settings: "Impostazioni…",
     exit: "Esci",

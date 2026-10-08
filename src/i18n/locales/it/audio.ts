@@ -32,7 +32,7 @@ export const audio = {
     playerHidden: "Il lettore flottante è disattivato: abilitalo da Impostazioni > Audio per riprodurre i file audio",
     playbackError: "Impossibile riprodurre il file audio (formato non supportato o file non leggibile)",
     referenceTrashed: "Riferimento spostato nel cestino",
-    referenceError: "Impossibile eliminare il riferimento: {{message}}",
+    referenceError: "Impossibile spostare il riferimento nel cestino: {{message}}",
     missing: {
         title: "File non trovato",
         description: "Il file audio non si trova più nel percorso salvato: potrebbe essere stato spostato o eliminato. Puoi indicare il nuovo percorso oppure eliminare il riferimento.",

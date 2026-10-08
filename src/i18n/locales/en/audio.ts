@@ -34,7 +34,7 @@ export const audio: Translation["audio"] = {
     playerHidden: "The floating player is turned off: enable it in Settings > Audio to play audio files",
     playbackError: "Could not play the audio file (unsupported format or unreadable file)",
     referenceTrashed: "Reference moved to the trash",
-    referenceError: "Could not delete the reference: {{message}}",
+    referenceError: "Could not move the reference to the trash: {{message}}",
     missing: {
         title: "File not found",
         description: "The audio file is no longer at the saved path: it may have been moved or deleted. You can pick the new path or delete the reference.",

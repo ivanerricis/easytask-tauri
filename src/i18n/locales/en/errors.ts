@@ -97,8 +97,8 @@ export const errors: Translation["errors"] = {
         workspaceMissing: "The workspace no longer exists.",
         unsupportedVersion: "The export file version is not supported.",
         invalidJson: "The file is not a valid JSON.",
-        export: "Export failed: {{message}}",
-        import: "Import failed: {{message}}",
+        export: "Could not export: {{message}}",
+        import: "Could not import: {{message}}",
         fileTooLarge: "The file is too large to import (maximum {{max}} MB).",
         tooManyItems: "The file contains too many items to import (maximum {{max}}).",
         itemsFile: "This file contains a single note or folder: import it from inside a workspace.",
@@ -129,14 +129,14 @@ export const errors: Translation["errors"] = {
     moveGroup: "Could not move the group. Try again.",
     loadWorkspace: "Could not load the workspace. Try again.",
     missingGroupId: "Missing group ID",
-    createSection: "Error while creating the section",
-    createGroup: "Error while creating the group",
+    createSection: "Could not create the section",
+    createGroup: "Could not create the group",
     loadNote: "Could not load the note. Try again.",
     refreshNote: "Could not refresh the note. Try again.",
     saveShortcuts: "Could not save the shortcuts. Try again.",
     loadAudio: "Could not load the audio files.",
     loadTemplates: "Could not load the templates.",
-    loadWorkspaceData: "Error loading the Workspace data",
+    loadWorkspaceData: "Could not load the workspace data",
     refreshWorkspaceData: "Could not refresh the workspace data. Try again.",
 }
 
@@ -150,8 +150,8 @@ export const crash: Translation["crash"] = {
 }
 
 export const errorPage: Translation["errorPage"] = {
-    title: "Oops, something went wrong…",
-    description: "Error description:",
+    title: "Something went wrong",
+    description: "Error description",
     home: "Back to home",
     retry: "Try again",
 }

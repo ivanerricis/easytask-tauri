@@ -89,7 +89,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
                     {destinations.map(item => (
                         // Subfolders are indented in the list only (the trigger shows the plain name)
                         <SelectItem key={item.id ?? ROOT_VALUE} value={String(item.id ?? ROOT_VALUE)} style={{ paddingLeft: `${0.5 + item.depth * 0.75}rem` }}>
-                            {item.id === null ? t("dialogs.noteFromTemplate.root") : item.name}
+                            {item.id === null ? t("common.workspaceRoot") : item.name}
                         </SelectItem>
                     ))}
                 </SelectContent>

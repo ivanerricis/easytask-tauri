@@ -24,8 +24,8 @@ export const common: Translation["common"] = {
     name: "Name",
     addColor: "Add color",
     closePalette: "Close the palette",
-    creationDate: "Created: {{date}} {{time}}",
-    editDate: "Modified: {{date}} {{time}}",
+    creationDate: "Created on {{date}} at {{time}}",
+    editDate: "Modified on {{date}} at {{time}}",
     add: "Add",
     colors: {
         c1: "Red",

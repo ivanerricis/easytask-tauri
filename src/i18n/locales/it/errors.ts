@@ -95,8 +95,8 @@ export const errors = {
         workspaceMissing: "Il workspace non esiste più.",
         unsupportedVersion: "La versione del file di export non è supportata.",
         invalidJson: "Il file non è un JSON valido.",
-        export: "Esportazione non riuscita: {{message}}",
-        import: "Importazione non riuscita: {{message}}",
+        export: "Impossibile esportare: {{message}}",
+        import: "Impossibile importare: {{message}}",
         fileTooLarge: "Il file è troppo grande per essere importato (massimo {{max}} MB).",
         tooManyItems: "Il file contiene troppi elementi da importare (massimo {{max}}).",
         itemsFile: "Questo file contiene una nota o una cartella: importalo dall'interno di un workspace.",
@@ -127,14 +127,14 @@ export const errors = {
     moveGroup: "Impossibile spostare il gruppo. Riprova.",
     loadWorkspace: "Impossibile caricare il workspace. Riprova.",
     missingGroupId: "ID gruppo mancante",
-    createSection: "Errore nella creazione della sezione",
-    createGroup: "Errore nella creazione del gruppo",
+    createSection: "Impossibile creare la sezione",
+    createGroup: "Impossibile creare il gruppo",
     loadNote: "Impossibile caricare la nota. Riprova.",
     refreshNote: "Impossibile aggiornare la nota. Riprova.",
     saveShortcuts: "Impossibile salvare le scorciatoie. Riprova.",
     loadAudio: "Impossibile caricare i file audio.",
     loadTemplates: "Impossibile caricare i template.",
-    loadWorkspaceData: "Errore caricamento dati del Workspace",
+    loadWorkspaceData: "Impossibile caricare i dati del workspace",
     refreshWorkspaceData: "Impossibile aggiornare i dati del workspace. Riprova.",
 }
 
@@ -148,8 +148,8 @@ export const crash = {
 }
 
 export const errorPage = {
-    title: "Ops c'è stato un errore…",
-    description: "Descrizione dell'errore:",
+    title: "Si è verificato un errore",
+    description: "Descrizione dell'errore",
     home: "Torna alla home",
     retry: "Riprova",
 }

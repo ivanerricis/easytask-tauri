@@ -16,7 +16,7 @@ describe("SectionHeader keyboard", () => {
     it("toggles the section with Enter and Space on the chevron button", async () => {
         const onOpenChange = vi.fn()
         render(<SectionHeader isOpen onOpenChange={onOpenChange} section={makeSection({ tasks: [makeTask()] })} />)
-        const chevron = screen.getByRole("button", { name: "Compatta sezione" })
+        const chevron = screen.getByRole("button", { name: "Comprimi sezione" })
         chevron.focus()
         await userEvent.keyboard("{Enter}")
         await userEvent.keyboard(" ")

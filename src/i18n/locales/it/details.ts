@@ -23,7 +23,7 @@ export const details = {
     audio: {
         title: "Audio",
         fileTitle: "Titolo del file audio",
-        empty: "Nessun file audio: riproduci un file o scegli Informazioni dal suo menu.",
+        empty: "Nessun file audio: riproduci un file o scegli Mostra dettagli dal suo menu.",
         loading: "Lettura del file audio…",
         error: "File non trovato o non leggibile.",
         cover: "Copertina",

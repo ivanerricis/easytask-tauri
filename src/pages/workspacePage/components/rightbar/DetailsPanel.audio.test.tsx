@@ -48,7 +48,7 @@ afterEach(async () => { await i18n.changeLanguage("it") })
 describe("DetailsPanel audio half", () => {
     it("shows the empty state without a file", () => {
         renderPanel()
-        expect(screen.getByText("Nessun file audio: riproduci un file o scegli Informazioni dal suo menu.")).toBeInTheDocument()
+        expect(screen.getByText("Nessun file audio: riproduci un file o scegli Mostra dettagli dal suo menu.")).toBeInTheDocument()
         expect(invoke).not.toHaveBeenCalled()
     })
 
@@ -112,6 +112,6 @@ describe("DetailsPanel audio half", () => {
     it("follows the language", async () => {
         await i18n.changeLanguage("en")
         renderPanel()
-        expect(screen.getByText("No audio file: play a file or choose Information from its menu.")).toBeInTheDocument()
+        expect(screen.getByText("No audio file: play a file or choose Show details from its menu.")).toBeInTheDocument()
     })
 })

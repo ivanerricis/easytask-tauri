@@ -21,7 +21,7 @@ export const appMenu: Translation["appMenu"] = {
     exportWorkspace: "Export workspace…",
     closeNote: "Close note",
     closeAllNotes: "Close all notes",
-    goHome: "Back to Home",
+    goHome: "Back to home",
     newWorkspace: "New workspace…",
     settings: "Settings…",
     exit: "Exit",

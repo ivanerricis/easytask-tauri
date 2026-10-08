@@ -106,8 +106,8 @@ export const trash = {
     purgeTitle: "Eliminare definitivamente?",
     emptyDescription: "Tutti gli elementi nel cestino verranno eliminati per sempre. Questa azione non può essere annullata.",
     purgeDescription: "L'elemento verrà eliminato per sempre. Questa azione non può essere annullata.",
-    confirmEmpty: "Conferma svuotamento",
-    confirmPurge: "Conferma eliminazione",
+    confirmEmpty: "Svuota cestino",
+    confirmPurge: "Elimina definitivamente",
     summary: {
         empty: "Vuoto",
         folders_one: "{{count}} cartella",
