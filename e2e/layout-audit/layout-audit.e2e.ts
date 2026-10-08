@@ -602,56 +602,83 @@ describe("Layout audit", () => {
             })
 
             // automations
+            // Below 900px the sidebar is a dialog too: the automations are the last one
+            const autoDialog = () => $("(//*[@role='dialog'])[last()]")
             const openAutomations = async () => {
-                await base(true, false)
+                // No recover() after the sidebar: below 900px it is a dialog itself and would be closed
+                await recover()
+                await setPanel(false)
+                await setSidebar(true)
                 const menu = await openContextMenu(treeRow(NOTE_MAIN))
                 await byText(await tr("automations.menu"), menu).click()
                 await dialogOpen().waitForDisplayed()
-                await $("[role='status']").waitForExist({ reverse: true, timeout: 8000 }).catch(() => undefined)
+                await autoDialog().$("[role='status']").waitForExist({ reverse: true, timeout: 8000 }).catch(() => undefined)
                 await settle(500)
             }
             await state("auto-list", openAutomations)
-            await state("auto-new", async () => { await openAutomations(); await byText(await tr("automations.add"), $('[role="dialog"]')).click(); await settle(400) })
+            const footerBtn = async (key: string) => $(`//*[@role='dialog']//*[@data-slot='dialog-footer']//button[normalize-space()=${xp(await tr(key))}]`)
+            await state("auto-new", async () => { await openAutomations(); await byText(await tr("automations.add"), autoDialog()).click(); await settle(400) })
             for (const trig of ["taskCompleted", "taskReopened", "taskCreated", "taskMovedInto", "subtasksCompleted"]) {
                 await state(`auto-editor-trigger-${trig}`, async () => {
                     await openAutomations()
-                    const d = $('[role="dialog"]')
+                    const d = autoDialog()
                     await byText(await tr("automations.add"), d).click()
                     await settle(300)
                     const sel = (await d.$$(`[aria-label=${JSON.stringify(await tr("automations.when"))}]`))[0]
                     await domClickEl(sel as unknown as ReturnType<typeof $>)
                     await $(`//*[@role='option'][normalize-space()=${xp(await tr(`automations.triggers.${trig}`))}]`).click()
                     await settle(400)
-                    // all the actions types
-                    for (const act of ["setCompleted", "setPriority", "setColor", "completeSubtasks", "moveTo"]) {
-                        await byText(await tr("automations.addAction"), d).click().catch(() => undefined)
-                        await settle(150)
-                        const types = Array.from(await d.$$(`[aria-label=${JSON.stringify(await tr("automations.actionType"))}]`))
-                        const last = types[types.length - 1]
-                        await domClickEl(last as unknown as ReturnType<typeof $>)
-                        await $(`//*[@role='option'][normalize-space()=${xp(await tr(`automations.actions.${act}`))}]`).click().catch(() => browser.keys("Escape"))
-                        await settle(150)
-                    }
                 })
             }
+            // step 2 of a new rule: all the actions types
+            await state("auto-editor-actions", async () => {
+                await openAutomations()
+                const d = autoDialog()
+                await byText(await tr("automations.add"), d).click()
+                await settle(300)
+                await domClickEl(await footerBtn("automations.next"))
+                await settle(300)
+                for (const act of ["setCompleted", "setPriority", "setColor", "completeSubtasks", "moveTo"]) {
+                    await byText(await tr("automations.addAction"), d).click().catch(() => undefined)
+                    await settle(150)
+                    const types = Array.from(await d.$$(`[aria-label=${JSON.stringify(await tr("automations.actionType"))}]`))
+                    const last = types[types.length - 1]
+                    await domClickEl(last as unknown as ReturnType<typeof $>)
+                    await $(`//*[@role='option'][normalize-space()=${xp(await tr(`automations.actions.${act}`))}]`).click().catch(() => browser.keys("Escape"))
+                    await settle(150)
+                }
+            })
+            // step 3 of a new rule
+            await state("auto-editor-summary", async () => {
+                await openAutomations()
+                const d = autoDialog()
+                await byText(await tr("automations.add"), d).click()
+                await settle(300)
+                await domClickEl(await footerBtn("automations.next"))
+                await settle(200)
+                await domClickEl(await footerBtn("automations.next"))
+                await settle(300)
+            })
             await state("auto-editor-edit-long", async () => {
                 await openAutomations()
-                const d = $('[role="dialog"]')
+                const d = autoDialog()
                 await d.$(`button[aria-label^="${(await tr("automations.editAria", { name: "" })).slice(0, 10)}"]`).click()
                 await settle(500)
             })
             await state("auto-editor-section-select-open", async () => {
                 await openAutomations()
-                const d = $('[role="dialog"]')
+                const d = autoDialog()
                 await d.$(`button[aria-label^="${(await tr("automations.editAria", { name: "" })).slice(0, 10)}"]`).click()
                 await settle(400)
+                await domClickEl((await d.$$("nav li button"))[0] as unknown as ReturnType<typeof $>)
+                await settle(300)
                 const sel = (await d.$$(`[aria-label=${JSON.stringify(await tr("automations.where"))}]`))[0]
                 await domClickEl(sel as unknown as ReturnType<typeof $>)
                 await $('[role="option"]').waitForDisplayed()
             })
             await state("auto-delete-confirm", async () => {
                 await openAutomations()
-                await $('[role="dialog"] button[aria-label^="' + (await tr("automations.deleteAria", { name: "" })).slice(0, 10) + '"]').click()
+                await autoDialog().$('button[aria-label^="' + (await tr("automations.deleteAria", { name: "" })).slice(0, 10) + '"]').click()
                 await settle(400)
             })
 

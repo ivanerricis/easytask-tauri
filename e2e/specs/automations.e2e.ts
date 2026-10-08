@@ -116,6 +116,33 @@ const choose = async (dialog: Chainable, label: string, option: string, index = 
     await item.waitForExist({ reverse: true })
 }
 
+/** The button of the footer with that label (the dialog buttons of the wizard: Next, Back, Save, Cancel). */
+const footerButton = (dialog: Chainable, label: string) => dialog.$(`.//*[@data-slot='dialog-footer']//button[normalize-space()=${xpathString(label)}]`)
+
+/** Goes to the next step of the editor and checks the indicator follows (`step` = the index of the step shown, 0-based). */
+const next = async (dialog: Chainable, step: number) => {
+    await domClick(footerButton(dialog, await tr("automations.next")))
+    await currentStep(dialog, step)
+}
+
+/** Waits for the indicator to mark the `step` (0-based) as the current one. */
+const currentStep = async (_dialog: Chainable, step: number) => {
+    await browser.waitUntil(
+        () => browser.execute(() => {
+            const dialogs = Array.from(document.querySelectorAll('[role="dialog"]'))
+            const items = Array.from(dialogs[dialogs.length - 1]?.querySelectorAll("nav li") ?? [])
+            return items.findIndex((li) => li.querySelector('[aria-current="step"]') !== null)
+        }).then((index) => index === step),
+        { timeoutMsg: `the editor is not on the step ${step + 1}` },
+    )
+}
+
+/** Jumps to a step through the indicator. */
+const gotoStep = async (dialog: Chainable, step: number) => {
+    await domClick((await dialog.$$("nav li button"))[step] as unknown as Chainable)
+    await currentStep(dialog, step)
+}
+
 const closeAllDialogs = async () => {
     const open = () => browser.execute(() => document.querySelectorAll('[role="dialog"], [role="alertdialog"]').length)
     for (let i = 0; i < 3 && (await open()) > 0; i++) {
@@ -174,7 +201,9 @@ describe("Automations", () => {
         await $("[role='option']").waitForExist({ reverse: true })
 
         // When a task is completed in TODO -> move to the bottom of DONE
+        await currentStep(dialog, 0)
         await choose(dialog, await tr("automations.where"), TODO)
+        await next(dialog, 1)
         await choose(dialog, await tr("automations.actions.moveTo"), DONE)
 
         // Second action: set a color, picked by its name
@@ -188,7 +217,10 @@ describe("Automations", () => {
         await $("[role='option']").waitForExist({ reverse: true })
         await choose(dialog, await tr("automations.actions.setColor"), await tr("common.colors.c2"))
 
-        await byText(await tr("common.save"), dialog).click()
+        // Summary: the sentence of the rule, then save
+        await next(dialog, 2)
+        await expect(dialog.$(`.//p[normalize-space()=${xpathString(await ruleDescription(TODO, DONE))}]`)).toBeDisplayed()
+        await footerButton(dialog, await tr("common.save")).click()
         await dialog.$(`h2=${await tr("automations.title")}`).waitForDisplayed({ timeoutMsg: "the editor did not close after saving" })
         const description = await ruleDescription(TODO, DONE)
         await browser.waitUntil(async () => (await dialog.$("ul").getText()).includes(description), {
@@ -205,8 +237,10 @@ describe("Automations", () => {
         // Cancel button: "Cancel" in the confirmation keeps the editor, "Discard" goes back to the list
         await byLabel(await tr("automations.editAria", { name: description })).click()
         await expect(dialog.$(`h2=${await tr("automations.editTitle")}`)).toBeDisplayed()
+        // An existing rule opens on the summary
+        await currentStep(dialog, 2)
         await typeInto(dialog.$("input"), "Auto rule name")
-        await byText(await tr("common.cancel"), dialog).click()
+        await footerButton(dialog, await tr("common.cancel")).click()
         const confirm = dialogTitled(confirmTitle)
         await confirm.waitForDisplayed({ timeoutMsg: "no confirmation for the unsaved rule" })
         await byText(await tr("common.cancel"), confirm).click()
@@ -214,7 +248,7 @@ describe("Automations", () => {
         await expect(dialog.$(`h2=${await tr("automations.editTitle")}`)).toBeDisplayed()
         await expect(dialog.$("input")).toHaveValue("Auto rule name")
 
-        await byText(await tr("common.cancel"), dialog).click()
+        await footerButton(dialog, await tr("common.cancel")).click()
         await confirm.waitForDisplayed()
         await byText(await tr("automations.discardConfirm.confirm"), confirm).click()
         await confirm.waitForExist({ reverse: true })
@@ -349,7 +383,7 @@ describe("Automations", () => {
 
         /**
          * Everything that sticks out: horizontal overflow of the content and of the fieldsets, select triggers outside the
-         * dialog, a dialog taller than the window, and a title or footer button (Cancel/Save) outside the window.
+         * dialog, a dialog taller than the window, and a title or footer button (Cancel/Back/Next/Save) outside the window.
          */
         const overflows = () =>
             browser.execute(() => {
@@ -361,6 +395,7 @@ describe("Automations", () => {
                     if (el.scrollWidth > el.clientWidth + 1) problems.push(`${name}: scrollWidth ${el.scrollWidth} > clientWidth ${el.clientWidth}`)
                 }
                 fits(dialog, "dialog content")
+                dialog.querySelectorAll<HTMLElement>("nav, nav li").forEach((el, index) => fits(el, `step indicator ${index}`))
                 dialog.querySelectorAll<HTMLElement>("fieldset").forEach((el, index) => fits(el, `fieldset ${index}`))
                 const box = dialog.getBoundingClientRect()
                 dialog.querySelectorAll<HTMLElement>('[data-slot="select-trigger"]').forEach((el, index) => {
@@ -410,14 +445,17 @@ describe("Automations", () => {
             await expect(dialog.$(`h2=${await tr("automations.newTitle")}`)).toBeDisplayed()
             expect(await overflows()).toEqual([])
 
-            // Every trigger type, with the long section chosen
+            // Step 1: every trigger type, with the long section chosen
+            await currentStep(dialog, 0)
             for (const type of ["taskCompleted", "taskReopened", "taskCreated", "taskMovedInto", "subtasksCompleted"]) {
                 await choose(dialog, await tr("automations.when"), await tr(`automations.triggers.${type}`))
                 await choose(dialog, await tr("automations.where"), LONG_A)
                 expect({ trigger: type, problems: await overflows() }).toEqual({ trigger: type, problems: [] })
             }
+            await next(dialog, 1)
 
-            // Every action type on the first action, a long move target for moveTo
+            // Step 2: every action type on the first action, a long move target for moveTo
+            expect(await overflows()).toEqual([])
             const typeLabel = await tr("automations.actionType")
             for (const type of ["setCompleted", "setPriority", "setColor", "completeSubtasks", "moveTo"]) {
                 await choose(dialog, typeLabel, await tr(`automations.actions.${type}`), 0)
@@ -433,11 +471,22 @@ describe("Automations", () => {
                 expect({ action: `second ${type}`, problems: await overflows() }).toEqual({ action: `second ${type}`, problems: [] })
             }
 
-            // Many actions make the rule taller than the window: the editor scrolls, the title and Save stay reachable
+            // Many actions make the rule taller than the window: the editor scrolls, the title and the footer stay reachable
             for (let i = 0; i < 5; i++) await byText(await tr("automations.addAction"), dialog).click()
             expect({ actions: 7, problems: await overflows() }).toEqual({ actions: 7, problems: [] })
-            const save = dialog.$(`button=${await tr("common.save")}`)
-            await expect(save).toBeDisplayedInViewport()
+            await expect(footerButton(dialog, await tr("automations.next"))).toBeDisplayedInViewport()
+            await expect(footerButton(dialog, await tr("automations.back"))).toBeDisplayedInViewport()
+            await expect(footerButton(dialog, await tr("common.cancel"))).toBeDisplayedInViewport()
+
+            // Step 3: the long sentence wraps, Save stays reachable
+            await next(dialog, 2)
+            expect({ step: "summary", problems: await overflows() }).toEqual({ step: "summary", problems: [] })
+            await expect(footerButton(dialog, await tr("common.save"))).toBeDisplayedInViewport()
+            await expect(footerButton(dialog, await tr("automations.back"))).toBeDisplayedInViewport()
+
+            // The indicator goes back to any step
+            await gotoStep(dialog, 0)
+            expect(await overflows()).toEqual([])
         })
     })
 })
