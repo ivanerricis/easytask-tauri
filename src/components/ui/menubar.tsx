@@ -31,7 +31,7 @@ function MenubarTrigger({
     <MenubarPrimitive.Trigger
       data-slot="menubar-trigger"
       className={cn(
-        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground hover:bg-accent flex cursor-default items-center px-2 py-1.5 text-sm outline-hidden select-none",
+        "focus:bg-accent focus:text-accent-foreground data-[state=open]:bg-accent data-[state=open]:text-accent-foreground hover:bg-accent flex cursor-default items-center rounded-xs px-2 py-1.5 text-sm outline-hidden select-none focus-visible:ring-1 focus-visible:ring-ring",
         className
       )}
       {...props}
@@ -127,7 +127,7 @@ function MenubarShortcut({
   return (
     <span
       data-slot="menubar-shortcut"
-      className={cn("text-muted-foreground ml-auto pl-6 text-xs tracking-widest", className)}
+      className={cn("text-muted-foreground ml-auto pl-6 text-xs", className)}
       {...props}
     />
   )

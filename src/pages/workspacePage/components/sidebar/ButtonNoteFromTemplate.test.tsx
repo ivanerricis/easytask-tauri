@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, it, vi } from "vitest"
 import type { NoteTemplate } from "@/types/template"
 import { ButtonNoteFromTemplate } from "./ButtonNoteFromTemplate"
+import { SidebarDialogs } from "./SidebarDialogs"
 
 vi.mock("@/components/dialogs/dialog-pick-template", () => ({
     DialogPickTemplate: ({ isOpen, onPick }: { isOpen: boolean, onPick: (t: NoteTemplate) => void }) =>
@@ -15,7 +16,7 @@ vi.mock("@/components/dialogs/dialog-note-from-template", () => ({
 describe("ButtonNoteFromTemplate", () => {
     it("chooses a template, then opens the new note dialog for it", async () => {
         const user = userEvent.setup()
-        render(<ButtonNoteFromTemplate />)
+        render(<><ButtonNoteFromTemplate /><SidebarDialogs /></>)
         expect(screen.queryByText("scegli")).not.toBeInTheDocument()
         await user.click(screen.getByRole("button", { name: "Crea una nota da un template" }))
         await user.click(await screen.findByText("scegli"))

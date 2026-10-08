@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useState } from "react"
 import { ButtonTemplates } from "./ButtonTemplates"
+import { SidebarDialogs } from "./SidebarDialogs"
 import { makeWorkspace } from "@/test/ui-fixtures"
 
 const data = {
@@ -35,7 +36,7 @@ describe("ButtonTemplates", () => {
     it("shows the number of templates and opens the dialog", async () => {
         const user = userEvent.setup()
         data.countTemplates.mockResolvedValue(3)
-        render(<ButtonTemplates />)
+        render(<><ButtonTemplates /><SidebarDialogs /></>)
         expect(await screen.findByLabelText("3 template")).toBeInTheDocument()
         expect(data.countTemplates).toHaveBeenCalledWith(4)
 

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { useState } from "react"
 import userEvent from "@testing-library/user-event"
 import { ButtonArchive } from "./ButtonArchive"
+import { SidebarDialogs } from "./SidebarDialogs"
 import { makeWorkspace } from "@/test/ui-fixtures"
 
 const data = {
@@ -60,7 +61,7 @@ describe("ButtonArchive", () => {
     it("opens the archive dialog on click", async () => {
         const user = userEvent.setup()
         data.getArchiveCount.mockResolvedValue(0)
-        render(<ButtonArchive />)
+        render(<><ButtonArchive /><SidebarDialogs /></>)
         expect(screen.queryByText("Dialogo archivio")).not.toBeInTheDocument()
         await user.click(screen.getByRole("button", { name: /Archivio/ }))
         expect(await screen.findByText("Dialogo archivio")).toBeInTheDocument()

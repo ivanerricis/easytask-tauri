@@ -1,13 +1,10 @@
 import { useTranslation } from "react-i18next"
-import { lazy, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { reportError } from "@/lib/report-error"
-import { LazyMount } from "@/components/lazy-mount"
-import { useAppCommand } from "@/lib/app-commands"
+import { requestAppCommand } from "@/lib/app-commands"
 import { ItemFooter } from "../items/ItemFooter"
-
-const DialogTemplates = lazy(() => import("@/components/dialogs/dialog-templates").then(m => ({ default: m.DialogTemplates })))
 
 /**
  * Footer entry that opens the templates of the current workspace, with the number of templates as a badge.
@@ -17,12 +14,10 @@ export const ButtonTemplates = () => {
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { countTemplates, templatesVersion } = useWorkspaceData()
-    const [isOpen, setIsOpen] = useState(false)
     const [count, setCount] = useState(0)
     const workspaceID = currentWorkspace?.id
-    useAppCommand("open-templates", () => setIsOpen(true))
 
-    // Re-query the number of templates when they change (templatesVersion) or the dialog opens/closes
+    // Re-query the number of templates when they change (templatesVersion)
     useEffect(() => {
         if (workspaceID === undefined) return
         let cancelled = false
@@ -30,14 +25,9 @@ export const ButtonTemplates = () => {
             .then(value => { if (!cancelled) setCount(value) })
             .catch(error => reportError(error))
         return () => { cancelled = true }
-    }, [workspaceID, templatesVersion, isOpen, countTemplates])
+    }, [workspaceID, templatesVersion, countTemplates])
 
     return (
-        <>
-            <ItemFooter type="template" text={t("dialogs.templates.title")} badge={count} badgeLabel={t("templates.badge", { count })} onClick={() => setIsOpen(true)} />
-            <LazyMount active={isOpen}>
-                <DialogTemplates isOpen={isOpen} onOpenChange={setIsOpen} />
-            </LazyMount>
-        </>
+        <ItemFooter type="template" text={t("dialogs.templates.title")} badge={count} badgeLabel={t("templates.badge", { count })} onClick={() => requestAppCommand("open-templates")} />
     )
 }

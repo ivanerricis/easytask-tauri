@@ -4,7 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AppMenu } from "./app-menu"
 import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 import { useShortcut } from "@/hooks/use-shortcut"
-import { APP_COMMAND_EVENT } from "@/lib/app-commands"
+import { APP_COMMAND_EVENT, useAppCommand, type AppCommand } from "@/lib/app-commands"
 import { OPEN_SETTINGS_EVENT } from "@/lib/updater"
 
 const appWindow = { close: vi.fn() }
@@ -14,6 +14,11 @@ vi.mock("@/components/use-theme", () => ({ useTheme: () => ({ theme: "dark", set
 
 function Probe({ id, handler, enabled }: { id: string, handler: () => void, enabled?: boolean }) {
     useShortcut(id, handler, { enabled })
+    return null
+}
+
+function CommandProbe({ command, enabled }: { command: AppCommand, enabled?: boolean }) {
+    useAppCommand(command, vi.fn(), { enabled })
     return null
 }
 
@@ -58,11 +63,33 @@ describe("AppMenu", () => {
         const commands: string[] = []
         const listener = (event: Event) => commands.push((event as CustomEvent<string>).detail)
         window.addEventListener(APP_COMMAND_EVENT, listener)
-        render(<ShortcutsProvider><AppMenu page="workspace" /></ShortcutsProvider>)
-        await openMenu(user, "Modifica")
-        await user.click(await screen.findByRole("menuitem", { name: "Cestino..." }))
+        render(<ShortcutsProvider><CommandProbe command="open-trash" /><AppMenu page="workspace" /></ShortcutsProvider>)
+        await openMenu(user, "File")
+        await user.click(await screen.findByRole("menuitem", { name: "Cestino…" }))
         await waitFor(() => expect(commands).toEqual(["open-trash"]))
         window.removeEventListener(APP_COMMAND_EVENT, listener)
+    })
+
+    it("groups templates, archive, trash and export in File, leaving Edit with undo, redo and search", async () => {
+        const user = userEvent.setup()
+        render(<ShortcutsProvider><AppMenu page="workspace" /></ShortcutsProvider>)
+        await openMenu(user, "File")
+        expect(await screen.findByRole("menuitem", { name: "Archivio…" })).toBeInTheDocument()
+        expect(screen.getByRole("menuitem", { name: "Cestino…" })).toBeInTheDocument()
+        await user.keyboard("{Escape}")
+        await openMenu(user, "Modifica")
+        expect(await screen.findByRole("menuitem", { name: /Annulla/ })).toBeInTheDocument()
+        expect(screen.queryByRole("menuitem", { name: "Cestino…" })).not.toBeInTheDocument()
+        expect(screen.queryByRole("menuitem", { name: "Archivio…" })).not.toBeInTheDocument()
+    })
+
+    it("disables the commands nobody listens to, or whose handler is not enabled", async () => {
+        const user = userEvent.setup()
+        render(<ShortcutsProvider><CommandProbe command="open-trash" /><CommandProbe command="export-workspace" enabled={false} /><AppMenu page="workspace" /></ShortcutsProvider>)
+        await openMenu(user, "File")
+        expect(await screen.findByRole("menuitem", { name: "Cestino…" })).not.toHaveAttribute("data-disabled")
+        expect(screen.getByRole("menuitem", { name: "Archivio…" })).toHaveAttribute("data-disabled")
+        expect(screen.getByRole("menuitem", { name: /Esporta/ })).toHaveAttribute("data-disabled")
     })
 
     it("opens the settings, the about page and closes the window", async () => {
@@ -72,9 +99,9 @@ describe("AppMenu", () => {
         window.addEventListener(OPEN_SETTINGS_EVENT, listener)
         render(<ShortcutsProvider><AppMenu page="home" /></ShortcutsProvider>)
         await openMenu(user, "File")
-        await user.click(await screen.findByRole("menuitem", { name: "Impostazioni..." }))
+        await user.click(await screen.findByRole("menuitem", { name: "Impostazioni…" }))
         await openMenu(user, "Aiuto")
-        await user.click(await screen.findByRole("menuitem", { name: "Informazioni e aggiornamenti" }))
+        await user.click(await screen.findByRole("menuitem", { name: "Informazioni e aggiornamenti…" }))
         await waitFor(() => expect(categories).toEqual([undefined, "about"]))
         await openMenu(user, "File")
         await user.click(await screen.findByRole("menuitem", { name: "Esci" }))

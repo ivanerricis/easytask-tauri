@@ -16,6 +16,7 @@ import { ButtonTemplates } from "./ButtonTemplates"
 import { DialogAddFolder } from "./DialogAddFolder"
 import { DialogAddNote } from "./DialogAddNote"
 import { ButtonNoteFromTemplate } from "./ButtonNoteFromTemplate"
+import { SidebarDialogs } from "./SidebarDialogs"
 import { ButtonImportItems } from "./ButtonImportItems"
 import { ComboboxWorkspace } from "../combobox-workspace"
 import { ButtonCloseNotes } from "../ButtonCloseNotes"
@@ -46,7 +47,7 @@ export const SideBarLeft = () => {
     }, [compact, setSideBarLeftOpen])
     useShortcut("toggle-sidebar", () => setOpen(!open), { allowInInputs: true })
     const { exportWorkspace, isBusy: isTransferring } = useWorkspaceTransfer()
-    useAppCommand("export-workspace", () => { if (currentWorkspace && !isTransferring) void exportWorkspace(currentWorkspace) })
+    useAppCommand("export-workspace", () => { if (currentWorkspace) void exportWorkspace(currentWorkspace) }, { enabled: !!currentWorkspace && !isTransferring })
 
     useEffect(() => {
         if (currentWorkspace?.id) {
@@ -111,6 +112,7 @@ export const SideBarLeft = () => {
                         <FileTree collapsedIds={collapsedIds} onToggleFolder={toggleFolder} onExpandFolder={expandFolder} />
                     </SideBarContainer>
                 </SideBar>
+                <SidebarDialogs />
             </SelectionActionsProvider>
         </SelectionProvider>
     )

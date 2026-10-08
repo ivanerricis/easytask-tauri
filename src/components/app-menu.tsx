@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/menubar"
 import { useTheme } from "@/components/use-theme"
 import { useShortcutKeys, useShortcutsContext } from "@/contexts/use-shortcuts"
-import { requestAppCommand, type AppCommand } from "@/lib/app-commands"
+import { requestAppCommand, useIsAppCommandActive, type AppCommand } from "@/lib/app-commands"
 import { OPEN_SETTINGS_EVENT, openReleasesPage, requestOpenSettings } from "@/lib/updater"
 import { reportError } from "@/lib/report-error"
 
@@ -43,9 +43,11 @@ const ShortcutItem = ({ id, label }: { id: string, label: string }) => {
     )
 }
 
-const CommandItem = ({ command, label }: { command: AppCommand, label: string }) => (
-    <MenubarItem onSelect={() => afterClose(() => requestAppCommand(command))}>{label}</MenubarItem>
-)
+/** An entry that runs an app command: it is disabled while no component is listening to it. */
+const CommandItem = ({ command, label }: { command: AppCommand, label: string }) => {
+    const active = useIsAppCommandActive(command)
+    return <MenubarItem disabled={!active} onSelect={() => afterClose(() => requestAppCommand(command))}>{label}</MenubarItem>
+}
 
 const ActionItem = ({ action, label }: { action: () => void, label: string }) => (
     <MenubarItem onSelect={() => afterClose(action)}>{label}</MenubarItem>
@@ -118,6 +120,8 @@ export const AppMenu = ({ page }: AppMenuProps) => {
                             <CommandItem command="note-from-template" label={t("appMenu.noteFromTemplate")} />
                             <MenubarSeparator />
                             <CommandItem command="open-templates" label={t("appMenu.templates")} />
+                            <CommandItem command="open-archive" label={t("appMenu.archive")} />
+                            <CommandItem command="open-trash" label={t("appMenu.trash")} />
                             <CommandItem command="export-workspace" label={t("appMenu.exportWorkspace")} />
                             <MenubarSeparator />
                             <ShortcutItem id="close-note" label={t("appMenu.closeNote")} />
@@ -146,9 +150,6 @@ export const AppMenu = ({ page }: AppMenuProps) => {
                         <ShortcutItem id="redo" label={t("appMenu.redo")} />
                         <MenubarSeparator />
                         <ShortcutItem id="search-notes" label={t("appMenu.searchNotes")} />
-                        <MenubarSeparator />
-                        <CommandItem command="open-archive" label={t("appMenu.archive")} />
-                        <CommandItem command="open-trash" label={t("appMenu.trash")} />
                     </MenubarContent>
                 </MenubarMenu>
             )}
