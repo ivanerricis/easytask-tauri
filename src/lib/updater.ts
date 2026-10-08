@@ -11,7 +11,7 @@ export const UPDATE_AVAILABLE_EVENT = "easytask:update-available"
 
 /** Detail of {@link UPDATE_AVAILABLE_EVENT}. */
 export type UpdateAvailableDetail = { update: Update, portable: boolean }
-const STARTUP_CHECK_DELAY_MS = 8000
+const STARTUP_CHECK_DELAY_MS = 3000
 
 /** Asks the app to open the settings dialog on the given category. */
 export const requestOpenSettings = (category: string): void => {
