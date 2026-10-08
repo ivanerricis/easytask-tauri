@@ -4,13 +4,9 @@ import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { useUndo } from "@/contexts/undo/use-undo"
-import { focusRing } from "@/lib/a11y"
 import { cn } from "@/lib/utils"
 
-const entryClass = cn(
-    "w-full rounded-md px-2 py-1.5 text-left text-sm break-words hover:bg-accent hover:text-accent-foreground",
-    focusRing,
-)
+const entryClass = "h-auto w-full justify-start whitespace-normal px-2 py-1.5 text-left font-normal break-words"
 
 /**
  * The undo/redo history of the open workspace: the undoable actions (the most recent first, the last one is the
@@ -46,16 +42,19 @@ export function HistoryPanel() {
                     <ul aria-label={t("history.undoList")} className="flex flex-col gap-0.5">
                         {entries.undo.map((label, index) => (
                             <li key={`undo-${entries.undo.length - index}`}>
-                                <button
+                                <Button
                                     type="button"
+                                    variant="ghost"
                                     className={cn(entryClass, index === 0 && "bg-accent/60 font-medium")}
                                     aria-label={t("history.goBackTo", { label })}
                                     aria-current={index === 0 ? "true" : undefined}
                                     onClick={() => { void undoTo(index) }}
                                 >
-                                    {label}
-                                    {index === 0 && <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{t("history.current")}</span>}
-                                </button>
+                                    <span className="flex flex-col items-start">
+                                        {label}
+                                        {index === 0 && <span className="mt-0.5 block text-xs font-normal text-muted-foreground">{t("history.current")}</span>}
+                                    </span>
+                                </Button>
                             </li>
                         ))}
                     </ul>
@@ -64,15 +63,18 @@ export function HistoryPanel() {
                     <ul aria-label={t("history.redoList")} className="mt-2 flex flex-col gap-0.5 border-t pt-2">
                         {entries.redo.map((label, index) => (
                             <li key={`redo-${entries.redo.length - index}`}>
-                                <button
+                                <Button
                                     type="button"
+                                    variant="ghost"
                                     className={cn(entryClass, "text-muted-foreground")}
                                     aria-label={t("history.goForwardTo", { label })}
                                     onClick={() => { void redoTo(index) }}
                                 >
-                                    {label}
-                                    <span className="mt-0.5 block text-xs">{t("history.undoneBadge")}</span>
-                                </button>
+                                    <span className="flex flex-col items-start">
+                                        {label}
+                                        <span className="mt-0.5 block text-xs">{t("history.undoneBadge")}</span>
+                                    </span>
+                                </Button>
                             </li>
                         ))}
                     </ul>

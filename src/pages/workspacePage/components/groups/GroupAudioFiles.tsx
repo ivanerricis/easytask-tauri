@@ -5,12 +5,13 @@ import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { MenuGroup } from "@/components/menu-kind"
+import { Separator } from "@/components/ui/separator"
 import { ItemMenu, ItemMenuButton } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
 import { useAudio, useGroupAudioFiles } from "@/contexts/use-audio"
 import { useShowAudioInfo } from "../rightbar/use-right-panel"
 import { cn } from "@/lib/utils"
-import { focusRing, onActivateKey } from "@/lib/a11y"
+import { focusRing } from "@/lib/a11y"
 import type { AudioFile } from "@/types/types"
 
 type AudioFileRowProps = {
@@ -35,16 +36,6 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
 
     const items = (
         <MenuGroup className="flex flex-col gap-1">
-            {showAudioInfo && (
-                <ButtonInPopover
-                    text={t("audio.info")}
-                    type="details"
-                    onClick={() => {
-                        menu.close()
-                        showAudioInfo(file)
-                    }}
-                />
-            )}
             <ButtonInPopover
                 text={t("common.rename")}
                 type="rename"
@@ -53,6 +44,16 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
                     menu.close()
                 }}
             />
+            {showAudioInfo && (
+                <ButtonInPopover
+                    text={t("details.showTask")}
+                    type="details"
+                    onClick={() => {
+                        menu.close()
+                        showAudioInfo(file)
+                    }}
+                />
+            )}
             <ButtonInPopover
                 text={t("audio.updatePath")}
                 type="relink"
@@ -61,6 +62,7 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
                     void relinkFile(file)
                 }}
             />
+            <Separator />
             <ButtonInPopover
                 text={t("common.delete")}
                 type="delete"
@@ -97,22 +99,25 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
     return (
         <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="p-1 rounded-xs">
             <div
+                role="listitem"
                 className={cn(
-                    focusRing, "group flex items-center gap-2 border px-2 py-1 bg-background hover:bg-secondary rounded-xs cursor-pointer text-xs",
+                    "group flex items-center gap-1 border pl-2 pr-1 bg-background hover:bg-secondary rounded-xs text-xs",
                     isCurrent && "border-primary"
                 )}
-                role="button"
-                tabIndex={0}
-                aria-current={isCurrent ? "true" : undefined}
-                title={file.path}
-                onClick={() => void playFile(file)}
-                onKeyDown={onActivateKey(() => void playFile(file))}
             >
-                <StateIcon className={cn("shrink-0", state === "ended" ? "size-3.5 mx-px fill-current" : "size-4", isCurrent ? "text-primary" : "text-muted-foreground", state === "playing" && "motion-safe:animate-pulse")} />
-                <span className="flex-1 truncate">{file.name}</span>
-                {state && <span className="sr-only">{t(`audio.${state === "playing" ? "nowPlaying" : state}`)}</span>}
-                <div className="opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-                    <ItemMenuButton label={t("audio.fileMenu")} iconClassName="!h-4 !w-4" />
+                <button
+                    type="button"
+                    aria-current={isCurrent ? "true" : undefined}
+                    title={file.path}
+                    onClick={() => void playFile(file)}
+                    className={cn(focusRing, "flex min-w-0 flex-1 items-center gap-2 py-1 rounded-xs cursor-pointer text-left")}
+                >
+                    <StateIcon className={cn("shrink-0", state === "ended" ? "size-3.5 mx-px fill-current" : "size-4", isCurrent ? "text-primary" : "text-muted-foreground", state === "playing" && "motion-safe:animate-pulse")} />
+                    <span className="flex-1 truncate">{file.name}</span>
+                    {state && <span className="sr-only">{t(`audio.${state === "playing" ? "nowPlaying" : state}`)}</span>}
+                </button>
+                <div className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                    <ItemMenuButton name={file.name} />
                 </div>
             </div>
         </ItemMenu>
@@ -133,7 +138,7 @@ export const GroupAudioFiles = ({ groupId }: GroupAudioFilesProps) => {
     if (files.length === 0) return null
 
     return (
-        <div className="flex flex-col gap-1" aria-label={t("audio.files")}>
+        <div role="list" className="flex flex-col gap-1" aria-label={t("audio.files")}>
             {files.map(file => (
                 <AudioFileRow key={file.id} file={file} groupId={groupId} />
             ))}

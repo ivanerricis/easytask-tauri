@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next"
 import * as React from "react"
 import { EllipsisVertical } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { focusRing } from "@/lib/a11y"
+import { Button } from "@/components/ui/button"
 import type { ItemMenuState } from "@/hooks/use-item-menu-state"
 import { MenuKindProvider } from "@/components/menu-kind"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
@@ -71,23 +71,25 @@ export const ItemMenu = ({ state, items, dialogs, contentClassName, onCloseAutoF
 type ItemMenuButtonProps = {
     className?: string
     iconClassName?: string
-    /** Accessible name of the button. */
+    /** Accessible name of the button (wins over `name`). */
     label?: string
+    /** Name of the item: the button is called "Menu: <name>", so the buttons of a list can be told apart. */
+    name?: string
 }
 
 /** The "…" button of an item (inside an {@link ItemMenu}): opens the item menu below the button. */
-export const ItemMenuButton = ({ className, iconClassName = "size-4", label }: ItemMenuButtonProps) => {
+export const ItemMenuButton = ({ className, iconClassName = "size-4", label, name }: ItemMenuButtonProps) => {
     const { t } = useTranslation()
     const menu = React.useContext(ItemMenuContext)
     if (!menu) return null
     const { state, items, contentClassName, onCloseAutoFocus } = menu
-    const triggerClass = cn("p-1 rounded-xs cursor-pointer", focusRing, className)
+    const accessibleName = label ?? (name?.trim() ? t("common.menuOf", { name: name.trim() }) : t("common.openMenu"))
     const icon = <EllipsisVertical className={iconClassName} />
 
     return (
         <DropdownMenu open={state.dropdownOpen} onOpenChange={state.setDropdownOpen}>
             <DropdownMenuTrigger asChild>
-                <button type="button" aria-label={label ?? t("common.openMenu")} onClick={(e) => e.stopPropagation()} className={triggerClass}>{icon}</button>
+                <Button type="button" variant="ghost" size="icon" aria-label={accessibleName} onClick={(e) => e.stopPropagation()} className={cn("size-6", className)}>{icon}</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 onClick={(e) => e.stopPropagation()}

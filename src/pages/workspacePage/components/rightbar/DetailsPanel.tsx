@@ -5,6 +5,8 @@ import type { DBItemType } from "@/db/queries/shared_queries"
 import type { AudioFile, NoteDataTree, Task } from "@/types/types"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Switch } from "@/components/ui/switch"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
@@ -13,7 +15,6 @@ import { useActiveNoteId, useSelectedTask, useTabs } from "@/contexts/use-tabs"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { findTask } from "@/contexts/note-tree-ops"
-import { focusRing } from "@/lib/a11y"
 import { formatDate, getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
@@ -100,14 +101,14 @@ const TaskDescription = ({ task }: { task: Task }) => {
 
     return (
         <div className="flex flex-col gap-1">
-            <label htmlFor="details-description" className={sectionTitle}>{t("sidebar.info.description")}</label>
-            <textarea
+            <Label htmlFor="details-description" className={sectionTitle}>{t("sidebar.info.description")}</Label>
+            <Textarea
                 id="details-description"
                 rows={4}
                 value={value}
                 placeholder={t("sidebar.info.placeholder")}
                 onChange={e => setDraft(e.target.value)}
-                className={`${focusRing} min-h-24 w-full resize-y rounded-xs border bg-background px-2 py-1 text-sm`}
+                className="min-h-24 resize-y bg-background px-2 py-1 text-sm md:text-sm"
             />
             {dirty && (
                 <div className="flex justify-end gap-2">
@@ -155,11 +156,11 @@ const TaskDetails = ({ task, tree, noteName }: { task: Task, tree: NoteDataTree,
 
     return (
         <div className="flex flex-col gap-4">
-            <h2 className="text-base font-semibold break-words" aria-label={t("details.taskTitle")}>{task.text}</h2>
+            <h2 className="text-base font-semibold break-words"><span className="sr-only">{t("details.taskTitle")} </span>{task.text}</h2>
             <Field label={t("details.path")}>{path}</Field>
             <Field label={t("details.status")}>{task.completed ? t("details.completed") : t("details.pending")}</Field>
             <div className="flex items-center justify-between gap-2">
-                <label htmlFor="details-priority" className={sectionTitle}>{t("details.priority")}</label>
+                <Label htmlFor="details-priority" className={sectionTitle}>{t("details.priority")}</Label>
                 <Switch id="details-priority" checked={!!task.priority} onCheckedChange={() => { void togglePriority() }} />
             </div>
             <div className="flex items-center justify-between gap-2">
@@ -218,7 +219,7 @@ function NoteOrTaskDetails() {
     const counts = countTasks(sections.flatMap(section => section.tasks))
     return (
         <div className="flex flex-col gap-4 p-3">
-            <h2 className="text-base font-semibold break-words" aria-label={t("details.noteTitle")}>{currentNote.name}</h2>
+            <h2 className="text-base font-semibold break-words"><span className="sr-only">{t("details.noteTitle")} </span>{currentNote.name}</h2>
             <Field label={t("details.stats")}>
                 <ul className="flex flex-col gap-0.5">
                     <li>{t("common.counts.group", { count: noteDataTree.groups.length })}</li>
@@ -287,7 +288,7 @@ const AudioFields = ({ name, path, metadata }: { name: string, path: string, met
                 {metadata.cover && (
                     <img src={metadata.cover} alt={t("details.audio.cover")} className="mb-2 aspect-square w-full max-w-48 self-center rounded-xs border object-cover" />
                 )}
-                <h2 className="text-base font-semibold break-words" aria-label={t("details.audio.fileTitle")}>{metadata.title ?? name}</h2>
+                <h2 className="text-base font-semibold break-words"><span className="sr-only">{t("details.audio.fileTitle")} </span>{metadata.title ?? name}</h2>
                 {metadata.artist && <p className="text-sm break-words">{metadata.artist}</p>}
                 {metadata.album && <p className="text-sm text-muted-foreground break-words">{metadata.album}</p>}
             </div>
@@ -330,7 +331,7 @@ const AudioDetails = () => {
     else content = <AudioFields name={file.name} path={path} metadata={state.metadata} />
 
     return (
-        <section aria-label={t("details.audio.title")} className="flex min-h-0 flex-1 flex-col border-t-2">
+        <section aria-label={t("details.audio.title")} className="flex min-h-0 flex-1 flex-col border-t">
             <h2 className={`${sectionTitle} shrink-0 px-3 pt-3`}>{t("details.audio.title")}</h2>
             <div className="min-h-0 flex-1 overflow-y-auto p-3">{content}</div>
         </section>

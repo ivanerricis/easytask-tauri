@@ -83,3 +83,12 @@ describe("SectionBody hiding the completed tasks", () => {
         expect(screen.queryByTestId("hidden-completed")).not.toBeInTheDocument()
     })
 })
+
+describe("SectionBody collapsed", () => {
+    it("is hidden (out of the tab order and of the accessibility tree) while the section is closed", () => {
+        const { container, rerender } = render(<SectionBody isOpen={false} section={section} />)
+        expect(container.firstElementChild).toHaveClass("hidden")
+        rerender(<SectionBody isOpen section={section} />)
+        expect(container.firstElementChild).not.toHaveClass("hidden")
+    })
+})

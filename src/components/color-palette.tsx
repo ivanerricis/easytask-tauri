@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PALETTE_COLORS, isPaletteColor } from "@/lib/colors"
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
 type ColorPaletteProps = {
     /** The current color: its swatch is marked (a color outside the palette is shown in the "+" one). */
@@ -20,6 +21,7 @@ export const ColorPalette = ({ value, onPick, className }: ColorPaletteProps) =>
     const [custom, setCustom] = useState("#000000")
     const customSelected = !!value && !isPaletteColor(value)
     const customColor = customSelected ? value : custom
+    const selectedColor = PALETTE_COLORS.find(color => value?.toLowerCase() === color) ?? ""
 
     // The custom picker picks once it is closed: the native `change` event (React's onChange is the `input` event, which
     // fires at every movement inside the picker and would pick, and close the menu, while it is still open)
@@ -32,18 +34,22 @@ export const ColorPalette = ({ value, onPick, className }: ColorPaletteProps) =>
     })
 
     return (
-        <div className={cn("grid grid-cols-4", className)}>
-            {PALETTE_COLORS.map(color => {
-                const selected = value?.toLowerCase() === color
+        <ToggleGroup
+            type="single"
+            value={selectedColor}
+            aria-label={t("dialogs.color.palette")}
+            className={cn("grid w-auto grid-cols-4 gap-0 rounded-none", className)}
+        >
+            {PALETTE_COLORS.map((color, index) => {
+                const selected = selectedColor === color
                 return (
-                    <button
-                        type="button"
+                    <ToggleGroupItem
                         key={color}
-                        aria-label={t("dialogs.color.swatch", { color })}
-                        aria-pressed={selected}
+                        value={color}
+                        aria-label={t("dialogs.color.swatch", { color: t(`common.colors.c${index + 1}` as "common.colors.c1") })}
                         onClick={e => onPick(color, e)}
                         className={cn(
-                            "cursor-pointer size-7 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset",
+                            "size-7 min-w-0 p-0 rounded-none! hover:text-inherit focus-visible:ring-inset",
                             selected && "ring-2 ring-inset ring-foreground",
                         )}
                         style={{ backgroundColor: color }}
@@ -51,7 +57,10 @@ export const ColorPalette = ({ value, onPick, className }: ColorPaletteProps) =>
                 )
             })}
             <div
-                className={cn("relative flex items-center justify-center size-7", customSelected && "ring-2 ring-inset ring-foreground")}
+                className={cn(
+                    "relative flex items-center justify-center size-7 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring",
+                    customSelected && "ring-2 ring-inset ring-foreground",
+                )}
                 style={{ backgroundColor: customColor }}
             >
                 <input
@@ -65,6 +74,6 @@ export const ColorPalette = ({ value, onPick, className }: ColorPaletteProps) =>
                 />
                 <Plus className="absolute pointer-events-none size-5 text-background dark:text-foreground" />
             </div>
-        </div>
+        </ToggleGroup>
     )
 }

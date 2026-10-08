@@ -8,12 +8,19 @@ import { useShortcut } from "@/hooks/use-shortcut"
 import { Eye, EyeOff, X } from "lucide-react"
 import React from "react"
 import { ButtonMenuNote } from "./ButtonMenuNote"
-import { focusRing, onActivateKey } from "@/lib/a11y"
+import { Button } from "@/components/ui/button"
+import { Toggle } from "@/components/ui/toggle"
+import { focusRing } from "@/lib/a11y"
+import { cn } from "@/lib/utils"
 
 type NoteHeaderProps = {
     note: Note
 }
 
+/**
+ * One tab of the bar of the open notes. The tab itself (role "tab") is the name; the toggle of the completed tasks and
+ * the close button are its siblings inside the same box, never nested in it (a tab must not contain buttons).
+ */
 export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
     const { t } = useTranslation()
 
@@ -32,26 +39,13 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
         closeNote(note.id)
     }
 
-    const handleToggleCompleted = (e: React.MouseEvent) => {
-        e.stopPropagation()
-        setHideCompletedTasks(!hideCompletedTasks)
-    }
-
-    const setCurrent = (e: React.MouseEvent) => {
-        e.stopPropagation()
-        activateNote(note.id)
-    }
-
     return (
         <ButtonMenuNote note={note}>
             <div
-                role="button"
-                tabIndex={0}
-                onClick={setCurrent}
-                onKeyDown={onActivateKey(() => activateNote(note.id))}
-                aria-current={isActive ? "true" : undefined}
-                className={`${focusRing} relative flex flex-col items-center cursor-pointer border-x border-b min-h-[42px]
-                    ${isActive ? 'bg-background border-x-primary border-b-transparent' : 'bg-secondary border-x-transparent border-b-primary hover:bg-background/40'}`}
+                className={cn(
+                    "relative flex items-stretch min-h-[42px] border-x border-b",
+                    isActive ? "bg-background border-x-primary border-b-transparent" : "bg-secondary border-x-transparent border-b-primary hover:bg-background/40",
+                )}
             >
                 {/* Color container */}
                 {note.color && <div
@@ -60,38 +54,46 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                 >
                 </div>}
 
-                {/* Text + Close button */}
                 {/* Same height as the sidebar header (32px buttons + padding + border), the content centered in it */}
-                <div className="flex flex-1 items-center justify-between py-1 pl-2 pr-1 gap-2">
-                    <span className={`w-full text-left text-sm text-nowrap ${isActive ? "font-medium text-foreground" : "text-muted-foreground"}`}>
+                <button
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    tabIndex={isActive ? 0 : -1}
+                    data-note-id={note.id}
+                    title={note.name}
+                    onClick={() => activateNote(note.id)}
+                    className={cn(focusRing, "flex min-w-0 flex-1 cursor-pointer items-center py-1 pl-2 pr-1 text-left text-sm")}
+                >
+                    <span className={cn("block max-w-56 truncate", isActive ? "font-medium text-foreground" : "text-muted-foreground")}>
                         {note.name}
                     </span>
+                </button>
+                <div className="flex shrink-0 items-center gap-1 py-1 pr-1">
                     {isActive &&
                         <TooltipCustom text={t("notes.hideCompleted")} shortcut={hideLabel}>
-                            <button
-                                type="button"
+                            <Toggle
                                 aria-label={t("notes.hideCompleted")}
-                                aria-pressed={hideCompletedTasks}
-                                onClick={handleToggleCompleted}
-                                className={`${focusRing} flex items-center justify-center cursor-pointer p-0.5 hover:bg-accent rounded-xs ${hideCompletedTasks ? "text-primary" : "text-foreground"}`}
+                                pressed={hideCompletedTasks}
+                                onPressedChange={setHideCompletedTasks}
+                                className="size-6 min-w-6 p-0"
                             >
-                                {hideCompletedTasks ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                            </button>
+                                {hideCompletedTasks ? <EyeOff /> : <Eye />}
+                            </Toggle>
                         </TooltipCustom>
                     }
-                    {isActive ?
-                        <TooltipCustom text={t("notes.closeCurrent")} shortcut={closeLabel}>
-                            <button type="button" aria-label={t("notes.closeCurrent")} onClick={handleCloseHeader} className={`${focusRing} flex items-center justify-center cursor-pointer p-0.5 hover:bg-accent rounded-xs text-foreground`}>
-                                <X className="h-4 w-4" />
-                            </button>
-                        </TooltipCustom>
-                        :
-                        <TooltipCustom text={t("notes.close")}>
-                            <button type="button" aria-label={t("notes.close")} onClick={handleCloseHeader} className={`${focusRing} flex items-center justify-center cursor-pointer p-0.5 hover:bg-accent rounded-xs text-muted-foreground`}>
-                                <X className="h-4 w-4" />
-                            </button>
-                        </TooltipCustom>
-                    }
+                    <TooltipCustom text={isActive ? t("notes.closeCurrent") : t("notes.close")} shortcut={isActive ? closeLabel : undefined}>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            aria-label={isActive ? t("notes.closeCurrent") : t("notes.close")}
+                            onClick={handleCloseHeader}
+                            className={cn("size-6", isActive ? "text-foreground" : "text-muted-foreground")}
+                        >
+                            <X />
+                        </Button>
+                    </TooltipCustom>
                 </div>
             </div>
         </ButtonMenuNote>

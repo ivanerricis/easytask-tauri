@@ -6,11 +6,11 @@ import { Button } from "@/components/ui/button"
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { FormError } from "@/components/form-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { OptionalColorField } from "@/components/optional-color-field"
@@ -29,6 +29,7 @@ export function DialogCreateWorkspace() {
     const { createWorkspace, getWorkspaces } = useWorkspace()
     const { saving, run } = useSubmitOnce()
     const nameId = useId()
+    const errorId = useId()
 
     useShortcut("new-workspace", () => setIsOpen(true), { allowInInputs: true })
     const shortcutLabel = useShortcutLabel("new-workspace")
@@ -59,11 +60,10 @@ export function DialogCreateWorkspace() {
 
     return (
         <>
-            <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent className="sm:max-w-[425px]">
+            <Dialog open={isOpen} onOpenChange={open => { if (open) setIsOpen(true); else handleCancel() }}>
+                <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
                     <DialogHeader>
                         <DialogTitle>{t("home.createWorkspace.title")}</DialogTitle>
-                        <DialogDescription />
                     </DialogHeader>
                     <form onSubmit={handleCreate}>
                         <div className="grid gap-4">
@@ -73,6 +73,8 @@ export function DialogCreateWorkspace() {
                                     <Input
                                         id={nameId}
                                         name="name"
+                                        aria-invalid={error ? true : undefined}
+                                        aria-describedby={error ? errorId : undefined}
                                         value={name}
                                         onChange={e => {
                                             setError(null)
@@ -81,7 +83,7 @@ export function DialogCreateWorkspace() {
                                     />
                                     <OptionalColorField value={color} onChange={setColor} />
                                 </div>
-                                {error && (<p className="text-sm text-destructive">{error}</p>)}
+                                <FormError id={errorId}>{error}</FormError>
                             </div>
                         </div>
                         <DialogFooter className="mt-4">

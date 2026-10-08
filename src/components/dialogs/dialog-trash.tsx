@@ -1,19 +1,20 @@
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Loader2, RotateCcw, Trash2 } from "lucide-react"
+import { RotateCcw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { FormError } from "@/components/form-error"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useOptionalUndo } from "@/contexts/undo/use-undo"
 import { getErrorMessage } from "@/lib/utils"
-import { ItemRow, TypeTabs } from "./item-list-parts"
-import { ITEM_ICONS, formatStoredDate, typePanelId, typeTabId } from "./item-list-utils"
+import { ItemRow, ListError, ListLoading, TypeTabs } from "./item-list-parts"
+import { ITEM_ICONS, formatStoredDate } from "./item-list-utils"
 import type { TrashItem } from "@/types/types"
 
 type TrashSource = {
@@ -51,22 +52,26 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     const sourceRef = useRef(source)
     useEffect(() => { sourceRef.current = source })
 
+    // Error of an action (shown under the list) and error of the load (shown instead of the list)
     const [error, setError] = useState<string | null>(null)
+    const [loadError, setLoadError] = useState<string | null>(null)
 
     const reload = useCallback(async () => {
         try {
             const list = await sourceRef.current.load()
+            setLoadError(null)
             setItems(list)
             // The first time: show the first type that has something in it
             const types = sourceRef.current.types
             setSelected(current => current ?? types.find(type => list.some(i => i.type === type)) ?? types[0])
         } catch (err) {
-            setError(getErrorMessage(err))
+            setLoadError(getErrorMessage(err))
         }
     }, [])
 
     useEffect(() => {
         if (!isOpen) return
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- load when the dialog opens
         reload().finally(() => setLoaded(true))
         return () => {
             setLoaded(false)
@@ -97,6 +102,36 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     const Icon = ITEM_ICONS[active]
     const hasTabs = types.length > 1
 
+    // The rows of the selected kind of item
+    const rows = activeItems.length === 0 ? (
+                <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.emptyType")}</p>
+            ) : activeItems.map(item => (
+                <ItemRow key={`${item.type}-${item.id}`} icon={Icon} name={item.name} details={details(item)}>
+                    <TooltipCustom text={t("trash.restore")}>
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            aria-label={t("trash.restoreAria", { name: item.name })}
+                            disabled={busy}
+                            onClick={() => run(() => sourceRef.current.restore(item), t("trash.restored"))}
+                        >
+                            <RotateCcw />
+                        </Button>
+                    </TooltipCustom>
+                    <TooltipCustom text={t("trash.purge")}>
+                        <Button
+                            variant="destructive"
+                            size="icon"
+                            aria-label={t("trash.purgeAria", { name: item.name })}
+                            disabled={busy}
+                            onClick={() => setConfirm({ kind: "purge", item })}
+                        >
+                            <Trash2 />
+                        </Button>
+                    </TooltipCustom>
+                </ItemRow>
+    ))
+
     const handleConfirm = async () => {
         const current = confirm
         setConfirm(null)
@@ -112,7 +147,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent className={hasTabs ? "flex flex-col sm:max-w-3xl h-[min(560px,85vh)] overflow-hidden" : "sm:max-w-xl"}>
+                <DialogContent className={hasTabs ? "flex flex-col sm:max-w-3xl h-[min(560px,85vh)] overflow-hidden" : "flex flex-col sm:max-w-xl max-h-[min(560px,85vh)] overflow-hidden"}>
                     <DialogHeader>
                         <DialogTitle>{t("trash.title")}</DialogTitle>
                         <DialogDescription>
@@ -120,63 +155,32 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                         </DialogDescription>
                     </DialogHeader>
                     {isLoading ? (
-                        <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-                            <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
-                        </div>
+                        <ListLoading />
+                    ) : loadError !== null ? (
+                        <ListError message={loadError} onRetry={() => void reload()} />
                     ) : items.length === 0 ? (
                         <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
+                    ) : hasTabs ? (
+                        <TypeTabs
+                            types={types}
+                            active={active}
+                            onSelect={setSelected}
+                            count={type => items.filter(i => i.type === type).length}
+                            label={type => t(`trash.groups.${type}`)}
+                            ariaLabel={t("trash.nav")}
+                        >
+                            {rows}
+                        </TypeTabs>
                     ) : (
-                        <div className="flex flex-col sm:flex-row gap-4 min-h-0 flex-1">
-                            {hasTabs && <TypeTabs
-                                types={types}
-                                active={active}
-                                onSelect={setSelected}
-                                count={type => items.filter(i => i.type === type).length}
-                                label={type => t(`trash.groups.${type}`)}
-                                ariaLabel={t("trash.nav")}
-                                idPrefix="trash"
-                            />}
-                            <div
-                                role={hasTabs ? "tabpanel" : undefined}
-                                id={hasTabs ? typePanelId("trash", active) : undefined}
-                                aria-labelledby={hasTabs ? typeTabId("trash", active) : undefined}
-                                className="flex-1 min-w-0 overflow-y-auto pr-1 flex flex-col gap-1"
-                            >
-                                {activeItems.length === 0 ? (
-                                    <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.emptyType")}</p>
-                                ) : activeItems.map(item => (
-                                    <ItemRow key={`${item.type}-${item.id}`} icon={Icon} name={item.name} details={details(item)}>
-                                        <TooltipCustom text={t("trash.restore")}>
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                aria-label={t("trash.restoreAria", { name: item.name })}
-                                                disabled={busy}
-                                                onClick={() => run(() => sourceRef.current.restore(item), t("trash.restored"))}
-                                            >
-                                                <RotateCcw />
-                                            </Button>
-                                        </TooltipCustom>
-                                        <TooltipCustom text={t("trash.purge")}>
-                                            <Button
-                                                variant="destructive"
-                                                size="icon"
-                                                aria-label={t("trash.purgeAria", { name: item.name })}
-                                                disabled={busy}
-                                                onClick={() => setConfirm({ kind: "purge", item })}
-                                            >
-                                                <Trash2 />
-                                            </Button>
-                                        </TooltipCustom>
-                                    </ItemRow>
-                                ))}
-                            </div>
+                        <div className="min-w-0 min-h-0 overflow-y-auto pr-1 flex flex-col gap-1">
+                            {rows}
                         </div>
                     )}
-                    {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
+                    <FormError>{error}</FormError>
                     <DialogFooter>
                         <Button
                             variant="destructive"
+                            className="sm:mr-auto"
                             disabled={busy || isLoading || items.length === 0}
                             onClick={() => setConfirm({ kind: "empty" })}
                         >

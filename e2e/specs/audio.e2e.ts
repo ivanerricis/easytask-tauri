@@ -52,7 +52,7 @@ const waitAudio = (check: (state: AudioState) => boolean, timeoutMsg: string) =>
 
 /** Row of an audio file in the group (found through its name). */
 const audioRow = async (name: string) =>
-    $(`//div[@role='button'][.//span[normalize-space()=${JSON.stringify(name)}]][ancestor::div[@aria-label=${JSON.stringify(await tr("audio.files"))}]]`)
+    $(`//button[.//span[normalize-space()=${JSON.stringify(name)}]][ancestor::div[@aria-label=${JSON.stringify(await tr("audio.files"))}]]`)
 
 /** Icon of the row (lucide name: music, audio-lines, pause, square) and its sr-only state text. */
 const rowState = async (name: string) => {

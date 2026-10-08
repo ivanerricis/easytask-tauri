@@ -1,15 +1,17 @@
 import { Check } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { FormError } from "@/components/form-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { isUndoableType } from "@/contexts/undo/commands"
-import React, { useId, useState } from "react"
+import React, { useId, useRef, useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 type DialogRenameProps<T> = {
     item: T
@@ -34,6 +36,9 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
     const currentName = item.name ?? item.title ?? ""
     const [value, setValue] = useState(currentName)
     const nameId = useId()
+    const errorId = useId()
+    const inputRef = useRef<HTMLInputElement>(null)
+    const { saving, run } = useSubmitOnce()
     const { renameItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
     const [error, setError] = useState<string | null>(null)
@@ -42,22 +47,24 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
 
     const handleEdit = async (e: React.FormEvent) => {
         e.preventDefault()
-        let rollback: (() => void) | undefined
-        try {
-            if ((allowEmpty || value.trim()) && value.trim() !== currentName) {
-                rollback = optimistic?.(value.trim())
-                await renameItem(itemType, item.id, value.trim())
-                if (isUndoableType(itemType)) recorder.rename(itemType, item.id, currentName, value.trim())
+        await run(async () => {
+            let rollback: (() => void) | undefined
+            try {
+                if ((allowEmpty || value.trim()) && value.trim() !== currentName) {
+                    rollback = optimistic?.(value.trim())
+                    await renameItem(itemType, item.id, value.trim())
+                    if (isUndoableType(itemType)) recorder.rename(itemType, item.id, currentName, value.trim())
+                }
+                if (typeof getItemId === "number") {
+                    await getItemData?.(getItemId)
+                }
+                setError(null)
+                onOpenChange(false)
+            } catch (err) {
+                rollback?.()
+                setError(getErrorMessage(err))
             }
-            if (typeof getItemId === "number") {
-                await getItemData?.(getItemId)
-            }
-            setError(null)
-            onOpenChange(false)
-        } catch (err) {
-            rollback?.()
-            setError(getErrorMessage(err))
-        }
+        })
     }
 
     // Every way of closing (Cancel, Escape, click outside) drops the typed value and the error
@@ -73,24 +80,36 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
 
     return (
         <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-            <DialogContent>
+            <DialogContent
+                className="sm:max-w-md"
+                aria-describedby={undefined}
+                // The current name is selected: typing replaces it
+                onOpenAutoFocus={e => {
+                    e.preventDefault()
+                    inputRef.current?.focus()
+                    inputRef.current?.select()
+                }}
+            >
                 <DialogHeader>
                     <DialogTitle>{t("common.rename")}</DialogTitle>
-                    <DialogDescription />
                 </DialogHeader>
                 <form onSubmit={handleEdit}>
                     <div className="grid gap-3">
                         <Label htmlFor={nameId} className="sr-only">{t("common.name")}</Label>
                         <Input
                             id={nameId}
+                            ref={inputRef}
                             name="name"
                             value={value}
+                            readOnly={saving}
+                            aria-invalid={error ? true : undefined}
+                            aria-describedby={error ? errorId : undefined}
                             onChange={e => {
                                 setError(null)
                                 setValue(e.target.value)
                             }}
                         />
-                        {error && <p className="text-sm text-destructive">{error}</p>}
+                        <FormError id={errorId}>{error}</FormError>
                     </div>
                     <DialogFooter className="mt-4">
                         <Button
@@ -102,7 +121,7 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
                         </Button>
                         <Button
                             type="submit"
-                            disabled={!allowEmpty && !value.trim()}
+                            disabled={(!allowEmpty && !value.trim()) || saving}
                         >
                             <Check />
                             {t("common.save")}

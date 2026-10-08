@@ -27,7 +27,7 @@ describe("DataSettings OneDrive warning", () => {
     it("is shown when the data folder is synced by OneDrive", async () => {
         invoke.mockResolvedValue(true)
         renderSettings()
-        expect(await screen.findByRole("alert")).toHaveTextContent("OneDrive")
+        expect(await screen.findByRole("note")).toHaveTextContent("OneDrive")
         expect(invoke).toHaveBeenCalledWith("data_dir_in_onedrive")
     })
 
@@ -35,14 +35,14 @@ describe("DataSettings OneDrive warning", () => {
         invoke.mockResolvedValue(false)
         renderSettings()
         await waitFor(() => expect(invoke).toHaveBeenCalledWith("data_dir_in_onedrive"))
-        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+        expect(screen.queryByRole("note")).not.toBeInTheDocument()
     })
 
     it("is hidden when the check fails", async () => {
         invoke.mockRejectedValue(new Error("boom"))
         renderSettings()
         await waitFor(() => expect(invoke).toHaveBeenCalledWith("data_dir_in_onedrive"))
-        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+        expect(screen.queryByRole("note")).not.toBeInTheDocument()
     })
 })
 

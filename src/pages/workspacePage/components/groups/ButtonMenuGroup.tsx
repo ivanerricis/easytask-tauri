@@ -3,6 +3,7 @@ import { ButtonInPopover } from "@/components/button-in-popover";
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename";
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete";
 import { MenuGroup } from "@/components/menu-kind";
+import { Separator } from "@/components/ui/separator";
 import { ColorSubmenu } from "../ColorSubmenu";
 import { useWorkspaceActions } from "@/contexts/workspace-data";
 import type { DBItemType } from "@/db/queries/shared_queries";
@@ -86,6 +87,7 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
                 type="archive"
                 onClick={handleArchive}
             />
+            <Separator />
             <ButtonInPopover
                 text={t("common.delete")}
                 type="delete"

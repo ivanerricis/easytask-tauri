@@ -115,6 +115,12 @@ describe("ConfirmDialog", () => {
             expect(onOpenChange).toHaveBeenCalledWith(false)
         })
 
+        it("Enter does not confirm when the focus started on Annulla", () => {
+            setup({ initialFocus: "cancel" })
+            fireEvent.keyDown(screen.getByRole("dialog"), { key: "Enter" })
+            expect(onConfirm).not.toHaveBeenCalled()
+        })
+
         it("Enter on Annulla does not confirm (it presses Annulla)", () => {
             setup()
             fireEvent.keyDown(screen.getByRole("button", { name: "Annulla" }), { key: "Enter" })

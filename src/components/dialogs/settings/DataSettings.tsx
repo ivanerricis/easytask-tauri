@@ -2,8 +2,10 @@ import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { useLocation } from "react-router-dom"
 import { invoke } from "@tauri-apps/api/core"
-import { Download, FolderOpen, Upload } from "lucide-react"
+import { Download, FolderOpen, TriangleAlert, Upload } from "lucide-react"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { FormError } from "@/components/form-error"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { usePreferences } from "@/contexts/use-preferences"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -67,11 +69,13 @@ export const DataSettings = () => {
                         {t("settings.data.folder.button")}
                     </Button>
                 </SettingsRow>
-                {folderError && <p role="alert" className="text-xs text-destructive break-words">{folderError}</p>}
+                <FormError>{folderError}</FormError>
                 {inOneDrive && (
-                    <p role="alert" className="rounded-md border border-amber-500/50 bg-amber-500/10 px-3 py-2 text-xs">
-                        {t("settings.data.folder.oneDriveWarning")}
-                    </p>
+                    // A standing notice, not an alert: it must not interrupt a screen reader every time the page opens
+                    <Alert role="note" className="border-warning/50 bg-warning/10 text-foreground">
+                        <TriangleAlert className="text-warning" />
+                        <AlertDescription className="text-foreground">{t("settings.data.folder.oneDriveWarning")}</AlertDescription>
+                    </Alert>
                 )}
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.data.sections.backup")}>
@@ -79,8 +83,9 @@ export const DataSettings = () => {
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.data.sections.history")}>
                 <SettingsRow label={t("settings.data.undoLimit.label")} description={t("settings.data.undoLimit.description")}>
+                    {({ id, descriptionId }) => (
                     <Select value={String(undoLimit)} onValueChange={value => setUndoLimit(Number(value))}>
-                        <SelectTrigger aria-label={t("settings.data.undoLimit.label")} className="w-24">
+                        <SelectTrigger id={id} aria-describedby={descriptionId} size="sm" className="w-24">
                             <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -89,6 +94,7 @@ export const DataSettings = () => {
                             {UNDO_LIMIT_OPTIONS.map(value => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}
                         </SelectContent>
                     </Select>
+                    )}
                 </SettingsRow>
             </SettingsSubsection>
             {/* Further subsections are appended here as <SettingsSubsection> */}

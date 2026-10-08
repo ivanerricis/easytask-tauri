@@ -18,15 +18,18 @@ export const ButtonCloseNotes = () => {
 
     return (
         <TooltipCustom text={t("notes.closeAll")} shortcut={shortcutLabel}>
-            <Button
-                variant={"buttonIcon"}
-                size={"icon"}
-                aria-label={t("notes.closeAll")}
-                disabled={openIds.length === 0}
-                onClick={closeNotes}
-            >
-                <CopyMinus className="scale-x-[-1]" />
-            </Button>
+            {/* The span keeps the tooltip when the button is disabled (a disabled button gets no pointer events) */}
+            <span className="inline-flex">
+                <Button
+                    variant={"buttonIcon"}
+                    size={"icon"}
+                    aria-label={t("notes.closeAll")}
+                    disabled={openIds.length === 0}
+                    onClick={closeNotes}
+                >
+                    <CopyMinus className="scale-x-[-1]" />
+                </Button>
+            </span>
         </TooltipCustom>
     )
 }

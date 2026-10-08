@@ -13,7 +13,7 @@ type NavBarProps = {
 // The window controls use the text color, not the accent: the accent is chosen by the user and can be unreadable on the theme.
 // Closing turns red on hover, like the windows of the system.
 const WINDOW_BUTTON = "text-foreground"
-const CLOSE_BUTTON = "text-foreground hover:!bg-[#c42b1c] hover:!text-white focus-visible:ring-offset-0"
+const CLOSE_BUTTON = "text-foreground hover:!bg-window-close hover:!text-white focus-visible:ring-offset-0"
 
 export const Navbar = React.memo(({ leftContainer, centerContainer, rightContainer }: NavBarProps) => {
     const { t } = useTranslation()
@@ -43,8 +43,8 @@ export const Navbar = React.memo(({ leftContainer, centerContainer, rightContain
 
     return (
         <div className="z-50 flex items-center justify-between w-full border-b shadow-sm bg-background" data-tauri-drag-region>
-            <div className="flex-1 text-left" >{leftContainer}</div>
-            <div className="flex-1 text-center">{centerContainer}</div>
+            <div className="flex-1 text-left" data-tauri-drag-region>{leftContainer}</div>
+            <div className="flex-1 text-center" data-tauri-drag-region>{centerContainer}</div>
             <div className="flex-1 flex flex-row-reverse items-center justify-start text-right" data-tauri-drag-region>
                 <div className="flex items-center justify-end">
                     <ButtonNavbar onClick={() => void appWindow.minimize()} className={WINDOW_BUTTON} label={t("window.minimize")} textTooltip={t("window.minimize")} window>

@@ -5,6 +5,7 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { cn, getErrorMessage } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
 import { Check, Loader2, Plus, X } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import type { FormEvent, KeyboardEvent } from "react"
@@ -63,8 +64,8 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
             <div className="flex items-start w-full px-1 py-1.5">
                 <div className="flex items-start gap-2 ml-4 w-full">
                     {/* Inert placeholder in the exact spot (and look) of a real subtask checkbox */}
-                    <span aria-hidden className="mt-0.5 size-4 shrink-0 rounded-[2px] border border-input opacity-50" />
-                    <input
+                    <span aria-hidden className="mt-0.5 size-4 shrink-0 rounded-xs border border-input opacity-50" />
+                    <Input
                         ref={inputRef}
                         value={text}
                         onChange={(e) => setText(e.target.value)}
@@ -81,32 +82,32 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
                         onBlur={() => {
                             if (!text.trim() && !saving) onClose?.()
                         }}
-                        className={cn(
-                            "flex-1 min-w-0 h-5 bg-transparent text-sm outline-none border-b border-transparent transition-colors",
-                            "placeholder:text-muted-foreground focus:border-primary",
-                            saving && "opacity-60"
-                        )}
+                        className={cn("flex-1 h-6 px-1 py-0 text-sm md:text-sm shadow-none", saving && "opacity-60")}
                     />
                     <div className="flex items-center gap-0.5 shrink-0">
                         <TooltipCustom text={t("common.add")} shortcut={keyLabel("enter")}>
-                            <button
+                            <Button
                                 type="submit"
+                                variant="ghost"
+                                size="icon"
                                 aria-label={t("tasks.addSubtask")}
                                 disabled={!text.trim() || saving}
-                                className="p-0.5 rounded-xs cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent disabled:opacity-40 disabled:pointer-events-none"
+                                className="size-6 text-muted-foreground hover:text-foreground"
                             >
-                                {saving ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
-                            </button>
+                                {saving ? <Loader2 className="animate-spin" /> : <Check />}
+                            </Button>
                         </TooltipCustom>
                         <TooltipCustom text={t("common.close")} shortcut={keyLabel("escape")}>
-                            <button
+                            <Button
                                 type="button"
+                                variant="ghost"
+                                size="icon"
                                 aria-label={t("common.close")}
                                 onClick={() => onClose?.()}
-                                className="p-0.5 rounded-xs cursor-pointer text-muted-foreground hover:text-foreground hover:bg-accent"
+                                className="size-6 text-muted-foreground hover:text-foreground"
                             >
-                                <X className="size-4" />
-                            </button>
+                                <X />
+                            </Button>
                         </TooltipCustom>
                     </div>
                 </div>
@@ -172,14 +173,15 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
 
     return (
         !isOpen ? (
-            <button
+            <Button
                 type="button"
-                aria-label={t("tasks.add")}
+                variant="ghost"
                 onClick={handleOpen}
-                className="cursor-pointer group/add flex items-center justify-center w-full h-9 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="w-full h-9 rounded-none font-normal text-muted-foreground hover:text-foreground"
             >
-                <Plus className="group-hover/add:text-foreground text-muted-foreground size-5" />
-            </button>
+                <Plus />
+                {t("tasks.add")}
+            </Button>
         ) : (
             <form
                 ref={formRef}
@@ -192,6 +194,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                         onChange={(e) => setText(e.target.value)}
                         onKeyDown={handleKeyDown}
                         placeholder={t("tasks.placeholder")}
+                        aria-label={t("tasks.add")}
                         autoFocus
                         readOnly={saving}
                         className="rounded-none border-none text-sm"

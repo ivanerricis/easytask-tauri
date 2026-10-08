@@ -17,15 +17,18 @@ export const ButtonUpload = () => {
 
     return (
         <TooltipCustom text={t("sidebar.addAudioFirstGroup")}>
-            <Button
-                variant={"buttonIcon"}
-                size={"icon"}
-                disabled={!firstGroup}
-                aria-label={t("audio.add")}
-                onClick={() => { if (firstGroup) void addFiles(firstGroup.id) }}
-            >
-                <Music />
-            </Button>
+            {/* The span keeps the tooltip when the button is disabled (a disabled button gets no pointer events) */}
+            <span className="inline-flex">
+                <Button
+                    variant={"buttonIcon"}
+                    size={"icon"}
+                    disabled={!firstGroup}
+                    aria-label={t("sidebar.addAudioFirstGroup")}
+                    onClick={() => { if (firstGroup) void addFiles(firstGroup.id) }}
+                >
+                    <Music />
+                </Button>
+            </span>
         </TooltipCustom>
     )
 }

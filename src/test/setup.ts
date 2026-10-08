@@ -26,6 +26,11 @@ if (typeof Element !== "undefined") {
     Element.prototype.scrollIntoView ??= () => {}
 }
 
+// Radix Slider, Switch, Tooltip and Popover measure themselves with a ResizeObserver, which jsdom does not implement
+if (typeof globalThis.ResizeObserver === "undefined") {
+    globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver
+}
+
 // The UI tests assert Italian strings: the system language is Italian and i18n starts in Italian
 if (typeof window !== "undefined") vi.spyOn(window.navigator, "language", "get").mockReturnValue("it-IT")
 initI18n("it")

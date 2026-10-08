@@ -15,6 +15,7 @@ export const dialogs = {
     },
     color: {
         swatch: "Colore {{color}}",
+        palette: "Colori",
         custom: "Scegli un altro colore",
     },
     createTemplate: {

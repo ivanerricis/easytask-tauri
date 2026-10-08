@@ -13,6 +13,9 @@ import { GroupAudioFiles } from "@/pages/workspacePage/components/groups/GroupAu
 import { DraggableAudioPlayer } from "@/components/draggable-audio-player"
 import { createDBAudioFile, getDBAudioFile, getDBGroupAudioFiles, updateDBAudioFilePath } from "@/db/queries/audio"
 
+// The Radix slider of the player measures its thumb with a ResizeObserver, which jsdom does not have
+globalThis.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver
+
 vi.mock("@tauri-apps/api/core", () => ({
     invoke: vi.fn(),
     convertFileSrc: vi.fn((path: string) => `asset://localhost/${encodeURIComponent(path)}`),
@@ -131,8 +134,8 @@ describe("audio files of a group", () => {
         expect(frame.style.opacity).toBe("0.6")
         expect(frame.style.zoom).toBe("1.2")
 
-        fireEvent.change(screen.getByLabelText("Volume"), { target: { value: "0.7" } })
-        expect(prefsState.setAudioVolume).toHaveBeenCalledWith(0.7)
+        fireEvent.keyDown(screen.getByLabelText("Volume"), { key: "ArrowRight" })
+        expect(prefsState.setAudioVolume).toHaveBeenCalledWith(0.41)
     })
 
     it("with the floating player turned off nothing starts and the user is told", async () => {
@@ -164,7 +167,7 @@ describe("audio files of a group", () => {
         await user.click(await screen.findByText("song.mp3"))
         await waitFor(() => expect(play).toHaveBeenCalledTimes(1))
         // The name is also shown by the player: the list row is the first match
-        const row = () => screen.getAllByText("song.mp3")[0].closest("[role=button]") as HTMLElement
+        const row = () => screen.getAllByText("song.mp3")[0].closest("button") as HTMLElement
         expect(within(row()).getByText("In riproduzione")).toBeInTheDocument()
         expect(row()).toHaveAttribute("aria-current", "true")
         audioElement()!.currentTime = 12
@@ -225,7 +228,7 @@ describe("audio files of a group", () => {
     it("the icon of the row follows the state: note, bars while playing, pause, stop at the end, note after the X", async () => {
         const user = userEvent.setup()
         renderAll()
-        const row = () => screen.getAllByText("song.mp3")[0].closest("[role=button]") as HTMLElement
+        const row = () => screen.getAllByText("song.mp3")[0].closest("button") as HTMLElement
         const icon = () => row().querySelector("svg")!
         await screen.findByText("song.mp3")
         expect(icon()).toHaveClass("lucide-music")
@@ -254,7 +257,7 @@ describe("audio files of a group", () => {
         renderAll()
         await user.click(await screen.findByText("song.mp3"))
         await waitFor(() => expect(play).toHaveBeenCalledTimes(1))
-        const other = screen.getByText("other.wav").closest("[role=button]") as HTMLElement
+        const other = screen.getByText("other.wav").closest("button") as HTMLElement
         expect(other).not.toHaveAttribute("aria-current")
         expect(within(other).queryByText(/In riproduzione|In pausa/)).toBeNull()
     })

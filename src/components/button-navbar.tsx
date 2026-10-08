@@ -20,7 +20,7 @@ export const ButtonNavbar = ({ children, onClick, className, window, textTooltip
                 type="button"
                 aria-label={label ?? textTooltip}
                 onClick={onClick}
-                className={cn(`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex items-center justify-center cursor-pointer text-primary hover:bg-accent ${window ? "p-2" : "p-0.5"}`, className)}>
+                className={cn(`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring flex items-center justify-center cursor-pointer text-foreground hover:bg-accent ${window ? "p-2" : "size-6"}`, className)}>
                 {children}
             </button>
         </TooltipCustom>

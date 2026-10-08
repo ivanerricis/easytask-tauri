@@ -6,7 +6,6 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "../dialog-confirm"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import {
     createBackup,
@@ -27,7 +26,8 @@ import {
     saveBackupKeep,
 } from "@/lib/store/preferences"
 import { getErrorMessage } from "@/lib/utils"
-import { SettingsRow } from "./SettingsRow"
+import { FormError } from "@/components/form-error"
+import { SettingsRow, SettingsSwitchRow } from "./SettingsRow"
 
 /** "12 KB", "1.4 MB". */
 function formatSize(bytes: number): string {
@@ -93,11 +93,13 @@ export const BackupSettings = () => {
 
     const remove = (backup: BackupInfo) => run(async () => {
         await deleteBackup(backup.name)
+        toast.success(t("settings.data.backup.deleted"))
         await refresh()
     }, t("settings.data.backup.errors.delete"))
 
     const restore = (backup: BackupInfo) => run(async () => {
         await restoreBackup(backup.name)
+        toast.success(t("settings.data.backup.restored"))
     }, t("settings.data.backup.errors.restore"))
 
     const openFolder = async () => {
@@ -125,27 +127,33 @@ export const BackupSettings = () => {
 
     return (
         <>
-            {error && <p role="alert" className="text-xs text-destructive break-words">{error}</p>}
+            <FormError>{error}</FormError>
             <SettingsRow label={t("settings.data.backup.now.label")} description={t("settings.data.backup.now.description")}>
                 <Button variant="outline" size="sm" disabled={busy} onClick={() => void backupNow()}>
                     <DatabaseBackup />
                     {t("settings.data.backup.now.button")}
                 </Button>
             </SettingsRow>
-            <SettingsRow label={t("settings.data.backup.auto.label")} description={t("settings.data.backup.auto.description")}>
-                <Switch aria-label={t("settings.data.backup.auto.label")} checked={auto} onCheckedChange={changeAuto} />
-            </SettingsRow>
+            <SettingsSwitchRow
+                label={t("settings.data.backup.auto.label")}
+                description={t("settings.data.backup.auto.description")}
+                checked={auto}
+                onCheckedChange={changeAuto}
+            />
             <SettingsRow label={t("settings.data.backup.keep.label")} description={t("settings.data.backup.keep.description")}>
-                <Input
-                    type="number"
-                    className="w-20"
-                    aria-label={t("settings.data.backup.keep.label")}
-                    min={MIN_BACKUP_KEEP}
-                    max={MAX_BACKUP_KEEP}
-                    value={keep}
-                    onChange={event => changeKeep(event.target.value)}
-                    onBlur={normalizeKeep}
-                />
+                {({ id, descriptionId }) => (
+                    <Input
+                        id={id}
+                        aria-describedby={descriptionId}
+                        type="number"
+                        className="h-8 w-20"
+                        min={MIN_BACKUP_KEEP}
+                        max={MAX_BACKUP_KEEP}
+                        value={keep}
+                        onChange={event => changeKeep(event.target.value)}
+                        onBlur={normalizeKeep}
+                    />
+                )}
             </SettingsRow>
             <SettingsRow label={t("settings.data.backup.folder.label")} description={t("settings.data.backup.folder.description")}>
                 <Button variant="outline" size="sm" onClick={() => void openFolder()}>

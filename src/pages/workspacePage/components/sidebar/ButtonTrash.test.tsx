@@ -33,7 +33,7 @@ describe("ButtonTrash", () => {
     it("shows the number of trashed items", async () => {
         data.getTrashCount.mockResolvedValue(2)
         render(<ButtonTrash />)
-        expect(await screen.findByLabelText("2 elementi nel cestino")).toBeInTheDocument()
+        expect(await screen.findByText("2 elementi nel cestino")).toBeInTheDocument()
         expect(data.getTrashCount).toHaveBeenCalledWith(4)
     })
 
@@ -42,10 +42,10 @@ describe("ButtonTrash", () => {
         data.getTrashCount.mockResolvedValueOnce(0).mockResolvedValue(1)
         render(<Harness />)
         await waitFor(() => expect(data.getTrashCount).toHaveBeenCalledTimes(1))
-        expect(screen.queryByLabelText(/elementi nel cestino/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/elementi nel cestino/)).not.toBeInTheDocument()
 
         await user.click(screen.getByText("simulate-delete"))
-        expect(await screen.findByLabelText("1 elemento nel cestino")).toBeInTheDocument()
+        expect(await screen.findByText("1 elemento nel cestino")).toBeInTheDocument()
         expect(data.getTrashCount).toHaveBeenCalledTimes(2)
     })
 })

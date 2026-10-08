@@ -44,14 +44,14 @@ describe("note row click", () => {
     it("a plain click opens the note and clears the selection", () => {
         renderRows()
         act(() => store.toggle("folder-1"))
-        fireEvent.click(screen.getByRole("button", { name: /Spesa/ }))
+        fireEvent.click(screen.getByRole("treeitem", { name: /Spesa/ }))
         expect(openNote).toHaveBeenCalledWith(1)
         expect(store.getSelected().size).toBe(0)
     })
 
     it("Ctrl+click and Cmd+click select without opening the note, and click again deselects", () => {
         renderRows()
-        const row = screen.getByRole("button", { name: /Spesa/ })
+        const row = screen.getByRole("treeitem", { name: /Spesa/ })
         fireEvent.click(row, { ctrlKey: true })
         expect([...store.getSelected()]).toEqual(["note-1"])
         expect(row).toHaveAttribute("aria-selected", "true")
@@ -64,8 +64,8 @@ describe("note row click", () => {
 
     it("Shift+click selects the range from the last clicked row without opening anything", () => {
         renderRows()
-        fireEvent.click(screen.getByRole("button", { name: /Lavoro/ }), { ctrlKey: true })
-        fireEvent.click(screen.getByRole("button", { name: /Altra/ }), { shiftKey: true })
+        fireEvent.click(screen.getByRole("treeitem", { name: /Lavoro/ }), { ctrlKey: true })
+        fireEvent.click(screen.getByRole("treeitem", { name: /Altra/ }), { shiftKey: true })
         expect([...store.getSelected()].sort()).toEqual(["folder-1", "note-1", "note-2"])
         expect(openNote).not.toHaveBeenCalled()
         expect(onToggle).not.toHaveBeenCalled()
@@ -74,21 +74,21 @@ describe("note row click", () => {
     it("marks only the selected note when a folder has the same id", () => {
         renderRows()
         act(() => store.toggle("folder-1"))
-        expect(screen.getByRole("button", { name: /Lavoro/ })).toHaveAttribute("aria-selected", "true")
-        expect(screen.getByRole("button", { name: /Spesa/ })).toHaveAttribute("aria-selected", "false")
+        expect(screen.getByRole("treeitem", { name: /Lavoro/ })).toHaveAttribute("aria-selected", "true")
+        expect(screen.getByRole("treeitem", { name: /Spesa/ })).toHaveAttribute("aria-selected", "false")
     })
 
     it("Enter still opens the note and clears the selection", () => {
         renderRows()
         act(() => store.toggle("note-2"))
-        fireEvent.keyDown(screen.getByRole("button", { name: /Spesa/ }), { key: "Enter" })
+        fireEvent.keyDown(screen.getByRole("treeitem", { name: /Spesa/ }), { key: "Enter" })
         expect(openNote).toHaveBeenCalledWith(1)
         expect(store.getSelected().size).toBe(0)
     })
 
     it("works without a selection provider", () => {
         render(<DndContext><ItemNote note={note} /></DndContext>)
-        fireEvent.click(screen.getByRole("button", { name: /Spesa/ }), { ctrlKey: true })
+        fireEvent.click(screen.getByRole("treeitem", { name: /Spesa/ }), { ctrlKey: true })
         expect(openNote).toHaveBeenCalledWith(1)
     })
 })
@@ -97,17 +97,17 @@ describe("folder row click", () => {
     it("a plain click toggles the folder and clears the selection", () => {
         renderRows()
         act(() => store.toggle("note-1"))
-        fireEvent.click(screen.getByRole("button", { name: /Lavoro/ }))
+        fireEvent.click(screen.getByRole("treeitem", { name: /Lavoro/ }))
         expect(onToggle).toHaveBeenCalledWith(1)
         expect(store.getSelected().size).toBe(0)
     })
 
     it("Ctrl+click and Shift+click select without toggling the folder", () => {
         renderRows()
-        const row = screen.getByRole("button", { name: /Lavoro/ })
+        const row = screen.getByRole("treeitem", { name: /Lavoro/ })
         fireEvent.click(row, { ctrlKey: true })
         expect(row).toHaveAttribute("aria-selected", "true")
-        fireEvent.click(screen.getByRole("button", { name: /Altra/ }), { shiftKey: true })
+        fireEvent.click(screen.getByRole("treeitem", { name: /Altra/ }), { shiftKey: true })
         expect([...store.getSelected()].sort()).toEqual(["folder-1", "note-1", "note-2"])
         expect(onToggle).not.toHaveBeenCalled()
     })
@@ -115,7 +115,7 @@ describe("folder row click", () => {
     it("Enter toggles the folder and clears the selection", () => {
         renderRows()
         act(() => store.toggle("note-2"))
-        fireEvent.keyDown(screen.getByRole("button", { name: /Lavoro/ }), { key: "Enter" })
+        fireEvent.keyDown(screen.getByRole("treeitem", { name: /Lavoro/ }), { key: "Enter" })
         expect(onToggle).toHaveBeenCalledWith(1)
         expect(store.getSelected().size).toBe(0)
     })

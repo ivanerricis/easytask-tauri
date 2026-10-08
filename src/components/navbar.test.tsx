@@ -100,8 +100,8 @@ describe("window controls of the Navbar", () => {
             expect(button).toHaveClass("text-foreground")
             expect(button).not.toHaveClass("text-primary")
         }
-        expect(screen.getByRole("button", { name: "Chiudi la finestra" }).className).toContain("hover:!bg-[#c42b1c]")
-        expect(screen.getByRole("button", { name: "Riduci a icona" }).className).not.toContain("c42b1c")
+        expect(screen.getByRole("button", { name: "Chiudi la finestra" }).className).toContain("hover:!bg-window-close")
+        expect(screen.getByRole("button", { name: "Riduci a icona" }).className).not.toContain("window-close")
     })
 
     it("shows the other containers around the controls", () => {

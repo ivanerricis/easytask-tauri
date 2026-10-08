@@ -17,6 +17,7 @@ export const dialogs: Translation["dialogs"] = {
     },
     color: {
         swatch: "Color {{color}}",
+        palette: "Colors",
         custom: "Pick another color",
     },
     createTemplate: {

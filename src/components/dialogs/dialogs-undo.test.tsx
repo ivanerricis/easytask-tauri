@@ -125,7 +125,7 @@ describe("DialogAddColor and undo", () => {
         const user = userEvent.setup()
         const addColorItem = vi.fn().mockResolvedValue(undefined)
         render(withUndo(<DialogAddColor item={{ id: 4, color: "#111111", title: "Sec" } as never} itemType="section" addColorItem={addColorItem} />))
-        await user.click(screen.getAllByRole("button")[0])
+        await user.click(screen.getAllByRole("radio")[0])
 
         await waitFor(() => expect(recorder.color).toHaveBeenCalledWith("section", 4, "Sec", "#111111", "#e6194b"))
     })
@@ -143,7 +143,7 @@ describe("DialogAddColor and undo", () => {
         const user = userEvent.setup()
         const addColorItem = vi.fn().mockRejectedValue(new Error("fail"))
         render(withUndo(<DialogAddColor item={{ id: 4, color: "#111111" }} itemType="task" addColorItem={addColorItem} />))
-        await user.click(screen.getAllByRole("button")[0])
+        await user.click(screen.getAllByRole("radio")[0])
 
         await waitFor(() => expect(addColorItem).toHaveBeenCalled())
         expect(recorder.color).not.toHaveBeenCalled()

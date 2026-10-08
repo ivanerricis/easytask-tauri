@@ -7,6 +7,7 @@ export const common: Translation["common"] = {
     rename: "Rename",
     system: "System",
     close: "Close",
+    retry: "Try again",
     loading: "Loading…",
     noResults: "No results",
     counts: {
@@ -18,6 +19,7 @@ export const common: Translation["common"] = {
         task_other: "{{count}} tasks",
     },
     openMenu: "Open menu",
+    menuOf: "Menu: {{name}}",
     workspaceRoot: "Workspace root",
     name: "Name",
     addColor: "Add color",
@@ -25,6 +27,24 @@ export const common: Translation["common"] = {
     creationDate: "Created: {{date}} {{time}}",
     editDate: "Modified: {{date}} {{time}}",
     add: "Add",
+    colors: {
+        c1: "Red",
+        c2: "Green",
+        c3: "Yellow",
+        c4: "Blue",
+        c5: "Orange",
+        c6: "Purple",
+        c7: "Cyan",
+        c8: "Magenta",
+        c9: "Lime",
+        c10: "Pink",
+        c11: "Teal",
+        c12: "Lavender",
+        c13: "Brown",
+        c14: "Cream",
+        c15: "Navy",
+        custom: "Custom color",
+    },
 }
 
 export const ui: Translation["ui"] = {

@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { Progress } from "@/components/ui/progress"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import type { Section as SectionType, Task } from "@/types/types"
@@ -64,44 +66,46 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragProps }: Sect
 
             <ButtonMenuSection section={section}>
                 <div
-                    className={`group flex items-center w-full px-1 py-1 whitespace-nowrap rounded-xs ${section.color ? "" : "bg-background border"} ${dragProps ? "touch-none cursor-grab active:cursor-grabbing" : ""}`}
+                    className={`group flex items-center gap-1 border w-full px-1.5 py-1 whitespace-nowrap rounded-xs ${section.color ? "" : "bg-background"} ${dragProps ? "touch-none cursor-grab active:cursor-grabbing" : ""}`}
                     style={section.color ? { backgroundColor: hexToRgba(colorAlpha.header(), section.color) } : undefined}
                     {...dragProps}
                 >
                     {(section.tasks.length > 0) &&
-                        <button
+                        <Button
                             type="button"
+                            variant="ghost"
+                            size="icon"
                             onClick={handleOpen}
                             aria-label={isOpen ? t("sections.collapse") : t("sections.expand")}
                             aria-expanded={isOpen}
-                            className="shrink-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            <ChevronDown className={`${isOpen ? "rotate-0" : "-rotate-90"} ml-1.5 size-5`} />
-                        </button>}
+                            className="size-6 shrink-0">
+                            <ChevronDown className={isOpen ? "rotate-0" : "-rotate-90"} />
+                        </Button>}
                     <div className="flex items-center justify-between gap-2 w-full min-w-0">
                         {!isTextAreaOpen && <button
                             type="button"
                             onClick={startEdit}
                             title={section.title}
-                            className="text-sm ml-2 min-w-0 flex-1 truncate cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                            className="text-sm ml-1 min-w-0 flex-1 truncate cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                             {section.title}
                         </button>}
                         {isTextAreaOpen && <InlineErrorTooltip message={error}>
-                            <input
+                            <Input
                                 {...inputProps}
                                 onPointerDown={e => e.stopPropagation()}
                                 type="text"
                                 aria-label={t("sections.titleLabel")}
-                                className={`min-w-0 flex-1 px-1 ml-2 border resize-none text-sm rounded-xs ${error ? "border-destructive" : "border-primary"}`}
+                                className="h-6 min-w-0 flex-1 px-1 py-0 ml-1 text-sm md:text-sm border-primary"
                             />
                         </InlineErrorTooltip>}
-                        {showProgressBar && section.tasks.length > 0 && <div className="flex items-center gap-2 shrink-0 min-w-[8rem]">
-                            <Progress className="w-20" value={completionPercentage} />
-                            <span className="text-xs">
+                        {showProgressBar && section.tasks.length > 0 && <div className="flex items-center gap-2 shrink-0">
+                            <Progress className="w-20" value={completionPercentage} aria-label={t("sections.progress")} />
+                            <span className="text-xs tabular-nums">
                                 {Math.round(completionPercentage)} %
                             </span>
                         </div>}
                         <div className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-                            <ItemMenuButton iconClassName="!h-4 !w-4" />
+                            <ItemMenuButton name={section.title} />
                         </div>
                     </div>
                 </div>

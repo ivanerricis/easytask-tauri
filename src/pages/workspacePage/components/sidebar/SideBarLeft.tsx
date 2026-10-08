@@ -93,7 +93,7 @@ export const SideBarLeft = () => {
                     bottomContainer={<DialogSettings className="relative top-0 left-0" />}
                 >
                     <SideBarContainer
-                        header={<SideBarHeader className="border-b-2">
+                        header={<SideBarHeader className="border-b">
                             <DialogAddFolder />
                             <DialogAddNote />
                             <ButtonNoteFromTemplate />

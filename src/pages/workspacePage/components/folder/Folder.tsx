@@ -1,4 +1,3 @@
-import { useTranslation } from "react-i18next"
 import { useActiveNoteId } from "@/contexts/use-tabs"
 import { ChevronDown, Folder as FolderIcon, FolderOpen } from "lucide-react"
 import React, { useState } from "react"
@@ -13,9 +12,10 @@ import { ButtonMenuFolder } from "./ButtonMenuFolder"
 import { ItemMenuButton } from "@/components/item-menu"
 import type { Folder } from "@/types/types"
 import { focusRing } from "@/lib/a11y"
-import { TooltipCustom } from "@/components/tooltip-custom"
+import { TooltipTrigger } from "@/components/ui/tooltip"
+import { TreeRowTooltip } from "../sidebar/TreeRowTooltip"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
-import { formatDate, hexToRgba } from "@/lib/utils"
+import { hexToRgba } from "@/lib/utils"
 
 /** Whether the note is anywhere inside the folder (subfolders included). */
 const holdsNote = (folder: Folder, noteId: number): boolean =>
@@ -29,10 +29,11 @@ type ItemFolderProps = {
     onToggle: (folderId: number) => void
     /** Drop feedback while another item is dragged over this row. */
     dropZone?: DropZone | null
+    /** Depth in the tree, starting at 1 (aria-level). */
+    level?: number
 }
 
-export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, dropZone = null }: ItemFolderProps) => {
-    const { t } = useTranslation()
+export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, dropZone = null, level = 1 }: ItemFolderProps) => {
     const [isHovered, setIsHovered] = useState(false)
     const { ref, attributes, listeners, isDragging } = useTreeRow("folder", folder.id)
 
@@ -58,48 +59,55 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
 
     return (
         <div className="relative flex flex-col gap-1 w-full">
-            <ButtonMenuFolder folder={folder}>
-                <div
-                    {...attributes}
-                    {...listeners}
-                    ref={ref}
-                    role="button"
-                    onClick={handleClick}
-                    aria-selected={selected}
-                    data-holds-active={holdsActiveNote || undefined}
-                    onKeyDown={treeRowKeyDown(listeners, handleActivate)}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    className={`${focusRing} relative group cursor-pointer gap-1 w-full pl-1 ${size.row} flex items-center rounded-xs border select-none ${selected ? "border-primary" : holdsActiveNote ? "border-primary/60" : "border-accent"} bg-background opacity-85 hover:opacity-100 overflow-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
-                    style={{ backgroundColor: `${hexToRgba(colorAlpha.item(isHovered), folder.color)}` }}
-                >
+            <TreeRowTooltip
+                name={folder.name}
+                creationDate={folder.creation_date}
+                creationTime={folder.creation_time}
+                editDate={folder.edit_date}
+                editTime={folder.edit_time}
+                offset={size.folderTooltipOffset}
+            >
+                <ButtonMenuFolder folder={folder}>
+                    <TooltipTrigger asChild>
+                        <div
+                            {...attributes}
+                            {...listeners}
+                            ref={ref}
+                            role="treeitem"
+                            aria-label={folder.name}
+                            aria-level={level}
+                            aria-expanded={isOpen}
+                            aria-pressed={undefined}
+                            onClick={handleClick}
+                            aria-selected={selected}
+                            data-holds-active={holdsActiveNote || undefined}
+                            onKeyDown={treeRowKeyDown(listeners, handleActivate)}
+                            onMouseEnter={() => setIsHovered(true)}
+                            onMouseLeave={() => setIsHovered(false)}
+                            className={`${focusRing} relative group cursor-pointer gap-1 w-full min-w-0 pl-1 ${size.row} flex items-center rounded-xs border select-none ${selected ? "border-primary" : holdsActiveNote ? "border-primary/60" : "border-accent"} bg-background overflow-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
+                            style={{ backgroundColor: `${hexToRgba(colorAlpha.item(isHovered), folder.color)}` }}
+                        >
 
-                    <DropLine zone={dropZone} />
-                    <SelectionMark selected={selected} />
-                    <TooltipCustom
-                        side="right"
-                        sideOffset={size.folderTooltipOffset}
-                        text={[
-                            t("common.creationDate", { date: formatDate(folder.creation_date), time: folder.creation_time }),
-                            t("common.editDate", { date: formatDate(folder.edit_date), time: folder.edit_time })
-                        ]}>
-                        <div className="flex items-center gap-1 w-full h-full">
-                            <ChevronDown className={`${isOpen ? 'rotate-0' : '-rotate-90'} ${size.icon} shrink-0 opacity-85 group-hover:opacity-100`} />
-                            {isOpen ? (
-                                <FolderOpen className={`${size.icon} shrink-0`} />
-                            ) : (
-                                <FolderIcon className={`${size.icon} shrink-0`} />
-                            )}
-                            <span className={`w-full ${size.text} truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
-                                {folder.name}
-                            </span>
+                            <DropLine zone={dropZone} />
+                            <SelectionMark selected={selected} />
+                            <div className="flex min-w-0 items-center gap-1 w-full h-full">
+                                <ChevronDown className={`${isOpen ? 'rotate-0' : '-rotate-90'} ${size.icon} shrink-0`} />
+                                {isOpen ? (
+                                    <FolderOpen className={`${size.icon} shrink-0`} />
+                                ) : (
+                                    <FolderIcon className={`${size.icon} shrink-0`} />
+                                )}
+                                <span className={`w-full ${size.text} min-w-0 truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
+                                    {folder.name}
+                                </span>
+                            </div>
+                            <div className={`flex items-center leading-none shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
+                                <ItemMenuButton name={folder.name} />
+                            </div>
                         </div>
-                    </TooltipCustom>
-                    <div className={`flex items-center leading-none shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
-                        <ItemMenuButton />
-                    </div>
-                </div>
-            </ButtonMenuFolder>
+                    </TooltipTrigger>
+                </ButtonMenuFolder>
+            </TreeRowTooltip>
 
             {
                 isOpen && hasContent && (

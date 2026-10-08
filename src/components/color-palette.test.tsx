@@ -9,20 +9,20 @@ describe("ColorPalette", () => {
     it("picks the color of a swatch at once", async () => {
         const onPick = vi.fn()
         render(<ColorPalette onPick={onPick} />)
-        await userEvent.click(screen.getByRole("button", { name: "Colore #e6194b" }))
+        await userEvent.click(screen.getByRole("radio", { name: "Colore Rosso" }))
         expect(onPick).toHaveBeenCalledWith("#e6194b", expect.anything())
     })
 
     it("marks the swatch of the current color", () => {
         render(<ColorPalette value="#3CB44B" onPick={vi.fn()} />)
-        expect(screen.getByRole("button", { name: "Colore #3cb44b" })).toHaveAttribute("aria-pressed", "true")
-        expect(screen.getByRole("button", { name: "Colore #e6194b" })).toHaveAttribute("aria-pressed", "false")
+        expect(screen.getByRole("radio", { name: "Colore Verde" })).toHaveAttribute("aria-checked", "true")
+        expect(screen.getByRole("radio", { name: "Colore Rosso" })).toHaveAttribute("aria-checked", "false")
     })
 
     it("shows a color outside the palette in the custom square", () => {
         const { container } = render(<ColorPalette value="#123456" onPick={vi.fn()} />)
         expect(customPicker(container)).toHaveValue("#123456")
-        expect(screen.getAllByRole("button").every(button => button.getAttribute("aria-pressed") === "false")).toBe(true)
+        expect(screen.getAllByRole("radio").every(radio => radio.getAttribute("aria-checked") === "false")).toBe(true)
     })
 
     it("picks the custom color once the picker is closed (change), not while it moves (input)", () => {

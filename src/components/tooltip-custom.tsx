@@ -22,7 +22,7 @@ export const TooltipCustom = ({ children, text, shortcut, side, sideOffset }: To
                             : <p>{text}</p>
                         }
                     </div>
-                    <p>{shortcut}</p>
+                    {shortcut && <p>{shortcut}</p>}
                 </div>
             </TooltipContent>}
         </Tooltip>

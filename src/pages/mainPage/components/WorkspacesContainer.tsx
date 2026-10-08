@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils"
 import { useMemo } from "react"
 import { DEFAULT_WORKSPACE_SORT, type WorkspaceSort } from "@/lib/store/preferences"
 import { sortWorkspaces } from "./sort-workspaces"
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
+import { FolderOpen } from "lucide-react"
 
 type WorkspacesContainerProps = {
     workspaces: Workspace[]
@@ -17,8 +19,8 @@ export const WorkspacesContainer = ({ workspaces, view = "grid", sort = DEFAULT_
     const sorted = useMemo(() => sortWorkspaces(workspaces, sort), [workspaces, sort])
     return (
         <div className={cn(
-            "grid w-full overflow-y-auto h-[200px] lg:h-[350px] gap-1 content-start",
-            view === "grid" ? "grid-cols-2" : "grid-cols-1"
+            "grid w-full overflow-y-auto h-[clamp(200px,42vh,420px)] gap-1 content-start",
+            view === "grid" ? "grid-cols-[repeat(auto-fill,minmax(min(14rem,100%),1fr))]" : "grid-cols-1"
         )}>
             {workspaces.length > 0 ? (
                 sorted.map((ws) => (
@@ -29,9 +31,13 @@ export const WorkspacesContainer = ({ workspaces, view = "grid", sort = DEFAULT_
                     />
                 ))
             ) : (
-                <p className="text-muted-foreground text-sm w-full">
-                    {t("home.noWorkspaces")}
-                </p>
+                <Empty className="col-span-full">
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon"><FolderOpen /></EmptyMedia>
+                        <EmptyTitle>{t("home.noWorkspaces")}</EmptyTitle>
+                        <EmptyDescription>{t("home.noWorkspacesHint")}</EmptyDescription>
+                    </EmptyHeader>
+                </Empty>
             )}
         </div>
     )

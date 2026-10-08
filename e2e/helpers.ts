@@ -81,7 +81,7 @@ export const createFromSidebar = async (buttonKey: string, submitKey: string, na
 
 /** Sidebar tree row (folder or note) with the given name. */
 export const treeRow = (name: string) =>
-    $(`//div[@role='button'][.//span[normalize-space()=${xpathString(name)}]]`)
+    $(`//div[@role='treeitem'][.//span[normalize-space()=${xpathString(name)}]]`)
 
 /** The card of a section, found through the title of its header. */
 export const sectionCard = (title: string) =>

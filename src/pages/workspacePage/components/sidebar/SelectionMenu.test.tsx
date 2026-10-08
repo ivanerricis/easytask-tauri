@@ -37,7 +37,7 @@ vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ updateItemColor, duplicateNote: vi.fn() }),
 }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
-vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn() }) }))
+vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn(), reorderTabs: vi.fn() }), useTabs: () => ({ tabs: [] }) }))
 const recorder = { removeMany: vi.fn(), archiveMany: vi.fn(), colorMany: vi.fn(), treeMoveMany: vi.fn(), create: vi.fn() }
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder, useOptionalUndo: () => null }))
 const exportItem = vi.fn()
@@ -201,7 +201,7 @@ describe("color", () => {
         select("folder-1", "note-5", "note-10")
         fireEvent.contextMenu(row)
         await user.hover(await screen.findByText("Colore"))
-        fireEvent.click(await screen.findByRole("button", { name: /#e6194b/ }))
+        fireEvent.click(await screen.findByRole("radio", { name: "Colore Rosso" }))
         await waitFor(() => expect(recorder.colorMany).toHaveBeenCalledTimes(1))
         // Idee already has this color; the note inside the selected folder changes too (only the item itself is colored)
         expect(updateItemColor.mock.calls).toEqual([["folder", 1, "#e6194b"], ["note", 5, "#e6194b"]])
@@ -233,7 +233,7 @@ describe("color", () => {
         updateItemColor.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error("boom"))
         fireEvent.contextMenu(row)
         await user.hover(await screen.findByText("Colore"))
-        fireEvent.click(await screen.findByRole("button", { name: /#3cb44b/ }))
+        fireEvent.click(await screen.findByRole("radio", { name: "Colore Verde" }))
         await waitFor(() => expect(recorder.colorMany).toHaveBeenCalledTimes(1))
         expect(recorder.colorMany.mock.calls[0][0]).toHaveLength(1)
         expect(updateItemColor).toHaveBeenCalledTimes(2)

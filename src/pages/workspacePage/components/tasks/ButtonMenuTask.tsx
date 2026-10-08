@@ -24,14 +24,16 @@ import { useActiveNoteId, useSelectTask } from "@/contexts/use-tabs"
 type ButtonMenuFolderProps = {
     task: Task
     onAddSubtask?: () => void
+    /** Starts the inline edit of the text (once the menu has given the focus back). */
+    onRename?: () => void
     /** The task row: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
     children: ReactElement
 }
 
-export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolderProps) => {
+export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: ButtonMenuFolderProps) => {
     const { t } = useTranslation()
     // The inline input is opened once the menu has given the focus back, otherwise the input would lose it
-    const addSubtaskRequested = useRef(false)
+    const afterClose = useRef<"addSubtask" | "rename" | null>(null)
     const menu = useItemMenuState()
     const [isDescriptionOpen, setDescriptionOpen] = useState(false)
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
@@ -92,24 +94,9 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
     const items = (
         <MenuGroup className="flex flex-col gap-1">
             <ButtonInPopover
-                text={t("details.showTask")}
-                type="details"
-                onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id); menu.close() }}
-            />
-            <ButtonInPopover
-                text={t("tasks.addSubtask")}
-                type="addSubtask"
-                onClick={() => { addSubtaskRequested.current = true; menu.close() }}
-            />
-            <ButtonInPopover
-                text={task.description ? t("tasks.menu.removeDescription") : t("tasks.menu.addDescription")}
-                type={task.description ? 'removeDescription' : 'addDescription'}
-                onClick={() => { handleDescription() }}
-            />
-            <ButtonInPopover
-                text={task.priority ? t("tasks.menu.removePriority") : t("tasks.menu.addPriority")}
-                type={task.priority ? 'removePriority' : 'addPriority'}
-                onClick={() => { handleEditPriority(); menu.close() }}
+                text={t("common.rename")}
+                type="rename"
+                onClick={() => { afterClose.current = "rename"; menu.close() }}
             />
             <ColorSubmenu
                 item={task}
@@ -121,6 +108,26 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
             />
             <TaskStepMoves taskId={task.id} onDone={menu.close} />
             <TaskMoveSubmenu taskId={task.id} onDone={menu.close} />
+            <ButtonInPopover
+                text={t("details.showTask")}
+                type="details"
+                onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id); menu.close() }}
+            />
+            <ButtonInPopover
+                text={t("tasks.addSubtask")}
+                type="addSubtask"
+                onClick={() => { afterClose.current = "addSubtask"; menu.close() }}
+            />
+            <ButtonInPopover
+                text={task.description ? t("tasks.menu.removeDescription") : t("tasks.menu.addDescription")}
+                type={task.description ? 'removeDescription' : 'addDescription'}
+                onClick={() => { handleDescription() }}
+            />
+            <ButtonInPopover
+                text={task.priority ? t("tasks.menu.removePriority") : t("tasks.menu.addPriority")}
+                type={task.priority ? 'removePriority' : 'addPriority'}
+                onClick={() => { handleEditPriority(); menu.close() }}
+            />
             <Separator />
             <ButtonInPopover
                 text={t("common.delete")}
@@ -159,10 +166,12 @@ export const ButtonMenuTask = ({ task, onAddSubtask, children }: ButtonMenuFolde
             dialogs={dialogs}
             contentClassName="p-1 rounded-xs"
             onCloseAutoFocus={(e) => {
-                if (!addSubtaskRequested.current) return
+                const action = afterClose.current
+                if (!action) return
                 e.preventDefault()
-                addSubtaskRequested.current = false
-                onAddSubtask?.()
+                afterClose.current = null
+                if (action === "rename") onRename?.()
+                else onAddSubtask?.()
             }}
         >
             {children}

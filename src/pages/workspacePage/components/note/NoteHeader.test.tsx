@@ -79,20 +79,24 @@ describe("NoteHeader hide completed toggle", () => {
 
 describe("NoteHeader active tab", () => {
     // Both tabs reserve the same border, so activating one never moves the others
-    const tab = (name: string) => screen.getByText(name).closest("[role='button']") as HTMLElement
+    // (the box of the tab is the parent of the element with the tab role)
+    const tab = (name: string) => screen.getByRole("tab", { name }).parentElement as HTMLElement
+    const tabButton = (name: string) => screen.getByRole("tab", { name })
 
-    it("marks the active tab with a primary border, bold text and aria-current", async () => {
+    it("marks the active tab with a primary border, bold text and aria-selected", async () => {
         setup()
         await act(async () => { })
 
         // Opened last, "Due" is the active one
-        expect(tab("Due")).toHaveAttribute("aria-current", "true")
+        expect(tabButton("Due")).toHaveAttribute("aria-selected", "true")
         expect(tab("Due").className).toContain("border-x-primary")
         // no line under the active tab: it opens onto the note
         expect(tab("Due").className).toContain("border-b-transparent")
         expect(screen.getByText("Due").className).toContain("font-medium")
+        // a tab is not a container of buttons: the toggle and the close button are its siblings
+        expect(tabButton("Due").querySelector("button")).toBeNull()
 
-        expect(tab("Uno")).not.toHaveAttribute("aria-current")
+        expect(tabButton("Uno")).toHaveAttribute("aria-selected", "false")
         expect(tab("Uno").className).toContain("border-x-transparent")
         expect(tab("Uno").className).toContain("border-b-primary")
         expect(tab("Uno").className).toContain("border-x")
@@ -111,7 +115,30 @@ describe("NoteHeader active tab", () => {
         await act(async () => { })
         await userEvent.click(screen.getByText("Uno"))
 
-        expect(tab("Uno")).toHaveAttribute("aria-current", "true")
-        expect(tab("Due")).not.toHaveAttribute("aria-current")
+        expect(tabButton("Uno")).toHaveAttribute("aria-selected", "true")
+        expect(tabButton("Due")).toHaveAttribute("aria-selected", "false")
+    })
+})
+
+describe("NoteHeader tab semantics", () => {
+    it("has one tab in the tab order (the active one), the others are reached with the arrows", async () => {
+        setup()
+        await act(async () => { })
+        expect(screen.getByRole("tab", { name: "Due" })).toHaveAttribute("tabindex", "0")
+        expect(screen.getByRole("tab", { name: "Uno" })).toHaveAttribute("tabindex", "-1")
+    })
+
+    it("truncates a long name and shows it whole as a title", async () => {
+        const long = "Un nome di nota molto molto lungo che non deve allargare la barra delle schede all'infinito"
+        render(
+            <ShortcutsProvider>
+                <TabsProvider notes={[makeNote({ id: 9, name: long })]} workspaceId={null}>
+                    <NoteHeader note={makeNote({ id: 9, name: long })} />
+                </TabsProvider>
+            </ShortcutsProvider>,
+        )
+        const tab = screen.getByRole("tab", { name: long })
+        expect(tab).toHaveAttribute("title", long)
+        expect(screen.getByText(long).className).toContain("truncate")
     })
 })

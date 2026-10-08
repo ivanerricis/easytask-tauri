@@ -27,6 +27,7 @@ export const tasks = {
         removePriority: "Rimuovi priorità",
     },
     editText: "Modifica il testo del task",
+    toggleCompleted: "Segna come completato: {{text}}",
     showDescription: "Mostra la descrizione",
 }
 

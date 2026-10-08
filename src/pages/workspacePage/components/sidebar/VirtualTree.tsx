@@ -70,9 +70,10 @@ export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, overKey, overZ
                                 isOpen={!collapsedIds.has(row.item.id)}
                                 onToggle={onToggleFolder}
                                 dropZone={dropZone}
+                                level={row.depth + 1}
                             />
                         ) : (
-                            <ItemNote note={row.item} dropZone={dropZone} />
+                            <ItemNote note={row.item} dropZone={dropZone} level={row.depth + 1} />
                         )}
                     </div>
                 )

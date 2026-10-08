@@ -29,6 +29,7 @@ export const tasks: Translation["tasks"] = {
         removePriority: "Remove priority",
     },
     editText: "Edit the task text",
+    toggleCompleted: "Mark as completed: {{text}}",
     showDescription: "Show the description",
 }
 

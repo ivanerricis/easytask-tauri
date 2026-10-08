@@ -91,9 +91,6 @@ describe("SideBarRight tabs", () => {
         expect(tab("Dettagli")).toHaveAttribute("aria-controls", panel.id)
         expect(screen.getByText("contenuto dettagli")).toBeInTheDocument()
         expect(screen.queryByText("contenuto cronologia")).toBeNull()
-        // Roving tabindex
-        expect(tab("Dettagli")).toHaveAttribute("tabindex", "0")
-        expect(tab("Cronologia")).toHaveAttribute("tabindex", "-1")
     })
 
     it("has the height of the left sidebar header and of the note tabs", async () => {
@@ -235,13 +232,13 @@ describe("SideBarRight in a compact window", () => {
         expect(screen.queryByRole("tablist")).toBeNull()
     })
 
-    it("opens as an overlay without resizer, closes with Escape or the backdrop, and does not remember it", async () => {
+    it("opens as a modal sheet without resizer, closes with Escape or a click outside, and does not remember it", async () => {
         const user = userEvent.setup()
         renderPanel()
         await user.click(toggle())
         expect(await screen.findByRole("tablist")).toBeInTheDocument()
+        expect(screen.getByRole("dialog")).toBeInTheDocument()
         expect(screen.queryByRole("separator")).toBeNull()
-        expect(screen.getByTestId("sidebar-backdrop")).toBeInTheDocument()
         expect(await store.get("sidebarRightOpen")).toBeUndefined()
 
         tab("Dettagli").focus()
@@ -250,7 +247,7 @@ describe("SideBarRight in a compact window", () => {
         expect(toggle()).toHaveFocus()
 
         await user.click(toggle())
-        await user.click(screen.getByTestId("sidebar-backdrop"))
+        await user.click(document.querySelector("[data-slot='sheet-overlay']")!)
         expect(screen.queryByRole("tablist")).toBeNull()
         expect(await store.get("sidebarRightOpen")).toBeUndefined()
     })

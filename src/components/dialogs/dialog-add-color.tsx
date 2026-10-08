@@ -3,9 +3,10 @@ import { X } from "lucide-react"
 import React from "react"
 import { reportError } from "@/lib/report-error"
 import type { DBItemType } from "@/db/queries/shared_queries"
-import { getErrorMessage } from "@/lib/utils"
+import { cn, getErrorMessage } from "@/lib/utils"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getItemName, isUndoableType } from "@/contexts/undo/commands"
+import { Button } from "@/components/ui/button"
 import { ColorPalette } from "@/components/color-palette"
 
 export type DialogAddColorProps<T> = {
@@ -66,17 +67,19 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
     }
 
     return (
-        <div className={`flex flex-col rounded-xs ${className}`}>
+        <div className={cn("flex flex-col rounded-xs", className)}>
             <ColorPalette value={item?.color} onPick={handleSaveColor} />
             <div className="flex items-center p-1">
-                <button
+                <Button
                     type="button"
+                    variant="ghost"
+                    size="sm"
                     onClick={handleDeleteColor}
-                    className="flex items-center gap-2 px-1 py-1.5 cursor-pointer w-full rounded-xs text-xs text-destructive hover:bg-destructive/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    className="w-full justify-start text-xs text-destructive hover:bg-destructive/15 hover:text-destructive"
                 >
-                    <X className="size-4" />
+                    <X />
                     {t("common.delete")}
-                </button>
+                </Button>
             </div>
         </div>
     )

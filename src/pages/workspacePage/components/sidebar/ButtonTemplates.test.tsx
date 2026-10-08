@@ -37,7 +37,7 @@ describe("ButtonTemplates", () => {
         const user = userEvent.setup()
         data.countTemplates.mockResolvedValue(3)
         render(<><ButtonTemplates /><SidebarDialogs /></>)
-        expect(await screen.findByLabelText("3 template")).toBeInTheDocument()
+        expect(await screen.findByText("3 template")).toBeInTheDocument()
         expect(data.countTemplates).toHaveBeenCalledWith(4)
 
         await user.click(screen.getByRole("button", { name: /Template/ }))
@@ -49,9 +49,9 @@ describe("ButtonTemplates", () => {
         data.countTemplates.mockResolvedValueOnce(0).mockResolvedValue(1)
         render(<Harness />)
         await waitFor(() => expect(data.countTemplates).toHaveBeenCalledTimes(1))
-        expect(screen.queryByLabelText(/template$/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/template$/)).not.toBeInTheDocument()
 
         await user.click(screen.getByText("simulate-create"))
-        expect(await screen.findByLabelText("1 template")).toBeInTheDocument()
+        expect(await screen.findByText("1 template")).toBeInTheDocument()
     })
 })

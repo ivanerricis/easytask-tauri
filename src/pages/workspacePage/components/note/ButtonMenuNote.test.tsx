@@ -20,7 +20,9 @@ vi.mock("@/contexts/workspace-data", () => ({
 }))
 const exportItem = vi.fn()
 vi.mock("@/hooks/use-workspace-transfer", () => ({ useItemTransfer: () => ({ exportItem, importItems: vi.fn(), isBusy: false }) }))
-vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote }) }))
+const reorderTabs = vi.fn()
+let openTabs: { id: number }[] = []
+vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote, reorderTabs }), useTabs: () => ({ tabs: openTabs }) }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
 vi.mock("../MoveToSubmenu", () => ({ MoveToSubmenu: () => null }))
 vi.mock("@/components/dialogs/dialog-create-template", () => ({
@@ -36,6 +38,7 @@ const ENTRIES = ["Apri", "Rinomina", "Duplica", "Cambia colore", "Crea template"
 
 beforeEach(() => {
     vi.clearAllMocks()
+    openTabs = []
     duplicateNote.mockResolvedValue(9)
     archiveItem.mockResolvedValue(undefined)
 })
@@ -53,6 +56,32 @@ const setup = () => {
 }
 
 describe("ButtonMenuNote", () => {
+    it("has no tab moves for a note that is not open as a tab", async () => {
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await screen.findByText("Apri")
+        expect(screen.queryByText("Sposta tab a sinistra")).not.toBeInTheDocument()
+    })
+
+    it("moves the tab of an open note left and right, disabled at the ends", async () => {
+        const user = userEvent.setup()
+        openTabs = [{ id: 5 }, { id: 4 }, { id: 8 }]
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Sposta tab a sinistra"))
+        expect(reorderTabs).toHaveBeenCalledWith(1, 0)
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Sposta tab a destra"))
+        expect(reorderTabs).toHaveBeenCalledWith(1, 2)
+    })
+
+    it("disables the move to the left of the first tab", async () => {
+        openTabs = [{ id: 4 }, { id: 8 }]
+        const row = setup()
+        fireEvent.contextMenu(row)
+        expect((await screen.findByText("Sposta tab a sinistra")).closest("[role=menuitem]")).toHaveAttribute("aria-disabled", "true")
+    })
+
     it("shows the same entries from the '…' button and from a right click", async () => {
         const user = userEvent.setup()
         const row = setup()

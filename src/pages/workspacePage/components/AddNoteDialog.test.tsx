@@ -32,7 +32,7 @@ describe("AddNoteDialog", () => {
         render(<AddNoteDialog open onOpenChange={onOpenChange} parentId={null} withColor />)
         await user.type(screen.getByRole("textbox"), " Nota ")
         await user.click(screen.getByRole("button", { name: "Aggiungi colore" }))
-        await user.click(screen.getByRole("button", { name: "Colore #4363d8" }))
+        await user.click(screen.getByRole("radio", { name: "Colore Blu" }))
         await user.click(screen.getByRole("button", { name: /Crea/ }))
         await waitFor(() => expect(createWorkspaceNote).toHaveBeenCalledWith(1, "Nota", "#4363d8"))
         expect(create).toHaveBeenCalledWith("note", 10, "Nota")

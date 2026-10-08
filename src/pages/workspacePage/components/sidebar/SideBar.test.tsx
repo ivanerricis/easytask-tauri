@@ -118,21 +118,25 @@ describe("SideBar", () => {
         expect((await screen.findAllByText("(Ctrl + J)")).length).toBeGreaterThan(0)
     })
 
-    it("in overlay mode floats over the content, has no resizer and closes with Esc or a click outside", async () => {
+    it("in overlay mode is a modal sheet without resizer that closes with Esc or a click outside", async () => {
         window.innerWidth = 800
         render(<Host overlay />)
+        expect(screen.getByRole("dialog", { name: "Mostra o nascondi la barra laterale" })).toBeInTheDocument()
         expect(screen.getByText("dentro")).toBeInTheDocument()
         expect(screen.queryByRole("separator")).toBeNull()
 
-        const toggle = screen.getByRole("button", { name: "Mostra o nascondi la barra laterale" })
-        screen.getByText("dentro").focus()
+        // Focus is trapped in the sheet while it is open
+        await userEvent.tab()
+        expect(screen.getByText("dentro")).toHaveFocus()
+
+        const toggle = () => screen.getByRole("button", { name: "Mostra o nascondi la barra laterale", hidden: true })
         await userEvent.keyboard("{Escape}")
         expect(screen.queryByText("dentro")).toBeNull()
-        expect(toggle).toHaveFocus()
+        expect(toggle()).toHaveFocus()
 
-        await userEvent.click(toggle)
+        await userEvent.click(toggle())
         expect(screen.getByText("dentro")).toBeInTheDocument()
-        await userEvent.click(screen.getByTestId("sidebar-backdrop"))
+        await userEvent.click(document.querySelector("[data-slot='sheet-overlay']")!)
         expect(screen.queryByText("dentro")).toBeNull()
     })
 })

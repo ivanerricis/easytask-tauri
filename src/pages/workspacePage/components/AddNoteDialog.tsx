@@ -6,11 +6,11 @@ import { getErrorMessage } from "@/lib/utils"
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { FormError } from "@/components/form-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -44,6 +44,7 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
     const recorder = useUndoRecorder()
     const { saving, run } = useSubmitOnce()
     const nameId = useId()
+    const errorId = useId()
     const templateFieldId = useId()
     const templates = useTemplates(open)
     // A stale selection (template deleted meanwhile) behaves as "no template"
@@ -82,10 +83,9 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent>
+            <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle>{t("dialogs.addNote.title")}</DialogTitle>
-                    <DialogDescription />
                 </DialogHeader>
                 <form onSubmit={handleCreateNote}>
                     <div className="grid gap-4">
@@ -95,6 +95,8 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
                                 <Input
                                     id={nameId}
                                     name="name"
+                                    aria-invalid={error ? true : undefined}
+                                    aria-describedby={error ? errorId : undefined}
                                     value={name}
                                     onChange={e => {
                                         setError(null)
@@ -119,7 +121,7 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
                                 </Select>
                             </div>
                         )}
-                        {error && (<p className="text-xs text-destructive">{error}</p>)}
+                        <FormError id={errorId}>{error}</FormError>
                     </div>
                     <DialogFooter className="mt-4">
                         <Button

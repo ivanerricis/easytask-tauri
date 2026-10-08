@@ -56,8 +56,8 @@ export const ConfirmDialog = ({
     }
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-        // Enter on a button presses that button; anywhere else it confirms
-        if (e.key === "Enter" && !(e.target instanceof HTMLButtonElement)) {
+        // Enter on a button presses that button; anywhere else it confirms (unless the focus started on "Annulla": a careless Enter must not confirm)
+        if (e.key === "Enter" && initialFocus === "confirm" && !(e.target instanceof HTMLButtonElement)) {
             e.preventDefault()
             run(confirm)(e)
         }

@@ -7,7 +7,9 @@ import { useTabsActions } from "@/contexts/use-tabs"
 import { SearchIcon } from "lucide-react"
 import { useState } from "react"
 import { useShortcut } from "@/hooks/use-shortcut"
-import { useShortcutLabel } from "@/contexts/use-shortcuts"
+import { useShortcutKeys, useShortcutLabel } from "@/contexts/use-shortcuts"
+import { Button } from "@/components/ui/button"
+import { KbdKeys } from "@/components/kbd"
 import { useOptionalUndo } from "@/contexts/undo/use-undo"
 import { Redo2, Undo2 } from "lucide-react"
 
@@ -21,6 +23,7 @@ export function CommandMenu() {
 
     useShortcut("search-notes", () => setOpen(open => !open), { allowInInputs: true })
     const searchLabel = useShortcutLabel("search-notes")
+    const searchKeys = useShortcutKeys("search-notes")
 
     // Every note once, with the path of its folder (shown in full, workspace included, under the name)
     const allNotes = useAllNotes()
@@ -68,13 +71,17 @@ export function CommandMenu() {
             </CommandDialog>
 
             <TooltipCustom text={t("notes.hints.search")} shortcut={searchLabel}>
-                <button
+                <Button
                     type="button"
+                    variant="outline"
+                    aria-haspopup="dialog"
+                    aria-expanded={open}
                     onClick={() => { setOpen(prev => !prev) }}
-                    className="relative flex items-center justify-center w-full rounded-[4px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <SearchIcon className="absolute left-2 w-4 h-4 text-muted-foreground" />
-                    <span className="flex items-center app-no-drag rounded-[4px] h-6 pl-7 pr-16 md:text-xs border w-full text-left text-muted-foreground cursor-default">{t("notes.search.short")}</span>
-                </button>
+                    className="app-no-drag h-6 w-full justify-start gap-2 rounded-xs px-2 text-xs font-normal text-muted-foreground">
+                    <SearchIcon className="size-4 shrink-0" />
+                    <span className="min-w-0 flex-1 truncate text-left">{t("notes.search.short")}</span>
+                    {searchKeys.length > 0 && <KbdKeys keys={searchKeys} className="shrink-0" />}
+                </Button>
             </TooltipCustom>
         </>
     )

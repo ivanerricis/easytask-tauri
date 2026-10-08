@@ -69,11 +69,10 @@ const WorkSpacePage = () => {
         )
     }
 
-    if (!currentWorkspace) return <LoadingPage text={t("workspace.loading")} />
-
-    // The data of the open workspace is not loaded yet (opened from the home page or switched from the combobox):
-    // show the loading page instead of the (empty or previous) content
-    if (loadedWorkspaceId !== currentWorkspace.id) {
+    // No current workspace yet (restored from the URL) or its data is not loaded yet (opened from the home page or
+    // switched from the combobox): show the loading page instead of the (empty or previous) content, inside the layout
+    // so the title bar keeps working
+    if (!currentWorkspace || loadedWorkspaceId !== currentWorkspace.id) {
         return (
             <WorkSpaceLayout>
                 <LoadingPage text={t("workspace.loading")} />

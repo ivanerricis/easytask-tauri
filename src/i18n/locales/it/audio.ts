@@ -13,6 +13,7 @@ export const audio = {
         mute: "Silenzia",
         unmute: "Riattiva l'audio",
         speed: "Velocità di riproduzione: {{rate}}×",
+        move: "Sposta il player",
     },
     nowPlaying: "In riproduzione",
     paused: "In pausa",

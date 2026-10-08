@@ -102,7 +102,7 @@ const openSettings = async () => {
 }
 
 const goCategory = async (id: string) => {
-    const nav = $(`nav[aria-label=${JSON.stringify(await tr("settings.nav"))}]`)
+    const nav = $(`[role="tablist"][aria-label=${JSON.stringify(await tr("settings.nav"))}]`)
     await byText(await tr(`settings.categories.${id}`), nav).click()
     await settle(500)
 }
@@ -186,8 +186,12 @@ const fillDialogName = async (name: string) => {
     await typeInto(dialog.$('input[name="name"]'), name)
 }
 
+// Same order as PALETTE_COLORS (src/lib/colors.ts): the swatches are named after their color
+const PALETTE_ORDER = ["#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#fabebe", "#008080", "#e6beff", "#9a6324", "#fffac8", "#000075"]
+
 const pickColor = async (menu: ChainablePromiseElement | WebdriverIO.Element, colour: string, afterOpen?: () => Promise<void>) => {
-    const swatch = byLabel(await tr("dialogs.color.swatch", { color: colour }))
+    const colourName = await tr(`common.colors.c${PALETTE_ORDER.indexOf(colour) + 1}`)
+    const swatch = byLabel(await tr("dialogs.color.swatch", { color: colourName }))
     await openSubmenu(menu, await tr("menu.changeColor"), swatch)
     if (afterOpen) await afterOpen()
     await swatch.click()

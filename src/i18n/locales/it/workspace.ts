@@ -28,6 +28,7 @@ export const home = {
         editedOn: "Modificato il: {{date}} - {{time}}",
     },
     noWorkspaces: "Nessun workspace trovato",
+    noWorkspacesHint: "Crea il tuo primo workspace per iniziare.",
 }
 
 export const workspace = {
@@ -62,6 +63,9 @@ export const notes = {
     hideCompleted: "Nascondi i task completati",
     closeCurrent: "Chiudi nota corrente",
     close: "Chiudi nota",
+    openTabs: "Note aperte",
+    moveTabLeft: "Sposta tab a sinistra",
+    moveTabRight: "Sposta tab a destra",
 }
 
 export const groups = {
@@ -71,6 +75,9 @@ export const groups = {
     nameLabel: "Nome del gruppo",
     renameError: "Impossibile cambiare il nome del gruppo - {{message}}",
     namePlaceholder: "Nome del gruppo (facoltativo)…",
+    progress: "Avanzamento del gruppo",
+    audioCount_one: "{{count}} file audio",
+    audioCount_other: "{{count}} file audio",
 }
 
 export const sidebar = {
@@ -91,6 +98,8 @@ export const sidebar = {
     },
     toggle: "Mostra o nascondi la barra laterale",
     emptyTree: "Nessuna cartella o file",
+    emptyTreeHint: "Crea una nota o una cartella per iniziare.",
+    treeLabel: "Cartelle e note",
 }
 
 export const templates = {
@@ -105,4 +114,5 @@ export const sections = {
     renameError: "Impossibile cambiare il titolo della sezione - {{message}}",
     collapse: "Compatta sezione",
     expand: "Espandi sezione",
+    progress: "Avanzamento della sezione",
 }

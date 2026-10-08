@@ -6,11 +6,11 @@ type LoadingPageProps = {
 
 export const LoadingPage = ({text}: LoadingPageProps) => {
     return (
-        <div className="flex flex-col w-full h-full items-center justify-center gap-2">
+        <div role="status" aria-live="polite" className="flex flex-col w-full h-full items-center justify-center gap-2">
             <p className="text-lg font-semibold">
                 {text}
             </p>
-            <Loader2 className="animate-spin" />
+            <Loader2 className="animate-spin" aria-hidden="true" />
         </div>
     )
 }

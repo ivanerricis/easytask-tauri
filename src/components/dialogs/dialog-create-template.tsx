@@ -1,9 +1,10 @@
 import { LayoutTemplate } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { useState } from "react"
+import { useId, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { FormError } from "@/components/form-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -27,6 +28,7 @@ const TemplateForm = ({ note, onOpenChange, onCreated }: TemplateFormProps) => {
     const { createTemplateFromNote } = useWorkspaceActions()
     const [name, setName] = useState(note.name)
     const [error, setError] = useState<string | null>(null)
+    const errorId = useId()
     const { saving: busy, run } = useSubmitOnce()
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -52,12 +54,14 @@ const TemplateForm = ({ note, onOpenChange, onCreated }: TemplateFormProps) => {
                 name="name"
                 value={name}
                 autoFocus
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? errorId : undefined}
                 onChange={e => {
                     setError(null)
                     setName(e.target.value)
                 }}
             />
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            <FormError id={errorId}>{error}</FormError>
             <DialogFooter className="mt-4">
                 <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                     {t("common.cancel")}

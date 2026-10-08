@@ -153,4 +153,5 @@ export const errorPage: Translation["errorPage"] = {
     title: "Oops, something went wrong…",
     description: "Error description:",
     home: "Back to home",
+    retry: "Try again",
 }

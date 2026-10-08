@@ -1,6 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { TooltipCustom } from "@/components/tooltip-custom"
 
 type SectionResetButtonProps = {
     onClick: () => void
@@ -14,9 +15,14 @@ type SectionResetButtonProps = {
 export const SectionResetButton = ({ onClick, disabled, title }: SectionResetButtonProps) => {
     const { t } = useTranslation()
     return (
-        <Button variant="outline" size="sm" onClick={onClick} disabled={disabled} title={title}>
-            <RotateCcw />
-            {t("settings.resetAll")}
-        </Button>
+        <TooltipCustom text={title}>
+            {/* A disabled button gets no pointer events: the span keeps the tooltip working */}
+            <span>
+                <Button variant="outline" size="sm" onClick={onClick} disabled={disabled}>
+                    <RotateCcw />
+                    {t("settings.resetAll")}
+                </Button>
+            </span>
+        </TooltipCustom>
     )
 }

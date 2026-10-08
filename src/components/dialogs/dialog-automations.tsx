@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
 import { useCallback, useEffect, useId, useMemo, useState } from "react"
 import { Check, Loader2, Pencil, Plus, Trash2, TriangleAlert, X, Zap } from "lucide-react"
+import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
@@ -119,6 +120,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
         try {
             if (editing.id === null) await createDBAutomation(noteId, editing.draft)
             else await updateDBAutomation(editing.id, editing.draft)
+            toast.success(t("automations.saved"))
             setEditing(null)
             await reload()
         } catch (err) {
@@ -139,6 +141,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
     const remove = async (rule: Automation) => {
         try {
             await deleteDBAutomation(rule.id)
+            toast.success(t("automations.deletedToast"))
             await reload()
         } catch (err) {
             setError(getErrorMessage(err))
@@ -229,7 +232,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                                             </Button>
                                         </TooltipCustom>
                                         <TooltipCustom text={t("automations.delete")}>
-                                            <Button variant="ghost" size="icon" aria-label={t("automations.deleteAria", { name: automationName(rule, titleOf) })} className="text-destructive hover:text-destructive"
+                                            <Button variant="destructive" size="icon" aria-label={t("automations.deleteAria", { name: automationName(rule, titleOf) })}
                                                 onClick={() => setDeleting(rule)}>
                                                 <Trash2 />
                                             </Button>
@@ -254,10 +257,15 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                                 </Button>
                             </>
                         ) : (
-                            <Button type="button" onClick={startNew} disabled={!loaded || sections.length === 0}>
-                                <Plus />
-                                {t("automations.add")}
-                            </Button>
+                            <>
+                                <Button variant="outline" type="button" onClick={() => handleOpenChange(false)}>
+                                    {t("common.close")}
+                                </Button>
+                                <Button type="button" onClick={startNew} disabled={!loaded || sections.length === 0}>
+                                    <Plus />
+                                    {t("automations.add")}
+                                </Button>
+                            </>
                         )}
                     </DialogFooter>
                 </DialogContent>
@@ -339,7 +347,7 @@ const ColorDot = ({ color }: { color: string | null }) => (
 /** The translated name of a color: the palette ones have their own, any other is "custom color". */
 function colorName(color: string): string {
     const index = (PALETTE_COLORS as readonly string[]).indexOf(color.toLowerCase())
-    return i18n.t(index >= 0 ? (`automations.colors.c${index + 1}` as "automations.colors.c1") : "automations.colors.custom")
+    return i18n.t(index >= 0 ? (`common.colors.c${index + 1}` as "common.colors.c1") : "common.colors.custom")
 }
 
 const AutomationEditor = ({ draft, groups, sections, onChange }: AutomationEditorProps) => {

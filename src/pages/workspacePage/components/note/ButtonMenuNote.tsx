@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next"
 import { lazy, useState, type ReactElement } from "react"
 import type { Note } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
-import { useTabsActions } from "@/contexts/use-tabs"
+import { useTabs, useTabsActions } from "@/contexts/use-tabs"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { LazyMount } from "@/components/lazy-mount"
@@ -39,7 +39,10 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
     const menu = useItemMenuState()
     const multi = useIsInMultiSelection("note", note.id)
     const { updateItemColor, duplicateNote, archiveItem } = useWorkspaceActions()
-    const { openNote } = useTabsActions()
+    const { openNote, reorderTabs } = useTabsActions()
+    const { tabs } = useTabs()
+    // Position of the note among the open tabs (-1 when it is not open): the tab moves are the keyboard way to reorder them
+    const tabIndex = tabs.findIndex(tab => tab.id === note.id)
     const recorder = useUndoRecorder()
     const { exportItem } = useItemTransfer()
 
@@ -96,6 +99,20 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
                 folderID={note.folderID}
                 onDone={menu.close}
             />
+            {tabIndex >= 0 && <>
+                <ButtonInPopover
+                    text={t("notes.moveTabLeft")}
+                    type="moveLeft"
+                    disabled={tabIndex === 0}
+                    onClick={() => { menu.close(); reorderTabs(tabIndex, tabIndex - 1) }}
+                />
+                <ButtonInPopover
+                    text={t("notes.moveTabRight")}
+                    type="moveRight"
+                    disabled={tabIndex === tabs.length - 1}
+                    onClick={() => { menu.close(); reorderTabs(tabIndex, tabIndex + 1) }}
+                />
+            </>}
             <ButtonInPopover
                 text={t("menu.createTemplate")}
                 type="createTemplate"

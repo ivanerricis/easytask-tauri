@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
 
 type AddButtonProps = {
     onClick?: () => void
@@ -10,16 +11,17 @@ export const AddButton = ({ onClick, inGroup }: AddButtonProps) => {
     const { t } = useTranslation()
     return (
         <div className={`flex items-center gap-1 ${inGroup ? 'w-full' : 'w-fit'}`}>
-            <button
+            <Button
                 type="button"
+                variant="ghost"
                 onClick={onClick}
-                className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group cursor-pointer flex items-center justify-start w-full border border-transparent rounded-xs hover:border-solid hover:border-accent gap-1 p-2 bg-background"
+                className="w-full justify-start gap-1 p-2 h-auto text-sm font-normal text-muted-foreground hover:text-foreground bg-background"
             >
-                <Plus className="group-hover:text-foreground text-muted-foreground size-4" />
-                <span className="text-muted-foreground group-hover:text-foreground text-nowrap text-sm">
+                <Plus className="size-4" />
+                <span className="text-nowrap">
                     {inGroup ? t("sections.new") : t("menu.newGroup")}
                 </span>
-            </button>
+            </Button>
         </div>
     )
 }

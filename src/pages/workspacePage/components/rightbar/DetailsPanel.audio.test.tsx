@@ -56,7 +56,7 @@ describe("DetailsPanel audio half", () => {
         vi.mocked(invoke).mockResolvedValue(metadata)
         renderPanel({ chosen: file(7, "canzone.mp3", "/musica/canzone.mp3") })
         expect(screen.getByText("Lettura del file audio…")).toBeInTheDocument()
-        const heading = await screen.findByRole("heading", { name: "Titolo del file audio" })
+        const heading = await screen.findByRole("heading", { name: /^Titolo del file audio/ })
         expect(heading).toHaveTextContent("Canzone")
         expect(invoke).toHaveBeenCalledWith("audio_metadata", { path: "/musica/canzone.mp3" })
         expect(invoke).toHaveBeenCalledTimes(1)
@@ -81,7 +81,7 @@ describe("DetailsPanel audio half", () => {
             track: { audioId: 4, name: "brano.wav", src: "http://asset.localhost/x", playId: 1 },
             cache: [file(4, "brano.wav", "/audio/brano.wav")],
         })
-        const heading = await screen.findByRole("heading", { name: "Titolo del file audio" })
+        const heading = await screen.findByRole("heading", { name: /^Titolo del file audio/ })
         // Without a title tag the name of the file is shown
         expect(heading).toHaveTextContent("brano.wav")
         expect(invoke).toHaveBeenCalledWith("audio_metadata", { path: "/audio/brano.wav" })
@@ -99,7 +99,7 @@ describe("DetailsPanel audio half", () => {
             chosen: file(7, "scelto.mp3", "/scelto.mp3"),
             track: { audioId: 4, name: "brano.wav", src: "http://asset.localhost/x", playId: 1 },
         })
-        await screen.findByRole("heading", { name: "Titolo del file audio" })
+        await screen.findByRole("heading", { name: /^Titolo del file audio/ })
         expect(invoke).toHaveBeenCalledWith("audio_metadata", { path: "/scelto.mp3" })
     })
 

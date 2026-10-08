@@ -132,6 +132,8 @@ export const settings = {
         },
         backup: {
             created: "Backup creato.",
+            deleted: "Backup eliminato.",
+            restored: "Backup ripristinato.",
             now: {
                 label: "Esegui backup ora",
                 description: "Salva una copia consistente del database nella cartella dei backup.",

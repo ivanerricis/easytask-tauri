@@ -3,6 +3,9 @@ import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { AudioPlayer } from "./audio-player"
 
+// The Radix slider measures its thumb with a ResizeObserver, which jsdom does not have
+globalThis.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver
+
 const attributes = {
     role: "button",
     tabIndex: 0,
@@ -96,19 +99,18 @@ describe("AudioPlayer", () => {
 
     it("seeks by writing currentTime on the audio element", () => {
         const { audio } = setup()
-        // The seek range is clamped to the duration, so load it first
+        // The seek slider is clamped to the duration, so load it first
         Object.defineProperty(audio, "duration", { value: 100, configurable: true })
         act(() => { audio.dispatchEvent(new Event("loadedmetadata")) })
-        fireEvent.change(screen.getAllByRole("slider")[0], { target: { value: "42" } })
-        expect(audio.currentTime).toBe(42)
+        fireEvent.keyDown(screen.getByRole("slider", { name: "Posizione di riproduzione" }), { key: "End" })
+        expect(audio.currentTime).toBe(100)
     })
 
     it("changes the volume", () => {
         const { audio } = setup()
-        const volume = screen.getAllByRole("slider")[1]
-        fireEvent.change(volume, { target: { value: "0.5" } })
-        expect(audio.volume).toBe(0.5)
-        expect(screen.getByText("50")).toBeInTheDocument()
+        fireEvent.keyDown(screen.getByRole("slider", { name: "Volume" }), { key: "Home" })
+        expect(audio.volume).toBe(0)
+        expect(screen.getByText("0")).toBeInTheDocument()
     })
 
     it("starts from the volume preference and follows it when it changes", () => {
@@ -127,30 +129,8 @@ describe("AudioPlayer", () => {
     it("reports the volume the user sets", () => {
         const onVolumeChange = vi.fn()
         render(<AudioPlayer src="a.mp3" listenersHandle={undefined} attributesHandle={attributes} volume={1} onVolumeChange={onVolumeChange} />)
-        fireEvent.change(screen.getByLabelText("Volume"), { target: { value: "0.25" } })
-        expect(onVolumeChange).toHaveBeenCalledWith(0.25)
-    })
-
-    it("moves the sound while the volume slider is dragged and reports the volume once, on release", () => {
-        const onVolumeChange = vi.fn()
-        const { container } = render(<AudioPlayer src="a.mp3" listenersHandle={undefined} attributesHandle={attributes} volume={1} onVolumeChange={onVolumeChange} />)
-        const audio = container.querySelector("audio")!
-        const slider = screen.getByLabelText("Volume")
-
-        fireEvent.pointerDown(slider)
-        for (const value of ["0.9", "0.6", "0.3"]) {
-            fireEvent.change(slider, { target: { value } })
-            expect(audio.volume).toBe(Number(value))
-        }
-        expect(onVolumeChange).not.toHaveBeenCalled()
-
-        fireEvent.pointerUp(window)
-        expect(onVolumeChange).toHaveBeenCalledTimes(1)
-        expect(onVolumeChange).toHaveBeenCalledWith(0.3)
-
-        // Back to one report per change (keyboard)
-        fireEvent.change(slider, { target: { value: "0.35" } })
-        expect(onVolumeChange).toHaveBeenLastCalledWith(0.35)
+        fireEvent.keyDown(screen.getByLabelText("Volume"), { key: "ArrowLeft" })
+        expect(onVolumeChange).toHaveBeenCalledWith(0.99)
     })
 
     it("pauses and calls onClose when closed", async () => {
@@ -336,10 +316,10 @@ describe("AudioPlayer", () => {
             expect(screen.getByRole("slider", { name: "Volume" })).toHaveAttribute("aria-valuetext", "0%")
             expect(onVolumeChange).not.toHaveBeenCalled()
 
-            fireEvent.change(screen.getByRole("slider", { name: "Volume" }), { target: { value: "0.4" } })
+            fireEvent.keyDown(screen.getByRole("slider", { name: "Volume" }), { key: "ArrowLeft" })
             expect(audio.muted).toBe(false)
-            expect(audio.volume).toBe(0.4)
-            expect(onVolumeChange).toHaveBeenCalledWith(0.4)
+            expect(audio.volume).toBe(0.99)
+            expect(onVolumeChange).toHaveBeenCalledWith(0.99)
             expect(screen.getByRole("button", { name: "Silenzia" })).toHaveAttribute("aria-pressed", "false")
         })
 
@@ -465,28 +445,6 @@ describe("AudioPlayer", () => {
             expect(playButton().querySelector("svg.lucide-pause")).not.toBeNull()
         })
 
-        it("fills the seek bar from the left edge up to the position, whatever its width", () => {
-            const seek = () => screen.getByRole("slider", { name: "Posizione di riproduzione" })
-            const { audio } = loadedAt(0)
-            expect(seek().style.getPropertyValue("--range-progress")).toBe("0")
-
-            for (const [at, progress] of [[25, "0.25"], [50, "0.5"], [96, "0.96"], [100, "1"]] as const) {
-                Object.defineProperty(audio, "currentTime", { value: at, configurable: true, writable: true })
-                act(() => { audio.dispatchEvent(new Event("timeupdate")) })
-                expect(seek().style.getPropertyValue("--range-progress")).toBe(progress)
-            }
-        })
-
-        it("leaves the seek bar empty while the duration is not known yet", () => {
-            setup()
-            expect(screen.getByRole("slider", { name: "Posizione di riproduzione" }).style.getPropertyValue("--range-progress")).toBe("0")
-        })
-
-        it("fills the volume bar from the volume", () => {
-            setup()
-            fireEvent.change(screen.getByRole("slider", { name: "Volume" }), { target: { value: "0.3" } })
-            expect(screen.getByRole("slider", { name: "Volume" }).style.getPropertyValue("--range-progress")).toBe("0.3")
-        })
     })
 
     describe("15 seconds back and forward", () => {

@@ -1,9 +1,10 @@
 import { FilePlus } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { useState } from "react"
+import { useId, useState } from "react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { FormError } from "@/components/form-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -35,6 +36,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
     const [name, setName] = useState(template.name)
     const [destination, setDestination] = useState(ROOT_VALUE)
     const [error, setError] = useState<string | null>(null)
+    const errorId = useId()
     const { saving: busy, run } = useSubmitOnce()
 
     const destinations = workspaceDataTree ? getFolderDestinations(workspaceDataTree) : [{ id: null, name: null, depth: 0 }]
@@ -65,6 +67,8 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
                 name="name"
                 value={name}
                 autoFocus
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? errorId : undefined}
                 onChange={e => {
                     setError(null)
                     setName(e.target.value)
@@ -90,7 +94,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
                     ))}
                 </SelectContent>
             </Select>
-            {error && <p className="text-xs text-destructive">{error}</p>}
+            <FormError id={errorId}>{error}</FormError>
             <DialogFooter className="mt-4">
                 <Button variant="outline" type="button" onClick={() => onOpenChange(false)}>
                     {t("common.cancel")}

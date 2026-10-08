@@ -27,12 +27,12 @@ describe("note open in the active tab", () => {
         active.id = 2
         renderIn(<><ItemNote note={note(1, "Spesa")} /><ItemNote note={note(2, "Idee")} /></>)
 
-        const open = screen.getByRole("button", { name: /Idee/ })
+        const open = screen.getByRole("treeitem", { name: /Idee/ })
         expect(open).toHaveAttribute("aria-current", "true")
         expect(open.className).toContain("border-primary")
         expect(open.className).toContain("ring-primary")
         expect(open.querySelector("span.font-semibold")).not.toBeNull()
-        const other = screen.getByRole("button", { name: /Spesa/ })
+        const other = screen.getByRole("treeitem", { name: /Spesa/ })
         expect(other).not.toHaveAttribute("aria-current")
         expect(other.className).toContain("border-accent")
         expect(other.className).not.toContain("ring-primary")
@@ -41,7 +41,7 @@ describe("note open in the active tab", () => {
 
     it("marks nothing without an active note", () => {
         renderIn(<ItemNote note={note(1, "Spesa")} />)
-        const row = screen.getByRole("button", { name: /Spesa/ })
+        const row = screen.getByRole("treeitem", { name: /Spesa/ })
         expect(row).not.toHaveAttribute("aria-current")
         expect(row.className).toContain("border-accent")
     })
@@ -53,7 +53,7 @@ describe("collapsed folder holding the active note", () => {
     it("shows a discreet mark when it is collapsed, even for a note in a subfolder", () => {
         active.id = 5
         renderIn(<ItemFolder folder={tree} isOpen={false} onToggle={vi.fn()} />)
-        const row = screen.getByRole("button", { name: /Progetti/ })
+        const row = screen.getByRole("treeitem", { name: /Progetti/ })
         expect(row).toHaveAttribute("data-holds-active", "true")
         expect(row.className).toContain("border-primary/60")
     })
@@ -61,12 +61,12 @@ describe("collapsed folder holding the active note", () => {
     it("shows nothing when it is expanded (the note itself is visible)", () => {
         active.id = 5
         renderIn(<ItemFolder folder={tree} isOpen onToggle={vi.fn()} />)
-        expect(screen.getByRole("button", { name: /Progetti/ })).not.toHaveAttribute("data-holds-active")
+        expect(screen.getByRole("treeitem", { name: /Progetti/ })).not.toHaveAttribute("data-holds-active")
     })
 
     it("shows nothing when the active note is elsewhere", () => {
         active.id = 77
         renderIn(<ItemFolder folder={tree} isOpen={false} onToggle={vi.fn()} />)
-        expect(screen.getByRole("button", { name: /Progetti/ })).not.toHaveAttribute("data-holds-active")
+        expect(screen.getByRole("treeitem", { name: /Progetti/ })).not.toHaveAttribute("data-holds-active")
     })
 })

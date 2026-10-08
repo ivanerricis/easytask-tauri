@@ -79,9 +79,9 @@ describe("DialogSettings", () => {
     it("shows Aspetto first and switches panels", async () => {
         const user = await open()
         expect(screen.getByRole("heading", { name: "Aspetto" })).toBeInTheDocument()
-        expect(screen.getByRole("button", { name: "Aspetto" })).toHaveAttribute("aria-current", "page")
+        expect(screen.getByRole("tab", { name: "Aspetto" })).toHaveAttribute("aria-selected", "true")
 
-        await user.click(screen.getByRole("button", { name: "Note e sezioni" }))
+        await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
         expect(screen.getAllByRole("switch")).toHaveLength(10)
@@ -89,42 +89,43 @@ describe("DialogSettings", () => {
         expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()
 
-        await user.click(screen.getByRole("button", { name: "Audio" }))
+        await user.click(screen.getByRole("tab", { name: "Audio" }))
         expect(screen.getByRole("button", { name: "Ripristina" })).toBeInTheDocument()
     })
 
     it("puts the reset of a section in the same place everywhere: in its title row, on the right", async () => {
         const user = await open()
         for (const section of ["Aspetto", "Audio"]) {
-            await user.click(screen.getByRole("button", { name: section }))
+            await user.click(screen.getByRole("tab", { name: section }))
             const heading = screen.getByRole("heading", { name: section })
             const reset = screen.getByRole("button", { name: "Ripristina tutto" })
-            expect(reset.parentElement).toBe(heading.parentElement)
-            expect(heading.parentElement?.lastElementChild).toBe(reset)
+            // The button sits in a span that carries its tooltip
+            expect(reset.parentElement?.parentElement).toBe(heading.parentElement)
+            expect(heading.parentElement?.lastElementChild).toBe(reset.parentElement)
         }
     })
 
     it("toggles the hide completed tasks preference", async () => {
         const user = await open()
-        await user.click(screen.getByRole("button", { name: "Note e sezioni" }))
+        await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
         await user.click(screen.getByRole("switch", { name: "Nascondi i task completati" }))
         expect(setHideCompletedTasks).toHaveBeenCalledWith(true)
     })
 
     it("shows the audio settings and changes them", async () => {
         const user = await open()
-        await user.click(screen.getByRole("button", { name: "Audio" }))
+        await user.click(screen.getByRole("tab", { name: "Audio" }))
 
         const volume = screen.getByRole("slider", { name: "Volume predefinito" })
-        expect(volume).toHaveValue("50")
+        expect(volume).toHaveAttribute("aria-valuenow", "50")
         expect(volume).toHaveAttribute("aria-valuetext", "50%")
-        fireEvent.change(volume, { target: { value: "30" } })
-        expect(audioPrefs.setAudioVolume).toHaveBeenCalledWith(0.3)
+        fireEvent.keyDown(volume, { key: "ArrowLeft" })
+        expect(audioPrefs.setAudioVolume).toHaveBeenCalledWith(0.49)
 
         const opacity = screen.getByRole("slider", { name: "Trasparenza del player" })
-        expect(opacity).toHaveAttribute("min", "40")
-        fireEvent.change(opacity, { target: { value: "60" } })
-        expect(audioPrefs.setAudioPlayerOpacity).toHaveBeenCalledWith(0.6)
+        expect(opacity).toHaveAttribute("aria-valuemin", "40")
+        fireEvent.keyDown(opacity, { key: "Home" })
+        expect(audioPrefs.setAudioPlayerOpacity).toHaveBeenCalledWith(0.4)
 
         const visible = screen.getByRole("switch", { name: "Mostra il player flottante" })
         expect(visible).toBeChecked()
@@ -152,21 +153,29 @@ describe("DialogSettings", () => {
         expect(setSidebarItemSize).toHaveBeenCalledWith("large")
     })
 
+    it("keeps a value selected when the selected segment is pressed again", async () => {
+        await open()
+        const group = screen.getByRole("radiogroup", { name: "Dimensione di cartelle e note" })
+        setSidebarItemSize.mockClear()
+        await userEvent.click(within(group).getByRole("radio", { name: "Normale" }))
+        expect(setSidebarItemSize).not.toHaveBeenCalled()
+        expect(within(group).getByRole("radio", { name: "Normale" })).toBeChecked()
+    })
+
     it("sets the color intensity with the slider, previews it and can reset it", async () => {
         colorPrefs.colorIntensity = 1.5
         const user = await open()
         const slider = screen.getByRole("slider", { name: "Intensità dei colori" })
-        expect(slider).toHaveValue("150")
-        expect(slider).toHaveAttribute("min", "25")
-        expect(slider).toHaveAttribute("max", "175")
-        expect(slider).toHaveAttribute("step", "5")
+        expect(slider).toHaveAttribute("aria-valuenow", "150")
+        expect(slider).toHaveAttribute("aria-valuemin", "25")
+        expect(slider).toHaveAttribute("aria-valuemax", "175")
         expect(slider).toHaveAttribute("aria-valuetext", "150%")
         const swatches = screen.getByTestId("color-intensity-preview").children
         expect(swatches).toHaveLength(3)
         expect((swatches[0] as HTMLElement).style.backgroundColor).toBe("rgba(239, 68, 68, 0.45)")
 
-        fireEvent.change(slider, { target: { value: "75" } })
-        expect(setColorIntensity).toHaveBeenCalledWith(0.75)
+        fireEvent.keyDown(slider, { key: "ArrowLeft" })
+        expect(setColorIntensity).toHaveBeenCalledWith(1.45)
 
         await user.click(screen.getByRole("button", { name: "Ripristina" }))
         expect(setColorIntensity).toHaveBeenLastCalledWith(1)
@@ -174,10 +183,10 @@ describe("DialogSettings", () => {
 
     it("Informazioni is last and shows the app version", async () => {
         const user = await open()
-        const items = screen.getByRole("navigation").querySelectorAll("button")
+        const items = screen.getAllByRole("tab")
         expect(items[items.length - 1]).toHaveTextContent("Informazioni")
 
-        await user.click(screen.getByRole("button", { name: "Informazioni" }))
+        await user.click(screen.getByRole("tab", { name: "Informazioni" }))
         expect(await screen.findByText("9.8.7")).toBeInTheDocument()
         expect(screen.getByText("2.1.0")).toBeInTheDocument()
         expect(screen.getByText("Ivan Erricis")).toBeInTheDocument()
@@ -193,7 +202,7 @@ describe("DialogSettings", () => {
 
     it("opens the repository link with the opener plugin", async () => {
         const user = await open()
-        await user.click(screen.getByRole("button", { name: "Informazioni" }))
+        await user.click(screen.getByRole("tab", { name: "Informazioni" }))
         await user.click(await screen.findByRole("button", { name: "https://github.com/ivanerricis/easytask-tauri" }))
         expect(openUrl).toHaveBeenCalledWith("https://github.com/ivanerricis/easytask-tauri")
     })
@@ -201,7 +210,7 @@ describe("DialogSettings", () => {
     it("shows a toast when the link cannot be opened", async () => {
         vi.mocked(openUrl).mockRejectedValue(new Error("denied"))
         const user = await open()
-        await user.click(screen.getByRole("button", { name: "Informazioni" }))
+        await user.click(screen.getByRole("tab", { name: "Informazioni" }))
         await user.click(await screen.findByRole("button", { name: "https://github.com/ivanerricis/easytask-tauri" }))
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("denied")))
     })

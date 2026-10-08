@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { SettingsNav } from "./settings/SettingsNav"
 import { SETTINGS_CATEGORIES } from "./settings/categories"
 
@@ -32,16 +33,12 @@ export const DialogSettingsContent = ({ isOpen, onOpenChange, requestedCategory 
                 <DialogHeader>
                     <DialogTitle>{t("settings.title")}</DialogTitle>
                 </DialogHeader>
-                <div className="flex flex-col sm:flex-row gap-4 min-h-0">
-                    <SettingsNav
-                        categories={SETTINGS_CATEGORIES}
-                        activeId={active.id}
-                        onSelect={setActiveId}
-                    />
-                    <div className="flex-1 min-w-0 overflow-y-auto pr-1">
+                <Tabs orientation="vertical" value={active.id} onValueChange={setActiveId} className="flex-col sm:flex-row gap-4 min-h-0">
+                    <SettingsNav categories={SETTINGS_CATEGORIES} />
+                    <TabsContent value={active.id} className="min-w-0 overflow-y-auto pr-1">
                         <Panel />
-                    </div>
-                </div>
+                    </TabsContent>
+                </Tabs>
             </DialogContent>
         </Dialog>
     )

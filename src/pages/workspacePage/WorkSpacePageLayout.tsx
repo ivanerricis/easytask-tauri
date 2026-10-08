@@ -42,7 +42,7 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
                     <div className="flex items-center gap-1">
                         <ButtonNavbar
                             onClick={handleGoHome}
-                            className="text-foreground rounded-[4px]"
+                            className="text-foreground rounded-xs"
                             textTooltip={t("workspace.backHome")}
                             textTooltipShortcut={homeLabel}
                         >

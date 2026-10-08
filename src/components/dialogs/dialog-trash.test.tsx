@@ -114,6 +114,17 @@ describe("DialogTrash", () => {
         expect(screen.getByRole("button", { name: "Svuota cestino" })).toBeDisabled()
     })
 
+    it("shows only the error, with a retry, when the load fails", async () => {
+        const user = userEvent.setup()
+        data.getTrash.mockRejectedValueOnce(new Error("db locked"))
+        render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        expect(await screen.findByRole("alert")).toHaveTextContent("db locked")
+        expect(screen.queryByText("Il cestino è vuoto")).not.toBeInTheDocument()
+        await user.click(screen.getByRole("button", { name: "Riprova" }))
+        expect(await screen.findByText("Cartella A")).toBeInTheDocument()
+        expect(screen.queryByRole("alert")).not.toBeInTheDocument()
+    })
+
     it("restores an item and reloads workspace and note data", async () => {
         const user = userEvent.setup()
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)

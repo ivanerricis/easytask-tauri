@@ -1,12 +1,12 @@
 import { useTranslation } from "react-i18next"
 import { RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
+import { Slider } from "@/components/ui/slider"
 import { usePreferences } from "@/contexts/use-preferences"
 import { AUDIO_PLAYER_SCALES, MIN_AUDIO_PLAYER_OPACITY, type AudioPlayerScale } from "@/lib/store/preferences"
-import { SettingsPanel, SettingsRow } from "./SettingsRow"
+import { SettingsPanel, SettingsRow, SettingsSwitchRow } from "./SettingsRow"
+import { SegmentedSetting } from "./SegmentedSetting"
 import { SectionResetButton } from "./SectionResetButton"
-import { rangeStyle } from "@/lib/range"
 
 const SIZE_KEYS: Record<AudioPlayerScale, "small" | "normal" | "large"> = { 0.85: "small", 1: "normal", 1.2: "large" }
 
@@ -14,19 +14,17 @@ const PercentRange = ({ label, value, min, onChange }: { label: string, value: n
     const percent = Math.round(value * 100)
     return (
         <div className="flex items-center gap-2">
-            <input
-                type="range"
+            <Slider
                 min={min * 100}
                 max={100}
                 step={1}
-                value={percent}
-                onChange={e => onChange(Number(e.target.value) / 100)}
+                value={[percent]}
+                onValueChange={([next]) => onChange(next / 100)}
                 aria-label={label}
                 aria-valuetext={`${percent}%`}
-                style={rangeStyle(percent, min * 100, 100)}
-                className="w-32 accent-primary cursor-pointer"
+                className="w-32"
             />
-            <span className="w-10 text-right text-xs text-muted-foreground tabular-nums">{percent}%</span>
+            <span aria-hidden className="w-10 text-right text-xs text-muted-foreground tabular-nums">{percent}%</span>
         </div>
     )
 }
@@ -40,7 +38,6 @@ export const AudioSettings = () => {
         audioPlayerScale, setAudioPlayerScale,
         audioPlayerOpacity, setAudioPlayerOpacity,
     } = usePreferences()
-    const sizeLabel = t("settings.audio.playerSize.label")
 
     return (
         <SettingsPanel
@@ -50,29 +47,19 @@ export const AudioSettings = () => {
             <SettingsRow label={t("settings.audio.volume.label")} description={t("settings.audio.volume.description")}>
                 <PercentRange label={t("settings.audio.volume.label")} value={audioVolume} min={0} onChange={setAudioVolume} />
             </SettingsRow>
-            <SettingsRow label={t("settings.audio.playerVisible.label")} description={t("settings.audio.playerVisible.description")}>
-                <Switch
-                    aria-label={t("settings.audio.playerVisible.label")}
-                    checked={audioPlayerVisible}
-                    onCheckedChange={setAudioPlayerVisible}
-                />
-            </SettingsRow>
-            <SettingsRow label={sizeLabel} description={t("settings.audio.playerSize.description")}>
-                <div role="radiogroup" aria-label={sizeLabel} className="flex rounded-xs border p-0.5 gap-0.5">
-                    {AUDIO_PLAYER_SCALES.map(value => (
-                        <button
-                            key={value}
-                            type="button"
-                            role="radio"
-                            aria-checked={audioPlayerScale === value}
-                            onClick={() => setAudioPlayerScale(value)}
-                            className={`px-2 py-1 text-xs rounded-xs cursor-pointer ${audioPlayerScale === value ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
-                        >
-                            {t(`settings.audio.playerSize.${SIZE_KEYS[value]}`)}
-                        </button>
-                    ))}
-                </div>
-            </SettingsRow>
+            <SettingsSwitchRow
+                label={t("settings.audio.playerVisible.label")}
+                description={t("settings.audio.playerVisible.description")}
+                checked={audioPlayerVisible}
+                onCheckedChange={setAudioPlayerVisible}
+            />
+            <SegmentedSetting
+                label={t("settings.audio.playerSize.label")}
+                description={t("settings.audio.playerSize.description")}
+                value={String(audioPlayerScale)}
+                options={AUDIO_PLAYER_SCALES.map(value => ({ value: String(value), label: t(`settings.audio.playerSize.${SIZE_KEYS[value]}`) }))}
+                onChange={value => setAudioPlayerScale(Number(value) as AudioPlayerScale)}
+            />
             <SettingsRow label={t("settings.audio.playerOpacity.label")} description={t("settings.audio.playerOpacity.description")}>
                 <PercentRange label={t("settings.audio.playerOpacity.label")} value={audioPlayerOpacity} min={MIN_AUDIO_PLAYER_OPACITY} onChange={setAudioPlayerOpacity} />
             </SettingsRow>

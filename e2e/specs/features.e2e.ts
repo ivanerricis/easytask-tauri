@@ -152,8 +152,8 @@ const openTrash = async () => {
 
 /** Shows the tab of a kind of item of the trash (the trash lists one kind at a time). */
 const openTrashTab = async (trash: ChainableDialog, type: string) => {
-    await domClick(trash.$(`#trash-tab-${type}`))
-    await trash.$(`#trash-panel-${type}`).waitForExist()
+    await domClick(trash.$(`[role="tab"][data-type="${type}"]`))
+    await trash.$(`[role="tab"][data-type="${type}"][aria-selected="true"]`).waitForExist()
 }
 
 const closeTrash = async (trash: ChainableDialog) => {
@@ -338,7 +338,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
 
     describe("settings", () => {
         const category = async (key: string) => {
-            const nav = $(`nav[aria-label="${await tr("settings.nav")}"]`)
+            const nav = $(`[role="tablist"][aria-label="${await tr("settings.nav")}"]`)
             await byText(await tr(key), nav).click()
         }
 
@@ -373,10 +373,10 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
             await category("settings.categories.appearance")
             const sizeLabel = await tr("settings.appearance.sidebarSize.label")
             const radio = async (key: string) => byText(await tr(`settings.appearance.sidebarSize.${key}`))
-            const range = $(`input[type="range"][aria-label=${JSON.stringify(await tr("settings.appearance.colorIntensity.label"))}]`)
+            const range = $(`[role="slider"][aria-label=${JSON.stringify(await tr("settings.appearance.colorIntensity.label"))}]`)
             const rowHeight = () => browser.execute(
                 (name: string) => {
-                    const row = Array.from(document.querySelectorAll<HTMLElement>('div[role="button"]')).find((el) => el.textContent?.trim() === name)
+                    const row = Array.from(document.querySelectorAll<HTMLElement>('div[role="treeitem"]')).find((el) => el.textContent?.trim() === name)
                     return row ? row.getBoundingClientRect().height : 0
                 },
                 NOTE,

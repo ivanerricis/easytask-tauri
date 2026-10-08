@@ -60,22 +60,17 @@ const addTask = async (text: string) => {
     )
 }
 
-/** Sets the value of a range input the way a user drag would (React listens to the "input" event). */
-const setRange = (label: string, value: number) =>
-    browser.execute((aria: string, next: number) => {
-        const input = document.querySelector<HTMLInputElement>(`input[type="range"][aria-label="${aria}"]`)!
-        Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")!.set!.call(input, String(next))
-        input.dispatchEvent(new Event("input", { bubbles: true }))
-    }, label, value)
-
+/** The slider of the player (the Radix thumb has the label): the fill of its range over its track, its value and the audio element. */
 const readRange = (label: string) =>
     browser.execute((aria: string) => {
-        const input = document.querySelector<HTMLInputElement>(`input[type="range"][aria-label="${aria}"]`)!
+        const thumb = document.querySelector<HTMLElement>(`[role="slider"][aria-label="${aria}"]`)!
+        const slider = thumb.closest<HTMLElement>('[data-slot="slider"]')!
+        const track = slider.querySelector<HTMLElement>('[data-slot="slider-track"]')!.getBoundingClientRect().width
+        const range = slider.querySelector<HTMLElement>('[data-slot="slider-range"]')!.getBoundingClientRect().width
         const audio = document.querySelector("audio")!
         return {
-            progress: Number(input.style.getPropertyValue("--range-progress")),
-            value: Number(input.value),
-            image: getComputedStyle(input).backgroundImage,
+            progress: track > 0 ? range / track : 0,
+            value: Number(thumb.getAttribute("aria-valuenow")),
             currentTime: audio.currentTime,
             duration: audio.duration,
             volume: audio.volume,
@@ -158,7 +153,7 @@ describe("Layout and appearance", () => {
                 console.log("[layout] audio/wav cannot be played by this webview: the player tests are skipped")
                 this.skip()
             }
-            await domClick($(`[role="button"][title=${JSON.stringify(wavPath)}]`))
+            await domClick($(`button[title=${JSON.stringify(wavPath)}]`))
             await byLabel(await tr("audio.player.seek")).waitForDisplayed({ timeoutMsg: "the player did not open" })
             // canPlayType says "maybe" even where no decoder is installed (CI runner): the metadata tells the truth
             const decodes = await browser.waitUntil(
@@ -178,24 +173,24 @@ describe("Layout and appearance", () => {
         it("fills the seek bar up to the playback position", async () => {
             const label = await tr("audio.player.seek")
             for (const value of [0, 2, 3.8, 4]) {
-                await setRange(label, value)
+                await browser.execute((time: number) => { document.querySelector("audio")!.currentTime = time }, value)
                 await browser.waitUntil(async () => Math.abs((await readRange(label)).currentTime - value) < 0.15, { timeoutMsg: `seek to ${value} s` })
                 const state = await settled(() => readRange(label))
                 expect(Math.abs(state.progress - state.currentTime / state.duration)).toBeLessThan(0.02)
                 expect(Math.abs(state.progress - value / 4)).toBeLessThan(0.05)
-                expect(state.image).toContain("gradient")
             }
         })
 
         it("fills the volume bar up to the volume", async () => {
             const label = await tr("audio.player.volume")
-            for (const value of [0, 0.5, 1]) {
-                await setRange(label, value)
-                await browser.waitUntil(async () => Math.abs((await readRange(label)).progress - value) < 0.001, { timeoutMsg: `volume ${value}` })
-                const state = await readRange(label)
-                expect(state.progress).toBeCloseTo(value, 2)
-                expect(state.image).toContain("gradient")
-                expect(Math.abs(state.volume - value)).toBeLessThan(0.01)
+            const thumb = byLabel(label)
+            await browser.execute((el: HTMLElement) => el.focus(), (await thumb.getElement()) as unknown as HTMLElement)
+            // Home = 0, End = 1, then the arrows move it by 1% (Page Down by 10%)
+            for (const [key, value] of [["Home", 0], ["End", 1], ["PageDown", 0.9]] as const) {
+                await browser.keys(key)
+                await browser.waitUntil(async () => Math.abs((await readRange(label)).volume - value) < 0.011, { timeoutMsg: `volume ${value}` })
+                const state = await settled(() => readRange(label))
+                expect(Math.abs(state.progress - value)).toBeLessThan(0.02)
             }
         })
     })

@@ -153,7 +153,7 @@ describe("ButtonMenuSection", () => {
         const trigger = (await screen.findByText("Cambia colore")).closest("[data-slot=context-menu-sub-trigger]") as HTMLElement
         trigger.focus()
         await user.keyboard("{ArrowRight}")
-        await user.click(await screen.findByLabelText("Colore #e6194b"))
+        await user.click(await screen.findByLabelText("Colore Rosso"))
 
         expect(patchSection).toHaveBeenCalledWith(7, { color: "#e6194b" })
         expect(updateItemColor).toHaveBeenCalledWith("section", 7, "#e6194b")

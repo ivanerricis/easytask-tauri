@@ -134,6 +134,8 @@ export const settings: Translation["settings"] = {
         },
         backup: {
             created: "Backup created.",
+            deleted: "Backup deleted.",
+            restored: "Backup restored.",
             now: {
                 label: "Back up now",
                 description: "Saves a consistent copy of the database in the backups folder.",

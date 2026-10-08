@@ -5,6 +5,7 @@ import type { Section as SectionType } from "@/types/types"
 import { cn } from "@/lib/utils"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { useSectionOpen } from "@/contexts/use-tabs"
+import { DropLine } from "../sidebar/DropLine"
 
 type SectionProps = {
     section: SectionType
@@ -34,8 +35,7 @@ export const Section = memo(({ section }: SectionProps) => {
                 !draggingSection && zone && "ring-2 ring-primary",
             )}
         >
-            {draggingSection && (zone === "before" || zone === "after") &&
-                <div className={cn("pointer-events-none absolute left-0 right-0 z-10 h-0.5 bg-primary", zone === "before" ? "-top-[3px]" : "-bottom-[3px]")} />}
+            {draggingSection && <DropLine zone={zone} className={zone === "before" ? "-top-[3px]" : "-bottom-[3px]"} />}
             <SectionHeader
                 isOpen={isOpen}
                 onOpenChange={toggleOpen}

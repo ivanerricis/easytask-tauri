@@ -4,10 +4,13 @@ import { Button } from "@/components/ui/button"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { focusRing } from "@/lib/a11y"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import { PanelLeft, PanelRight } from "lucide-react"
 import {
     SIDEBAR_DEFAULT_WIDTH, SIDEBAR_MIN_WIDTH, clampSidebarWidth, maxSidebarWidth, widthForKey,
 } from "@/lib/sidebar-layout"
+
+const OVERLAY_OPENED_EVENT = "easytask:sidebar-overlay-opened"
 
 type SideBarProps = {
     children: React.ReactNode
@@ -81,47 +84,56 @@ export const SideBar = ({
         if (next !== currentWidth) onWidthChange?.(next)
     }
 
-    const closeOverlay = () => {
-        onOpenChange(false)
-        toggleRef.current?.focus()
-    }
-
-    const handlePanelKeyDown = (e: React.KeyboardEvent) => {
-        if (overlay && e.key === "Escape" && !e.defaultPrevented) {
-            e.stopPropagation()
-            closeOverlay()
+    // Compact mode: only one overlay at a time (the left sidebar and the right panel close each other)
+    useEffect(() => {
+        if (!overlay) return
+        const onOther = (e: Event) => {
+            if ((e as CustomEvent<string>).detail !== position) onOpenChange(false)
         }
-    }
+        window.addEventListener(OVERLAY_OPENED_EVENT, onOther)
+        return () => window.removeEventListener(OVERLAY_OPENED_EVENT, onOther)
+    }, [overlay, position, onOpenChange])
+    useEffect(() => {
+        if (overlay && open) window.dispatchEvent(new CustomEvent(OVERLAY_OPENED_EVENT, { detail: position }))
+    }, [overlay, open, position])
 
     const showPanel = open
     const flexDirection = position === "left" ? "flex-row-reverse" : "flex-row"
-    const borderClass = position === "left" ? "border-r-2" : "border-l-2"
+    const borderClass = position === "left" ? "border-r" : "border-l"
     const resizerPosition = position === "left" ? "right-0" : "left-0"
-    const sideAnchor = position === "left" ? "left-full" : "right-full"
     const toggleText = open ? (toggleLabels?.hide ?? t("layout.hideSidebar")) : (toggleLabels?.show ?? t("layout.showSidebar"))
 
     return (
         <div className={`flex ${flexDirection} relative h-full z-20 shrink-0 ${className || ""}`}>
 
-            {/* Overlay backdrop: a click outside the floating panel closes it */}
-            {overlay && showPanel && (
-                <div
-                    data-testid="sidebar-backdrop"
-                    aria-hidden
-                    className={`absolute top-0 h-full w-screen bg-black/30 ${sideAnchor}`}
-                    onClick={closeOverlay}
-                />
+            {/* Compact mode: a modal Sheet over the content (focus trapped, Esc and a click outside close it) */}
+            {overlay && (
+                <Sheet open={open} onOpenChange={onOpenChange}>
+                    <SheetContent
+                        side={position}
+                        showCloseButton={false}
+                        data-testid="sidebar-panel"
+                        aria-describedby={undefined}
+                        // Focus goes back to the toggle button, which is where the panel is opened from
+                        onCloseAutoFocus={e => { e.preventDefault(); toggleRef.current?.focus() }}
+                        className="w-auto gap-0 overflow-hidden bg-secondary p-0 sm:max-w-none"
+                        style={{ width: currentWidth, maxWidth: "calc(100vw - 80px)" }}
+                    >
+                        <SheetHeader className="sr-only">
+                            <SheetTitle>{toggleLabels?.toggle ?? t("sidebar.toggle")}</SheetTitle>
+                        </SheetHeader>
+                        <div className="flex h-full min-h-0 flex-col">{children}</div>
+                    </SheetContent>
+                </Sheet>
             )}
 
             {/* Big Sidebar */}
-            <div
+            {!overlay && <div
                 ref={sidebarRef}
                 data-testid="sidebar-panel"
-                onKeyDown={handlePanelKeyDown}
-                className={`${overlay ? `absolute top-0 z-10 shadow-xl ${sideAnchor}` : "relative"} flex flex-col h-full bg-secondary ${showPanel ? borderClass : ""}`}
+                className={`relative flex flex-col h-full bg-secondary ${showPanel ? borderClass : ""}`}
                 style={{
                     width: showPanel ? currentWidth : 0,
-                    maxWidth: overlay ? "calc(100vw - 80px)" : undefined,
                     minWidth: 0,
                     transition: isResizing ? "none" : "width 0.2s",
                     overflow: "hidden",
@@ -131,12 +143,12 @@ export const SideBar = ({
                 {showPanel && (
                     <div
                         className={`flex h-full min-h-0 shrink-0 flex-col ${position === "left" ? "self-start" : "self-end"}`}
-                        style={{ width: currentWidth, maxWidth: overlay ? "calc(100vw - 80px)" : undefined }}
+                        style={{ width: currentWidth }}
                     >
                         {children}
                     </div>
                 )}
-                {showPanel && !overlay && (
+                {showPanel && (
                     <div
                         role="separator"
                         aria-orientation="vertical"
@@ -152,7 +164,7 @@ export const SideBar = ({
                         onKeyDown={handleResizerKeyDown}
                     />
                 )}
-            </div>
+            </div>}
 
             {/* Little Sidebar */}
             <div className={`flex flex-col items-center justify-between p-1 bg-background ${borderClass}`}>

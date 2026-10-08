@@ -9,6 +9,8 @@ export const SIDEBAR_KEY_STEP = 16
 export const SIDEBAR_KEY_STEP_LARGE = 64
 /** Below this window width the sidebar becomes a collapsible overlay. */
 export const COMPACT_BREAKPOINT = 900
+/** Minimum height of the strip at the top of the panels (sidebar header, right panel tabs, note tabs): they all line up. */
+export const CHROME_HEIGHT_CLASS = "min-h-[42px]"
 /** Room always left to the note next to the sidebar (rail included). */
 const MIN_CONTENT_WIDTH = 420
 

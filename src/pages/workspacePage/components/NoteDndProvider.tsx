@@ -60,7 +60,7 @@ const getPointer = (event: DragMoveEvent): { x: number, y: number } | null => {
 /**
  * Drag & drop of groups, sections and tasks inside the open note (dnd-kit).
  * Drop zones, from the pointer position on the hovered element:
- * - group (dragged by the grip of its header) over another group: left half = before, right half = after,
+ * - group (dragged by its header) over another group: left half = before, right half = after,
  *   persisted with an optimistic update of the group positions;
  * - section dragged over a section card: top half = before, bottom half = after (any group);
  * - section dragged over the empty area of a group (or its header): appended to the group;

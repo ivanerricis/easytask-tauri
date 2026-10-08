@@ -6,6 +6,8 @@ import { openUrl } from "@tauri-apps/plugin-opener"
 import { Copy } from "lucide-react"
 import { toast } from "sonner"
 import { getErrorMessage } from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { SettingsPanel } from "./SettingsRow"
 import { UpdateSection } from "./UpdateSection"
 
@@ -53,23 +55,21 @@ const RepositoryRow = () => {
         <div className="flex items-baseline justify-between gap-4 text-sm">
             <span className="text-muted-foreground shrink-0">{t("settings.about.repository")}</span>
             <span className="flex items-center gap-1.5 text-right">
-                <button
-                    type="button"
-                    onClick={handleOpen}
-                    title={t("settings.about.openInBrowser")}
-                    className="break-all text-primary underline underline-offset-2 hover:opacity-80 cursor-pointer text-right"
-                >
-                    {REPO_URL}
-                </button>
-                <button
-                    type="button"
-                    onClick={handleCopy}
-                    aria-label={t("settings.about.copyLink")}
-                    title={t("settings.about.copyLink")}
-                    className="shrink-0 self-center rounded-xs p-1 text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer"
-                >
-                    <Copy className="size-3.5" />
-                </button>
+                <TooltipCustom text={t("settings.about.openInBrowser")}>
+                    <Button
+                        type="button"
+                        variant="link"
+                        onClick={handleOpen}
+                        className="h-auto whitespace-normal p-0 text-right font-normal break-all text-foreground underline decoration-primary"
+                    >
+                        {REPO_URL}
+                    </Button>
+                </TooltipCustom>
+                <TooltipCustom text={t("settings.about.copyLink")}>
+                    <Button type="button" variant="ghost" size="icon" onClick={handleCopy} aria-label={t("settings.about.copyLink")} className="self-center text-muted-foreground">
+                        <Copy />
+                    </Button>
+                </TooltipCustom>
             </span>
         </div>
     )

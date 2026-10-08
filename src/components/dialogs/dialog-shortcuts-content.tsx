@@ -23,12 +23,12 @@ export const DialogShortcutsContent = ({ open, onOpenChange }: DialogShortcutsCo
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-h-[80vh] grid-rows-[auto_1fr] overflow-hidden">
                 <DialogHeader>
                     <DialogTitle>{t("dialogs.shortcuts.title")}</DialogTitle>
                     <DialogDescription>{t("dialogs.shortcuts.description")}</DialogDescription>
                 </DialogHeader>
-                <div className="flex flex-col gap-4">
+                <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
                     {SHORTCUT_CATEGORIES.map((category, index) => (
                         <Fragment key={category}>
                             {index > 0 && <Separator />}

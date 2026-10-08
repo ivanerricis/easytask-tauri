@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next"
-import { Switch } from "@/components/ui/switch"
 import { usePreferences } from "@/contexts/use-preferences"
-import { SettingsPanel, SettingsRow, SettingsSubsection } from "./SettingsRow"
+import { SettingsPanel, SettingsSubsection, SettingsSwitchRow } from "./SettingsRow"
 
 export const NotesSettings = () => {
     const { t } = useTranslation()
@@ -21,82 +20,22 @@ export const NotesSettings = () => {
     return (
         <SettingsPanel title={t("settings.notes.title")}>
             <SettingsSubsection title={t("settings.notes.sections.progress")}>
-                <SettingsRow label={t("settings.notes.progressBar.label")} description={t("settings.notes.progressBar.description")}>
-                    <Switch
-                        aria-label={t("settings.notes.progressBar.label")}
-                        checked={showProgressBar}
-                        onCheckedChange={() => setShowProgressBar(!showProgressBar)}
-                    />
-                </SettingsRow>
-                <SettingsRow label={t("settings.notes.groupProgressBar.label")} description={t("settings.notes.groupProgressBar.description")}>
-                    <Switch
-                        aria-label={t("settings.notes.groupProgressBar.label")}
-                        checked={showGroupProgressBar}
-                        onCheckedChange={() => setShowGroupProgressBar(!showGroupProgressBar)}
-                    />
-                </SettingsRow>
+                <SettingsSwitchRow label={t("settings.notes.progressBar.label")} description={t("settings.notes.progressBar.description")} checked={showProgressBar} onCheckedChange={setShowProgressBar} />
+                <SettingsSwitchRow label={t("settings.notes.groupProgressBar.label")} description={t("settings.notes.groupProgressBar.description")} checked={showGroupProgressBar} onCheckedChange={setShowGroupProgressBar} />
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.notes.sections.counts")}>
-                <SettingsRow label={t("settings.notes.sectionCount")}>
-                    <Switch
-                        aria-label={t("settings.notes.sectionCount")}
-                        checked={showSectionCount}
-                        onCheckedChange={() => setShowSectionCount(!showSectionCount)}
-                    />
-                </SettingsRow>
-                <SettingsRow label={t("settings.notes.taskCount")}>
-                    <Switch
-                        aria-label={t("settings.notes.taskCount")}
-                        checked={showTaskCount}
-                        onCheckedChange={() => setShowTaskCount(!showTaskCount)}
-                    />
-                </SettingsRow>
-                <SettingsRow label={t("settings.notes.audioFileCount")}>
-                    <Switch
-                        aria-label={t("settings.notes.audioFileCount")}
-                        checked={showAudioFileCount}
-                        onCheckedChange={() => setShowAudioFileCount(!showAudioFileCount)}
-                    />
-                </SettingsRow>
-                <SettingsRow label={t("settings.notes.subtaskCount.label")} description={t("settings.notes.subtaskCount.description")}>
-                    <Switch
-                        aria-label={t("settings.notes.subtaskCount.label")}
-                        checked={showSubtaskCount}
-                        onCheckedChange={() => setShowSubtaskCount(!showSubtaskCount)}
-                    />
-                </SettingsRow>
+                <SettingsSwitchRow label={t("settings.notes.sectionCount")} checked={showSectionCount} onCheckedChange={setShowSectionCount} />
+                <SettingsSwitchRow label={t("settings.notes.taskCount")} checked={showTaskCount} onCheckedChange={setShowTaskCount} />
+                <SettingsSwitchRow label={t("settings.notes.audioFileCount")} checked={showAudioFileCount} onCheckedChange={setShowAudioFileCount} />
+                <SettingsSwitchRow label={t("settings.notes.subtaskCount.label")} description={t("settings.notes.subtaskCount.description")} checked={showSubtaskCount} onCheckedChange={setShowSubtaskCount} />
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.notes.sections.display")}>
-                <SettingsRow label={t("settings.notes.groupSeparators.label")} description={t("settings.notes.groupSeparators.description")}>
-                    <Switch
-                        aria-label={t("settings.notes.groupSeparators.label")}
-                        checked={showGroupSeparators}
-                        onCheckedChange={() => setShowGroupSeparators(!showGroupSeparators)}
-                    />
-                </SettingsRow>
-                <SettingsRow label={t("settings.notes.hideCompleted.label")} description={t("settings.notes.hideCompleted.description")}>
-                    <Switch
-                        aria-label={t("settings.notes.hideCompleted.label")}
-                        checked={hideCompletedTasks}
-                        onCheckedChange={() => setHideCompletedTasks(!hideCompletedTasks)}
-                    />
-                </SettingsRow>
+                <SettingsSwitchRow label={t("settings.notes.groupSeparators.label")} description={t("settings.notes.groupSeparators.description")} checked={showGroupSeparators} onCheckedChange={setShowGroupSeparators} />
+                <SettingsSwitchRow label={t("settings.notes.hideCompleted.label")} description={t("settings.notes.hideCompleted.description")} checked={hideCompletedTasks} onCheckedChange={setHideCompletedTasks} />
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.notes.sections.startup")}>
-                <SettingsRow label={t("settings.notes.reopenWorkspace.label")} description={t("settings.notes.reopenWorkspace.description")}>
-                    <Switch
-                        aria-label={t("settings.notes.reopenWorkspace.label")}
-                        checked={reopenLastWorkspace}
-                        onCheckedChange={() => setReopenLastWorkspace(!reopenLastWorkspace)}
-                    />
-                </SettingsRow>
-                <SettingsRow label={t("settings.notes.reopenNotes.label")} description={t("settings.notes.reopenNotes.description")}>
-                    <Switch
-                        aria-label={t("settings.notes.reopenNotes.label")}
-                        checked={reopenNotes}
-                        onCheckedChange={() => setReopenNotes(!reopenNotes)}
-                    />
-                </SettingsRow>
+                <SettingsSwitchRow label={t("settings.notes.reopenWorkspace.label")} description={t("settings.notes.reopenWorkspace.description")} checked={reopenLastWorkspace} onCheckedChange={setReopenLastWorkspace} />
+                <SettingsSwitchRow label={t("settings.notes.reopenNotes.label")} description={t("settings.notes.reopenNotes.description")} checked={reopenNotes} onCheckedChange={setReopenNotes} />
             </SettingsSubsection>
         </SettingsPanel>
     )

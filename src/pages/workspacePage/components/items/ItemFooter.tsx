@@ -1,6 +1,9 @@
 import { useTranslation } from "react-i18next"
 import { Archive, Download, LayoutTemplate, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 
 type IconType = 'trash' | 'archive' | 'download' | 'template'
 
@@ -28,25 +31,24 @@ export const ItemFooter = ({ text, type, className, onClick, disabled, badge, ba
     const Icon = iconMap[type]
 
     return (
-        <button
+        <Button
             type="button"
+            variant="ghost"
             onClick={onClick}
             disabled={disabled}
-            className={`group gap-2 py-1 px-2 cursor-pointer relative w-full flex items-center rounded-xs border bg-background hover:bg-accent opacity-70 hover:opacity-100 focus-visible:opacity-100 disabled:pointer-events-none disabled:opacity-30 overflow-x-hidden ${className ?? ""}`}
+            className={cn("h-auto w-full justify-start gap-2 overflow-x-hidden px-2 py-1 font-normal", className)}
         >
-            {/* Text + Icon */}
+            {/* Icon + text + count */}
             <Icon className="size-4 shrink-0" />
-            <span className="text-left text-sm w-full truncate pr-6">
+            <span className="min-w-0 flex-1 truncate text-left">
                 {text}
             </span>
             {badge !== undefined && badge > 0 && (
-                <span
-                    aria-label={badgeLabel ?? t("sidebar.trashBadge", { count: badge })}
-                    className="absolute right-2 min-w-5 rounded-full bg-primary px-1 text-center text-xs text-primary-foreground"
-                >
-                    {badge}
-                </span>
+                <>
+                    <Badge aria-hidden="true" className="min-w-5 px-1.5">{badge}</Badge>
+                    <span className="sr-only">{badgeLabel ?? t("sidebar.trashBadge", { count: badge })}</span>
+                </>
             )}
-        </button>
+        </Button>
     )
 }

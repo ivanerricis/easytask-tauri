@@ -1,4 +1,4 @@
-import { useRef, useState } from "react"
+import { useRef, useState, type KeyboardEvent } from "react"
 import {
     DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors,
     type CollisionDetection, type DragMoveEvent,
@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { cn } from "@/lib/utils"
 import { NoteHeader } from "./NoteHeader"
+import { DropLine } from "../sidebar/DropLine"
 import { computeTabMove, computeTabZone, pickTabByX, type TabZone } from "./tab-reorder"
 import type { Note } from "@/types/types"
 
@@ -42,17 +43,17 @@ const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {
             style={{ transform: CSS.Translate.toString(transform) }}
             className={cn("relative", isDragging && "z-10 opacity-70")}
         >
-            {indicator && !isDragging &&
-                <div className={cn("pointer-events-none absolute inset-y-0 z-20 w-0.5 bg-primary", indicator === "before" ? "left-0" : "right-0")} />}
+            {!isDragging && <DropLine zone={indicator} vertical className="z-20" />}
             <NoteHeader note={note} />
         </div>
     )
 }
 
 export const NoteList = () => {
-    useTranslation() // re-renders on language change so the screen reader texts follow it
+    const { t } = useTranslation()
     const { tabs } = useTabs()
-    const { reorderTabs } = useTabsActions()
+    const { reorderTabs, activateNote } = useTabsActions()
+    const listRef = useRef<HTMLDivElement>(null)
     const [hover, setHover] = useState<Hover>(null)
     const hoverRef = useRef<Hover>(null)
 
@@ -60,6 +61,24 @@ export const NoteList = () => {
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
     const accessibility = buildDndAccessibility(entry => tabs.find(tab => tab.id === entry.id)?.name, { keyboard: false })
+
+    // Arrows, Home and End move between the tabs (roving tabindex: only the active tab is in the tab order)
+    const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+        const target = e.target as HTMLElement
+        if (target.getAttribute("role") !== "tab" || tabs.length === 0) return
+        const index = tabs.findIndex(note => String(note.id) === target.dataset.noteId)
+        if (index < 0) return
+        const next = e.key === "ArrowRight" ? (index + 1) % tabs.length
+            : e.key === "ArrowLeft" ? (index - 1 + tabs.length) % tabs.length
+                : e.key === "Home" ? 0
+                    : e.key === "End" ? tabs.length - 1
+                        : null
+        if (next === null) return
+        e.preventDefault()
+        const note = tabs[next]
+        activateNote(note.id)
+        listRef.current?.querySelector<HTMLElement>(`[role="tab"][data-note-id="${note.id}"]`)?.focus()
+    }
 
     const updateHover = (next: Hover) => {
         hoverRef.current = next
@@ -93,7 +112,7 @@ export const NoteList = () => {
         >
             {/* The line under the tabs: drawn by every inactive tab and, as an inset shadow, by the empty part of the bar.
                 The active tab paints over it, so it opens onto the note below. */}
-            <div className="flex shrink-0 w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1 shadow-[inset_0_-1px_0_0_var(--color-primary)]">
+            <div ref={listRef} role="tablist" aria-label={t("notes.openTabs")} onKeyDown={handleKeyDown} className="flex shrink-0 w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1 shadow-[inset_0_-1px_0_0_var(--color-primary)]">
                 {tabs.map(note => <Tab key={note.id} note={note} hover={hover} />)}
             </div>
         </DndContext>

@@ -1,14 +1,15 @@
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { ArchiveRestore, Loader2, Trash2 } from "lucide-react"
+import { ArchiveRestore, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { FormError } from "@/components/form-error"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { ItemRow, TypeTabs } from "./item-list-parts"
-import { ITEM_ICONS, formatStoredDate, typePanelId, typeTabId } from "./item-list-utils"
+import { ItemRow, ListError, ListLoading, TypeTabs } from "./item-list-parts"
+import { ITEM_ICONS, formatStoredDate } from "./item-list-utils"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
@@ -40,7 +41,9 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
     const [items, setItems] = useState<ArchiveItem[]>([])
     const [loaded, setLoaded] = useState(false)
     const [busy, setBusy] = useState(false)
+    // Error of an action (shown under the list) and error of the load (shown instead of the list)
     const [error, setError] = useState<string | null>(null)
+    const [loadError, setLoadError] = useState<string | null>(null)
     const [selected, setSelected] = useState<ArchiveItemType | null>(null)
     const [toTrash, setToTrash] = useState<ArchiveItem | null>(null)
 
@@ -53,16 +56,18 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
     const reload = useCallback(async () => {
         try {
             const list = await loadRef.current()
+            setLoadError(null)
             setItems(list)
             // The first time: show the first type that has something in it
             setSelected(current => current ?? TYPES.find(type => list.some(i => i.type === type)) ?? TYPES[0])
         } catch (err) {
-            setError(getErrorMessage(err))
+            setLoadError(getErrorMessage(err))
         }
     }, [])
 
     useEffect(() => {
         if (!isOpen) return
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- load when the dialog opens
         reload().finally(() => setLoaded(true))
         return () => {
             setLoaded(false)
@@ -125,60 +130,51 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
                         </DialogDescription>
                     </DialogHeader>
                     {isLoading ? (
-                        <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-                            <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
-                        </div>
+                        <ListLoading />
+                    ) : loadError !== null ? (
+                        <ListError message={loadError} onRetry={() => void reload()} />
                     ) : items.length === 0 ? (
                         <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.isEmpty")}</p>
                     ) : (
-                        <div className="flex flex-col sm:flex-row gap-4 min-h-0 flex-1">
-                            <TypeTabs
-                                types={TYPES}
-                                active={active}
-                                onSelect={setSelected}
-                                count={countOf}
-                                label={type => t(`archive.types.${type}`)}
-                                ariaLabel={t("archive.nav")}
-                                idPrefix="archive"
-                            />
-                            <div
-                                role="tabpanel"
-                                id={typePanelId("archive", active)}
-                                aria-labelledby={typeTabId("archive", active)}
-                                className="flex-1 min-w-0 overflow-y-auto pr-1 flex flex-col gap-1"
-                            >
-                                {activeItems.length === 0 ? (
-                                    <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.emptyType")}</p>
-                                ) : activeItems.map(item => (
-                                    <ItemRow key={`${item.type}-${item.id}`} icon={Icon} name={item.name} details={details(item)}>
-                                        <TooltipCustom text={t("archive.restore")}>
-                                            <Button
-                                                variant="outline"
-                                                size="icon"
-                                                aria-label={t("archive.restoreAria", { name: item.name })}
-                                                disabled={busy}
-                                                onClick={() => handleRestore(item)}
-                                            >
-                                                <ArchiveRestore />
-                                            </Button>
-                                        </TooltipCustom>
-                                        <TooltipCustom text={t("archive.trash")}>
-                                            <Button
-                                                variant="destructive"
-                                                size="icon"
-                                                aria-label={t("archive.trashAria", { name: item.name })}
-                                                disabled={busy}
-                                                onClick={() => setToTrash(item)}
-                                            >
-                                                <Trash2 />
-                                            </Button>
-                                        </TooltipCustom>
-                                    </ItemRow>
-                                ))}
-                            </div>
-                        </div>
+                        <TypeTabs
+                            types={TYPES}
+                            active={active}
+                            onSelect={setSelected}
+                            count={countOf}
+                            label={type => t(`archive.types.${type}`)}
+                            ariaLabel={t("archive.nav")}
+                        >
+                            {activeItems.length === 0 ? (
+                                <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.emptyType")}</p>
+                            ) : activeItems.map(item => (
+                                <ItemRow key={`${item.type}-${item.id}`} icon={Icon} name={item.name} details={details(item)}>
+                                    <TooltipCustom text={t("archive.restore")}>
+                                        <Button
+                                            variant="outline"
+                                            size="icon"
+                                            aria-label={t("archive.restoreAria", { name: item.name })}
+                                            disabled={busy}
+                                            onClick={() => handleRestore(item)}
+                                        >
+                                            <ArchiveRestore />
+                                        </Button>
+                                    </TooltipCustom>
+                                    <TooltipCustom text={t("archive.trash")}>
+                                        <Button
+                                            variant="destructive"
+                                            size="icon"
+                                            aria-label={t("archive.trashAria", { name: item.name })}
+                                            disabled={busy}
+                                            onClick={() => setToTrash(item)}
+                                        >
+                                            <Trash2 />
+                                        </Button>
+                                    </TooltipCustom>
+                                </ItemRow>
+                            ))}
+                        </TypeTabs>
                     )}
-                    {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
+                    <FormError>{error}</FormError>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => onOpenChange(false)}>
                             {t("common.close")}

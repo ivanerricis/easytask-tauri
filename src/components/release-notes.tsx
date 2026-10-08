@@ -34,7 +34,7 @@ export const ReleaseNotes = ({ body }: { body: string }) => {
         if (!line) continue
         const heading = /^#{1,6}\s+(.*)$/.exec(line)
         blocks.push(heading
-            ? <p key={blocks.length} className="font-semibold mt-1">{inline(heading[1])}</p>
+            ? <h4 key={blocks.length} className="font-semibold mt-1">{inline(heading[1])}</h4>
             : <p key={blocks.length}>{inline(line)}</p>)
     }
     flush()

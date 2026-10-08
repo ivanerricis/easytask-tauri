@@ -6,11 +6,11 @@ import { getErrorMessage } from "@/lib/utils"
 import {
     Dialog,
     DialogContent,
-    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
+import { FormError } from "@/components/form-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { OptionalColorField } from "@/components/optional-color-field"
@@ -39,6 +39,7 @@ export function AddFolderDialog({ open, onOpenChange, parentId, withColor = fals
     const recorder = useUndoRecorder()
     const { saving, run } = useSubmitOnce()
     const nameId = useId()
+    const errorId = useId()
 
     const handleOpenChange = (next: boolean) => {
         if (!next) {
@@ -69,10 +70,9 @@ export function AddFolderDialog({ open, onOpenChange, parentId, withColor = fals
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="sm:max-w-[425px]">
+            <DialogContent className="sm:max-w-md" aria-describedby={undefined}>
                 <DialogHeader>
                     <DialogTitle>{t("dialogs.addFolder.title")}</DialogTitle>
-                    <DialogDescription />
                 </DialogHeader>
                 <form onSubmit={handleCreateFolder}>
                     <div className="grid gap-4">
@@ -82,6 +82,8 @@ export function AddFolderDialog({ open, onOpenChange, parentId, withColor = fals
                                 <Input
                                     id={nameId}
                                     name="name"
+                                    aria-invalid={error ? true : undefined}
+                                    aria-describedby={error ? errorId : undefined}
                                     value={name}
                                     onChange={e => {
                                         setError(null)
@@ -90,7 +92,7 @@ export function AddFolderDialog({ open, onOpenChange, parentId, withColor = fals
                                 />
                                 {withColor && <OptionalColorField value={color} onChange={setColor} />}
                             </div>
-                            {error && <p className="text-xs text-destructive">{error}</p>}
+                            <FormError id={errorId}>{error}</FormError>
                         </div>
                     </div>
                     <DialogFooter className="mt-4">

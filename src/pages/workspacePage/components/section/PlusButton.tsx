@@ -1,5 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { TooltipCustom } from "@/components/tooltip-custom"
+import { keyLabel } from "@/lib/shortcuts"
 
 type PlusButtonProps = {
     disabled?: boolean
@@ -9,14 +12,18 @@ type PlusButtonProps = {
 export const PlusButton = ({disabled, onClick}: PlusButtonProps) => {
     const { t } = useTranslation()
     return (
-        <button
-            disabled={disabled}
-            type="submit"
-            aria-label={t("common.add")}
-            onClick={onClick}
-            className="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring group/add flex items-center justify-center w-full h-8 disabled:cursor-not-allowed"
-        >
-            <Plus size={20} className="group-hover/add:text-foreground text-muted-foreground" />
-        </button>
+        <TooltipCustom text={t("common.add")} shortcut={keyLabel("enter")}>
+            <Button
+                disabled={disabled}
+                type="submit"
+                variant="ghost"
+                size="icon"
+                aria-label={t("common.add")}
+                onClick={onClick}
+                className="h-8 w-full rounded-none text-muted-foreground hover:text-foreground"
+            >
+                <Plus />
+            </Button>
+        </TooltipCustom>
     )
 }

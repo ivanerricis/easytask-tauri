@@ -33,6 +33,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                         type="button"
                         onClick={handleOpen}
                         aria-label={t("home.workspace.open", { name: workspace.name })}
+                        title={workspace.name}
                         className="absolute inset-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
 
                     {/* Color Container */}
@@ -43,7 +44,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
 
                     {/* Workspace Info */}
                     <div className="pointer-events-none flex items-center justify-between gap-2 pl-4 pr-2 w-full min-w-0">
-                        <span className="text-muted-foreground group-hover:text-foreground text-base truncate whitespace-nowrap min-w-0">
+                        <span className="text-foreground text-base truncate whitespace-nowrap min-w-0">
                             {workspace.name}
                         </span>
                         <span className="text-muted-foreground text-xs whitespace-nowrap shrink-0 mr-8">
@@ -52,8 +53,8 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                     </div>
 
                     {/* Menu Button */}
-                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-                        <ItemMenuButton className="hover:bg-accent" />
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center opacity-40 group-hover:opacity-100 focus-within:opacity-100">
+                        <ItemMenuButton className="hover:bg-accent" name={workspace.name} />
                     </div>
                 </div>
             </ButtonMenuWorkspace>
@@ -67,6 +68,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                     type="button"
                     onClick={handleOpen}
                     aria-label={t("home.workspace.open", { name: workspace.name })}
+                    title={workspace.name}
                     className="absolute inset-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
 
                 {/* Color Container */}
@@ -77,7 +79,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
 
                 {/* Workspace Info */}
                 <div className="pointer-events-none flex flex-col justify-between py-2 pl-4 pr-2 relative w-full min-w-0">
-                    <span className="text-muted-foreground group-hover:text-foreground text-xl truncate overflow-hidden whitespace-nowrap mr-8">
+                    <span className="text-foreground text-xl truncate overflow-hidden whitespace-nowrap mr-8">
                         {workspace.name}
                     </span>
                     <div className="flex flex-col items-start gap-1 w-full">
@@ -91,8 +93,8 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                 </div>
 
                 {/* Menu Button */}
-                <div className="absolute right-1 top-1 flex items-center justify-center opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-                    <ItemMenuButton className="hover:bg-accent" />
+                <div className="absolute right-1 top-1 flex items-center justify-center opacity-40 group-hover:opacity-100 focus-within:opacity-100">
+                    <ItemMenuButton className="hover:bg-accent" name={workspace.name} />
                 </div>
             </div>
         </ButtonMenuWorkspace>

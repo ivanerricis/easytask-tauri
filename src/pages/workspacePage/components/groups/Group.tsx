@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { GroupAudioFiles } from "./GroupAudioFiles"
 import { useGroupOpen } from "@/contexts/use-tabs"
+import { DropLine } from "../sidebar/DropLine"
 
 type GroupProps = {
     group: GroupType
@@ -59,8 +60,7 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
                 !draggingGroup && zone && "ring-2 ring-primary",
             )}
         >
-            {draggingGroup && (zone === "before" || zone === "after") &&
-                <div className={cn("pointer-events-none absolute top-0 bottom-0 z-30 w-0.5 bg-primary", zone === "before" ? "-left-[5px]" : "-right-[5px]")} />}
+            {draggingGroup && <DropLine zone={zone} vertical className={zone === "before" ? "-left-[5px] z-30" : "-right-[5px] z-30"} />}
             <GroupHeader
                 group={group}
                 index={index}

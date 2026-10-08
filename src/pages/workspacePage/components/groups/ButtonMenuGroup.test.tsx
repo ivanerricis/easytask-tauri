@@ -90,7 +90,7 @@ describe("ButtonMenuGroup", () => {
         const user = userEvent.setup()
         const row = setup()
         await openColorMenu(user, row)
-        await user.click(await screen.findByLabelText("Colore #e6194b"))
+        await user.click(await screen.findByLabelText("Colore Rosso"))
 
         expect(patchGroup).toHaveBeenCalledWith(3, { color: "#e6194b" })
         expect(updateItemColor).toHaveBeenCalledWith("section_group", 3, "#e6194b")
@@ -115,7 +115,7 @@ describe("ButtonMenuGroup", () => {
         updateItemColor.mockRejectedValueOnce(new Error("boom"))
         const row = setup()
         await openColorMenu(user, row)
-        await user.click(await screen.findByLabelText("Colore #e6194b"))
+        await user.click(await screen.findByLabelText("Colore Rosso"))
 
         await waitFor(() => expect(rollback).toHaveBeenCalledTimes(1))
         expect(toast.error).toHaveBeenCalledWith("boom")

@@ -1,12 +1,14 @@
 import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { FilePlus, LayoutTemplate, Loader2, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { FilePlus, LayoutTemplate, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { FormError } from "@/components/form-error"
 import { Input } from "@/components/ui/input"
 import { TooltipCustom } from "@/components/tooltip-custom"
+import { ItemRow, ListError, ListLoading } from "./item-list-parts"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
@@ -53,14 +55,17 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     const getTemplatesRef = useRef(getTemplates)
     useEffect(() => { getTemplatesRef.current = getTemplates })
 
+    // Error of an action (shown under the list) and error of the load (shown instead of the list)
     const [error, setError] = useState<string | null>(null)
+    const [loadError, setLoadError] = useState<string | null>(null)
 
     const reload = useCallback(async () => {
         if (workspaceID === undefined) return
         try {
             setTemplates(await getTemplatesRef.current(workspaceID))
+            setLoadError(null)
         } catch (err) {
-            setError(getErrorMessage(err))
+            setLoadError(getErrorMessage(err))
         }
     }, [workspaceID])
 
@@ -111,9 +116,9 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                     )}
                     <div className="flex flex-col gap-1 max-h-[50vh] overflow-y-auto pr-1">
                         {isLoading ? (
-                            <div className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-                                <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
-                            </div>
+                            <ListLoading />
+                        ) : loadError !== null ? (
+                            <ListError message={loadError} onRetry={() => void reload()} />
                         ) : templates.length === 0 ? (
                             <p className="py-6 text-center text-muted-foreground text-sm">
                                 {t("dialogs.templates.empty")}
@@ -124,22 +129,19 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                             visible.map(template => {
                                 const counts = countTemplateContent(template.content)
                                 return (
-                                    <div key={template.id} className="flex items-center gap-2 rounded-xs border p-2">
-                                        <LayoutTemplate className="size-4 shrink-0" />
-                                        <div className="flex flex-col min-w-0 flex-1">
-                                            <span className="truncate text-sm" title={template.name}>{template.name}</span>
-                                            <span className="truncate text-xs text-muted-foreground">
-                                                {template.sourceNoteName !== null ? t("dialogs.templates.from", { name: template.sourceNoteName }) : t("dialogs.templates.noteDeleted")}
-                                                {" · "}{t("dialogs.templates.createdOn", { date: formatDate(template.creation_date) })}
-                                            </span>
-                                            <span className="truncate text-xs text-muted-foreground">
-                                                {[
-                                                    t("common.counts.group", { count: counts.groups }),
-                                                    t("common.counts.section", { count: counts.sections }),
-                                                    t("common.counts.task", { count: counts.tasks }),
-                                                ].join(" · ")}
-                                            </span>
-                                        </div>
+                                    <ItemRow
+                                        key={template.id}
+                                        icon={LayoutTemplate}
+                                        name={template.name}
+                                        details={[
+                                            `${template.sourceNoteName !== null ? t("dialogs.templates.from", { name: template.sourceNoteName }) : t("dialogs.templates.noteDeleted")} · ${t("dialogs.templates.createdOn", { date: formatDate(template.creation_date) })}`,
+                                            [
+                                                t("common.counts.group", { count: counts.groups }),
+                                                t("common.counts.section", { count: counts.sections }),
+                                                t("common.counts.task", { count: counts.tasks }),
+                                            ].join(" · "),
+                                        ]}
+                                    >
                                         <TooltipCustom text={t("dialogs.templates.createNote")}>
                                             <Button
                                                 variant="outline"
@@ -187,24 +189,29 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                                                 <Trash2 />
                                             </Button>
                                         </TooltipCustom>
-                                    </div>
+                                    </ItemRow>
                                 )
                             })
                         )}
                     </div>
-                    {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
+                    <FormError>{error}</FormError>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => onOpenChange(false)}>
                             {t("common.close")}
                         </Button>
-                        <Button
-                            disabled={busy || allNotes.length === 0}
-                            title={allNotes.length === 0 ? t("dialogs.templates.noNotes") : undefined}
-                            onClick={() => setPicking(true)}
-                        >
-                            <Plus />
-                            {t("dialogs.templates.new")}
-                        </Button>
+                        <TooltipCustom text={allNotes.length === 0 ? t("dialogs.templates.noNotes") : undefined}>
+                            {/* A disabled button gets no pointer events: the span keeps the tooltip working */}
+                            <span className="inline-flex">
+                                <Button
+                                    className="max-sm:w-full"
+                                    disabled={busy || allNotes.length === 0}
+                                    onClick={() => setPicking(true)}
+                                >
+                                    <Plus />
+                                    {t("dialogs.templates.new")}
+                                </Button>
+                            </span>
+                        </TooltipCustom>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

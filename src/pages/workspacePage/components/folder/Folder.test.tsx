@@ -21,7 +21,7 @@ const renderFolder = (intensity?: number) => {
     render(intensity === undefined
         ? tree
         : <PreferencesContext.Provider value={{ colorIntensity: intensity } as PreferencesContextType}>{tree}</PreferencesContext.Provider>)
-    return screen.getByRole("button", { name: /Lavoro/ })
+    return screen.getByRole("treeitem", { name: /Lavoro/ })
 }
 
 describe("Folder color intensity", () => {

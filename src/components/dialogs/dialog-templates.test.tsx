@@ -224,7 +224,9 @@ describe("DialogTemplates", () => {
             await screen.findByText("Retro")
             const button = screen.getByRole("button", { name: "Nuovo template" })
             expect(button).toBeDisabled()
-            expect(button).toHaveAttribute("title", "Non ci sono note da cui creare un template.")
+            // The reason is in a tooltip (a disabled button gets no pointer events: it hangs on the span around it)
+            await userEvent.hover(button.parentElement as HTMLElement)
+            expect(await screen.findByRole("tooltip")).toHaveTextContent("Non ci sono note da cui creare un template.")
         })
 
         it("lets the user choose a note, names the template after it and adds it to the list", async () => {

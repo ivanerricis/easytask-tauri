@@ -1,22 +1,19 @@
-import { useEffect, useRef } from "react"
+import { useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { useActiveNote } from "@/contexts/use-active-note"
 import { useActiveNoteId, useSelectedTask } from "@/contexts/use-tabs"
 import { findTask } from "@/contexts/note-tree-ops"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useShortcut } from "@/hooks/use-shortcut"
-import { focusRing } from "@/lib/a11y"
-import { useCompactLayout } from "@/lib/sidebar-layout"
+import { CHROME_HEIGHT_CLASS, useCompactLayout } from "@/lib/sidebar-layout"
 import type { RightPanelTab } from "@/lib/store/preferences"
-import { cn } from "@/lib/utils"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { SideBar } from "../sidebar/SideBar"
 import { DetailsPanel } from "./DetailsPanel"
 import { HistoryPanel } from "./HistoryPanel"
 import { useRightPanel } from "./use-right-panel"
 
 const TABS: RightPanelTab[] = ["details", "history"]
-const tabId = (tab: RightPanelTab) => `right-panel-tab-${tab}`
-const panelId = (tab: RightPanelTab) => `right-panel-${tab}`
 
 /**
  * The right sidebar: two tabs, "Details" (the selected task, otherwise the active note) and "History" (undo/redo).
@@ -28,7 +25,6 @@ export const SideBarRight = () => {
     const { open, setOpen, tab, setTab } = useRightPanel()
     const { sidebarRightWidth, setSidebarRightWidth } = usePreferences()
     const compact = useCompactLayout()
-    const tabRefs = useRef<Partial<Record<RightPanelTab, HTMLButtonElement | null>>>({})
     const activeId = useActiveNoteId()
     const { noteDataTree } = useActiveNote()
     const [selectedId, selectTask] = useSelectedTask(activeId)
@@ -39,19 +35,6 @@ export const SideBarRight = () => {
     useEffect(() => {
         if (selectedId !== null && noteDataTree && !findTask(noteDataTree, selectedId)) selectTask(null)
     }, [selectedId, noteDataTree, selectTask])
-
-    const handleTabKeyDown = (e: React.KeyboardEvent) => {
-        const index = TABS.indexOf(tab)
-        let next: RightPanelTab | undefined
-        if (e.key === "ArrowRight") next = TABS[(index + 1) % TABS.length]
-        else if (e.key === "ArrowLeft") next = TABS[(index - 1 + TABS.length) % TABS.length]
-        else if (e.key === "Home") next = TABS[0]
-        else if (e.key === "End") next = TABS[TABS.length - 1]
-        if (!next) return
-        e.preventDefault()
-        setTab(next)
-        tabRefs.current[next]?.focus()
-    }
 
     return (
         <SideBar
@@ -64,39 +47,29 @@ export const SideBarRight = () => {
             toggleShortcut="toggle-right-sidebar"
             toggleLabels={{ toggle: t("rightPanel.toggle"), show: t("rightPanel.show"), hide: t("rightPanel.hide") }}
         >
-            <div className="flex h-full w-full flex-col bg-secondary">
+            <Tabs value={tab} onValueChange={value => setTab(value as RightPanelTab)} className="h-full w-full min-h-0 gap-0 bg-secondary">
                 {/* Same height as the left sidebar header and the note tabs */}
-                <div role="tablist" aria-label={t("rightPanel.tabs")} className="flex shrink-0 min-h-[42px] border-b-2" onKeyDown={handleTabKeyDown}>
+                <TabsList variant="line" aria-label={t("rightPanel.tabs")} className={`${CHROME_HEIGHT_CLASS} h-auto group-data-[orientation=horizontal]/tabs:h-auto w-full shrink-0 gap-0 rounded-none border-b p-0`}>
                     {TABS.map(item => (
-                        <button
+                        <TabsTrigger
                             key={item}
-                            ref={node => { tabRefs.current[item] = node }}
-                            type="button"
-                            role="tab"
-                            id={tabId(item)}
-                            aria-selected={tab === item}
-                            aria-controls={panelId(item)}
-                            tabIndex={tab === item ? 0 : -1}
-                            onClick={() => setTab(item)}
-                            className={cn(
-                                focusRing,
-                                "flex-1 cursor-pointer border-b-2 px-3 py-2 text-sm hover:bg-accent",
-                                tab === item ? "border-primary font-semibold" : "border-transparent text-muted-foreground",
-                            )}
+                            value={item}
+                            className="h-auto flex-1 rounded-none border-0 border-b-2 border-transparent px-3 py-2 data-[state=active]:border-primary data-[state=active]:font-semibold"
                         >
                             {t(`rightPanel.${item}`)}
-                        </button>
+                        </TabsTrigger>
                     ))}
-                </div>
-                <div
-                    role="tabpanel"
-                    id={panelId(tab)}
-                    aria-labelledby={tabId(tab)}
-                    className={cn("min-h-0 flex-1", tab === "details" ? "overflow-hidden" : "overflow-y-auto")}
-                >
-                    {tab === "details" ? <DetailsPanel /> : <HistoryPanel />}
-                </div>
-            </div>
+                </TabsList>
+                {TABS.map(item => (
+                    <TabsContent
+                        key={item}
+                        value={item}
+                        className={item === "details" ? "min-h-0 flex-1 overflow-hidden" : "min-h-0 flex-1 overflow-y-auto"}
+                    >
+                        {item === "details" ? <DetailsPanel /> : <HistoryPanel />}
+                    </TabsContent>
+                ))}
+            </Tabs>
         </SideBar>
     )
 }

@@ -5,7 +5,7 @@ import {
     DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useDroppable, useSensor, useSensors,
     type CollisionDetection, type DragEndEvent, type DragMoveEvent, type DragStartEvent,
 } from "@dnd-kit/core"
-import { File, Folder as FolderIcon } from "lucide-react"
+import { File, FilePlus, Folder as FolderIcon, FolderPlus } from "lucide-react"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { reportError } from "@/lib/report-error"
 import type { Folder, Note } from "@/types/types"
@@ -29,6 +29,10 @@ import { useSelectionStore } from "./selection-context"
 import { useSelectionActions } from "./selection-actions"
 import type { PlannedMove } from "./tree-multi-move"
 import { VirtualTree } from "./VirtualTree"
+import { AddNoteDialog } from "../AddNoteDialog"
+import { AddFolderDialog } from "../AddFolderDialog"
+import { Button } from "@/components/ui/button"
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 
 const ROOT_ID = "root"
 const AUTO_EXPAND_DELAY = 600
@@ -39,10 +43,12 @@ type FileTreeItemProps = {
     onToggleFolder: (folderId: number) => void
     overKey: string | null
     overZone: DropZone | null
+    /** Nesting depth, 0 for the root items. */
+    depth?: number
 }
 
 /** Recursive tree node. Defined at module level so the tree is not remounted on every render. */
-export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, overZone }: FileTreeItemProps) => {
+export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, overZone, depth = 0 }: FileTreeItemProps) => {
     if (!item) return null
 
     if ("subfolders" in item) {
@@ -52,6 +58,7 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, over
                 isOpen={!collapsedIds.has(item.id)}
                 onToggle={onToggleFolder}
                 dropZone={overKey === treeRowKey("folder", item.id) ? overZone : null}
+                level={depth + 1}
             >
                 {item.subfolders?.map((child) => (
                     <FileTreeItem
@@ -61,6 +68,7 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, over
                         onToggleFolder={onToggleFolder}
                         overKey={overKey}
                         overZone={overZone}
+                        depth={depth + 1}
                     />
                 ))}
                 {item.notes?.map((note) => (
@@ -68,13 +76,14 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, over
                         key={`note-${note.id}`}
                         note={note}
                         dropZone={overKey === treeRowKey("note", note.id) ? overZone : null}
+                        level={depth + 2}
                     />
                 ))}
             </ItemFolder>
         )
     }
 
-    return <ItemNote note={item} dropZone={overKey === treeRowKey("note", item.id) ? overZone : null} />
+    return <ItemNote note={item} dropZone={overKey === treeRowKey("note", item.id) ? overZone : null} level={depth + 1} />
 }
 
 /** What follows the pointer: the dragged item, or "N items" when the whole selection is dragged. */
@@ -96,7 +105,35 @@ const DragPreview = ({ item, isFolder, count }: { item: Folder | Note, isFolder:
     )
 }
 
-const RootDropArea = ({ highlighted, children, rootRef }: { highlighted: boolean, children: React.ReactNode, rootRef?: React.RefObject<HTMLDivElement | null> }) => {
+/** Empty workspace: explains it and offers to create the first note or folder (in the root). */
+const EmptyTree = () => {
+    const { t } = useTranslation()
+    const [noteOpen, setNoteOpen] = useState(false)
+    const [folderOpen, setFolderOpen] = useState(false)
+    return (
+        <Empty className="p-4 md:p-4 gap-4">
+            <EmptyHeader>
+                <EmptyMedia variant="icon"><FolderIcon /></EmptyMedia>
+                <EmptyTitle className="text-base">{t("sidebar.emptyTree")}</EmptyTitle>
+                <EmptyDescription>{t("sidebar.emptyTreeHint")}</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+                <Button variant="outline" size="sm" onClick={() => setNoteOpen(true)}>
+                    <FilePlus />
+                    {t("sidebar.addNote")}
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => setFolderOpen(true)}>
+                    <FolderPlus />
+                    {t("sidebar.addFolder")}
+                </Button>
+            </EmptyContent>
+            <AddNoteDialog open={noteOpen} onOpenChange={setNoteOpen} parentId={null} withColor />
+            <AddFolderDialog open={folderOpen} onOpenChange={setFolderOpen} parentId={null} withColor />
+        </Empty>
+    )
+}
+
+const RootDropArea = ({ highlighted, children, rootRef, treeLabel }: { highlighted: boolean, children: React.ReactNode, rootRef?: React.RefObject<HTMLDivElement | null>, treeLabel?: string }) => {
     const { setNodeRef } = useDroppable({ id: ROOT_ID })
     const setRefs = useCallback((node: HTMLDivElement | null) => {
         setNodeRef(node)
@@ -105,6 +142,9 @@ const RootDropArea = ({ highlighted, children, rootRef }: { highlighted: boolean
     return (
         <div
             ref={setRefs}
+            role={treeLabel ? "tree" : undefined}
+            aria-label={treeLabel}
+            aria-multiselectable={treeLabel ? true : undefined}
             className={`relative flex flex-col gap-1 p-1 w-full min-h-full ${highlighted ? "bg-primary/10" : ""}`}
         >
             {children}
@@ -293,11 +333,9 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
             onDragCancel={handleDragCancel}
             autoScroll
         >
-            <RootDropArea highlighted={hover.rootActive} rootRef={rootElRef}>
+            <RootDropArea highlighted={hover.rootActive} rootRef={rootElRef} treeLabel={isEmpty ? undefined : t("sidebar.treeLabel")}>
                 {isEmpty ? (
-                    <p className="text-muted-foreground text-sm w-full">
-                        {t("sidebar.emptyTree")}
-                    </p>
+                    <EmptyTree />
                 ) : virtualized ? (
                     <VirtualTree
                         rows={flatRows}

@@ -122,7 +122,7 @@ describe("language setting", () => {
         expect(await screen.findByRole("heading", { name: "Appearance" })).toBeInTheDocument()
         expect(screen.getByRole("radiogroup", { name: "Language" })).toBeInTheDocument()
         expect(screen.getByRole("radio", { name: "English" })).toHaveAttribute("aria-checked", "true")
-        expect(screen.getByRole("button", { name: "Notes and sections" })).toBeInTheDocument()
+        expect(screen.getByRole("tab", { name: "Notes and sections" })).toBeInTheDocument()
         expect(document.documentElement.lang).toBe("en")
         expect(await getLanguage()).toBe("en")
 

@@ -5,6 +5,7 @@ export const common = {
     rename: "Rinomina",
     system: "Sistema",
     close: "Chiudi",
+    retry: "Riprova",
     loading: "Caricamento…",
     noResults: "Nessun risultato",
     counts: {
@@ -16,6 +17,7 @@ export const common = {
         task_other: "{{count}} task",
     },
     openMenu: "Apri menu",
+    menuOf: "Menu: {{name}}",
     workspaceRoot: "Radice del workspace",
     name: "Nome",
     addColor: "Aggiungi colore",
@@ -23,6 +25,24 @@ export const common = {
     creationDate: "Data creazione: {{date}} {{time}}",
     editDate: "Data modifica: {{date}} {{time}}",
     add: "Aggiungi",
+    colors: {
+        c1: "Rosso",
+        c2: "Verde",
+        c3: "Giallo",
+        c4: "Blu",
+        c5: "Arancione",
+        c6: "Viola",
+        c7: "Ciano",
+        c8: "Magenta",
+        c9: "Lime",
+        c10: "Rosa",
+        c11: "Verde acqua",
+        c12: "Lavanda",
+        c13: "Marrone",
+        c14: "Crema",
+        c15: "Blu notte",
+        custom: "Colore personalizzato",
+    },
 }
 
 export const ui = {

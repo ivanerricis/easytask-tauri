@@ -36,7 +36,7 @@ describe("ButtonArchive", () => {
     it("shows the number of archived items", async () => {
         data.getArchiveCount.mockResolvedValue(3)
         render(<ButtonArchive />)
-        expect(await screen.findByLabelText("3 elementi nell'archivio")).toBeInTheDocument()
+        expect(await screen.findByText("3 elementi nell'archivio")).toBeInTheDocument()
         expect(data.getArchiveCount).toHaveBeenCalledWith(4)
     })
 
@@ -44,7 +44,7 @@ describe("ButtonArchive", () => {
         data.getArchiveCount.mockResolvedValue(0)
         render(<ButtonArchive />)
         await waitFor(() => expect(data.getArchiveCount).toHaveBeenCalled())
-        expect(screen.queryByLabelText(/nell'archivio/)).not.toBeInTheDocument()
+        expect(screen.queryByText(/nell'archivio/)).not.toBeInTheDocument()
     })
 
     it("refreshes the badge when archiveVersion changes", async () => {
@@ -54,7 +54,7 @@ describe("ButtonArchive", () => {
         await waitFor(() => expect(data.getArchiveCount).toHaveBeenCalledTimes(1))
 
         await user.click(screen.getByText("simulate-archive"))
-        expect(await screen.findByLabelText("1 elemento nell'archivio")).toBeInTheDocument()
+        expect(await screen.findByText("1 elemento nell'archivio")).toBeInTheDocument()
         expect(data.getArchiveCount).toHaveBeenCalledTimes(2)
     })
 

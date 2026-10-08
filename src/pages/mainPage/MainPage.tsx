@@ -46,7 +46,7 @@ const MainPage = () => {
     if (error && workspaces.length === 0) {
         return (
             <MainPageLayout>
-                <ErrorPage error={error} />
+                <ErrorPage error={error} onRetry={() => { getWorkspaces().catch(err => reportError(err)) }} />
             </MainPageLayout>
         )
     }
@@ -61,7 +61,7 @@ const MainPage = () => {
                         variant="outline"
                         onClick={() => void importWorkspace()}
                         disabled={isImporting}
-                        className="flex items-center justify-center w-[276px] max-w-full p-6 rounded-full gap-2 text-lg border-primary transition-all"
+                        className="flex items-center justify-center w-[280px] max-w-full p-6 rounded-full gap-2 text-lg border-primary transition-all"
                     >
                         {t("home.import")}
                         {isImporting ? <Loader2 className="h-5! w-5! animate-spin" /> : <Upload className="h-5! w-5!" />}

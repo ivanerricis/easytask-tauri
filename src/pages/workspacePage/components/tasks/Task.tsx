@@ -14,13 +14,16 @@ import { cn, getErrorMessage } from "@/lib/utils"
 import React, { useCallback, useState } from "react"
 import { AutoTextarea } from "@/components/auto-textarea"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
-import { AlignLeft, Info, ListTree, Plus } from "lucide-react"
+import { AlignLeft, Flag, Info, ListTree, Plus } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { AddTask } from "./AddTask"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { useIsTaskSelected, useSelectTask } from "@/contexts/use-tabs"
 import { useShowTaskDetails } from "../rightbar/use-right-panel"
 import { visibleTasks } from "../section/hide-completed"
+import { DropLine } from "../sidebar/DropLine"
 
 // Clicks on these keep their own action (checkbox, buttons) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
@@ -96,7 +99,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                 <span aria-hidden className={cn("pointer-events-none absolute -top-px -bottom-px w-px bg-muted-foreground/45 [.subtask:last-child>&]:hidden", lineLeft)} />
                 <span aria-hidden className={cn("pointer-events-none absolute -top-px h-[19px] w-px [.subtask:last-child>&]:bg-muted-foreground/45", lineLeft)} />
             </>}
-            <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)}>
+            <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)} onRename={startEdit}>
                 <div
                     ref={setRowRef}
                     {...dragProps}
@@ -114,8 +117,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                         draggingTask && (zone === "inside" || zone === "inside-start") && "bg-primary/15 ring-1 ring-inset ring-primary",
                     )}
                 >
-                    {draggingTask && (zone === "before" || zone === "after") &&
-                        <div className={cn("pointer-events-none absolute left-0 right-0 z-10 h-0.5 bg-primary", zone === "before" ? "-top-px" : "-bottom-px")} />}
+                    {draggingTask && <DropLine zone={zone} outside />}
                     {/* The line of the subtasks starts under the checkbox: with a long text the row is tall, so it runs down to the bottom of the row where the line of the first subtask goes on */}
                     {(task.subtasks.length > 0 || isAddingSubtask) &&
                         <span aria-hidden className={cn(
@@ -127,13 +129,14 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                         {task.color && <div className="w-1 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
 
                         {/* Task items container */}
-                        <div className="relative group flex items-start justify-between w-full px-1 py-1.5">
+                        <div className="relative group flex min-w-0 items-start justify-between w-full px-1 py-1.5">
 
                             {/* Checkbox && text container */}
-                            <div className="flex items-start justify-between gap-2 ml-4 w-full">
+                            <div className="flex min-w-0 items-start justify-between gap-2 ml-4 w-full">
                                 <Checkbox
                                     checked={!!task.completed}
                                     onCheckedChange={handleCheckedChange}
+                                    aria-label={t("tasks.toggleCompleted", { text: task.text })}
                                     className={isSubtask ? "mt-[3px] size-3.5" : "mt-0.5"}
                                 />
                                 {!isTextAreaOpen && <AutoTextarea
@@ -149,7 +152,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                                     // Read only until the click opens the editing: a right click here opens the menu of the task, not the one of a text field
                                     readOnly
                                     className={cn(
-                                        "w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm",
+                                        "w-full min-w-0 max-h-auto text-wrap break-words [overflow-wrap:anywhere] whitespace-normal resize-none text-sm",
                                         task.completed && "line-through text-muted-foreground"
                                     )}
                                 />}
@@ -157,7 +160,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                                     {...inputProps}
                                     onPointerDown={e => e.stopPropagation()}
                                     minRows={1}
-                                    className="w-full max-h-auto text-wrap break-words whitespace-normal resize-none text-sm"
+                                    className="w-full min-w-0 max-h-auto text-wrap break-words [overflow-wrap:anywhere] whitespace-normal resize-none text-sm"
                                 /></InlineErrorTooltip>}
                             </div>
 
@@ -167,16 +170,19 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                                     {hasDescription &&
                                         // The toolbar that shows on hover covers this one and has the same button: this copy is out of the
                                         // tab order and of the accessibility tree
-                                        <button
-                                            type="button"
-                                            tabIndex={-1}
-                                            aria-hidden
-                                            data-testid="description-indicator"
-                                            title={t("tasks.showDescription")}
-                                            onClick={() => { onOpenChange(true) }}
-                                            className="flex items-center rounded-xs p-0.5 -m-0.5 text-muted-foreground hover:bg-accent hover:text-foreground cursor-pointer">
-                                            <AlignLeft className="size-3.5" />
-                                        </button>}
+                                        <TooltipCustom text={t("tasks.showDescription")}>
+                                            <Button
+                                                type="button"
+                                                variant="ghost"
+                                                size="icon"
+                                                tabIndex={-1}
+                                                aria-hidden
+                                                data-testid="description-indicator"
+                                                onClick={() => { onOpenChange(true) }}
+                                                className="size-6 -m-1 text-muted-foreground hover:text-foreground">
+                                                <AlignLeft className="size-3.5" />
+                                            </Button>
+                                        </TooltipCustom>}
                                     {showSubtaskCount && task.subtasks.length > 0 &&
                                         <span
                                             title={t("tasks.subtaskProgress", { done: doneSubtasks, total: task.subtasks.length })}
@@ -190,41 +196,51 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                                         </span>}
                                 </div>}
 
-                            {/* Priority circle */}
-                            <div
-                                role="img"
-                                aria-label={t("details.priority")}
-                                className={`${task.priority ? `flex` : `hidden`} rounded-full bg-red-600 size-2 mx-2 mt-1.5 p-1`}
-                            ></div>
+                            {/* Priority: a flag (not just a color) */}
+                            {task.priority &&
+                                <TooltipCustom text={t("details.priority")}>
+                                    <span role="img" aria-label={t("details.priority")} className="flex shrink-0 mx-2 mt-1 text-priority">
+                                        <Flag className="size-3.5 fill-current" />
+                                    </span>
+                                </TooltipCustom>}
 
                             {/* ButtonMenu */}
                             <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
                                 {hasDescription &&
-                                    <button
+                                    <TooltipCustom text={t("tasks.showDescription")}>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            aria-label={t("tasks.showDescription")}
+                                            onClick={() => { onOpenChange(true) }}
+                                            className="size-6">
+                                            <AlignLeft />
+                                        </Button>
+                                    </TooltipCustom>}
+                                <TooltipCustom text={t("details.showTask")}>
+                                    <Button
                                         type="button"
-                                        aria-label={t("tasks.showDescription")}
-                                        title={t("tasks.showDescription")}
-                                        onClick={() => { onOpenChange(true) }}
-                                        className="p-1 rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                        <AlignLeft className="size-4" />
-                                    </button>}
-                                <button
-                                    type="button"
-                                    aria-label={t("details.showTask")}
-                                    title={t("details.showTask")}
-                                    onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id) }}
-                                    className="p-1 rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                    <Info className="size-4" />
-                                </button>
-                                <button
-                                    type="button"
-                                    aria-label={t("tasks.addSubtask")}
-                                    title={t("tasks.addSubtask")}
-                                    onClick={() => setAddingSubtask(true)}
-                                    className="p-1 rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                                    <Plus className="size-4" />
-                                </button>
-                                <ItemMenuButton iconClassName="!h-4 !w-4" />
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={t("details.showTask")}
+                                        onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id) }}
+                                        className="size-6">
+                                        <Info />
+                                    </Button>
+                                </TooltipCustom>
+                                <TooltipCustom text={t("tasks.addSubtask")}>
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="icon"
+                                        aria-label={t("tasks.addSubtask")}
+                                        onClick={() => setAddingSubtask(true)}
+                                        className="size-6">
+                                        <Plus />
+                                    </Button>
+                                </TooltipCustom>
+                                <ItemMenuButton name={task.text} />
                             </div>
                         </div>
                     </div>

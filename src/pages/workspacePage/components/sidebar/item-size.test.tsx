@@ -40,7 +40,7 @@ describe.each(["compact", "normal", "large"] as const)("sidebar rows at size %s"
 
     it("ItemNote uses the size classes", () => {
         const { container } = render(<ItemNote note={note} />)
-        expect(screen.getByRole("button")).toHaveClass(expected[value].row)
+        expect(screen.getByRole("treeitem")).toHaveClass(expected[value].row)
         expect(screen.getByText("Nota")).toHaveClass(expected[value].text)
         expect(container.querySelector("svg")).toHaveClass(expected[value].icon)
     })
@@ -49,7 +49,7 @@ describe.each(["compact", "normal", "large"] as const)("sidebar rows at size %s"
         const { container } = render(
             <ItemFolder folder={folder} isOpen onToggle={vi.fn()}><div>child</div></ItemFolder>
         )
-        expect(screen.getAllByRole("button")[0]).toHaveClass(expected[value].row)
+        expect(screen.getAllByRole("treeitem")[0]).toHaveClass(expected[value].row)
         expect(screen.getByText("Cartella")).toHaveClass(expected[value].text)
         expect(container.querySelector("svg")).toHaveClass(expected[value].icon)
         expect(container.querySelector(`.${CSS.escape(ITEM_SIZES[value].guide)}`)).not.toBeNull()

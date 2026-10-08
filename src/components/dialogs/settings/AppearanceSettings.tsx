@@ -3,14 +3,12 @@ import { useTranslation } from "react-i18next"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Input } from "@/components/ui/input"
 import { usePreferences } from "@/contexts/use-preferences"
-import { RotateCcw } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { TooltipCustom } from "@/components/tooltip-custom"
 import { DEFAULT_PRIMARY_COLOR, applyAccentColor } from "@/lib/accent-color"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 import { LanguageSetting } from "./LanguageSetting"
 import { SidebarItemSizeSetting } from "./SidebarItemSizeSetting"
 import { ColorIntensitySetting } from "./ColorIntensitySetting"
+import { RowResetButton } from "./RowResetButton"
 import { ResetAppearanceSetting } from "./ResetAppearanceSetting"
 
 /** Quiet time after the last change of the color picker before the color is stored. */
@@ -64,19 +62,15 @@ const AccentColorPicker = ({ label, resetLabel }: { label: string, resetLabel: s
 
     return (
         <div className="flex items-center gap-2">
-            <TooltipCustom text={resetLabel}>
-                <Button variant="ghost" size="icon" className="size-6 [&_svg]:!size-4" aria-label={resetLabel} disabled={isDefault} onClick={handleReset}>
-                    <RotateCcw />
-                </Button>
-            </TooltipCustom>
+            <RowResetButton label={resetLabel} disabled={isDefault} onClick={handleReset} />
             <div
-                className="flex items-center justify-center size-5 border rounded-xs"
+                className="relative size-8 overflow-hidden rounded-xs border focus-within:ring-[3px] focus-within:ring-ring"
                 style={{ backgroundColor: shown }}
             >
                 <Input
                     type="color"
                     aria-label={label}
-                    className="opacity-0 cursor-pointer"
+                    className="size-full cursor-pointer border-0 p-0 opacity-0"
                     value={shown}
                     onChange={(e) => handleChange(e.target.value)}
                 />

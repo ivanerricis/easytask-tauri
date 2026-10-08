@@ -13,7 +13,7 @@ const TASK_1 = "Auto task uno"
 const TASK_2 = "Auto task due"
 const TASK_3 = "Auto task tre"
 const COPY_TASK = "Auto task copia"
-const GREEN = { r: 0x3c, g: 0xb4, b: 0x4b } // PALETTE_COLORS[1], "automations.colors.c2"
+const GREEN = { r: 0x3c, g: 0xb4, b: 0x4b } // PALETTE_COLORS[1], "common.colors.c2"
 
 const xpathString = (value: string) =>
     value.includes("'") ? `concat('${value.split("'").join(`', "'", '`)}')` : `'${value}'`
@@ -185,7 +185,7 @@ describe("Automations", () => {
         expect(actions.join(" ")).not.toContain("...")
         await browser.keys("Escape")
         await $("[role='option']").waitForExist({ reverse: true })
-        await choose(dialog, await tr("automations.actions.setColor"), await tr("automations.colors.c2"))
+        await choose(dialog, await tr("automations.actions.setColor"), await tr("common.colors.c2"))
 
         await byText(await tr("common.save"), dialog).click()
         await dialog.$(`h2=${await tr("automations.title")}`).waitForDisplayed({ timeoutMsg: "the editor did not close after saving" })
@@ -324,7 +324,8 @@ describe("Automations", () => {
 
         before(async () => {
             previousSize = await browser.getWindowSize()
-            await browser.setWindowSize(800, 800)
+            // The minimum window size of the app
+            await browser.setWindowSize(800, 600)
         })
 
         after(async () => {
@@ -332,7 +333,10 @@ describe("Automations", () => {
             if (previousSize) await browser.setWindowSize(previousSize.width, previousSize.height)
         })
 
-        /** Everything that sticks out of the dialog: horizontal overflow of the content and of the fieldsets, and select triggers outside it. */
+        /**
+         * Everything that sticks out: horizontal overflow of the content and of the fieldsets, select triggers outside the
+         * dialog, a dialog taller than the window, and a title or footer button (Cancel/Save) outside the window.
+         */
         const overflows = () =>
             browser.execute(() => {
                 const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]'))
@@ -350,6 +354,15 @@ describe("Automations", () => {
                     if (rect.left < box.left - 1 || rect.right > box.right + 1)
                         problems.push(`select ${index} (${el.getAttribute("aria-label")}): ${Math.round(rect.left)}-${Math.round(rect.right)} outside ${Math.round(box.left)}-${Math.round(box.right)}`)
                 })
+                const inWindow = (el: Element | null, name: string) => {
+                    if (!el) return
+                    const rect = el.getBoundingClientRect()
+                    if (rect.top < -1 || rect.bottom > window.innerHeight + 1 || rect.left < -1 || rect.right > window.innerWidth + 1)
+                        problems.push(`${name}: ${Math.round(rect.top)}-${Math.round(rect.bottom)} outside the window 0-${window.innerHeight}`)
+                }
+                inWindow(dialog, "dialog")
+                inWindow(dialog.querySelector("h2"), "title")
+                dialog.querySelectorAll('[data-slot="dialog-footer"] button').forEach((el, index) => inWindow(el, `footer button ${index}`))
                 return problems
             })
 
@@ -396,6 +409,12 @@ describe("Automations", () => {
                 if (type === "moveTo") await choose(dialog, await tr("automations.actions.moveTo"), LONG_B, 1)
                 expect({ action: `second ${type}`, problems: await overflows() }).toEqual({ action: `second ${type}`, problems: [] })
             }
+
+            // Many actions make the rule taller than the window: the editor scrolls, the title and Save stay reachable
+            for (let i = 0; i < 5; i++) await byText(await tr("automations.addAction"), dialog).click()
+            expect({ actions: 7, problems: await overflows() }).toEqual({ actions: 7, problems: [] })
+            const save = dialog.$(`button=${await tr("common.save")}`)
+            await expect(save).toBeDisplayedInViewport()
         })
     })
 })

@@ -32,7 +32,7 @@ describe("DialogAddColor", () => {
     it("saves the clicked swatch, closes the dropdown and refreshes", async () => {
         const user = userEvent.setup()
         const { addColorItem, getItemData, setDropDownOpen } = setup()
-        await user.click(screen.getAllByRole("button")[0])
+        await user.click(screen.getAllByRole("radio")[0])
 
         await waitFor(() => expect(getItemData).toHaveBeenCalledWith(2))
         expect(addColorItem).toHaveBeenCalledWith("section", 4, "#e6194b")
@@ -42,7 +42,7 @@ describe("DialogAddColor", () => {
     it("does not save when the clicked color equals the current one", async () => {
         const user = userEvent.setup()
         const { addColorItem } = setup({ item: { id: 4, color: "#e6194b" } })
-        await user.click(screen.getAllByRole("button")[0])
+        await user.click(screen.getAllByRole("radio")[0])
 
         expect(addColorItem).not.toHaveBeenCalled()
     })
@@ -50,14 +50,14 @@ describe("DialogAddColor", () => {
     it("does not save without getItemId", async () => {
         const user = userEvent.setup()
         const { addColorItem } = setup({ getItemId: undefined })
-        await user.click(screen.getAllByRole("button")[0])
+        await user.click(screen.getAllByRole("radio")[0])
         expect(addColorItem).not.toHaveBeenCalled()
     })
 
     it("saves without a reload hook (the caller updates the cached data)", async () => {
         const user = userEvent.setup()
         const { addColorItem } = setup({ getItemData: undefined, getItemId: undefined })
-        await user.click(screen.getAllByRole("button")[0])
+        await user.click(screen.getAllByRole("radio")[0])
         await waitFor(() => expect(addColorItem).toHaveBeenCalledWith("section", 4, "#e6194b"))
 
         await user.click(screen.getByRole("button", { name: /Elimina/ }))
@@ -92,7 +92,7 @@ describe("DialogAddColor", () => {
         const user = userEvent.setup()
         const { addColorItem } = setup()
         addColorItem.mockRejectedValue(new Error("write failed"))
-        await user.click(screen.getAllByRole("button")[1])
+        await user.click(screen.getAllByRole("radio")[1])
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("write failed"))
     })

@@ -2,7 +2,10 @@ import { useTranslation } from "react-i18next"
 import { useRef, useState, useEffect } from "react"
 import { Play, Pause, RotateCcw, RotateCw, SkipBack, Volume2, VolumeX, Grip, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { rangeStyle } from "@/lib/range"
+import { Button } from "@/components/ui/button"
+import { Slider } from "@/components/ui/slider"
+import { Toggle } from "@/components/ui/toggle"
+import { TooltipCustom } from "@/components/tooltip-custom"
 import type { DraggableAttributes, useDraggable } from "@dnd-kit/core"
 import type { PlaybackState } from "@/contexts/audio-context-object"
 
@@ -156,11 +159,11 @@ export const AudioPlayer = ({
     // Back / forward by a fixed amount, within the track
     const skip = (seconds: number) => seekTo((audioRef.current?.currentTime ?? 0) + seconds)
 
-    const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => seekTo(Number(e.target.value))
+    const handleSeek = ([time]: number[]) => seekTo(time)
 
-    // The arrows of a range move it by its tiny step (0.1 s): here they jump by a few seconds, and Space plays or pauses
+    // The arrows of a slider move it by its tiny step (0.1 s): here they jump by a few seconds, and Space plays or pauses
     // (a slider does not use it)
-    const handleSeekKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleSeekKeyDown = (e: React.KeyboardEvent<HTMLSpanElement>) => {
         if (e.key === "ArrowRight" || e.key === "ArrowUp") {
             e.preventDefault()
             seekTo((audioRef.current?.currentTime ?? 0) + KEY_SEEK_SECONDS)
@@ -175,30 +178,14 @@ export const AudioPlayer = ({
 
     // While the slider is dragged only the player moves (the sound follows at once); the preference, which re-renders
     // the whole app and is written to disk, is updated once when the pointer is released
-    const draggingVolume = useRef(false)
-    const latestVolume = useRef(volume)
-
-    const handleVolume = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const vol = Number(e.target.value)
-        latestVolume.current = vol
+    const handleVolume = ([vol]: number[]) => {
         setVolume(vol)
         setMuted(false)
-        if (!draggingVolume.current) onVolumeChange?.(vol)
     }
 
-    const handleVolumePointerDown = () => {
-        draggingVolume.current = true
-        const release = () => {
-            window.removeEventListener("pointerup", release)
-            window.removeEventListener("pointercancel", release)
-            draggingVolume.current = false
-            onVolumeChange?.(latestVolume.current)
-        }
-        window.addEventListener("pointerup", release)
-        window.addEventListener("pointercancel", release)
-    }
+    const handleVolumeCommit = ([vol]: number[]) => onVolumeChange?.(vol)
 
-    const handleVolumeKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleVolumeKeyDown = (e: React.KeyboardEvent<HTMLSpanElement>) => {
         if (e.key === " ") {
             e.preventDefault()
             togglePlay()
@@ -268,105 +255,120 @@ export const AudioPlayer = ({
                 <div
                     className="group shrink-0 flex items-center justify-center p-1 touch-none cursor-grab active:cursor-grabbing"
                     {...listenersHandle} {...attributesHandle}
+                    aria-label={t("audio.player.move")}
                 >
                     <Grip className="size-4 text-muted-foreground group-hover:text-foreground" />
                 </div>
                 <div className="flex-1 min-w-0 line-clamp-2 break-words text-sm font-medium text-foreground" title={title}>{title}</div>
-                <button type="button" onClick={handleClose} aria-label={t("audio.player.close")} className="shrink-0 p-1 hover:bg-accent rounded-xs cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                    <X className="size-4" />
-                </button>
+                <TooltipCustom text={t("audio.player.close")}>
+                    <Button type="button" variant="ghost" size="icon" onClick={handleClose} aria-label={t("audio.player.close")} className="size-6 shrink-0">
+                        <X className="!size-4" />
+                    </Button>
+                </TooltipCustom>
             </div>
             <div className="w-full flex items-center gap-2 text-xs tabular-nums">
                 <span>{formatTime(currentTime)}</span>
-                <input
-                    type="range"
+                <Slider
                     min={0}
-                    max={duration}
-                    value={currentTime}
+                    max={duration > 0 ? duration : 1}
                     step={0.1}
-                    onChange={handleSeek}
+                    value={[Math.min(currentTime, duration > 0 ? duration : 0)]}
+                    onValueChange={handleSeek}
                     onKeyDown={handleSeekKeyDown}
                     aria-label={t("audio.player.seek")}
                     aria-valuetext={t("audio.player.position", { current: formatTime(currentTime), total: formatTime(duration) })}
-                    style={rangeStyle(currentTime, 0, duration)}
                     className="flex-1 min-w-0"
                 />
                 <span>{formatTime(duration)}</span>
             </div>
             {/* Transport: start over, 15 s back, play / pause, 15 s forward, speed */}
             <div className="w-full flex items-center justify-center gap-1.5 text-xs">
-                <button
-                    type="button"
-                    onClick={restart}
-                    aria-label={t("audio.player.restart")}
-                    title={t("audio.player.restart")}
-                    className="shrink-0 p-2 rounded-full hover:bg-accent hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                    <SkipBack className="size-4" />
-                </button>
-                <button
-                    type="button"
-                    onClick={() => skip(-SKIP_SECONDS)}
-                    aria-label={t("audio.player.back", { seconds: SKIP_SECONDS })}
-                    title={t("audio.player.back", { seconds: SKIP_SECONDS })}
-                    className="relative shrink-0 p-1 rounded-full hover:bg-accent hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                    <RotateCcw className="size-6" />
-                    <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[9px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
-                </button>
-                <button
-                    type="button"
-                    onClick={togglePlay}
-                    aria-label={isPlaying ? t("audio.player.pause") : t("audio.player.play")}
-                    className="shrink-0 p-2.5 bg-secondary rounded-full hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                    {isPlaying ? <Pause className="size-5" /> : <Play className="size-5" />}
-                </button>
-                <button
-                    type="button"
-                    onClick={() => skip(SKIP_SECONDS)}
-                    aria-label={t("audio.player.forward", { seconds: SKIP_SECONDS })}
-                    title={t("audio.player.forward", { seconds: SKIP_SECONDS })}
-                    className="relative shrink-0 p-1 rounded-full hover:bg-accent hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                    <RotateCw className="size-6" />
-                    <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[9px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
-                </button>
-                <button
-                    type="button"
-                    onClick={cycleRate}
-                    aria-label={t("audio.player.speed", { rate })}
-                    title={t("audio.player.speed", { rate })}
-                    className={cn(
-                        "shrink-0 min-w-10 px-1 py-1 rounded-xs text-xs tabular-nums hover:bg-accent cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-                        rate !== 1 && "text-foreground font-medium",
-                    )}
-                >
-                    {rate}×
-                </button>
+                <TooltipCustom text={t("audio.player.restart")}>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={restart}
+                        aria-label={t("audio.player.restart")}
+                        className="shrink-0 rounded-full"
+                    >
+                        <SkipBack className="!size-4" />
+                    </Button>
+                </TooltipCustom>
+                <TooltipCustom text={t("audio.player.back", { seconds: SKIP_SECONDS })}>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => skip(-SKIP_SECONDS)}
+                        aria-label={t("audio.player.back", { seconds: SKIP_SECONDS })}
+                        className="relative shrink-0 rounded-full"
+                    >
+                        <RotateCcw className="!size-6" />
+                        <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[9px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
+                    </Button>
+                </TooltipCustom>
+                <TooltipCustom text={isPlaying ? t("audio.player.pause") : t("audio.player.play")}>
+                    <Button
+                        type="button"
+                        variant="secondary"
+                        size="icon"
+                        onClick={togglePlay}
+                        aria-label={isPlaying ? t("audio.player.pause") : t("audio.player.play")}
+                        className="shrink-0 size-10 rounded-full"
+                    >
+                        {isPlaying ? <Pause /> : <Play />}
+                    </Button>
+                </TooltipCustom>
+                <TooltipCustom text={t("audio.player.forward", { seconds: SKIP_SECONDS })}>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => skip(SKIP_SECONDS)}
+                        aria-label={t("audio.player.forward", { seconds: SKIP_SECONDS })}
+                        className="relative shrink-0 rounded-full"
+                    >
+                        <RotateCw className="!size-6" />
+                        <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[9px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
+                    </Button>
+                </TooltipCustom>
+                <TooltipCustom text={t("audio.player.speed", { rate })}>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        onClick={cycleRate}
+                        aria-label={t("audio.player.speed", { rate })}
+                        className={cn(
+                            "shrink-0 h-8 min-w-10 px-1 text-xs tabular-nums",
+                            rate !== 1 && "text-foreground font-medium",
+                        )}
+                    >
+                        {rate}×
+                    </Button>
+                </TooltipCustom>
             </div>
             <div className="w-full flex items-center gap-2 text-xs">
-                <button
-                    type="button"
-                    onClick={() => setMuted(value => !value)}
-                    aria-label={muted ? t("audio.player.unmute") : t("audio.player.mute")}
-                    aria-pressed={muted}
-                    className="shrink-0 p-0.5 rounded-xs hover:bg-accent hover:text-foreground cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                >
-                    {silent ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-                </button>
-                <input
-                    type="range"
+                <TooltipCustom text={muted ? t("audio.player.unmute") : t("audio.player.mute")}>
+                    <Toggle
+                        pressed={muted}
+                        onPressedChange={setMuted}
+                        aria-label={muted ? t("audio.player.unmute") : t("audio.player.mute")}
+                        className="size-6 min-w-6 shrink-0 p-0"
+                    >
+                        {silent ? <VolumeX /> : <Volume2 />}
+                    </Toggle>
+                </TooltipCustom>
+                <Slider
                     min={0}
                     max={1}
                     step={0.01}
-                    value={volume}
-                    onChange={handleVolume}
-                    onPointerDown={handleVolumePointerDown}
+                    value={[volume]}
+                    onValueChange={handleVolume}
+                    onValueCommit={handleVolumeCommit}
                     onKeyDown={handleVolumeKeyDown}
                     aria-label={t("audio.player.volume")}
                     aria-valuetext={`${volumeLabel}%`}
-                    style={rangeStyle(volume, 0, 1)}
                     className="flex-1 min-w-0"
                 />
                 <span className="w-7 text-right tabular-nums">{volumeLabel}</span>

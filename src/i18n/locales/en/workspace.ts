@@ -30,6 +30,7 @@ export const home: Translation["home"] = {
         editedOn: "Edited on: {{date}} - {{time}}",
     },
     noWorkspaces: "No workspace found",
+    noWorkspacesHint: "Create your first workspace to get started.",
 }
 
 export const workspace: Translation["workspace"] = {
@@ -64,6 +65,9 @@ export const notes: Translation["notes"] = {
     hideCompleted: "Hide completed tasks",
     closeCurrent: "Close current note",
     close: "Close note",
+    openTabs: "Open notes",
+    moveTabLeft: "Move tab left",
+    moveTabRight: "Move tab right",
 }
 
 export const groups: Translation["groups"] = {
@@ -73,6 +77,9 @@ export const groups: Translation["groups"] = {
     nameLabel: "Group name",
     renameError: "Could not change the group name - {{message}}",
     namePlaceholder: "Group name (optional)…",
+    progress: "Group progress",
+    audioCount_one: "{{count}} audio file",
+    audioCount_other: "{{count}} audio files",
 }
 
 export const sidebar: Translation["sidebar"] = {
@@ -93,6 +100,8 @@ export const sidebar: Translation["sidebar"] = {
     },
     toggle: "Show or hide the sidebar",
     emptyTree: "No folders or files",
+    emptyTreeHint: "Create a note or a folder to get started.",
+    treeLabel: "Folders and notes",
 }
 
 export const templates: Translation["templates"] = {
@@ -107,4 +116,5 @@ export const sections: Translation["sections"] = {
     renameError: "Could not change the section title - {{message}}",
     collapse: "Collapse section",
     expand: "Expand section",
+    progress: "Section progress",
 }

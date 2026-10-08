@@ -68,7 +68,7 @@ export const DialogTaskDescription = ({ task, open, onOpenChange }: Props) => {
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>{t("tasks.descriptionDialog.title")}</DialogTitle>
-                    <DialogDescription className="truncate" title={task.text}>{task.text}</DialogDescription>
+                    <DialogDescription className="min-w-0 truncate" title={task.text}>{task.text}</DialogDescription>
                 </DialogHeader>
                 <TextareaAutosize
                     autoFocus
