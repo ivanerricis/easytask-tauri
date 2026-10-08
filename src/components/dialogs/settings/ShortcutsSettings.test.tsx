@@ -29,7 +29,7 @@ describe("ShortcutsSettings", () => {
 
         expect((await screen.findByRole("alert")).textContent).toContain("Torna alla Home")
         expect(await getShortcutOverrides()).toEqual({})
-        expect(screen.getByText("Premi i tasti...")).toBeTruthy()
+        expect(screen.getByText("Premi i tasti…")).toBeTruthy()
     })
 
     it("does not conflict across scopes and needs a modifier", async () => {
@@ -45,7 +45,7 @@ describe("ShortcutsSettings", () => {
         setup()
         edit("Cerca una nota")
         press({ key: "Escape" })
-        expect(screen.queryByText("Premi i tasti...")).toBeNull()
+        expect(screen.queryByText("Premi i tasti…")).toBeNull()
         expect(await getShortcutOverrides()).toEqual({})
 
         edit("Torna alla Home")

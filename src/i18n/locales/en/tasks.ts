@@ -14,14 +14,14 @@ export const tasks: Translation["tasks"] = {
     descriptionDialog: {
         title: "Task description",
         label: "Description",
-        placeholder: "Write something to describe the task...",
+        placeholder: "Write something to describe the task…",
         hint: "Ctrl + Enter to save",
     },
     newSubtaskPlaceholder: "New subtask…",
     newSubtask: "New subtask",
     addSubtask: "Add subtask",
     add: "Add task",
-    placeholder: "Write something...",
+    placeholder: "Write something…",
     menu: {
         addDescription: "Add description",
         removeDescription: "Remove description",

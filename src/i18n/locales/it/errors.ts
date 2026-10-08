@@ -148,7 +148,7 @@ export const crash = {
 }
 
 export const errorPage = {
-    title: "Ops c'è stato un errore...",
+    title: "Ops c'è stato un errore…",
     description: "Descrizione dell'errore:",
     home: "Torna alla home",
 }

@@ -1,7 +1,7 @@
 import type { Translation } from "../it"
 
 export const home: Translation["home"] = {
-    loading: "Loading Workspaces...",
+    loading: "Loading Workspaces…",
     welcome: "Welcome back!",
     import: "Import a Workspace",
     recent: "Open a recent Workspace:",
@@ -33,10 +33,10 @@ export const home: Translation["home"] = {
 }
 
 export const workspace: Translation["workspace"] = {
-    loading: "Loading Workspace data...",
+    loading: "Loading Workspace data…",
     combobox: {
-        select: "Select Workspace...",
-        search: "Search a Workspace...",
+        select: "Select Workspace…",
+        search: "Search a Workspace…",
         empty: "No Workspace found.",
     },
     backHome: "Back to Home",
@@ -56,10 +56,10 @@ export const notes: Translation["notes"] = {
     },
     closeAll: "Close all notes",
     search: {
-        placeholder: "Search a note...",
+        placeholder: "Search a note…",
         empty: "No results.",
         suggestions: "Suggestions",
-        short: "Search...",
+        short: "Search…",
     },
     hideCompleted: "Hide completed tasks",
     closeCurrent: "Close current note",
@@ -72,7 +72,7 @@ export const groups: Translation["groups"] = {
     expand: "Expand group",
     nameLabel: "Group name",
     renameError: "Could not change the group name - {{message}}",
-    namePlaceholder: "Group name (optional)...",
+    namePlaceholder: "Group name (optional)…",
 }
 
 export const sidebar: Translation["sidebar"] = {
@@ -89,7 +89,7 @@ export const sidebar: Translation["sidebar"] = {
     collapseAll: "Collapse all folders",
     info: {
         description: "Description",
-        placeholder: "Write something to describe the task...",
+        placeholder: "Write something to describe the task…",
     },
     toggle: "Show or hide the sidebar",
     emptyTree: "No folders or files",
@@ -102,7 +102,7 @@ export const templates: Translation["templates"] = {
 
 export const sections: Translation["sections"] = {
     new: "New section",
-    titlePlaceholder: "Section title...",
+    titlePlaceholder: "Section title…",
     titleLabel: "Section title",
     renameError: "Could not change the section title - {{message}}",
     collapse: "Collapse section",

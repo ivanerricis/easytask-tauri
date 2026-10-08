@@ -236,7 +236,7 @@ describe("DialogTemplates", () => {
 
             await user.click(screen.getByRole("button", { name: "Nuovo template" }))
             // The picker lists every note with its folder
-            expect(await screen.findByPlaceholderText("Cerca la nota da cui creare il template...")).toBeInTheDocument()
+            expect(await screen.findByPlaceholderText("Cerca la nota da cui creare il template…")).toBeInTheDocument()
             expect(screen.getByText("Appunti")).toBeInTheDocument()
             expect(screen.getByText("Progetti")).toBeInTheDocument()
 
@@ -262,9 +262,9 @@ describe("DialogTemplates", () => {
             render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
             await screen.findByText("Retro")
             await user.click(screen.getByRole("button", { name: "Nuovo template" }))
-            await screen.findByPlaceholderText("Cerca la nota da cui creare il template...")
+            await screen.findByPlaceholderText("Cerca la nota da cui creare il template…")
             await user.keyboard("{Escape}")
-            await waitFor(() => expect(screen.queryByPlaceholderText("Cerca la nota da cui creare il template...")).not.toBeInTheDocument())
+            await waitFor(() => expect(screen.queryByPlaceholderText("Cerca la nota da cui creare il template…")).not.toBeInTheDocument())
             expect(screen.queryByLabelText("Nome del template")).not.toBeInTheDocument()
             expect(data.createTemplateFromNote).not.toHaveBeenCalled()
         })

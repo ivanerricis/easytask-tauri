@@ -1,5 +1,5 @@
 export const home = {
-    loading: "Caricamento dei Workspace...",
+    loading: "Caricamento dei Workspace…",
     welcome: "Bentornato!",
     import: "Importa un Workspace",
     recent: "Apri un Workspace recente:",
@@ -31,10 +31,10 @@ export const home = {
 }
 
 export const workspace = {
-    loading: "Caricamento dati del Workspace...",
+    loading: "Caricamento dati del Workspace…",
     combobox: {
-        select: "Seleziona Workspace...",
-        search: "Cerca un Workspace...",
+        select: "Seleziona Workspace…",
+        search: "Cerca un Workspace…",
         empty: "Nessun Workspace trovato.",
     },
     backHome: "Torna alla Home",
@@ -54,10 +54,10 @@ export const notes = {
     },
     closeAll: "Chiudi tutte le note",
     search: {
-        placeholder: "Cerca una nota...",
+        placeholder: "Cerca una nota…",
         empty: "Nessun risultato.",
         suggestions: "Suggerimenti",
-        short: "Cerca...",
+        short: "Cerca…",
     },
     hideCompleted: "Nascondi i task completati",
     closeCurrent: "Chiudi nota corrente",
@@ -70,7 +70,7 @@ export const groups = {
     expand: "Espandi gruppo",
     nameLabel: "Nome del gruppo",
     renameError: "Impossibile cambiare il nome del gruppo - {{message}}",
-    namePlaceholder: "Nome del gruppo (facoltativo)...",
+    namePlaceholder: "Nome del gruppo (facoltativo)…",
 }
 
 export const sidebar = {
@@ -87,7 +87,7 @@ export const sidebar = {
     collapseAll: "Comprimi tutte le cartelle",
     info: {
         description: "Descrizione",
-        placeholder: "Scrivi qualcosa per descrivere il task...",
+        placeholder: "Scrivi qualcosa per descrivere il task…",
     },
     toggle: "Mostra o nascondi la barra laterale",
     emptyTree: "Nessuna cartella o file",
@@ -100,7 +100,7 @@ export const templates = {
 
 export const sections = {
     new: "Nuova sezione",
-    titlePlaceholder: "Titolo della sezione...",
+    titlePlaceholder: "Titolo della sezione…",
     titleLabel: "Titolo della sezione",
     renameError: "Impossibile cambiare il titolo della sezione - {{message}}",
     collapse: "Compatta sezione",

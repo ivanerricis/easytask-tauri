@@ -150,7 +150,7 @@ export const crash: Translation["crash"] = {
 }
 
 export const errorPage: Translation["errorPage"] = {
-    title: "Oops, something went wrong...",
+    title: "Oops, something went wrong…",
     description: "Error description:",
     home: "Back to home",
 }

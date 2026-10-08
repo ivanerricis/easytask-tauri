@@ -51,7 +51,7 @@ export const settings = {
         resetAllDescription: "Tutte le scorciatoie personalizzate torneranno ai valori predefiniti.",
         needsModifier: "Usa una combinazione con Ctrl o Alt.",
         conflict: "Già usata da: {{names}}.",
-        pressKeys: "Premi i tasti...",
+        pressKeys: "Premi i tasti…",
         edit: "Modifica",
         editAria: "Modifica: {{name}}",
         reset: "Ripristina",

@@ -106,7 +106,7 @@ describe("DetailsPanel without selection", () => {
     it("waits for the data of the note", () => {
         tree = null
         renderPanel()
-        expect(screen.getByText("Caricamento dei dettagli...")).toBeInTheDocument()
+        expect(screen.getByText("Caricamento dei dettagli…")).toBeInTheDocument()
     })
 
     it("shows the note: name, statistics, progress, color and dates", async () => {
@@ -159,7 +159,7 @@ describe("DetailsPanel with a selected task", () => {
         expect(await screen.findByText("Mia nota › Extra › Altro")).toBeInTheDocument()
         await select(20)
         expect(screen.getByText("Completato")).toBeInTheDocument()
-        expect(screen.getByText("Nessun sotto-task")).toBeInTheDocument()
+        expect(screen.getByText("Nessun sottotask")).toBeInTheDocument()
         expect(screen.queryByRole("progressbar")).toBeNull()
     })
 

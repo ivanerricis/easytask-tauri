@@ -5,7 +5,7 @@ export const common = {
     rename: "Rinomina",
     system: "Sistema",
     close: "Chiudi",
-    loading: "Caricamento...",
+    loading: "Caricamento…",
     noResults: "Nessun risultato",
     counts: {
         group_one: "{{count}} gruppo",
@@ -27,7 +27,7 @@ export const common = {
 
 export const ui = {
     commandTitle: "Palette dei comandi",
-    commandDescription: "Cerca un comando da eseguire...",
+    commandDescription: "Cerca un comando da eseguire…",
 }
 
 export const layout = {

@@ -20,7 +20,7 @@ const setup = () =>
             onPick={onPick}
             title="Scegli una nota"
             description="Il template sarà una copia."
-            placeholder="Cerca la nota..."
+            placeholder="Cerca la nota…"
         />,
     )
 
@@ -41,13 +41,13 @@ describe("DialogPickNote", () => {
         expect(screen.getByText("Sprint")).toBeInTheDocument()
         expect(screen.getByText("Progetti / Interni")).toBeInTheDocument()
         expect(screen.getByText("Appunti")).toBeInTheDocument()
-        expect(screen.getByPlaceholderText("Cerca la nota...")).toBeInTheDocument()
+        expect(screen.getByPlaceholderText("Cerca la nota…")).toBeInTheDocument()
     })
 
     it("filters by name and by folder", async () => {
         const user = userEvent.setup()
         setup()
-        const box = screen.getByPlaceholderText("Cerca la nota...")
+        const box = screen.getByPlaceholderText("Cerca la nota…")
 
         await user.type(box, "retro")
         await waitFor(() => expect(screen.queryByText("Sprint")).not.toBeInTheDocument())
@@ -62,7 +62,7 @@ describe("DialogPickNote", () => {
     it("tells when nothing matches", async () => {
         const user = userEvent.setup()
         setup()
-        await user.type(screen.getByPlaceholderText("Cerca la nota..."), "zzzz")
+        await user.type(screen.getByPlaceholderText("Cerca la nota…"), "zzzz")
         expect(await screen.findByText("Nessun risultato.")).toBeInTheDocument()
     })
 

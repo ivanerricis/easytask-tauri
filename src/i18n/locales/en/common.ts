@@ -7,7 +7,7 @@ export const common: Translation["common"] = {
     rename: "Rename",
     system: "System",
     close: "Close",
-    loading: "Loading...",
+    loading: "Loading…",
     noResults: "No results",
     counts: {
         group_one: "{{count}} group",
@@ -29,7 +29,7 @@ export const common: Translation["common"] = {
 
 export const ui: Translation["ui"] = {
     commandTitle: "Command Palette",
-    commandDescription: "Search for a command to run...",
+    commandDescription: "Search for a command to run…",
 }
 
 export const layout: Translation["layout"] = {

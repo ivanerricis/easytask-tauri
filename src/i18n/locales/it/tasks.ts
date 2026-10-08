@@ -12,14 +12,14 @@ export const tasks = {
     descriptionDialog: {
         title: "Descrizione del task",
         label: "Descrizione",
-        placeholder: "Scrivi qualcosa per descrivere il task...",
+        placeholder: "Scrivi qualcosa per descrivere il task…",
         hint: "Ctrl + Invio per salvare",
     },
     newSubtaskPlaceholder: "Nuovo sottotask…",
     newSubtask: "Nuovo sottotask",
     addSubtask: "Aggiungi sottotask",
     add: "Aggiungi task",
-    placeholder: "Scrivi qualcosa...",
+    placeholder: "Scrivi qualcosa…",
     menu: {
         addDescription: "Aggiungi descrizione",
         removeDescription: "Rimuovi descrizione",

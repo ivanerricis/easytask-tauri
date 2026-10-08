@@ -53,7 +53,7 @@ export const settings: Translation["settings"] = {
         resetAllDescription: "Every custom shortcut will go back to its default.",
         needsModifier: "Use a combination with Ctrl or Alt.",
         conflict: "Already used by: {{names}}.",
-        pressKeys: "Press the keys...",
+        pressKeys: "Press the keys…",
         edit: "Edit",
         editAria: "Edit: {{name}}",
         reset: "Reset",

@@ -32,7 +32,7 @@ describe("DialogTaskDescription", () => {
         expect(screen.getByRole("dialog", { name: "Descrizione del task" })).toBeInTheDocument()
         expect(screen.getByText("Write the report")).toBeInTheDocument()
         const field = screen.getByRole("textbox", { name: "Descrizione" })
-        expect(field).toHaveAttribute("placeholder", "Scrivi qualcosa per descrivere il task...")
+        expect(field).toHaveAttribute("placeholder", "Scrivi qualcosa per descrivere il task…")
         expect(field).toHaveFocus()
     })
 
