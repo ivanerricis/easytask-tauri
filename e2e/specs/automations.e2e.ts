@@ -315,4 +315,87 @@ describe("Automations", () => {
         expect(await taskValues(DONE)).not.toContain(COPY_TASK)
         expect(await taskValues(TODO)).not.toContain(COPY_TASK)
     })
+
+    describe("dialog layout with very long section titles at 800px", () => {
+        const LONG_NOTE = "Auto Layout Note"
+        const LONG_A = "Auto layout section alpha with an extremely long title that keeps going on and on and on"
+        const LONG_B = "Auto layout section bravo with an extremely long title that keeps going on and on and on"
+        let previousSize: { width: number, height: number } | undefined
+
+        before(async () => {
+            previousSize = await browser.getWindowSize()
+            await browser.setWindowSize(800, 800)
+        })
+
+        after(async () => {
+            await closeAllDialogs()
+            if (previousSize) await browser.setWindowSize(previousSize.width, previousSize.height)
+        })
+
+        /** Everything that sticks out of the dialog: horizontal overflow of the content and of the fieldsets, and select triggers outside it. */
+        const overflows = () =>
+            browser.execute(() => {
+                const dialogs = Array.from(document.querySelectorAll<HTMLElement>('[role="dialog"]'))
+                const dialog = dialogs[dialogs.length - 1]
+                if (!dialog) return ["no dialog"]
+                const problems: string[] = []
+                const fits = (el: HTMLElement, name: string) => {
+                    if (el.scrollWidth > el.clientWidth + 1) problems.push(`${name}: scrollWidth ${el.scrollWidth} > clientWidth ${el.clientWidth}`)
+                }
+                fits(dialog, "dialog content")
+                dialog.querySelectorAll<HTMLElement>("fieldset").forEach((el, index) => fits(el, `fieldset ${index}`))
+                const box = dialog.getBoundingClientRect()
+                dialog.querySelectorAll<HTMLElement>('[data-slot="select-trigger"]').forEach((el, index) => {
+                    const rect = el.getBoundingClientRect()
+                    if (rect.left < box.left - 1 || rect.right > box.right + 1)
+                        problems.push(`select ${index} (${el.getAttribute("aria-label")}): ${Math.round(rect.left)}-${Math.round(rect.right)} outside ${Math.round(box.left)}-${Math.round(box.right)}`)
+                })
+                return problems
+            })
+
+        it("creates a note with two sections whose titles are very long", async () => {
+            await createFromSidebar("sidebar.addNote", "dialogs.addNote.submit", LONG_NOTE)
+            await treeRow(LONG_NOTE).click()
+            await byLabel(await tr("notes.closeCurrent")).waitForDisplayed()
+            await byText(await tr("menu.newGroup")).click()
+            await typeInto(byLabel(await tr("groups.nameLabel")), "Auto Layout Group")
+            await byLabel(await tr("common.add")).click()
+            for (const title of [LONG_A, LONG_B]) {
+                await byText(await tr("sections.new")).click()
+                await typeInto(byLabel(await tr("sections.titleLabel")), title)
+                await byLabel(await tr("common.add")).click()
+                await sectionCard(title).waitForDisplayed()
+            }
+        })
+
+        it("keeps every trigger and action inside the dialog", async () => {
+            const dialog = await openAutomations(LONG_NOTE)
+            await byText(await tr("automations.add"), dialog).click()
+            await expect(dialog.$(`h2=${await tr("automations.newTitle")}`)).toBeDisplayed()
+            expect(await overflows()).toEqual([])
+
+            // Every trigger type, with the long section chosen
+            for (const type of ["taskCompleted", "taskReopened", "taskCreated", "taskMovedInto", "subtasksCompleted"]) {
+                await choose(dialog, await tr("automations.when"), await tr(`automations.triggers.${type}`))
+                await choose(dialog, await tr("automations.where"), LONG_A)
+                expect({ trigger: type, problems: await overflows() }).toEqual({ trigger: type, problems: [] })
+            }
+
+            // Every action type on the first action, a long move target for moveTo
+            const typeLabel = await tr("automations.actionType")
+            for (const type of ["setCompleted", "setPriority", "setColor", "completeSubtasks", "moveTo"]) {
+                await choose(dialog, typeLabel, await tr(`automations.actions.${type}`), 0)
+                if (type === "moveTo") await choose(dialog, await tr("automations.actions.moveTo"), LONG_B)
+                expect({ action: type, problems: await overflows() }).toEqual({ action: type, problems: [] })
+            }
+
+            // A second action, switched through every type as well and finally a second move
+            await byText(await tr("automations.addAction"), dialog).click()
+            for (const type of ["setCompleted", "setPriority", "setColor", "completeSubtasks", "moveTo"]) {
+                await choose(dialog, typeLabel, await tr(`automations.actions.${type}`), 1)
+                if (type === "moveTo") await choose(dialog, await tr("automations.actions.moveTo"), LONG_B, 1)
+                expect({ action: `second ${type}`, problems: await overflows() }).toEqual({ action: `second ${type}`, problems: [] })
+            }
+        })
+    })
 })
