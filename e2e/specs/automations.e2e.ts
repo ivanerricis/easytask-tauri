@@ -233,6 +233,8 @@ describe("Automations", () => {
     })
 
     it("asks for a confirmation before throwing away an edited rule", async () => {
+        // Lowercase: WebKitWebDriver (Linux) drops the Shift of the first typed key, so "Auto…" would arrive as "auto…"
+        const UNSAVED_NAME = "auto rule name"
         const description = await ruleDescription(TODO, DONE)
         const dialog = await openAutomations(NOTE)
         const confirmTitle = await tr("automations.discardConfirm.title")
@@ -242,14 +244,14 @@ describe("Automations", () => {
         await expect(dialog.$(`h2=${await tr("automations.editTitle")}`)).toBeDisplayed()
         // An existing rule opens on the summary
         await currentStep(dialog, 2)
-        await typeInto(dialog.$("input"), "Auto rule name")
+        await typeInto(dialog.$("input"), UNSAVED_NAME)
         await footerButton(dialog, await tr("common.cancel")).click()
         const confirm = dialogTitled(confirmTitle)
         await confirm.waitForDisplayed({ timeoutMsg: "no confirmation for the unsaved rule" })
         await byText(await tr("common.cancel"), confirm).click()
         await confirm.waitForExist({ reverse: true })
         await expect(dialog.$(`h2=${await tr("automations.editTitle")}`)).toBeDisplayed()
-        await expect(dialog.$("input")).toHaveValue("Auto rule name")
+        await expect(dialog.$("input")).toHaveValue(UNSAVED_NAME)
 
         await footerButton(dialog, await tr("common.cancel")).click()
         await confirm.waitForDisplayed()
@@ -257,11 +259,11 @@ describe("Automations", () => {
         await confirm.waitForExist({ reverse: true })
         await expect(dialog.$(`h2=${await tr("automations.title")}`)).toBeDisplayed()
         await expect(dialog.$("ul")).toBeDisplayed()
-        expect(await dialog.$("ul").getText()).not.toContain("Auto rule name")
+        expect(await dialog.$("ul").getText()).not.toContain(UNSAVED_NAME)
 
         // Closing the dialog with unsaved changes asks too; confirming closes everything
         await byLabel(await tr("automations.editAria", { name: description })).click()
-        await typeInto(dialog.$("input"), "Auto rule name")
+        await typeInto(dialog.$("input"), UNSAVED_NAME)
         await domClick(byText(await tr("common.close"), dialog))
         await confirm.waitForDisplayed({ timeoutMsg: "closing the dialog with unsaved changes did not ask" })
         await byText(await tr("automations.discardConfirm.confirm"), confirm).click()
@@ -269,7 +271,7 @@ describe("Automations", () => {
 
         // Nothing was saved: the rule has no name
         const again = await openAutomations(NOTE)
-        expect(await again.$("ul").getText()).not.toContain("Auto rule name")
+        expect(await again.$("ul").getText()).not.toContain(UNSAVED_NAME)
     })
 
     it("runs the rule when a task is completed, and undoes it step by step with Ctrl+Z", async () => {
