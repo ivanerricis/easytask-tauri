@@ -51,13 +51,14 @@ describe("DialogDeleteItem", () => {
         expect(deleteItem).toHaveBeenCalledTimes(1)
     })
 
-    it("skips the refresh when getItemId is missing", async () => {
+    // The workspace menu of the home passes only the reload: the deleted workspace must leave the list at once
+    it("still refreshes, with the id of the item, when getItemId is missing", async () => {
         const user = userEvent.setup()
         const { getItemData, onOpenChange } = setup({ getItemId: undefined })
         await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
 
         await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false))
-        expect(getItemData).not.toHaveBeenCalled()
+        expect(getItemData).toHaveBeenCalledWith(3)
     })
 
     it("shows the error inline and stays open when the delete fails", async () => {

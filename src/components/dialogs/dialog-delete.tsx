@@ -15,7 +15,7 @@ type DialogDeleteProps<T> = {
     isOpen: boolean;
     onOpenChange: (open: boolean) => void;
     getItemId?: number | undefined
-    /** Reloads the data after the delete (when the removal is not applied optimistically). */
+    /** Reloads the data after the delete (when the removal is not applied optimistically), with `getItemId` or the item id. */
     getItemData?: (id: number) => Promise<void>
     /** Removes the item from the cached data before the write; returns the function that restores it if the write fails. */
     optimistic?: () => () => void
@@ -38,9 +38,8 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
         const rollback = optimistic?.()
         try {
             await deleteItem(itemType, item.id)
-            if (typeof getItemId === "number") {
-                await getItemData?.(getItemId)
-            }
+            // Without an explicit id the reload gets the deleted item's own (e.g. the home reloads its workspaces)
+            await getItemData?.(getItemId ?? item.id)
             const undoable = isUndoableType(itemType)
             if (undoable) recorder.remove(itemType, item.id, getItemName(item))
             toastTrashed(1, undoable ? undo : undefined)
