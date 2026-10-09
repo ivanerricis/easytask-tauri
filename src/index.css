@@ -43,6 +43,9 @@ body,
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
+  --color-tooltip: var(--tooltip);
+  --color-tooltip-foreground: var(--tooltip-foreground);
+  --color-tooltip-border: var(--tooltip-border);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
@@ -92,6 +95,10 @@ body,
   --muted-foreground: oklch(0.5 0 0);
   --accent: oklch(0.94 0 248);
   --accent-foreground: oklch(0.41 0 248);
+  /* Tooltips: inverted on the light theme (dark box, light text) */
+  --tooltip: var(--foreground);
+  --tooltip-foreground: var(--background);
+  --tooltip-border: var(--foreground);
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --warning: oklch(0.55 0.14 70);
@@ -132,6 +139,10 @@ body,
   --muted-foreground: oklch(0.708 0 0);
   --accent: oklch(0.32 0 0);
   --accent-foreground: oklch(0.96 0 0);
+  /* Tooltips: a mid gray with a lighter border on the dark theme (an inverted white box would glare on a dark UI) */
+  --tooltip: oklch(0.4 0 0);
+  --tooltip-foreground: oklch(0.985 0 0);
+  --tooltip-border: oklch(0.55 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --destructive-foreground: oklch(0.205 0 0);
   --warning: oklch(0.8 0.15 80);
@@ -166,6 +177,31 @@ body,
   }
 }
 
+/* Speed of the animations (preference "animationSpeed", set by applyAnimationSpeed on the root element):
+   "slow" is the original speed (nothing to override), "normal" is faster, "none" turns the animations and transitions off.
+   The components read these variables (tailwind transitions and tw-animate-css animations). The animation one is registered
+   with inherits: false, so it has to be set on every element, not only on the root. */
+:root[data-motion="normal"] {
+  --default-transition-duration: 90ms;
+}
+
+:root[data-motion="normal"] *,
+:root[data-motion="normal"] *::before,
+:root[data-motion="normal"] *::after {
+  --tw-animation-duration: 100ms;
+}
+
+/* 1ms instead of 0: the components wait for the end of their exit animation to unmount. The spinners keep turning. */
+:root[data-motion="none"] *:not(.animate-spin, .animate-pulse),
+:root[data-motion="none"] *:not(.animate-spin, .animate-pulse)::before,
+:root[data-motion="none"] *:not(.animate-spin, .animate-pulse)::after {
+  animation-duration: 1ms !important;
+  animation-delay: 0s !important;
+  transition-duration: 1ms !important;
+  transition-delay: 0s !important;
+  scroll-behavior: auto !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -174,6 +210,11 @@ body,
   :where(:focus-visible) {
     outline: 2px solid var(--ring);
     outline-offset: 2px;
+  }
+
+  /* WebView2 draws its own clear (X) button inside text fields */
+  input::-ms-clear {
+    display: none;
   }
 
   body {

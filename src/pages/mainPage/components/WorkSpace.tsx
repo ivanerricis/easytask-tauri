@@ -6,6 +6,8 @@ import { ButtonMenuWorkspace } from "./ButtonMenuWorkspace"
 import { ItemMenuButton } from "@/components/item-menu"
 import React from "react"
 import { formatDate } from "@/lib/utils"
+import { useInlineRename } from "@/hooks/use-inline-rename"
+import { InlineNameInput } from "@/components/inline-name-input"
 
 type WorkSpaceItemProps = {
     workspace: Workspace
@@ -14,7 +16,9 @@ type WorkSpaceItemProps = {
 
 export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpaceItemProps) => {
     const { t } = useTranslation()
-    const { setCurrentWorkspace } = useWorkspace()
+    const { setCurrentWorkspace, getWorkspaces } = useWorkspace()
+    const { editing, error, start: startRename, inputProps } = useInlineRename({ itemType: "workspace", id: workspace.id, name: workspace.name, reload: getWorkspaces })
+    const nameInput = (className?: string) => <InlineNameInput {...inputProps} error={error} aria-label={t("common.name")} className={className} />
     const navigate = useNavigate()
 
     const formattedCreationDate = formatDate(workspace.creation_date)
@@ -27,7 +31,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
 
     if (view === "list") {
         return (
-            <ButtonMenuWorkspace workspace={workspace}>
+            <ButtonMenuWorkspace workspace={workspace} onRename={startRename}>
                 <div className="group relative flex items-center w-full h-11 shrink-0 bg-background hover:bg-secondary border rounded-xs">
                     <button
                         type="button"
@@ -44,9 +48,9 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
 
                     {/* Workspace Info */}
                     <div className="pointer-events-none flex items-center justify-between gap-2 pl-4 pr-2 w-full min-w-0">
-                        <span className="text-foreground text-base truncate whitespace-nowrap min-w-0">
+                        {editing ? nameInput() : <span className="text-foreground text-base truncate whitespace-nowrap min-w-0">
                             {workspace.name}
-                        </span>
+                        </span>}
                         <span className="text-muted-foreground text-xs whitespace-nowrap shrink-0 mr-8">
                             {formattedEditDate} - {workspace.edit_time}
                         </span>
@@ -62,7 +66,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
     }
 
     return (
-        <ButtonMenuWorkspace workspace={workspace}>
+        <ButtonMenuWorkspace workspace={workspace} onRename={startRename}>
             <div className="group relative flex items-center w-full h-24 bg-background hover:bg-secondary border rounded-xs">
                 <button
                     type="button"
@@ -79,9 +83,9 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
 
                 {/* Workspace Info */}
                 <div className="pointer-events-none flex flex-col justify-between py-2 pl-4 pr-2 relative w-full min-w-0">
-                    <span className="text-foreground text-xl truncate overflow-hidden whitespace-nowrap mr-8">
+                    {editing ? nameInput("flex-none h-8 w-[calc(100%-2rem)] text-xl md:text-xl") : <span className="text-foreground text-xl truncate overflow-hidden whitespace-nowrap mr-8">
                         {workspace.name}
-                    </span>
+                    </span>}
                     <div className="flex flex-col items-start gap-1 w-full">
                         <span className="text-muted-foreground text-sm">
                             {t("home.workspace.createdOn", { date: formattedCreationDate, time: workspace.creation_time })}

@@ -8,6 +8,7 @@ import { NewGroupEnd, NewGroupSlot } from "./NewGroupSlot"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useNoteAudioCounts } from "@/contexts/use-audio"
 import { EmptyNoteHints } from "../EmptyNoteHints"
+import { NoteSkeleton } from "./NoteSkeleton"
 
 export const GroupContainer = () => {
     const { noteDataTree } = useActiveNote()
@@ -19,6 +20,8 @@ export const GroupContainer = () => {
     const groups = noteDataTree?.groups
     const audioCounts = useNoteAudioCounts(activeId, showAudioFileCount)
     const hasData = groups !== undefined
+    // A note opened for the first time has no data yet: its skeleton instead of an empty note with only "Nuovo gruppo"
+    const isLoadingNote = activeId !== null && !hasData
 
     // The data is loaded by the active note provider. Here the scroll position of each note is restored
     // (once its data is rendered) and saved while scrolling, so it survives tab switches.
@@ -34,6 +37,12 @@ export const GroupContainer = () => {
         element.addEventListener("scroll", handleScroll, { passive: true })
         return () => element.removeEventListener("scroll", handleScroll)
     }, [activeId, hasData, uiStore])
+
+    if (isLoadingNote) return (
+        <div className="relative flex-1 min-h-0 w-full">
+            <NoteSkeleton />
+        </div>
+    )
 
     return (
         <NoteDndProvider>

@@ -19,7 +19,7 @@ vi.mock("@/contexts/workspace-data", () => ({
 vi.mock("@/contexts/use-active-note", () => ({
     useActiveNoteActions: () => ({ patchGroup }),
 }))
-const prefs = { showSectionCount: true, showTaskCount: true, showAudioFileCount: true, showGroupProgressBar: true }
+const prefs = { showSectionCount: true, showTaskCount: true, showAudioFileCount: true, showGroupProgressBar: true, showUnnamedLabels: false, renameOnClick: true }
 vi.mock("@/contexts/use-preferences", () => ({
     usePreferences: () => prefs,
 }))
@@ -32,6 +32,8 @@ vi.mock("@/contexts/use-tabs", () => ({
 beforeEach(() => {
     prefs.showGroupProgressBar = true
     prefs.showAudioFileCount = true
+    prefs.showUnnamedLabels = false
+    prefs.renameOnClick = true
     isOpen = true
     toggleOpen.mockReset()
     renameItem.mockReset().mockResolvedValue(undefined)
@@ -64,6 +66,49 @@ describe("GroupHeader color", () => {
     })
 })
 
+describe("GroupHeader unnamed label and rename on click", () => {
+    it("shows no text for an unnamed group by default", () => {
+        render(<GroupHeader group={makeGroup({ name: null })} index={2} />)
+        expect(screen.getByRole("button", { name: "Gruppo 3" })).toBeEmptyDOMElement()
+    })
+
+    it("shows the fallback label in muted text when the preference is on", () => {
+        prefs.showUnnamedLabels = true
+        render(<GroupHeader group={makeGroup({ name: null })} index={2} />)
+        const name = screen.getByRole("button", { name: "Gruppo 3" })
+        expect(name).toHaveTextContent("Gruppo 3")
+        expect(name).toHaveClass("text-muted-foreground")
+    })
+
+    it("does not mute the label of a named group", () => {
+        prefs.showUnnamedLabels = true
+        render(<GroupHeader group={makeGroup({ name: "Da fare" })} />)
+        expect(screen.getByText("Da fare")).not.toHaveClass("text-muted-foreground")
+    })
+
+    it("does not start the rename on click when renameOnClick is off", async () => {
+        prefs.renameOnClick = false
+        render(<GroupHeader group={makeGroup({ name: "Da fare" })} />)
+        await userEvent.click(screen.getByText("Da fare"))
+        expect(screen.queryByRole("textbox")).toBeNull()
+    })
+
+    it("Enter on the name starts the rename even when renameOnClick is off", async () => {
+        prefs.renameOnClick = false
+        const user = userEvent.setup()
+        render(<GroupHeader group={makeGroup({ name: "Da fare" })} />)
+        screen.getByRole("button", { name: "Da fare" }).focus()
+        await user.keyboard("{Enter}")
+        expect(screen.getByRole("textbox")).toBeInTheDocument()
+    })
+
+    it("starts the rename on click by default", async () => {
+        render(<GroupHeader group={makeGroup({ name: "Da fare" })} />)
+        await userEvent.click(screen.getByText("Da fare"))
+        expect(screen.getByRole("textbox")).toBeInTheDocument()
+    })
+})
+
 describe("GroupHeader name", () => {
     it("keeps the name on a single line and truncates a long one (full name as title)", () => {
         render(<GroupHeader group={makeGroup({ name: "Da fare" })} index={2} />)
@@ -82,17 +127,18 @@ describe("GroupHeader name", () => {
         expect(header).not.toHaveClass("grid")
     })
 
-    it("shows a muted placeholder 'Gruppo N' when unnamed", () => {
+    it("shows no text when unnamed: the empty button keeps its width and is named 'Gruppo N' for the screen readers", () => {
         render(<GroupHeader group={makeGroup({ name: null })} index={2} />)
-        const label = screen.getByText("Gruppo 3")
-        expect(label).toHaveClass("text-muted-foreground")
-        expect(label).not.toHaveAttribute("title")
+        const button = screen.getByRole("button", { name: "Gruppo 3" })
+        expect(button).toBeEmptyDOMElement()
+        expect(button).toHaveClass("flex-1")
+        expect(button).not.toHaveAttribute("title")
     })
 
     it("renames inline on Enter and patches the note without reloading it", async () => {
         const user = userEvent.setup()
         render(<GroupHeader group={makeGroup({ id: 7, name: null })} index={0} />)
-        await user.click(screen.getByText("Gruppo 1"))
+        await user.click(screen.getByRole("button", { name: "Gruppo 1" }))
         await user.type(screen.getByLabelText("Nome del gruppo"), "Idee{Enter}")
         expect(patchGroup).toHaveBeenCalledWith(7, { name: "Idee" })
         expect(renameItem).toHaveBeenCalledWith("section_group", 7, "Idee")

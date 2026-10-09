@@ -5,6 +5,11 @@ import type { Note } from "@/types/types"
 import { flattenTree } from "./flat-tree"
 import { VirtualTree } from "./VirtualTree"
 
+// The rename field needs the workspace data; the rows are tested without it
+vi.mock("@/hooks/use-inline-rename", () => ({
+    useInlineRename: () => ({ editing: false, error: null, start: () => {}, inputProps: {} }),
+}))
+
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ sidebarItemSize: "normal" }) }))
 vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn() }), useActiveNoteId: () => null }))
 vi.mock("../folder/ButtonMenuFolder", () => ({ ButtonMenuFolder: ({ children }: { children: React.ReactNode }) => <>{children}</> }))

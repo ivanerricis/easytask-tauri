@@ -24,10 +24,7 @@ vi.mock("@/components/dialogs/dialog-delete", () => ({
     DialogDeleteItem: ({ isOpen, optimistic }: { isOpen: boolean, optimistic: () => () => void }) =>
         isOpen ? <button onClick={() => optimistic()}>Dialog elimina</button> : null,
 }))
-vi.mock("@/components/dialogs/dialog-rename", () => ({
-    DialogRenameItem: ({ isOpen, optimistic }: { isOpen: boolean, optimistic: (name: string) => () => void }) =>
-        isOpen ? <button onClick={() => optimistic("Nuovo")}>Dialog rinomina</button> : null,
-}))
+const onRename = vi.fn()
 
 const ENTRIES = ["Rinomina", "Duplica", "Cambia colore", "Archivia", "Elimina"]
 
@@ -43,7 +40,7 @@ beforeEach(() => {
 
 const setup = () => {
     render(
-        <ButtonMenuSection section={makeSection({ id: 7 })}>
+        <ButtonMenuSection section={makeSection({ id: 7 })} onRename={onRename}>
             <div data-testid="row">
                 Sezione
                 <ItemMenuButton />
@@ -66,12 +63,12 @@ describe("ButtonMenuSection", () => {
         for (const entry of ENTRIES) expect(await screen.findByText(entry)).toBeInTheDocument()
     })
 
-    it("opens the rename dialog from the context menu", async () => {
+    it("starts the inline rename from the context menu", async () => {
         const user = userEvent.setup()
         const row = setup()
         fireEvent.contextMenu(row)
         await user.click(await screen.findByText("Rinomina"))
-        expect(await screen.findByText("Dialog rinomina")).toBeInTheDocument()
+        await waitFor(() => expect(onRename).toHaveBeenCalledTimes(1))
     })
 
     it("duplicates the section, records the creation, reloads the note and confirms", async () => {
@@ -129,14 +126,9 @@ describe("ButtonMenuSection", () => {
         expect(await screen.findByText("Elimina", { selector: "button[type=button]" })).toBeInTheDocument()
     })
 
-    it("renames and deletes through the cached note tree, without reloading it", async () => {
+    it("deletes through the cached note tree, without reloading it", async () => {
         const user = userEvent.setup()
         const row = setup()
-        fireEvent.contextMenu(row)
-        await user.click(await screen.findByText("Rinomina"))
-        await user.click(await screen.findByText("Dialog rinomina"))
-        expect(patchSection).toHaveBeenCalledWith(7, { title: "Nuovo" })
-
         fireEvent.contextMenu(row)
         await user.click(await screen.findByText("Elimina"))
         await user.click(await screen.findByText("Dialog elimina"))

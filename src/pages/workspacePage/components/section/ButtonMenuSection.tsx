@@ -1,5 +1,6 @@
 import { useTranslation } from "react-i18next"
-import { lazy, useState, type ReactElement } from "react"
+import { lazyWithPreload, preloadWhenIdle } from "@/lib/lazy-preload"
+import { useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { ColorSubmenu } from "../ColorSubmenu"
 import type { DBItemType } from "@/db/queries/shared_queries"
@@ -8,12 +9,12 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
-import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { SectionMoveSubmenu } from "../NoteMoveSubmenus"
 import { SectionStepMoves } from "../NoteStepMoves"
 import { MenuGroup } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
+import { useRenameAfterClose } from "@/hooks/use-rename-after-close"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
@@ -22,21 +23,24 @@ import { withRollback } from "@/contexts/with-rollback"
 import { LazyMount } from "@/components/lazy-mount"
 import { useActiveNoteId } from "@/contexts/use-tabs"
 
-const DialogAutomations = lazy(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
+const DialogAutomations = lazyWithPreload(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
+preloadWhenIdle(DialogAutomations)
 
 type ButtonMenuSectionProps = {
     section: Section
     /** The section header: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
+    /** Starts the inline edit of the title (once the menu has given the focus back). */
+    onRename?: () => void
     children: ReactElement
 }
 
-export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps) => {
+export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSectionProps) => {
     const { t } = useTranslation()
-    const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const [isAutomationsOpen, setAutomationsOpen] = useState(false)
     const noteId = useActiveNoteId()
     const menu = useItemMenuState()
+    const { requestRename, onCloseAutoFocus } = useRenameAfterClose(onRename)
     const { updateItemColor, duplicateSection, archiveItem } = useWorkspaceActions()
     const { patchSection, removeSection, refreshActiveNote } = useActiveNoteActions()
     const recorder = useUndoRecorder()
@@ -82,7 +86,7 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
                 text={t("common.rename")}
                 type="rename"
                 onClick={() => {
-                    setRenameOpen(true)
+                    requestRename()
                     menu.close()
                 }}
             />
@@ -127,13 +131,6 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
 
     const dialogs = (
         <>
-            <DialogRenameItem
-                item={section}
-                itemType="section"
-                isOpen={isRenameOpen}
-                onOpenChange={setRenameOpen}
-                optimistic={title => patchSection(section.id, { title })}
-            />
             {noteId !== null && <LazyMount active={isAutomationsOpen}>
                 <DialogAutomations
                     noteId={noteId}
@@ -153,7 +150,7 @@ export const ButtonMenuSection = ({ section, children }: ButtonMenuSectionProps)
     )
 
     return (
-        <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="p-1 rounded-xs">
+        <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="p-1 rounded-xs" onCloseAutoFocus={onCloseAutoFocus}>
             {children}
         </ItemMenu>
     )

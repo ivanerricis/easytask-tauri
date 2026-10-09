@@ -62,7 +62,8 @@ type SettingsPanelProps = {
 
 export const SettingsPanel = ({ title, action, children }: SettingsPanelProps) => (
     <section className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-3 min-h-8">
+        {/* pr-8: the close button (X) of the dialog sits in the top right corner, the action stays on its left */}
+        <div className="flex items-center justify-between gap-3 min-h-8 pr-8">
             <h3 className="text-base font-semibold">{title}</h3>
             {action}
         </div>

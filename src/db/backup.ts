@@ -11,11 +11,18 @@ import { closeDB, DB_FILE, getDB, setRestoring } from "./dbManager"
 import { APPLICATION_ID, LATEST_SCHEMA_VERSION } from "./initDb"
 
 export const BACKUP_FOLDER = "backups"
+/** Subfolder of the backups folder holding the copies taken before a migration (not rotated). */
+export const PRE_MIGRATION_FOLDER = "pre-migration"
+
+const PRE_MIGRATION_PATTERN = /^easytask-pre-migration-v(\d+)-to-v(\d+)\.db$/
+
+/** How many pre-migration copies are kept: when a new one is taken, the ones of the oldest migrations are deleted. */
+export const MAX_PRE_MIGRATION_BACKUPS = 10
 
 const REGULAR_PATTERN = /^easytask-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:-(\d+))?\.db$/
 const PRE_RESTORE_PATTERN = /^easytask-pre-restore-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:-(\d+))?\.db$/
 
-export type BackupKind = "manual" | "auto" | "pre-restore" | "pre-migration"
+export type BackupKind = "manual" | "auto" | "pre-restore"
 
 export type BackupInfo = {
     /** File name inside the backups folder. */
@@ -91,7 +98,7 @@ export async function rotateBackups(keep: number): Promise<number> {
 /**
  * Writes a consistent copy of the database (VACUUM INTO, outside any transaction) in the backups folder.
  * Regular backups are then rotated according to the "keep" preference; only the newest pre-restore copy is kept.
- * @param kind Why the backup is taken; "pre-migration" copies are regular ones (named and rotated like the others).
+ * @param kind Why the backup is taken (pre-migration copies have their own function, createPreMigrationBackup).
  * @param database Connection to copy; the shared one when omitted. Needed while that one is still being opened.
  * @returns The created backup.
  * @category Database
@@ -120,6 +127,81 @@ export async function createBackup(kind: BackupKind = "manual", database?: Datab
     }
     const size = await stat(path).then(info => info.size, () => 0)
     return { name, path, size, date, preRestore }
+}
+
+export type PreMigrationBackupInfo = {
+    name: string
+    path: string
+    size: number
+    /** Modification time of the file (when the copy was taken); null if unknown. */
+    date: Date | null
+}
+
+/** "easytask-pre-migration-v6-to-v7.db" */
+export function preMigrationFileName(from: number, to: number): string {
+    return `easytask-pre-migration-v${from}-to-v${to}.db`
+}
+
+async function preMigrationFolderPath(): Promise<string> {
+    const folder = await join(await backupFolderPath(), PRE_MIGRATION_FOLDER)
+    if (!(await exists(folder))) await mkdir(folder, { recursive: true })
+    return folder
+}
+
+/**
+ * Copies the database before a schema migration into backups/pre-migration, named after the two versions.
+ * These copies are not rotated by the "backups to keep" preference: they have their own cap
+ * ({@link MAX_PRE_MIGRATION_BACKUPS}, the copies of the oldest migrations go first, never the one just taken),
+ * and an existing copy for the same pair of versions is left untouched, so a migration that fails and is retried at every start cannot overwrite the
+ * copy taken from the intact database. The copy is written to a temporary name and renamed, so a half-written
+ * file is never mistaken for a good one.
+ * @param database Connection being opened (the shared one is not available yet).
+ * @returns The copy, or null when it already existed.
+ * @category Database
+ */
+export async function createPreMigrationBackup(database: Database, from: number, to: number): Promise<PreMigrationBackupInfo | null> {
+    const folder = await preMigrationFolderPath()
+    const name = preMigrationFileName(from, to)
+    const path = await join(folder, name)
+    if (await exists(path)) return null
+
+    const temp = `${path}.tmp`
+    if (await exists(temp)) await remove(temp)
+    await database.execute(`VACUUM INTO '${temp.replace(/'/g, "''")}'`)
+    await rename(temp, path)
+    await prunePreMigrationBackups(folder, name).catch(reportError)
+    const info = await stat(path).catch(() => null)
+    return { name, path, size: info?.size ?? 0, date: info?.mtime ?? new Date() }
+}
+
+/** Deletes the copies of the oldest migrations (lowest target version) beyond the cap; `keepName` is never deleted. */
+async function prunePreMigrationBackups(folder: string, keepName: string): Promise<void> {
+    const copies: { name: string, order: number }[] = []
+    for (const entry of await readDir(folder)) {
+        const match = entry.isFile ? PRE_MIGRATION_PATTERN.exec(entry.name) : null
+        if (match) copies.push({ name: entry.name, order: Number(match[2]) * 1000 + Number(match[1]) })
+    }
+    copies.sort((a, b) => a.order - b.order || a.name.localeCompare(b.name))
+    const surplus = copies.length - MAX_PRE_MIGRATION_BACKUPS
+    for (const copy of copies.slice(0, Math.max(0, surplus))) {
+        if (copy.name !== keepName) await remove(await join(folder, copy.name))
+    }
+}
+
+/**
+ * Lists the pre-migration copies, newest first.
+ * @category Database
+ */
+export async function listPreMigrationBackups(): Promise<PreMigrationBackupInfo[]> {
+    const folder = await preMigrationFolderPath()
+    const list: PreMigrationBackupInfo[] = []
+    for (const entry of await readDir(folder)) {
+        if (!entry.isFile || !PRE_MIGRATION_PATTERN.test(entry.name)) continue
+        const path = await join(folder, entry.name)
+        const info = await stat(path).catch(() => null)
+        list.push({ name: entry.name, path, size: info?.size ?? 0, date: info?.mtime ?? null })
+    }
+    return list.sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0) || b.name.localeCompare(a.name))
 }
 
 /**

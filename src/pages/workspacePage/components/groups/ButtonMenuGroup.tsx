@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
+import { lazyWithPreload, preloadWhenIdle } from "@/lib/lazy-preload"
 import { ButtonInPopover } from "@/components/button-in-popover";
-import { DialogRenameItem } from "@/components/dialogs/dialog-rename";
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete";
 import { MenuGroup } from "@/components/menu-kind";
 import { Separator } from "@/components/ui/separator";
@@ -9,11 +9,12 @@ import { useWorkspaceActions } from "@/contexts/workspace-data";
 import type { DBItemType } from "@/db/queries/shared_queries";
 import { ItemMenu } from "@/components/item-menu";
 import { useItemMenuState } from "@/hooks/use-item-menu-state";
+import { useRenameAfterClose } from "@/hooks/use-rename-after-close";
 import { useActiveNoteActions } from "@/contexts/use-active-note";
 import { useAudio } from "@/contexts/use-audio";
 import { GroupStepMoves } from "../NoteStepMoves";
 import type { Group } from "@/types/types";
-import { lazy, useState, type ReactElement } from "react";
+import { useState, type ReactElement } from "react";
 import { useUndoRecorder } from "@/contexts/undo/use-undo";
 import { withRollback } from "@/contexts/with-rollback";
 import { getErrorMessage } from "@/lib/utils";
@@ -21,21 +22,24 @@ import { reportError } from "@/lib/report-error";
 import { LazyMount } from "@/components/lazy-mount";
 import { useActiveNoteId } from "@/contexts/use-tabs";
 
-const DialogAutomations = lazy(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
+const DialogAutomations = lazyWithPreload(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
+preloadWhenIdle(DialogAutomations)
 
 type Props = {
     group: Group
     /** The group header: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
+    /** Starts the inline edit of the name (once the menu has given the focus back). */
+    onRename?: () => void
     children: ReactElement
 }
 
-export const ButtonMenuGroup = ({ group, children }: Props) => {
+export const ButtonMenuGroup = ({ group, onRename, children }: Props) => {
     const { t } = useTranslation()
-    const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const [isAutomationsOpen, setAutomationsOpen] = useState(false)
     const noteId = useActiveNoteId()
     const menu = useItemMenuState()
+    const { requestRename, onCloseAutoFocus } = useRenameAfterClose(onRename)
     const { patchGroup, removeGroup } = useActiveNoteActions()
     const { addFiles } = useAudio()
     const { updateItemColor, archiveItem } = useWorkspaceActions()
@@ -69,7 +73,7 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
                 text={t("common.rename")}
                 type="rename"
                 onClick={() => {
-                    setRenameOpen(true)
+                    requestRename()
                     menu.close()
                 }}
             />
@@ -116,14 +120,6 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
 
     const dialogs = (
         <>
-            <DialogRenameItem
-                key={group.name ?? ""}
-                item={group}
-                itemType="section_group"
-                isOpen={isRenameOpen}
-                onOpenChange={setRenameOpen}
-                optimistic={name => patchGroup(group.id, { name: name || null })}
-            />
             {noteId !== null && <LazyMount active={isAutomationsOpen}>
                 <DialogAutomations
                     noteId={noteId}
@@ -143,7 +139,7 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
     )
 
     return (
-        <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="p-1 rounded-xs">
+        <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="p-1 rounded-xs" onCloseAutoFocus={onCloseAutoFocus}>
             {children}
         </ItemMenu>
     );

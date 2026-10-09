@@ -6,6 +6,11 @@ import type { Folder } from "@/types/types"
 import { PreferencesContext, type PreferencesContextType } from "@/contexts/preferences-context-object"
 import { ItemFolder } from "./Folder"
 
+// The rename field needs the workspace data; the rows are tested without it
+vi.mock("@/hooks/use-inline-rename", () => ({
+    useInlineRename: () => ({ editing: false, error: null, start: () => {}, inputProps: {} }),
+}))
+
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ sidebarItemSize: "normal" }) }))
 vi.mock("./ButtonMenuFolder", () => ({ ButtonMenuFolder: ({ children }: { children: ReactNode }) => <>{children}</> }))
 vi.mock("@/components/tooltip-custom", () => ({ TooltipCustom: ({ children }: { children: ReactNode }) => <>{children}</> }))

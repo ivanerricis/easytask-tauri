@@ -8,7 +8,7 @@ import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { FormError } from "@/components/form-error"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { ItemRow, ListError, ListLoading, TypeTabs } from "./item-list-parts"
+import { ItemRow, ListError, TypeTabs, TypeTabsSkeleton } from "./item-list-parts"
 import { ITEM_ICONS, formatStoredDate } from "./item-list-utils"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -118,23 +118,42 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
     const countOf = (type: ArchiveItemType) => items.filter(i => i.type === type).length
     const activeItems = items.filter(i => i.type === active)
     const Icon = ITEM_ICONS[active]
+    // The dialog always has the two columns of TypeTabs (while loading with the skeleton of the same layout, and when empty with
+    // every tab at 0), so nothing moves when the items arrive; only a failed load uses the plain layout
+    const tabbed = isLoading || loadError === null
+    const title = <DialogTitle>{t("archive.title")}</DialogTitle>
+    const description = <DialogDescription>{t("archive.description")}</DialogDescription>
+    const footer = (
+        <>
+            <FormError>{error}</FormError>
+            {/* mt-auto: with few or no items the buttons stay at the bottom of the (fixed height) dialog */}
+            <DialogFooter className="mt-auto">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    {t("common.close")}
+                </Button>
+            </DialogFooter>
+        </>
+    )
 
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent className="flex flex-col sm:max-w-3xl h-[min(560px,85vh)] overflow-hidden">
-                    <DialogHeader>
-                        <DialogTitle>{t("archive.title")}</DialogTitle>
-                        <DialogDescription>
-                            {t("archive.description")}
-                        </DialogDescription>
-                    </DialogHeader>
+                <DialogContent className={tabbed ? "sm:max-w-3xl h-[min(560px,85vh)] gap-0 overflow-hidden p-0" : "flex flex-col sm:max-w-3xl h-[min(560px,85vh)] overflow-hidden"}>
                     {isLoading ? (
-                        <ListLoading />
-                    ) : loadError !== null ? (
-                        <ListError message={loadError} onRetry={() => void reload()} />
-                    ) : items.length === 0 ? (
-                        <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.isEmpty")}</p>
+                        <TypeTabsSkeleton heading={<DialogHeader>{title}</DialogHeader>} description={description} footer={footer} tabs={TYPES.length} />
+                    ) : !tabbed ? (
+                        <>
+                            <DialogHeader>
+                                {title}
+                                {description}
+                            </DialogHeader>
+                            {loadError !== null ? (
+                                <ListError message={loadError} onRetry={() => void reload()} />
+                            ) : (
+                                <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.isEmpty")}</p>
+                            )}
+                            {footer}
+                        </>
                     ) : (
                         <TypeTabs
                             types={TYPES}
@@ -143,8 +162,13 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
                             count={countOf}
                             label={type => t(`archive.types.${type}`)}
                             ariaLabel={t("archive.nav")}
+                            heading={<DialogHeader>{title}</DialogHeader>}
+                            description={description}
+                            footer={footer}
                         >
-                            {activeItems.length === 0 ? (
+                            {items.length === 0 ? (
+                                <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.isEmpty")}</p>
+                            ) : activeItems.length === 0 ? (
                                 <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.emptyType")}</p>
                             ) : activeItems.map(item => (
                                 <ItemRow key={`${item.type}-${item.id}`} icon={Icon} name={item.name} details={details(item)}>
@@ -174,12 +198,6 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
                             ))}
                         </TypeTabs>
                     )}
-                    <FormError>{error}</FormError>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>
-                            {t("common.close")}
-                        </Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
             <ConfirmDialog

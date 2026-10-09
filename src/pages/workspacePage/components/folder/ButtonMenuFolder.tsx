@@ -10,7 +10,6 @@ import { ButtonInPopover } from "@/components/button-in-popover"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
-import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { MoveToSubmenu } from "../MoveToSubmenu"
 import { ColorSubmenu } from "../ColorSubmenu"
 import { MenuGroup } from "@/components/menu-kind"
@@ -18,21 +17,24 @@ import { ItemMenu } from "@/components/item-menu"
 import { useIsInMultiSelection } from "../sidebar/selection-context"
 import { SelectionMenuItems } from "../sidebar/SelectionMenu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
+import { useRenameAfterClose } from "@/hooks/use-rename-after-close"
 import { useItemTransfer } from "@/hooks/use-workspace-transfer"
 
 type ButtonMenuFolderProps = {
     folder: Folder
     /** The folder row: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
+    /** Starts the inline edit of the name (once the menu has given the focus back). */
+    onRename?: () => void
     children: ReactElement
 }
 
-export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) => {
+export const ButtonMenuFolder = ({ folder, onRename, children }: ButtonMenuFolderProps) => {
     const { t } = useTranslation()
     const [isAddSubFolderOpen, setAddSubFolderOpen] = useState(false);
     const [isAddNoteOpen, setAddNoteOpen] = useState(false);
-    const [isRenameOpen, setRenameOpen] = useState(false);
     const [isDeleteFolderOpen, setDeleteFolderOpen] = useState(false);
     const menu = useItemMenuState()
+    const { requestRename, onCloseAutoFocus } = useRenameAfterClose(onRename)
     const multi = useIsInMultiSelection("folder", folder.id)
     const { exportItem, importItems } = useItemTransfer()
     // Rename, color and delete are applied to the sidebar tree by the context: the dialogs need no reload
@@ -75,7 +77,7 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
             <ButtonInPopover
                 text={t("common.rename")}
                 type="rename"
-                onClick={() => { setRenameOpen(true); menu.close() }}
+                onClick={() => { requestRename(); menu.close() }}
             />
             <ButtonInPopover
                 text={t("menu.colorContent")}
@@ -134,12 +136,6 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
                 open={isAddSubFolderOpen}
                 onOpenChange={setAddSubFolderOpen}
             />
-            <DialogRenameItem
-                item={folder}
-                itemType="folder"
-                isOpen={isRenameOpen}
-                onOpenChange={setRenameOpen}
-            />
             <DialogDeleteItem
                 item={folder}
                 itemType="folder"
@@ -150,7 +146,7 @@ export const ButtonMenuFolder = ({ folder, children }: ButtonMenuFolderProps) =>
     )
 
     return (
-        <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="rounded-xs">
+        <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="rounded-xs" onCloseAutoFocus={onCloseAutoFocus}>
             {children}
         </ItemMenu>
     )

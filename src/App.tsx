@@ -7,6 +7,7 @@ import { AutomationsProvider } from './contexts/automations-context'
 import { ImportNamesProvider } from './contexts/import-names-context'
 import { PreferencesProvider } from './contexts/preferences-context'
 import { ThemeProvider } from './components/theme-provider'
+import { TooltipProvider } from './components/ui/tooltip'
 import { Toaster } from './components/ui/sonner'
 import { ShortcutsProvider } from './contexts/shortcuts-context'
 import { DialogShortcuts } from './components/dialogs/dialog-shortcuts'
@@ -50,6 +51,8 @@ function App() {
     <PreferencesProvider>
       <ShortcutsProvider>
       <ThemeProvider>
+        {/* One provider for every tooltip: once one is shown, moving to a neighbour shows its tooltip at once */}
+        <TooltipProvider>
         <WorkspaceProvider>
           <WorkspaceDataProvider>
             <UndoProvider>
@@ -79,6 +82,7 @@ function App() {
             <TextContextMenu />
           </WorkspaceDataProvider>
         </WorkspaceProvider>
+        </TooltipProvider>
       </ThemeProvider>
       </ShortcutsProvider>
     </PreferencesProvider >

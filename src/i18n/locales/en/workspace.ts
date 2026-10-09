@@ -112,6 +112,7 @@ export const templates: Translation["templates"] = {
 export const sections: Translation["sections"] = {
     new: "New section",
     titlePlaceholder: "Section title…",
+    untitled: "Untitled section",
     titleLabel: "Section title",
     renameError: "Could not change the section title: {{message}}",
     collapse: "Collapse section",

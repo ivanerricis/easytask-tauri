@@ -1,10 +1,10 @@
 import { useTranslation } from "react-i18next"
-import { lazy, useState, type ReactElement } from "react"
+import { lazyWithPreload, preloadWhenIdle } from "@/lib/lazy-preload"
+import { useState, type ReactElement } from "react"
 import type { Note } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useTabs, useTabsActions } from "@/contexts/use-tabs"
 import { ButtonInPopover } from "@/components/button-in-popover"
-import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { LazyMount } from "@/components/lazy-mount"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { Separator } from "@/components/ui/separator"
@@ -15,28 +15,32 @@ import { ItemMenu } from "@/components/item-menu"
 import { useIsInMultiSelection } from "../sidebar/selection-context"
 import { SelectionMenuItems } from "../sidebar/SelectionMenu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
+import { useRenameAfterClose } from "@/hooks/use-rename-after-close"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
 import { toast } from "sonner"
 import { useItemTransfer } from "@/hooks/use-workspace-transfer"
 
-const DialogAutomations = lazy(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
-const DialogCreateTemplate = lazy(() => import("@/components/dialogs/dialog-create-template").then(m => ({ default: m.DialogCreateTemplate })))
+const DialogAutomations = lazyWithPreload(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
+const DialogCreateTemplate = lazyWithPreload(() => import("@/components/dialogs/dialog-create-template").then(m => ({ default: m.DialogCreateTemplate })))
+preloadWhenIdle(DialogAutomations, DialogCreateTemplate)
 
 type ButtonMenuNoteProps = {
     note: Note
     /** The note row or tab: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
+    /** Starts the inline edit of the name (once the menu has given the focus back). */
+    onRename?: () => void
     children: ReactElement
 }
 
-export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
+export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps) => {
     const { t } = useTranslation()
-    const [isRenameOpen, setRenameOpen] = useState(false);
     const [isDeleteOpen, setDeleteOpen] = useState(false);
     const [isTemplateOpen, setTemplateOpen] = useState(false);
     const [isAutomationsOpen, setAutomationsOpen] = useState(false);
     const menu = useItemMenuState()
+    const { requestRename, onCloseAutoFocus } = useRenameAfterClose(onRename)
     const multi = useIsInMultiSelection("note", note.id)
     const { updateItemColor, duplicateNote, archiveItem } = useWorkspaceActions()
     const { openNote, reorderTabs } = useTabsActions()
@@ -80,7 +84,7 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
             <ButtonInPopover
                 text={t("common.rename")}
                 type="rename"
-                onClick={() => { setRenameOpen(true); menu.close() }}
+                onClick={() => { requestRename(); menu.close() }}
             />
             <ButtonInPopover
                 text={t("menu.duplicate")}
@@ -148,12 +152,6 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
 
     const dialogs = (
         <>
-            <DialogRenameItem
-                item={note}
-                itemType="note"
-                isOpen={isRenameOpen}
-                onOpenChange={setRenameOpen}
-            />
             <LazyMount active={isTemplateOpen}>
                 <DialogCreateTemplate
                     note={note}
@@ -178,7 +176,7 @@ export const ButtonMenuNote = ({ note, children }: ButtonMenuNoteProps) => {
     )
 
     return (
-        <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="p-1 rounded-xs">
+        <ItemMenu state={menu} items={items} dialogs={dialogs} contentClassName="p-1 rounded-xs" onCloseAutoFocus={onCloseAutoFocus}>
             {children}
         </ItemMenu>
     )

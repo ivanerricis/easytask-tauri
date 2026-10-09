@@ -4,6 +4,11 @@ import { describe, expect, it, vi } from "vitest"
 import type { Workspace } from "@/types/types"
 import { WorkSpaceItem } from "./WorkSpace"
 
+// The rename field needs the workspace data; the rows are tested without it
+vi.mock("@/hooks/use-inline-rename", () => ({
+    useInlineRename: () => ({ editing: false, error: null, start: () => {}, inputProps: {} }),
+}))
+
 const navigate = vi.fn()
 const setCurrentWorkspace = vi.fn()
 

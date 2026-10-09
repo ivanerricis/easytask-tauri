@@ -16,12 +16,12 @@ type SectionBodyProps = {
 // same rule. The Task still receives the full task (its progress counts every subtask).
 export const SectionBody = memo(({ isOpen, section }: SectionBodyProps) => {
     const { t } = useTranslation()
-    const { hideCompletedTasks, showSubtaskCount = true } = usePreferences()
+    const { hideCompletedTasks, showSubtaskCount = true, renameOnClick = true } = usePreferences()
     const hiddenCount = hideCompletedTasks ? countHiddenCompleted(section.tasks) : 0
 
     return (
         <div className={`flex flex-col w-full overflow-hidden dark:bg-secondary bg-background ${isOpen ? 'h-full' : 'hidden'}`}>
-            {visibleTasks(section.tasks, hideCompletedTasks).map(task => <Task key={task.id} task={task} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompletedTasks} />)}
+            {visibleTasks(section.tasks, hideCompletedTasks).map(task => <Task key={task.id} task={task} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompletedTasks} renameOnClick={renameOnClick} />)}
             {hiddenCount > 0 &&
                 <p className="px-2 py-1 text-xs text-muted-foreground" data-testid="hidden-completed">
                     {t("tasks.hiddenCompleted", { count: hiddenCount })}

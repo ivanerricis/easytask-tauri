@@ -1,3 +1,4 @@
+import { getSectionLabel } from "./section/section-label"
 import { getGroupLabel } from "./groups/group-label"
 import type { Group, NoteDataTree, Section, Task } from "@/types/types"
 
@@ -280,7 +281,7 @@ export function getSectionMoveDestinations(tree: NoteDataTree, sectionId: number
             .map((group, index) => ({
                 id: group.id,
                 label: getGroupLabel(group, index),
-                hint: group.sections.map(section => section.title).join(", "),
+                hint: group.sections.map(getSectionLabel).join(", "),
             }))
             .filter(group => group.id !== currentGroup?.id),
         canCreateGroup: !!currentGroup && currentGroup.sections.length > 1,
@@ -327,7 +328,7 @@ export function getTaskMoveDestinations(tree: NoteDataTree, taskId: number): Tas
             if (!(active.parentId == null && active.sectionId === section.id))
                 result.push({
                     key: `section-${section.id}`, type: "section", sectionId: section.id, parentTaskId: null,
-                    label: section.title, hint: getGroupLabel(group, groupIndex), depth: 0,
+                    label: getSectionLabel(section), hint: getGroupLabel(group, groupIndex), depth: 0,
                 })
             visit(section.tasks ?? [], section.id, 1)
         }

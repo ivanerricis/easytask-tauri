@@ -20,19 +20,20 @@ const prefs = {
     setWorkspaceView: vi.fn(),
     workspaceSort: { by: "edited", dir: "desc" } as { by: string; dir: string },
     setWorkspaceSort: vi.fn(),
+    reopenLastWorkspace: false,
 }
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("./MainPageLayout", () => ({ MainPageLayout: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }))
 vi.mock("./components/DialogCreateWorkspace", () => ({ DialogCreateWorkspace: () => <div>create-dialog</div> }))
 vi.mock("./components/ButtonTrashWorkspaces", () => ({ ButtonTrashWorkspaces: () => <button type="button">trash-button</button> }))
 vi.mock("./components/WorkspacesContainer", () => ({
-    WorkspacesContainer: ({ workspaces, view }: { workspaces: { name: string }[]; view: string }) => (
-        <ul data-view={view}>{workspaces.map(w => <li key={w.name}>{w.name}</li>)}</ul>
+    WorkspacesContainer: ({ workspaces, view, loading }: { workspaces: { name: string }[]; view: string; loading?: boolean }) => (
+        <ul data-view={view} data-loading={loading ? "true" : undefined}>{workspaces.map(w => <li key={w.name}>{w.name}</li>)}</ul>
     ),
 }))
 vi.mock("@/components/pages/error-page", () => ({ ErrorPage: ({ error }: { error: string }) => <div>error:{error}</div> }))
 
-// The page shows the loading page until the first load of the workspaces is over
+// Until the first load of the workspaces is over the page shows skeletons in place of the list
 const renderLoaded = async () => {
     const result = render(<MainPage />)
     await screen.findByText("Bentornato!")
@@ -50,12 +51,14 @@ describe("MainPage", () => {
         startup.pending = false
         prefs.workspaceView = "grid"
         prefs.workspaceSort = { by: "edited", dir: "desc" }
+        prefs.reopenLastWorkspace = false
         ctx.getWorkspaces.mockResolvedValue(undefined)
     })
 
 
-    it("shows the loading page while the startup restore is pending", () => {
+    it("shows the loading page while the last workspace may be reopened", () => {
         startup.pending = true
+        prefs.reopenLastWorkspace = true
         ctx.workspaces = [makeWorkspace({ name: "Alpha" })]
         render(<MainPage />)
         expect(screen.getByText("Caricamento dei workspace…")).toBeInTheDocument()
@@ -73,11 +76,12 @@ describe("MainPage", () => {
         expect(ctx.getWorkspaces).toHaveBeenCalledTimes(1)
     })
 
-    it("shows the loading page during the initial load", () => {
-        ctx.isLoading = true
+    it("shows the page at once during the initial load, with the list announced as loading", () => {
+        startup.pending = true
+        ctx.getWorkspaces.mockReturnValue(new Promise(() => { /* never loads */ }))
         render(<MainPage />)
-        expect(screen.getByText("Caricamento dei workspace…")).toBeInTheDocument()
-        expect(screen.queryByText("Bentornato!")).not.toBeInTheDocument()
+        expect(screen.getByText("Bentornato!")).toBeInTheDocument()
+        expect(screen.getByRole("list")).toHaveAttribute("data-loading", "true")
     })
 
     it("keeps showing the list while a later operation is running", async () => {

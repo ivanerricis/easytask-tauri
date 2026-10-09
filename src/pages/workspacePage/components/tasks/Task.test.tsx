@@ -8,6 +8,8 @@ import { TabsProvider } from "@/contexts/tabs-context"
 import { useSelectedTask, useTabsActions } from "@/contexts/use-tabs"
 import { RightPanelContext, type RightPanelContextType } from "../rightbar/right-panel-context-object"
 import { makeNote, makeTask } from "@/test/ui-fixtures"
+import { COLOR_ALPHA_BASE } from "@/lib/color-intensity"
+import { PreferencesContext } from "@/contexts/preferences-context-object"
 import { useNoteDrop } from "../note-dnd-state"
 
 const updateTaskCompletion = vi.fn()
@@ -118,6 +120,29 @@ describe("Task selection", () => {
         expect(screen.getByDisplayValue("Primo")).not.toHaveAttribute("aria-label")
     })
 
+    it("tints the whole row with a light version of the color, besides the full side bar", () => {
+        const { container } = renderTasks(<Task task={makeTask({ id: 10, text: "Primo", color: "#e6194b" })} />)
+        const styles = Array.from(container.querySelectorAll<HTMLElement>("[style]")).map(el => el.style.backgroundColor)
+        expect(styles).toContain("rgb(230, 25, 75)")
+        expect(styles).toContain(`rgba(230, 25, 75, ${COLOR_ALPHA_BASE.task})`)
+    })
+
+    it("has no tint when the preference is off, but keeps the side bar", () => {
+        const { container } = renderTasks(
+            <PreferencesContext.Provider value={{ taskBackground: false } as never}>
+                <Task task={makeTask({ id: 10, text: "Primo", color: "#e6194b" })} />
+            </PreferencesContext.Provider>,
+        )
+        const styles = Array.from(container.querySelectorAll<HTMLElement>("[style]")).map(el => el.style.backgroundColor)
+        expect(styles).toContain("rgb(230, 25, 75)")
+        expect(styles.some(color => color.startsWith("rgba("))).toBe(false)
+    })
+
+    it("has no tint without a color", () => {
+        const { container } = renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />)
+        expect(Array.from(container.querySelectorAll<HTMLElement>("[style]")).some(el => el.style.backgroundColor)).toBe(false)
+    })
+
     it("a click on the checkbox or a toolbar button does not select the row", async () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />)
         // userEvent focuses on mousedown: use fireEvent.click to look at the click alone
@@ -186,6 +211,24 @@ describe("Task text editing", () => {
         await user.click(screen.getByLabelText("Modifica il testo del task"))
         return screen.getByDisplayValue(text)
     }
+
+    it("renames on click by default", async () => {
+        const user = userEvent.setup()
+        renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />)
+        await user.click(screen.getByLabelText("Modifica il testo del task"))
+        expect(screen.getByDisplayValue("Primo")).not.toHaveAttribute("aria-label")
+    })
+
+    it("with renameOnClick off a click on the text only selects the task, and Enter still starts the edit", async () => {
+        const user = userEvent.setup()
+        renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} renameOnClick={false} />)
+        const text = screen.getByLabelText("Modifica il testo del task")
+        await user.click(text)
+        expect(screen.getByTestId("selected-1")).toHaveTextContent("10")
+        expect(screen.getByLabelText("Modifica il testo del task")).toHaveAttribute("readonly")
+        await user.keyboard("{Enter}")
+        expect(screen.getByDisplayValue("Primo")).not.toHaveAttribute("readonly")
+    })
 
     it("Escape cancels the edit: restores the text and does not rename", async () => {
         const user = userEvent.setup()

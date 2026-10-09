@@ -17,7 +17,7 @@ type InlineErrorTooltipProps = {
 export const InlineErrorTooltip = ({ message, children }: InlineErrorTooltipProps) => (
     <Tooltip open={message !== null}>
         <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent role="alert" side="bottom" align="start" sideOffset={4} className="bg-destructive text-destructive-foreground max-w-xs break-words [&>span]:hidden">
+        <TooltipContent role="alert" side="bottom" align="start" sideOffset={2} className="bg-destructive border-destructive text-destructive-foreground max-w-xs break-words [&>span]:hidden">
             {message}
         </TooltipContent>
     </Tooltip>

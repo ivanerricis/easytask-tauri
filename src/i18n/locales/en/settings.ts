@@ -30,6 +30,13 @@ export const settings: Translation["settings"] = {
             label: "Accent color",
             description: "Used for buttons, selections and highlights.",
             reset: "Reset the accent color",
+            contrast: {
+                warning: {
+                    light: "This color has little contrast with the background of the light theme ({{ratio}}:1, at least {{min}}:1 is needed): borders, selections and highlights may be hard to see.",
+                    dark: "This color has little contrast with the background of the dark theme ({{ratio}}:1, at least {{min}}:1 is needed): borders, selections and highlights may be hard to see.",
+                },
+                use: "Use {{color}} ({{ratio}}:1)",
+            },
         },
         sidebarSize: {
             label: "Size of folders and notes",
@@ -39,6 +46,13 @@ export const settings: Translation["settings"] = {
             large: "Large",
             previewFolder: "Folder",
             previewNote: "Note",
+        },
+        animations: {
+            label: "Animations",
+            description: "Speed of the interface animations (dialogs, menus, transitions).",
+            slow: "Slow",
+            normal: "Normal",
+            none: "Off",
         },
         colorIntensity: {
             label: "Color intensity",
@@ -158,6 +172,10 @@ export const settings: Translation["settings"] = {
                 title: "Available backups",
                 empty: "No backups yet.",
                 preRestore: "(before restore)",
+                preMigration: {
+                    title: "Copies made before a database update",
+                    description: "Saved automatically before a migration, in the pre-migration subfolder. They do not follow the number of backups to keep: at most 10 are kept and the oldest are deleted. You can remove them by hand when no longer needed.",
+                },
             },
             delete: {
                 aria: "Delete the backup of {{date}}",
@@ -186,6 +204,7 @@ export const settings: Translation["settings"] = {
             progress: "Progress bars",
             counts: "Counters",
             display: "Display",
+            behavior: "Behavior",
             startup: "On startup",
         },
         progressBar: {
@@ -202,6 +221,18 @@ export const settings: Translation["settings"] = {
         groupSeparators: {
             label: "Lines between groups",
             description: "Draws a thin vertical guide line between the groups of a note.",
+        },
+        unnamedLabels: {
+            label: "Show names of unnamed groups and sections",
+            description: "Shows the default name (e.g. Group 1) in muted text when a group or section has no name.",
+        },
+        taskBackground: {
+            label: "Colored task background",
+            description: "A task with a color also gets a very light background, besides the side bar.",
+        },
+        renameOnClick: {
+            label: "Rename by clicking the name",
+            description: "Clicking the name of a task, section or group starts the rename. If off, use Rename in the context menu or press Enter on the name.",
         },
         subtaskCount: {
             label: "Show completed subtasks",

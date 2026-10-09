@@ -5,9 +5,11 @@ import { Input } from "@/components/ui/input"
 import { usePreferences } from "@/contexts/use-preferences"
 import { DEFAULT_PRIMARY_COLOR, applyAccentColor } from "@/lib/accent-color"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
+import { AccentContrastHint } from "./AccentContrastHint"
 import { LanguageSetting } from "./LanguageSetting"
 import { SidebarItemSizeSetting } from "./SidebarItemSizeSetting"
 import { ColorIntensitySetting } from "./ColorIntensitySetting"
+import { AnimationSpeedSetting } from "./AnimationSpeedSetting"
 import { RowResetButton } from "./RowResetButton"
 import { ResetAppearanceSetting } from "./ResetAppearanceSetting"
 
@@ -89,9 +91,11 @@ export const AppearanceSettings = () => {
             <SettingsRow label={t("settings.appearance.accent.label")} description={t("settings.appearance.accent.description")}>
                 <AccentColorPicker label={t("settings.appearance.accent.label")} resetLabel={t("settings.appearance.accent.reset")} />
             </SettingsRow>
+            <AccentContrastHint />
             <LanguageSetting />
             <SidebarItemSizeSetting />
             <ColorIntensitySetting />
+            <AnimationSpeedSetting />
         </SettingsPanel>
     )
 }

@@ -6,6 +6,11 @@ import { ItemFolder } from "../folder/Folder"
 import { ItemNote } from "../note/Note"
 import { ITEM_SIZES } from "./item-size"
 
+// The rename field needs the workspace data; the rows are tested without it
+vi.mock("@/hooks/use-inline-rename", () => ({
+    useInlineRename: () => ({ editing: false, error: null, start: () => {}, inputProps: {} }),
+}))
+
 let size: SidebarItemSize = "normal"
 
 vi.mock("@/contexts/use-preferences", () => ({

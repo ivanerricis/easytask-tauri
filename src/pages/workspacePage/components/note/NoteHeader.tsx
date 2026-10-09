@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button"
 import { Toggle } from "@/components/ui/toggle"
 import { focusRing } from "@/lib/a11y"
 import { cn } from "@/lib/utils"
+import { useInlineRename } from "@/hooks/use-inline-rename"
+import { InlineNameInput } from "@/components/inline-name-input"
 
 type NoteHeaderProps = {
     note: Note
@@ -30,6 +32,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
     const closeLabel = useShortcutLabel("close-note")
     const hideLabel = useShortcutLabel("toggle-hide-completed")
     const { hideCompletedTasks, setHideCompletedTasks } = usePreferences()
+    const { editing, error, start: startRename, inputProps } = useInlineRename({ itemType: "note", id: note.id, name: note.name })
 
     // Only the active tab registers the shortcut (a single handler, whatever the number of open notes)
     useShortcut("toggle-hide-completed", () => setHideCompletedTasks(!hideCompletedTasks), { enabled: isActive, allowInInputs: true })
@@ -40,7 +43,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
     }
 
     return (
-        <ButtonMenuNote note={note}>
+        <ButtonMenuNote note={note} onRename={startRename}>
             <div
                 className={cn(
                     "relative flex items-stretch min-h-[42px] border-x border-b",
@@ -55,7 +58,10 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                 </div>}
 
                 {/* Same height as the sidebar header (32px buttons + padding + border), the content centered in it */}
-                <button
+                {editing && <div className="flex min-w-0 flex-1 items-center py-1 pl-2 pr-1">
+                    <InlineNameInput {...inputProps} error={error} aria-label={t("common.name")} className="max-w-56 text-sm" />
+                </div>}
+                {!editing && <button
                     type="button"
                     role="tab"
                     aria-selected={isActive}
@@ -68,7 +74,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                     <span className={cn("block max-w-56 truncate", isActive ? "font-medium text-foreground" : "text-muted-foreground")}>
                         {note.name}
                     </span>
-                </button>
+                </button>}
                 <div className="flex shrink-0 items-center gap-1 py-1 pr-1">
                     {isActive &&
                         <TooltipCustom text={t("notes.hideCompleted")} shortcut={hideLabel}>

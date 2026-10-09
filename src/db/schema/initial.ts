@@ -3,7 +3,7 @@ import { automationSchema } from "./automation";
 import { addFolderArchivedAt, createFolderIndexes, createFolderTable, createFolderTrigger } from "./folder";
 import { addNoteArchivedAt, createNoteIndexes, createNoteTable, createNoteTrigger } from "./note";
 import { createNoteTemplateIndexes, createNoteTemplateTable, createNoteTemplateTrigger } from "./note_template";
-import { addSectionArchivedAt, createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
+import { addSectionArchivedAt, makeSectionTitleOptional, createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
 import { addGroupArchivedAt, addGroupColorColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
 import { createTaskIndexes, createTaskTable, addTaskArchivedAt, createTaskTrigger, dropTaskArchivedColumn } from "./task";
 import { createWorkspaceEditTriggers } from "./workspace_edit";
@@ -65,10 +65,16 @@ export const archiveSchema: string[] = [
 export const taskArchiveSchema: string[] = [...addTaskArchivedAt]
 
 /**
+ * Migration v7: the title of a section is optional.
+ * @category Database Schema
+ */
+export const sectionTitleSchema: string[] = [...makeSectionTitleOptional]
+
+/**
  * The whole schema at the latest version (initial schema plus every additive migration), as statements.
  * Used by the tests to build a database in one go: the app itself goes through the migrations in initDb.
  * @category Database Schema
  */
 export const latestSchema: string[] = [
-    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema,
+    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema,
 ]

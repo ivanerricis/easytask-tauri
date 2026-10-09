@@ -296,7 +296,7 @@ function normalizeTask(task: ContentTask) {
 }
 
 /**
- * Fixes (in place) what the database would reject: blank task texts and section titles get a placeholder,
+ * Fixes (in place) what the database would reject: blank task texts get a placeholder,
  * empty colors become null and section titles clashing in the same group get a numeric suffix.
  */
 function normalizeContent(content: NoteTemplateContent) {
@@ -304,7 +304,8 @@ function normalizeContent(content: NoteTemplateContent) {
         group.color = cleanColor(group.color)
         const titles = new Set<string>()
         for (const section of group.sections) {
-            section.title = uniqueSibling(untitled(section.title), titles)
+            // A blank title stays blank (a section may have no title); only the others must differ
+            section.title = section.title.trim() ? uniqueSibling(section.title.trim(), titles) : ""
             section.color = cleanColor(section.color)
             for (const task of section.tasks) normalizeTask(task)
         }
@@ -328,7 +329,7 @@ function dedupeNames<T extends { name: string }>(items: T[], parentOf: (item: T)
  * @returns The same data, typed.
  * @throws A "TRANSFER_INVALID_FILE" error (Italian message) for a wrong format or malformed structure,
  * "TRANSFER_UNSUPPORTED_VERSION" for an unsupported version, "TRANSFER_TOO_MANY_ITEMS" above MAX_IMPORT_ITEMS.
- * The data is also normalized in place: blank task texts / section titles get a placeholder, empty colors become null,
+ * The data is also normalized in place: blank task texts get a placeholder, empty colors become null,
  * and sibling folders, notes and sections with the same name get a numeric suffix.
  * @category Database Queries
  */

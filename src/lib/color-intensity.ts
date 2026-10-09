@@ -13,6 +13,8 @@ export const COLOR_ALPHA_BASE = {
     item: 0.3,
     itemHover: 0.5,
     header: 0.4,
+    /** Background of a colored task: much lighter than the side bar, which keeps the full color. */
+    task: 0.05,
 } as const
 
 /** Brings an intensity into 0.25-1.75, rounded to 1% (non-numbers give the default 1). */

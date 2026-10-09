@@ -110,6 +110,7 @@ export const templates = {
 export const sections = {
     new: "Nuova sezione",
     titlePlaceholder: "Titolo della sezione…",
+    untitled: "Sezione senza titolo",
     titleLabel: "Titolo della sezione",
     renameError: "Impossibile cambiare il titolo della sezione: {{message}}",
     collapse: "Comprimi sezione",

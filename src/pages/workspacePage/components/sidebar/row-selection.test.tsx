@@ -8,6 +8,11 @@ import { ItemNote } from "../note/Note"
 import { SelectionContext } from "./selection-context"
 import { createSelectionStore } from "./selection"
 
+// The rename field needs the workspace data; the rows are tested without it
+vi.mock("@/hooks/use-inline-rename", () => ({
+    useInlineRename: () => ({ editing: false, error: null, start: () => {}, inputProps: {} }),
+}))
+
 const openNote = vi.fn()
 const onToggle = vi.fn()
 

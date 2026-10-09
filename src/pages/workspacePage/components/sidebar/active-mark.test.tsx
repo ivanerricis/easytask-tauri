@@ -6,6 +6,11 @@ import type { Folder, Note } from "@/types/types"
 import { ItemFolder } from "../folder/Folder"
 import { ItemNote } from "../note/Note"
 
+// The rename field needs the workspace data; the rows are tested without it
+vi.mock("@/hooks/use-inline-rename", () => ({
+    useInlineRename: () => ({ editing: false, error: null, start: () => {}, inputProps: {} }),
+}))
+
 const active: { id: number | null } = { id: null }
 
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ sidebarItemSize: "normal" }) }))

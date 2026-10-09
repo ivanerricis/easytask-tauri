@@ -39,6 +39,8 @@ describe("PreferencesContext", () => {
             showTaskCount: false,
             showAudioFileCount: false,
             showGroupSeparators: true,
+            showUnnamedLabels: true,
+            renameOnClick: false,
             undoLimit: 200,
             sidebarLeftOpen: false,
             sidebarRightOpen: true,
@@ -80,6 +82,8 @@ describe("PreferencesContext", () => {
             result.current.setShowAudioFileCount(true)
             result.current.setShowGroupSeparators(false)
             result.current.setUndoLimit(25)
+            result.current.setShowUnnamedLabels(false)
+            result.current.setRenameOnClick(true)
         })
         expect(result.current.showAudioFileCount).toBe(true)
         expect(result.current.showGroupSeparators).toBe(false)
@@ -87,6 +91,8 @@ describe("PreferencesContext", () => {
         expect(prefs.savePref).toHaveBeenCalledWith("showAudioFileCount", true)
         expect(prefs.savePref).toHaveBeenCalledWith("showGroupSeparators", false)
         expect(prefs.savePref).toHaveBeenCalledWith("undoLimit", 25)
+        expect(prefs.savePref).toHaveBeenCalledWith("showUnnamedLabels", false)
+        expect(prefs.savePref).toHaveBeenCalledWith("renameOnClick", true)
     })
 
     it("throws when used outside the provider", () => {
@@ -100,6 +106,8 @@ describe("PreferencesContext", () => {
         expect(result.current.primaryColor).toBe("#c2410c")
         expect(result.current.showProgressBar).toBe(true)
         expect(result.current.showGroupProgressBar).toBe(true)
+        expect(result.current.showUnnamedLabels).toBe(false)
+        expect(result.current.renameOnClick).toBe(true)
         expect(result.current.workspaceView).toBe("grid")
         await waitFor(() => expect(result.current.primaryColor).toBe("#123456"))
     })
@@ -113,6 +121,8 @@ describe("PreferencesContext", () => {
         expect(result.current.showTaskCount).toBe(false)
         expect(result.current.showAudioFileCount).toBe(false)
         expect(result.current.showGroupSeparators).toBe(true)
+        expect(result.current.showUnnamedLabels).toBe(true)
+        expect(result.current.renameOnClick).toBe(false)
         expect(result.current.undoLimit).toBe(200)
         expect(result.current.sidebarLeftOpen).toBe(false)
         expect(result.current.workspaceView).toBe("list")

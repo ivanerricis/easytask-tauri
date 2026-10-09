@@ -8,10 +8,15 @@ vi.mock("./ButtonMenuSection", () => ({ ButtonMenuSection: ({ children }: { chil
 const renameItem = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ renameItem }) }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchSection: vi.fn() }) }))
-vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ showProgressBar: true }) }))
+const prefs = { showProgressBar: true, showUnnamedLabels: false, renameOnClick: true }
+vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 
 describe("SectionHeader keyboard", () => {
-    beforeEach(() => { renameItem.mockReset(); renameItem.mockResolvedValue(undefined) })
+    beforeEach(() => {
+        renameItem.mockReset(); renameItem.mockResolvedValue(undefined)
+        prefs.showUnnamedLabels = false
+        prefs.renameOnClick = true
+    })
 
     it("toggles the section with Enter and Space on the chevron button", async () => {
         const onOpenChange = vi.fn()
@@ -51,6 +56,33 @@ describe("SectionHeader keyboard", () => {
         rerender(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ tasks: [makeTask()] })} />)
         expect(screen.getByRole("progressbar")).toBeInTheDocument()
         expect(screen.getByText("0 %")).toBeInTheDocument()
+    })
+
+    it("shows no text for an untitled section by default and the fallback label when the preference is on", () => {
+        const { rerender } = render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "" })} />)
+        expect(screen.getByRole("button", { name: "Sezione senza titolo" })).toBeEmptyDOMElement()
+
+        prefs.showUnnamedLabels = true
+        rerender(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "" })} />)
+        const name = screen.getByRole("button", { name: "Sezione senza titolo" })
+        expect(name).toHaveTextContent("Sezione senza titolo")
+        expect(name).toHaveClass("text-muted-foreground")
+    })
+
+    it("does not start the rename on click when renameOnClick is off", async () => {
+        prefs.renameOnClick = false
+        render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)
+        await userEvent.click(screen.getByRole("button", { name: "Titolo" }))
+        expect(screen.queryByRole("textbox")).toBeNull()
+    })
+
+    it("Enter on the title starts the rename even when renameOnClick is off", async () => {
+        prefs.renameOnClick = false
+        const user = userEvent.setup()
+        render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)
+        screen.getByRole("button", { name: "Titolo" }).focus()
+        await user.keyboard("{Enter}")
+        expect(screen.getByRole("textbox")).toBeInTheDocument()
     })
 
     it("Enter saves once", async () => {

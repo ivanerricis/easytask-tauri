@@ -13,7 +13,7 @@ type InlineEditOptions = {
 
 /**
  * Inline editing of a single text field: Enter saves, Escape cancels, blur saves (or cancels after an error),
- * the error stays inline and the field is focused with the cursor at the end.
+ * the error stays inline and the field is focused with the whole text selected.
  * A finished edit cannot be committed twice (e.g. Enter followed by the blur on unmount).
  * @returns The state and `inputProps` to spread on the input/textarea (the focus ref included).
  * @category Hooks
@@ -30,9 +30,8 @@ export function useInlineEdit<E extends HTMLInputElement | HTMLTextAreaElement =
         const input = ref.current
         if (editing && input) {
             done.current = false
-            const length = input.value.length
             input.focus()
-            input.setSelectionRange(length, length)
+            input.select()
         }
     }, [editing])
 

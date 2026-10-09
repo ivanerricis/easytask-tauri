@@ -21,6 +21,7 @@ import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { AudioContext, type AudioTrack } from "@/contexts/audio-context-object"
 import { formatBitDepth, formatBitrate, formatChannels, formatDateTime, formatDuration, formatFileSize, formatPosition, formatSampleRate, getAudioMetadata, type AudioMetadata } from "@/lib/audio-metadata"
 import { RightPanelContext } from "./right-panel-context-object"
+import { getSectionLabel } from "../section/section-label"
 import { getGroupLabel } from "../groups/group-label"
 import { countTasks } from "../groups/group-progress"
 
@@ -91,7 +92,7 @@ const findTaskPlace = (tree: NoteDataTree, taskId: number): { group: string, sec
     for (const [groupIndex, group] of tree.groups.entries())
         for (const section of group.sections)
             if (containsTask(section.tasks, taskId))
-                return { group: getGroupLabel(group, groupIndex), section: section.title }
+                return { group: getGroupLabel(group, groupIndex), section: getSectionLabel(section) }
     return null
 }
 

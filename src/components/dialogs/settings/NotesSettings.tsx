@@ -12,6 +12,9 @@ export const NotesSettings = () => {
         showAudioFileCount, setShowAudioFileCount,
         showGroupSeparators, setShowGroupSeparators,
         showSubtaskCount, setShowSubtaskCount,
+        showUnnamedLabels, setShowUnnamedLabels,
+        taskBackground, setTaskBackground,
+        renameOnClick, setRenameOnClick,
         hideCompletedTasks, setHideCompletedTasks,
         reopenNotes, setReopenNotes,
         reopenLastWorkspace, setReopenLastWorkspace,
@@ -31,7 +34,12 @@ export const NotesSettings = () => {
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.notes.sections.display")}>
                 <SettingsSwitchRow label={t("settings.notes.groupSeparators.label")} description={t("settings.notes.groupSeparators.description")} checked={showGroupSeparators} onCheckedChange={setShowGroupSeparators} />
+                <SettingsSwitchRow label={t("settings.notes.unnamedLabels.label")} description={t("settings.notes.unnamedLabels.description")} checked={showUnnamedLabels} onCheckedChange={setShowUnnamedLabels} />
+                <SettingsSwitchRow label={t("settings.notes.taskBackground.label")} description={t("settings.notes.taskBackground.description")} checked={taskBackground} onCheckedChange={setTaskBackground} />
                 <SettingsSwitchRow label={t("settings.notes.hideCompleted.label")} description={t("settings.notes.hideCompleted.description")} checked={hideCompletedTasks} onCheckedChange={setHideCompletedTasks} />
+            </SettingsSubsection>
+            <SettingsSubsection title={t("settings.notes.sections.behavior")}>
+                <SettingsSwitchRow label={t("settings.notes.renameOnClick.label")} description={t("settings.notes.renameOnClick.description")} checked={renameOnClick} onCheckedChange={setRenameOnClick} />
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.notes.sections.startup")}>
                 <SettingsSwitchRow label={t("settings.notes.reopenWorkspace.label")} description={t("settings.notes.reopenWorkspace.description")} checked={reopenLastWorkspace} onCheckedChange={setReopenLastWorkspace} />

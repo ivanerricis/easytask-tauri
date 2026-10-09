@@ -249,7 +249,7 @@ export function addNoteContent(tx: Transaction, noteRef: number | TxRef, content
  */
 export function addSections(tx: Transaction, sources: { groupRef: number | TxRef, section: TemplateSection }[]): TxRef[] {
     const sectionRefs = tx.insertRows("section", ["groupID", "title", "color", "archived_at", "position"],
-        sources.map(({ groupRef, section }) => [groupRef, section.title, section.color ?? null, section.archived_at || null, section.position]))
+        sources.map(({ groupRef, section }) => [groupRef, section.title || null, section.color ?? null, section.archived_at || null, section.position]))
 
     // Tasks level by level: the subtasks of a level reference the ids of their parents
     let level: PendingTask[] = sources.flatMap(({ section }, i) =>

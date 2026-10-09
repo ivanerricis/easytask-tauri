@@ -9,8 +9,6 @@ import type { FormEvent, KeyboardEvent } from "react"
 import { toast } from "sonner"
 import { reportError } from "@/lib/report-error"
 import { getErrorMessage } from "@/lib/utils"
-import { CloseButton } from "./CloseButton"
-import { PlusButton } from "./PlusButton"
 import { AddButton } from "./AddButton"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
@@ -50,7 +48,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
         return () => document.removeEventListener("mousedown", handleClickOutside)
     }, [])
 
-    // Escape closes the form and discards the text, like the X button
+    // Escape closes the form and discards the text, like a click outside
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key !== "Escape") return
         e.preventDefault()
@@ -61,9 +59,6 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
-        // A section needs a title, a group may stay unnamed ("Gruppo N")
-        if (inGroup && !name.trim()) return
-
         await run(async () => {
             try {
                 if (activeId === null) return
@@ -95,10 +90,9 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
         <form
             ref={formRef}
             onSubmit={handleSubmit}
-            className={`flex flex-col items-center justify-center border border-1 ${inGroup ? 'w-full' : 'w-fit'}`}
+            className={`flex items-center bg-background border ${inGroup ? 'w-full' : 'w-fit'}`}
         >
-            <div className="flex items-center justify-center w-full">
-                <Input
+            <Input
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={handleKeyDown}
@@ -106,13 +100,8 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                     aria-label={inGroup ? t("sections.titleLabel") : t("groups.nameLabel")}
                     autoFocus
                     readOnly={saving}
-                    className={`rounded-none border-none !bg-background text-sm ${inGroup ? 'w-full' : 'w-fit'}`}
+                    className={`rounded-none border-none text-sm ${inGroup ? 'flex-1' : 'w-fit'}`}
                 />
-            </div>
-            <div className="flex items-center w-full border-t bg-secondary divide-x">
-                <PlusButton disabled={(!!inGroup && !name.trim()) || saving} />
-                <CloseButton onClick={handleOpen} />
-            </div>
         </form>
     )
 }

@@ -78,6 +78,10 @@ export type WorkspaceSortDir = "asc" | "desc"
 export type WorkspaceSort = { by: WorkspaceSortBy, dir: WorkspaceSortDir }
 export const DEFAULT_WORKSPACE_SORT: WorkspaceSort = { by: "edited", dir: "desc" }
 export type SidebarItemSize = "compact" | "normal" | "large"
+/** Speed of the animations: "slow" is the original one, "normal" (default) is faster, "none" turns them off. */
+export type AnimationSpeed = "slow" | "normal" | "none"
+export const ANIMATION_SPEEDS: readonly AnimationSpeed[] = ["none", "normal", "slow"]
+export const DEFAULT_ANIMATION_SPEED: AnimationSpeed = "normal"
 export type RightPanelTab = "details" | "history"
 
 export const DEFAULT_BACKUP_KEEP = 5
@@ -118,6 +122,10 @@ export const UI_PREFS = {
     showSubtaskCount: def({ key: "showSubtaskCount", default: true }),
     showAudioFileCount: def({ key: "showAudioFileCount", default: true }),
     showGroupSeparators: def({ key: "showGroupSeparators", default: false, normalize: value => value === true }),
+    showUnnamedLabels: def({ key: "showUnnamedLabels", default: false, normalize: value => value === true }),
+    animationSpeed: def<AnimationSpeed>({ key: "animationSpeed", default: DEFAULT_ANIMATION_SPEED, normalize: value => ANIMATION_SPEEDS.includes(value as AnimationSpeed) ? value as AnimationSpeed : DEFAULT_ANIMATION_SPEED }),
+    taskBackground: def({ key: "taskBackground", default: true, normalize: value => value !== false }),
+    renameOnClick: def({ key: "renameOnClick", default: true, normalize: value => value !== false }),
     undoLimit: def<number>({ key: "undoLimit", default: UNDO_LIMIT, normalize: value => isValidUndoLimit(value) ? value : UNDO_LIMIT }),
     sidebarLeftOpen: def({ key: "sidebarLeftOpen", default: true }),
     sidebarRightOpen: def({ key: "sidebarRightOpen", default: true }),

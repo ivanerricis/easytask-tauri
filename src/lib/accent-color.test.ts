@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { applyAccentColor, textColorOn } from "./accent-color"
+import { ACCENT_MIN_CONTRAST, DEFAULT_PRIMARY_COLOR, accentContrast, applyAccentColor, suggestAccentColor, textColorOn } from "./accent-color"
 
 const DARK = "oklch(0.215 0 0)"
 const LIGHT = "oklch(1 0 0)"
@@ -63,5 +63,43 @@ describe("applyAccentColor", () => {
     it("applies to the page by default", () => {
         applyAccentColor("#ffb375")
         expect(document.documentElement.style.getPropertyValue("--primary-foreground")).toBe(DARK)
+    })
+})
+
+describe("accent contrast with the background", () => {
+    it("measures it against the background of each theme", () => {
+        expect(accentContrast("#ffffff", "light")).toBeCloseTo(1, 1)
+        expect(accentContrast("#000000", "light")).toBeCloseTo(21, 0)
+        expect(accentContrast("#c2410c", "light")!).toBeGreaterThan(5)
+        expect(accentContrast("#c2410c", "dark")!).toBeGreaterThan(ACCENT_MIN_CONTRAST)
+        expect(accentContrast("nope", "light")).toBeNull()
+    })
+
+    it("suggests nothing when the contrast is enough, or the color is not valid", () => {
+        expect(suggestAccentColor(DEFAULT_PRIMARY_COLOR, "light")).toBeNull()
+        expect(suggestAccentColor(DEFAULT_PRIMARY_COLOR, "dark")).toBeNull()
+        expect(suggestAccentColor("zzz", "light")).toBeNull()
+    })
+
+    it("suggests a darker color of the same hue on the light theme", () => {
+        const suggestion = suggestAccentColor("#ffe119", "light")!
+        expect(accentContrast("#ffe119", "light")!).toBeLessThan(ACCENT_MIN_CONTRAST)
+        expect(accentContrast(suggestion, "light")!).toBeGreaterThanOrEqual(ACCENT_MIN_CONTRAST)
+        // Still a yellow-ish color (red and green channels well above blue), not a gray
+        const [r, g, b] = [1, 3, 5].map(i => parseInt(suggestion.slice(i, i + 2), 16))
+        expect(r).toBeGreaterThan(b + 40)
+        expect(g).toBeGreaterThan(b + 40)
+    })
+
+    it("suggests a lighter color on the dark theme", () => {
+        const suggestion = suggestAccentColor("#1e3a8a", "dark")!
+        expect(accentContrast("#1e3a8a", "dark")!).toBeLessThan(ACCENT_MIN_CONTRAST)
+        expect(accentContrast(suggestion, "dark")!).toBeGreaterThanOrEqual(ACCENT_MIN_CONTRAST)
+        expect(parseInt(suggestion.slice(5, 7), 16)).toBeGreaterThan(parseInt("8a", 16))
+    })
+
+    it("falls back to black or white for the extremes", () => {
+        expect(accentContrast(suggestAccentColor("#ffffff", "light")!, "light")!).toBeGreaterThanOrEqual(ACCENT_MIN_CONTRAST)
+        expect(accentContrast(suggestAccentColor("#000000", "dark")!, "dark")!).toBeGreaterThanOrEqual(ACCENT_MIN_CONTRAST)
     })
 })

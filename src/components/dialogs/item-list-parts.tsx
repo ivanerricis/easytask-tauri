@@ -1,8 +1,10 @@
 import type { ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { Loader2, type LucideIcon } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { useDelayedFlag } from "@/hooks/use-delayed-flag"
 import { ITEM_ICONS } from "./item-list-utils"
 
 type ItemRowProps = {
@@ -30,12 +32,30 @@ export const ItemRow = ({ icon: Icon, name, details, children }: ItemRowProps) =
     </div>
 )
 
-/** The loading state of a list dialog: announced to screen readers. */
-export const ListLoading = () => {
+/** One row of {@link ListSkeleton}: the shape of an {@link ItemRow} (icon, two lines, two action buttons). */
+const RowSkeleton = () => (
+    <div className="flex items-center gap-2 rounded-xs border p-2">
+        <Skeleton className="size-4 shrink-0" />
+        <div className="flex flex-col gap-1.5 min-w-0 flex-1">
+            <Skeleton className="h-3.5 w-2/5" />
+            <Skeleton className="h-3 w-3/5" />
+        </div>
+        <Skeleton className="size-9 shrink-0" />
+        <Skeleton className="size-9 shrink-0" />
+    </div>
+)
+
+/**
+ * The loading state of a list dialog: rows shaped like the real ones, shown only when the load lasts long enough to be
+ * noticed (before that the space stays empty, so a fast load does not flash). Announced to screen readers.
+ */
+export const ListSkeleton = ({ rows = 5 }: { rows?: number }) => {
     const { t } = useTranslation()
+    const shown = useDelayedFlag(true)
     return (
-        <div role="status" className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-            <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
+        <div role="status" className="flex flex-col gap-1">
+            <span className="sr-only">{t("common.loading")}</span>
+            {shown && Array.from({ length: rows }, (_, index) => <RowSkeleton key={index} />)}
         </div>
     )
 }
@@ -51,6 +71,11 @@ export const ListError = ({ message, onRetry }: { message: string, onRetry: () =
     )
 }
 
+/** The two columns of {@link TypeTabs} (and of its skeleton): the left one has the separator that runs the whole height. */
+const TWO_COLUMNS = "grid h-full min-h-0 gap-0 max-sm:grid-rows-[auto_minmax(0,1fr)] sm:grid-cols-[14rem_minmax(0,1fr)]"
+const LEFT_COLUMN = "flex flex-col gap-4 p-6 max-sm:border-b max-sm:pb-3 sm:overflow-y-auto sm:border-r"
+const RIGHT_COLUMN = "flex min-h-0 min-w-0 flex-col gap-4 p-6"
+
 type TypeTabsProps<T extends keyof typeof ITEM_ICONS> = {
     types: readonly T[]
     active: T
@@ -58,43 +83,100 @@ type TypeTabsProps<T extends keyof typeof ITEM_ICONS> = {
     count: (type: T) => number
     label: (type: T) => string
     ariaLabel: string
+    /** Top of the left column, above the tabs (the title of the dialog). */
+    heading: ReactNode
+    /** Top of the right column, above the panel (the description of the dialog). */
+    description: ReactNode
+    /** Bottom of the right column, under the panel (errors and the buttons of the dialog). */
+    footer: ReactNode
     /** The content of the selected tab (the panel). */
     children: ReactNode
 }
 
-/** Vertical tabs of the trash / archive dialogs: one per kind of item, with its count, and the panel of the selected one. Arrows move between the tabs. */
-export function TypeTabs<T extends keyof typeof ITEM_ICONS>({ types, active, onSelect, count, label, ariaLabel, children }: TypeTabsProps<T>) {
+/**
+ * The whole body of the trash / archive dialogs when they have tabs (the DialogContent must have no padding): vertical tabs,
+ * one per kind of item with its count, and the panel of the selected one. Arrows move between the tabs.
+ * Two columns, like the settings: title and tabs on the left, whose right border is the separator and runs the whole height of
+ * the dialog; description, panel and buttons on the right.
+ */
+export function TypeTabs<T extends keyof typeof ITEM_ICONS>({ types, active, onSelect, count, label, ariaLabel, heading, description, footer, children }: TypeTabsProps<T>) {
     return (
         <Tabs
             orientation="vertical"
             value={active}
             onValueChange={value => onSelect(value as T)}
-            className="flex-col sm:flex-row gap-4 min-h-0 flex-1"
+            className={TWO_COLUMNS}
         >
-            <TabsList
-                variant="line"
-                aria-label={ariaLabel}
-                className="w-full sm:w-48 shrink-0 max-sm:flex-row max-sm:flex-wrap sm:h-fit sm:justify-start sm:self-start gap-1 p-0 pb-2 sm:pb-0 sm:pr-3 border-b sm:border-b-0 sm:border-r"
-            >
-                {types.map(type => {
-                    const TypeIcon: LucideIcon = ITEM_ICONS[type]
-                    return (
-                        <TabsTrigger
-                            key={type}
-                            value={type}
-                            data-type={type}
-                            className="flex-none sm:flex-1 justify-start px-3 py-2 data-[state=active]:font-medium data-[state=active]:bg-accent"
-                        >
-                            <TypeIcon />
-                            {label(type)}
-                            <span className="ml-auto text-xs text-muted-foreground">{count(type)}</span>
-                        </TabsTrigger>
-                    )
-                })}
-            </TabsList>
-            <TabsContent value={active} className="min-w-0 overflow-y-auto pr-1 flex flex-col gap-1">
-                {children}
-            </TabsContent>
+            <div className={LEFT_COLUMN}>
+                {heading}
+                <TabsList
+                    variant="line"
+                    aria-label={ariaLabel}
+                    className="w-full shrink-0 max-sm:flex-row max-sm:flex-wrap sm:h-fit sm:justify-start sm:self-start gap-1 p-0"
+                >
+                    {types.map(type => {
+                        const TypeIcon: LucideIcon = ITEM_ICONS[type]
+                        return (
+                            <TabsTrigger
+                                key={type}
+                                value={type}
+                                data-type={type}
+                                className="flex-none sm:flex-1 justify-start px-3 py-2 data-[state=active]:font-medium data-[state=active]:bg-accent"
+                            >
+                                <TypeIcon />
+                                {label(type)}
+                                <span className="ml-auto text-xs text-muted-foreground">{count(type)}</span>
+                            </TabsTrigger>
+                        )
+                    })}
+                </TabsList>
+            </div>
+            <div className={RIGHT_COLUMN}>
+                {description}
+                <TabsContent value={active} className="min-h-0 min-w-0 flex-1 overflow-y-auto pr-1 flex flex-col gap-1">
+                    {children}
+                </TabsContent>
+                {footer}
+            </div>
         </Tabs>
+    )
+}
+
+type TypeTabsSkeletonProps = {
+    heading: ReactNode
+    description: ReactNode
+    footer: ReactNode
+    /** How many tabs to draw (the kinds of items of the dialog). */
+    tabs: number
+}
+
+/**
+ * The loading state of the trash / archive dialogs: the very layout of {@link TypeTabs} (so nothing moves when the items
+ * arrive), with tabs and rows drawn as skeletons once the load lasts long enough to be noticed.
+ */
+export const TypeTabsSkeleton = ({ heading, description, footer, tabs }: TypeTabsSkeletonProps) => {
+    const shown = useDelayedFlag(true)
+    return (
+        <div className={TWO_COLUMNS}>
+            <div className={LEFT_COLUMN}>
+                {heading}
+                <div aria-hidden className="flex flex-col gap-1 max-sm:flex-row max-sm:flex-wrap">
+                    {shown && Array.from({ length: tabs }, (_, index) => (
+                        <div key={index} className="flex items-center gap-2 px-3 py-2">
+                            <Skeleton className="size-4 shrink-0" />
+                            <Skeleton className="h-3.5 flex-1" />
+                            <Skeleton className="h-3 w-5 shrink-0" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+            <div className={RIGHT_COLUMN}>
+                {description}
+                <div className="min-h-0 flex-1 overflow-hidden pr-1">
+                    <ListSkeleton />
+                </div>
+                {footer}
+            </div>
+        </div>
     )
 }

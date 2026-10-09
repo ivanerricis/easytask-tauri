@@ -21,10 +21,12 @@ export async function getDBNoteData(noteId: number, includeArchived = false) {
         const gA = includeArchived ? "" : " AND archived_at IS NULL"
         const groups = await db.select<Group[]>(
             `SELECT * FROM section_group WHERE noteID=? AND deleted_at IS NULL${gA} ORDER BY position`, [noteId])
-        const sections = await db.select<Section[]>(`
+        // A section without a title (NULL) is an empty string in the app
+        const sectionRows = await db.select<Section[]>(`
             SELECT * FROM section WHERE deleted_at IS NULL${gA} AND groupID IN (
             SELECT id FROM section_group WHERE noteID=? AND deleted_at IS NULL${gA})
             ORDER BY position, id`, [noteId])
+        const sections = sectionRows.map(section => ({ ...section, title: section.title ?? "" }))
         const tasks = await db.select<Task[]>(`
             SELECT * FROM task WHERE deleted_at IS NULL${gA} AND sectionID IN (
             SELECT id FROM section WHERE deleted_at IS NULL${gA} AND groupID IN (

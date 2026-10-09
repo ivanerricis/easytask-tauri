@@ -1,6 +1,6 @@
 import type Database from "@tauri-apps/plugin-sql";
 import i18n from "@/i18n";
-import { APPLICATION_ID, archiveSchema, initialSchema, taskArchiveSchema } from "./schema/initial";
+import { APPLICATION_ID, archiveSchema, initialSchema, sectionTitleSchema, taskArchiveSchema } from "./schema/initial";
 import { addGroupColorColumn } from "./schema/section_group";
 import { createWorkspaceEditTriggers } from "./schema/workspace_edit";
 import { automationSchema } from "./schema/automation";
@@ -24,6 +24,8 @@ const migrations: string[][] = [
     automationSchema,
     // v6: archive date on the tasks
     taskArchiveSchema,
+    // v7: optional title of the sections
+    sectionTitleSchema,
 ];
 
 /**
@@ -87,6 +89,9 @@ export async function initDB(db: Database, options: InitDbOptions = {}) {
                 if (/^\s*ALTER TABLE/i.test(query) && /duplicate column name|no such column/i.test(String((err as { message?: unknown })?.message ?? err)))
                     continue
                 console.error(`Migration v${version + 1} failed on query: ${query}`, err);
+                // A migration that is a script with its own transaction (see makeSectionTitleOptional) leaves it open when it fails
+                await db.execute("ROLLBACK").catch(() => undefined);
+                await db.execute("PRAGMA foreign_keys = ON").catch(() => undefined);
                 throw err;
             }
         }

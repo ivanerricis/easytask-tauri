@@ -407,6 +407,18 @@ describe("audio file count and section separators preferences", () => {
         expect(await getPref("showGroupSeparators")).toBe(false)
     })
 
+    it("shows no label of unnamed items and renames on click by default", async () => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getPref("showUnnamedLabels")).toBe(false)
+        expect(await getPref("renameOnClick")).toBe(true)
+        vi.mocked(store.get).mockResolvedValue("no")
+        expect(await getPref("showUnnamedLabels")).toBe(false)
+        vi.mocked(store.get).mockResolvedValue(false)
+        expect(await getPref("renameOnClick")).toBe(false)
+        vi.mocked(store.get).mockResolvedValue(true)
+        expect(await getPref("showUnnamedLabels")).toBe(true)
+    })
+
     it("saves the separators", async () => {
         const p = savePref("showGroupSeparators", true)
         await vi.runAllTimersAsync()
@@ -462,11 +474,11 @@ describe("preference table", () => {
 
     it("keeps the keys saved on disk", () => {
         expect(Object.values(all).map(definition => definition.key).sort()).toEqual([
-            "audioPlayerOpacity", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupKeep",
-            "checkUpdatesOnStartup", "colorIntensity", "hideCompletedTasks", "language", "lastWorkspaceId", "reopenLastWorkspace",
+            "animationSpeed", "audioPlayerOpacity", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupKeep",
+            "checkUpdatesOnStartup", "colorIntensity", "hideCompletedTasks", "language", "lastWorkspaceId", "renameOnClick", "reopenLastWorkspace",
             "reopenNotes", "rightPanelTab", "showAudioFileCount", "showGroupProgressBar", "showGroupSeparators", "showProgressBar",
-            "showSectionCount", "showSubtaskCount", "showTaskCount", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth",
-            "sidebarRightOpen", "sidebarRightWidth", "skippedUpdateVersion", "undoLimit", "workspaceSort", "workspaceView",
+            "showSectionCount", "showSubtaskCount", "showTaskCount", "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth",
+            "sidebarRightOpen", "sidebarRightWidth", "skippedUpdateVersion", "taskBackground", "undoLimit", "workspaceSort", "workspaceView",
         ])
     })
 

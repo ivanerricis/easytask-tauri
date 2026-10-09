@@ -30,9 +30,7 @@ vi.mock("@/components/dialogs/dialog-create-template", () => ({
         isOpen ? <div>Dialog template {note.id}</div> : null,
 }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => null }))
-vi.mock("@/components/dialogs/dialog-rename", () => ({
-    DialogRenameItem: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div>Dialog rinomina</div> : null,
-}))
+const onRename = vi.fn()
 
 const ENTRIES = ["Apri", "Rinomina", "Duplica", "Cambia colore", "Crea template", "Esporta", "Archivia", "Elimina"]
 
@@ -45,7 +43,7 @@ beforeEach(() => {
 
 const setup = () => {
     render(
-        <ButtonMenuNote note={makeNote({ id: 4 })}>
+        <ButtonMenuNote note={makeNote({ id: 4 })} onRename={onRename}>
             <div data-testid="row">
                 Nota
                 <ItemMenuButton />
@@ -94,7 +92,7 @@ describe("ButtonMenuNote", () => {
         for (const entry of ENTRIES) expect(await screen.findByText(entry)).toBeInTheDocument()
     })
 
-    it("opens the note and the rename dialog from the context menu", async () => {
+    it("opens the note and starts the inline rename from the context menu", async () => {
         const user = userEvent.setup()
         const row = setup()
         fireEvent.contextMenu(row)
@@ -103,7 +101,7 @@ describe("ButtonMenuNote", () => {
 
         fireEvent.contextMenu(row)
         await user.click(await screen.findByText("Rinomina"))
-        expect(await screen.findByText("Dialog rinomina")).toBeInTheDocument()
+        await waitFor(() => expect(onRename).toHaveBeenCalledTimes(1))
     })
 
     it("opens the create template dialog from the '…' button and from the context menu", async () => {

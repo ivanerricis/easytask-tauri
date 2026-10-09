@@ -84,11 +84,22 @@ describe("AddSection", () => {
         expect(ctx.createGroup).not.toHaveBeenCalled()
     })
 
-    it("ignores an empty section title", async () => {
+    it("creates an untitled section when the title is empty", async () => {
         const user = userEvent.setup()
         render(<AddSection inGroup groupId={7} />)
         await user.type(await openSectionForm(user), "   {Enter}")
 
+        await waitFor(() => expect(ctx.createSectionInGroup).toHaveBeenCalledWith(7, ""))
+    })
+
+    it("has no add or cancel buttons: Enter creates and Escape closes", async () => {
+        const user = userEvent.setup()
+        render(<AddSection inGroup groupId={7} />)
+        const input = await openSectionForm(user)
+        expect(screen.queryByRole("button", { name: "Aggiungi" })).not.toBeInTheDocument()
+        expect(screen.queryByRole("button", { name: "Annulla" })).not.toBeInTheDocument()
+        await user.type(input, "Bozza{Escape}")
+        expect(screen.queryByPlaceholderText(SECTION_PLACEHOLDER)).not.toBeInTheDocument()
         expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
     })
 

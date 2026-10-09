@@ -102,13 +102,13 @@ export async function getDBArchive(workspaceId: number): Promise<ArchiveItem[]> 
              FROM section_group g INNER JOIN live_note ln ON ln.id = g.noteID
              WHERE g.deleted_at IS NULL AND g.archived_at IS NOT NULL
              UNION ALL
-             SELECT 'section', 3, s.id, s.title, ? || ln.name, s.archived_at, 0
+             SELECT 'section', 3, s.id, COALESCE(s.title, ''), ? || ln.name, s.archived_at, 0
              FROM section s
              INNER JOIN section_group g ON g.id = s.groupID
              INNER JOIN live_note ln ON ln.id = g.noteID
              WHERE g.deleted_at IS NULL AND s.deleted_at IS NULL AND s.archived_at IS NOT NULL
              UNION ALL
-             SELECT 'task', 4, t.id, t.text, ? || ln.name || ' › ' || ? || s.title, t.archived_at, 0
+             SELECT 'task', 4, t.id, t.text, ? || ln.name || ' › ' || ? || COALESCE(s.title, ''), t.archived_at, 0
              FROM task t
              INNER JOIN section s ON s.id = t.sectionID
              INNER JOIN section_group g ON g.id = s.groupID

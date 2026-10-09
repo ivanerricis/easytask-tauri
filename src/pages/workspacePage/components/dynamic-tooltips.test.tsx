@@ -10,6 +10,11 @@ import { makeNote } from "@/test/ui-fixtures"
 import { NoteHeader } from "./note/NoteHeader"
 import { ButtonCloseNotes } from "./ButtonCloseNotes"
 
+// The rename field needs the workspace data; the rows are tested without it
+vi.mock("@/hooks/use-inline-rename", () => ({
+    useInlineRename: () => ({ editing: false, error: null, start: () => {}, inputProps: {} }),
+}))
+
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn().mockResolvedValue(false) }))
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ hideCompletedTasks: false, setHideCompletedTasks: vi.fn() }) }))
 vi.mock("@/lib/store/tabs", () => ({ getWorkspaceTabs: vi.fn(), saveWorkspaceTabs: vi.fn() }))

@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { FormError } from "@/components/form-error"
 import { Input } from "@/components/ui/input"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { ItemRow, ListError, ListLoading } from "./item-list-parts"
+import { ItemRow, ListError, ListSkeleton } from "./item-list-parts"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
@@ -99,7 +99,7 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent className="sm:max-w-xl">
+                <DialogContent className="flex flex-col sm:max-w-xl h-[min(560px,85vh)] overflow-hidden">
                     <DialogHeader>
                         <DialogTitle>{t("dialogs.templates.title")}</DialogTitle>
                         <DialogDescription>
@@ -114,9 +114,9 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                             onChange={e => setSearch(e.target.value)}
                         />
                     )}
-                    <div className="flex flex-col gap-1 max-h-[50vh] overflow-y-auto pr-1">
+                    <div className="flex min-h-0 flex-1 flex-col gap-1 overflow-y-auto pr-1">
                         {isLoading ? (
-                            <ListLoading />
+                            <ListSkeleton />
                         ) : loadError !== null ? (
                             <ListError message={loadError} onRetry={() => void reload()} />
                         ) : templates.length === 0 ? (

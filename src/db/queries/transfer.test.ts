@@ -232,7 +232,7 @@ describe("group color in export/import", () => {
 describe("import hardening", () => {
     const clone = async () => JSON.parse(JSON.stringify(await exportOf()))
 
-    it("replaces blank task texts and section titles with a placeholder and empty colors with null", async () => {
+    it("replaces blank task texts with a placeholder, keeps a blank section title blank and empty colors null", async () => {
         const data = await clone()
         const section = data.notes.find((n: { name: string }) => n.name === "Sorgente").content.groups[0].sections[0]
         section.title = "   "
@@ -244,7 +244,7 @@ describe("import hardening", () => {
         data.workspace.color = ""
         const valid = validateWorkspaceExport(data)
         const { workspaceId } = await importDBWorkspace(valid)
-        expect(rows(`SELECT title, color FROM section WHERE title = '(senza titolo)'`)).toEqual([{ title: "(senza titolo)", color: null }])
+        expect(rows(`SELECT title, color FROM section WHERE title IS NULL AND color IS NULL AND id IN (SELECT id FROM section WHERE groupID IN (SELECT id FROM section_group WHERE noteID IN (SELECT id FROM note WHERE workspaceID = ${workspaceId})))`).length).toBeGreaterThan(0)
         expect(rows(`SELECT COUNT(*) AS c FROM task WHERE text = '(senza titolo)' AND color IS NULL`)[0].c).toBe(1)
         expect(rows(`SELECT color FROM workspace WHERE id = ${workspaceId}`)).toEqual([{ color: null }])
         expect(rows(`SELECT COUNT(*) AS c FROM folder WHERE color = ''`)[0].c).toBe(0)

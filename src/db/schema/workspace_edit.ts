@@ -27,7 +27,8 @@ function trigger(table: string, event: "INSERT" | "UPDATE" | "DELETE", body: str
 `
 }
 
-function triggersFor(table: string): string[] {
+/** The three triggers (insert, update, delete) of a table; used again when a table is rebuilt by a migration. */
+export function triggersFor(table: string): string[] {
     const of = workspaceOf[table]
     // folder/note can move to another workspace: the old one changed too
     const moved = table === "folder" || table === "note"

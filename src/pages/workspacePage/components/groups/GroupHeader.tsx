@@ -43,7 +43,7 @@ type GroupHeaderProps = {
 
 export const GroupHeader = ({ group, index = 0, dragProps, audioCount = 0 }: GroupHeaderProps) => {
     const { t } = useTranslation()
-    const { showSectionCount, showTaskCount, showAudioFileCount, showGroupProgressBar } = usePreferences()
+    const { showSectionCount, showTaskCount, showAudioFileCount, showGroupProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
     const colorAlpha = useColorAlpha()
     const [isOpen, toggleOpen] = useGroupOpen(group.id)
     const progress = getGroupProgress(group)
@@ -66,7 +66,7 @@ export const GroupHeader = ({ group, index = 0, dragProps, audioCount = 0 }: Gro
     })
 
     return (
-        <ButtonMenuGroup group={group}>
+        <ButtonMenuGroup group={group} onRename={startEditing}>
             <div
                 // Everything stays on one row: the name is truncated (full name in the tooltip) and the progress bar shrinks
                 className={`group flex items-center gap-1 border px-1.5 py-1 w-full rounded-xs ${group.color ? "" : "bg-background hover:bg-secondary"} ${dragProps ? "touch-none cursor-grab active:cursor-grabbing" : ""}`}
@@ -84,10 +84,14 @@ export const GroupHeader = ({ group, index = 0, dragProps, audioCount = 0 }: Gro
                 </Button>
                 {!isEditing && <button
                     type="button"
-                    onClick={startEditing}
-                    title={name ? label : undefined}
-                    className={`text-sm font-semibold mr-1 min-w-0 max-w-72 flex-1 truncate cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${name ? "" : "text-muted-foreground"}`}>
-                    {label}
+                    onClick={renameOnClick ? startEditing : undefined}
+                    // Enter renames even when the click does not
+                    onKeyDown={e => { if (!renameOnClick && e.key === "Enter") { e.preventDefault(); startEditing() } }}
+                    title={name || undefined}
+                    // An unnamed group shows no text unless the preference asks for the fallback label
+                    aria-label={label}
+                    className={`text-sm font-semibold mr-1 min-w-0 max-w-72 flex-1 h-6 truncate text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${renameOnClick ? "cursor-text" : ""} ${!name ? "text-muted-foreground" : ""}`}>
+                    {name || (showUnnamedLabels ? label : "")}
                 </button>}
                 {isEditing && <InlineErrorTooltip message={error}>
                     <Input

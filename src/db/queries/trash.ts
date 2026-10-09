@@ -171,13 +171,13 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
              FROM section_group g INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND g.deleted_at IS NOT NULL
              UNION ALL
-             SELECT 'section', 3, s.id, s.title, ? || n.name, s.deleted_at, 0
+             SELECT 'section', 3, s.id, COALESCE(s.title, ''), ? || n.name, s.deleted_at, 0
              FROM section s
              INNER JOIN section_group g ON g.id = s.groupID
              INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND s.deleted_at IS NOT NULL
              UNION ALL
-             SELECT 'task', 4, t.id, t.text, ? || n.name || ' › ' || ? || s.title, t.deleted_at, 0
+             SELECT 'task', 4, t.id, t.text, ? || n.name || ' › ' || ? || COALESCE(s.title, ''), t.deleted_at, 0
              FROM task t
              INNER JOIN section s ON s.id = t.sectionID
              INNER JOIN section_group g ON g.id = s.groupID

@@ -28,6 +28,13 @@ export const settings = {
             label: "Colore d'accento",
             description: "Usato per pulsanti, selezioni ed evidenziazioni.",
             reset: "Ripristina il colore d'accento",
+            contrast: {
+                warning: {
+                    light: "Questo colore ha poco contrasto con lo sfondo del tema chiaro ({{ratio}}:1, ne servono almeno {{min}}:1): bordi, selezioni ed evidenziazioni potrebbero essere difficili da vedere.",
+                    dark: "Questo colore ha poco contrasto con lo sfondo del tema scuro ({{ratio}}:1, ne servono almeno {{min}}:1): bordi, selezioni ed evidenziazioni potrebbero essere difficili da vedere.",
+                },
+                use: "Usa {{color}} ({{ratio}}:1)",
+            },
         },
         sidebarSize: {
             label: "Dimensione di cartelle e note",
@@ -37,6 +44,13 @@ export const settings = {
             large: "Grande",
             previewFolder: "Cartella",
             previewNote: "Nota",
+        },
+        animations: {
+            label: "Animazioni",
+            description: "Velocità delle animazioni dell'interfaccia (finestre, menu, transizioni).",
+            slow: "Lente",
+            normal: "Normali",
+            none: "Assenti",
         },
         colorIntensity: {
             label: "Intensità dei colori",
@@ -156,6 +170,10 @@ export const settings = {
                 title: "Backup disponibili",
                 empty: "Nessun backup presente.",
                 preRestore: "(prima del ripristino)",
+                preMigration: {
+                    title: "Copie prima dell'aggiornamento del database",
+                    description: "Salvate automaticamente prima di una migrazione, nella sottocartella pre-migration. Non seguono il numero di backup da conservare: ne restano al massimo 10, le più vecchie vengono eliminate. Puoi cancellarle a mano quando non servono più.",
+                },
             },
             delete: {
                 aria: "Elimina il backup del {{date}}",
@@ -184,6 +202,7 @@ export const settings = {
             progress: "Barre d'avanzamento",
             counts: "Contatori",
             display: "Visualizzazione",
+            behavior: "Comportamento",
             startup: "All'avvio",
         },
         progressBar: {
@@ -200,6 +219,18 @@ export const settings = {
         groupSeparators: {
             label: "Linee tra i gruppi",
             description: "Disegna una sottile linea guida verticale tra i gruppi di una nota.",
+        },
+        unnamedLabels: {
+            label: "Mostra il nome dei gruppi e delle sezioni senza nome",
+            description: "Mostra il nome predefinito (es. Gruppo 1) in grigio quando un gruppo o una sezione non ha un nome.",
+        },
+        taskBackground: {
+            label: "Sfondo colorato dei task",
+            description: "Un task con un colore ha anche uno sfondo molto chiaro, oltre alla barra laterale.",
+        },
+        renameOnClick: {
+            label: "Rinomina cliccando sul nome",
+            description: "Il click sul nome di un task, una sezione o un gruppo avvia la rinomina. Se disattivato, usa Rinomina nel menu contestuale o premi Invio sul nome.",
         },
         subtaskCount: {
             label: "Mostra sottotask completati",

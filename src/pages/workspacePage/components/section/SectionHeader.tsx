@@ -14,6 +14,7 @@ import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { withRollback } from "@/contexts/with-rollback"
 import { useInlineEdit } from "@/hooks/use-inline-edit"
+import { getSectionLabel } from "./section-label"
 import { usePreferences } from "@/contexts/use-preferences"
 import type { HTMLAttributes } from "react"
 
@@ -43,10 +44,12 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragProps }: Sect
     const { renameItem } = useWorkspaceActions()
     const { patchSection } = useActiveNoteActions()
     const recorder = useUndoRecorder()
-    const { showProgressBar } = usePreferences()
+    const { showProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
     const colorAlpha = useColorAlpha()
+    // An empty text removes the title (a section can have none)
     const { editing: isTextAreaOpen, error, start: startEdit, inputProps } = useInlineEdit({
         value: section.title,
+        allowEmpty: true,
         errorMessage: err => t("sections.renameError", { message: getErrorMessage(err) }),
         onCommit: async next => {
             // Optimistic: the cached tree is updated at once and restored if the write fails
@@ -64,7 +67,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragProps }: Sect
     return (
         <div className="relative flex flex-col items-center justify-center">
 
-            <ButtonMenuSection section={section}>
+            <ButtonMenuSection section={section} onRename={startEdit}>
                 <div
                     className={`group flex items-center gap-1 border w-full px-1.5 py-1 whitespace-nowrap rounded-xs ${section.color ? "" : "bg-background"} ${dragProps ? "touch-none cursor-grab active:cursor-grabbing" : ""}`}
                     style={section.color ? { backgroundColor: hexToRgba(colorAlpha.header(), section.color) } : undefined}
@@ -84,16 +87,21 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragProps }: Sect
                     <div className="flex items-center justify-between gap-2 w-full min-w-0">
                         {!isTextAreaOpen && <button
                             type="button"
-                            onClick={startEdit}
-                            title={section.title}
-                            className="text-sm ml-1 min-w-0 flex-1 truncate cursor-text text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                            {section.title}
+                            onClick={renameOnClick ? startEdit : undefined}
+                            // Enter renames even when the click does not
+                            onKeyDown={e => { if (!renameOnClick && e.key === "Enter") { e.preventDefault(); startEdit() } }}
+                            title={section.title ? section.title : undefined}
+                            // An untitled section shows no text unless the preference asks for the fallback label
+                            aria-label={getSectionLabel(section)}
+                            className={`text-sm ml-1 min-w-0 flex-1 h-6 truncate text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${renameOnClick ? "cursor-text" : ""} ${!section.title ? "text-muted-foreground" : ""}`}>
+                            {section.title || (showUnnamedLabels ? getSectionLabel(section) : "")}
                         </button>}
                         {isTextAreaOpen && <InlineErrorTooltip message={error}>
                             <Input
                                 {...inputProps}
                                 onPointerDown={e => e.stopPropagation()}
                                 type="text"
+                                placeholder={t("sections.untitled")}
                                 aria-label={t("sections.titleLabel")}
                                 className="h-6 min-w-0 flex-1 px-1 py-0 ml-1 text-sm md:text-sm border-primary"
                             />
@@ -105,7 +113,7 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragProps }: Sect
                             </span>
                         </div>}
                         <div className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-                            <ItemMenuButton name={section.title} />
+                            <ItemMenuButton name={getSectionLabel(section)} />
                         </div>
                     </div>
                 </div>

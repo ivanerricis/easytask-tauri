@@ -209,7 +209,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
         <>
             <Dialog open={isOpen} onOpenChange={handleOpenChange}>
                 {/* The header and the footer stay visible: only the editor scrolls when the rule is taller than the window */}
-                <DialogContent className="sm:max-w-xl flex flex-col overflow-hidden">
+                <DialogContent className="sm:max-w-xl flex flex-col h-[min(640px,85vh)] overflow-hidden">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Zap className="size-4" />
@@ -242,7 +242,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                     ) : rules.length === 0 ? (
                         <p className="py-6 text-center text-muted-foreground text-sm">{t("automations.empty")}</p>
                     ) : (
-                        <ul className="flex flex-col divide-y border rounded-xs max-h-[50vh] overflow-y-auto">
+                        <ul className="flex min-h-0 flex-1 flex-col divide-y border rounded-xs overflow-y-auto">
                             {rules.map(rule => {
                                 const pausedKey = referencedGroups(rule).some(id => groupLabelOf(id) === undefined) ? "automations.pausedGroup"
                                     : referencedSections(rule).some(id => titleOf(id) === undefined) ? "automations.paused" : null
@@ -285,7 +285,8 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
 
                     {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
 
-                    <DialogFooter className={editing ? "sm:justify-between" : undefined}>
+                    {/* mt-auto: with few or no rules the buttons stay at the bottom of the (fixed height) dialog */}
+                    <DialogFooter className={editing ? "mt-auto sm:justify-between" : "mt-auto"}>
                         {editing ? (
                             <>
                                 <Button variant="outline" type="button" onClick={cancelEditing}>

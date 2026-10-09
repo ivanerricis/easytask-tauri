@@ -35,10 +35,10 @@ async function createDB(): Promise<Database> {
         await initDB(db, {
             // An existing database about to change its schema is copied first (best effort: never blocks the start).
             // Imported lazily because the backup module depends on this one.
-            beforeMigrate: async (opened) => {
+            beforeMigrate: async (opened, from, to) => {
                 try {
-                    const { createBackup } = await import("./backup");
-                    await createBackup("pre-migration", opened);
+                    const { createPreMigrationBackup } = await import("./backup");
+                    await createPreMigrationBackup(opened, from, to);
                 } catch (error) {
                     reportError(error);
                 }

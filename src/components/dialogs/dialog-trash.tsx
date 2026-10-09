@@ -13,7 +13,7 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useOptionalUndo } from "@/contexts/undo/use-undo"
 import { getErrorMessage } from "@/lib/utils"
-import { ItemRow, ListError, ListLoading, TypeTabs } from "./item-list-parts"
+import { ItemRow, ListError, TypeTabs, ListSkeleton, TypeTabsSkeleton } from "./item-list-parts"
 import { ITEM_ICONS, formatStoredDate } from "./item-list-utils"
 import type { TrashItem } from "@/types/types"
 
@@ -103,7 +103,9 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     const hasTabs = types.length > 1
 
     // The rows of the selected kind of item
-    const rows = activeItems.length === 0 ? (
+    const rows = items.length === 0 ? (
+                <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
+            ) : activeItems.length === 0 ? (
                 <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.emptyType")}</p>
             ) : activeItems.map(item => (
                 <ItemRow key={`${item.type}-${item.id}`} icon={Icon} name={item.name} details={details(item)}>
@@ -132,6 +134,32 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                 </ItemRow>
     ))
 
+    // With more kinds of items the dialog always has the two columns of TypeTabs (while loading with the skeleton of the same
+    // layout, and when empty with every tab at 0), so nothing moves when the items arrive; a single kind of item, or a failed
+    // load, use the plain layout with a single list
+    const tabbed = hasTabs && (isLoading || loadError === null)
+    const title = <DialogTitle>{t("trash.title")}</DialogTitle>
+    const description = <DialogDescription>{t("trash.description")}</DialogDescription>
+    const footer = (
+        <>
+            <FormError>{error}</FormError>
+            {/* mt-auto: with few or no items the buttons stay at the bottom of the (fixed height) dialog */}
+            <DialogFooter className="mt-auto">
+                <Button
+                    variant="destructive"
+                    disabled={busy || isLoading || items.length === 0}
+                    onClick={() => setConfirm({ kind: "empty" })}
+                >
+                    <Trash2 />
+                    {t("trash.empty")}
+                </Button>
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    {t("common.close")}
+                </Button>
+            </DialogFooter>
+        </>
+    )
+
     const handleConfirm = async () => {
         const current = confirm
         setConfirm(null)
@@ -147,20 +175,12 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent className={hasTabs ? "flex flex-col sm:max-w-3xl h-[min(560px,85vh)] overflow-hidden" : "flex flex-col sm:max-w-xl max-h-[min(560px,85vh)] overflow-hidden"}>
-                    <DialogHeader>
-                        <DialogTitle>{t("trash.title")}</DialogTitle>
-                        <DialogDescription>
-                            {t("trash.description")}
-                        </DialogDescription>
-                    </DialogHeader>
-                    {isLoading ? (
-                        <ListLoading />
-                    ) : loadError !== null ? (
-                        <ListError message={loadError} onRetry={() => void reload()} />
-                    ) : items.length === 0 ? (
-                        <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
-                    ) : hasTabs ? (
+                <DialogContent className={tabbed
+                    ? "sm:max-w-3xl h-[min(560px,85vh)] gap-0 overflow-hidden p-0"
+                    : `flex flex-col h-[min(560px,85vh)] overflow-hidden ${hasTabs ? "sm:max-w-3xl" : "sm:max-w-xl"}`}>
+                    {tabbed && isLoading ? (
+                        <TypeTabsSkeleton heading={<DialogHeader>{title}</DialogHeader>} description={description} footer={footer} tabs={types.length} />
+                    ) : tabbed ? (
                         <TypeTabs
                             types={types}
                             active={active}
@@ -168,29 +188,32 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                             count={type => items.filter(i => i.type === type).length}
                             label={type => t(`trash.groups.${type}`)}
                             ariaLabel={t("trash.nav")}
+                            heading={<DialogHeader>{title}</DialogHeader>}
+                            description={description}
+                            footer={footer}
                         >
                             {rows}
                         </TypeTabs>
                     ) : (
-                        <div className="min-w-0 min-h-0 overflow-y-auto pr-1 flex flex-col gap-1">
-                            {rows}
-                        </div>
+                        <>
+                            <DialogHeader>
+                                {title}
+                                {description}
+                            </DialogHeader>
+                            {isLoading ? (
+                                <ListSkeleton />
+                            ) : loadError !== null ? (
+                                <ListError message={loadError} onRetry={() => void reload()} />
+                            ) : items.length === 0 ? (
+                                <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
+                            ) : (
+                                <div className="min-w-0 min-h-0 overflow-y-auto pr-1 flex flex-col gap-1">
+                                    {rows}
+                                </div>
+                            )}
+                            {footer}
+                        </>
                     )}
-                    <FormError>{error}</FormError>
-                    <DialogFooter>
-                        <Button
-                            variant="destructive"
-                            className="sm:mr-auto"
-                            disabled={busy || isLoading || items.length === 0}
-                            onClick={() => setConfirm({ kind: "empty" })}
-                        >
-                            <Trash2 />
-                            {t("trash.empty")}
-                        </Button>
-                        <Button variant="outline" onClick={() => onOpenChange(false)}>
-                            {t("common.close")}
-                        </Button>
-                    </DialogFooter>
                 </DialogContent>
             </Dialog>
             <ConfirmDialog

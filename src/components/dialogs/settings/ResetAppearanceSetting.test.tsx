@@ -10,6 +10,7 @@ const setPrimaryColor = vi.fn()
 const setLanguage = vi.fn()
 const setSidebarItemSize = vi.fn()
 const setColorIntensity = vi.fn()
+const setAnimationSpeed = vi.fn()
 
 const state = {
     theme: "system",
@@ -17,17 +18,18 @@ const state = {
     language: "system",
     sidebarItemSize: "normal",
     colorIntensity: DEFAULT_COLOR_INTENSITY,
+    animationSpeed: "normal",
 }
 
 vi.mock("@/components/use-theme", () => ({ useTheme: () => ({ theme: state.theme, setTheme }) }))
 vi.mock("@/contexts/use-preferences", () => ({
-    usePreferences: () => ({ ...state, setPrimaryColor, setLanguage, setSidebarItemSize, setColorIntensity }),
+    usePreferences: () => ({ ...state, setPrimaryColor, setLanguage, setSidebarItemSize, setColorIntensity, setAnimationSpeed }),
 }))
 
 beforeEach(() => {
     vi.clearAllMocks()
     Object.assign(state, {
-        theme: "system", primaryColor: DEFAULT_PRIMARY_COLOR, language: "system", sidebarItemSize: "normal", colorIntensity: DEFAULT_COLOR_INTENSITY,
+        theme: "system", primaryColor: DEFAULT_PRIMARY_COLOR, language: "system", sidebarItemSize: "normal", colorIntensity: DEFAULT_COLOR_INTENSITY, animationSpeed: "normal",
     })
 })
 
@@ -43,6 +45,7 @@ describe("ResetAppearanceSetting", () => {
         ["language", { language: "en" }],
         ["size of folders and notes", { sidebarItemSize: "large" }],
         ["color intensity", { colorIntensity: 1.5 }],
+        ["speed of the animations", { animationSpeed: "none" }],
     ])("is enabled when the %s was changed", (_name, change) => {
         Object.assign(state, change)
         render(<ResetAppearanceSetting />)
@@ -56,7 +59,7 @@ describe("ResetAppearanceSetting", () => {
     })
 
     it("asks for confirmation and resets every control to its default", async () => {
-        Object.assign(state, { theme: "dark", primaryColor: "#3366ff", language: "en", sidebarItemSize: "large", colorIntensity: 1.5 })
+        Object.assign(state, { theme: "dark", primaryColor: "#3366ff", language: "en", sidebarItemSize: "large", colorIntensity: 1.5, animationSpeed: "slow" })
         const user = userEvent.setup()
         render(<ResetAppearanceSetting />)
 
@@ -72,6 +75,7 @@ describe("ResetAppearanceSetting", () => {
         expect(setLanguage).toHaveBeenCalledWith("system")
         expect(setSidebarItemSize).toHaveBeenCalledWith("normal")
         expect(setColorIntensity).toHaveBeenCalledWith(DEFAULT_COLOR_INTENSITY)
+        expect(setAnimationSpeed).toHaveBeenCalledWith("normal")
         await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     })
 

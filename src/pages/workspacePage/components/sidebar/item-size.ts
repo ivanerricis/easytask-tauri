@@ -23,9 +23,6 @@ export type ItemSizeClasses = {
     guide: string
     /** Indent of the children of an open folder. */
     indent: string
-    /** Tooltip offsets that clear the hover menu button (note row / folder row). */
-    noteTooltipOffset: number
-    folderTooltipOffset: number
 }
 
 export const ITEM_SIZES: Record<SidebarItemSize, ItemSizeClasses> = {
@@ -38,8 +35,6 @@ export const ITEM_SIZES: Record<SidebarItemSize, ItemSizeClasses> = {
         menu: "[&_svg]:size-3.5",
         guide: "left-[11px]",
         indent: "ml-[16px]",
-        noteTooltipOffset: 31,
-        folderTooltipOffset: 35,
     },
     normal: {
         row: "h-7",
@@ -50,8 +45,6 @@ export const ITEM_SIZES: Record<SidebarItemSize, ItemSizeClasses> = {
         menu: "",
         guide: "left-[12px]",
         indent: "ml-[17px]",
-        noteTooltipOffset: 33,
-        folderTooltipOffset: 37,
     },
     large: {
         row: "h-9",
@@ -62,8 +55,6 @@ export const ITEM_SIZES: Record<SidebarItemSize, ItemSizeClasses> = {
         menu: "[&_svg]:size-5",
         guide: "left-[14px]",
         indent: "ml-[19px]",
-        noteTooltipOffset: 37,
-        folderTooltipOffset: 41,
     },
 }
 

@@ -19,6 +19,7 @@ import {
 } from "@/lib/store/preferences"
 import { reportError } from "@/lib/report-error"
 import { applyLanguagePreference } from "@/i18n"
+import { applyAnimationSpeed } from "@/lib/animation-speed"
 import type { AudioPlayerPosition } from "@/types/types"
 import { PreferencesContext, type PreferencesContextType, type PrefSetterName } from "./preferences-context-object"
 
@@ -42,6 +43,7 @@ const setterName = (name: UiPrefName) =>
 export const PreferencesProvider = ({ children }: { children: React.ReactNode }) => {
     const [prefs, setPrefs] = useState<PrefValues>(DEFAULT_PREFS)
     const [primaryColor, setPrimaryColorState] = useState(DEFAULT_PRIMARY_COLOR)
+    useEffect(() => applyAnimationSpeed(prefs.animationSpeed), [prefs.animationSpeed])
     const [audioPlayerPosition, setAudioPlayerPositionState] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 })
     const audioPlayerContainerRef = useRef<HTMLDivElement>(null)
     const positionRef = useRef<AudioPlayerPosition>(audioPlayerPosition)

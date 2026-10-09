@@ -1,13 +1,15 @@
-import { lazy, useState } from "react"
+import { useState } from "react"
+import { lazyWithPreload, preloadWhenIdle } from "@/lib/lazy-preload"
 import { LazyMount } from "@/components/lazy-mount"
 import { useAppCommand } from "@/lib/app-commands"
 import type { NoteTemplate } from "@/types/template"
 
-const DialogTrash = lazy(() => import("@/components/dialogs/dialog-trash").then(m => ({ default: m.DialogTrash })))
-const DialogArchive = lazy(() => import("@/components/dialogs/dialog-archive").then(m => ({ default: m.DialogArchive })))
-const DialogTemplates = lazy(() => import("@/components/dialogs/dialog-templates").then(m => ({ default: m.DialogTemplates })))
-const DialogPickTemplate = lazy(() => import("@/components/dialogs/dialog-pick-template").then(m => ({ default: m.DialogPickTemplate })))
-const DialogNoteFromTemplate = lazy(() => import("@/components/dialogs/dialog-note-from-template").then(m => ({ default: m.DialogNoteFromTemplate })))
+const DialogTrash = lazyWithPreload(() => import("@/components/dialogs/dialog-trash").then(m => ({ default: m.DialogTrash })))
+const DialogArchive = lazyWithPreload(() => import("@/components/dialogs/dialog-archive").then(m => ({ default: m.DialogArchive })))
+const DialogTemplates = lazyWithPreload(() => import("@/components/dialogs/dialog-templates").then(m => ({ default: m.DialogTemplates })))
+const DialogPickTemplate = lazyWithPreload(() => import("@/components/dialogs/dialog-pick-template").then(m => ({ default: m.DialogPickTemplate })))
+const DialogNoteFromTemplate = lazyWithPreload(() => import("@/components/dialogs/dialog-note-from-template").then(m => ({ default: m.DialogNoteFromTemplate })))
+preloadWhenIdle(DialogTrash, DialogArchive, DialogTemplates, DialogPickTemplate, DialogNoteFromTemplate)
 
 /**
  * Trash, archive, templates and note-from-template dialogs of the workspace. They are opened with the app commands (from the

@@ -16,6 +16,7 @@ let keep = 7
 let auto = true
 
 const BACKUPS = "/data/backups"
+const PRE_MIGRATION = `${BACKUPS}/pre-migration`
 
 vi.mock("@tauri-apps/api/path", () => ({
     join: vi.fn(async (...parts: string[]) => parts.join("/")),
@@ -23,11 +24,11 @@ vi.mock("@tauri-apps/api/path", () => ({
 vi.mock("@tauri-apps/plugin-sql", () => ({ default: { load: (...a: unknown[]) => loadValidation(...a) } }))
 vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: () => relaunch() }))
 vi.mock("@tauri-apps/plugin-fs", () => ({
-    exists: vi.fn(async (path: string) => path === BACKUPS || files.has(path)),
+    exists: vi.fn(async (path: string) => path === BACKUPS || path === PRE_MIGRATION || files.has(path)),
     mkdir: vi.fn(async () => undefined),
-    readDir: vi.fn(async (): Promise<Entry[]> =>
-        [...files.keys()].filter(p => p.startsWith(`${BACKUPS}/`)).map(p => ({ name: p.slice(BACKUPS.length + 1), isFile: true }))),
-    stat: vi.fn(async (path: string) => ({ size: files.get(path) ?? 0 })),
+    readDir: vi.fn(async (dir: string): Promise<Entry[]> =>
+        [...files.keys()].filter(p => p.startsWith(`${dir}/`) && !p.slice(dir.length + 1).includes("/")).map(p => ({ name: p.slice(dir.length + 1), isFile: true }))),
+    stat: vi.fn(async (path: string) => ({ size: files.get(path) ?? 0, mtime: new Date(2026, 0, 5) })),
     remove: vi.fn(async (path: string) => { files.delete(path) }),
     rename: vi.fn(async (from: string, to: string) => { files.set(to, files.get(from) ?? 0); files.delete(from) }),
     copyFile: vi.fn(async (from: string, to: string) => { files.set(to, files.get(from) ?? 0) }),
@@ -51,8 +52,11 @@ vi.mock("@/lib/store/preferences", () => ({
 import {
     backupFileName,
     createBackup,
+    createPreMigrationBackup,
+    MAX_PRE_MIGRATION_BACKUPS,
     deleteBackup,
     listBackups,
+    listPreMigrationBackups,
     parseBackupName,
     restoreBackup,
     rotateBackups,
@@ -136,11 +140,10 @@ describe("createBackup", () => {
 
     it("copies the connection it is given instead of opening the shared one", async () => {
         const other = createMockDb()
-        const backup = await createBackup("pre-migration", other as never)
+        const backup = await createBackup("manual", other as never)
         expect(other.execute).toHaveBeenCalledTimes(1)
         expect(String(other.execute.mock.calls[0][0])).toMatch(/^VACUUM INTO '\/data\/backups\/easytask-\d{8}-\d{6}\.db'$/)
         expect(db.execute).not.toHaveBeenCalled()
-        // a regular backup: not a pre-restore copy
         expect(backup.preRestore).toBe(false)
     })
 
@@ -174,6 +177,61 @@ describe("createBackup", () => {
         expect(names).toContain(backup.name)
         expect(names).not.toContain("easytask-pre-restore-20250101-100000.db")
         expect(names).toContain("easytask-20260101-100000.db")
+    })
+})
+
+describe("pre-migration backups", () => {
+    const copyVacuum = (target: MockDb) => target.execute.mockImplementation(async (sql: unknown) => {
+        files.set(/INTO '(.*)'/.exec(String(sql))![1], 777)
+        return { rowsAffected: 0, lastInsertId: 0 }
+    })
+
+    it("writes a named copy in the dedicated folder through a temporary file", async () => {
+        const other = createMockDb()
+        copyVacuum(other)
+        const copy = await createPreMigrationBackup(other as never, 6, 7)
+        expect(String(other.execute.mock.calls[0][0])).toBe(`VACUUM INTO '${PRE_MIGRATION}/easytask-pre-migration-v6-to-v7.db.tmp'`)
+        expect(copy).toMatchObject({ name: "easytask-pre-migration-v6-to-v7.db", path: `${PRE_MIGRATION}/easytask-pre-migration-v6-to-v7.db`, size: 777 })
+        expect(files.has(`${PRE_MIGRATION}/easytask-pre-migration-v6-to-v7.db.tmp`)).toBe(false)
+    })
+
+    it("does not overwrite nor duplicate the copy of the same versions", async () => {
+        files.set(`${PRE_MIGRATION}/easytask-pre-migration-v6-to-v7.db`, 42)
+        const other = createMockDb()
+        expect(await createPreMigrationBackup(other as never, 6, 7)).toBeNull()
+        expect(other.execute).not.toHaveBeenCalled()
+        expect(files.get(`${PRE_MIGRATION}/easytask-pre-migration-v6-to-v7.db`)).toBe(42)
+    })
+
+    it("keeps at most MAX_PRE_MIGRATION_BACKUPS copies, deleting those of the oldest migrations and never the new one", async () => {
+        for (let to = 2; to < 2 + MAX_PRE_MIGRATION_BACKUPS; to++) files.set(`${PRE_MIGRATION}/easytask-pre-migration-v${to - 1}-to-v${to}.db`, 1)
+        const other = createMockDb()
+        copyVacuum(other)
+        const next = 2 + MAX_PRE_MIGRATION_BACKUPS
+        await createPreMigrationBackup(other as never, next - 1, next)
+        const left = [...files.keys()].filter(path => path.startsWith(`${PRE_MIGRATION}/`))
+        expect(left).toHaveLength(MAX_PRE_MIGRATION_BACKUPS)
+        expect(left).not.toContain(`${PRE_MIGRATION}/easytask-pre-migration-v1-to-v2.db`)
+        expect(left).toContain(`${PRE_MIGRATION}/easytask-pre-migration-v${next - 1}-to-v${next}.db`)
+    })
+
+    it("is not touched by the rotation and does not show among the regular backups", async () => {
+        keep = 1
+        files.set(`${PRE_MIGRATION}/easytask-pre-migration-v6-to-v7.db`, 42)
+        seed("easytask-20260101-100000.db")
+        seed("easytask-20260102-100000.db")
+        await createBackup("manual")
+        expect(files.has(`${PRE_MIGRATION}/easytask-pre-migration-v6-to-v7.db`)).toBe(true)
+        expect((await listBackups()).every(b => b.name.startsWith("easytask-2"))).toBe(true)
+    })
+
+    it("lists only the pre-migration copies", async () => {
+        files.set(`${PRE_MIGRATION}/easytask-pre-migration-v5-to-v6.db`, 1)
+        files.set(`${PRE_MIGRATION}/easytask-pre-migration-v6-to-v7.db`, 2)
+        files.set(`${PRE_MIGRATION}/other.txt`, 3)
+        const list = await listPreMigrationBackups()
+        expect(list.map(b => b.name)).toEqual(["easytask-pre-migration-v6-to-v7.db", "easytask-pre-migration-v5-to-v6.db"])
+        expect(list[0].date).toEqual(new Date(2026, 0, 5))
     })
 })
 

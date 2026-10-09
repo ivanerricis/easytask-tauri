@@ -70,11 +70,12 @@ describe("DialogArchive", () => {
         expect(screen.getByRole("tab", { name: /Cartelle/ })).toHaveAttribute("aria-selected", "true")
     })
 
-    it("shows the empty state of the whole archive", async () => {
+    it("shows the empty state of the whole archive in the tabbed layout", async () => {
         data.getArchive.mockResolvedValue([])
         render(<DialogArchive isOpen onOpenChange={vi.fn()} />)
         expect(await screen.findByText("L'archivio è vuoto")).toBeInTheDocument()
-        expect(screen.queryByRole("tablist")).not.toBeInTheDocument()
+        // The layout stays the one with the tabs (all at 0), so opening an empty archive does not change the layout
+        expect(screen.getByRole("tablist")).toBeInTheDocument()
     })
 
     it("restores an item, records the undo step and reloads tree and note", async () => {

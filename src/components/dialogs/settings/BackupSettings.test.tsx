@@ -9,6 +9,7 @@ const createBackup = vi.fn()
 const deleteBackup = vi.fn()
 const listBackups = vi.fn()
 const restoreBackup = vi.fn()
+const listPreMigrationBackups = vi.fn()
 const saveBackupKeep = vi.fn()
 const saveAutoBackup = vi.fn()
 const invoke = vi.fn()
@@ -20,6 +21,7 @@ vi.mock("@/db/backup", () => ({
     deleteBackup: (...a: unknown[]) => deleteBackup(...a),
     listBackups: () => listBackups(),
     restoreBackup: (...a: unknown[]) => restoreBackup(...a),
+    listPreMigrationBackups: () => listPreMigrationBackups(),
 }))
 vi.mock("@/lib/store/preferences", () => ({
     DEFAULT_BACKUP_KEEP: 7,
@@ -42,6 +44,7 @@ beforeEach(() => {
         backup("easytask-20260102-100000.db", 2048),
         backup("easytask-pre-restore-20260102-090000.db", 3 * 1024 * 1024, true),
     ])
+    listPreMigrationBackups.mockResolvedValue([])
     createBackup.mockResolvedValue(undefined)
     deleteBackup.mockResolvedValue(undefined)
     restoreBackup.mockResolvedValue(undefined)
@@ -58,6 +61,19 @@ describe("BackupSettings", () => {
         expect(screen.getByText("(prima del ripristino)")).toBeInTheDocument()
         await waitFor(() => expect(screen.getByRole("spinbutton", { name: "Backup da conservare" })).toHaveValue(5))
         expect(screen.getByRole("switch", { name: "Backup automatico" })).toBeChecked()
+    })
+
+    it("shows the pre-migration copies only when there are some", async () => {
+        const { unmount } = render(<BackupSettings />)
+        await screen.findByText("2 KB")
+        expect(screen.queryByText("Copie prima dell'aggiornamento del database")).not.toBeInTheDocument()
+        unmount()
+        listPreMigrationBackups.mockResolvedValue([
+            { name: "easytask-pre-migration-v6-to-v7.db", path: "/b/p", size: 5 * 1024, date: new Date(2026, 0, 2, 10, 0, 0) },
+        ])
+        render(<BackupSettings />)
+        expect(await screen.findByText("easytask-pre-migration-v6-to-v7.db")).toBeInTheDocument()
+        expect(screen.getByText("Copie prima dell'aggiornamento del database")).toBeInTheDocument()
     })
 
     it("backs up now and refreshes the list", async () => {

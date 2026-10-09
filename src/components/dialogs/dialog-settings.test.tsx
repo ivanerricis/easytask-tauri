@@ -6,6 +6,8 @@ import { toast } from "sonner"
 const setSidebarItemSize = vi.fn()
 const setColorIntensity = vi.fn()
 const setHideCompletedTasks = vi.fn()
+const setShowUnnamedLabels = vi.fn()
+const setRenameOnClick = vi.fn()
 const colorPrefs = { colorIntensity: 1 }
 const audioPrefs = {
     setAudioVolume: vi.fn(),
@@ -39,6 +41,9 @@ vi.mock("@/contexts/use-preferences", () => ({
         showTaskCount: true, setShowTaskCount: vi.fn(),
         showAudioFileCount: true, setShowAudioFileCount: vi.fn(),
         showGroupSeparators: false, setShowGroupSeparators: vi.fn(),
+        showUnnamedLabels: false, setShowUnnamedLabels: (value: boolean) => setShowUnnamedLabels(value),
+        taskBackground: true, setTaskBackground: vi.fn(),
+        renameOnClick: true, setRenameOnClick: (value: boolean) => setRenameOnClick(value),
         undoLimit: 50, setUndoLimit: vi.fn(),
         hideCompletedTasks: false, setHideCompletedTasks: (value: boolean) => setHideCompletedTasks(value),
         reopenNotes: true, setReopenNotes: vi.fn(),
@@ -84,9 +89,11 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
-        expect(screen.getAllByRole("switch")).toHaveLength(10)
+        expect(screen.getAllByRole("switch")).toHaveLength(13)
         expect(screen.getByRole("switch", { name: "Nascondi task completati" })).not.toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
+        expect(screen.getByRole("switch", { name: "Mostra il nome dei gruppi e delle sezioni senza nome" })).not.toBeChecked()
+        expect(screen.getByRole("switch", { name: "Rinomina cliccando sul nome" })).toBeChecked()
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()
 
         await user.click(screen.getByRole("tab", { name: "Audio" }))
@@ -110,6 +117,15 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
         await user.click(screen.getByRole("switch", { name: "Nascondi task completati" }))
         expect(setHideCompletedTasks).toHaveBeenCalledWith(true)
+    })
+
+    it("toggles the unnamed labels and rename on click preferences", async () => {
+        const user = await open()
+        await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
+        await user.click(screen.getByRole("switch", { name: "Mostra il nome dei gruppi e delle sezioni senza nome" }))
+        expect(setShowUnnamedLabels).toHaveBeenCalledWith(true)
+        await user.click(screen.getByRole("switch", { name: "Rinomina cliccando sul nome" }))
+        expect(setRenameOnClick).toHaveBeenCalledWith(false)
     })
 
     it("shows the audio settings and changes them", async () => {

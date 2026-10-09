@@ -23,7 +23,7 @@ export function uniqueCopyName(name: string, taken: ReadonlySet<string>): string
 }
 
 type NoteRow = { workspaceID: number, folderID: number | null, name: string, color: string | null, position: number }
-type SectionRow = { groupID: number, title: string, color: string | null, position: number, id: number }
+type SectionRow = { groupID: number, title: string | null, color: string | null, position: number, id: number }
 
 /**
  * Duplicates a note in the same workspace and folder, right after the original (the following siblings shift by one).
@@ -99,12 +99,13 @@ export async function duplicateDBSection(sectionId: number): Promise<number> {
         if (rows.length === 0)
             throw createError("DUPLICATE_SOURCE_MISSING", i18n.t("errors.duplicate.sectionMissing"))
         source = rows[0]
-        const siblings = await db.select<{ title: string }[]>(
+        const siblings = await db.select<{ title: string | null }[]>(
             'SELECT title FROM section WHERE groupID = ? AND deleted_at IS NULL', [source.groupID])
-        title = uniqueCopyName(source.title, new Set(siblings.map(row => row.title)))
+        // A section without a title is copied without one
+        title = source.title ? uniqueCopyName(source.title, new Set(siblings.flatMap(row => row.title ? [row.title] : []))) : ""
         const tasks = await db.select<Task[]>(
             'SELECT * FROM task WHERE sectionID = ? AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, id', [sectionId])
-        snapshot = createSectionSnapshotter(tasks)(source)
+        snapshot = createSectionSnapshotter(tasks)({ ...source, title: source.title ?? "" })
     } catch (error: unknown) {
         if (isAppError(error)) throw error
         throw createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.load", { message: getErrorMessage(error) }))

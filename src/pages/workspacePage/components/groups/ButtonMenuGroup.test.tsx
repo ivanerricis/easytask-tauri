@@ -26,15 +26,7 @@ vi.mock("@/components/dialogs/dialog-delete", () => ({
     DialogDeleteItem: ({ isOpen, optimistic }: { isOpen: boolean, optimistic: () => () => void }) =>
         isOpen ? <button onClick={() => optimistic()}>Dialog elimina</button> : null,
 }))
-vi.mock("@/components/dialogs/dialog-rename", () => ({
-    DialogRenameItem: ({ isOpen, optimistic }: { isOpen: boolean, optimistic: (name: string) => () => void }) =>
-        isOpen ? (
-            <>
-                <button onClick={() => optimistic("Nuovo")}>Dialog rinomina</button>
-                <button onClick={() => optimistic("")}>Svuota nome</button>
-            </>
-        ) : null,
-}))
+const onRename = vi.fn()
 
 beforeEach(() => {
     vi.clearAllMocks()
@@ -46,7 +38,7 @@ beforeEach(() => {
 
 const setup = (color?: string | null) => {
     render(
-        <ButtonMenuGroup group={makeGroup({ id: 3, color })}>
+        <ButtonMenuGroup group={makeGroup({ id: 3, color })} onRename={onRename}>
             <div data-testid="row">Gruppo</div>
         </ButtonMenuGroup>,
     )
@@ -72,15 +64,12 @@ describe("ButtonMenuGroup", () => {
         expect(await screen.findByText("Dialog automazioni 7/3")).toBeInTheDocument()
     })
 
-    it("renames through the cached note tree, clearing the name when it is empty", async () => {
+    it("starts the inline rename from the context menu", async () => {
         const user = userEvent.setup()
         const row = setup()
         fireEvent.contextMenu(row)
         await user.click(await screen.findByText("Rinomina"))
-        await user.click(await screen.findByText("Dialog rinomina"))
-        expect(patchGroup).toHaveBeenCalledWith(3, { name: "Nuovo" })
-        await user.click(await screen.findByText("Svuota nome"))
-        expect(patchGroup).toHaveBeenCalledWith(3, { name: null })
+        await waitFor(() => expect(onRename).toHaveBeenCalledTimes(1))
     })
 
     it("removes the group through the cached note tree", async () => {

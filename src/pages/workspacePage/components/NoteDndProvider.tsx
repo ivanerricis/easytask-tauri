@@ -1,3 +1,4 @@
+import { getSectionLabel } from "./section/section-label"
 import { useMemo, useRef, useState } from "react"
 import type { CSSProperties, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
@@ -90,7 +91,7 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
             const found = findGroup(noteDataTree, ref.id)
             return found ? getGroupLabel(found.group, found.index) : undefined
         }
-        if (ref.kind === "section") return findSection(noteDataTree, ref.id)?.title
+        if (ref.kind === "section") return (s => s && getSectionLabel(s))(findSection(noteDataTree, ref.id))
         if (ref.kind === "task") return findTask(noteDataTree, ref.id)?.text
         return undefined
     }, { keyboard: false })
@@ -178,7 +179,7 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
                     className="min-w-[250px] max-w-[320px] truncate rounded-xs border bg-accent p-2 text-sm shadow-lg"
                     style={tintOf(section.color, colorAlpha.header())}
                 >
-                    {section.title}
+                    {getSectionLabel(section)}
                 </div>
             ) : null
         }

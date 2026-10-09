@@ -98,7 +98,9 @@ function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="dialog-footer"
       className={cn(
-        "flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
+        // At the bottom of the dialog, 24px from its edge like the sides, also when the content is taller than the window and scrolls.
+        // -bottom-6: a sticky element is kept inside the padding of the dialog, so bottom-0 would leave it 24px higher
+        "sticky -bottom-6 -mx-6 -mb-6 bg-background px-6 pt-2 pb-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end",
         className
       )}
       {...props}

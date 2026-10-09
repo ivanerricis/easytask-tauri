@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { Moon, Sun } from "lucide-react"
+import { Monitor, Moon, Sun } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -36,9 +36,9 @@ export function ModeToggle() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
                 <DropdownMenuRadioGroup value={theme} onValueChange={value => setTheme(value as typeof theme)}>
-                    <DropdownMenuRadioItem value="light">{t("settings.appearance.theme.light")}</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="dark">{t("settings.appearance.theme.dark")}</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="system">{t("common.system")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="light"><Sun />{t("settings.appearance.theme.light")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="dark"><Moon />{t("settings.appearance.theme.dark")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="system"><Monitor />{t("common.system")}</DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
             </DropdownMenuContent>
         </DropdownMenu>

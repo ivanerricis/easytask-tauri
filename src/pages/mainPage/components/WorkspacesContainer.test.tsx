@@ -1,5 +1,6 @@
-import { render, screen } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
+import { SKELETON_DELAY_MS } from "@/hooks/use-delayed-flag"
 import { WorkspacesContainer } from "./WorkspacesContainer"
 import { makeWorkspace } from "@/test/ui-fixtures"
 
@@ -30,5 +31,19 @@ describe("WorkspacesContainer", () => {
         expect(names()).toEqual(["Apple", "Banana", "Cherry"])
         rerender(<WorkspacesContainer workspaces={list} sort={{ by: "edited", dir: "asc" }} />)
         expect(names()).toEqual(["Banana", "Cherry", "Apple"])
+    })
+
+    it("while loading announces it and draws skeleton cards only after a short delay, with no workspaces nor empty message", () => {
+        vi.useFakeTimers()
+        try {
+            const { container } = render(<WorkspacesContainer workspaces={[]} loading />)
+            expect(screen.getByRole("status")).toHaveTextContent("Caricamento dei workspace…")
+            expect(screen.queryByText("Nessun workspace trovato.")).not.toBeInTheDocument()
+            expect(container.querySelectorAll("[data-slot=skeleton]")).toHaveLength(0)
+            act(() => { vi.advanceTimersByTime(SKELETON_DELAY_MS) })
+            expect(container.querySelectorAll("[data-slot=skeleton]").length).toBeGreaterThan(0)
+        } finally {
+            vi.useRealTimers()
+        }
     })
 })

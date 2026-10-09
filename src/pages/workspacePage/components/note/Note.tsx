@@ -16,6 +16,9 @@ import type { DropZone } from "../sidebar/tree-dnd"
 import { focusRing } from "@/lib/a11y"
 import { TooltipTrigger } from "@/components/ui/tooltip"
 import { TreeRowTooltip } from "../sidebar/TreeRowTooltip"
+import { useTranslation } from "react-i18next"
+import { useInlineRename } from "@/hooks/use-inline-rename"
+import { InlineNameInput } from "@/components/inline-name-input"
 
 type ItemNoteProps = {
     note: Note
@@ -27,7 +30,10 @@ type ItemNoteProps = {
 }
 
 export const ItemNote = React.memo(({ note, className, dropZone = null, level = 1 }: ItemNoteProps) => {
+    const { t } = useTranslation()
     const { ref, attributes, listeners, isDragging } = useTreeRow("note", note.id)
+    // The sidebar tree is updated by the context: no reload
+    const { editing, error, start: startRename, inputProps } = useInlineRename({ itemType: "note", id: note.id, name: note.name })
     const [isHovered, setIsHovered] = useState(false)
     const size = useItemSize()
     const colorAlpha = useColorAlpha()
@@ -57,9 +63,8 @@ export const ItemNote = React.memo(({ note, className, dropZone = null, level = 
             creationTime={note.creation_time}
             editDate={note.edit_date}
             editTime={note.edit_time}
-            offset={size.noteTooltipOffset}
         >
-            <ButtonMenuNote note={note}>
+            <ButtonMenuNote note={note} onRename={startRename}>
                 <TooltipTrigger asChild>
                     <div
                         {...attributes}
@@ -83,9 +88,11 @@ export const ItemNote = React.memo(({ note, className, dropZone = null, level = 
                         {/* Icon + Text */}
                         <div className="flex min-w-0 items-center gap-1 px-1 overflow-hidden w-full">
                             <File className={`${size.icon} shrink-0 text-foreground`} />
-                            <span className={`${size.text} ${isActive ? "font-semibold" : ""} text-foreground min-w-0 truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
-                                {note.name}
-                            </span>
+                            {editing
+                                ? <InlineNameInput {...inputProps} error={error} aria-label={t("common.name")} className={size.text} />
+                                : <span className={`${size.text} ${isActive ? "font-semibold" : ""} text-foreground min-w-0 truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
+                                    {note.name}
+                                </span>}
                         </div>
                         <div className={`flex items-center leading-none shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
                             <ItemMenuButton name={note.name} />

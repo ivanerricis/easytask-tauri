@@ -21,7 +21,7 @@ const MainPage = () => {
     const { t } = useTranslation()
     const { workspaces, getWorkspaces, error } = useWorkspace()
     const [loaded, setLoaded] = useState(false)
-    const { workspaceView, setWorkspaceView, workspaceSort, setWorkspaceSort } = usePreferences()
+    const { workspaceView, setWorkspaceView, workspaceSort, setWorkspaceSort, reopenLastWorkspace } = usePreferences()
     const { importWorkspace, isBusy: isImporting } = useWorkspaceTransfer()
     const isList = workspaceView === "list"
     const isNameSort = workspaceSort.by === "name"
@@ -31,11 +31,11 @@ const MainPage = () => {
         getWorkspaces().catch(error => reportError(error)).finally(() => setLoaded(true))
     }, [getWorkspaces])
 
-    // Only the first load replaces the page: later operations (e.g. restoring a workspace from the trash) must not
-    // unmount it, or the open trash dialog would be closed
-    const isInitialLoading = !loaded || restorePending
-
-    if (isInitialLoading) {
+    // When the last workspace is going to be reopened the home page is not shown at all (it would only flash): a loading
+    // page until the check is done. Otherwise the page is shown at once, with the workspaces drawn as skeletons until
+    // they are loaded. Only the first load counts: later operations (e.g. restoring a workspace from the trash) must not
+    // unmount the page, or the open trash dialog would be closed
+    if (restorePending && reopenLastWorkspace) {
         return (
             <MainPageLayout>
                 <LoadingPage text={t("home.loading")}/>
@@ -43,7 +43,7 @@ const MainPage = () => {
         )
     }
 
-    if (error && workspaces.length === 0) {
+    if (loaded && error && workspaces.length === 0) {
         return (
             <MainPageLayout>
                 <ErrorPage error={error} onRetry={() => { getWorkspaces().catch(err => reportError(err)) }} />
@@ -117,7 +117,7 @@ const MainPage = () => {
                             <ButtonTrashWorkspaces />
                         </div>
                     </div>
-                    <WorkspacesContainer workspaces={workspaces} view={workspaceView} sort={workspaceSort} />
+                    <WorkspacesContainer workspaces={workspaces} view={workspaceView} sort={workspaceSort} loading={!loaded} />
                 </div>
             </div>
         </MainPageLayout>

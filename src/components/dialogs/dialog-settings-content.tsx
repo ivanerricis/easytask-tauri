@@ -26,16 +26,19 @@ export const DialogSettingsContent = ({ isOpen, onOpenChange, requestedCategory 
 
     return (
         <Dialog open={isOpen} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-3xl h-[min(720px,85vh)] grid-rows-[auto_1fr] overflow-hidden">
+            <DialogContent className="sm:max-w-3xl h-[min(720px,85vh)] gap-0 overflow-hidden p-0">
                 <DialogDescription className="sr-only">
                     {t("settings.description")}
                 </DialogDescription>
-                <DialogHeader>
-                    <DialogTitle>{t("settings.title")}</DialogTitle>
-                </DialogHeader>
-                <Tabs orientation="vertical" value={active.id} onValueChange={setActiveId} className="flex-col sm:flex-row gap-4 min-h-0">
-                    <SettingsNav categories={SETTINGS_CATEGORIES} />
-                    <TabsContent value={active.id} className="min-w-0 overflow-y-auto overflow-x-hidden pr-1">
+                {/* Two columns: title + categories on the left, whose right border is the separator and runs the whole height of the dialog */}
+                <Tabs orientation="vertical" value={active.id} onValueChange={setActiveId} className="grid h-full min-h-0 gap-0 max-sm:grid-rows-[auto_minmax(0,1fr)] sm:grid-cols-[14rem_minmax(0,1fr)]">
+                    <div className="flex flex-col gap-4 p-6 max-sm:border-b max-sm:pb-3 sm:overflow-y-auto sm:border-r">
+                        <DialogHeader>
+                            <DialogTitle>{t("settings.title")}</DialogTitle>
+                        </DialogHeader>
+                        <SettingsNav categories={SETTINGS_CATEGORIES} />
+                    </div>
+                    <TabsContent value={active.id} className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-6">
                         <Panel />
                     </TabsContent>
                 </Tabs>

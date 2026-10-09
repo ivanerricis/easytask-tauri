@@ -10,7 +10,8 @@ import { reportError } from "@/lib/report-error"
 import { withRollback } from "@/contexts/with-rollback"
 import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { useAutomations } from "@/hooks/use-automations"
-import { cn, getErrorMessage } from "@/lib/utils"
+import { useColorAlpha } from "@/contexts/use-color-alpha"
+import { cn, getErrorMessage, hexToRgba } from "@/lib/utils"
 import React, { useCallback, useState } from "react"
 import { AutoTextarea } from "@/components/auto-textarea"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
@@ -36,15 +37,18 @@ type TaskProps = {
     showSubtaskCount?: boolean
     /** Hides the fully completed subtasks (see isHiddenTask). Only primitive props: the subtasks are rendered here, so the memo holds. */
     hideCompleted?: boolean
+    /** Whether a click on the text starts the rename (preference "Rename on click"); otherwise only the menu does. */
+    renameOnClick?: boolean
 }
 
-export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false }: TaskProps) => {
+export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, renameOnClick = true }: TaskProps) => {
     const { t } = useTranslation()
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
     const { updateTaskCompletion, renameItem } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
+    const colorAlpha = useColorAlpha()
     const { dispatch } = useAutomations()
     const { editing: isTextAreaOpen, error, start: startEdit, inputProps } = useInlineEdit<HTMLTextAreaElement>({
         value: task.text,
@@ -126,6 +130,8 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                         )} />}
                     <div className="flex flex-col w-full">
                         {/* Color Container */}
+                        {/* The color tints the whole row (light) besides the side bar (full color) */}
+                        {task.color && colorAlpha.taskBackground && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundColor: hexToRgba(colorAlpha.task(), task.color) }}></div>}
                         {task.color && <div className="w-1 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
 
                         {/* Task items container */}
@@ -140,8 +146,9 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                                     className={isSubtask ? "mt-[3px] size-3.5" : "mt-0.5"}
                                 />
                                 {!isTextAreaOpen && <AutoTextarea
-                                    onClick={startEdit}
+                                    onClick={renameOnClick ? startEdit : undefined}
                                     onKeyDown={e => {
+                                        // Enter always renames (the way for the keyboard when the click does not)
                                         if (e.key === "Enter" && !e.shiftKey) {
                                             e.preventDefault()
                                             startEdit()
@@ -153,6 +160,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                                     readOnly
                                     className={cn(
                                         "w-full min-w-0 max-h-auto text-wrap break-words [overflow-wrap:anywhere] whitespace-normal resize-none text-sm",
+                                        !renameOnClick && "cursor-default",
                                         task.completed && "line-through text-muted-foreground"
                                     )}
                                 />}
@@ -251,7 +259,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
             {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
             {(task.subtasks.length > 0 || isAddingSubtask) && <div className="flex flex-col self-stretch ml-7 mb-1">
                 {visibleTasks(task.subtasks, hideCompleted).map(subtask =>
-                    <Task key={subtask.id} task={subtask} depth={depth + 1} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} />)}
+                    <Task key={subtask.id} task={subtask} depth={depth + 1} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} />)}
                 {isAddingSubtask &&
                     <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}
             </div>}

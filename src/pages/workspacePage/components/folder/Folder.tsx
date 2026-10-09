@@ -16,6 +16,9 @@ import { TooltipTrigger } from "@/components/ui/tooltip"
 import { TreeRowTooltip } from "../sidebar/TreeRowTooltip"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { hexToRgba } from "@/lib/utils"
+import { useTranslation } from "react-i18next"
+import { useInlineRename } from "@/hooks/use-inline-rename"
+import { InlineNameInput } from "@/components/inline-name-input"
 
 /** Whether the note is anywhere inside the folder (subfolders included). */
 const holdsNote = (folder: Folder, noteId: number): boolean =>
@@ -34,8 +37,11 @@ type ItemFolderProps = {
 }
 
 export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, dropZone = null, level = 1 }: ItemFolderProps) => {
+    const { t } = useTranslation()
     const [isHovered, setIsHovered] = useState(false)
     const { ref, attributes, listeners, isDragging } = useTreeRow("folder", folder.id)
+    // The sidebar tree is updated by the context: no reload
+    const { editing, error, start: startRename, inputProps } = useInlineRename({ itemType: "folder", id: folder.id, name: folder.name })
 
     const size = useItemSize()
     const colorAlpha = useColorAlpha()
@@ -65,9 +71,8 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                 creationTime={folder.creation_time}
                 editDate={folder.edit_date}
                 editTime={folder.edit_time}
-                offset={size.folderTooltipOffset}
             >
-                <ButtonMenuFolder folder={folder}>
+                <ButtonMenuFolder folder={folder} onRename={startRename}>
                     <TooltipTrigger asChild>
                         <div
                             {...attributes}
@@ -97,9 +102,11 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                                 ) : (
                                     <FolderIcon className={`${size.icon} shrink-0`} />
                                 )}
-                                <span className={`w-full ${size.text} min-w-0 truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
-                                    {folder.name}
-                                </span>
+                                {editing
+                                    ? <InlineNameInput {...inputProps} error={error} aria-label={t("common.name")} className={size.text} />
+                                    : <span className={`w-full ${size.text} min-w-0 truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
+                                        {folder.name}
+                                    </span>}
                             </div>
                             <div className={`flex items-center leading-none shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
                                 <ItemMenuButton name={folder.name} />

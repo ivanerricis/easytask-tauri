@@ -11,8 +11,10 @@ import {
     createBackup,
     deleteBackup,
     listBackups,
+    listPreMigrationBackups,
     restoreBackup,
     type BackupInfo,
+    type PreMigrationBackupInfo,
 } from "@/db/backup"
 import { reportError } from "@/lib/report-error"
 import {
@@ -39,6 +41,7 @@ function formatSize(bytes: number): string {
 export const BackupSettings = () => {
     const { t, i18n } = useTranslation()
     const [backups, setBackups] = useState<BackupInfo[]>([])
+    const [preMigration, setPreMigration] = useState<PreMigrationBackupInfo[]>([])
     const [keep, setKeep] = useState(String(DEFAULT_BACKUP_KEEP))
     const [auto, setAuto] = useState(true)
     const [busy, setBusy] = useState(false)
@@ -59,6 +62,8 @@ export const BackupSettings = () => {
         } catch (err) {
             fail(err, t("settings.data.backup.errors.list"))
         }
+        // Informative only: a failure here is logged but not shown
+        setPreMigration(await listPreMigrationBackups().catch((err: unknown) => { reportError(err); return [] }))
     }, [t, fail])
 
     useEffect(() => {
@@ -205,6 +210,22 @@ export const BackupSettings = () => {
                     </ul>
                 )}
             </div>
+            {preMigration.length > 0 && (
+                <div className="flex flex-col gap-2">
+                    <div className="text-sm">{t("settings.data.backup.list.preMigration.title")}</div>
+                    <p className="text-xs text-muted-foreground">{t("settings.data.backup.list.preMigration.description")}</p>
+                    <ul className="flex flex-col gap-1 max-h-32 overflow-y-auto" aria-label={t("settings.data.backup.list.preMigration.title")}>
+                        {preMigration.map(copy => (
+                            <li key={copy.name} className="flex items-center justify-between gap-2 text-sm">
+                                <span className="min-w-0 truncate">{copy.name}</span>
+                                <span className="shrink-0 text-xs text-muted-foreground">
+                                    {copy.date?.toLocaleString(i18n.language)} {formatSize(copy.size)}
+                                </span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
             <ConfirmDialog
                 open={toDelete !== null}
                 onOpenChange={open => { if (!open) setToDelete(null) }}

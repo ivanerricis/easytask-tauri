@@ -19,11 +19,12 @@ const open = () => {
 }
 
 describe("useInlineEdit", () => {
-    it("focuses the field with the cursor at the end", () => {
+    it("focuses the field with the whole text selected", () => {
         render(<Field onCommit={vi.fn()} />)
         const input = open()
         expect(input).toHaveFocus()
-        expect(input.selectionStart).toBe(3)
+        expect(input.selectionStart).toBe(0)
+        expect(input.selectionEnd).toBe(3)
     })
 
     it("Enter commits the trimmed text once, even with the blur that follows", async () => {

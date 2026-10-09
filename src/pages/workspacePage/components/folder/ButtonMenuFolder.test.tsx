@@ -24,9 +24,7 @@ vi.mock("../MoveToSubmenu", () => ({ MoveToSubmenu: () => null }))
 vi.mock("../AddNoteDialog", () => ({ AddNoteDialog: () => null }))
 vi.mock("../AddFolderDialog", () => ({ AddFolderDialog: () => null }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => null }))
-vi.mock("@/components/dialogs/dialog-rename", () => ({
-    DialogRenameItem: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div>Dialog rinomina</div> : null,
-}))
+const onRename = vi.fn()
 
 const folder = { id: 3, name: "Cartella", folderID: null, color: "#00ff00" } as Folder
 
@@ -40,7 +38,7 @@ const ENTRIES = ["Nuova nota", "Nuova cartella", "Rinomina", "Colora contenuto",
 const setup = () => {
     const onRowClick = vi.fn()
     render(
-        <ButtonMenuFolder folder={folder}>
+        <ButtonMenuFolder folder={folder} onRename={onRename}>
             <div data-testid="row" onClick={onRowClick}>
                 Cartella
                 <ItemMenuButton />
@@ -99,7 +97,7 @@ describe("ButtonMenuFolder", () => {
         const { row } = setup()
         fireEvent.contextMenu(row)
         await user.click(await screen.findByText("Rinomina"))
-        expect(await screen.findByText("Dialog rinomina")).toBeInTheDocument()
+        await waitFor(() => expect(onRename).toHaveBeenCalledTimes(1))
         expect(screen.queryByText("Elimina")).not.toBeInTheDocument()
     })
 
