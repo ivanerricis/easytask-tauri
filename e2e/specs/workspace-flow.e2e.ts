@@ -66,14 +66,14 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
     it("creates a group, two sections and a task", async () => {
         await byText(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
-        await byLabel(await tr("common.add")).click()
+        await browser.keys("Enter")
         // Once saved, the group name is a button (the input only exists while the name is being edited)
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
 
         for (const title of [SECTION_A, SECTION_B]) {
             await byText(await tr("sections.new")).click()
             await typeInto(byLabel(await tr("sections.titleLabel")), title)
-            await byLabel(await tr("common.add")).click()
+            await browser.keys("Enter")
             await sectionCard(title).waitForDisplayed()
         }
 

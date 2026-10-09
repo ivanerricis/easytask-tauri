@@ -132,11 +132,11 @@ describe("Settings and data survive an app restart", () => {
 
         await byText(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
-        await byLabel(await tr("common.add")).click()
+        await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
         await byText(await tr("sections.new")).click()
         await typeInto(byLabel(await tr("sections.titleLabel")), SECTION)
-        await byLabel(await tr("common.add")).click()
+        await browser.keys("Enter")
         await sectionCard(SECTION).waitForDisplayed()
         await (await addTaskButton(sectionCard(SECTION))).click()
         await typeInto(sectionCard(SECTION).$("input"), TASK)

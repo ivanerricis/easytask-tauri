@@ -268,14 +268,14 @@ const lastByText = async (text: string) => {
 const addGroup = async (name: string) => {
     await (await lastByText(await tr("menu.newGroup"))).click()
     await typeInto(byLabel(await tr("groups.nameLabel")), name)
-    await byLabel(await tr("common.add")).click()
+    await browser.keys("Enter")
     await byText(name).waitForDisplayed({ timeoutMsg: `group ${name} not created` })
 }
 
 const addSection = async (title: string) => {
     await (await lastByText(await tr("sections.new"))).click()
     await typeInto(byLabel(await tr("sections.titleLabel")), title)
-    await byLabel(await tr("common.add")).click()
+    await browser.keys("Enter")
     await sectionCard(title).waitForDisplayed({ timeoutMsg: `section ${title} not created` })
 }
 

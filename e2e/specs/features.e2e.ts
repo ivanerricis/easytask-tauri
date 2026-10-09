@@ -195,13 +195,13 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
 
         await byText(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
-        await byLabel(await tr("common.add")).click()
+        await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
 
         for (const title of SECTIONS) {
             await byText(await tr("sections.new")).click()
             await typeInto(byLabel(await tr("sections.titleLabel")), title)
-            await byLabel(await tr("common.add")).click()
+            await browser.keys("Enter")
             await sectionCard(title).waitForDisplayed()
         }
         for (const text of TASKS) await addTask(SECTIONS[0], text)
@@ -345,7 +345,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
             await byText(await tr(key), nav).click()
         }
 
-        /** The reset button must sit in the same row as the section title, on its right. */
+        /** The reset button must sit in the same row as the section title, on its right (the padding of the row keeps it clear of the X of the dialog). */
         const expectResetInTitleRow = async (titleKey: string) => {
             const title = await tr(titleKey)
             const resetText = await tr("settings.resetAll")
@@ -357,7 +357,8 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
                 const a = h3.getBoundingClientRect()
                 const b = button.getBoundingClientRect()
                 const r = row.getBoundingClientRect()
-                return { titleMid: (a.top + a.bottom) / 2, buttonMid: (b.top + b.bottom) / 2, titleRight: a.right, buttonLeft: b.left, buttonRight: b.right, rowRight: r.right }
+                const rowRight = r.right - parseFloat(getComputedStyle(row).paddingRight)
+                return { titleMid: (a.top + a.bottom) / 2, buttonMid: (b.top + b.bottom) / 2, titleRight: a.right, buttonLeft: b.left, buttonRight: b.right, rowRight }
             }, title, resetText)
             expect(rects).not.toBeNull()
             expect(Math.abs((rects?.titleMid ?? 0) - (rects?.buttonMid ?? 99999))).toBeLessThan(4)

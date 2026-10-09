@@ -94,7 +94,7 @@ describe("Audio files and the floating player", () => {
         await byLabel(await tr("notes.closeCurrent")).waitForDisplayed()
         await byText(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
-        await byLabel(await tr("common.add")).click()
+        await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
 
         // The files are attached through the database (the app would open a native file picker)

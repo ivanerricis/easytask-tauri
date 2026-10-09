@@ -169,13 +169,13 @@ describe("Automations", () => {
 
         await byText(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
-        await byLabel(await tr("common.add")).click()
+        await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
 
         for (const title of [TODO, DONE]) {
             await byText(await tr("sections.new")).click()
             await typeInto(byLabel(await tr("sections.titleLabel")), title)
-            await byLabel(await tr("common.add")).click()
+            await browser.keys("Enter")
             await sectionCard(title).waitForDisplayed()
         }
         await addTask(TODO, TASK_1)
@@ -434,11 +434,11 @@ describe("Automations", () => {
             await byLabel(await tr("notes.closeCurrent")).waitForDisplayed()
             await byText(await tr("menu.newGroup")).click()
             await typeInto(byLabel(await tr("groups.nameLabel")), "Auto Layout Group")
-            await byLabel(await tr("common.add")).click()
+            await browser.keys("Enter")
             for (const title of [LONG_A, LONG_B]) {
                 await byText(await tr("sections.new")).click()
                 await typeInto(byLabel(await tr("sections.titleLabel")), title)
-                await byLabel(await tr("common.add")).click()
+                await browser.keys("Enter")
                 await sectionCard(title).waitForDisplayed()
             }
         })
