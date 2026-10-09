@@ -13,7 +13,7 @@ export const SettingsNav = ({ categories }: SettingsNavProps) => {
         <TabsList
             variant="line"
             aria-label={t("settings.nav")}
-            className="w-full sm:w-48 shrink-0 max-sm:flex-row max-sm:overflow-x-auto sm:h-fit sm:justify-start sm:self-start gap-1 p-0 pb-2 sm:pb-0 sm:pr-3 border-b sm:border-b-0 sm:border-r"
+            className="w-full sm:w-48 shrink-0 max-sm:flex-row max-sm:flex-wrap sm:h-fit sm:justify-start sm:self-start gap-1 p-0 pb-2 sm:pb-0 sm:pr-3 border-b sm:border-b-0 sm:border-r"
         >
             {categories.map(({ id, labelKey, icon: Icon }) => (
                 <TabsTrigger

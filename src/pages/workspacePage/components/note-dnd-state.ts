@@ -21,7 +21,12 @@ import {
  * (null when the drop would be invalid or a no-op) and the drop zone inside it.
  * @category Note DnD
  */
-export type NoteHover = { overKey: string | null, zone: DropZone | null }
+export type NoteHover = {
+    overKey: string | null
+    zone: DropZone | null
+    /** While dragging a task: the section that would receive it (highlighted as a whole), null otherwise. */
+    targetSectionId?: number | null
+}
 export type NoteDndState = { active: NoteDragRef | null, hover: NoteHover }
 
 export const NO_HOVER: NoteHover = { overKey: null, zone: null }

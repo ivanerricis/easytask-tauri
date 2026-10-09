@@ -1,5 +1,9 @@
 import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
+import {
+    Archive, ArrowLeft, ArrowRight, CircleX, EyeOff, FileDown, FilePlus, FileText, FolderPlus, House, Info, Keyboard, LayoutTemplate,
+    LogOut, PanelLeft, PanelRight, Plus, Redo2, Rows3, ScrollText, Search, Settings, SunMoon, Trash2, Undo2, X, type LucideIcon,
+} from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import {
     Menubar,
@@ -32,11 +36,12 @@ const afterClose = (action: () => void) => { window.setTimeout(action, 0) }
 const isDialogOpen = () => document.querySelector("[role='dialog'], [role='alertdialog']") !== null
 
 /** An entry that runs a shortcut: it shows the effective binding and is disabled while no handler is active. */
-const ShortcutItem = ({ id, label }: { id: string, label: string }) => {
+const ShortcutItem = ({ id, label, icon: Icon }: { id: string, label: string, icon: LucideIcon }) => {
     const { trigger, isActive } = useShortcutsContext()
     const keys = useShortcutKeys(id)
     return (
         <MenubarItem disabled={!isActive(id)} onSelect={() => afterClose(() => { trigger(id) })}>
+            <Icon />
             {label}
             {keys.length > 0 && <MenubarShortcut>{keys.join("+")}</MenubarShortcut>}
         </MenubarItem>
@@ -44,13 +49,13 @@ const ShortcutItem = ({ id, label }: { id: string, label: string }) => {
 }
 
 /** An entry that runs an app command: it is disabled while no component is listening to it. */
-const CommandItem = ({ command, label }: { command: AppCommand, label: string }) => {
+const CommandItem = ({ command, label, icon: Icon }: { command: AppCommand, label: string, icon: LucideIcon }) => {
     const active = useIsAppCommandActive(command)
-    return <MenubarItem disabled={!active} onSelect={() => afterClose(() => requestAppCommand(command))}>{label}</MenubarItem>
+    return <MenubarItem disabled={!active} onSelect={() => afterClose(() => requestAppCommand(command))}><Icon />{label}</MenubarItem>
 }
 
-const ActionItem = ({ action, label }: { action: () => void, label: string }) => (
-    <MenubarItem onSelect={() => afterClose(action)}>{label}</MenubarItem>
+const ActionItem = ({ action, label, icon: Icon }: { action: () => void, label: string, icon: LucideIcon }) => (
+    <MenubarItem onSelect={() => afterClose(action)}><Icon />{label}</MenubarItem>
 )
 
 /**
@@ -114,31 +119,31 @@ export const AppMenu = ({ page }: AppMenuProps) => {
                 <MenubarContent>
                     {page === "workspace" ? (
                         <>
-                            <ShortcutItem id="new-note" label={t("appMenu.newNote")} />
-                            <ShortcutItem id="new-folder" label={t("appMenu.newFolder")} />
-                            <ShortcutItem id="new-group" label={t("appMenu.newGroup")} />
-                            <CommandItem command="note-from-template" label={t("appMenu.noteFromTemplate")} />
+                            <ShortcutItem id="new-note" icon={FilePlus} label={t("appMenu.newNote")} />
+                            <ShortcutItem id="new-folder" icon={FolderPlus} label={t("appMenu.newFolder")} />
+                            <ShortcutItem id="new-group" icon={Rows3} label={t("appMenu.newGroup")} />
+                            <CommandItem command="note-from-template" icon={FileText} label={t("appMenu.noteFromTemplate")} />
                             <MenubarSeparator />
-                            <CommandItem command="open-templates" label={t("appMenu.templates")} />
-                            <CommandItem command="open-archive" label={t("appMenu.archive")} />
-                            <CommandItem command="open-trash" label={t("appMenu.trash")} />
-                            <CommandItem command="export-workspace" label={t("appMenu.exportWorkspace")} />
+                            <CommandItem command="open-templates" icon={LayoutTemplate} label={t("appMenu.templates")} />
+                            <CommandItem command="open-archive" icon={Archive} label={t("appMenu.archive")} />
+                            <CommandItem command="open-trash" icon={Trash2} label={t("appMenu.trash")} />
+                            <CommandItem command="export-workspace" icon={FileDown} label={t("appMenu.exportWorkspace")} />
                             <MenubarSeparator />
-                            <ShortcutItem id="close-note" label={t("appMenu.closeNote")} />
-                            <ShortcutItem id="close-all-notes" label={t("appMenu.closeAllNotes")} />
+                            <ShortcutItem id="close-note" icon={X} label={t("appMenu.closeNote")} />
+                            <ShortcutItem id="close-all-notes" icon={CircleX} label={t("appMenu.closeAllNotes")} />
                             <MenubarSeparator />
-                            <ShortcutItem id="go-home" label={t("appMenu.goHome")} />
+                            <ShortcutItem id="go-home" icon={House} label={t("appMenu.goHome")} />
                         </>
                     ) : (
                         <>
-                            <ShortcutItem id="new-workspace" label={t("appMenu.newWorkspace")} />
-                            <CommandItem command="open-workspace-trash" label={t("appMenu.trash")} />
+                            <ShortcutItem id="new-workspace" icon={Plus} label={t("appMenu.newWorkspace")} />
+                            <CommandItem command="open-workspace-trash" icon={Trash2} label={t("appMenu.trash")} />
                         </>
                     )}
                     <MenubarSeparator />
-                    <ActionItem action={openSettings} label={t("appMenu.settings")} />
+                    <ActionItem action={openSettings} icon={Settings} label={t("appMenu.settings")} />
                     <MenubarSeparator />
-                    <ActionItem action={exit} label={t("appMenu.exit")} />
+                    <ActionItem action={exit} icon={LogOut} label={t("appMenu.exit")} />
                 </MenubarContent>
             </MenubarMenu>
 
@@ -146,10 +151,10 @@ export const AppMenu = ({ page }: AppMenuProps) => {
                 <MenubarMenu>
                     <MenubarTrigger>{t("appMenu.edit")}</MenubarTrigger>
                     <MenubarContent>
-                        <ShortcutItem id="undo" label={t("appMenu.undo")} />
-                        <ShortcutItem id="redo" label={t("appMenu.redo")} />
+                        <ShortcutItem id="undo" icon={Undo2} label={t("appMenu.undo")} />
+                        <ShortcutItem id="redo" icon={Redo2} label={t("appMenu.redo")} />
                         <MenubarSeparator />
-                        <ShortcutItem id="search-notes" label={t("appMenu.searchNotes")} />
+                        <ShortcutItem id="search-notes" icon={Search} label={t("appMenu.searchNotes")} />
                     </MenubarContent>
                 </MenubarMenu>
             )}
@@ -159,17 +164,17 @@ export const AppMenu = ({ page }: AppMenuProps) => {
                 <MenubarContent>
                     {page === "workspace" && (
                         <>
-                            <ShortcutItem id="toggle-sidebar" label={t("appMenu.leftSidebar")} />
-                            <ShortcutItem id="toggle-right-sidebar" label={t("appMenu.rightSidebar")} />
-                            <ShortcutItem id="toggle-hide-completed" label={t("appMenu.hideCompleted")} />
+                            <ShortcutItem id="toggle-sidebar" icon={PanelLeft} label={t("appMenu.leftSidebar")} />
+                            <ShortcutItem id="toggle-right-sidebar" icon={PanelRight} label={t("appMenu.rightSidebar")} />
+                            <ShortcutItem id="toggle-hide-completed" icon={EyeOff} label={t("appMenu.hideCompleted")} />
                             <MenubarSeparator />
-                            <ShortcutItem id="next-note" label={t("appMenu.nextNote")} />
-                            <ShortcutItem id="previous-note" label={t("appMenu.previousNote")} />
+                            <ShortcutItem id="next-note" icon={ArrowRight} label={t("appMenu.nextNote")} />
+                            <ShortcutItem id="previous-note" icon={ArrowLeft} label={t("appMenu.previousNote")} />
                             <MenubarSeparator />
                         </>
                     )}
                     <MenubarSub>
-                        <MenubarSubTrigger>{t("appMenu.theme")}</MenubarSubTrigger>
+                        <MenubarSubTrigger><SunMoon />{t("appMenu.theme")}</MenubarSubTrigger>
                         <MenubarSubContent>
                             <MenubarRadioGroup value={theme} onValueChange={value => setTheme(value as typeof theme)}>
                                 <MenubarRadioItem value="light">{t("settings.appearance.theme.light")}</MenubarRadioItem>
@@ -184,10 +189,10 @@ export const AppMenu = ({ page }: AppMenuProps) => {
             <MenubarMenu>
                 <MenubarTrigger>{t("appMenu.help")}</MenubarTrigger>
                 <MenubarContent>
-                    <ShortcutItem id="show-shortcuts" label={t("appMenu.shortcuts")} />
-                    <ActionItem action={releaseNotes} label={t("appMenu.releaseNotes")} />
+                    <ShortcutItem id="show-shortcuts" icon={Keyboard} label={t("appMenu.shortcuts")} />
+                    <ActionItem action={releaseNotes} icon={ScrollText} label={t("appMenu.releaseNotes")} />
                     <MenubarSeparator />
-                    <ActionItem action={() => requestOpenSettings("about")} label={t("appMenu.about")} />
+                    <ActionItem action={() => requestOpenSettings("about")} icon={Info} label={t("appMenu.about")} />
                 </MenubarContent>
             </MenubarMenu>
         </Menubar>

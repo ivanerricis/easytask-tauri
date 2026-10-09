@@ -1,9 +1,9 @@
 import { SectionHeader } from "./SectionHeader"
 import { SectionBody } from "./SectionBody"
-import { memo, useCallback } from "react"
+import { memo, useCallback, useContext } from "react"
 import type { Section as SectionType } from "@/types/types"
 import { cn } from "@/lib/utils"
-import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
+import { NoteDndContext, useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { useSectionOpen } from "@/contexts/use-tabs"
 import { DropLine } from "../sidebar/DropLine"
 
@@ -24,6 +24,9 @@ export const Section = memo(({ section }: SectionProps) => {
     }, [setDropRef, setDragRef])
 
     const draggingSection = active?.kind === "section"
+    // A dragged task: the whole card is outlined when it is the destination, wherever the pointer is inside it
+    const { hover } = useContext(NoteDndContext)
+    const taskDestination = active?.kind === "task" && hover.targetSectionId === section.id
 
     return (
         <div
@@ -33,7 +36,7 @@ export const Section = memo(({ section }: SectionProps) => {
                 // As wide as its group (the group caps the column width)
                 "relative w-full min-w-[250px] border bg-accent rounded-xs flex flex-col p-1",
                 isDragging && "opacity-40",
-                !draggingSection && zone && "ring-2 ring-primary",
+                !draggingSection && (zone || taskDestination) && "border-primary ring-2 ring-primary",
             )}
         >
             {draggingSection && <DropLine zone={zone} className={zone === "before" ? "-top-[3px]" : "-bottom-[3px]"} />}

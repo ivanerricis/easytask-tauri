@@ -142,8 +142,9 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         }
         pendingRef.current = pending
 
-        const next: NoteHover = pending ? { overKey: noteKey(overRef.kind, overRef.id), zone } : NO_HOVER
-        setHover(prev => prev.overKey === next.overKey && prev.zone === next.zone ? prev : next)
+        const targetSectionId = pending?.kind === "task" ? pending.target.sectionId : null
+        const next: NoteHover = pending ? { overKey: noteKey(overRef.kind, overRef.id), zone, targetSectionId } : NO_HOVER
+        setHover(prev => prev.overKey === next.overKey && prev.zone === next.zone && prev.targetSectionId === next.targetSectionId ? prev : next)
     }
 
     const handleDragEnd = async () => {

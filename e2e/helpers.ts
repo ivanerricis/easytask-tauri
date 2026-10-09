@@ -35,11 +35,11 @@ export const byText = (text: string, scope?: ChainablePromiseElement | Webdriver
     (scope ?? $("body")).$(`.//*[self::button or @role='button' or @role='radio' or @role='menuitem' or @role='menuitemradio' or @role='tab'][normalize-space()=${xpathString(text)}]`)
 
 /**
- * The "add task" button of a section card (it shows the visible text, it has no aria-label). The input that replaces
+ * The "add task" button of a section card (it is a "+" icon with an aria-label). The input that replaces
  * it carries the same label, so only buttons are matched.
  */
 export const addTaskButton = async (scope: ChainablePromiseElement | WebdriverIO.Element) =>
-    byText(await tr("tasks.add"), scope)
+    scope.$(`button[aria-label="${await tr("tasks.add")}"]`)
 
 /**
  * The "..." menu button inside `scope`: labelled "Menu: <name>" when the item has a name, "Apri menu" otherwise.

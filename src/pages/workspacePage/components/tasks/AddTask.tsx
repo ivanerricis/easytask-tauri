@@ -177,10 +177,11 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                 type="button"
                 variant="ghost"
                 onClick={handleOpen}
+                aria-label={t("tasks.add")}
+                title={t("tasks.add")}
                 className="w-full h-9 rounded-none font-normal text-muted-foreground hover:text-foreground"
             >
                 <Plus />
-                {t("tasks.add")}
             </Button>
         ) : (
             <form

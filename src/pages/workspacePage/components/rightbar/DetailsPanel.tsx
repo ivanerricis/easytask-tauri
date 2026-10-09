@@ -49,6 +49,40 @@ const Dates = ({ creationDate, creationTime, editDate, editTime }: DatesProps) =
     )
 }
 
+type ColorFieldProps = {
+    item: { id: number, color?: string | null }
+    itemType: DBItemType
+    addColorItem: (itemType: DBItemType, itemId: number, color?: string) => Promise<void>
+    getItemId?: number
+}
+
+/** The color of an item: a button showing it (or "no color") that opens the palette. */
+const ColorField = ({ item, itemType, addColorItem, getItemId }: ColorFieldProps) => {
+    const { t } = useTranslation()
+    const noReload = async () => { }
+    return (
+        <div className="flex items-center justify-between gap-2">
+            <h3 className={sectionTitle}>{t("details.color")}</h3>
+            <Popover>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" aria-label={t("menu.changeColor")}>
+                        {item.color ? <ColorSwatch color={item.color} /> : <span className="text-xs">{t("details.noColor")}</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-1">
+                    <DialogAddColor
+                        item={item}
+                        itemType={itemType}
+                        addColorItem={addColorItem}
+                        getItemId={getItemId}
+                        getItemData={noReload}
+                    />
+                </PopoverContent>
+            </Popover>
+        </div>
+    )
+}
+
 const containsTask = (tasks: Task[], taskId: number): boolean =>
     tasks.some(task => task.id === taskId || containsTask(task.subtasks, taskId))
 
@@ -152,7 +186,6 @@ const TaskDetails = ({ task, tree, noteName }: { task: Task, tree: NoteDataTree,
             throw error
         }
     }
-    const noReload = async () => { }
 
     return (
         <div className="flex flex-col gap-4">
@@ -163,25 +196,12 @@ const TaskDetails = ({ task, tree, noteName }: { task: Task, tree: NoteDataTree,
                 <Label htmlFor="details-priority" className={sectionTitle}>{t("details.priority")}</Label>
                 <Switch id="details-priority" checked={!!task.priority} onCheckedChange={() => { void togglePriority() }} />
             </div>
-            <div className="flex items-center justify-between gap-2">
-                <h3 className={sectionTitle}>{t("details.color")}</h3>
-                <Popover>
-                    <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" aria-label={t("menu.changeColor")}>
-                            {task.color ? <ColorSwatch color={task.color} /> : <span className="text-xs">{t("details.noColor")}</span>}
-                        </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-1">
-                        <DialogAddColor
-                            item={task}
-                            itemType="task"
-                            addColorItem={addColorItem}
-                            getItemId={activeId ?? undefined}
-                            getItemData={noReload}
-                        />
-                    </PopoverContent>
-                </Popover>
-            </div>
+            <ColorField
+                item={task}
+                itemType="task"
+                addColorItem={addColorItem}
+                getItemId={activeId ?? undefined}
+            />
             <TaskDescription key={task.id} task={task} />
             <Field label={t("details.subtasks")}>
                 {subtasks.total === 0
@@ -201,6 +221,7 @@ function NoteOrTaskDetails() {
     const { t } = useTranslation()
     const { currentNote } = useTabs()
     const { noteDataTree } = useActiveNote()
+    const { updateItemColor } = useWorkspaceActions()
     const [selectedId] = useSelectedTask(currentNote?.id ?? null)
 
     if (!currentNote) return <p className="p-3 text-sm text-muted-foreground">{t("details.emptyNote")}</p>
@@ -232,7 +253,8 @@ function NoteOrTaskDetails() {
                     ? <span className="text-muted-foreground">{t("details.noTasks")}</span>
                     : <ProgressBar done={counts.done} total={counts.total} label={t("details.tasksProgress", { done: counts.done, total: counts.total })} />}
             </Field>
-            {currentNote.color && <Field label={t("details.color")}><ColorSwatch color={currentNote.color} /></Field>}
+            {/* The cached sidebar tree is patched by updateItemColor, and the open note reads its color from it */}
+            <ColorField item={currentNote} itemType="note" addColorItem={updateItemColor} getItemId={currentNote.id} />
             <Dates creationDate={currentNote.creation_date} creationTime={currentNote.creation_time} editDate={currentNote.edit_date} editTime={currentNote.edit_time} />
         </div>
     )

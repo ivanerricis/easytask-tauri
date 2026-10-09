@@ -35,7 +35,7 @@ export const DialogSettingsContent = ({ isOpen, onOpenChange, requestedCategory 
                 </DialogHeader>
                 <Tabs orientation="vertical" value={active.id} onValueChange={setActiveId} className="flex-col sm:flex-row gap-4 min-h-0">
                     <SettingsNav categories={SETTINGS_CATEGORIES} />
-                    <TabsContent value={active.id} className="min-w-0 overflow-y-auto pr-1">
+                    <TabsContent value={active.id} className="min-w-0 overflow-y-auto overflow-x-hidden pr-1">
                         <Panel />
                     </TabsContent>
                 </Tabs>
