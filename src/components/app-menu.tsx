@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import {
     Archive, ArrowLeft, ArrowRight, CircleX, EyeOff, FileDown, FilePlus, FileText, FolderPlus, House, Info, Keyboard, LayoutTemplate,
-    LogOut, PanelLeft, PanelRight, Plus, Redo2, Rows3, ScrollText, Search, Settings, SunMoon, Trash2, Undo2, X, type LucideIcon,
+    LogOut, Monitor, Moon, PanelLeft, PanelRight, Plus, Redo2, Rows3, ScrollText, Search, Settings, Sun, SunMoon, Trash2, Undo2, X, type LucideIcon,
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import {
@@ -32,6 +32,9 @@ type AppMenuProps = {
 
 // The action runs once the menu has closed and given the focus back, so a dialog it opens keeps the focus
 const afterClose = (action: () => void) => { window.setTimeout(action, 0) }
+
+// The radio items of the theme have no icon styling of their own: same size and color as the other entries
+const RADIO_ICON = "size-4 shrink-0 text-muted-foreground"
 
 const isDialogOpen = () => document.querySelector("[role='dialog'], [role='alertdialog']") !== null
 
@@ -177,9 +180,9 @@ export const AppMenu = ({ page }: AppMenuProps) => {
                         <MenubarSubTrigger><SunMoon />{t("appMenu.theme")}</MenubarSubTrigger>
                         <MenubarSubContent>
                             <MenubarRadioGroup value={theme} onValueChange={value => setTheme(value as typeof theme)}>
-                                <MenubarRadioItem value="light">{t("settings.appearance.theme.light")}</MenubarRadioItem>
-                                <MenubarRadioItem value="dark">{t("settings.appearance.theme.dark")}</MenubarRadioItem>
-                                <MenubarRadioItem value="system">{t("common.system")}</MenubarRadioItem>
+                                <MenubarRadioItem value="light"><Sun className={RADIO_ICON} />{t("settings.appearance.theme.light")}</MenubarRadioItem>
+                                <MenubarRadioItem value="dark"><Moon className={RADIO_ICON} />{t("settings.appearance.theme.dark")}</MenubarRadioItem>
+                                <MenubarRadioItem value="system"><Monitor className={RADIO_ICON} />{t("common.system")}</MenubarRadioItem>
                             </MenubarRadioGroup>
                         </MenubarSubContent>
                     </MenubarSub>
