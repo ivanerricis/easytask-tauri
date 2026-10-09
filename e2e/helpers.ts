@@ -69,6 +69,15 @@ export const typeInto = async (input: ChainablePromiseElement, value: string) =>
     await input.waitForDisplayed()
     await input.click()
     await input.setValue(value)
+    // WebKitWebDriver (Linux) sometimes drops the Shift of the first key ("Auto" arrives as "auto"): the value is then set
+    // through the native setter plus an input event, which React picks up like typing
+    if (await input.getValue() !== value) {
+        const element = await input
+        await browser.execute((el: HTMLInputElement | HTMLTextAreaElement, text: string) => {
+            Object.getOwnPropertyDescriptor(Object.getPrototypeOf(el), "value")?.set?.call(el, text)
+            el.dispatchEvent(new Event("input", { bubbles: true }))
+        }, element as unknown as HTMLInputElement, value)
+    }
 }
 
 /** Creates a workspace from the home page and checks that it shows up in the list. */
