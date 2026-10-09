@@ -17,7 +17,7 @@ vi.mock("@/db/queries/note", () => ({ getDBNoteData: vi.fn() }))
 
 const dates = { creation_date: "", creation_time: "", edit_date: "", edit_time: "" }
 const noteData = {
-    groups: [{ id: 1, noteID: 1, position: 0, name: "Flusso" }],
+    groups: [{ id: 1, noteID: 1, position: 0, name: "Flusso" }, { id: 2, noteID: 1, position: 1, name: null }],
     sections: [
         { id: 1, groupID: 1, title: "Doing", position: 0, ...dates },
         { id: 2, groupID: 1, title: "Done", position: 1, ...dates },
@@ -34,8 +34,8 @@ const rule = (over: Partial<Automation> = {}): Automation => ({
 
 const mocked = vi.mocked
 
-const renderDialog = (onOpenChange = vi.fn()) => {
-    render(<DialogAutomations noteId={1} isOpen onOpenChange={onOpenChange} />)
+const renderDialog = (onOpenChange = vi.fn(), groupId?: number) => {
+    render(<DialogAutomations noteId={1} isOpen onOpenChange={onOpenChange} groupId={groupId} />)
     return onOpenChange
 }
 
@@ -203,5 +203,95 @@ describe("DialogAutomations", () => {
         await user.click(screen.getByRole("button", { name: "Annulla" }))
         expect(screen.queryByText("Scartare le modifiche?")).not.toBeInTheDocument()
         expect(await screen.findByText("Nessuna automazione in questa nota.")).toBeInTheDocument()
+    })
+
+    describe("group rules", () => {
+        const groupRule = (over: Partial<Automation> = {}): Automation => rule({
+            id: 20, name: null, trigger: { type: "group.completed", groupId: 1 }, actions: [{ type: "archiveGroup" }], ...over,
+        })
+        const GROUP_TRIGGER = "tutti i task di un gruppo sono completati"
+
+        it("shows the group select and only the group actions for the group trigger", async () => {
+            const user = userEvent.setup()
+            renderDialog()
+            await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+            await pick(user, "Quando", GROUP_TRIGGER)
+            expect(screen.queryByRole("combobox", { name: "Nella sezione" })).not.toBeInTheDocument()
+            await user.click(screen.getByRole("combobox", { name: "Gruppo" }))
+            expect(await screen.findByRole("option", { name: "Qualsiasi gruppo" })).toBeInTheDocument()
+            expect(screen.getByRole("option", { name: "Flusso" })).toBeInTheDocument()
+            expect(screen.getByRole("option", { name: "Gruppo 2" })).toBeInTheDocument()
+            await user.keyboard("{Escape}")
+
+            await click(user, "Avanti")
+            await user.click(screen.getByRole("combobox", { name: "Tipo di azione" }))
+            const options = (await screen.findAllByRole("option")).map(option => option.textContent)
+            expect(options).toEqual(["Colore", "Sposta il gruppo", "Archivia il gruppo"])
+        })
+
+        it("resets the actions when the subject changes but not between two task triggers", async () => {
+            const user = userEvent.setup()
+            renderDialog()
+            await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+            await click(user, "Avanti")
+            await pick(user, "Tipo di azione", "Priorità")
+            await user.click(screen.getByRole("button", { name: /Quando/ }))
+            await pick(user, "Quando", "un task viene creato")
+            await click(user, "Avanti")
+            expect(screen.getByRole("combobox", { name: "Tipo di azione" })).toHaveTextContent("Priorità")
+
+            await user.click(screen.getByRole("button", { name: /Quando/ }))
+            await pick(user, "Quando", GROUP_TRIGGER)
+            await click(user, "Avanti")
+            expect(screen.getByRole("combobox", { name: "Tipo di azione" })).toHaveTextContent("Archivia il gruppo")
+            expect(screen.getAllByRole("combobox", { name: "Tipo di azione" })).toHaveLength(1)
+        })
+
+        it("describes a group rule with the name of the group and pauses it when the group is missing", async () => {
+            mocked(getDBAutomations).mockResolvedValue([
+                groupRule(),
+                groupRule({ id: 21, trigger: { type: "group.completed", groupId: 99 } }),
+            ])
+            renderDialog()
+            expect(await screen.findByText(/tutti i task del gruppo "Flusso" sono completati/)).toBeInTheDocument()
+            expect(screen.getAllByText("In pausa: gruppo eliminato")).toHaveLength(1)
+            expect(screen.getByText(/tutti i task del gruppo "\(gruppo eliminato\)" sono completati/)).toBeInTheDocument()
+        })
+
+        it("saves a group rule", async () => {
+            const user = userEvent.setup()
+            renderDialog()
+            await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+            await pick(user, "Quando", GROUP_TRIGGER)
+            await pick(user, "Gruppo", "Flusso")
+            await click(user, "Avanti")
+            await pick(user, "Tipo di azione", "Sposta il gruppo")
+            await pick(user, "Sposta il gruppo", "In cima")
+            await click(user, "Avanti")
+            await user.click(screen.getByRole("button", { name: "Salva" }))
+            await waitFor(() => expect(createDBAutomation).toHaveBeenCalledTimes(1))
+            expect(createDBAutomation).toHaveBeenCalledWith(1, {
+                name: null,
+                enabled: true,
+                trigger: { type: "group.completed", groupId: 1 },
+                actions: [{ type: "moveGroup", at: "top" }],
+            })
+        })
+
+        it("starts on the group trigger when opened from a group", async () => {
+            const user = userEvent.setup()
+            renderDialog(vi.fn(), 2)
+            await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+            expect(screen.getByRole("combobox", { name: "Quando" })).toHaveTextContent(GROUP_TRIGGER)
+            expect(screen.getByRole("combobox", { name: "Gruppo" })).toHaveTextContent("Gruppo 2")
+            await click(user, "Avanti")
+            expect(screen.getByRole("combobox", { name: "Tipo di azione" })).toHaveTextContent("Archivia il gruppo")
+            await click(user, "Avanti")
+            await user.click(screen.getByRole("button", { name: "Salva" }))
+            await waitFor(() => expect(createDBAutomation).toHaveBeenCalledWith(1, expect.objectContaining({
+                trigger: { type: "group.completed", groupId: 2 },
+                actions: [{ type: "archiveGroup" }],
+            })))
+        })
     })
 })

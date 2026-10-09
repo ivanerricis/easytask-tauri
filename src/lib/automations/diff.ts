@@ -1,7 +1,7 @@
-import type { NoteDataTree, Task } from "@/types/types"
+import type { Group, NoteDataTree, Task } from "@/types/types"
 import type { TxStatement } from "@/db/transaction"
 import { buildPositionUpdate } from "@/db/queries/ordering"
-import { findSection, findTask, moveTask, patchTask } from "@/contexts/note-tree-ops"
+import { findGroup, findSection, findTask, moveGroupInList, moveTask, patchGroup, patchTask, removeGroup } from "@/contexts/note-tree-ops"
 
 /** The persisted state of a task: where it is (`s<id>` = top level of a section, `t<id>` = under a task) and its flags. */
 type TaskState = {
@@ -143,6 +143,129 @@ export function restoreTasks(current: NoteDataTree, source: NoteDataTree, change
         if (change.priority) patch.priority = !!task.priority
         if (change.color) patch.color = task.color ?? null
         if (Object.keys(patch).length > 0) tree = patchTask(tree, task.id, patch)
+    }
+    return tree
+}
+
+const byPosition = (tree: NoteDataTree) => [...tree.groups].sort((a, b) => a.position - b.position)
+
+/** The ids of the groups of a tree in note order. */
+const groupOrder = (tree: NoteDataTree) => byPosition(tree).map(group => group.id)
+
+/**
+ * The statements that bring the groups of the database from `before` to `after` (two versions of the same note):
+ * - a changed color is written;
+ * - when the order of the groups present in both changed, they are renumbered;
+ * - a group only in `before` has been archived by an automation, a group only in `after` is restored from the archive
+ *   (the undo of that).
+ * @category Automations
+ */
+export function diffGroupStatements(before: NoteDataTree, after: NoteDataTree): TxStatement[] {
+    const previous = new Map(before.groups.map(group => [group.id, group]))
+    const next = new Map(after.groups.map(group => [group.id, group]))
+    const statements: TxStatement[] = []
+
+    for (const id of previous.keys())
+        if (!next.has(id)) statements.push({
+            sql: "UPDATE section_group SET archived_at = datetime('now','localtime') WHERE id = ? AND archived_at IS NULL AND deleted_at IS NULL",
+            params: [id],
+        })
+
+    for (const [id, group] of next) {
+        const old = previous.get(id)
+        if (!old) statements.push({ sql: "UPDATE section_group SET archived_at = NULL WHERE id = ?", params: [id] })
+        else if ((old.color ?? null) !== (group.color ?? null)) statements.push({ sql: "UPDATE section_group SET color = ? WHERE id = ?", params: [group.color ?? null, id] })
+    }
+
+    const shared = groupOrder(after).filter(id => previous.has(id))
+    if (!sameList(groupOrder(before).filter(id => next.has(id)), shared) && shared.length > 0)
+        statements.push(buildPositionUpdate("section_group", shared))
+    return statements
+}
+
+/**
+ * What an automation changed on a group: its place among the groups, its color, or whether it was archived (present in
+ * only one of the two trees).
+ * @category Automations
+ */
+export type GroupChange = { id: number, place: boolean, color: boolean, archived: boolean }
+
+/**
+ * What changed between two versions of a note on the given groups (those an automation acted on); groups missing from
+ * both trees or left unchanged are omitted.
+ * @category Automations
+ */
+export function groupChanges(before: NoteDataTree, after: NoteDataTree, ids: readonly number[]): GroupChange[] {
+    const previous = new Map(before.groups.map(group => [group.id, group]))
+    const next = new Map(after.groups.map(group => [group.id, group]))
+    // The place is compared among the groups present in both versions, so an archived group does not shift the others
+    const oldOrder = groupOrder(before).filter(id => next.has(id))
+    const newOrder = groupOrder(after).filter(id => previous.has(id))
+    const changes: GroupChange[] = []
+    for (const id of ids) {
+        const old = previous.get(id)
+        const group = next.get(id)
+        if (!old && !group) continue
+        const both = !!old && !!group
+        const change: GroupChange = {
+            id,
+            archived: !both,
+            place: both && oldOrder.indexOf(id) !== newOrder.indexOf(id),
+            color: both && (old.color ?? null) !== (group.color ?? null),
+        }
+        if (change.archived || change.place || change.color) changes.push(change)
+    }
+    return changes
+}
+
+/**
+ * The tree plus the groups of `extra` it does not have (appended): lets the task diff see the tasks of a group that an
+ * automation archived, whose last state is not in the tree any more.
+ * @category Automations
+ */
+export function withGroups(tree: NoteDataTree, extra: readonly Group[]): NoteDataTree {
+    const missing = extra.filter(group => !tree.groups.some(item => item.id === group.id))
+    return missing.length === 0 ? tree : { groups: [...tree.groups, ...missing] }
+}
+
+/** Puts a group at `index` among the groups of the tree (by position), renumbering the positions from 0. */
+function placeGroup(tree: NoteDataTree, group: Group, index: number): NoteDataTree {
+    const groups = byPosition(tree)
+    groups.splice(Math.max(0, Math.min(index, groups.length)), 0, group)
+    return { groups: groups.map((item, position) => ({ ...item, position })) }
+}
+
+/**
+ * Gives some groups of `current` what they have in `source` (used to undo/redo an automation on the latest note, which
+ * may have changed since): only the parts in `changes`. A group archived in `current` is brought back with its sections
+ * and tasks as they are in `source`, one that is archived in `source` is removed.
+ * @category Automations
+ */
+export function restoreGroups(current: NoteDataTree, source: NoteDataTree, changes: readonly GroupChange[]): NoteDataTree {
+    const sourceOrder = groupOrder(source)
+    // Lower indexes first, so that an insertion does not shift a place restored before it
+    const ordered = [...changes].sort((a, b) => sourceOrder.indexOf(a.id) - sourceOrder.indexOf(b.id))
+
+    let tree = current
+    for (const change of ordered) {
+        const wanted = findGroup(source, change.id)
+        const present = findGroup(tree, change.id)
+        if (change.archived) {
+            if (wanted && !present) {
+                // Index among the groups that exist now
+                const index = sourceOrder.slice(0, sourceOrder.indexOf(change.id)).filter(id => !!findGroup(tree, id)).length
+                tree = placeGroup(tree, wanted.group, index)
+            } else if (!wanted && present) {
+                tree = removeGroup(tree, change.id)
+            }
+            continue
+        }
+        if (!wanted || !present) continue
+        if (change.color) tree = patchGroup(tree, change.id, { color: wanted.group.color ?? null })
+        if (change.place) {
+            const index = sourceOrder.slice(0, sourceOrder.indexOf(change.id)).filter(id => !!findGroup(tree, id)).length
+            tree = { groups: moveGroupInList(tree.groups, change.id, index) ?? tree.groups }
+        }
     }
     return tree
 }

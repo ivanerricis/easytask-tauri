@@ -73,3 +73,23 @@ export function taskOf(tree: NoteDataTree, id: number): Task {
     }
     throw new Error(`task ${id} not found`)
 }
+
+/**
+ * Builds a note with several groups: `groups` maps a group id to its sections (section id -> top level tasks, as in
+ * `makeTree`). The groups are ordered by id; `names` optionally names some of them.
+ * @category Test helpers
+ */
+export function makeGroups(groups: Record<number, Record<number, TaskSpec[]>>, names: Record<number, string> = {}): NoteDataTree {
+    const built = Object.entries(groups).map(([id, sections], position): Group => {
+        const [base] = makeTree(sections).groups
+        const groupId = Number(id)
+        return {
+            ...base, id: groupId, position, name: names[groupId] ?? null,
+            sections: base.sections.map(section => ({ ...section, groupID: groupId })),
+        }
+    })
+    return { groups: built }
+}
+
+/** The ids of the groups of a note in note order (by position). */
+export const groupIds = (tree: NoteDataTree) => [...tree.groups].sort((a, b) => a.position - b.position).map(group => group.id)

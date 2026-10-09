@@ -3,6 +3,8 @@
  * @category Types
  */
 export type TemplateTask = {
+    /** Archive date: only in the export files (a template never contains archived items). */
+    archived_at?: string | null
     text: string
     description: string | null
     completed: boolean

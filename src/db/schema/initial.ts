@@ -5,7 +5,7 @@ import { addNoteArchivedAt, createNoteIndexes, createNoteTable, createNoteTrigge
 import { createNoteTemplateIndexes, createNoteTemplateTable, createNoteTemplateTrigger } from "./note_template";
 import { addSectionArchivedAt, createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
 import { addGroupArchivedAt, addGroupColorColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
-import { createTaskIndexes, createTaskTable, createTaskTrigger, dropTaskArchivedColumn } from "./task";
+import { createTaskIndexes, createTaskTable, addTaskArchivedAt, createTaskTrigger, dropTaskArchivedColumn } from "./task";
 import { createWorkspaceEditTriggers } from "./workspace_edit";
 import { createWorkspaceIndexes, createWorkspaceTable, createWorkspaceTrigger } from "./workspace";
 
@@ -59,10 +59,16 @@ export const archiveSchema: string[] = [
 ]
 
 /**
+ * Migration v6: archive date on the tasks.
+ * @category Database Schema
+ */
+export const taskArchiveSchema: string[] = [...addTaskArchivedAt]
+
+/**
  * The whole schema at the latest version (initial schema plus every additive migration), as statements.
  * Used by the tests to build a database in one go: the app itself goes through the migrations in initDb.
  * @category Database Schema
  */
 export const latestSchema: string[] = [
-    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema,
+    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema,
 ]

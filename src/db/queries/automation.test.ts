@@ -25,12 +25,12 @@ vi.mock("@tauri-apps/api/core", async () => {
 })
 
 import { buildNoteTree } from "@/contexts/tree-builders"
-import { diffTaskStatements, taskChanges } from "@/lib/automations/diff"
+import { diffGroupStatements, diffTaskStatements, taskChanges } from "@/lib/automations/diff"
 import { runAutomations } from "@/lib/automations/engine"
-import type { AutomationDraft } from "@/lib/automations/types"
+import type { AutomationAction, AutomationDraft, AutomationTrigger } from "@/lib/automations/types"
 import { layout, taskOf } from "@/test/automation-fixtures"
 import {
-    applyDBTaskChanges, createDBAutomation, deleteDBAutomation, getDBAutomations, setDBAutomationEnabled, updateDBAutomation,
+    applyDBAutomationChanges, createDBAutomation, deleteDBAutomation, getDBAutomations, setDBAutomationEnabled, updateDBAutomation,
 } from "./automation"
 import { getDBNoteData } from "./note"
 
@@ -189,7 +189,7 @@ describe("updateDBAutomation / setDBAutomationEnabled / deleteDBAutomation", () 
     })
 })
 
-describe("applyDBTaskChanges", () => {
+describe("applyDBAutomationChanges", () => {
     // S1: 100 (completed, subtask 101 > 1011), 102 ; S2: 200
     async function seedTasks() {
         sqlite.exec(`
@@ -206,7 +206,7 @@ describe("applyDBTaskChanges", () => {
     }
 
     it("does nothing for an empty list", async () => {
-        await expect(applyDBTaskChanges([])).resolves.toBeUndefined()
+        await expect(applyDBAutomationChanges([])).resolves.toBeUndefined()
     })
 
     it("applies the statements of a run end to end and the reloaded note matches", async () => {
@@ -231,7 +231,7 @@ describe("applyDBTaskChanges", () => {
         expect(touched).toEqual([100])
         expect(applied.map(rule => rule.id)).toEqual([1, 2])
 
-        await applyDBTaskChanges(diffTaskStatements(before, after))
+        await applyDBAutomationChanges(diffTaskStatements(before, after))
 
         // The raw rows: the whole subtree follows the task, the parents are kept
         expect(rows("SELECT id, sectionID, taskID, position, color, priority FROM task WHERE id IN (100, 101, 1011) ORDER BY id")).toEqual([
@@ -262,7 +262,7 @@ describe("applyDBTaskChanges", () => {
         const { tree: after } = runAutomations(before, [rule], { type: "task.completed", taskId: 100 })
         const statements = diffTaskStatements(before, after)
         expect(statements).toHaveLength(2)
-        await applyDBTaskChanges(statements)
+        await applyDBAutomationChanges(statements)
         expect(rows("SELECT id, completed FROM task ORDER BY id")).toEqual([
             { id: 100, completed: 1 }, { id: 101, completed: 1 }, { id: 102, completed: 0 }, { id: 200, completed: 0 }, { id: 1011, completed: 1 },
         ])
@@ -277,7 +277,7 @@ describe("applyDBTaskChanges", () => {
             actions: [{ type: "moveTo", sectionId: 1, at: "bottom" } as const],
         }
         const { tree: after } = runAutomations(before, [rule], { type: "task.completed", taskId: 100 })
-        await applyDBTaskChanges(diffTaskStatements(before, after))
+        await applyDBAutomationChanges(diffTaskStatements(before, after))
         expect(layout(await loadTree())).toEqual({ 1: [102, 100], 2: [200] })
     })
 
@@ -291,8 +291,69 @@ describe("applyDBTaskChanges", () => {
         }
         const { tree: after } = runAutomations(before, [{ ...rule, actions: [...rule.actions] }], { type: "task.completed", taskId: 100 })
         failOn = "priority = ?"
-        await expect(applyDBTaskChanges(diffTaskStatements(before, after))).rejects.toMatchObject({ code: "AUTOMATION_SAVE_FAILED" })
+        await expect(applyDBAutomationChanges(diffTaskStatements(before, after))).rejects.toMatchObject({ code: "AUTOMATION_SAVE_FAILED" })
         expect(layout(await loadTree())).toEqual({ 1: [100, 102], 2: [200] })
         expect(rows("SELECT priority FROM task WHERE id = 100")).toEqual([{ priority: 0 }])
+    })
+})
+
+
+describe("applyDBAutomationChanges (groups)", () => {
+    // Note 1 has the groups 1 (S1, S2), 10 and 11
+    beforeEach(() => {
+        sqlite.exec(`
+            INSERT INTO section_group (id, noteID, position, name, color) VALUES (10, 1, 1, 'B', NULL), (11, 1, 2, 'C', NULL);
+            INSERT INTO section (id, groupID, title, position) VALUES (10, 10, 'SB', 0), (11, 11, 'SC', 0);
+            INSERT INTO task (id, sectionID, taskID, text, position, completed) VALUES (300, 10, NULL, 't', 0, 1), (301, 1, NULL, 'u', 0, 0);
+        `)
+    })
+
+    const loadTree = async () => {
+        const { groups, sections, tasks } = await getDBNoteData(1)
+        return buildNoteTree(groups, sections, tasks)
+    }
+    const groupRows = () => rows("SELECT id, position, color, archived_at IS NOT NULL AS archived FROM section_group WHERE noteID = 1 ORDER BY id")
+    const groupRule = (actions: AutomationAction[]) => ({
+        id: 1, noteId: 1, name: null, enabled: true, position: 0,
+        trigger: { type: "group.completed", groupId: 10 } as AutomationTrigger, actions,
+    })
+
+    it("archives a group, then unarchives it (undo)", async () => {
+        const before = await loadTree()
+        const { tree: after, touchedGroups } = runAutomations(before, [groupRule([{ type: "archiveGroup" }])], { type: "task.completed", taskId: 300 })
+        expect(touchedGroups).toEqual([10])
+        expect(after.groups.map(g => g.id)).toEqual([1, 11])
+
+        await applyDBAutomationChanges([...diffGroupStatements(before, after), ...diffTaskStatements(before, after)])
+        expect(groupRows().map(g => [g.id, g.archived])).toEqual([[1, 0], [10, 1], [11, 0]])
+        expect(rows("SELECT id FROM task WHERE completed = 1")).toEqual([{ id: 300 }])
+        expect((await loadTree()).groups.map(g => g.id)).toEqual([1, 11])
+
+        await applyDBAutomationChanges([...diffGroupStatements(after, before), ...diffTaskStatements(after, before)])
+        expect(groupRows().map(g => g.archived)).toEqual([0, 0, 0])
+        expect((await loadTree()).groups.map(g => g.id)).toEqual([1, 10, 11])
+    })
+
+    it("applies a color and an order change", async () => {
+        const before = await loadTree()
+        const rule = groupRule([{ type: "setColor", color: "#112233" }, { type: "moveGroup", at: "bottom" }])
+        const { tree: after } = runAutomations(before, [rule], { type: "task.completed", taskId: 300 })
+        await applyDBAutomationChanges(diffGroupStatements(before, after))
+        expect(groupRows()).toEqual([
+            { id: 1, position: 0, color: null, archived: 0 },
+            { id: 10, position: 2, color: "#112233", archived: 0 },
+            { id: 11, position: 1, color: null, archived: 0 },
+        ])
+        const reloaded = await loadTree()
+        expect(reloaded.groups.map(g => g.id)).toEqual([1, 11, 10])
+        expect(diffGroupStatements(after, reloaded)).toEqual([])
+    })
+
+    it("does not archive a group that is already in the trash", async () => {
+        sqlite.exec("UPDATE section_group SET deleted_at = datetime('now') WHERE id = 10")
+        const before = { groups: (await loadTree()).groups }
+        const full = { groups: [...before.groups, { ...before.groups[0], id: 10, position: 5 }] }
+        await applyDBAutomationChanges(diffGroupStatements(full, before))
+        expect(groupRows().map(g => g.archived)).toEqual([0, 0, 0])
     })
 })

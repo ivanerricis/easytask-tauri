@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
-import { layout, makeRule, makeTree, taskOf, type TaskSpec } from "@/test/automation-fixtures"
-import { allSubtasksCompleted, MAX_AUTOMATION_STEPS, runAutomations } from "./engine"
+import { groupIds, layout, makeGroups, makeRule, makeTree, taskOf, type TaskSpec } from "@/test/automation-fixtures"
+import { allSubtasksCompleted, allTasksCompleted, MAX_AUTOMATION_STEPS, runAutomations } from "./engine"
 import type { AutomationEvent } from "./types"
 
 const completed = (taskId: number): AutomationEvent => ({ type: "task.completed", taskId })
@@ -197,7 +197,7 @@ describe("subtasks.completed", () => {
     it("completeSubtasks is a no-op without subtasks or when all are completed", () => {
         const rule = makeRule(1, { type: "task.completed", sectionId: null }, [{ type: "completeSubtasks" }])
         const none = makeTree({ 1: [{ id: 10, completed: true }] })
-        expect(runAutomations(none, [rule], completed(10))).toEqual({ tree: none, applied: [], touched: [] })
+        expect(runAutomations(none, [rule], completed(10))).toEqual({ tree: none, applied: [], touched: [], touchedGroups: [], archivedGroups: [] })
         const all = makeTree({ 1: [{ id: 10, completed: true, subs: [{ id: 11, completed: true }] }] })
         expect(runAutomations(all, [rule], completed(10)).tree).toBe(all)
     })
@@ -381,5 +381,226 @@ describe("loop protection", () => {
         expect(taskOf(tree, depth - 1).completed).toBe(true)
         // the chain stopped before reaching the root
         expect(taskOf(tree, 1).completed).toBe(false)
+    })
+})
+
+describe("allTasksCompleted", () => {
+    const groupOf = (specs: Record<number, TaskSpec[]>) => makeGroups({ 1: specs }).groups[0]
+
+    it("is false for a group without tasks", () => {
+        expect(allTasksCompleted(groupOf({ 1: [] }))).toBe(false)
+        expect(allTasksCompleted({ ...groupOf({}), sections: [] })).toBe(false)
+    })
+
+    it("needs every task of every section, at any depth, to be completed", () => {
+        expect(allTasksCompleted(groupOf({ 1: [{ id: 1, completed: true }], 2: [{ id: 2, completed: true, subs: [{ id: 3, completed: true }] }] }))).toBe(true)
+        expect(allTasksCompleted(groupOf({ 1: [{ id: 1, completed: true }], 2: [{ id: 2 }] }))).toBe(false)
+        expect(allTasksCompleted(groupOf({ 1: [{ id: 1, completed: true, subs: [{ id: 3 }] }] }))).toBe(false)
+    })
+
+    it("ignores empty sections", () => {
+        expect(allTasksCompleted(groupOf({ 1: [{ id: 1, completed: true }], 2: [] }))).toBe(true)
+    })
+})
+
+describe("group.completed", () => {
+    const archive = [{ type: "archiveGroup" as const }]
+    // Group 1 (sections 1 and 2) has just been finished by completing task 11; group 2 (section 3) is open
+    const finishing = () => ({
+        tree: makeGroups({ 1: { 1: [{ id: 10, completed: true }], 2: [{ id: 11, completed: true }] }, 2: { 3: [{ id: 20 }] } }),
+        event: completed(11),
+    })
+
+    it("fires when the last open task of the group is completed, and the actions apply to that group", () => {
+        const { tree, event } = finishing()
+        const rule = makeRule(1, { type: "group.completed", groupId: null }, archive)
+        const outcome = runAutomations(tree, [rule], event)
+        expect(groupIds(outcome.tree)).toEqual([2])
+        expect(outcome.applied).toEqual([rule])
+        expect(outcome.touchedGroups).toEqual([1])
+        expect(outcome.touched).toEqual([])
+    })
+
+    it("returns the archived group with the task changes made before the archive", () => {
+        const tree = makeGroups({ 1: { 1: [{ id: 10, completed: true, subs: [{ id: 11 }] }] }, 2: { 3: [{ id: 20 }] } })
+        const rules = [
+            makeRule(1, { type: "task.completed", sectionId: null }, [{ type: "completeSubtasks" }]),
+            makeRule(2, { type: "group.completed", groupId: 1 }, archive),
+        ]
+        const outcome = runAutomations(tree, rules, completed(10))
+        expect(groupIds(outcome.tree)).toEqual([2])
+        expect(outcome.archivedGroups.map(group => group.id)).toEqual([1])
+        expect(outcome.archivedGroups[0].sections[0].tasks[0].subtasks[0].completed).toBe(true)
+        expect(outcome.touched).toEqual([10, 11])
+    })
+
+    it("does not fire while a task is still open", () => {
+        const tree = makeGroups({ 1: { 1: [{ id: 10, completed: true }], 2: [{ id: 11 }] } })
+        const rule = makeRule(1, { type: "group.completed", groupId: null }, archive)
+        const outcome = runAutomations(tree, [rule], completed(10))
+        expect(outcome.tree).toBe(tree)
+        expect(outcome.applied).toEqual([])
+        expect(outcome.touchedGroups).toEqual([])
+    })
+
+    it("fires once even when several completions in the chain finish the group", () => {
+        const tree = makeGroups({ 1: { 1: [{ id: 10, completed: true, subs: [{ id: 11, completed: true }] }] } })
+        const rule = makeRule(1, { type: "group.completed", groupId: 1 }, [{ type: "setColor", color: "#ff0000" }])
+        // completing the last subtask raises task.completed (group done) and the subtasks.completed of the parent (group done again)
+        const outcome = runAutomations(tree, [rule], completed(11))
+        expect(outcome.applied).toEqual([rule])
+        expect(outcome.touchedGroups).toEqual([1])
+        expect(outcome.tree.groups[0].color).toBe("#ff0000")
+    })
+
+    it("the last open subtask finishes the group only when the parents are completed too", () => {
+        const rule = makeRule(1, { type: "group.completed", groupId: null }, archive)
+        const parentOpen = makeGroups({ 1: { 1: [{ id: 10, subs: [{ id: 11, completed: true }] }] } })
+        expect(runAutomations(parentOpen, [rule], completed(11)).tree).toBe(parentOpen)
+        const parentDone = makeGroups({ 1: { 1: [{ id: 10, completed: true, subs: [{ id: 11, completed: true }] }] } })
+        expect(groupIds(runAutomations(parentDone, [rule], completed(11)).tree)).toEqual([])
+    })
+
+    it("fires when another rule completes the last task (setCompleted)", () => {
+        const tree = makeGroups({ 1: { 1: [{ id: 10, completed: true }, { id: 11 }] } })
+        const task = makeRule(1, { type: "task.created", sectionId: null }, [{ type: "setCompleted", value: true }])
+        const group = makeRule(2, { type: "group.completed", groupId: 1 }, archive)
+        const outcome = runAutomations(tree, [task, group], { type: "task.created", taskId: 11 })
+        expect(groupIds(outcome.tree)).toEqual([])
+        expect(outcome.applied).toEqual([task, group])
+        expect(outcome.touched).toEqual([11])
+        expect(outcome.touchedGroups).toEqual([1])
+    })
+
+    it("fires when another rule completes the subtasks (completeSubtasks)", () => {
+        const tree = makeGroups({ 1: { 1: [{ id: 10, completed: true, subs: [{ id: 11 }, { id: 12 }] }] } })
+        const task = makeRule(1, { type: "task.completed", sectionId: null }, [{ type: "completeSubtasks" }])
+        const group = makeRule(2, { type: "group.completed", groupId: null }, [{ type: "setColor", color: "#00ff00" }])
+        const outcome = runAutomations(tree, [task, group], completed(10))
+        expect(outcome.tree.groups[0].color).toBe("#00ff00")
+        expect(outcome.touchedGroups).toEqual([1])
+    })
+
+    it("a specific group only reacts to its own completion", () => {
+        const { tree, event } = finishing()
+        const other = makeRule(1, { type: "group.completed", groupId: 2 }, archive)
+        expect(runAutomations(tree, [other], event).tree).toBe(tree)
+        const own = makeRule(2, { type: "group.completed", groupId: 1 }, archive)
+        expect(groupIds(runAutomations(tree, [own], event).tree)).toEqual([2])
+    })
+
+    it("any group reacts to the group of the completed task only", () => {
+        const tree = makeGroups({ 1: { 1: [{ id: 10, completed: true }] }, 2: { 2: [{ id: 20, completed: true }] } })
+        const rule = makeRule(1, { type: "group.completed", groupId: null }, [{ type: "setColor", color: "#123456" }])
+        const outcome = runAutomations(tree, [rule], completed(10))
+        expect(outcome.tree.groups.map(group => group.color ?? null)).toEqual(["#123456", null])
+    })
+
+    it("never fires for an empty group", () => {
+        const tree = makeGroups({ 1: { 1: [] }, 2: { 2: [{ id: 20 }] } })
+        const rule = makeRule(1, { type: "group.completed", groupId: null }, archive)
+        expect(runAutomations(tree, [rule], { type: "task.created", taskId: 20 }).tree).toBe(tree)
+        expect(runAutomations(tree, [rule], completed(20)).tree).toBe(tree)
+    })
+
+    it("creating, moving or reopening a task does not fire it, even if the group is complete", () => {
+        const tree = makeGroups({ 1: { 1: [{ id: 10, completed: true }], 2: [] } })
+        const rule = makeRule(1, { type: "group.completed", groupId: null }, archive)
+        expect(runAutomations(tree, [rule], { type: "task.created", taskId: 10 }).tree).toBe(tree)
+        expect(runAutomations(tree, [rule], { type: "task.moved", taskId: 10, fromSectionId: 2 }).tree).toBe(tree)
+        expect(runAutomations(tree, [rule], { type: "task.reopened", taskId: 10 }).tree).toBe(tree)
+    })
+
+    it("skips a rule whose group is not in the note, and a disabled one", () => {
+        const { tree, event } = finishing()
+        expect(runAutomations(tree, [makeRule(1, { type: "group.completed", groupId: 99 }, archive)], event).tree).toBe(tree)
+        expect(runAutomations(tree, [makeRule(1, { type: "group.completed", groupId: null }, archive, { enabled: false })], event).tree).toBe(tree)
+    })
+
+    it("setColor colors the group, removes its color, and is a no-op when already set", () => {
+        const { tree, event } = finishing()
+        const color = makeRule(1, { type: "group.completed", groupId: 1 }, [{ type: "setColor", color: "#ff0000" }])
+        const colored = runAutomations(tree, [color], event)
+        expect(colored.tree.groups[0].color).toBe("#ff0000")
+        expect(colored.touchedGroups).toEqual([1])
+        expect(runAutomations(colored.tree, [color], event).tree).toBe(colored.tree)
+        const clear = makeRule(1, { type: "group.completed", groupId: 1 }, [{ type: "setColor", color: null }])
+        expect(runAutomations(colored.tree, [clear], event).tree.groups[0].color).toBeNull()
+        expect(runAutomations(tree, [clear], event).tree).toBe(tree)
+    })
+
+    it("moveGroup moves the group to the bottom or to the top of the note", () => {
+        const { tree, event } = finishing()
+        const bottom = makeRule(1, { type: "group.completed", groupId: 1 }, [{ type: "moveGroup", at: "bottom" }])
+        const moved = runAutomations(tree, [bottom], event)
+        expect(groupIds(moved.tree)).toEqual([2, 1])
+        expect(moved.touchedGroups).toEqual([1])
+        // already last: nothing changes
+        expect(runAutomations(moved.tree, [bottom], event).tree).toBe(moved.tree)
+
+        const top = makeRule(1, { type: "group.completed", groupId: 1 }, [{ type: "moveGroup", at: "top" }])
+        const stay = runAutomations(tree, [top], event)
+        expect(stay.tree).toBe(tree)
+        expect(stay.applied).toEqual([])
+        expect(stay.touchedGroups).toEqual([])
+        expect(groupIds(runAutomations(moved.tree, [top], event).tree)).toEqual([1, 2])
+    })
+
+    it("runs the actions in order and the ones after an archive are no-ops", () => {
+        const { tree, event } = finishing()
+        const rule = makeRule(1, { type: "group.completed", groupId: 1 }, [
+            { type: "setColor", color: "#ff0000" }, { type: "moveGroup", at: "bottom" }, { type: "archiveGroup" },
+            { type: "setColor", color: "#00ff00" }, { type: "moveGroup", at: "top" },
+        ])
+        const outcome = runAutomations(tree, [rule], event)
+        expect(groupIds(outcome.tree)).toEqual([2])
+        expect(outcome.touchedGroups).toEqual([1])
+        expect(outcome.applied).toEqual([rule])
+        expect(layout(outcome.tree)).toEqual({ 3: [20] })
+    })
+
+    it("skips a rule with an action of the wrong subject", () => {
+        const { tree, event } = finishing()
+        const groupRule = makeRule(1, { type: "group.completed", groupId: null }, [{ type: "setPriority", value: true }, { type: "archiveGroup" }])
+        expect(runAutomations(tree, [groupRule], event).tree).toBe(tree)
+        const taskRule = makeRule(2, { type: "task.completed", sectionId: null }, [{ type: "archiveGroup" }, { type: "moveGroup", at: "bottom" }])
+        const outcome = runAutomations(tree, [taskRule], event)
+        expect(outcome.tree).toBe(tree)
+        expect(outcome.applied).toEqual([])
+    })
+
+    it("a group rule does not react to task events and a task rule not to group events", () => {
+        const { tree, event } = finishing()
+        const taskRule = makeRule(1, { type: "task.completed", sectionId: null }, [{ type: "setPriority", value: true }])
+        const groupRule = makeRule(2, { type: "group.completed", groupId: null }, [{ type: "setColor", color: "#fff" }])
+        const outcome = runAutomations(tree, [taskRule, groupRule], event)
+        expect(outcome.touched).toEqual([11])
+        expect(taskOf(outcome.tree, 10).priority).toBe(false)
+        expect(outcome.touchedGroups).toEqual([1])
+        expect(outcome.tree.groups[0].color).toBe("#fff")
+        // the group rule alone does nothing on a task event that finishes nothing
+        const open = makeGroups({ 1: { 1: [{ id: 10, completed: true }, { id: 12 }] } })
+        expect(runAutomations(open, [groupRule], completed(10)).tree).toBe(open)
+    })
+
+    it("tasks and groups with the same id keep separate once-per-chain keys", () => {
+        const tree = makeGroups({ 1: { 1: [{ id: 1, completed: true }] } })
+        const taskRule = makeRule(1, { type: "task.completed", sectionId: null }, [{ type: "setPriority", value: true }])
+        const groupRule = makeRule(1, { type: "group.completed", groupId: null }, [{ type: "setColor", color: "#abc" }])
+        const outcome = runAutomations(tree, [taskRule, groupRule], completed(1))
+        expect(taskOf(outcome.tree, 1).priority).toBe(true)
+        expect(outcome.tree.groups[0].color).toBe("#abc")
+    })
+
+    it("the chain stays bounded when task rules bounce a completion that keeps finishing the group", () => {
+        const tree = makeGroups({ 1: { 1: [{ id: 10, completed: true }] } })
+        const rules = [
+            makeRule(1, { type: "task.completed", sectionId: null }, [{ type: "setCompleted", value: false }]),
+            makeRule(2, { type: "task.reopened", sectionId: null }, [{ type: "setCompleted", value: true }]),
+            makeRule(3, { type: "group.completed", groupId: null }, [{ type: "setColor", color: "#fff" }]),
+        ]
+        const outcome = runAutomations(tree, rules, completed(10))
+        expect(outcome.touchedGroups.length).toBeLessThanOrEqual(1)
+        expect(outcome.tree.groups[0].color).toBe("#fff")
     })
 })

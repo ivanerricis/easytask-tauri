@@ -1,6 +1,9 @@
 import { getGroupLabel } from "./groups/group-label"
 import type { Group, NoteDataTree, Section, Task } from "@/types/types"
 
+// Lives with the other tree operations (the automations use it too); re-exported for the drag & drop callers
+export { moveGroupInList } from "@/contexts/note-tree-ops"
+
 /**
  * Pure logic of the drag & drop of sections and tasks inside the open note.
  * Everything here works on the NoteDataTree and never touches the DOM or the database.
@@ -255,16 +258,6 @@ export function computeGroupTarget(tree: NoteDataTree, activeId: number, over: N
     if (overIndex < 0) return null
     const index = zone === "after" ? overIndex + 1 : overIndex
     return index === activeIndex ? null : { index }
-}
-
-/** Groups with the given one moved to `index`, positions renumbered from 0. Null when the group is unknown. */
-export function moveGroupInList(groups: Group[], groupId: number, index: number): Group[] | null {
-    const items = sortGroups(groups)
-    const from = items.findIndex(group => group.id === groupId)
-    if (from < 0) return null
-    const [moved] = items.splice(from, 1)
-    items.splice(index, 0, moved)
-    return items.map((group, position) => ({ ...group, position }))
 }
 
 export type SectionMoveDestinations = {

@@ -7,9 +7,9 @@ import { Transaction } from "../transaction";
 import type { DBItemType } from "./shared_queries";
 import { buildRestoreStatements, formatTrashSummary, loadTrashCounts } from "./trash";
 
-const ARCHIVE_TYPES: readonly ArchiveItemType[] = ["folder", "note", "section_group", "section"]
+const ARCHIVE_TYPES: readonly ArchiveItemType[] = ["folder", "note", "section_group", "section", "task"]
 
-// Guards the table name interpolated into the SQL strings: only folders, notes, groups and sections can be archived
+// Guards the table name interpolated into the SQL strings: only folders, notes, groups, sections and tasks can be archived
 function assertArchiveType(itemType: string): asserts itemType is ArchiveItemType {
     if (!(ARCHIVE_TYPES as readonly string[]).includes(itemType))
         throw createError("INVALID_ITEM_TYPE", i18n.t("errors.unsupportedItemType", { type: itemType }))
@@ -19,7 +19,7 @@ function assertArchiveType(itemType: string): asserts itemType is ArchiveItemTyp
  * Archives an item: it (and everything it contains) disappears from the sidebar and the note without going to the trash,
  * and can be brought back with unarchiveDBItem. Only the item itself is marked, its children are hidden through their parent.
  * Archiving an item that is already archived or is in the trash is a no-op.
- * @param itemType "folder", "note", "section_group" or "section" (tasks cannot be archived).
+ * @param itemType "folder", "note", "section_group", "section" or "task" (an archived task takes its subtasks with it).
  * @param itemID ID of the item to archive.
  * @throws A createError('<TYPE>_ARCHIVE_FAILED') error when the query fails, 'INVALID_ITEM_TYPE' for another type.
  * @category Database Queries
@@ -41,7 +41,7 @@ export async function archiveDBItem(itemType: ArchiveItemType, itemID: number) {
  * Brings an item back from the archive together with its archived ancestors (folder chain, note, group), so it never
  * stays hidden by an archived parent. Unarchiving an item that is not archived is a no-op.
  * All the statements run in one transaction: on a name conflict nothing is unarchived.
- * @param itemType "folder", "note", "section_group" or "section".
+ * @param itemType "folder", "note", "section_group", "section" or "task" (a task also brings back its archived parent tasks).
  * @param itemID ID of the item to unarchive.
  * @throws A "<TYPE>_EXISTS" error (message errors.trash.restoreUnique) when a visible item with the same name exists.
  * @category Database Queries
@@ -85,6 +85,7 @@ export async function getDBArchive(workspaceId: number): Promise<ArchiveItem[]> 
     try {
         const db = await getDB()
         const notePrefix = i18n.t("trash.context.note")
+        const sectionPrefix = i18n.t("trash.context.section")
 
         const rows = await db.select<ArchiveRow[]>(
             `WITH RECURSIVE ${LIVE_CTE}
@@ -106,7 +107,14 @@ export async function getDBArchive(workspaceId: number): Promise<ArchiveItem[]> 
              INNER JOIN section_group g ON g.id = s.groupID
              INNER JOIN live_note ln ON ln.id = g.noteID
              WHERE g.deleted_at IS NULL AND s.deleted_at IS NULL AND s.archived_at IS NOT NULL
-             ORDER BY archived_at DESC, kind, id`, [workspaceId, workspaceId, notePrefix])
+             UNION ALL
+             SELECT 'task', 4, t.id, t.text, ? || ln.name || ' › ' || ? || s.title, t.archived_at, 0
+             FROM task t
+             INNER JOIN section s ON s.id = t.sectionID
+             INNER JOIN section_group g ON g.id = s.groupID
+             INNER JOIN live_note ln ON ln.id = g.noteID
+             WHERE g.deleted_at IS NULL AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND t.archived_at IS NOT NULL
+             ORDER BY archived_at DESC, kind, id`, [workspaceId, workspaceId, notePrefix, notePrefix, sectionPrefix])
 
         const counts = await loadTrashCounts(db, workspaceId, new Set<DBItemType>(rows.map(row => row.type)), "archived_at")
 
@@ -145,7 +153,12 @@ export async function getDBArchiveCount(workspaceId: number): Promise<number> {
               + (SELECT COUNT(*) FROM section s
                   INNER JOIN section_group g ON g.id = s.groupID
                   INNER JOIN live_note ln ON ln.id = g.noteID
-                  WHERE g.deleted_at IS NULL AND s.deleted_at IS NULL AND s.archived_at IS NOT NULL) AS total`,
+                  WHERE g.deleted_at IS NULL AND s.deleted_at IS NULL AND s.archived_at IS NOT NULL)
+              + (SELECT COUNT(*) FROM task t
+                  INNER JOIN section s ON s.id = t.sectionID
+                  INNER JOIN section_group g ON g.id = s.groupID
+                  INNER JOIN live_note ln ON ln.id = g.noteID
+                  WHERE g.deleted_at IS NULL AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND t.archived_at IS NOT NULL) AS total`,
             [workspaceId, workspaceId])
         return rows[0]?.total ?? 0
     } catch (error: unknown) {

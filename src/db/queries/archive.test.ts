@@ -80,12 +80,12 @@ describe("archiveDBItem / unarchiveDBItem", () => {
         expect(archivedAt("section_group", 1)).toBeNull()
     })
 
-    it("archives folders, notes, groups and sections, and rejects any other type", async () => {
-        for (const [type, id] of [["folder", 1], ["note", 1], ["section_group", 2], ["section", 2]] as const) {
+    it("archives folders, notes, groups, sections and tasks, and rejects any other type", async () => {
+        for (const [type, id] of [["folder", 1], ["note", 1], ["section_group", 2], ["section", 2], ["task", 1]] as const) {
             await archiveDBItem(type, id)
             expect(archivedAt(type, id), type).not.toBeNull()
         }
-        expect(await thrown(archiveDBItem("task" as ArchiveItemType, 1))).toMatchObject({ code: "INVALID_ITEM_TYPE" })
+        expect(await thrown(archiveDBItem("workspace" as ArchiveItemType, 1))).toMatchObject({ code: "INVALID_ITEM_TYPE" })
         expect(await thrown(unarchiveDBItem("audio_file" as ArchiveItemType, 1))).toMatchObject({ code: "INVALID_ITEM_TYPE" })
         expect(await thrown(archiveDBItem("note; DROP TABLE note" as ArchiveItemType, 1))).toMatchObject({ code: "INVALID_ITEM_TYPE" })
     })
@@ -364,5 +364,67 @@ describe("export and import", () => {
         const base = { format: "easytask-workspace", version: 1, exportedAt: "", workspace: { name: "W", color: null }, notes: [], templates: [] }
         expect(() => validateWorkspaceExport({ ...base, folders: [{ ref: "f1", parentRef: null, name: "F", color: null, position: 0, archived_at: 3 }] }))
             .toThrow()
+    })
+})
+
+describe("archived tasks", () => {
+    it("an archived task disappears from the note with its subtasks, unless asked", async () => {
+        await archiveDBItem("task", 2)
+        // The subtask is still loaded, but its parent is not: the note tree never reaches it
+        expect((await getDBNoteData(1)).tasks.map(t => t.id).sort()).toEqual([1, 3, 4])
+        expect((await getDBNoteData(1, true)).tasks.map(t => t.id).sort()).toEqual([1, 2, 3, 4])
+        expect(archivedAt("task", 3)).toBeNull()
+    })
+
+    it("archiving does not change the edit date and ignores a task in the trash", async () => {
+        sqlite.exec("UPDATE task SET edit_date = '2000-01-01' WHERE id = 1")
+        await archiveDBItem("task", 1)
+        expect(rows("SELECT edit_date FROM task WHERE id = 1")[0].edit_date).toBe("2000-01-01")
+        await deleteDBItem("task", 5)
+        await archiveDBItem("task", 5)
+        expect(archivedAt("task", 5)).toBeNull()
+    })
+
+    it("is listed with the note and section as context, and counted", async () => {
+        await archiveDBItem("task", 2)
+        const items = await getDBArchive(1)
+        expect(items).toHaveLength(1)
+        expect(items[0]).toMatchObject({ type: "task", id: 2, name: "T2" })
+        expect(items[0].context).toMatch(/Root.*B/)
+        expect(items[0].summary).toMatch(/1/)
+        expect(await getDBArchiveCount(1)).toBe(1)
+        expect(await getDBArchive(2)).toEqual([])
+    })
+
+    it("unarchiving a subtask brings back its archived parent too", async () => {
+        sqlite.exec(`UPDATE task SET archived_at = '2024-01-01 00:00:00' WHERE id IN (2, 3);
+            UPDATE section SET archived_at = '2024-01-01 00:00:00' WHERE id = 2`)
+        await unarchiveDBItem("task", 3)
+        expect(archivedAt("task", 2)).toBeNull()
+        expect(archivedAt("task", 3)).toBeNull()
+        expect(archivedAt("section", 2)).toBeNull()
+    })
+
+    it("an archived task moved to the trash comes back archived", async () => {
+        await archiveDBItem("task", 1)
+        await deleteDBItem("task", 1)
+        expect(await getDBArchive(1)).toEqual([])
+        await restoreDBItem("task", 1)
+        expect((await getDBArchive(1)).map(i => i.type)).toEqual(["task"])
+    })
+
+    it("a duplicated section leaves its archived tasks out", async () => {
+        await archiveDBItem("task", 1)
+        const { duplicateDBSection } = await import("./duplicate")
+        const id = await duplicateDBSection(1)
+        expect(rows(`SELECT COUNT(*) AS n FROM task WHERE sectionID = ${id}`)[0].n).toBe(0)
+    })
+
+    it("the export keeps the archive date of a task and the import restores it", async () => {
+        await archiveDBItem("task", 1)
+        const data = await buildDBWorkspaceExport(1)
+        expect(data.notes[0].content.groups[0].sections[0].tasks.map(t => !!t.archived_at)).toEqual([true])
+        const { workspaceId } = await importDBWorkspace(validateWorkspaceExport(JSON.parse(JSON.stringify(data))))
+        expect((await getDBArchive(workspaceId)).map(i => [i.type, i.name])).toEqual([["task", "T1"]])
     })
 })

@@ -1,7 +1,7 @@
 import type { NoteTemplateContent } from "@/types/template"
 import {
-    isAutomationAction, TRIGGER_TYPES,
-    type Automation, type AutomationAction, type AutomationTriggerType,
+    isAutomationAction, isValidRule, TRIGGER_TYPES,
+    type Automation, type AutomationAction, type AutomationTrigger, type AutomationTriggerType,
 } from "./types"
 
 /**
@@ -11,8 +11,13 @@ import {
  */
 export type PortableSectionRef = { group: number, section: number }
 
-/** A trigger of a portable rule: the section is a position in the content (null = any section). */
-export type PortableTrigger = { type: AutomationTriggerType, sectionId: PortableSectionRef | null }
+/**
+ * A trigger of a portable rule: the section is a position in the content (null = any section); the group of
+ * `group.completed` is its index in `content.groups` (null = any group).
+ */
+export type PortableTrigger =
+    | { type: Exclude<AutomationTriggerType, "group.completed">, sectionId: PortableSectionRef | null }
+    | { type: "group.completed", groupId: number | null }
 
 /** An action of a portable rule: a move targets a position in the content. */
 export type PortableAction =
@@ -48,6 +53,21 @@ export function buildSectionIndex(content: NoteTemplateContent, sectionIds: read
 }
 
 /**
+ * Maps the id of every group of a note to its index in `content.groups`.
+ * @param content The note content.
+ * @param groupIds The ids of the source groups, in content order.
+ * @category Automations
+ */
+export function buildGroupIndex(content: NoteTemplateContent, groupIds: readonly number[]): Map<number, number> {
+    const index = new Map<number, number>()
+    content.groups.forEach((_, g) => {
+        const id = groupIds[g]
+        if (id !== undefined) index.set(id, g)
+    })
+    return index
+}
+
+/**
  * The position of every section of a content in the flat list of its sections (content order), as `offsets[group] + section`.
  * @category Automations
  */
@@ -61,20 +81,34 @@ export function sectionOffsets(content: NoteTemplateContent): number[] {
 }
 
 /**
- * The portable version of a rule, or null when it refers to a section that is not in the index
+ * The portable version of a rule, or null when it refers to a section or a group that is not in the index
  * (e.g. an archived section left out of a duplicated content): such a rule cannot be carried over.
  * @param rule The rule of the source note.
  * @param sectionIndex See buildSectionIndex.
+ * @param groupIndex See buildGroupIndex; without it the rules of a group are left out.
  * @category Automations
  */
-export function toPortable(rule: Pick<Automation, "name" | "enabled" | "trigger" | "actions">, sectionIndex: ReadonlyMap<number, PortableSectionRef>): PortableAutomation | null {
+export function toPortable(
+    rule: Pick<Automation, "name" | "enabled" | "trigger" | "actions">,
+    sectionIndex: ReadonlyMap<number, PortableSectionRef>,
+    groupIndex?: ReadonlyMap<number, number>,
+): PortableAutomation | null {
+    const source = rule.trigger
     let trigger: PortableTrigger
-    if (rule.trigger.sectionId === null) {
-        trigger = { type: rule.trigger.type, sectionId: null }
+    if (source.type === "group.completed") {
+        if (source.groupId === null) {
+            trigger = { type: source.type, groupId: null }
+        } else {
+            const index = groupIndex?.get(source.groupId)
+            if (index === undefined) return null
+            trigger = { type: source.type, groupId: index }
+        }
+    } else if (source.sectionId === null) {
+        trigger = { type: source.type, sectionId: null }
     } else {
-        const ref = sectionIndex.get(rule.trigger.sectionId)
+        const ref = sectionIndex.get(source.sectionId)
         if (!ref) return null
-        trigger = { type: rule.trigger.type, sectionId: { ...ref } }
+        trigger = { type: source.type, sectionId: { ...ref } }
     }
 
     const actions: PortableAction[] = []
@@ -109,16 +143,20 @@ export function isPortableAutomation(value: unknown, content: NoteTemplateConten
     if (!(name === null || typeof name === "string") || typeof enabled !== "boolean") return false
 
     if (typeof trigger !== "object" || trigger === null) return false
-    const { type, sectionId } = trigger as { type?: unknown, sectionId?: unknown }
+    const { type, sectionId, groupId } = trigger as { type?: unknown, sectionId?: unknown, groupId?: unknown }
     if (!TRIGGER_TYPES.includes(type as AutomationTriggerType)) return false
-    if (sectionId === null ? type === "task.movedInto" : !isSectionInContent(sectionId, content)) return false
+    if (type === "group.completed") {
+        if (!(groupId === null || (isIndex(groupId) && groupId < content.groups.length))) return false
+    } else if (sectionId === null ? type === "task.movedInto" : !isSectionInContent(sectionId, content)) return false
 
     if (!Array.isArray(actions)) return false
-    return actions.every(action => {
+    const allowed = actions.every(action => {
         if (typeof action === "object" && action !== null && (action as { type?: unknown }).type === "moveTo") {
             const { sectionId: target, at } = action as { sectionId?: unknown, at?: unknown }
             return isSectionInContent(target, content) && (at === "top" || at === "bottom")
         }
         return isAutomationAction(action)
     })
+    // The group index of a portable trigger is not an id, but the type is all that isValidRule looks at
+    return allowed && isValidRule({ type } as AutomationTrigger, actions as AutomationAction[])
 }

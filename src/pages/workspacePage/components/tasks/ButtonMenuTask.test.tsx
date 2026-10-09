@@ -13,8 +13,14 @@ const updateItemColor = vi.fn()
 const patchTask = vi.fn()
 const removeTask = vi.fn()
 const rollback = vi.fn()
+const archiveItem = vi.fn()
+const archive = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({
-    useWorkspaceActions: () => ({ updateTaskPriority, updateTaskDescription, updateItemColor }),
+    useWorkspaceActions: () => ({ updateTaskPriority, updateTaskDescription, updateItemColor, archiveItem }),
+}))
+// Only the archive step is observed: every other recorder method is a no-op
+vi.mock("@/contexts/undo/use-undo", () => ({
+    useUndoRecorder: () => new Proxy({ archive }, { get: (target, key) => (target as Record<string | symbol, unknown>)[key] ?? (() => undefined) }),
 }))
 const selectTask = vi.fn()
 vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => 9, useSelectTask: () => selectTask }))
@@ -45,6 +51,8 @@ beforeEach(() => {
     updateTaskDescription.mockResolvedValue(undefined)
     updateItemColor.mockResolvedValue(undefined)
     patchTask.mockReturnValue(rollback)
+    archiveItem.mockResolvedValue(undefined)
+    removeTask.mockReturnValue(rollback)
 })
 
 describe("ButtonMenuTask optimistic updates", () => {
@@ -75,6 +83,24 @@ describe("ButtonMenuTask optimistic updates", () => {
         await openMenu(makeTask({ id: 5 }))
         await user.click(await screen.findByRole("menuitem", { name: "Mostra dettagli" }))
         expect(selectTask).toHaveBeenCalledWith(5)
+    })
+
+    it("removes the task from the note, archives it and records the undo step", async () => {
+        const user = userEvent.setup()
+        await openMenu(makeTask({ id: 5, text: "Scrivere" }))
+        await user.click(await screen.findByRole("menuitem", { name: "Archivia" }))
+        await waitFor(() => expect(archive).toHaveBeenCalledWith("task", 5, "Scrivere"))
+        expect(removeTask).toHaveBeenCalledWith(5)
+        expect(archiveItem).toHaveBeenCalledWith("task", 5)
+    })
+
+    it("puts the task back when the archive fails", async () => {
+        const user = userEvent.setup()
+        archiveItem.mockRejectedValueOnce(new Error("boom"))
+        await openMenu(makeTask({ id: 5 }))
+        await user.click(await screen.findByRole("menuitem", { name: "Archivia" }))
+        await waitFor(() => expect(rollback).toHaveBeenCalledTimes(1))
+        expect(archive).not.toHaveBeenCalled()
     })
 
     it("toggles the priority optimistically and keeps it on success", async () => {

@@ -17,8 +17,8 @@ import { buildNoteTree } from "@/contexts/tree-builders"
 import { PALETTE_COLORS } from "@/lib/colors"
 import { actionLabel, automationName, describeAutomation, triggerLabel } from "@/lib/automations/describe"
 import {
-    ACTION_TYPES, TRIGGER_TYPES, referencedSections,
-    type Automation, type AutomationAction, type AutomationActionType, type AutomationDraft, type AutomationTrigger, type AutomationTriggerType,
+    ACTIONS_BY_SUBJECT, TRIGGER_TYPES, isValidRule, referencedGroups, referencedSections, triggerSubject,
+    type AutomationSubject, type Automation, type AutomationAction, type AutomationActionType, type AutomationDraft, type AutomationTrigger, type AutomationTriggerType,
 } from "@/lib/automations/types"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { cn, getErrorMessage } from "@/lib/utils"
@@ -32,6 +32,8 @@ type DialogAutomationsProps = {
     onOpenChange: (open: boolean) => void
     /** Opened from a section: a new rule starts on it. */
     sectionId?: number
+    /** Opened from a group: a new rule starts on it ("all its tasks are completed, archive it"). */
+    groupId?: number
 }
 
 type DialogData = { rules: Automation[], groups: GroupOption[] }
@@ -41,8 +43,9 @@ const STEPS = ["when", "then", "summary"] as const
 type Step = 0 | 1 | 2
 const LAST_STEP: Step = 2
 
-/** Whether the data of a step is complete (only the actions can be missing: the trigger always has a valid section). */
-const stepValid = (step: number, draft: AutomationDraft) => step !== 1 || draft.actions.length > 0
+/** Whether the data of a step is complete (only the actions can be wrong: the trigger always has a valid section or group). */
+const stepValid = (step: number, draft: AutomationDraft) =>
+    step !== 1 || (draft.actions.length > 0 && isValidRule(draft.trigger, draft.actions))
 /** A step can be reached when all the steps before it are valid. */
 const stepReachable = (step: number, draft: AutomationDraft) => STEPS.slice(0, step).every((_, index) => stepValid(index, draft))
 
@@ -65,11 +68,19 @@ function defaultAction(type: AutomationActionType, sections: SectionOption[], av
         case "setCompleted":
         case "setPriority": return { type, value: true }
         case "setColor": return { type, color: PALETTE_COLORS[0] }
-        case "completeSubtasks": return { type }
+        case "completeSubtasks":
+        case "archiveGroup": return { type }
+        case "moveGroup": return { type, at: "bottom" }
     }
 }
 
+/** The actions a new rule of this subject starts with. */
+const defaultActions = (subject: AutomationSubject, sections: SectionOption[], avoid: number | null): AutomationAction[] =>
+    [subject === "group" ? { type: "archiveGroup" } : defaultAction("moveTo", sections, avoid)]
+
+/** The trigger of a type, keeping the section of the previous task trigger (a group trigger starts on any group). */
 function defaultTrigger(type: AutomationTriggerType, sectionId: number | null, sections: SectionOption[]): AutomationTrigger {
+    if (type === "group.completed") return { type, groupId: null }
     if (type === "task.movedInto") return { type, sectionId: sectionId ?? sections[0].id }
     return { type, sectionId }
 }
@@ -79,7 +90,7 @@ function defaultTrigger(type: AutomationTriggerType, sectionId: number | null, s
  * The rules are read and written directly in the database: the next task action of the note uses them.
  * @category Dialogs
  */
-export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: DialogAutomationsProps) => {
+export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, groupId }: DialogAutomationsProps) => {
     const { t } = useTranslation()
     const [rules, setRules] = useState<Automation[]>([])
     const [groups, setGroups] = useState<GroupOption[]>([])
@@ -94,6 +105,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
 
     const sections = useMemo(() => groups.flatMap(group => group.sections), [groups])
     const titleOf = useCallback((id: number) => sections.find(section => section.id === id)?.title, [sections])
+    const groupLabelOf = useCallback((id: number) => groups.find(group => group.id === id)?.label, [groups])
 
     const apply = useCallback((data: DialogData) => {
         setRules(data.rules)
@@ -118,8 +130,11 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
     const dirty = editing !== null && JSON.stringify(editing.draft) !== editing.initial
 
     const startNew = () => {
-        const trigger: AutomationTrigger = { type: "task.completed", sectionId: sectionId ?? null }
-        openEditor(null, { name: null, enabled: true, trigger, actions: [defaultAction("moveTo", sections, trigger.sectionId)] })
+        const trigger: AutomationTrigger = groupId !== undefined
+            ? { type: "group.completed", groupId }
+            : { type: "task.completed", sectionId: sectionId ?? null }
+        const avoid = trigger.type === "group.completed" ? null : trigger.sectionId
+        openEditor(null, { name: null, enabled: true, trigger, actions: defaultActions(triggerSubject(trigger.type), sections, avoid) })
     }
 
     const goTo = (step: Step) => {
@@ -134,6 +149,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
             setError(t("automations.errors.noActions"))
             return
         }
+        if (!stepValid(1, editing.draft)) return
         try {
             if (editing.id === null) await createDBAutomation(noteId, editing.draft)
             else await updateDBAutomation(editing.id, editing.draft)
@@ -216,6 +232,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                                     groups={groups}
                                     sections={sections}
                                     titleOf={titleOf}
+                                    groupLabelOf={groupLabelOf}
                                     onChange={draft => { setError(null); setEditing({ ...editing, draft }) }}
                                 />
                             </div>
@@ -227,34 +244,35 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                     ) : (
                         <ul className="flex flex-col divide-y border rounded-xs max-h-[50vh] overflow-y-auto">
                             {rules.map(rule => {
-                                const paused = referencedSections(rule).some(id => titleOf(id) === undefined)
+                                const pausedKey = referencedGroups(rule).some(id => groupLabelOf(id) === undefined) ? "automations.pausedGroup"
+                                    : referencedSections(rule).some(id => titleOf(id) === undefined) ? "automations.paused" : null
                                 return (
                                     <li key={rule.id} className="flex items-center gap-3 px-3 py-2">
                                         <Switch
                                             checked={rule.enabled}
                                             onCheckedChange={checked => void toggle(rule, checked)}
-                                            aria-label={t("automations.enabledAria", { name: automationName(rule, titleOf) })}
+                                            aria-label={t("automations.enabledAria", { name: automationName(rule, titleOf, groupLabelOf) })}
                                         />
                                         <div className="flex flex-col min-w-0 flex-1">
                                             {rule.name && <span className="text-sm font-medium truncate">{rule.name}</span>}
                                             <span className={cn("break-words", rule.name ? "text-xs text-muted-foreground" : "text-sm")}>
-                                                {describeAutomation(rule, titleOf)}
+                                                {describeAutomation(rule, titleOf, groupLabelOf)}
                                             </span>
-                                            {paused && (
+                                            {pausedKey && (
                                                 <span className="flex items-start gap-1 text-xs text-destructive break-words">
                                                     <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
-                                                    {t("automations.paused")}
+                                                    {t(pausedKey)}
                                                 </span>
                                             )}
                                         </div>
                                         <TooltipCustom text={t("automations.edit")}>
-                                            <Button variant="ghost" size="icon" aria-label={t("automations.editAria", { name: automationName(rule, titleOf) })}
+                                            <Button variant="ghost" size="icon" aria-label={t("automations.editAria", { name: automationName(rule, titleOf, groupLabelOf) })}
                                                 onClick={() => openEditor(rule.id, { name: rule.name, enabled: rule.enabled, trigger: rule.trigger, actions: rule.actions })}>
                                                 <Pencil />
                                             </Button>
                                         </TooltipCustom>
                                         <TooltipCustom text={t("automations.delete")}>
-                                            <Button variant="destructive" size="icon" aria-label={t("automations.deleteAria", { name: automationName(rule, titleOf) })}
+                                            <Button variant="destructive" size="icon" aria-label={t("automations.deleteAria", { name: automationName(rule, titleOf, groupLabelOf) })}
                                                 onClick={() => setDeleting(rule)}>
                                                 <Trash2 />
                                             </Button>
@@ -319,7 +337,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId }: D
                 open={deleting !== null}
                 onOpenChange={open => { if (!open) setDeleting(null) }}
                 title={t("automations.deleteConfirm.title")}
-                description={deleting ? automationName(deleting, titleOf) : undefined}
+                description={deleting ? automationName(deleting, titleOf, groupLabelOf) : undefined}
                 destructive
                 confirm={{ label: t("common.delete"), icon: Trash2, onClick: () => { if (deleting) return remove(deleting) } }}
             />
@@ -362,6 +380,7 @@ type AutomationEditorProps = {
     groups: GroupOption[]
     sections: SectionOption[]
     titleOf: (id: number) => string | undefined
+    groupLabelOf: (id: number) => string | undefined
     onChange: (draft: AutomationDraft) => void
 }
 
@@ -393,6 +412,24 @@ const SectionSelect = ({ value, groups, sections, onChange, allowAny, label, cla
     )
 }
 
+/** A select whose value is a group of the note ("any group" = null); a missing group is shown as such. */
+const GroupSelect = ({ value, groups, onChange, label }: {
+    value: number | null, groups: GroupOption[], onChange: (id: number | null) => void, label: string,
+}) => {
+    const { t } = useTranslation()
+    const missing = value !== null && !groups.some(group => group.id === value)
+    return (
+        <Select value={value === null ? ANY : String(value)} onValueChange={next => onChange(next === ANY ? null : Number(next))}>
+            <SelectTrigger aria-label={label} className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>
+                <SelectItem value={ANY}>{t("automations.anyGroup")}</SelectItem>
+                {missing && <SelectItem value={String(value)}>{t("automations.describe.missingGroup")}</SelectItem>}
+                {groups.map(group => <SelectItem key={group.id} value={String(group.id)}>{group.label}</SelectItem>)}
+            </SelectContent>
+        </Select>
+    )
+}
+
 /** A select of fixed choices (label = translated text). */
 function ChoiceSelect<T extends string>({ value, options, onChange, label, className }: {
     value: T, options: readonly { value: T, label: string }[], onChange: (value: T) => void, label: string, className?: string,
@@ -418,12 +455,15 @@ function colorName(color: string): string {
     return i18n.t(index >= 0 ? (`common.colors.c${index + 1}` as "common.colors.c1") : "common.colors.custom")
 }
 
-const AutomationEditor = ({ step, draft, groups, sections, titleOf, onChange }: AutomationEditorProps) => {
+const AutomationEditor = ({ step, draft, groups, sections, titleOf, groupLabelOf, onChange }: AutomationEditorProps) => {
     const { t } = useTranslation()
     const nameId = useId()
     const enabledId = useId()
     const container = useRef<HTMLDivElement>(null)
     const { trigger, actions } = draft
+    const subject = triggerSubject(trigger.type)
+    // The section of the trigger: a group trigger has none
+    const triggerSection = trigger.type === "group.completed" ? null : trigger.sectionId
 
     // Every step starts with the focus on its first control
     useEffect(() => {
@@ -441,15 +481,29 @@ const AutomationEditor = ({ step, draft, groups, sections, titleOf, onChange }: 
                     <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
                         <ChoiceSelect label={t("automations.when")} value={trigger.type}
                             options={TRIGGER_TYPES.map(type => ({ value: type, label: triggerLabel(type) }))}
-                            onChange={type => onChange({ ...draft, trigger: defaultTrigger(type, trigger.sectionId, sections) })} />
-                        <SectionSelect
-                            label={t("automations.where")}
-                            value={trigger.sectionId}
-                            groups={groups}
-                            sections={sections}
-                            allowAny={trigger.type !== "task.movedInto"}
-                            onChange={id => onChange({ ...draft, trigger: defaultTrigger(trigger.type, id, sections) })}
-                        />
+                            onChange={type => {
+                                const next = defaultTrigger(type, triggerSection, sections)
+                                // Another subject: the actions of the old one no longer apply
+                                if (triggerSubject(type) === subject) onChange({ ...draft, trigger: next })
+                                else onChange({ ...draft, trigger: next, actions: defaultActions(triggerSubject(type), sections, null) })
+                            }} />
+                        {trigger.type === "group.completed" ? (
+                            <GroupSelect
+                                label={t("automations.group")}
+                                value={trigger.groupId}
+                                groups={groups}
+                                onChange={id => onChange({ ...draft, trigger: { type: trigger.type, groupId: id } })}
+                            />
+                        ) : (
+                            <SectionSelect
+                                label={t("automations.where")}
+                                value={trigger.sectionId}
+                                groups={groups}
+                                sections={sections}
+                                allowAny={trigger.type !== "task.movedInto"}
+                                onChange={id => onChange({ ...draft, trigger: defaultTrigger(trigger.type, id, sections) })}
+                            />
+                        )}
                     </div>
                 </fieldset>
             )}
@@ -463,8 +517,8 @@ const AutomationEditor = ({ step, draft, groups, sections, titleOf, onChange }: 
                         <div key={index} className="grid gap-2 rounded-xs border p-2">
                             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                                 <ChoiceSelect label={t("automations.actionType")} value={action.type}
-                                    options={ACTION_TYPES.map(type => ({ value: type, label: actionLabel(type) }))}
-                                    onChange={type => setAction(index, defaultAction(type, sections, trigger.sectionId))} />
+                                    options={ACTIONS_BY_SUBJECT[subject].map(type => ({ value: type, label: actionLabel(type) }))}
+                                    onChange={type => setAction(index, defaultAction(type, sections, triggerSection))} />
                                 <TooltipCustom text={t("automations.removeAction")}>
                                     <Button variant="ghost" size="icon" aria-label={t("automations.removeAction")}
                                         onClick={() => onChange({ ...draft, actions: actions.filter((_, i) => i !== index) })}>
@@ -476,7 +530,7 @@ const AutomationEditor = ({ step, draft, groups, sections, titleOf, onChange }: 
                         </div>
                     ))}
                     <Button variant="outline" size="sm" type="button" className="justify-self-start"
-                        onClick={() => onChange({ ...draft, actions: [...actions, defaultAction("setPriority", sections, trigger.sectionId)] })}>
+                        onClick={() => onChange({ ...draft, actions: [...actions, defaultAction(subject === "group" ? "setColor" : "setPriority", sections, triggerSection)] })}>
                         <Plus />
                         {t("automations.addAction")}
                     </Button>
@@ -487,7 +541,7 @@ const AutomationEditor = ({ step, draft, groups, sections, titleOf, onChange }: 
                 <>
                     <div className="grid gap-2">
                         <span className="text-sm font-medium">{t("automations.summaryTitle")}</span>
-                        <p className="rounded-xs border bg-muted/40 p-3 text-sm break-words">{describeAutomation(draft, titleOf)}</p>
+                        <p className="rounded-xs border bg-muted/40 p-3 text-sm break-words">{describeAutomation(draft, titleOf, groupLabelOf)}</p>
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor={nameId}>{t("automations.name")}</Label>
@@ -546,7 +600,14 @@ const ActionParams = ({ action, groups, sections, onChange }: {
                 </Select>
             )
         }
+        case "moveGroup":
+            return (
+                <ChoiceSelect label={label} value={action.at}
+                    options={[{ value: "top", label: t("automations.values.top") }, { value: "bottom", label: t("automations.values.bottom") }]}
+                    onChange={at => onChange({ ...action, at })} />
+            )
         case "completeSubtasks":
+        case "archiveGroup":
             return null
     }
 }

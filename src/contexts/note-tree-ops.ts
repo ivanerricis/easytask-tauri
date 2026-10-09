@@ -243,6 +243,16 @@ function mapSectionGroup(tree: NoteDataTree, sectionId: number, change: (section
 /* ------------------------------------------------------------------------------------ */
 // Move
 
+/** Groups with the given one moved to `index`, positions renumbered from 0. Null when the group is unknown. */
+export function moveGroupInList(groups: Group[], groupId: number, index: number): Group[] | null {
+    const items = [...groups].sort((a, b) => a.position - b.position)
+    const from = items.findIndex(group => group.id === groupId)
+    if (from < 0) return null
+    const [moved] = items.splice(from, 1)
+    items.splice(index, 0, moved)
+    return items.map((group, position) => ({ ...group, position }))
+}
+
 /**
  * Moves a section to a group at `index` among the destination sections (counted without the section itself,
  * like the database move). Same tree when the section or the group does not exist.

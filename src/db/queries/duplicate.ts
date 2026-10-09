@@ -53,7 +53,7 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
         name = uniqueCopyName(source.name, new Set(siblings.map(row => row.name)))
         const built = await buildContentWithSectionIds(noteId)
         content = built.content
-        automations = await getDBPortableAutomations(noteId, content, built.sectionIds)
+        automations = await getDBPortableAutomations(noteId, content, built.sectionIds, built.groupIds)
     } catch (error: unknown) {
         if (isAppError(error)) throw error
         throw createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.load", { message: getErrorMessage(error) }))
@@ -66,8 +66,8 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
     const note = tx.add(
         'INSERT INTO note (workspaceID, folderID, name, color, position) VALUES (?, ?, ?, ?, ?)',
         [source.workspaceID, source.folderID, name, source.color, source.position + 1])
-    const { sections } = addNoteContent(tx, tx.idOf(note), content)
-    addNoteAutomations(tx, tx.idOf(note), automations, content, sections)
+    const { groups, sections } = addNoteContent(tx, tx.idOf(note), content)
+    addNoteAutomations(tx, tx.idOf(note), automations, content, sections, groups)
 
     try {
         const results = await tx.run()
@@ -103,7 +103,7 @@ export async function duplicateDBSection(sectionId: number): Promise<number> {
             'SELECT title FROM section WHERE groupID = ? AND deleted_at IS NULL', [source.groupID])
         title = uniqueCopyName(source.title, new Set(siblings.map(row => row.title)))
         const tasks = await db.select<Task[]>(
-            'SELECT * FROM task WHERE sectionID = ? AND deleted_at IS NULL ORDER BY position, id', [sectionId])
+            'SELECT * FROM task WHERE sectionID = ? AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, id', [sectionId])
         snapshot = createSectionSnapshotter(tasks)(source)
     } catch (error: unknown) {
         if (isAppError(error)) throw error

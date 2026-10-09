@@ -18,7 +18,7 @@ import { getErrorMessage } from "@/lib/utils"
 import type { ArchiveItem, ArchiveItemType } from "@/types/types"
 
 /** The kinds of items that can be archived, in the order of the tabs. */
-const TYPES: ArchiveItemType[] = ["folder", "note", "section_group", "section"]
+const TYPES: ArchiveItemType[] = ["folder", "note", "section_group", "section", "task"]
 
 // Second line of a row: where it was, what it contained and when it was archived
 const details = (item: ArchiveItem) =>
@@ -29,7 +29,7 @@ type DialogArchiveProps = {
     onOpenChange: (open: boolean) => void
 }
 
-/** Archive of the current workspace: one tab per type of item (folders, notes, groups, sections) with restore and move to the trash. */
+/** Archive of the current workspace: one tab per type of item (folders, notes, groups, sections, tasks) with restore and move to the trash. */
 export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
@@ -76,7 +76,7 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
     }, [isOpen, reload])
     const isLoading = isOpen && !loaded
 
-    // Folders and notes live in the sidebar tree, groups and sections in the open note
+    // Folders and notes live in the sidebar tree, groups, sections and tasks in the open note
     const refresh = async () => {
         if (workspaceID === undefined) return
         await getWorkspaceData(workspaceID)

@@ -1,8 +1,8 @@
 import i18n from "@/i18n"
 import { createError } from "@/types/error"
 import { getErrorMessage } from "@/lib/utils"
-import { isAutomationAction, isAutomationTrigger, type Automation, type AutomationDraft } from "@/lib/automations/types"
-import { buildSectionIndex, sectionOffsets, toPortable, type PortableAutomation } from "@/lib/automations/portable"
+import { isAutomationAction, isAutomationTrigger, isValidRule, type Automation, type AutomationDraft } from "@/lib/automations/types"
+import { buildGroupIndex, buildSectionIndex, sectionOffsets, toPortable, type PortableAutomation } from "@/lib/automations/portable"
 import type { NoteTemplateContent } from "@/types/template"
 import { getDB } from "../dbManager"
 import { runTransaction, type Transaction, type TxRef, type TxStatement } from "../transaction"
@@ -29,7 +29,7 @@ const parse = (text: string): unknown => {
 function toAutomation(row: AutomationRow): Automation | null {
     const trigger = parse(row.trigger)
     const actions = parse(row.actions)
-    if (!isAutomationTrigger(trigger) || !Array.isArray(actions) || !actions.every(isAutomationAction)) return null
+    if (!isAutomationTrigger(trigger) || !Array.isArray(actions) || !actions.every(isAutomationAction) || !isValidRule(trigger, actions)) return null
     return {
         id: row.id, noteId: row.noteID, name: row.name?.trim() || null, enabled: !!row.enabled,
         trigger, actions, position: row.position,
@@ -57,34 +57,39 @@ export async function getDBAutomations(noteId: number): Promise<Automation[]> {
 }
 
 /**
- * The rules of a note in their portable form (sections by position in `content`), for a copy or an export. A rule that
- * refers to a section that is not in the content is left out.
+ * The rules of a note in their portable form (sections and groups by position in `content`), for a copy or an export. A
+ * rule that refers to a section or a group that is not in the content is left out.
  * @param noteId The note.
  * @param content The content that will be copied or exported.
  * @param sectionIds The ids of the sections of `content`, in content order (see buildContentWithSectionIds).
+ * @param groupIds The ids of the groups of `content`, in content order (see buildContentWithSectionIds).
  * @category Database Queries
  */
-export async function getDBPortableAutomations(noteId: number, content: NoteTemplateContent, sectionIds: readonly number[]): Promise<PortableAutomation[]> {
+export async function getDBPortableAutomations(
+    noteId: number, content: NoteTemplateContent, sectionIds: readonly number[], groupIds: readonly number[],
+): Promise<PortableAutomation[]> {
     const index = buildSectionIndex(content, sectionIds)
+    const groupIndex = buildGroupIndex(content, groupIds)
     return (await getDBAutomations(noteId))
-        .map(rule => toPortable(rule, index))
+        .map(rule => toPortable(rule, index, groupIndex))
         .filter(rule => rule !== null)
 }
 
 /**
- * Adds to a transaction the statements that insert portable rules into a note, with their sections remapped to the
- * sections created in the same transaction (the section ids are written by SQLite with json_set, so they are known
- * only when the transaction runs). The rules keep their order.
+ * Adds to a transaction the statements that insert portable rules into a note, with their sections and groups remapped
+ * to the ones created in the same transaction (the ids are written by SQLite with json_set, so they are known only
+ * when the transaction runs). The rules keep their order.
  * @param tx The transaction collecting the statements.
  * @param noteRef The note: its id or a reference to the statement that creates it.
  * @param rules The rules, valid for `content` (see isPortableAutomation).
  * @param content The content inserted in the note.
  * @param sectionRefs References to the created sections in content order (see addNoteContent).
+ * @param groupRefs References to the created groups in content order (see addNoteContent).
  * @category Database Queries
  */
 export function addNoteAutomations(
     tx: Transaction, noteRef: number | TxRef, rules: readonly PortableAutomation[],
-    content: NoteTemplateContent, sectionRefs: readonly TxRef[],
+    content: NoteTemplateContent, sectionRefs: readonly TxRef[], groupRefs: readonly TxRef[],
 ) {
     const offsets = sectionOffsets(content)
     const refOf = ({ group, section }: { group: number, section: number }) => sectionRefs[offsets[group] + section]
@@ -95,10 +100,18 @@ export function addNoteAutomations(
         const params: unknown[] = [noteRef, rule.name?.trim() || null, rule.enabled ? 1 : 0]
 
         let triggerSql = "?"
-        if (rule.trigger.sectionId === null) {
-            params.push(JSON.stringify(rule.trigger))
+        const { trigger } = rule
+        if (trigger.type === "group.completed") {
+            if (trigger.groupId === null) {
+                params.push(JSON.stringify(trigger))
+            } else {
+                params.push(JSON.stringify({ ...trigger, groupId: PLACEHOLDER }), groupRefs[trigger.groupId])
+                triggerSql = "json_set(?, '$.groupId', CAST(? AS INTEGER))"
+            }
+        } else if (trigger.sectionId === null) {
+            params.push(JSON.stringify(trigger))
         } else {
-            params.push(JSON.stringify({ ...rule.trigger, sectionId: PLACEHOLDER }), refOf(rule.trigger.sectionId))
+            params.push(JSON.stringify({ ...trigger, sectionId: PLACEHOLDER }), refOf(trigger.sectionId))
             triggerSql = "json_set(?, '$.sectionId', CAST(? AS INTEGER))"
         }
 
@@ -179,10 +192,11 @@ export async function deleteDBAutomation(id: number): Promise<void> {
 }
 
 /**
- * Writes the task changes computed for an automation (see diffTaskStatements) in one transaction.
+ * Writes the task and group changes computed for an automation (see diffGroupStatements and diffTaskStatements) in one
+ * transaction, in the given order.
  * @category Database Queries
  */
-export async function applyDBTaskChanges(statements: TxStatement[]): Promise<void> {
+export async function applyDBAutomationChanges(statements: TxStatement[]): Promise<void> {
     try {
         await runTransaction(statements)
     } catch (error: unknown) {

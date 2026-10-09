@@ -8,9 +8,9 @@ import { getErrorMessage } from "@/lib/utils";
 /**
  * Retrieves the data for a specific note from the database.
  * @param noteId The ID of the note for which to retrieve data.
- * Soft deleted groups, sections and tasks are excluded, and so are the archived groups and sections (with their tasks)
+ * Soft deleted groups, sections and tasks are excluded, and so are the archived groups, sections and tasks (with what they contain)
  * unless `includeArchived` is set (used by the export, which keeps them). Groups, sections and tasks are ordered by position (then id).
- * @param includeArchived Keeps the archived groups and sections (default false).
+ * @param includeArchived Keeps the archived groups, sections and tasks (default false).
  * @returns The note data, including groups, sections, and tasks.
  * @throws A createError('NOTE_DATA_LOAD_FAILED') error when the query fails.
  * @category Database
@@ -26,7 +26,7 @@ export async function getDBNoteData(noteId: number, includeArchived = false) {
             SELECT id FROM section_group WHERE noteID=? AND deleted_at IS NULL${gA})
             ORDER BY position, id`, [noteId])
         const tasks = await db.select<Task[]>(`
-            SELECT * FROM task WHERE deleted_at IS NULL AND sectionID IN (
+            SELECT * FROM task WHERE deleted_at IS NULL${gA} AND sectionID IN (
             SELECT id FROM section WHERE deleted_at IS NULL${gA} AND groupID IN (
             SELECT id FROM section_group WHERE noteID=? AND deleted_at IS NULL${gA}))
             ORDER BY position, id`, [noteId]);

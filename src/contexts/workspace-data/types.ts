@@ -47,6 +47,12 @@ export type WorkspaceActionsType = {
     /** Replaces the workspace tree (and the flat folders/notes derived from it) without reloading (optimistic updates). */
     setWorkspaceDataTree: (tree: WorkspaceDataTree) => void
 
+    /**
+     * Tells that the archive changed outside the archive actions (e.g. an automation archived a group): bumps archiveVersion
+     * and audioVersion, so the archive badge and the audio lists reload.
+     */
+    notifyArchiveChanged: () => void
+
     /** The creations of folders and notes resolve with the id of the new row (null when the database did not return it). */
     createWorkspaceFolder: (workspaceID: number, name: string, color?: string) => Promise<number | null>
     createWorkspaceNote: (workspaceID: number, name: string, color?: string) => Promise<number | null>
@@ -87,7 +93,7 @@ export type WorkspaceActionsType = {
     /**
      * Archives a folder, note, group or section: hidden from the sidebar / the open note without going to the trash. A folder
      * or a note is removed from the tree optimistically; for a group or a section the caller removes it from the open note
-     * (`withRollback(removeGroup(id) | removeSection(id), () => archiveItem(type, id))`, see note-optimistic).
+     * (`withRollback(removeGroup(id) | removeSection(id) | removeTask(id), () => archiveItem(type, id))`, see note-optimistic).
      */
     archiveItem: (itemType: ArchiveItemType, itemID: number) => Promise<void>
     /** Unarchives an item and its archived ancestors. Does not reload: the caller reloads the tree or the note, like after restoreItem. */

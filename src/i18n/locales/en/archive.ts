@@ -64,6 +64,7 @@ export const archive: Translation["archive"] = {
         note: "Notes",
         section_group: "Groups",
         section: "Sections",
+        task: "Tasks",
     },
     archivedOn: "Archived on {{date}}",
     isEmpty: "The archive is empty",

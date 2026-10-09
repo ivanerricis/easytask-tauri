@@ -122,7 +122,7 @@ export async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, wor
 
     await load("task",
         `WITH RECURSIVE tree(root, id) AS (
-            SELECT id, id FROM task WHERE deleted_at IS NOT NULL AND sectionID IN (${WORKSPACE_SECTIONS})
+            SELECT id, id FROM task WHERE ${root("task")} AND sectionID IN (${WORKSPACE_SECTIONS})
             UNION ALL
             SELECT tree.root, t.id FROM task t INNER JOIN tree ON t.taskID = tree.id WHERE t.deleted_at IS NULL)
          SELECT root AS id, COUNT(*) - 1 AS tasks FROM tree GROUP BY root`, [workspaceId])

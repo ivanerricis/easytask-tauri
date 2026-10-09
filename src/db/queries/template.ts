@@ -52,6 +52,7 @@ export function createSectionSnapshotter(tasks: Task[]): (section: Pick<Section,
     }
 
     const snapshotTask = (task: Task): TemplateTask => ({
+        ...(task.archived_at ? { archived_at: task.archived_at } : {}),
         text: task.text,
         description: task.description ?? null,
         completed: !!task.completed,
@@ -83,12 +84,15 @@ export async function buildContent(noteId: number, includeArchived = false): Pro
 
 /**
  * Like buildContent, and also returns the ids of the source sections in content order (the groups first, then the
- * sections of each group): the position `i` of a section in the content is `sectionIds[i]`.
+ * sections of each group): the position `i` of a section in the content is `sectionIds[i]`. `groupIds` has the ids of
+ * the source groups in content order.
  * @param noteId The ID of the note.
  * @param includeArchived Keeps the archived groups and sections (default false).
  * @category Database Queries
  */
-export async function buildContentWithSectionIds(noteId: number, includeArchived = false): Promise<{ content: NoteTemplateContent, sectionIds: number[] }> {
+export async function buildContentWithSectionIds(
+    noteId: number, includeArchived = false,
+): Promise<{ content: NoteTemplateContent, sectionIds: number[], groupIds: number[] }> {
     const { groups, sections, tasks } = await getDBNoteData(noteId, includeArchived)
     const snapshotSection = createSectionSnapshotter(tasks)
     const sectionsOf = (group: Group) => sections.filter(section => section.groupID === group.id)
@@ -105,6 +109,7 @@ export async function buildContentWithSectionIds(noteId: number, includeArchived
             })),
         },
         sectionIds: groups.flatMap(group => sectionsOf(group).map(section => section.id)),
+        groupIds: groups.map(group => group.id),
     }
 }
 
@@ -251,10 +256,10 @@ export function addSections(tx: Transaction, sources: { groupRef: number | TxRef
         section.tasks.map(task => ({ sectionRef: sectionRefs[i], parentRef: null, task })))
     while (level.length > 0) {
         const refs = tx.insertRows("task",
-            ["sectionID", "taskID", "text", "description", "completed", "priority", "color", "position"],
+            ["sectionID", "taskID", "text", "description", "completed", "priority", "color", "archived_at", "position"],
             level.map(({ sectionRef, parentRef, task }) => [
                 sectionRef, parentRef, task.text, task.description ?? null, task.completed ? 1 : 0,
-                task.priority ? 1 : 0, task.color ?? null, task.position,
+                task.priority ? 1 : 0, task.color ?? null, task.archived_at || null, task.position,
             ]))
         level = level.flatMap(({ sectionRef, task }, i) =>
             task.subtasks.map(subtask => ({ sectionRef, parentRef: refs[i], task: subtask })))

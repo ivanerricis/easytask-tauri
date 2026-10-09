@@ -21,9 +21,9 @@ export function useArchiveActions({ tabsBridge, withLoading, withArchiveChange, 
      * A folder or a note is removed from the sidebar tree at once and put back if the write fails; the tabs of archived
      * notes (or of notes inside an archived folder) are closed by the tabs module as the tree changes (and reopened if the
      * write fails). Archiving a folder clears the current folder if it was affected.
-     * Groups and sections are removed from the open note by the caller, like for a deletion: wrap the call in
-     * `withRollback(removeGroup(id) | removeSection(id), () => archiveItem(type, id))` (see note-optimistic).
-     * @param itemType - "folder", "note", "section_group" or "section".
+     * Groups, sections and tasks are removed from the open note by the caller, like for a deletion: wrap the call in
+     * `withRollback(removeGroup(id) | removeSection(id) | removeTask(id), () => archiveItem(type, id))` (see note-optimistic).
+     * @param itemType - "folder", "note", "section_group", "section" or "task" (a task takes its subtasks with it).
      * @param itemID - The ID of the item to archive.
      * @throws Will throw an error if the item cannot be archived.
      * @category Workspace Data Context
@@ -45,7 +45,7 @@ export function useArchiveActions({ tabsBridge, withLoading, withArchiveChange, 
         })
         await withRollback(undoRemoval, () => archiveDBItem(itemType, itemID))
         // Groups, notes and folders carry audio files
-        if (itemType !== "section") bumpAudioVersion()
+        if (itemType !== "section" && itemType !== "task") bumpAudioVersion()
 
         if (itemType === "folder") setCurrentFolder(current => current && folderIds.has(current.id) ? null : current)
     }), [tabsBridge, withArchiveChange, applyTree, getTree, bumpAudioVersion, setCurrentFolder])

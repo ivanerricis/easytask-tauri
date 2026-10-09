@@ -233,4 +233,22 @@ describe("duplicateDBNote automations", () => {
         expect(await getDBAutomations(1)).toHaveLength(4)
         expect((await getDBAutomations(1))[0].trigger).toEqual({ type: "task.movedInto", sectionId: 1 })
     })
+
+    it("copies a group rule pointing to the copied group and drops one on an archived group", async () => {
+        sqlite.exec("UPDATE section_group SET archived_at = datetime('now') WHERE id = 2")
+        rule(1, "Chiudi sprint", 0, { type: "group.completed", groupId: 1 }, [{ type: "setColor", color: "#112233" }, { type: "archiveGroup" }])
+        rule(2, null, 1, { type: "group.completed", groupId: null }, [{ type: "moveGroup", at: "bottom" }])
+        rule(3, "Archiviato", 2, { type: "group.completed", groupId: 2 }, [{ type: "archiveGroup" }])
+
+        const id = await duplicateDBNote(1)
+        const copy = await getDBNoteData(id)
+        expect(copy.groups).toHaveLength(1)
+
+        expect((await getDBAutomations(id)).map(r => ({ name: r.name, trigger: r.trigger, actions: r.actions }))).toEqual([
+            { name: "Chiudi sprint", trigger: { type: "group.completed", groupId: copy.groups[0].id }, actions: [{ type: "setColor", color: "#112233" }, { type: "archiveGroup" }] },
+            { name: null, trigger: { type: "group.completed", groupId: null }, actions: [{ type: "moveGroup", at: "bottom" }] },
+        ])
+        expect(copy.groups[0].id).not.toBe(1)
+        expect(await getDBAutomations(1)).toHaveLength(3)
+    })
 })

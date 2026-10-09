@@ -5,6 +5,7 @@ import type { Task } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { withRollback } from "@/contexts/with-rollback"
 import { reportError } from "@/lib/report-error"
 import { toast } from "sonner"
 import { useRef, useState, type ReactElement } from "react"
@@ -37,7 +38,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: Butto
     const menu = useItemMenuState()
     const [isDescriptionOpen, setDescriptionOpen] = useState(false)
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
-    const { updateTaskPriority, updateTaskDescription, updateItemColor } = useWorkspaceActions()
+    const { updateTaskPriority, updateTaskDescription, updateItemColor, archiveItem } = useWorkspaceActions()
     const activeId = useActiveNoteId()
     const { patchTask, removeTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
@@ -88,6 +89,17 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: Butto
         }
     }
 
+    // Removed from the open note at once (put back if the write fails), with its subtasks; no confirmation, undo brings it back
+    const handleArchive = async () => {
+        menu.close()
+        try {
+            await withRollback(removeTask(task.id), () => archiveItem("task", task.id))
+            recorder.archive("task", task.id, task.text)
+        } catch (error) {
+            reportError(error, getErrorMessage(error))
+        }
+    }
+
     // The dialogs call it after their write succeeded: the cached tree needs no reload
     const noReload = async () => { }
 
@@ -127,6 +139,11 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: Butto
                 text={task.priority ? t("tasks.menu.removePriority") : t("tasks.menu.addPriority")}
                 type={task.priority ? 'removePriority' : 'addPriority'}
                 onClick={() => { handleEditPriority(); menu.close() }}
+            />
+            <ButtonInPopover
+                text={t("menu.archive")}
+                type="archive"
+                onClick={() => { void handleArchive() }}
             />
             <Separator />
             <ButtonInPopover

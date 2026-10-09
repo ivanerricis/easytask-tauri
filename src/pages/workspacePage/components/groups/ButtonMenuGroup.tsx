@@ -13,11 +13,15 @@ import { useActiveNoteActions } from "@/contexts/use-active-note";
 import { useAudio } from "@/contexts/use-audio";
 import { GroupStepMoves } from "../NoteStepMoves";
 import type { Group } from "@/types/types";
-import { useState, type ReactElement } from "react";
+import { lazy, useState, type ReactElement } from "react";
 import { useUndoRecorder } from "@/contexts/undo/use-undo";
 import { withRollback } from "@/contexts/with-rollback";
 import { getErrorMessage } from "@/lib/utils";
 import { reportError } from "@/lib/report-error";
+import { LazyMount } from "@/components/lazy-mount";
+import { useActiveNoteId } from "@/contexts/use-tabs";
+
+const DialogAutomations = lazy(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
 
 type Props = {
     group: Group
@@ -29,6 +33,8 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
     const { t } = useTranslation()
     const [isRenameOpen, setRenameOpen] = useState(false)
     const [isDeleteOpen, setDeleteOpen] = useState(false)
+    const [isAutomationsOpen, setAutomationsOpen] = useState(false)
+    const noteId = useActiveNoteId()
     const menu = useItemMenuState()
     const { patchGroup, removeGroup } = useActiveNoteActions()
     const { addFiles } = useAudio()
@@ -82,6 +88,14 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
                     void addFiles(group.id)
                 }}
             />
+            {noteId !== null && <ButtonInPopover
+                text={t("automations.menu")}
+                type="automations"
+                onClick={() => {
+                    setAutomationsOpen(true)
+                    menu.close()
+                }}
+            />}
             <ButtonInPopover
                 text={t("menu.archive")}
                 type="archive"
@@ -110,6 +124,14 @@ export const ButtonMenuGroup = ({ group, children }: Props) => {
                 onOpenChange={setRenameOpen}
                 optimistic={name => patchGroup(group.id, { name: name || null })}
             />
+            {noteId !== null && <LazyMount active={isAutomationsOpen}>
+                <DialogAutomations
+                    noteId={noteId}
+                    groupId={group.id}
+                    isOpen={isAutomationsOpen}
+                    onOpenChange={setAutomationsOpen}
+                />
+            </LazyMount>}
             <DialogDeleteItem
                 item={group}
                 itemType="section_group"

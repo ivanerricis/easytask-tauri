@@ -1,6 +1,6 @@
-import type { NoteDataTree, Task } from "@/types/types"
-import { findSection, findTask, mapTask, moveTask, patchTask } from "@/contexts/note-tree-ops"
-import { referencedSections, type Automation, type AutomationAction, type AutomationEvent, type AutomationTrigger } from "./types"
+import type { Group, NoteDataTree, Task } from "@/types/types"
+import { findGroup, findSection, findTask, mapTask, moveGroupInList, moveTask, patchGroup, patchTask, removeGroup } from "@/contexts/note-tree-ops"
+import { isValidRule, referencedGroups, referencedSections, type Automation, type AutomationAction, type AutomationEvent, type AutomationTrigger } from "./types"
 
 /**
  * Most events handled for one user action: the actions of a rule raise new events (a move, a completion…) and the
@@ -9,16 +9,25 @@ import { referencedSections, type Automation, type AutomationAction, type Automa
  */
 export const MAX_AUTOMATION_STEPS = 50
 
-/** The events seen by the rules: the user events plus "the subtasks of this task are now all completed". */
-type EngineEvent = AutomationEvent | { type: "subtasks.completed", taskId: number }
+/**
+ * The events seen by the rules: the user events plus "the subtasks of this task are now all completed" and
+ * "the tasks of this group are now all completed".
+ */
+type EngineEvent =
+    | AutomationEvent
+    | { type: "subtasks.completed", taskId: number }
+    | { type: "group.completed", groupId: number }
 
 /**
- * Outcome of the rules for one event: the note after every action, the rules that changed something (in order) and
- * the tasks the actions changed (not the tasks that only shifted because another one moved).
+ * Outcome of the rules for one event: the note after every action, the rules that changed something (in order), the
+ * tasks the actions changed (not the tasks that only shifted because another one moved) and the groups they changed
+ * (recolored, moved or archived: an archived group is no longer in `tree`). `archivedGroups` has the groups archived by
+ * the actions exactly as they were then (with the changes the earlier actions made to their tasks), so that those
+ * changes can still be persisted.
  * `tree` is the very tree given in input when nothing changed.
  * @category Automations
  */
-export type AutomationOutcome = { tree: NoteDataTree, applied: Automation[], touched: number[] }
+export type AutomationOutcome = { tree: NoteDataTree, applied: Automation[], touched: number[], touchedGroups: number[], archivedGroups: Group[] }
 
 /** Whether every task under `task` (at any depth) is completed; false without subtasks. */
 export function allSubtasksCompleted(task: Task): boolean {
@@ -26,7 +35,26 @@ export function allSubtasksCompleted(task: Task): boolean {
     return task.subtasks.length > 0 && visit(task.subtasks)
 }
 
+/**
+ * Whether a group has at least one task and every task of its sections, at any depth, is completed.
+ * @category Automations
+ */
+export function allTasksCompleted(group: Group): boolean {
+    const visit = (tasks: Task[]): boolean => tasks.every(task => !!task.completed && visit(task.subtasks))
+    const tasks = group.sections.flatMap(section => section.tasks)
+    return tasks.length > 0 && visit(tasks)
+}
+
 function matches(trigger: AutomationTrigger, event: EngineEvent, tree: NoteDataTree): boolean {
+    // The group rules only see group events, the task rules never do
+    if (trigger.type === "group.completed") {
+        if (event.type !== "group.completed") return false
+        if (trigger.groupId !== null && trigger.groupId !== event.groupId) return false
+        const found = findGroup(tree, event.groupId)
+        return !!found && allTasksCompleted(found.group)
+    }
+    if (event.type === "group.completed") return false
+
     const found = findTask(tree, event.taskId)
     if (!found) return false
     const topLevel = "sectionId" in found.parent
@@ -41,13 +69,24 @@ function matches(trigger: AutomationTrigger, event: EngineEvent, tree: NoteDataT
     }
 }
 
-/** The events implied by another one: completing the last open subtask completes the subtasks of the parent. */
+/**
+ * The events implied by another one: completing the last open subtask completes the subtasks of the parent, and a
+ * completion (of a task or of its subtasks) may complete every task of its group.
+ */
 function derivedEvents(tree: NoteDataTree, event: EngineEvent): EngineEvent[] {
-    if (event.type !== "task.completed") return []
+    if (event.type !== "task.completed" && event.type !== "subtasks.completed") return []
     const found = findTask(tree, event.taskId)
-    if (!found || !("parentTaskId" in found.parent)) return []
-    const parent = findTask(tree, found.parent.parentTaskId)
-    return parent && allSubtasksCompleted(parent.task) ? [{ type: "subtasks.completed", taskId: parent.task.id }] : []
+    if (!found) return []
+    const events: EngineEvent[] = []
+    if (event.type === "task.completed" && "parentTaskId" in found.parent) {
+        const parent = findTask(tree, found.parent.parentTaskId)
+        if (parent && allSubtasksCompleted(parent.task)) events.push({ type: "subtasks.completed", taskId: parent.task.id })
+    }
+    const sectionId = found.task.sectionID
+    const section = sectionId === null || sectionId === undefined ? undefined : findSection(tree, sectionId)
+    const group = section && findGroup(tree, section.groupId)
+    if (group && allTasksCompleted(group.group)) events.push({ type: "group.completed", groupId: group.group.id })
+    return events
 }
 
 const descendantIds = (task: Task): number[] => task.subtasks.flatMap(sub => [sub.id, ...descendantIds(sub)])
@@ -56,6 +95,25 @@ const completeAll = (task: Task): Task => ({
     ...task,
     subtasks: task.subtasks.map(sub => ({ ...completeAll(sub), completed: true })),
 })
+
+/** Applies one action to a group: the new tree (the same one when nothing changed). The task actions do nothing. */
+function applyGroupAction(tree: NoteDataTree, groupId: number, action: AutomationAction): NoteDataTree {
+    const found = findGroup(tree, groupId)
+    if (!found) return tree
+    switch (action.type) {
+        case "setColor":
+            return (found.group.color ?? null) === action.color ? tree : patchGroup(tree, groupId, { color: action.color })
+        case "moveGroup": {
+            const ordered = [...tree.groups].sort((a, b) => a.position - b.position)
+            const index = action.at === "top" ? 0 : ordered.length - 1
+            if (ordered[index].id === groupId) return tree
+            const groups = moveGroupInList(tree.groups, groupId, index)
+            return groups ? { groups } : tree
+        }
+        case "archiveGroup": return removeGroup(tree, groupId)
+        default: return tree
+    }
+}
 
 /** Applies one action to a task: the new tree (the same one when nothing changed) and the events it raises. */
 function applyAction(tree: NoteDataTree, taskId: number, action: AutomationAction): { tree: NoteDataTree, events: EngineEvent[] } {
@@ -93,15 +151,19 @@ function applyAction(tree: NoteDataTree, taskId: number, action: AutomationActio
         case "completeSubtasks":
             if (task.subtasks.length === 0 || allSubtasksCompleted(task)) return none
             return { tree: mapTask(tree, taskId, completeAll), events: [{ type: "subtasks.completed", taskId }] }
+        // The group actions belong to the rules of a group
+        case "moveGroup":
+        case "archiveGroup": return none
     }
 }
 
 /**
  * Runs the rules of a note on an event, on the note as it is after the user action.
- * Pure: it computes the resulting note, the caller persists it (see diffTaskStatements).
- * - the enabled rules run in their order; a rule whose sections are no longer in the note is skipped;
+ * Pure: it computes the resulting note, the caller persists it (see diffTaskStatements and diffGroupStatements).
+ * - the enabled rules run in their order; a rule whose sections or group are no longer in the note, or that has an
+ *   action not allowed for its trigger, is skipped;
  * - the events raised by the actions are handled in turn (at most MAX_AUTOMATION_STEPS events);
- * - a rule runs at most once per task in a chain, so two rules cannot bounce a task forever.
+ * - a rule runs at most once per task (or group) in a chain, so two rules cannot bounce a task forever.
  * @param tree The note after the user action.
  * @param rules The rules of the note.
  * @param event What the user did.
@@ -109,25 +171,46 @@ function applyAction(tree: NoteDataTree, taskId: number, action: AutomationActio
  */
 export function runAutomations(tree: NoteDataTree, rules: readonly Automation[], event: AutomationEvent): AutomationOutcome {
     const active = rules
-        .filter(rule => rule.enabled && referencedSections(rule).every(id => !!findSection(tree, id)))
+        .filter(rule => rule.enabled
+            && isValidRule(rule.trigger, rule.actions)
+            && referencedSections(rule).every(id => !!findSection(tree, id))
+            && referencedGroups(rule).every(id => !!findGroup(tree, id)))
         .sort((a, b) => a.position - b.position || a.id - b.id)
-    if (active.length === 0) return { tree, applied: [], touched: [] }
+    if (active.length === 0) return { tree, applied: [], touched: [], touchedGroups: [], archivedGroups: [] }
 
     const queue: EngineEvent[] = [event]
     const fired = new Set<string>()
     const applied = new Map<number, Automation>()
     const touched = new Set<number>()
+    const touchedGroups = new Set<number>()
+    const archivedGroups: Group[] = []
     let current = tree
 
     for (let steps = 0; queue.length > 0 && steps < MAX_AUTOMATION_STEPS; steps++) {
         const next = queue.shift() as EngineEvent
-        queue.push(...derivedEvents(current, next))
+        for (const derived of derivedEvents(current, next)) {
+            // Two completions that finish the same group raise a single "group completed" while it is waiting
+            if (derived.type === "group.completed" && queue.some(item => item.type === "group.completed" && item.groupId === derived.groupId)) continue
+            queue.push(derived)
+        }
+
         for (const rule of active) {
             if (!matches(rule.trigger, next, current)) continue
-            const key = `${rule.id}:${next.taskId}`
+            const key = next.type === "group.completed" ? `${rule.id}:g${next.groupId}` : `${rule.id}:t${next.taskId}`
             if (fired.has(key)) continue
             fired.add(key)
             for (const action of rule.actions) {
+                if (next.type === "group.completed") {
+                    const result = applyGroupAction(current, next.groupId, action)
+                    if (result !== current) {
+                        const group = action.type === "archiveGroup" ? findGroup(current, next.groupId)?.group : undefined
+                        if (group) archivedGroups.push(group)
+                        applied.set(rule.id, rule)
+                        touchedGroups.add(next.groupId)
+                    }
+                    current = result
+                    continue
+                }
                 const result = applyAction(current, next.taskId, action)
                 if (result.tree !== current) {
                     applied.set(rule.id, rule)
@@ -142,5 +225,5 @@ export function runAutomations(tree: NoteDataTree, rules: readonly Automation[],
             }
         }
     }
-    return { tree: current, applied: [...applied.values()], touched: [...touched] }
+    return { tree: current, applied: [...applied.values()], touched: [...touched], touchedGroups: [...touchedGroups], archivedGroups }
 }

@@ -553,6 +553,34 @@ describe("automations in export/import", () => {
         expect((await getDBAutomations(1))[0].trigger).toEqual({ type: "task.movedInto", sectionId: 1 })
     })
 
+    it("keeps the group rules, archived groups included, pointing to the imported groups", async () => {
+        sqlite.exec(`
+            UPDATE section_group SET archived_at = datetime('now') WHERE id = 2;
+            INSERT INTO automation (noteID, name, enabled, trigger, actions, position) VALUES
+                (1, 'Sprint', 1, '{"type":"group.completed","groupId":1}', '[{"type":"archiveGroup"}]', 0),
+                (1, 'Archiviato', 1, '{"type":"group.completed","groupId":2}', '[{"type":"moveGroup","at":"top"},{"type":"setColor","color":"#112233"}]', 1),
+                (1, 'Qualsiasi', 1, '{"type":"group.completed","groupId":null}', '[{"type":"setColor","color":null}]', 2),
+                (1, 'Eliminato', 1, '{"type":"group.completed","groupId":3}', '[{"type":"archiveGroup"}]', 3);
+        `)
+        const data = JSON.parse(JSON.stringify(await exportOf()))
+        const note = data.notes.find((n: { name: string }) => n.name === "Sorgente")
+        expect(note.automations.map((r: { trigger: unknown }) => r.trigger)).toEqual([
+            { type: "group.completed", groupId: 0 }, { type: "group.completed", groupId: 1 }, { type: "group.completed", groupId: null },
+        ])
+
+        const { workspaceId } = await importDBWorkspace(validateWorkspaceExport(data))
+        const noteId = rows(`SELECT id FROM note WHERE workspaceID = ${workspaceId} AND name = 'Sorgente'`)[0].id as number
+        const groups = rows(`SELECT id, archived_at FROM section_group WHERE noteID = ${noteId} AND deleted_at IS NULL ORDER BY position`)
+        expect(groups).toHaveLength(2)
+        expect(groups[1].archived_at).not.toBeNull()
+        expect(ruleView(await getDBAutomations(noteId)).map(r => r.trigger)).toEqual([
+            { type: "group.completed", groupId: groups[0].id },
+            { type: "group.completed", groupId: groups[1].id },
+            { type: "group.completed", groupId: null },
+        ])
+        expect(groups.map(g => g.id)).not.toContain(1)
+    })
+
     it("still imports a file without automations", async () => {
         const data = JSON.parse(JSON.stringify(await exportOf()))
         for (const note of data.notes) expect(note.automations).toBeUndefined()

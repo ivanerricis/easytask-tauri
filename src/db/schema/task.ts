@@ -74,3 +74,12 @@ export const dropTaskArchivedColumn: string[] = [
     END;
 `,
 ]
+
+/**
+ * Migration v6: archive date (`archived_at`) on the tasks: an archived task (with its subtasks) is hidden from the note
+ * without going to the trash. The edit-timestamp trigger does not list it, so archiving does not change the edit date.
+ * @category Database Schema
+ */
+export const addTaskArchivedAt: string[] = [
+    `ALTER TABLE task ADD COLUMN archived_at TEXT DEFAULT NULL;`,
+]

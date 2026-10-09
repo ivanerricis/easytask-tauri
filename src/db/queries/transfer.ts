@@ -21,8 +21,8 @@ const MALFORMED_MESSAGE = () => i18n.t("errors.transfer.malformed")
 
 /** Exports one note (content and audio paths); `folderRef` is where the note sits inside the file. */
 async function buildNoteExport(db: Database, note: Note & { color: string | null }, folderRef: string | null): Promise<ExportNote> {
-    const { content, sectionIds } = await buildContentWithSectionIds(note.id, true)
-    const automations = await getDBPortableAutomations(note.id, content, sectionIds)
+    const { content, sectionIds, groupIds } = await buildContentWithSectionIds(note.id, true)
+    const automations = await getDBPortableAutomations(note.id, content, sectionIds, groupIds)
     const audio = await db.select<{ section_groupID: number, name: string, path: string, position: number }[]>(
         `SELECT a.section_groupID, a.name, a.path, a.position FROM audio_file a
          INNER JOIN section_group g ON g.id = a.section_groupID
@@ -253,7 +253,7 @@ function checkTask(task: unknown, counter: Counter, depth = 0) {
     if (!isObject(task) || depth > 100) malformed()
     bump(counter)
     if (!isString(task.text) || !isNumber(task.position) || !Array.isArray(task.subtasks)) malformed()
-    if (!isNullableString(task.description) || !isNullableString(task.color)) malformed()
+    if (!isNullableString(task.description) || !isNullableString(task.color) || !isNullableString(task.archived_at)) malformed()
     for (const subtask of task.subtasks as unknown[]) checkTask(subtask, counter, depth + 1)
 }
 
@@ -482,7 +482,7 @@ async function insertItems(
 
         for (const [i, note] of data.notes.entries()) {
             const { groups: groupRefs, sections: sectionRefs } = addNoteContent(tx, noteRefs[i], note.content)
-            if (note.automations?.length) addNoteAutomations(tx, noteRefs[i], note.automations, note.content, sectionRefs)
+            if (note.automations?.length) addNoteAutomations(tx, noteRefs[i], note.automations, note.content, sectionRefs, groupRefs)
             const rows: unknown[][] = []
             const taken = new Set<string>()
             for (const file of note.audio) {

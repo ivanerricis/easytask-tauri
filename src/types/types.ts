@@ -84,6 +84,8 @@ export type Task = {
     edit_date: string
     edit_time: string
     deleted_at?: string | null
+    /** Set while the task is archived (hidden from the note without being trashed, with its subtasks); null/undefined = visible. */
+    archived_at?: string | null
     color?: string | null
     text: string
     completed: boolean
@@ -107,7 +109,7 @@ export type TrashItem = {
 }
 
 /** The items that can be archived. */
-export type ArchiveItemType = "folder" | "note" | "section_group" | "section"
+export type ArchiveItemType = "folder" | "note" | "section_group" | "section" | "task"
 
 /**
  * An archived item, as returned by getDBArchive. Only the items archived directly are listed (what they contain is

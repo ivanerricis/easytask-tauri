@@ -38,6 +38,10 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         () => workspaceDataTree ? flattenTree(workspaceDataTree) : { folders: [], notes: [] },
         [workspaceDataTree])
     const bumpAudioVersion = useCallback(() => setAudioVersion(version => version + 1), [])
+    const notifyArchiveChanged = useCallback(() => {
+        setArchiveVersion(version => version + 1)
+        setAudioVersion(version => version + 1)
+    }, [])
 
     // The tree is also kept in a ref, so consecutive optimistic updates chain on the latest one even before a render
     const treeRef = useRef<WorkspaceDataTree | null>(null)
@@ -184,6 +188,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         setCurrentFolder,
         getWorkspaceData,
         setWorkspaceDataTree,
+        notifyArchiveChanged,
         ...treeActions,
         ...noteContentActions,
         ...taskActions,
@@ -191,7 +196,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         ...archiveActions,
         ...templateActions,
         resetData,
-    }), [getWorkspaceData, setWorkspaceDataTree, resetData, treeActions, noteContentActions, taskActions, trashActions, archiveActions, templateActions])
+    }), [getWorkspaceData, setWorkspaceDataTree, notifyArchiveChanged, resetData, treeActions, noteContentActions, taskActions, trashActions, archiveActions, templateActions])
 
     return (
         <WorkspaceLoadingContext.Provider value={isLoading}>

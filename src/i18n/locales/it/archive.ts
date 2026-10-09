@@ -62,6 +62,7 @@ export const archive = {
         note: "Note",
         section_group: "Gruppi",
         section: "Sezioni",
+        task: "Task",
     },
     archivedOn: "Archiviato il {{date}}",
     isEmpty: "L'archivio è vuoto",

@@ -17,6 +17,11 @@ const archive = vi.fn()
 const archiveItem = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor, archiveItem }) }))
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ color: recordColor, archive }) }))
+vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => 7 }))
+vi.mock("@/components/dialogs/dialog-automations", () => ({
+    DialogAutomations: ({ isOpen, noteId, groupId }: { isOpen: boolean, noteId: number, groupId?: number }) =>
+        isOpen ? <div>Dialog automazioni {noteId}/{groupId}</div> : null,
+}))
 vi.mock("@/components/dialogs/dialog-delete", () => ({
     DialogDeleteItem: ({ isOpen, optimistic }: { isOpen: boolean, optimistic: () => () => void }) =>
         isOpen ? <button onClick={() => optimistic()}>Dialog elimina</button> : null,
@@ -57,6 +62,14 @@ describe("ButtonMenuGroup", () => {
         await waitFor(() => expect(archive).toHaveBeenCalledWith("section_group", 3, undefined))
         expect(removeGroup).toHaveBeenCalledWith(3)
         expect(archiveItem).toHaveBeenCalledWith("section_group", 3)
+    })
+
+    it("opens the automations of the group", async () => {
+        const user = userEvent.setup()
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Automazioni…"))
+        expect(await screen.findByText("Dialog automazioni 7/3")).toBeInTheDocument()
     })
 
     it("renames through the cached note tree, clearing the name when it is empty", async () => {
