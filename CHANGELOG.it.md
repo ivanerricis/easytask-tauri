@@ -11,6 +11,7 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 - Automazioni per i task di una nota: regole come "quando un task viene completato in In corso, spostalo in Fatto". Reagiscono quando un task viene completato, riaperto, creato, spostato in una sezione o quando tutti i suoi sottotask sono completati, e possono spostare il task, segnarlo come completato o da fare, aggiungere o togliere la priorità, colorarlo o completarne i sottotask. Si gestiscono dai menu della nota e della sezione (Automazioni…); ogni esecuzione mostra un avviso e si annulla come qualsiasi altra azione. Anche per i gruppi: quando tutti i task di un gruppo sono completati, il gruppo può essere archiviato, colorato o spostato in cima o in fondo alla nota, anche dal menu del gruppo. Le regole restano quando una nota viene duplicata, esportata o importata.
 - Un menu testuale nella barra del titolo (File, Modifica, Visualizza, Aiuto), raggiungibile anche con Alt o F10, con un'icona su ogni voce.
 - Il colore della nota aperta si cambia dal pannello Dettagli, come quello di un task.
+- I task si possono archiviare dal loro menu, insieme ai sottotask: spariscono dalla nota senza finire nel cestino, e l'Archivio ha una scheda Task da cui ripristinarli (tornano anche i task padre archiviati).
 - Importando un workspace, una nota o una cartella vengono mostrati prima i nomi che avranno (viene proposto un nome libero), modificabili.
 - Tastiera: i menu degli elementi (…) funzionano con le frecce, le schede delle note si scorrono con le frecce e si spostano a sinistra o a destra dal loro menu, e il menu del task ha Rinomina.
 
@@ -54,7 +55,7 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Aggiunto
 
-- Archivio: cartelle, note, gruppi, sezioni e task si possono archiviare dal loro menu (o più insieme dalla selezione multipla della sidebar di sinistra). Un elemento archiviato sparisce dalla nota e dalla sidebar, con tutto quello che contiene, senza finire nel cestino. Il pulsante "Archivio" accanto al Cestino elenca gli elementi archiviati divisi per tipo (cartelle, note, gruppi, sezioni, task): da lì si ripristinano o si spostano nel cestino. Archiviazione e ripristino si possono annullare, e l'export e l'import del workspace conservano gli elementi archiviati.
+- Archivio: cartelle, note, gruppi e sezioni si possono archiviare dal loro menu (o più insieme dalla selezione multipla della sidebar di sinistra). Un elemento archiviato sparisce dalla nota e dalla sidebar, con tutto quello che contiene, senza finire nel cestino. Il pulsante "Archivio" accanto al Cestino elenca gli elementi archiviati divisi per tipo (cartelle, note, gruppi, sezioni): da lì si ripristinano o si spostano nel cestino. Archiviazione e ripristino si possono annullare, e l'export e l'import del workspace conservano gli elementi archiviati.
 - Informazioni sui file audio: la scheda Dettagli della sidebar di destra è divisa in due, e la metà in basso mostra il file audio in riproduzione, o quello scelto con "Informazioni" dal suo menu: copertina, titolo, artista, album e gli altri tag, durata, formato e codec, bitrate, frequenza di campionamento, profondità in bit, canali, dimensione e data di modifica.
 
 ### Corretto

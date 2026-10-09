@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automations for the tasks of a note: rules like "when a task is completed in Doing, move it to Done". They react when a task is completed, reopened, created, moved into a section, or when all its subtasks are completed, and they can move the task, mark it completed or to do, add or remove its priority, color it or complete its subtasks. They are managed from the note and section menus (Automations…); every run shows a toast and is undone like any other action. Groups too: when all the tasks of a group are completed, the group can be archived, colored or moved to the top or the bottom of the note, also from the group menu. Rules are kept when a note is duplicated, exported or imported.
 - A text menu in the title bar (File, Edit, View, Help), also reachable with Alt or F10, with an icon on every entry.
 - The color of the open note can be changed from the Details panel, like the one of a task.
+- Tasks can be archived from their menu, with their subtasks: they leave the note without going to the trash, and the Archive has a Tasks tab to restore them (their archived parent tasks come back too).
 - Importing a workspace, a note or a folder first shows the names it will get (a free name is proposed) and lets you change them.
 - Keyboard: the item menus (…) work with the arrow keys, the note tabs are navigated with the arrows and can be moved left or right from their menu, and the task menu has Rename.
 
@@ -56,7 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Archive: folders, notes, groups, sections and tasks can be archived from their menu (or several at once from the multiple selection of the left sidebar). An archived item disappears from the note and the sidebar, with everything inside it, without going to the trash. The "Archive" button next to the Trash lists the archived items divided by kind (folders, notes, groups, sections, tasks): from there they can be restored or moved to the trash. Archiving and restoring can be undone, and archived items are kept by the workspace export and import.
+- Archive: folders, notes, groups and sections can be archived from their menu (or several at once from the multiple selection of the left sidebar). An archived item disappears from the note and the sidebar, with everything inside it, without going to the trash. The "Archive" button next to the Trash lists the archived items divided by kind (folders, notes, groups, sections): from there they can be restored or moved to the trash. Archiving and restoring can be undone, and archived items are kept by the workspace export and import.
 - Information about audio files: the Details tab of the right sidebar is split in two, and the lower half shows the audio file that is playing, or the one chosen with "Information" in its menu: cover, title, artist, album and the other tags, duration, format and codec, bitrate, sample rate, bit depth, channels, size and modification date.
 
 ### Fixed
