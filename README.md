@@ -11,10 +11,13 @@ Everything is stored locally on your computer.
 ## Key Features
 
 - **Workspaces**, each with its own **Folders** (nestable without limit) and **Notes**
-- Notes contain **Sections**, which can be organized in **Groups**; sections contain **Tasks**, and tasks can contain sub-tasks (unlimited nesting)
+- Notes contain **Groups** of **Sections**; sections contain **Tasks**, and tasks can contain sub-tasks (unlimited nesting). Groups and sections can be left without a name
+- **Rename in place**: click a name (or use Rename in its menu, or press Enter on it) and type; no dialog
 - **Colors** on any element
 - **Drag & drop** to reorder and move elements
 - **Trash**: deleted workspaces and deleted items (folders, notes, groups, sections, tasks, audio files, templates) go to the trash, where you can restore them or delete them permanently
+- **Archive**: archive folders, notes, groups, sections and tasks to hide them without deleting them; restore them from the archive
+- **Automations**: per-note rules that act on tasks and groups by themselves when something happens (e.g. a task is completed)
 - **Templates**: save a note as a template and create new notes from it
 - **Duplicate** a note (with all its content, audio files excluded) or a section (with its tasks) from its menu; the copy is named "... (copy)" and undoable
 - **Audio**: attach audio files to a note and play them in the app
@@ -22,8 +25,8 @@ Everything is stored locally on your computer.
 - **Search notes** with `Ctrl+O`
 - **Customizable keyboard shortcuts** (Settings > Shortcuts); press `?` to see the list
 - **Italian and English** interface: choose the language in Settings, the default follows the system language
-- **Light, dark or system theme**, accent color and sidebar size
-- **Automatic backups** (at startup, at most once a day, 5 kept by default), manual backups and one-click restore
+- **Light, dark or system theme**, accent color (with a contrast warning and a suggested color), color intensity, sidebar size and animation speed (normal, slow or off)
+- **Automatic backups** (at startup, at most once a day, 5 kept by default), manual backups and one-click restore; a separate copy is kept before every database update (the last 10)
 - **Export / import** a workspace as an `.easytask.json` file
 - **Update check** at startup (can be turned off) and from Settings > About
 
@@ -36,12 +39,14 @@ Default shortcuts (all but the fixed ones can be changed in Settings > Shortcuts
 | `Alt+N` | New group |
 | `Ctrl+O` | Search notes |
 | `Ctrl+L` / `Ctrl+T` | Close the current note / close all notes |
+| `Ctrl+PageDown` / `Ctrl+PageUp` | Next / previous open note (also `Ctrl+Tab` / `Ctrl+Shift+Tab`) |
 | `Ctrl+B` | Toggle the sidebar |
 | `Ctrl+Shift+B` | Toggle the right sidebar |
 | `Ctrl+Shift+H` | Hide / show completed tasks |
 | `Alt+P` | Play / pause the audio (while the player is open) |
 | `Ctrl+H` | Go to the home page |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo (not active while typing in a text field) |
+| `?` | Show all the shortcuts |
 
 ---
 
@@ -158,14 +163,13 @@ Releases are built by a separate workflow, see [RELEASING.md](RELEASING.md).
 
 ```
 Workspace
- ├── Folder
- │    ├── Folder
+ ├── Folders (nestable)
  │    └── Notes
- │         └── Sections (optionally in Groups)
- │              └── Tasks
- │                   └── Sub-tasks
  └── Notes
-      └── Sections
+      └── Groups
+           └── Sections
+                └── Tasks
+                     └── Sub-tasks (nestable)
 ```
 
 ---
