@@ -4,6 +4,30 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-09
+
+### Aggiunto
+
+- Rinomina sul posto: Rinomina nel menu di un workspace, una cartella, una nota, un gruppo o una sezione trasforma il nome in un campo di testo con tutto il nome selezionato (Invio salva, Esc annulla). I file audio e i template mantengono la finestra di dialogo.
+- Le sezioni possono non avere un nome, come i gruppi. Un gruppo o una sezione senza nome non mostra testo nell'intestazione, e Impostazioni > Note può mostrare invece il nome predefinito (es. Gruppo 1) in grigio.
+- Impostazioni > Note: rinominare un gruppo, una sezione o un task con un clic sul nome (attivo di default; se disattivato, Invio rinomina comunque) e colorare lo sfondo di un task colorato, oltre alla barra laterale (attivo di default).
+- Impostazioni > Aspetto: velocità delle animazioni (Assenti, Normali, Lente). Normali, il valore predefinito, è più veloce delle animazioni delle versioni precedenti, che ora sono Lente.
+- Scegliendo un colore d'accento con poco contrasto rispetto allo sfondo compare un avviso con la proposta di un colore vicino ma leggibile.
+- Prima di un aggiornamento del database ne viene tenuta una copia separata dai backup automatici (le ultime 10), elencata in Impostazioni > Backup.
+- Segnaposto di caricamento (skeleton) per le note, la home, il cestino, l'archivio e i template quando i dati tardano ad arrivare.
+
+### Modificato
+
+- Gruppi e sezioni si creano come i task: un solo campo di testo, Invio crea, Esc o un clic fuori annulla (i pulsanti + e X non ci sono più). I pulsanti "Nuovo gruppo" e "Nuova sezione" hanno un bordo tratteggiato e un'etichetta.
+- I pulsanti delle finestre di dialogo restano in fondo. In Impostazioni, Cestino e Archivio l'elenco laterale delle categorie occupa tutta l'altezza della finestra, e il pulsante di chiusura non copre più "Ripristina tutto". "Svuota cestino" sta accanto a "Chiudi".
+- Cestino, Archivio, Template, Impostazioni e le altre finestre si aprono subito (alla prima apertura attendevano circa mezzo secondo), e Cestino e Archivio non animano più il layout all'apertura.
+- I tooltip sono più vicini al loro elemento, si aprono subito passando a un pulsante vicino e nel tema scuro sono grigi con un bordo invece che bianchi.
+- Il menu del tema nelle Impostazioni ha le icone.
+
+### Corretto
+
+- Scrivendo in un campo di testo non compare più il pulsante di cancellazione (X) del sistema.
+
 ## [0.7.0] - 2026-10-09
 
 ### Aggiunto
@@ -185,7 +209,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.4.0...v0.5.0

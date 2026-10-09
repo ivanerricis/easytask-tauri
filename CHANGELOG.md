@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-10-09
+
+### Added
+
+- Rename in place: Rename in the menu of a workspace, folder, note, group or section turns its name into a text field with the whole name selected (Enter saves, Esc cancels). Audio files and templates keep the dialog.
+- Sections can have no name, like groups. A group or section without a name shows no text in its header, and Settings > Notes can show its default name (e.g. Group 1) in gray instead.
+- Settings > Notes: rename a group, section or task with a click on its name (on by default; when off, Enter still renames) and color the background of a colored task, besides its side bar (on by default).
+- Settings > Appearance: animation speed (None, Normal, Slow). Normal, the default, is faster than the animations of the previous versions, which are now Slow.
+- Choosing an accent color with too little contrast with the background shows a warning and proposes a close color that can be read.
+- Before a database upgrade a copy of the database is kept apart from the automatic backups (the last 10), and is listed in Settings > Backups.
+- Loading placeholders (skeletons) for the notes, the home page, the trash, the archive and the templates when the data takes a moment to arrive.
+
+### Changed
+
+- Groups and sections are created like tasks: a single text field, Enter creates, Esc or a click outside cancels (the + and X buttons are gone). The "New group" and "New section" buttons have a dashed border and a label.
+- Dialog buttons stay at the bottom of the dialog. In Settings, Trash and Archive the side list of categories takes the whole height of the dialog, and the close button no longer covers "Reset all". "Empty trash" sits next to "Close".
+- Trash, Archive, Templates, Settings and the other dialogs open at once (the first opening waited about half a second), and Trash and Archive no longer animate their layout when they open.
+- Tooltips are closer to their element, open at once when moving to a neighbouring button, and in the dark theme they are gray with a border instead of white.
+- The theme menu in Settings has icons.
+
+### Fixed
+
+- Typing in a text field no longer shows the clear button (X) of the system.
+
 ## [0.7.0] - 2026-10-09
 
 ### Added
@@ -187,7 +211,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.4.0...v0.5.0
