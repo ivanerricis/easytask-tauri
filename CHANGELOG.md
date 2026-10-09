@@ -6,6 +6,35 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-09
+
+### Added
+
+- Automations for the tasks of a note: rules like "when a task is completed in Doing, move it to Done". They react when a task is completed, reopened, created, moved into a section, or when all its subtasks are completed, and they can move the task, mark it completed or to do, add or remove its priority, color it or complete its subtasks. They are managed from the note and section menus (Automations…); every run shows a toast and is undone like any other action. Groups too: when all the tasks of a group are completed, the group can be archived, colored or moved to the top or the bottom of the note, also from the group menu. Rules are kept when a note is duplicated, exported or imported.
+- A text menu in the title bar (File, Edit, View, Help), also reachable with Alt or F10, with an icon on every entry.
+- The color of the open note can be changed from the Details panel, like the one of a task.
+- Keyboard: the item menus (…) work with the arrow keys, the note tabs are navigated with the arrows and can be moved left or right from their menu, and the task menu has Rename.
+
+### Changed
+
+- The default accent is a deeper orange, so the text on buttons is white. A color chosen by the user keeps the automatic black or white text.
+- The keyboard focus is visible everywhere, click targets are larger, and selects, tabs, toggles and sliders look and behave the same across the app (settings, trash, archive, right panel, audio player).
+- While a task is dragged, the section that will receive it is outlined as a whole. The "Add task" button is just a "+". The marker of the selected category in the settings is on the left, and the settings categories never scroll horizontally.
+- The compact sidebar opens as a panel over the content and closes with Esc.
+- Export workspace left the left sidebar: it is in File and in Settings > Data.
+- Long names no longer widen dialogs, groups or tabs: they are truncated or wrap.
+- Clearer and consistent wording: "New note", "Collapse", error messages, dates, and "…" everywhere.
+- The update check starts 3 seconds after startup.
+- The database is upgraded on the first start (a safety copy is taken first).
+
+### Fixed
+
+- Dialogs taller than the window scroll instead of being cut off.
+- Toasts follow the theme of the app instead of the one of the system.
+- Trash, Archive, Templates and New note from template work from the menu also with the left sidebar closed.
+- The workspace grid of the home page no longer scrolls sideways.
+- Screen readers: task checkboxes, progress bars, the sidebar tree and the note tabs have proper names and roles.
+
 ## [0.6.0] - 2026-10-07
 
 ### Added
@@ -25,7 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- Archive: folders, notes, groups and sections can be archived from their menu (or several at once from the multiple selection of the left sidebar). An archived item disappears from the note and the sidebar, with everything inside it, without going to the trash. The "Archive" button next to the Trash lists the archived items divided by kind (folders, notes, groups, sections): from there they can be restored or moved to the trash. Archiving and restoring can be undone, and archived items are kept by the workspace export and import.
+- Archive: folders, notes, groups, sections and tasks can be archived from their menu (or several at once from the multiple selection of the left sidebar). An archived item disappears from the note and the sidebar, with everything inside it, without going to the trash. The "Archive" button next to the Trash lists the archived items divided by kind (folders, notes, groups, sections, tasks): from there they can be restored or moved to the trash. Archiving and restoring can be undone, and archived items are kept by the workspace export and import.
 - Information about audio files: the Details tab of the right sidebar is split in two, and the lower half shows the audio file that is playing, or the one chosen with "Information" in its menu: cover, title, artist, album and the other tags, duration, format and codec, bitrate, sample rate, bit depth, channels, size and modification date.
 
 ### Fixed
@@ -155,7 +184,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.3.0...v0.4.0

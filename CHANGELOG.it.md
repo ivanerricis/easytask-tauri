@@ -4,6 +4,35 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-09
+
+### Aggiunto
+
+- Automazioni per i task di una nota: regole come "quando un task viene completato in In corso, spostalo in Fatto". Reagiscono quando un task viene completato, riaperto, creato, spostato in una sezione o quando tutti i suoi sottotask sono completati, e possono spostare il task, segnarlo come completato o da fare, aggiungere o togliere la priorità, colorarlo o completarne i sottotask. Si gestiscono dai menu della nota e della sezione (Automazioni…); ogni esecuzione mostra un avviso e si annulla come qualsiasi altra azione. Anche per i gruppi: quando tutti i task di un gruppo sono completati, il gruppo può essere archiviato, colorato o spostato in cima o in fondo alla nota, anche dal menu del gruppo. Le regole restano quando una nota viene duplicata, esportata o importata.
+- Un menu testuale nella barra del titolo (File, Modifica, Visualizza, Aiuto), raggiungibile anche con Alt o F10, con un'icona su ogni voce.
+- Il colore della nota aperta si cambia dal pannello Dettagli, come quello di un task.
+- Tastiera: i menu degli elementi (…) funzionano con le frecce, le schede delle note si scorrono con le frecce e si spostano a sinistra o a destra dal loro menu, e il menu del task ha Rinomina.
+
+### Modificato
+
+- Il colore d'accento predefinito è un arancione più scuro, così il testo dei pulsanti è bianco. Un colore scelto dall'utente mantiene il testo nero o bianco scelto in automatico.
+- Il focus da tastiera è visibile ovunque, le aree cliccabili sono più grandi, e menu a tendina, schede, interruttori e cursori hanno lo stesso aspetto e comportamento in tutta l'app (impostazioni, cestino, archivio, pannello destro, lettore audio).
+- Mentre si trascina un task, la sezione che lo riceverà è evidenziata per intero. Il pulsante "Aggiungi task" è un semplice "+". Il segno della categoria selezionata nelle impostazioni è a sinistra, e le categorie delle impostazioni non scorrono mai in orizzontale.
+- La barra laterale compatta si apre come pannello sopra il contenuto e si chiude con Esc.
+- Esporta workspace non è più nella barra laterale sinistra: si trova in File e in Impostazioni > Dati.
+- I nomi lunghi non allargano più finestre, gruppi o schede: vengono troncati o vanno a capo.
+- Testi più chiari e coerenti: "Nuova nota", "Comprimi", messaggi di errore, date, "sottotask" e "…" ovunque.
+- Il controllo degli aggiornamenti parte 3 secondi dopo l'avvio.
+- Il database viene aggiornato al primo avvio (prima viene fatta una copia di sicurezza).
+
+### Corretto
+
+- Le finestre più alte dello schermo scorrono invece di essere tagliate.
+- Gli avvisi seguono il tema dell'app invece di quello del sistema.
+- Cestino, Archivio, Template e Nuova nota da template funzionano dal menu anche con la barra laterale sinistra chiusa.
+- La griglia dei workspace nella pagina iniziale non scorre più di lato.
+- Lettori di schermo: caselle dei task, barre di avanzamento, albero della barra laterale e schede delle note hanno nomi e ruoli corretti.
+
 ## [0.6.0] - 2026-10-07
 
 ### Aggiunto
@@ -23,7 +52,7 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Aggiunto
 
-- Archivio: cartelle, note, gruppi e sezioni si possono archiviare dal loro menu (o più insieme dalla selezione multipla della sidebar di sinistra). Un elemento archiviato sparisce dalla nota e dalla sidebar, con tutto quello che contiene, senza finire nel cestino. Il pulsante "Archivio" accanto al Cestino elenca gli elementi archiviati divisi per tipo (cartelle, note, gruppi, sezioni): da lì si ripristinano o si spostano nel cestino. Archiviazione e ripristino si possono annullare, e l'export e l'import del workspace conservano gli elementi archiviati.
+- Archivio: cartelle, note, gruppi, sezioni e task si possono archiviare dal loro menu (o più insieme dalla selezione multipla della sidebar di sinistra). Un elemento archiviato sparisce dalla nota e dalla sidebar, con tutto quello che contiene, senza finire nel cestino. Il pulsante "Archivio" accanto al Cestino elenca gli elementi archiviati divisi per tipo (cartelle, note, gruppi, sezioni, task): da lì si ripristinano o si spostano nel cestino. Archiviazione e ripristino si possono annullare, e l'export e l'import del workspace conservano gli elementi archiviati.
 - Informazioni sui file audio: la scheda Dettagli della sidebar di destra è divisa in due, e la metà in basso mostra il file audio in riproduzione, o quello scelto con "Informazioni" dal suo menu: copertina, titolo, artista, album e gli altri tag, durata, formato e codec, bitrate, frequenza di campionamento, profondità in bit, canali, dimensione e data di modifica.
 
 ### Corretto
@@ -153,7 +182,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.3.0...v0.4.0
