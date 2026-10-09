@@ -195,8 +195,11 @@ describe("Automations", () => {
         await $("[role='option']").waitForDisplayed()
         const triggers = await optionTexts()
         expect(triggers).toContain(await tr("automations.triggers.subtasksCompleted"))
-        if (lang === "it") expect(triggers.join(" ")).toContain("sottotask")
-        expect(triggers.join(" ")).not.toContain("subtask")
+        // In Italian the subtasks are "sottotask", never the English word (in English "subtasks" is the right word)
+        if (lang === "it") {
+            expect(triggers.join(" ")).toContain("sottotask")
+            expect(triggers.join(" ")).not.toContain("subtask")
+        }
         await browser.keys("Escape")
         await $("[role='option']").waitForExist({ reverse: true })
 
