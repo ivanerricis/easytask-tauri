@@ -54,7 +54,8 @@ describe("useItemTransfer", () => {
         importItemsFromFile.mockResolvedValue({ skippedAudio: 0, items: [{ type: "folder", id: 11, name: "F (2)" }] })
         const { result } = renderHook(() => useItemTransfer())
         await act(() => result.current.importItems(3))
-        expect(importItemsFromFile).toHaveBeenCalledWith(7, 3)
+        // Outside the ImportNamesProvider no dialog is shown: the proposed names are used
+        expect(importItemsFromFile).toHaveBeenCalledWith(7, 3, undefined)
         expect(getWorkspaceData).toHaveBeenCalledWith(7)
         expect(create).toHaveBeenCalledWith("folder", 11, "F (2)")
         expect(toast.success).toHaveBeenCalledWith("Importato")

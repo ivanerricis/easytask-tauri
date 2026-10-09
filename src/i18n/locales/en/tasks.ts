@@ -44,6 +44,14 @@ export const transfer: Translation["transfer"] = {
     importedItemsSkipped_other: "Imported · {{count}} audio files skipped",
     itemsFileName_one: "{{count}} item",
     itemsFileName_other: "{{count}} items",
+    namesTitle: "Import",
+    namesDescription: "Check the names before importing: you can change them.",
+    names: {
+        workspace: "Workspace name",
+        folder: "Folder name",
+        note: "Note name",
+    },
+    importAction: "Import",
 }
 
 export const duplicate: Translation["duplicate"] = {

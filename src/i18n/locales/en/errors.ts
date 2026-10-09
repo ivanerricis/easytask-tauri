@@ -108,6 +108,8 @@ export const errors: Translation["errors"] = {
         untitled: "(untitled)",
         invalidFolderTree: "The folder structure of the file is not valid.",
         suffix: "imported",
+        nameEmpty: "The name cannot be empty.",
+        nameTaken: "An item named \"{{name}}\" already exists here.",
     },
     backup: {
         restoring: "A backup is being restored: try again in a moment.",

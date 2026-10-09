@@ -11,6 +11,7 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 - Automazioni per i task di una nota: regole come "quando un task viene completato in In corso, spostalo in Fatto". Reagiscono quando un task viene completato, riaperto, creato, spostato in una sezione o quando tutti i suoi sottotask sono completati, e possono spostare il task, segnarlo come completato o da fare, aggiungere o togliere la priorità, colorarlo o completarne i sottotask. Si gestiscono dai menu della nota e della sezione (Automazioni…); ogni esecuzione mostra un avviso e si annulla come qualsiasi altra azione. Anche per i gruppi: quando tutti i task di un gruppo sono completati, il gruppo può essere archiviato, colorato o spostato in cima o in fondo alla nota, anche dal menu del gruppo. Le regole restano quando una nota viene duplicata, esportata o importata.
 - Un menu testuale nella barra del titolo (File, Modifica, Visualizza, Aiuto), raggiungibile anche con Alt o F10, con un'icona su ogni voce.
 - Il colore della nota aperta si cambia dal pannello Dettagli, come quello di un task.
+- Importando un workspace, una nota o una cartella vengono mostrati prima i nomi che avranno (viene proposto un nome libero), modificabili.
 - Tastiera: i menu degli elementi (…) funzionano con le frecce, le schede delle note si scorrono con le frecce e si spostano a sinistra o a destra dal loro menu, e il menu del task ha Rinomina.
 
 ### Modificato
@@ -27,6 +28,7 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Corretto
 
+- Eliminare un workspace dalla home lo toglie subito dalla lista (prima restava visibile fino al ricaricamento della pagina).
 - Le finestre più alte dello schermo scorrono invece di essere tagliate.
 - Gli avvisi seguono il tema dell'app invece di quello del sistema.
 - Cestino, Archivio, Template e Nuova nota da template funzionano dal menu anche con la barra laterale sinistra chiusa.

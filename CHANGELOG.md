@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 - Automations for the tasks of a note: rules like "when a task is completed in Doing, move it to Done". They react when a task is completed, reopened, created, moved into a section, or when all its subtasks are completed, and they can move the task, mark it completed or to do, add or remove its priority, color it or complete its subtasks. They are managed from the note and section menus (Automations…); every run shows a toast and is undone like any other action. Groups too: when all the tasks of a group are completed, the group can be archived, colored or moved to the top or the bottom of the note, also from the group menu. Rules are kept when a note is duplicated, exported or imported.
 - A text menu in the title bar (File, Edit, View, Help), also reachable with Alt or F10, with an icon on every entry.
 - The color of the open note can be changed from the Details panel, like the one of a task.
+- Importing a workspace, a note or a folder first shows the names it will get (a free name is proposed) and lets you change them.
 - Keyboard: the item menus (…) work with the arrow keys, the note tabs are navigated with the arrows and can be moved left or right from their menu, and the task menu has Rename.
 
 ### Changed
@@ -29,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Fixed
 
+- Deleting a workspace from the home removes it from the list at once (it stayed there until the page was reloaded).
 - Dialogs taller than the window scroll instead of being cut off.
 - Toasts follow the theme of the app instead of the one of the system.
 - Trash, Archive, Templates and New note from template work from the menu also with the left sidebar closed.

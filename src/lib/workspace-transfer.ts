@@ -2,12 +2,26 @@ import i18n from "@/i18n"
 import { open, save } from "@tauri-apps/plugin-dialog"
 import { readTextFile, stat, writeTextFile } from "@tauri-apps/plugin-fs"
 import {
-    buildDBItemExport, buildDBItemsExport, buildDBWorkspaceExport, importDBItems, importDBWorkspace, validateWorkspaceExport, type ImportedItems,
+    buildDBItemExport, buildDBItemsExport, buildDBWorkspaceExport, importDBItems, importDBWorkspace, suggestDBItemNames, suggestDBWorkspaceImportName,
+    validateWorkspaceExport, type ImportedItems,
 } from "@/db/queries/transfer"
 import { createError } from "@/types/error"
 import { MAX_IMPORT_FILE_BYTES, type WorkspaceExport } from "@/types/transfer"
 
 const FILTERS = [{ name: "EasyTask", extensions: ["json"] }]
+
+/** Something an import creates at the top (the workspace, or the top notes and folders) and the name proposed for it. */
+export type ImportName = { type: "workspace" | "folder" | "note", name: string }
+
+/**
+ * Lets the user review the names before importing: `submit` imports with the chosen names (it may fail, e.g. on a name
+ * clash, and be tried again with other names); resolves with its result, or null when the user cancels.
+ * @category Utilities
+ */
+export type ChooseImportNames = <T>(proposed: ImportName[], submit: (names: string[]) => Promise<T>) => Promise<T | null>
+
+/** Imports with the proposed names, without asking. */
+const acceptProposed: ChooseImportNames = (proposed, submit) => submit(proposed.map(item => item.name))
 
 // Characters not allowed in a Windows file name
 const sanitizeFileName = (name: string) => name.replace(/[<>:"/\\|?*]/g, "_").trim() || "workspace"
@@ -77,25 +91,34 @@ async function pickExportFile(): Promise<WorkspaceExport | null> {
 }
 
 /**
- * Asks for an export file and imports it as a new workspace.
- * @returns null when the user cancelled the dialog, otherwise the new workspace ID and the number of skipped audio files.
+ * Asks for an export file and imports it as a new workspace, with the name the user confirms (a free name is proposed).
+ * @param choose Shows the proposed name and imports with the chosen one (default: the proposed name, without asking).
+ * @returns null when the user cancelled a dialog, otherwise the new workspace ID and the number of skipped audio files.
  * @throws "TRANSFER_ITEMS_FILE" when the file holds a note or folder instead of a workspace.
  * @category Utilities
  */
-export async function importWorkspaceFromFile(): Promise<{ workspaceId: number, skippedAudio: number } | null> {
+export async function importWorkspaceFromFile(choose: ChooseImportNames = acceptProposed): Promise<{ workspaceId: number, skippedAudio: number } | null> {
     const data = await pickExportFile()
-    return data && importDBWorkspace(data)
+    if (!data) return null
+    if (data.scope === "items") throw createError("TRANSFER_ITEMS_FILE", i18n.t("errors.transfer.itemsFile"))
+    const name = await suggestDBWorkspaceImportName(data)
+    return choose([{ type: "workspace", name }], names => importDBWorkspace(data, { name: names[0] }))
 }
 
 /**
- * Asks for an export file with a note or a folder and imports it into a workspace.
+ * Asks for an export file with notes and folders and imports it into a workspace, with the names the user confirms for the
+ * top items (free names among the destination are proposed).
  * @param workspaceId The workspace to import into.
  * @param parentFolderId The destination folder, null for the workspace root.
- * @returns null when the user cancelled the dialog, otherwise the top items created and the number of skipped audio files.
+ * @param choose Shows the proposed names and imports with the chosen ones (default: the proposed names, without asking).
+ * @returns null when the user cancelled a dialog, otherwise the top items created and the number of skipped audio files.
  * @throws "TRANSFER_WORKSPACE_FILE" when the file holds a whole workspace.
  * @category Utilities
  */
-export async function importItemsFromFile(workspaceId: number, parentFolderId: number | null): Promise<ImportedItems | null> {
+export async function importItemsFromFile(workspaceId: number, parentFolderId: number | null, choose: ChooseImportNames = acceptProposed): Promise<ImportedItems | null> {
     const data = await pickExportFile()
-    return data && importDBItems(data, workspaceId, parentFolderId)
+    if (!data) return null
+    if (data.scope !== "items") throw createError("TRANSFER_WORKSPACE_FILE", i18n.t("errors.transfer.workspaceFile"))
+    const proposed = await suggestDBItemNames(data, workspaceId, parentFolderId)
+    return choose(proposed, names => importDBItems(data, workspaceId, parentFolderId, { names }))
 }

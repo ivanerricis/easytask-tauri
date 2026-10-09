@@ -106,6 +106,8 @@ export const errors = {
         untitled: "(senza titolo)",
         invalidFolderTree: "La struttura delle cartelle del file non è valida.",
         suffix: "importato",
+        nameEmpty: "Il nome non può essere vuoto.",
+        nameTaken: "Esiste già un elemento chiamato \"{{name}}\" in questa posizione.",
     },
     backup: {
         restoring: "È in corso il ripristino di un backup: riprova tra un momento.",

@@ -42,6 +42,14 @@ export const transfer = {
     importedItemsSkipped_other: "Importato · {{count}} audio saltati",
     itemsFileName_one: "{{count}} elemento",
     itemsFileName_other: "{{count}} elementi",
+    namesTitle: "Importa",
+    namesDescription: "Controlla i nomi prima di importare: puoi cambiarli.",
+    names: {
+        workspace: "Nome del workspace",
+        folder: "Nome della cartella",
+        note: "Nome della nota",
+    },
+    importAction: "Importa",
 }
 
 export const duplicate = {

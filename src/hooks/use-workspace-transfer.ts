@@ -7,6 +7,7 @@ import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { reportError } from "@/lib/report-error"
 import { exportItemToFile, exportItemsToFile, exportWorkspaceToFile, importItemsFromFile, importWorkspaceFromFile } from "@/lib/workspace-transfer"
 import { getErrorMessage } from "@/lib/utils"
+import { useImportNames } from "@/contexts/import-names-context"
 
 /**
  * Click handlers for the workspace export/import, with their toasts. Shared by the menus and the settings.
@@ -14,6 +15,7 @@ import { getErrorMessage } from "@/lib/utils"
  */
 export function useWorkspaceTransfer() {
     const { getWorkspaces } = useWorkspace()
+    const chooseNames = useImportNames()
     const [isBusy, setBusy] = useState(false)
 
     const exportWorkspace = useCallback(async (workspace: { id: number, name: string }) => {
@@ -30,7 +32,7 @@ export function useWorkspaceTransfer() {
     const importWorkspace = useCallback(async () => {
         setBusy(true)
         try {
-            const result = await importWorkspaceFromFile()
+            const result = await importWorkspaceFromFile(chooseNames)
             if (!result) return
             await getWorkspaces()
             toast.success(result.skippedAudio > 0 ? i18n.t("transfer.importedSkipped", { count: result.skippedAudio }) : i18n.t("transfer.imported"))
@@ -39,7 +41,7 @@ export function useWorkspaceTransfer() {
         } finally {
             setBusy(false)
         }
-    }, [getWorkspaces])
+    }, [getWorkspaces, chooseNames])
 
     return { exportWorkspace, importWorkspace, isBusy }
 }
@@ -53,6 +55,7 @@ export function useItemTransfer() {
     const { currentWorkspace } = useWorkspace()
     const { getWorkspaceData } = useWorkspaceActions()
     const recorder = useUndoRecorder()
+    const chooseNames = useImportNames()
     const [isBusy, setBusy] = useState(false)
 
     const exportItem = useCallback(async (itemType: "note" | "folder", item: { id: number, name: string }) => {
@@ -83,7 +86,7 @@ export function useItemTransfer() {
         if (!currentWorkspace) return
         setBusy(true)
         try {
-            const result = await importItemsFromFile(currentWorkspace.id, parentFolderId)
+            const result = await importItemsFromFile(currentWorkspace.id, parentFolderId, chooseNames)
             if (!result) return
             // The new rows are on disk: a failing refresh must not hide the success
             await getWorkspaceData(currentWorkspace.id).catch(error => reportError(error, i18n.t("errors.refreshTree")))
@@ -96,7 +99,7 @@ export function useItemTransfer() {
         } finally {
             setBusy(false)
         }
-    }, [currentWorkspace, getWorkspaceData, recorder])
+    }, [currentWorkspace, getWorkspaceData, recorder, chooseNames])
 
     return { exportItem, exportItems, importItems, isBusy }
 }

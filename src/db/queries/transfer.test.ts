@@ -34,7 +34,7 @@ vi.mock("@tauri-apps/api/core", async () => {
 
 import { getDBNoteData } from "./note"
 import { getDBAutomations } from "./automation"
-import { buildDBItemExport, buildDBItemsExport, buildDBWorkspaceExport, importDBItems, importDBWorkspace, validateWorkspaceExport } from "./transfer"
+import { buildDBItemExport, buildDBItemsExport, buildDBWorkspaceExport, importDBItems, importDBWorkspace, suggestDBItemNames, suggestDBWorkspaceImportName, validateWorkspaceExport } from "./transfer"
 
 const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
 
@@ -385,6 +385,24 @@ describe("items export and import", () => {
         expect(rows(`SELECT COUNT(*) AS c FROM folder WHERE workspaceID = 2`)[0].c).toBe(0)
     })
 
+    it("proposes the free names of the top items and imports with the names the user chose", async () => {
+        const data = validateWorkspaceExport(await json("note", 1))
+        expect(await suggestDBItemNames(data, 1, null)).toEqual([{ type: "note", name: "Sorgente (2)" }])
+        const result = await importDBItems(data, 1, null, { names: ["  Mia nota  "] })
+        expect(result.items[0]).toMatchObject({ type: "note", name: "Mia nota" })
+        expect(rows(`SELECT name FROM note WHERE id = ${result.items[0].id}`)).toEqual([{ name: "Mia nota" }])
+    })
+
+    it("refuses a chosen name that is empty or already taken, importing nothing", async () => {
+        const count = () => rows("SELECT COUNT(*) AS c FROM note")[0].c
+        const before = count()
+        await expect(importDBItems(validateWorkspaceExport(await json("note", 1)), 1, null, { names: ["Sorgente"] }))
+            .rejects.toMatchObject({ code: "TRANSFER_NAME_TAKEN" })
+        await expect(importDBItems(validateWorkspaceExport(await json("note", 1)), 1, null, { names: ["   "] }))
+            .rejects.toMatchObject({ code: "TRANSFER_NAME_EMPTY" })
+        expect(count()).toBe(before)
+    })
+
     it("imports a folder into the root and a note into a folder", async () => {
         const root = await importDBItems(validateWorkspaceExport(await json("folder", 5)), 1, null)
         expect(rows(`SELECT folderID, name FROM folder WHERE id = ${root.items[0].id}`)).toEqual([{ folderID: null, name: "Sotto" }])
@@ -622,5 +640,16 @@ describe("automations in export/import", () => {
         const rule = good.notes.find((n: { name: string }) => n.name === "Sorgente").automations[0]
         good.notes[0].automations = Array.from({ length: MAX_IMPORT_ITEMS }, () => rule)
         expect(() => validateWorkspaceExport(good)).toThrow(expect.objectContaining({ code: "TRANSFER_TOO_MANY_ITEMS" }))
+    })
+})
+
+describe("workspace import with a chosen name", () => {
+    it("proposes a free name and uses the chosen one as is, refusing a taken one", async () => {
+        const data = validateWorkspaceExport(JSON.parse(JSON.stringify(await exportOf())))
+        const proposed = await suggestDBWorkspaceImportName(data)
+        expect(proposed).not.toBe(data.workspace.name)
+        const { workspaceId } = await importDBWorkspace(data, { name: " Copia mia " })
+        expect(rows(`SELECT name FROM workspace WHERE id = ${workspaceId}`)).toEqual([{ name: "Copia mia" }])
+        await expect(importDBWorkspace(data, { name: "Copia mia" })).rejects.toMatchObject({ message: "Esiste già un workspace con questo nome." })
     })
 })

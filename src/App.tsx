@@ -4,6 +4,7 @@ import { WorkspaceProvider } from './contexts/workspace-context'
 import { WorkspaceDataProvider } from './contexts/workspace-data'
 import { UndoProvider } from './contexts/undo'
 import { AutomationsProvider } from './contexts/automations-context'
+import { ImportNamesProvider } from './contexts/import-names-context'
 import { PreferencesProvider } from './contexts/preferences-context'
 import { ThemeProvider } from './components/theme-provider'
 import { Toaster } from './components/ui/sonner'
@@ -54,6 +55,7 @@ function App() {
             <UndoProvider>
             <AutomationsProvider>
             {/* No transitions: a route that is not ready yet shows its loading page at once, instead of the old page frozen until the new one is ready */}
+            <ImportNamesProvider>
             <HashRouter useTransitions={false}>
               <Routes>
                 <Route path='/' element={
@@ -68,6 +70,7 @@ function App() {
                 } />
               </Routes>
             </HashRouter>
+            </ImportNamesProvider>
             </AutomationsProvider>
             </UndoProvider>
             <Toaster richColors closeButton position='top-center' toastOptions={{ closeButtonAriaLabel: t('common.close') }} />

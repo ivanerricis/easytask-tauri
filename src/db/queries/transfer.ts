@@ -424,6 +424,16 @@ const hasAudioExtension = (path: string) => {
     return dot >= 0 && (AUDIO_EXTENSIONS as readonly string[]).includes(path.slice(dot + 1).toLowerCase())
 }
 
+/**
+ * The name a workspace import gets unless the user picks another one: the name in the file, or the first free
+ * "name (imported)", "name (imported 2)"... when it is taken.
+ * @param data A validated workspace export.
+ * @category Database Queries
+ */
+export async function suggestDBWorkspaceImportName(data: WorkspaceExport): Promise<string> {
+    return uniqueWorkspaceName(await getDB(), data.workspace.name.trim())
+}
+
 /** Returns the first free workspace name: "name", "name (imported)", "name (imported 2)"... (the word comes from the current language). */
 async function uniqueWorkspaceName(db: Database, name: string): Promise<string> {
     // Trashed workspaces are included: they still hold the UNIQUE constraint on the name
@@ -511,7 +521,8 @@ async function insertItems(
 
 
 /**
- * Imports an export as a new workspace. The name is made unique ("name (importato)", "name (importato 2)"...).
+ * Imports an export as a new workspace. The name is made unique ("name (importato)", "name (importato 2)"...), unless
+ * `options.name` (chosen by the user) is given: that one is used as is, and a clash is an error.
  * The workspace and everything in it are written in ONE database transaction: on any failure nothing is created.
  * @param data A validated export (see validateWorkspaceExport).
  * @param options `audioExists` decides whether an audio file is kept (files for which it returns false or throws are skipped).
@@ -521,7 +532,7 @@ async function insertItems(
  */
 export async function importDBWorkspace(
     data: WorkspaceExport,
-    options: { audioExists?: (path: string) => Promise<boolean> } = {},
+    options: { audioExists?: (path: string) => Promise<boolean>, name?: string } = {},
 ): Promise<{ workspaceId: number, skippedAudio: number }> {
     if (data.scope === "items") throw createError("TRANSFER_ITEMS_FILE", i18n.t("errors.transfer.itemsFile"))
     const audioExists = options.audioExists ?? defaultAudioExists
@@ -529,7 +540,7 @@ export async function importDBWorkspace(
     let workspace: number
     try {
         const db = await getDB()
-        const name = await uniqueWorkspaceName(db, data.workspace.name.trim())
+        const name = options.name !== undefined ? options.name.trim() : await uniqueWorkspaceName(db, data.workspace.name.trim())
         workspace = tx.add('INSERT INTO workspace (name, color) VALUES (?, ?)', [name, data.workspace.color ?? null])
     } catch (error: unknown) {
         handleDBError(error, "WORKSPACE", {
@@ -560,6 +571,34 @@ export async function importDBWorkspace(
     }
 }
 
+/** A top item of an items import (folders first, then notes, in file order) and the name it would get. */
+export type ImportItemName = { type: "folder" | "note", name: string }
+
+/** The top items of an items file, the existing siblings under the destination and the free names of the top items. */
+async function topItemNames(db: Database, data: WorkspaceExport, workspaceId: number, parentFolderId: number | null) {
+    const parentKey = parentFolderId ?? 0
+    const taken = async (table: "folder" | "note") => db.select<{ name: string, position: number }[]>(
+        `SELECT name, position FROM ${table} WHERE workspaceID = ? AND IFNULL(folderID, 0) = ? AND deleted_at IS NULL`,
+        [workspaceId, parentKey])
+    const folders = { items: data.folders.filter(folder => folder.parentRef === null), rows: await taken("folder") }
+    const notes = { items: data.notes.filter(note => note.folderRef === null), rows: await taken("note") }
+    const suggestions: ImportItemName[] = []
+    for (const [type, { items, rows }] of [["folder", folders], ["note", notes]] as const) {
+        const used = new Set(rows.map(row => row.name))
+        for (const item of items) suggestions.push({ type, name: uniqueSibling(item.name.trim(), used) })
+    }
+    return { folders, notes, suggestions }
+}
+
+/**
+ * The names the top items of an items file get under a destination unless the user picks others (folders first, then
+ * notes, in file order): the names in the file, with " (2)", " (3)"... on a clash with the existing siblings.
+ * @category Database Queries
+ */
+export async function suggestDBItemNames(data: WorkspaceExport, workspaceId: number, parentFolderId: number | null): Promise<ImportItemName[]> {
+    return (await topItemNames(await getDB(), data, workspaceId, parentFolderId)).suggestions
+}
+
 /** The notes and folders created by an items import, with their name after the renaming of the clashes. */
 export type ImportedItems = {
     skippedAudio: number
@@ -574,7 +613,9 @@ export type ImportedItems = {
  * @param data A validated export with scope "items" (see validateWorkspaceExport).
  * @param workspaceId The workspace to import into.
  * @param parentFolderId The destination folder, null for the workspace root.
- * @param options `audioExists` decides whether an audio file is kept (see importDBWorkspace).
+ * @param options `audioExists` decides whether an audio file is kept (see importDBWorkspace). `names`: the names chosen by
+ * the user for the top items, in the order of suggestDBItemNames; they are used as they are, so an empty name or a clash
+ * (with a sibling or between them) is an error ("TRANSFER_NAME_EMPTY" / "TRANSFER_NAME_TAKEN") and nothing is imported.
  * @returns The skipped audio files and the top items created (with their new ids), for the caller to refresh and undo.
  * @throws "TRANSFER_WORKSPACE_FILE" for a whole-workspace file, "TRANSFER_PARENT_MISSING" when the destination folder is gone,
  * "TRANSFER_IMPORT_FAILED" otherwise.
@@ -584,7 +625,7 @@ export async function importDBItems(
     data: WorkspaceExport,
     workspaceId: number,
     parentFolderId: number | null,
-    options: { audioExists?: (path: string) => Promise<boolean> } = {},
+    options: { audioExists?: (path: string) => Promise<boolean>, names?: readonly string[] } = {},
 ): Promise<ImportedItems> {
     if (data.scope !== "items") throw createError("TRANSFER_WORKSPACE_FILE", i18n.t("errors.transfer.workspaceFile"))
     const audioExists = options.audioExists ?? defaultAudioExists
@@ -596,20 +637,24 @@ export async function importDBItems(
             if (parents.length === 0) throw createError("TRANSFER_PARENT_MISSING", i18n.t("errors.transfer.parentMissing"))
         }
 
-        // Top items: after the existing siblings, with a free name among them
-        const parentKey = parentFolderId ?? 0
-        const siblings = async (table: "folder" | "note") => db.select<{ name: string, position: number }[]>(
-            `SELECT name, position FROM ${table} WHERE workspaceID = ? AND IFNULL(folderID, 0) = ? AND deleted_at IS NULL`,
-            [workspaceId, parentKey])
-        const topFolders = data.folders.filter(folder => folder.parentRef === null)
-        const topNotes = data.notes.filter(note => note.folderRef === null)
-        for (const [items, table] of [[topFolders, "folder"], [topNotes, "note"]] as const) {
-            if (items.length === 0) continue
-            const existing = await siblings(table)
-            const used = new Set(existing.map(row => row.name))
-            let position = existing.reduce((max, row) => Math.max(max, row.position + 1), 0)
+        // Top items: after the existing siblings, with a free name among them (or the one the user chose)
+        const top = await topItemNames(db, data, workspaceId, parentFolderId)
+        const topFolders = top.folders.items
+        const topNotes = top.notes.items
+        let index = 0
+        for (const { items, rows } of [top.folders, top.notes]) {
+            const used = new Set(rows.map(row => row.name))
+            let position = rows.reduce((max, row) => Math.max(max, row.position + 1), 0)
             for (const item of items) {
-                item.name = uniqueSibling(item.name.trim(), used)
+                const chosen = options.names?.[index]?.trim()
+                const suggested = top.suggestions[index++].name
+                if (chosen === undefined) item.name = suggested
+                else {
+                    if (!chosen) throw createError("TRANSFER_NAME_EMPTY", i18n.t("errors.transfer.nameEmpty"))
+                    if (used.has(chosen)) throw createError("TRANSFER_NAME_TAKEN", i18n.t("errors.transfer.nameTaken", { name: chosen }))
+                    item.name = chosen
+                }
+                used.add(item.name)
                 item.position = position++
                 // What the user imports on purpose shows up: only the items inside keep their archive date
                 item.archived_at = null
