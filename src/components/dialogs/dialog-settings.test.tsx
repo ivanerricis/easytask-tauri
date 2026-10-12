@@ -159,11 +159,10 @@ describe("DialogSettings", () => {
         expect(audioPrefs.resetAudioSettings).toHaveBeenCalled()
     })
 
-    it("sets the sidebar item size from the segmented control and previews it", async () => {
+    it("sets the sidebar item size from the segmented control", async () => {
         await open()
         const group = screen.getByRole("radiogroup", { name: "Dimensione di cartelle e note" })
         expect(within(group).getByRole("radio", { name: "Normale" })).toBeChecked()
-        expect(screen.getByTestId("sidebar-size-preview").firstElementChild).toHaveClass("h-7")
 
         await userEvent.click(within(group).getByRole("radio", { name: "Grande" }))
         expect(setSidebarItemSize).toHaveBeenCalledWith("large")

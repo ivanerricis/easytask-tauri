@@ -1,3 +1,4 @@
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { RotateCcw } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -11,7 +12,9 @@ import { SectionResetButton } from "./SectionResetButton"
 const SIZE_KEYS: Record<AudioPlayerScale, "small" | "normal" | "large"> = { 0.85: "small", 1: "normal", 1.2: "large" }
 
 const PercentRange = ({ label, value, min, onChange }: { label: string, value: number, min: number, onChange: (value: number) => void }) => {
-    const percent = Math.round(value * 100)
+    // The value shown while the thumb is dragged: the preference is set on release
+    const [draft, setDraft] = useState<number | null>(null)
+    const percent = Math.round((draft ?? value) * 100)
     return (
         <div className="flex items-center gap-2">
             <Slider
@@ -19,7 +22,10 @@ const PercentRange = ({ label, value, min, onChange }: { label: string, value: n
                 max={100}
                 step={1}
                 value={[percent]}
+                deferChange
+                onValueDrag={([next]) => setDraft(next / 100)}
                 onValueChange={([next]) => onChange(next / 100)}
+                onValueCommit={() => setDraft(null)}
                 aria-label={label}
                 aria-valuetext={`${percent}%`}
                 className="w-32"

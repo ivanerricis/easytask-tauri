@@ -46,6 +46,10 @@ base64 = "0.23.1"
 tauri-plugin-updater = "2"
 tauri-plugin-single-instance = "2"
 
+[target.'cfg(windows)'.dependencies]
+# Names the process for the system media overlay (see set_app_user_model_id)
+windows-sys = { version = "0.61", features = ["Win32_UI_Shell"] }
+
 [profile.release]
 lto = true
 opt-level = "s"

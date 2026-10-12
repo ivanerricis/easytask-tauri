@@ -42,8 +42,6 @@ export const settings = {
             compact: "Compatta",
             normal: "Normale",
             large: "Grande",
-            previewFolder: "Cartella",
-            previewNote: "Nota",
         },
         animations: {
             label: "Animazioni",

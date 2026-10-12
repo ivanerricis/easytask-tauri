@@ -11,23 +11,68 @@ function Slider({
   "aria-label": ariaLabel,
   "aria-labelledby": ariaLabelledby,
   "aria-valuetext": ariaValuetext,
+  onValueChange,
+  onValueDrag,
+  deferChange = false,
+  onValueCommit,
+  onPointerDown,
   ...props
-}: React.ComponentProps<typeof SliderPrimitive.Root> & { "aria-valuetext"?: string }) {
+}: React.ComponentProps<typeof SliderPrimitive.Root> & {
+  "aria-valuetext"?: string
+  /** Called on every move of a pointer drag, for a cheap local preview (a label); never for the keys. */
+  onValueDrag?: (value: number[]) => void
+  /** The owner hears of a pointer drag only when the thumb is released (the keys still apply at once). */
+  deferChange?: boolean
+}) {
+  // While the thumb is dragged it follows the pointer from a local value, and the owner is told at most once per frame:
+  // a controlled value that is stored (and re-renders a tree of consumers) on every pointer move made the thumb lag
+  const [dragValue, setDragValue] = React.useState<number[] | null>(null)
+  const frame = React.useRef<number | null>(null)
+  const pointerDown = React.useRef(false)
+  const latest = React.useRef<number[] | null>(null)
+  const onChangeRef = React.useRef(onValueChange)
+  React.useEffect(() => { onChangeRef.current = onValueChange })
+
+  const flush = React.useCallback(() => {
+    if (frame.current !== null) cancelAnimationFrame(frame.current)
+    frame.current = null
+    const next = latest.current
+    latest.current = null
+    if (next) onChangeRef.current?.(next)
+  }, [])
+  React.useEffect(() => () => { if (frame.current !== null) cancelAnimationFrame(frame.current) }, [])
+
+  const shown = value !== undefined ? (dragValue ?? value) : value
   const _values = React.useMemo(
     () =>
-      Array.isArray(value)
-        ? value
+      Array.isArray(shown)
+        ? shown
         : Array.isArray(defaultValue)
           ? defaultValue
           : [min, max],
-    [value, defaultValue, min, max]
+    [shown, defaultValue, min, max]
   )
 
   return (
     <SliderPrimitive.Root
       data-slot="slider"
       defaultValue={defaultValue}
-      value={value}
+      value={shown}
+      onValueChange={(next) => {
+        // Keys (and a controlled-less slider) apply at once; only the pointer drag is coalesced
+        if (value === undefined || !pointerDown.current) return onValueChange?.(next)
+        setDragValue(next)
+        onValueDrag?.(next)
+        latest.current = next
+        if (!deferChange) frame.current ??= requestAnimationFrame(() => { frame.current = null; flush() })
+      }}
+      onPointerDown={(e) => { pointerDown.current = true; onPointerDown?.(e) }}
+      onValueCommit={(next) => {
+        pointerDown.current = false
+        flush()
+        setDragValue(null)
+        onValueCommit?.(next)
+      }}
       min={min}
       max={max}
       className={cn(

@@ -101,7 +101,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
             {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└). Only the direct child of the last subtask counts (a plain descendant selector would hide the lines of every deeper level) */}
             {isSubtask && <>
                 <span aria-hidden className={cn("pointer-events-none absolute -top-px -bottom-px w-px bg-muted-foreground/45 [.subtask:last-child>&]:hidden", lineLeft)} />
-                <span aria-hidden className={cn("pointer-events-none absolute -top-px h-[19px] w-px [.subtask:last-child>&]:bg-muted-foreground/45", lineLeft)} />
+                <span aria-hidden className={cn("pointer-events-none absolute -top-px h-[18px] w-px [.subtask:last-child>&]:bg-muted-foreground/45", lineLeft)} />
             </>}
             <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)} onRename={startEdit}>
                 <div
@@ -255,7 +255,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                     {open && <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />}
                 </div>
             </ButtonMenuTask>
-            {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute top-[17px] h-px bg-muted-foreground/45", lineLeft, nestedSubtask ? "w-[19px]" : "w-[18px]")} />}
+            {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute top-[16px] h-px bg-muted-foreground/45", lineLeft, nestedSubtask ? "w-[19px]" : "w-[18px]")} />}
             {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
             {(task.subtasks.length > 0 || isAddingSubtask) && <div className="flex flex-col self-stretch ml-7 mb-1">
                 {visibleTasks(task.subtasks, hideCompleted).map(subtask =>

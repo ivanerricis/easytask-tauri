@@ -22,6 +22,7 @@ import {
     type DropTarget, type DropZone, type TreeRef,
 } from "./tree-dnd"
 import { useItemSize } from "./item-size"
+import { useGrabbingCursor } from "@/hooks/use-grabbing-cursor"
 import { markTreeDragEnd, treeRowKey } from "./tree-row"
 import { VIRTUALIZE_THRESHOLD, flattenTree } from "./flat-tree"
 import { rowKeys, selectionKey } from "./selection"
@@ -192,6 +193,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
     const recorder = useUndoRecorder()
     const [hover, setHover] = useState<HoverState>(NO_HOVER)
     const [activeRef, setActiveRef] = useState<TreeRef | null>(null)
+    useGrabbingCursor(activeRef !== null)
     const targetRef = useRef<DropTarget | null>(null)
     // Dragging a selected row drags the whole selection: the plan of the move being hovered (null = no valid target)
     const store = useSelectionStore()
@@ -372,7 +374,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
                 )}
             </RootDropArea>
             <DragOverlay dropAnimation={null}>
-                {activeItem && activeRef ? <DragPreview item={activeItem} isFolder={activeRef.type === "folder"} count={multiCount} /> : null}
+                {activeItem && activeRef ? <div className="rotate-2"><DragPreview item={activeItem} isFolder={activeRef.type === "folder"} count={multiCount} /></div> : null}
             </DragOverlay>
         </DndContext>
     )

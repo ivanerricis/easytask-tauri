@@ -46,7 +46,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
         <ButtonMenuNote note={note} onRename={startRename}>
             <div
                 className={cn(
-                    "relative flex items-stretch min-h-[42px] border-x border-b",
+                    "group/tab relative flex items-stretch min-h-[42px] border-x border-b",
                     isActive ? "bg-background border-x-primary border-b-transparent" : "bg-secondary border-x-transparent border-b-primary hover:bg-background/40",
                 )}
             >
@@ -71,7 +71,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                     onClick={() => activateNote(note.id)}
                     className={cn(focusRing, "flex min-w-0 flex-1 cursor-pointer items-center py-1 pl-2 pr-1 text-left text-sm")}
                 >
-                    <span className={cn("block max-w-56 truncate", isActive ? "font-medium text-foreground" : "text-muted-foreground")}>
+                    <span className={cn("block max-w-44 truncate", isActive ? "font-medium text-foreground" : "text-muted-foreground")}>
                         {note.name}
                     </span>
                 </button>}
@@ -95,7 +95,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                             size="icon"
                             aria-label={isActive ? t("notes.closeCurrent") : t("notes.close")}
                             onClick={handleCloseHeader}
-                            className={cn("size-6", isActive ? "text-foreground" : "text-muted-foreground")}
+                            className={cn("size-6", isActive ? "text-foreground" : "text-muted-foreground opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100")}
                         >
                             <X />
                         </Button>
