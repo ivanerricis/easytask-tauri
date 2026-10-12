@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { useEffect, useState } from "react"
+import { Fragment, useEffect, useState } from "react"
 import { getName, getTauriVersion, getVersion } from "@tauri-apps/api/app"
 import { ensureAppFolder } from "@/db/appPaths"
 import { openUrl } from "@tauri-apps/plugin-opener"
@@ -25,12 +25,57 @@ const settle = async (fn: () => Promise<string>) => {
     }
 }
 
-const InfoRow = ({ label, value, selectable }: { label: string, value: string, selectable?: boolean }) => (
+const InfoRow = ({ label, value }: { label: string, value: string }) => (
     <div className="flex items-baseline justify-between gap-4 text-sm">
         <span className="text-muted-foreground shrink-0">{label}</span>
-        <span className={`text-right break-all ${selectable ? "select-text" : ""}`}>{value}</span>
+        <span className="text-right break-all">{value}</span>
     </div>
 )
+
+/** Copies `text` to the clipboard, with the result in a toast. */
+const useCopy = (successKey: "settings.about.copied" | "settings.about.pathCopied") => {
+    const { t } = useTranslation()
+    return async (text: string) => {
+        try {
+            await navigator.clipboard.writeText(text)
+            toast.success(t(successKey))
+        } catch (err) {
+            toast.error(t("settings.about.copyError", { message: getErrorMessage(err) }))
+        }
+    }
+}
+
+/** A path that wraps only after its separators, never in the middle of a name. */
+const WrappablePath = ({ path }: { path: string }) => (
+    <>
+        {path.split(/([\\/])/).map((part, index) => (
+            <Fragment key={index}>
+                {part}
+                {(part === "\\" || part === "/") && <wbr />}
+            </Fragment>
+        ))}
+    </>
+)
+
+const DatabaseRow = ({ path }: { path: string }) => {
+    const { t } = useTranslation()
+    const copy = useCopy("settings.about.pathCopied")
+    return (
+        <div className="flex items-baseline justify-between gap-4 text-sm">
+            <span className="text-muted-foreground shrink-0">{t("settings.about.database")}</span>
+            <span className="flex min-w-0 items-center gap-1.5 text-right">
+                <span className="min-w-0 select-text"><WrappablePath path={path} /></span>
+                {path !== EMPTY && (
+                    <TooltipCustom text={t("settings.about.copyPath")}>
+                        <Button type="button" variant="ghost" size="icon" onClick={() => void copy(path)} aria-label={t("settings.about.copyPath")} className="shrink-0 self-center text-muted-foreground">
+                            <Copy />
+                        </Button>
+                    </TooltipCustom>
+                )}
+            </span>
+        </div>
+    )
+}
 
 const RepositoryRow = () => {
     const { t } = useTranslation()
@@ -42,14 +87,8 @@ const RepositoryRow = () => {
         }
     }
 
-    const handleCopy = async () => {
-        try {
-            await navigator.clipboard.writeText(REPO_URL)
-            toast.success(t("settings.about.copied"))
-        } catch (err) {
-            toast.error(t("settings.about.copyError", { message: getErrorMessage(err) }))
-        }
-    }
+    const copy = useCopy("settings.about.copied")
+    const handleCopy = () => copy(REPO_URL)
 
     return (
         <div className="flex items-baseline justify-between gap-4 text-sm">
@@ -66,7 +105,7 @@ const RepositoryRow = () => {
                     </Button>
                 </TooltipCustom>
                 <TooltipCustom text={t("settings.about.copyLink")}>
-                    <Button type="button" variant="ghost" size="icon" onClick={handleCopy} aria-label={t("settings.about.copyLink")} className="self-center text-muted-foreground">
+                    <Button type="button" variant="ghost" size="icon" onClick={() => void handleCopy()} aria-label={t("settings.about.copyLink")} className="self-center text-muted-foreground">
                         <Copy />
                     </Button>
                 </TooltipCustom>
@@ -107,7 +146,7 @@ export const AboutSettings = () => {
                 <InfoRow label={t("settings.about.tauriVersion")} value={info.tauri} />
                 <InfoRow label={t("settings.about.author")} value="Ivan Erricis" />
                 <RepositoryRow />
-                <InfoRow label={t("settings.about.database")} value={info.dbPath} selectable />
+                <DatabaseRow path={info.dbPath} />
             </div>
             <UpdateSection />
         </SettingsPanel>

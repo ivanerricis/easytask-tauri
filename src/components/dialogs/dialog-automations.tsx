@@ -332,6 +332,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                 title={t("automations.discardConfirm.title")}
                 description={t("automations.discardConfirm.description")}
                 destructive
+                irreversible
                 confirm={{ label: t("automations.discardConfirm.confirm"), icon: Trash2, onClick: discard }}
             />
             <ConfirmDialog
@@ -340,6 +341,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                 title={t("automations.deleteConfirm.title")}
                 description={deleting ? automationName(deleting, titleOf, groupLabelOf) : undefined}
                 destructive
+                irreversible
                 confirm={{ label: t("common.delete"), icon: Trash2, onClick: () => { if (deleting) return remove(deleting) } }}
             />
         </>

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { invoke } from "@tauri-apps/api/core"
-import { ArchiveRestore, DatabaseBackup, FolderOpen, Trash2 } from "lucide-react"
+import { DatabaseBackup, FolderOpen, History, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "../dialog-confirm"
@@ -147,17 +147,20 @@ export const BackupSettings = () => {
             />
             <SettingsRow label={t("settings.data.backup.keep.label")} description={t("settings.data.backup.keep.description")}>
                 {({ id, descriptionId }) => (
-                    <Input
-                        id={id}
-                        aria-describedby={descriptionId}
-                        type="number"
-                        className="h-8 w-20"
-                        min={MIN_BACKUP_KEEP}
-                        max={MAX_BACKUP_KEEP}
-                        value={keep}
-                        onChange={event => changeKeep(event.target.value)}
-                        onBlur={normalizeKeep}
-                    />
+                    <div className="flex items-center gap-2">
+                        <Input
+                            id={id}
+                            aria-describedby={descriptionId}
+                            type="number"
+                            className="h-8 w-20"
+                            min={MIN_BACKUP_KEEP}
+                            max={MAX_BACKUP_KEEP}
+                            value={keep}
+                            onChange={event => changeKeep(event.target.value)}
+                            onBlur={normalizeKeep}
+                        />
+                        <span className="text-xs text-muted-foreground">{t("settings.data.backup.keep.unit")}</span>
+                    </div>
                 )}
             </SettingsRow>
             <SettingsRow label={t("settings.data.backup.folder.label")} description={t("settings.data.backup.folder.description")}>
@@ -171,7 +174,7 @@ export const BackupSettings = () => {
                 {backups.length === 0 ? (
                     <p className="text-xs text-muted-foreground">{t("settings.data.backup.list.empty")}</p>
                 ) : (
-                    <ul className="flex flex-col gap-1 max-h-48 overflow-y-auto" aria-label={t("settings.data.backup.list.title")}>
+                    <ul className="flex flex-col gap-1 max-h-48 overflow-y-auto rounded-xs border p-1" aria-label={t("settings.data.backup.list.title")}>
                         {backups.map(backup => (
                             <li key={backup.name} className="flex items-center justify-between gap-2 text-sm">
                                 <span className="min-w-0 truncate">
@@ -190,7 +193,7 @@ export const BackupSettings = () => {
                                             aria-label={t("settings.data.backup.restore.aria", { date: backup.date.toLocaleString(i18n.language) })}
                                             onClick={() => setToRestore(backup)}
                                         >
-                                            <ArchiveRestore />
+                                            <History />
                                         </Button>
                                     </TooltipCustom>
                                     <TooltipCustom text={t("common.delete")}>
@@ -214,7 +217,7 @@ export const BackupSettings = () => {
                 <div className="flex flex-col gap-2">
                     <div className="text-sm">{t("settings.data.backup.list.preMigration.title")}</div>
                     <p className="text-xs text-muted-foreground">{t("settings.data.backup.list.preMigration.description")}</p>
-                    <ul className="flex flex-col gap-1 max-h-32 overflow-y-auto" aria-label={t("settings.data.backup.list.preMigration.title")}>
+                    <ul className="flex flex-col gap-1 max-h-32 overflow-y-auto rounded-xs border p-1" aria-label={t("settings.data.backup.list.preMigration.title")}>
                         {preMigration.map(copy => (
                             <li key={copy.name} className="flex items-center justify-between gap-2 text-sm">
                                 <span className="min-w-0 truncate">{copy.name}</span>
@@ -230,6 +233,7 @@ export const BackupSettings = () => {
                 open={toDelete !== null}
                 onOpenChange={open => { if (!open) setToDelete(null) }}
                 destructive
+                irreversible
                 initialFocus="cancel"
                 title={t("settings.data.backup.delete.title")}
                 description={t("settings.data.backup.delete.description", { date: toDelete?.date.toLocaleString(i18n.language) ?? "" })}
@@ -239,10 +243,11 @@ export const BackupSettings = () => {
                 open={toRestore !== null}
                 onOpenChange={open => { if (!open) setToRestore(null) }}
                 destructive
+                irreversible
                 initialFocus="cancel"
                 title={t("settings.data.backup.restore.title")}
                 description={t("settings.data.backup.restore.description", { date: toRestore?.date.toLocaleString(i18n.language) ?? "" })}
-                confirm={{ label: t("settings.data.backup.restore.confirm"), icon: ArchiveRestore, onClick: () => { if (toRestore) void restore(toRestore) } }}
+                confirm={{ label: t("settings.data.backup.restore.confirm"), icon: History, onClick: () => { if (toRestore) void restore(toRestore) } }}
             />
         </>
     )

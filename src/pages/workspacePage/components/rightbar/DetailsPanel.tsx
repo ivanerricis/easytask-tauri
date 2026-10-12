@@ -353,17 +353,27 @@ const AudioDetails = () => {
     else if (state.failed || !state.metadata) content = <p role="alert" className="text-sm text-destructive">{t("details.audio.error")}</p>
     else content = <AudioFields name={file.name} path={path} metadata={state.metadata} />
 
+    // Without a file the block is a single compact line
+    if (!file || !path) {
+        return (
+            <section aria-label={t("details.audio.title")} className="flex shrink-0 items-baseline gap-2 border-t px-3 py-2">
+                <h2 className={`${sectionTitle} shrink-0`}>{t("details.audio.title")}</h2>
+                {content}
+            </section>
+        )
+    }
+
     return (
-        <section aria-label={t("details.audio.title")} className="flex min-h-0 flex-1 flex-col border-t">
+        <section aria-label={t("details.audio.title")} className="flex max-h-[40%] shrink-0 flex-col border-t">
             <h2 className={`${sectionTitle} shrink-0 px-3 pt-3`}>{t("details.audio.title")}</h2>
-            <div className="min-h-0 flex-1 overflow-y-auto p-3">{content}</div>
+            <div className="min-h-0 overflow-y-auto p-3">{content}</div>
         </section>
     )
 }
 
 /**
  * The Details tab, split in two halves with their own scroll: the selected task (or the active note) on top, the
- * information of the audio file below.
+ * information of the audio file below (content-sized, up to 40% of the panel).
  * @category RightPanel
  */
 export function DetailsPanel() {

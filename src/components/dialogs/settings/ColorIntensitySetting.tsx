@@ -28,7 +28,13 @@ export const ColorIntensitySetting = () => {
 
     return (
         <div className="flex flex-col gap-3">
-            <SettingsRow label={label} description={t("settings.appearance.colorIntensity.description")}>
+            <SettingsRow
+                label={label}
+                description={t("settings.appearance.colorIntensity.description")}
+                reset={colorIntensity === DEFAULT_COLOR_INTENSITY
+                    ? undefined
+                    : <RowResetButton label={t("settings.appearance.colorIntensity.reset")} onClick={() => setColorIntensity(DEFAULT_COLOR_INTENSITY)} />}
+            >
                 <div className="flex items-center gap-2">
                     <Slider
                         min={Math.round(MIN_COLOR_INTENSITY * 100)}
@@ -44,21 +50,20 @@ export const ColorIntensitySetting = () => {
                         className="w-32"
                     />
                     <span className="w-10 text-right text-xs text-muted-foreground tabular-nums">{percent}%</span>
-                    <RowResetButton
-                        label={t("settings.appearance.colorIntensity.reset")}
-                        onClick={() => setColorIntensity(DEFAULT_COLOR_INTENSITY)}
-                        disabled={colorIntensity === DEFAULT_COLOR_INTENSITY}
-                    />
                 </div>
             </SettingsRow>
-            <div aria-hidden className="flex gap-1 self-start" data-testid="color-intensity-preview">
-                {SAMPLE_COLORS.map(color => (
-                    <div
-                        key={color}
-                        className="w-20 h-6 rounded-xs border border-accent"
-                        style={{ backgroundColor: hexToRgba(alpha, color) }}
-                    />
-                ))}
+            {/* Under the slider: w-44 = slider (w-32) + gap + value (w-10); mr-10 = the reset slot (size-8) + gap, as in SettingsRow */}
+            <div aria-hidden className="w-44 self-end mr-10 flex flex-col gap-1">
+                <div className="flex gap-1" data-testid="color-intensity-preview">
+                    {SAMPLE_COLORS.map(color => (
+                        <div
+                            key={color}
+                            className="h-6 flex-1 rounded-xs border border-accent"
+                            style={{ backgroundColor: hexToRgba(alpha, color) }}
+                        />
+                    ))}
+                </div>
+                <span className="text-xs text-muted-foreground">{t("settings.appearance.colorIntensity.preview")}</span>
             </div>
         </div>
     )

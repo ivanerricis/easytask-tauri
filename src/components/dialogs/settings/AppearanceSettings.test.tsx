@@ -67,7 +67,7 @@ describe("accent color picker", () => {
     it("resets to the default orange at once, dropping a pending change", () => {
         render(<AppearanceSettings />)
         fireEvent.change(picker(), { target: { value: "#123456" } })
-        fireEvent.click(screen.getByRole("button", { name: "Ripristina il colore d'accento" }))
+        fireEvent.click(screen.getByRole("button", { name: "Reimposta il colore d'accento" }))
 
         expect(prefs.setPrimaryColor).toHaveBeenCalledOnce()
         expect(prefs.setPrimaryColor).toHaveBeenCalledWith("#c2410c")
@@ -77,10 +77,10 @@ describe("accent color picker", () => {
         expect(prefs.setPrimaryColor).toHaveBeenCalledOnce()
     })
 
-    it("disables the reset button while the color is the default", () => {
+    it("hides the reset button while the color is the default", () => {
         prefs.primaryColor = "#C2410C"
         render(<AppearanceSettings />)
-        expect(screen.getByRole("button", { name: "Ripristina il colore d'accento" })).toBeDisabled()
+        expect(screen.queryByRole("button", { name: "Reimposta il colore d'accento" })).toBeNull()
     })
 
     it("follows the stored color when it changes elsewhere (reset)", () => {

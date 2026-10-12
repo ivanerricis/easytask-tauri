@@ -91,6 +91,7 @@ export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps
                 type="duplicate"
                 onClick={handleDuplicate}
             />
+            <Separator />
             <ColorSubmenu
                 item={note}
                 itemType="note"
@@ -117,6 +118,7 @@ export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps
                     onClick={() => { menu.close(); reorderTabs(tabIndex, tabIndex + 1) }}
                 />
             </>}
+            <Separator />
             <ButtonInPopover
                 text={t("menu.createTemplate")}
                 type="createTemplate"

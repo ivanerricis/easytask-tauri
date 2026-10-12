@@ -31,3 +31,13 @@ describe.each(["grid", "list"] as const)("WorkSpaceItem (%s) keyboard", (view) =
         expect(navigate).toHaveBeenCalledWith("/workspace/3")
     })
 })
+
+describe.each(["grid", "list"] as const)("WorkSpaceItem (%s) long name", (view) => {
+    it("truncates the long name and keeps the full text in the title", () => {
+        const longName = "A very long workspace name that goes well over forty characters"
+        render(<WorkSpaceItem workspace={{ ...workspace, name: longName }} view={view} />)
+        const name = screen.getByText(longName)
+        expect(name.className).toContain("truncate")
+        expect(screen.getByRole("button", { name: `Apri il workspace ${longName}` })).toHaveAttribute("title", longName)
+    })
+})

@@ -51,7 +51,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                         {editing ? nameInput() : <span className="text-foreground text-base truncate whitespace-nowrap min-w-0">
                             {workspace.name}
                         </span>}
-                        <span className="text-muted-foreground text-xs whitespace-nowrap shrink-0 mr-8">
+                        <span className="text-muted-foreground text-xs whitespace-nowrap shrink-0 mr-8 max-w-[45%] truncate">
                             {formattedEditDate} - {workspace.edit_time}
                         </span>
                     </div>
@@ -87,10 +87,10 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                         {workspace.name}
                     </span>}
                     <div className="flex flex-col items-start gap-1 w-full">
-                        <span className="text-muted-foreground text-sm">
+                        <span className="text-muted-foreground text-sm max-w-full truncate" title={t("home.workspace.createdOn", { date: formattedCreationDate, time: workspace.creation_time })}>
                             {t("home.workspace.createdOn", { date: formattedCreationDate, time: workspace.creation_time })}
                         </span>
-                        <span className="text-muted-foreground text-sm">
+                        <span className="text-muted-foreground text-sm max-w-full truncate" title={t("home.workspace.editedOn", { date: formattedEditDate, time: workspace.edit_time })}>
                             {t("home.workspace.editedOn", { date: formattedEditDate, time: workspace.edit_time })}
                         </span>
                     </div>

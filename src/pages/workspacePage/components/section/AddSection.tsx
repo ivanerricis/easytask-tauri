@@ -11,6 +11,7 @@ import { reportError } from "@/lib/report-error"
 import { getErrorMessage } from "@/lib/utils"
 import { AddButton } from "./AddButton"
 import { useShortcut } from "@/hooks/use-shortcut"
+import { useAppCommand } from "@/lib/app-commands"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 type AddSectionFormProps = {
@@ -35,6 +36,9 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     }, [])
 
     useShortcut("new-group", handleOpen, { enabled: !inGroup, allowInInputs: true })
+
+    // The "New group" button of the empty note asks for the same form (it only opens it)
+    useAppCommand("new-group", () => { setOpen(true); setName("") }, { enabled: !inGroup })
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

@@ -21,7 +21,7 @@ const ACCENT_COMMIT_DELAY_MS = 250
  * only previews the color on the page (a CSS variable), while the preference (which re-renders everything that reads
  * the preferences, and is saved) is set once, when the picker rests. Closing the dialog commits a pending color.
  */
-const AccentColorPicker = ({ label, resetLabel }: { label: string, resetLabel: string }) => {
+const AccentColorPicker = ({ label, description, resetLabel }: { label: string, description: string, resetLabel: string }) => {
     const { primaryColor, setPrimaryColor } = usePreferences()
     // The color being previewed; null when the picker just shows the stored preference (which a reset can change)
     const [draft, setDraft] = useState<string | null>(null)
@@ -63,8 +63,11 @@ const AccentColorPicker = ({ label, resetLabel }: { label: string, resetLabel: s
     const isDefault = shown.toLowerCase() === DEFAULT_PRIMARY_COLOR
 
     return (
-        <div className="flex items-center gap-2">
-            <RowResetButton label={resetLabel} disabled={isDefault} onClick={handleReset} />
+        <SettingsRow
+            label={label}
+            description={description}
+            reset={isDefault ? undefined : <RowResetButton label={resetLabel} onClick={handleReset} />}
+        >
             <div
                 className="relative size-8 overflow-hidden rounded-xs border focus-within:ring-[3px] focus-within:ring-ring"
                 style={{ backgroundColor: shown }}
@@ -77,7 +80,7 @@ const AccentColorPicker = ({ label, resetLabel }: { label: string, resetLabel: s
                     onChange={(e) => handleChange(e.target.value)}
                 />
             </div>
-        </div>
+        </SettingsRow>
     )
 }
 
@@ -88,9 +91,11 @@ export const AppearanceSettings = () => {
             <SettingsRow label={t("settings.appearance.theme.label")} description={t("settings.appearance.theme.description")}>
                 <ModeToggle />
             </SettingsRow>
-            <SettingsRow label={t("settings.appearance.accent.label")} description={t("settings.appearance.accent.description")}>
-                <AccentColorPicker label={t("settings.appearance.accent.label")} resetLabel={t("settings.appearance.accent.reset")} />
-            </SettingsRow>
+            <AccentColorPicker
+                label={t("settings.appearance.accent.label")}
+                description={t("settings.appearance.accent.description")}
+                resetLabel={t("settings.appearance.accent.reset")}
+            />
             <AccentContrastHint />
             <LanguageSetting />
             <SidebarItemSizeSetting />

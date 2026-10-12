@@ -23,6 +23,11 @@ type ConfirmDialogProps = {
      * button are red. Leave it off for the resets of the settings.
      */
     destructive?: boolean
+    /**
+     * With `destructive`: the action cannot be undone (empty the trash, delete for good, restore a backup): the confirm
+     * button is solid red instead of the soft red outline. Moving to the trash stays soft.
+     */
+    irreversible?: boolean
     /** The main action, on the right. */
     confirm: ConfirmAction
     /** A second action between "Annulla" and the main one (red when `secondaryDestructive`). */
@@ -43,7 +48,7 @@ type ConfirmDialogProps = {
  * @category Dialogs
  */
 export const ConfirmDialog = ({
-    open, onOpenChange, title, description, children, destructive = false, confirm, secondary, secondaryDestructive = false, autoClose = true, initialFocus = "confirm",
+    open, onOpenChange, title, description, children, destructive = false, irreversible = false, confirm, secondary, secondaryDestructive = false, autoClose = true, initialFocus = "confirm",
 }: ConfirmDialogProps) => {
     const { t } = useTranslation()
     const confirmRef = useRef<HTMLButtonElement>(null)
@@ -91,7 +96,7 @@ export const ConfirmDialog = ({
                             {secondary.label}
                         </Button>
                     )}
-                    <Button ref={confirmRef} variant={destructive ? "destructive" : "default"} onClick={run(confirm)}>
+                    <Button ref={confirmRef} variant={destructive ? (irreversible ? "destructiveSolid" : "destructive") : "default"} onClick={run(confirm)}>
                         {ConfirmIcon && <ConfirmIcon />}
                         {confirm.label}
                     </Button>

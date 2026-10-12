@@ -57,6 +57,7 @@ export const dialogs = {
         search: "Cerca template",
         searchPlaceholder: "Cerca template…",
         empty: "Nessun template. Creane uno da una nota con il pulsante \"Nuovo template\", o dal menu della nota.",
+        shortHint: "Per aggiungerne altri usa \"Nuovo template\" o il menu di una nota.",
         new: "Nuovo template",
         noNotes: "Non ci sono note da cui creare un template.",
         pickNote: {

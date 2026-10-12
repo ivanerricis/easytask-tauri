@@ -34,6 +34,21 @@ export function CommandMenu() {
                 <CommandInput placeholder={t("notes.search.placeholder")} />
                 <CommandList>
                     <CommandEmpty>{t("notes.search.empty")}</CommandEmpty>
+                    <CommandGroup heading={t("notes.search.suggestions")}>
+                        {allNotes.map(({ note, path }) => (
+                            <CommandItem
+                                className="!p-2"
+                                key={note.id}
+                                value={`${note.name} ${note.id}`}
+                                keywords={path ? [path] : undefined}
+                                onSelect={() => {
+                                    setOpen(prev => !prev)
+                                    openNote(note.id)
+                                }}
+                            >
+                                <NoteSearchLabel name={note.name} path={path} />
+                            </CommandItem>))}
+                    </CommandGroup>
                     {undo && (undo.canUndo || undo.canRedo) && (
                         <CommandGroup heading={t("undo.actions")}>
                             {undo.canUndo && (
@@ -52,21 +67,6 @@ export function CommandMenu() {
                             )}
                         </CommandGroup>
                     )}
-                    <CommandGroup heading={t("notes.search.suggestions")}>
-                        {allNotes.map(({ note, path }) => (
-                            <CommandItem
-                                className="!p-2"
-                                key={note.id}
-                                value={`${note.name} ${note.id}`}
-                                keywords={path ? [path] : undefined}
-                                onSelect={() => {
-                                    setOpen(prev => !prev)
-                                    openNote(note.id)
-                                }}
-                            >
-                                <NoteSearchLabel name={note.name} path={path} />
-                            </CommandItem>))}
-                    </CommandGroup>
                 </CommandList>
             </CommandDialog>
 

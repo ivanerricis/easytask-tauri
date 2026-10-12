@@ -116,7 +116,8 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                     onFocus={() => selectTask(task.id)}
                     className={cn(
                         "peer/row relative flex flex-col items-center w-full touch-none cursor-grab active:cursor-grabbing",
-                        selected && "bg-accent/50",
+                        // Selected: a 2px bar in the primary colour on the left and a tint stronger than the hover one
+                        selected && "bg-accent shadow-[inset_2px_0_0_0_var(--primary)]",
                         isDragging && "opacity-40",
                         draggingTask && (zone === "inside" || zone === "inside-start") && "bg-primary/15 ring-1 ring-inset ring-primary",
                     )}

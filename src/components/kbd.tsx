@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 export const Kbd = ({ className, ...props }: React.ComponentProps<"kbd">) => (
     <kbd
         className={cn(
-            "inline-flex items-center justify-center rounded-xs border border-border bg-muted px-1.5 py-0.5 font-sans text-xs text-muted-foreground",
+            "inline-flex items-center justify-center rounded-xs border border-foreground/25 bg-muted px-1.5 py-0.5 font-sans text-xs text-foreground/80",
             className
         )}
         {...props}

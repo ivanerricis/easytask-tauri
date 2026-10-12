@@ -1,4 +1,4 @@
-import type { ComponentType, SVGProps } from "react"
+import type { ComponentType, ReactNode, SVGProps } from "react"
 import { KbdKeys } from "@/components/kbd"
 import { useShortcutKeys } from "@/contexts/use-shortcuts"
 import { cn } from "@/lib/utils"
@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 const Hint = ({ id, label }: { id: string, label: string }) => {
     const keys = useShortcutKeys(id)
     return (
-        <p className="flex items-center gap-2 text-primary text-lg">
+        <p className="flex items-center gap-2 text-muted-foreground text-lg">
             {label}
             <KbdKeys keys={keys} />
         </p>
@@ -19,13 +19,16 @@ type EmptyStateProps = {
     /** Shortcuts suggested under the title: id of the shortcut and its label. */
     hints: readonly { id: string, label: string }[]
     className?: string
+    /** Extra content under the hints (e.g. an action button). */
+    children?: ReactNode
 }
 
 /** The centered placeholder of the note area ("no note open", "empty note"): icon, title and the useful shortcuts. */
-export const EmptyState = ({ icon: Icon, title, hints, className }: EmptyStateProps) => (
+export const EmptyState = ({ icon: Icon, title, hints, className, children }: EmptyStateProps) => (
     <div className={cn("flex flex-col items-center justify-center w-full h-full", className)}>
         <Icon aria-hidden className="text-foreground w-20 h-20" />
         <p className="text-2xl">{title}</p>
         {hints.map(hint => <Hint key={hint.id} {...hint} />)}
+        {children}
     </div>
 )

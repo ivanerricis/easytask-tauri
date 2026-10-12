@@ -14,11 +14,11 @@ describe("ShortcutsSettings", () => {
         edit("Cerca una nota")
         press({ key: "k", ctrlKey: true })
 
-        await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina: Cerca una nota" })).toBeTruthy())
+        await waitFor(() => expect(screen.getByRole("button", { name: "Reimposta: Cerca una nota" })).toBeTruthy())
         expect(await getShortcutOverrides()).toEqual({ "search-notes": { key: "k", ctrl: true } })
 
-        fireEvent.click(screen.getByRole("button", { name: "Ripristina: Cerca una nota" }))
-        await waitFor(() => expect(screen.queryByRole("button", { name: "Ripristina: Cerca una nota" })).toBeNull())
+        fireEvent.click(screen.getByRole("button", { name: "Reimposta: Cerca una nota" }))
+        await waitFor(() => expect(screen.queryByRole("button", { name: "Reimposta: Cerca una nota" })).toBeNull())
         expect(await getShortcutOverrides()).toEqual({})
     })
 
@@ -38,10 +38,10 @@ describe("ShortcutsSettings", () => {
         press({ key: "q" })
         expect((await screen.findByRole("alert")).textContent).toContain("Ctrl o Alt")
         press({ key: "m", ctrlKey: true })
-        await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina: Nuovo workspace" })).toBeTruthy())
+        await waitFor(() => expect(screen.getByRole("button", { name: "Reimposta: Nuovo workspace" })).toBeTruthy())
     })
 
-    it("Esc cancels and Ripristina tutte clears every override", async () => {
+    it("Esc cancels and Reimposta tutte clears every override", async () => {
         setup()
         edit("Cerca una nota")
         press({ key: "Escape" })
@@ -50,13 +50,13 @@ describe("ShortcutsSettings", () => {
 
         edit("Torna alla home")
         press({ key: "j", altKey: true })
-        await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina tutto" })).toHaveProperty("disabled", false))
-        fireEvent.click(screen.getByRole("button", { name: "Ripristina tutto" }))
+        await waitFor(() => expect(screen.getByRole("button", { name: "Reimposta tutto" })).toHaveProperty("disabled", false))
+        fireEvent.click(screen.getByRole("button", { name: "Reimposta tutto" }))
         // A confirmation comes first: nothing is cleared until it is accepted
         const dialog = await screen.findByRole("dialog")
         expect(Object.keys(await getShortcutOverrides())).not.toHaveLength(0)
-        fireEvent.click(within(dialog).getByRole("button", { name: "Ripristina tutto" }))
-        await waitFor(() => expect(screen.getByRole("button", { name: "Ripristina tutto" })).toHaveProperty("disabled", true))
+        fireEvent.click(within(dialog).getByRole("button", { name: "Reimposta tutto" }))
+        await waitFor(() => expect(screen.getByRole("button", { name: "Reimposta tutto" })).toHaveProperty("disabled", true))
         expect(await getShortcutOverrides()).toEqual({})
     })
 })

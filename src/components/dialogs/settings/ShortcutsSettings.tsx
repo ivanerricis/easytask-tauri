@@ -9,6 +9,7 @@ import { useShortcutsContext } from "@/contexts/use-shortcuts"
 import { SHORTCUTS, SHORTCUT_CATEGORIES, bindingFromEvent, categoryLabel, findConflictsFor, formatBinding, isValidBinding, shortcutDescription } from "@/lib/shortcuts"
 import { SettingsPanel, SettingsRow } from "./SettingsRow"
 import { SectionResetButton } from "./SectionResetButton"
+import { RowResetButton } from "./RowResetButton"
 import { ConfirmDialog } from "../dialog-confirm"
 
 export const ShortcutsSettings = () => {
@@ -74,7 +75,13 @@ export const ShortcutsSettings = () => {
                         {items.map(s => {
                             const isRecording = recordingId === s.id
                             return (
-                                <SettingsRow key={s.id} label={shortcutDescription(s.id)}>
+                                <SettingsRow
+                                    key={s.id}
+                                    label={shortcutDescription(s.id)}
+                                    reset={s.id in overrides && !isRecording
+                                        ? <RowResetButton label={t("settings.shortcuts.resetAria", { name: shortcutDescription(s.id) })} onClick={() => { resetBinding(s.id); setError(null) }} />
+                                        : undefined}
+                                >
                                     <div className="flex flex-col items-end gap-1">
                                         <div className="flex items-center gap-2">
                                             {isRecording
@@ -82,7 +89,7 @@ export const ShortcutsSettings = () => {
                                                 : <KbdKeys keys={formatBinding(bindings[s.id])} />}
                                             <TooltipCustom text={isRecording ? t("common.cancel") : t("settings.shortcuts.edit")}>
                                                 <Button
-                                                    variant="outline"
+                                                    variant="ghost"
                                                     size="icon"
                                                     aria-label={t("settings.shortcuts.editAria", { name: shortcutDescription(s.id) })}
                                                     onClick={() => isRecording ? setRecordingId(null) : startRecording(s.id)}
@@ -90,18 +97,6 @@ export const ShortcutsSettings = () => {
                                                     {isRecording ? <X /> : <Pencil />}
                                                 </Button>
                                             </TooltipCustom>
-                                            {s.id in overrides && !isRecording && (
-                                                <TooltipCustom text={t("settings.shortcuts.reset")}>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        aria-label={t("settings.shortcuts.resetAria", { name: shortcutDescription(s.id) })}
-                                                        onClick={() => { resetBinding(s.id); setError(null) }}
-                                                    >
-                                                        <RotateCcw />
-                                                    </Button>
-                                                </TooltipCustom>
-                                            )}
                                         </div>
                                         {error?.id === s.id && (
                                             <p role="alert" className="text-xs text-destructive">{error.message}</p>

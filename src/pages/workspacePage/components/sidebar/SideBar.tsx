@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import React, { useState, useEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
@@ -39,6 +39,9 @@ export const SideBar = ({
     const { t } = useTranslation()
     const sidebarRef = useRef<HTMLDivElement>(null)
     const toggleRef = useRef<HTMLButtonElement>(null)
+    const railRef = useRef<HTMLDivElement>(null)
+    // Width of the little sidebar: the compact overlay starts after it, so the toggle stays visible and clickable
+    const [railWidth, setRailWidth] = useState(0)
     const toggleLabel = useShortcutLabel(toggleShortcut)
     const [dragWidth, setDragWidth] = useState<number | null>(null)
     const dragWidthRef = useRef<number | null>(null)
@@ -97,6 +100,10 @@ export const SideBar = ({
         if (overlay && open) window.dispatchEvent(new CustomEvent(OVERLAY_OPENED_EVENT, { detail: position }))
     }, [overlay, open, position])
 
+    useLayoutEffect(() => {
+        if (railRef.current) setRailWidth(railRef.current.offsetWidth)
+    }, [overlay])
+
     const showPanel = open
     const flexDirection = position === "left" ? "flex-row-reverse" : "flex-row"
     const borderClass = position === "left" ? "border-r" : "border-l"
@@ -114,10 +121,15 @@ export const SideBar = ({
                         showCloseButton={false}
                         data-testid="sidebar-panel"
                         aria-describedby={undefined}
+                        // Focus goes to the panel itself, not to its first button: that one would show its tooltip over the toggle
+                        onOpenAutoFocus={e => { e.preventDefault(); (e.currentTarget as HTMLElement).focus() }}
                         // Focus goes back to the toggle button, which is where the panel is opened from
                         onCloseAutoFocus={e => { e.preventDefault(); toggleRef.current?.focus() }}
+                        // A press on the toggle is not a dismissal: its click closes the panel (otherwise it would close and reopen)
+                        onPointerDownOutside={e => { if (toggleRef.current?.contains(e.target as Node)) e.preventDefault() }}
+                        overlayStyle={{ [position]: railWidth }}
                         className="w-auto gap-0 overflow-hidden bg-secondary p-0 sm:max-w-none"
-                        style={{ width: currentWidth, maxWidth: "calc(100vw - 80px)" }}
+                        style={{ width: currentWidth, maxWidth: `calc(100vw - ${railWidth + 80}px)`, [position]: railWidth }}
                     >
                         <SheetHeader className="sr-only">
                             <SheetTitle>{toggleLabels?.toggle ?? t("sidebar.toggle")}</SheetTitle>
@@ -167,7 +179,7 @@ export const SideBar = ({
             </div>}
 
             {/* Little Sidebar */}
-            <div className={`flex flex-col items-center justify-between p-1 bg-background ${borderClass}`}>
+            <div ref={railRef} className={`pointer-events-auto flex flex-col items-center justify-between p-1 bg-background ${borderClass}`}>
                 <div className="h-full w-full flex flex-col">
                     <TooltipCustom text={toggleText} shortcut={toggleLabel} side={position === "left" ? "right" : "left"}>
                         <Button

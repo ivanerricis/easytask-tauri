@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useRef, useState } from "react"
-import { FilePlus, LayoutTemplate, Pencil, Plus, RefreshCw, Trash2 } from "lucide-react"
+import { FilePlus, LayoutTemplate, Pencil, Plus, FileInput, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
@@ -23,6 +23,8 @@ import { countTemplateContent, type NoteTemplate } from "@/types/template"
 
 // The search box is shown only when the list gets long
 const SEARCH_THRESHOLD = 8
+// Under this many templates the list is short: a hint says how to add more
+const SHORT_LIST = 3
 
 type DialogTemplatesProps = {
     isOpen: boolean
@@ -99,7 +101,7 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     return (
         <>
             <Dialog open={isOpen} onOpenChange={onOpenChange}>
-                <DialogContent className="flex flex-col sm:max-w-xl h-[min(560px,85vh)] overflow-hidden">
+                <DialogContent className="flex flex-col sm:max-w-xl max-h-[min(560px,85vh)] overflow-hidden">
                     <DialogHeader>
                         <DialogTitle>{t("dialogs.templates.title")}</DialogTitle>
                         <DialogDescription>
@@ -174,10 +176,11 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                                                     disabled={busy || template.sourceNoteName === null}
                                                     onClick={() => setRefreshing(template)}
                                                 >
-                                                    <RefreshCw />
+                                                    <FileInput />
                                                 </Button>
                                             </span>
                                         </TooltipCustom>
+                                        <span aria-hidden className="mx-0.5 w-px self-stretch bg-border" />
                                         <TooltipCustom text={t("common.delete")}>
                                             <Button
                                                 variant="destructive"
@@ -194,6 +197,9 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                             })
                         )}
                     </div>
+                    {!isLoading && loadError === null && templates.length > 0 && templates.length <= SHORT_LIST && (
+                        <p className="text-center text-xs text-muted-foreground">{t("dialogs.templates.shortHint")}</p>
+                    )}
                     <FormError>{error}</FormError>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -271,7 +277,7 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                 initialFocus="cancel"
                 title={t("dialogs.templates.refreshTitle")}
                 description={t("dialogs.templates.refreshDescription", { name: refreshing?.name, note: refreshing?.sourceNoteName })}
-                confirm={{ label: t("dialogs.templates.overwrite"), icon: RefreshCw, onClick: handleRefresh }}
+                confirm={{ label: t("dialogs.templates.overwrite"), icon: FileInput, onClick: handleRefresh }}
             />
         </>
     )
