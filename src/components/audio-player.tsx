@@ -8,6 +8,7 @@ import { Toggle } from "@/components/ui/toggle"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import type { DraggableAttributes, useDraggable } from "@dnd-kit/core"
 import type { PlaybackState } from "@/contexts/audio-context-object"
+import { useMediaSession } from "@/hooks/use-media-session"
 
 type SyntheticListenerMap = ReturnType<typeof useDraggable>["listeners"]
 
@@ -203,45 +204,21 @@ export const AudioPlayer = ({
     }
 
     // Hardware media keys, the volume flyout and the lock screen of the system show the title and drive the player
-    const closeRef = useRef(handleClose)
-    useEffect(() => {
-        closeRef.current = handleClose
+    useMediaSession({
+        title: fileName ?? t("audio.player.defaultTitle"),
+        artist: "EasyTask",
+        playing: isPlaying,
+        position: currentTime,
+        duration,
+        actions: {
+            play: () => { void audioRef.current?.play().catch(() => undefined) },
+            pause: () => audioRef.current?.pause(),
+            stop: handleClose,
+            seekTo,
+            seekBackward: (seconds = SKIP_SECONDS) => skip(-seconds),
+            seekForward: (seconds = SKIP_SECONDS) => skip(seconds),
+        },
     })
-
-    useEffect(() => {
-        const session = typeof navigator === "undefined" ? undefined : navigator.mediaSession
-        if (!session || typeof MediaMetadata === "undefined") return
-        session.metadata = new MediaMetadata({ title: fileName ?? t("audio.player.defaultTitle"), artist: "EasyTask" })
-        return () => { session.metadata = null }
-    }, [fileName, t])
-
-    useEffect(() => {
-        const session = typeof navigator === "undefined" ? undefined : navigator.mediaSession
-        if (session) session.playbackState = isPlaying ? "playing" : "paused"
-    }, [isPlaying])
-
-    useEffect(() => {
-        const session = typeof navigator === "undefined" ? undefined : navigator.mediaSession
-        if (!session) return
-        const audio = () => audioRef.current
-        const handlers: [MediaSessionAction, MediaSessionActionHandler][] = [
-            ["play", () => { void audio()?.play().catch(() => undefined) }],
-            ["pause", () => audio()?.pause()],
-            ["stop", () => closeRef.current()],
-            ["seekto", details => { if (audio() && details.seekTime !== undefined) audio()!.currentTime = details.seekTime }],
-            ["seekbackward", details => { if (audio()) audio()!.currentTime -= details.seekOffset ?? SKIP_SECONDS }],
-            ["seekforward", details => { if (audio()) audio()!.currentTime += details.seekOffset ?? SKIP_SECONDS }],
-        ]
-        for (const [action, handler] of handlers) {
-            try { session.setActionHandler(action, handler) } catch { /* action not supported by this webview */ }
-        }
-        return () => {
-            for (const [action] of handlers) {
-                try { session.setActionHandler(action, null) } catch { /* ignore */ }
-            }
-            session.playbackState = "none"
-        }
-    }, [])
 
     const title = fileName ?? t("audio.player.defaultTitle")
     const silent = muted || volume === 0

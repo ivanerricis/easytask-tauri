@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Fixed
+
+- Windows: the media controls of the system (volume flyout, lock screen) show EasyTask instead of "Unknown app" while the audio player plays. The previous/next buttons there skip back and forward by 15 seconds.
+
 ## [0.8.0] - 2026-10-09
 
 ### Added
