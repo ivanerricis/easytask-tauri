@@ -423,7 +423,10 @@ fn single_instance_enabled(debug_build: bool, data_dir_override: bool) -> bool {
 /// shortcut). Without it Windows shows "Unknown app" in the media overlay (volume flyout, lock screen) while a sound plays.
 #[cfg(windows)]
 fn set_app_user_model_id(identifier: &str) {
-    let wide: Vec<u16> = identifier.encode_utf16().chain(std::iter::once(0)).collect();
+    let wide: Vec<u16> = identifier
+        .encode_utf16()
+        .chain(std::iter::once(0))
+        .collect();
     // SAFETY: `wide` is a null-terminated UTF-16 string that outlives the call
     unsafe {
         windows_sys::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(wide.as_ptr());
