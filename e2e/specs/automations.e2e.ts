@@ -372,10 +372,13 @@ describe("Automations", () => {
             await byLabel(await tr("sidebar.toggle")).click()
             await browser.waitUntil(sidebarOpen, { timeoutMsg: "the sidebar did not open" })
         }
+        // Escape closes only the topmost layer: a tooltip left open by the click on a row takes the first one (seen on WebKitGTK)
         const hideSidebar = async () => {
-            if (!(await sidebarOpen())) return
-            await browser.keys("Escape")
-            await browser.waitUntil(async () => !(await sidebarOpen()), { timeoutMsg: "the sidebar did not close" })
+            for (let i = 0; i < 3 && (await sidebarOpen()); i++) {
+                await browser.keys("Escape")
+                await browser.waitUntil(async () => !(await sidebarOpen()), { timeout: 1_500 }).catch(() => undefined)
+            }
+            if (await sidebarOpen()) throw new Error("the sidebar did not close")
         }
 
         before(async () => {
