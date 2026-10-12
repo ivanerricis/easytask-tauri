@@ -2,7 +2,7 @@ import { $, $$, browser, expect } from "@wdio/globals"
 import {
     byLabel, byText, createFromSidebar, createWorkspace, cssColor, currentLang, domClick, openContextMenu, openWorkspace, sectionCard, tr, treeRow,
     typeInto, waitForApp,
-    addTaskButton, menuButton, topDialog,
+    addTaskButton, topDialog,
 } from "../helpers"
 
 const WORKSPACE = "Auto Workspace"
@@ -72,16 +72,14 @@ const addTask = async (section: string, text: string) => {
     await browser.waitUntil(async () => (await taskValues(section)).length === before + 1, { timeoutMsg: `task "${text}" not created` })
 }
 
-/** Opens the "..." menu of a task (the button only shows on hover) and returns the open menu. */
+/**
+ * Opens the menu of a task with a right click on its row (the same menu as its "..." button). The button only shows
+ * on hover, and WebKitWebDriver does not reliably dispatch the hover, so the menu did not open on the Linux CI.
+ */
 const openTaskMenu = async (text: string) => {
     const found = await locate(text)
     if (!found) throw new Error(`task "${text}" not found`)
-    const row = $(`[data-task-id="${found.id}"]`)
-    await row.moveTo()
-    await (await menuButton(row)).click()
-    const menu = $('[role="menu"]')
-    await menu.waitForDisplayed()
-    return menu
+    return openContextMenu($(`[data-task-id="${found.id}"]`))
 }
 
 /** Ctrl+<key> with the focus out of any text field (the app ignores undo/redo shortcuts inside them). */
@@ -362,8 +360,9 @@ describe("Automations", () => {
         const LONG_B = "Auto layout section bravo with an extremely long title that keeps going on and on and on"
         let previousSize: { width: number, height: number } | undefined
 
-        // Below 900px the sidebar is a modal overlay, closed by default: open it to reach the notes, close it to reach the page
-        const sidebarOpen = () => browser.execute(() => document.querySelector('[data-testid="sidebar-panel"]') !== null)
+        // Below 900px the sidebar is a modal overlay, closed by default: open it to reach the notes, close it to reach the page.
+        // The wide layout keeps the panel in the page even when it is closed (0px wide): only a visible panel counts
+        const sidebarOpen = () => browser.execute(() => (document.querySelector('[data-testid="sidebar-panel"]')?.getBoundingClientRect().width ?? 0) > 0)
         const showSidebar = async () => {
             if (await sidebarOpen()) return
             await byLabel(await tr("sidebar.toggle")).click()
@@ -379,6 +378,12 @@ describe("Automations", () => {
             previousSize = await browser.getWindowSize()
             // The minimum window size of the app
             await browser.setWindowSize(800, 600)
+            // WebKitGTK resizes after the command returns: wait for the compact layout (the sidebar is no longer part of the
+            // page, only a Sheet when it is open) before going on
+            await browser.waitUntil(() => browser.execute(() => {
+                const panel = document.querySelector('[data-testid="sidebar-panel"]')
+                return window.innerWidth < 900 && (!panel || panel.closest('[role="dialog"]') !== null)
+            }), { timeoutMsg: "the compact layout did not apply" })
         })
 
         after(async () => {
