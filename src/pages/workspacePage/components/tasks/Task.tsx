@@ -29,6 +29,10 @@ import { DropLine } from "../sidebar/DropLine"
 // Clicks on these keep their own action (checkbox, buttons) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
 
+/** Some subtask, at any depth, is completed: the parent shows a dash (not all done) instead of an empty box. */
+const hasDoneDescendant = (task: TaskType): boolean =>
+    task.subtasks.some(subtask => subtask.completed || hasDoneDescendant(subtask))
+
 type TaskProps = {
     task: TaskType
     /** Nesting level: 0 for a task of the section, 1+ for subtasks. */
@@ -46,7 +50,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
     const { updateTaskCompletion, renameItem } = useWorkspaceActions()
-    const { patchTask } = useActiveNoteActions()
+    const { patchTask, setTaskCompletion } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const colorAlpha = useColorAlpha()
     const { dispatch } = useAutomations()
@@ -81,7 +85,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
 
     const handleCheckedChange = async () => {
         // Optimistic: the cached tree is updated at once and restored if the write fails
-        const rollback = patchTask(task.id, { completed: !task.completed })
+        const rollback = setTaskCompletion(task.id, !task.completed)
         try {
             await updateTaskCompletion(task.id, !task.completed)
             recorder.taskCompletion(task.id, task.text, !!task.completed, !task.completed)
@@ -140,7 +144,7 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                             {/* Checkbox && text container */}
                             <div className="flex min-w-0 items-start justify-between gap-2 ml-4 w-full">
                                 <Checkbox
-                                    checked={!!task.completed}
+                                    checked={task.completed ? true : hasDoneDescendant(task) ? "indeterminate" : false}
                                     onCheckedChange={handleCheckedChange}
                                     aria-label={t("tasks.toggleCompleted", { text: task.text })}
                                     className={isSubtask ? "mt-[3px] size-3.5" : "mt-0.5"}
