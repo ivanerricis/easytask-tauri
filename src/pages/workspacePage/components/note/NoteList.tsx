@@ -9,6 +9,7 @@ import { useTabs, useTabsActions } from "@/contexts/use-tabs"
 import { useTranslation } from "react-i18next"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { cn } from "@/lib/utils"
+import { useGrabbingCursor } from "@/hooks/use-grabbing-cursor"
 import { NoteHeader } from "./NoteHeader"
 import { DropLine } from "../sidebar/DropLine"
 import { computeTabMove, computeTabZone, pickTabByX, type TabZone } from "./tab-reorder"
@@ -41,7 +42,7 @@ const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {
             }}
             {...listeners}
             style={{ transform: CSS.Translate.toString(transform) }}
-            className={cn("relative", isDragging && "z-10 opacity-70")}
+            className={cn("relative min-w-28 shrink-0", isDragging && "z-10 opacity-70")}
         >
             {!isDragging && <DropLine zone={indicator} vertical className="z-20" />}
             <NoteHeader note={note} />
@@ -56,6 +57,8 @@ export const NoteList = () => {
     const listRef = useRef<HTMLDivElement>(null)
     const [hover, setHover] = useState<Hover>(null)
     const hoverRef = useRef<Hover>(null)
+    const [dragging, setDragging] = useState(false)
+    useGrabbingCursor(dragging)
 
     // A small distance keeps plain clicks (open / close tab) working
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
@@ -106,9 +109,10 @@ export const NoteList = () => {
             accessibility={accessibility}
             modifiers={[restrictToHorizontalAxis]}
             collisionDetection={collisionDetection}
+            onDragStart={() => setDragging(true)}
             onDragMove={handleDragMove}
-            onDragEnd={event => handleDragEnd(Number(event.active.id))}
-            onDragCancel={() => updateHover(null)}
+            onDragEnd={event => { setDragging(false); handleDragEnd(Number(event.active.id)) }}
+            onDragCancel={() => { setDragging(false); updateHover(null) }}
         >
             {/* The line under the tabs: drawn by every inactive tab and, as an inset shadow, by the empty part of the bar.
                 The active tab paints over it, so it opens onto the note below. */}

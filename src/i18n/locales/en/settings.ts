@@ -44,8 +44,6 @@ export const settings: Translation["settings"] = {
             compact: "Compact",
             normal: "Normal",
             large: "Large",
-            previewFolder: "Folder",
-            previewNote: "Note",
         },
         animations: {
             label: "Animations",

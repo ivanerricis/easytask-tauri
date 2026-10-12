@@ -11,6 +11,7 @@ import { getGroupLabel } from "./groups/group-label"
 import { useActiveNote } from "@/contexts/use-active-note"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { hexToRgba } from "@/lib/utils"
+import { useGrabbingCursor } from "@/hooks/use-grabbing-cursor"
 import {
     computeDropZone, computeGroupDropZone, computeGroupTarget, computeSectionTarget, findGroup, computeTaskTarget, findSection, findTask,
     type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverKind, type NoteOverRef, type SectionTarget, type TaskTarget,
@@ -157,6 +158,8 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         else await moveTaskTo(pending.id, pending.target)
     }
 
+    useGrabbingCursor(active !== null)
+
     const state = useMemo(() => ({ active, hover }), [active, hover])
 
     const preview = useMemo(() => {
@@ -206,7 +209,7 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
                 onDragCancel={reset}
             >
                 {children}
-                {createPortal(<DragOverlay dropAnimation={null}>{preview}</DragOverlay>, document.body)}
+                {createPortal(<DragOverlay dropAnimation={null}>{preview && <div className="rotate-2">{preview}</div>}</DragOverlay>, document.body)}
             </DndContext>
         </NoteDndContext.Provider>
     )
