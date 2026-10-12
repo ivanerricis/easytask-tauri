@@ -134,7 +134,11 @@ const expectConfirmDialog = async (titleKey: string, destructive: boolean) => {
 
     const mainButton = dialog.$('(.//*[@data-slot="button"])[last()]')
     expect(isRed(await cssColor(dialog.$("h2"), "color"))).toBe(destructive)
-    expect(isRed(await cssColor(mainButton, "color"))).toBe(destructive)
+    // Red text (soft destructive) or the destructive fill (irreversible actions, with light text). The fill is checked by
+    // its class: the default accent is an orange red too, so its color would not tell the two apart
+    const filled = /(^|\s)bg-destructive(\s|$)/.test((await mainButton.getAttribute("class")) ?? "")
+    const redButton = isRed(await cssColor(mainButton, "color")) || filled
+    expect(redButton).toBe(destructive)
     return dialog
 }
 
