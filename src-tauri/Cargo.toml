@@ -52,3 +52,7 @@ opt-level = "s"
 strip = true
 panic = "abort"
 codegen-units = 1
+
+# The MSVC linker prints "Creating library ….lib and object ….exp" for the cdylib: informational, not a warning
+[lints.rust]
+linker_messages = "allow"
