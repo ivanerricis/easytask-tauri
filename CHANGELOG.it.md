@@ -4,9 +4,19 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-12
+
+### Modificato
+
+- Le schede delle note aperte sono più strette, e solo la nota aperta mostra il pulsante di chiusura (le altre al passaggio del mouse).
+- Mentre si trascina un elemento il puntatore è una mano chiusa ovunque, e una cartella, nota, gruppo, sezione o task trascinato è leggermente inclinato.
+- Gli slider nelle Impostazioni (intensità dei colori, dimensione e opacità del player audio) seguono il puntatore in modo fluido e applicano il valore al rilascio.
+- Impostazioni > Aspetto: rimossa l'anteprima della dimensione di cartelle e note.
+
 ### Corretto
 
 - Windows: i controlli multimediali del sistema (riquadro del volume, schermata di blocco) mostrano EasyTask invece di "App sconosciuta" mentre il player audio riproduce. I pulsanti precedente/successivo saltano indietro e avanti di 15 secondi.
+- La linea guida orizzontale di un sottotask era 1px sotto il centro della sua casella.
 
 ## [0.8.0] - 2026-10-09
 
@@ -213,7 +223,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.5.0...v0.6.0

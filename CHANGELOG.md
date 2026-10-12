@@ -6,9 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-10-12
+
+### Changed
+
+- The tabs of the open notes are narrower, and only the open note shows its close button (the others on hover).
+- While an item is dragged the pointer is a closed hand everywhere, and a dragged folder, note, group, section or task is slightly tilted.
+- The sliders in Settings (color intensity, size and opacity of the audio player) follow the pointer smoothly and apply the value when released.
+- Settings > Appearance: the preview of the size of folders and notes was removed.
+
 ### Fixed
 
 - Windows: the media controls of the system (volume flyout, lock screen) show EasyTask instead of "Unknown app" while the audio player plays. The previous/next buttons there skip back and forward by 15 seconds.
+- The horizontal guide line of a subtask was 1px below the center of its checkbox.
 
 ## [0.8.0] - 2026-10-09
 
@@ -215,7 +225,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.5.0...v0.6.0
