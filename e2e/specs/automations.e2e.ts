@@ -361,8 +361,12 @@ describe("Automations", () => {
         let previousSize: { width: number, height: number } | undefined
 
         // Below 900px the sidebar is a modal overlay, closed by default: open it to reach the notes, close it to reach the page.
-        // The wide layout keeps the panel in the page even when it is closed (0px wide): only a visible panel counts
-        const sidebarOpen = () => browser.execute(() => (document.querySelector('[data-testid="sidebar-panel"]')?.getBoundingClientRect().width ?? 0) > 0)
+        // The wide layout keeps the panel in the page even when it is closed (0px wide), and under WebKitGTK the closed Sheet
+        // can stay mounted (its exit animation does not end): only a visible panel that is not closing counts
+        const sidebarOpen = () => browser.execute(() => {
+            const panel = document.querySelector('[data-testid="sidebar-panel"]')
+            return !!panel && panel.getBoundingClientRect().width > 0 && panel.getAttribute("data-state") !== "closed"
+        })
         const showSidebar = async () => {
             if (await sidebarOpen()) return
             await byLabel(await tr("sidebar.toggle")).click()
