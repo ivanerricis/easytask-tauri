@@ -378,7 +378,11 @@ describe("Automations", () => {
                 await browser.keys("Escape")
                 await browser.waitUntil(async () => !(await sidebarOpen()), { timeout: 1_500 }).catch(() => undefined)
             }
-            if (await sidebarOpen()) throw new Error("the sidebar did not close")
+            if (!(await sidebarOpen())) return
+            // What is still open on top, so a failure on the CI says why
+            const layers = await browser.execute(() => Array.from(document.querySelectorAll('[data-state="open"], [role="tooltip"], [role="menu"]'))
+                .map((el) => `${el.tagName.toLowerCase()}[role=${el.getAttribute("role")}][slot=${el.getAttribute("data-slot")}]`).join(", "))
+            throw new Error(`the sidebar did not close; open layers: ${layers}; focus: ${await browser.execute(() => document.activeElement?.outerHTML.slice(0, 120))}`)
         }
 
         before(async () => {
