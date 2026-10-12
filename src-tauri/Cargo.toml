@@ -47,8 +47,8 @@ tauri-plugin-updater = "2"
 tauri-plugin-single-instance = "2"
 
 [target.'cfg(windows)'.dependencies]
-# Names the process for the system media overlay (see set_app_user_model_id)
-windows-sys = { version = "0.61", features = ["Win32_UI_Shell"] }
+# The identity of the process (set_app_user_model_id) and the media session of the system (media_session.rs)
+windows = { version = "0.62", features = ["Foundation", "Media", "Win32_Foundation", "Win32_System_WinRT", "Win32_UI_Shell"] }
 
 [profile.release]
 lto = true

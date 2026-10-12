@@ -1,3 +1,5 @@
+mod media_session;
+
 use std::path::{Path, PathBuf};
 use tauri::Manager;
 use tauri_plugin_fs::FsExt;
@@ -423,14 +425,9 @@ fn single_instance_enabled(debug_build: bool, data_dir_override: bool) -> bool {
 /// shortcut). Without it Windows shows "Unknown app" in the media overlay (volume flyout, lock screen) while a sound plays.
 #[cfg(windows)]
 fn set_app_user_model_id(identifier: &str) {
-    let wide: Vec<u16> = identifier
-        .encode_utf16()
-        .chain(std::iter::once(0))
-        .collect();
-    // SAFETY: `wide` is a null-terminated UTF-16 string that outlives the call
-    unsafe {
-        windows_sys::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(wide.as_ptr());
-    }
+    let id = windows::core::HSTRING::from(identifier);
+    // SAFETY: `id` is a null-terminated UTF-16 string that outlives the call
+    let _ = unsafe { windows::Win32::UI::Shell::SetCurrentProcessExplicitAppUserModelID(&id) };
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -522,6 +519,15 @@ pub fn run() {
                 .ok_or("no window configured")?;
             #[allow(unused_mut)]
             let mut window = tauri::WebviewWindowBuilder::from_config(app.handle(), &config)?;
+            // The media session of WebView2 belongs to msedgewebview2.exe, which Windows shows as "Unknown app": it is
+            // turned off (HardwareMediaKeyHandling) and the app publishes its own one (media_session.rs). The other
+            // features are the defaults of wry, which this list replaces
+            #[cfg(windows)]
+            {
+                window = window.additional_browser_args(
+                    "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,HardwareMediaKeyHandling",
+                );
+            }
             #[cfg(windows)]
             if info.portable {
                 window = window.data_directory(info.path.join("webview"));
@@ -535,6 +541,8 @@ pub fn run() {
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
 
             app.manage(info);
+            #[cfg(windows)]
+            app.manage(media_session::MediaSession::new());
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
@@ -545,7 +553,11 @@ pub fn run() {
             data_dir,
             is_portable,
             data_dir_in_onedrive,
-            open_data_folder
+            open_data_folder,
+            media_session::media_session_native,
+            media_session::media_session_update,
+            media_session::media_session_timeline,
+            media_session::media_session_clear
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

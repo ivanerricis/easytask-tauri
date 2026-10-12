@@ -4,6 +4,10 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+### Corretto
+
+- Windows: i controlli multimediali del sistema (riquadro del volume, schermata di blocco) mostrano EasyTask invece di "App sconosciuta" mentre il player audio riproduce. I pulsanti precedente/successivo saltano indietro e avanti di 15 secondi.
+
 ## [0.8.0] - 2026-10-09
 
 ### Aggiunto
