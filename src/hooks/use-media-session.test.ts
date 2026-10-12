@@ -4,11 +4,13 @@ import { renderHook } from "@testing-library/react"
 const invoke = vi.fn<(...args: unknown[]) => Promise<void>>(() => Promise.resolve())
 const unlisten = vi.fn()
 let emit: ((event: { payload: unknown }) => void) | undefined
-let tauri = true
+const setTauri = (on: boolean) => {
+    if (on) Object.defineProperty(window, "__TAURI_INTERNALS__", { value: {}, configurable: true })
+    else Reflect.deleteProperty(window, "__TAURI_INTERNALS__")
+}
 
 vi.mock("@tauri-apps/api/core", () => ({
     invoke: (...args: unknown[]) => invoke(...args),
-    isTauri: () => tauri,
 }))
 vi.mock("@tauri-apps/api/event", () => ({
     listen: (_event: string, handler: (event: { payload: unknown }) => void) => {
@@ -29,7 +31,7 @@ describe("useMediaSession on Windows (native session)", () => {
     const userAgent = navigator.userAgent
 
     beforeEach(() => {
-        tauri = true
+        setTauri(true)
         emit = undefined
         invoke.mockClear()
         unlisten.mockClear()
@@ -37,6 +39,7 @@ describe("useMediaSession on Windows (native session)", () => {
     })
 
     afterEach(() => {
+        setTauri(false)
         Object.defineProperty(navigator, "userAgent", { value: userAgent, configurable: true })
     })
 
@@ -103,10 +106,16 @@ describe("useMediaSession on Windows (native session)", () => {
 
 describe("useMediaSession elsewhere", () => {
     it("does not call the backend outside of Windows", () => {
-        tauri = true
+        setTauri(true)
         invoke.mockClear()
+        const userAgent = navigator.userAgent
         Object.defineProperty(navigator, "userAgent", { value: "Mozilla/5.0 (X11; Linux x86_64)", configurable: true })
-        renderHook(() => useMediaSession({ ...base, actions: actions() }))
-        expect(invoke).not.toHaveBeenCalled()
+        try {
+            renderHook(() => useMediaSession({ ...base, actions: actions() }))
+            expect(invoke).not.toHaveBeenCalled()
+        } finally {
+            setTauri(false)
+            Object.defineProperty(navigator, "userAgent", { value: userAgent, configurable: true })
+        }
     })
 })

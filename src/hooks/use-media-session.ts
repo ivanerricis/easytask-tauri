@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react"
-import { invoke, isTauri } from "@tauri-apps/api/core"
+import { invoke } from "@tauri-apps/api/core"
 import { listen } from "@tauri-apps/api/event"
 import { reportError } from "@/lib/report-error"
 
@@ -32,7 +32,8 @@ const MEDIA_ACTION_EVENT = "media-session-action"
  * On Windows the session of WebView2 is turned off (Windows showed it as "Unknown app") and the backend publishes one
  * for the window of the app (src-tauri/src/media_session.rs); elsewhere the page uses `navigator.mediaSession`.
  */
-const isNative = () => isTauri() && /Windows/i.test(navigator.userAgent)
+// The check of isTauri() from @tauri-apps/api/core, read here so that the tests that mock that module do not need it
+const isNative = () => typeof window !== "undefined" && "__TAURI_INTERNALS__" in window && /Windows/i.test(navigator.userAgent)
 
 /**
  * Publishes the track of the player to the system (volume flyout, lock screen, media keys) and runs what they ask for.
