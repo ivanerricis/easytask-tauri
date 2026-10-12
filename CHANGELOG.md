@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-12
+
+### Added
+
+- An empty note shows a "New group" button in the middle, besides the shortcut hints.
+- Settings > About: a button copies the path of the database.
+- Settings > Appearance: the colors under Color intensity are labeled "Preview".
+
+### Changed
+
+- Confirmations of actions that cannot be undone (empty the trash, delete permanently, restore or delete a backup, delete or discard an automation) have a solid red button. The other red buttons have a more visible border.
+- The note search (Ctrl+O) lists the notes first: Enter right after opening it no longer undoes the last action.
+- Settings: the reset button of a row is always on the right of its control and only shows when the value was changed, so the controls line up. In Italian, "Ripristina" is used for backups, trash and archive only; resetting a setting is now "Reimposta".
+- Settings > Data: the backups are listed in a box, with a clock icon to restore them and the unit next to the number to keep.
+- The focus ring of buttons and fields uses the accent color.
+- The shortcuts dialog scrolls inside, with a fade at the bottom while there is more below.
+- Templates: a clearer icon for "Update from note", Delete set apart from the other buttons, and the dialog is only as tall as its list.
+- The color button of the new folder and new note dialogs shows a palette icon until a color is chosen.
+- The selected task has an accent bar on its left; the templates count in the sidebar is a neutral badge; the note menu is split into groups.
+- Home: square buttons, the recent workspaces box is only as tall as its content, and long names and dates are truncated.
+- The audio player is moved by its header, which only holds the close button; the title has its own row.
+- While a section is dragged, the "New group" column itself is the drop area.
+- Success messages disappear after 3 seconds; errors stay for 8.
+
+### Fixed
+
+- Narrow window: the sidebar and the side panel no longer cover the button that hides them.
+- The Details tab no longer cuts the task description: the Audio part takes only the space it needs.
+- A group name no longer shrinks to "…" next to the progress bar and the counts.
+- Settings > About: the database path wraps only after a folder separator.
+
 ## [0.8.1] - 2026-10-12
 
 ### Changed
@@ -225,7 +256,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...v0.7.0

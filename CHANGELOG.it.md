@@ -4,6 +4,37 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-10-12
+
+### Aggiunto
+
+- Una nota vuota mostra al centro un pulsante "Nuovo gruppo", oltre ai suggerimenti delle scorciatoie.
+- Impostazioni > Informazioni: un pulsante copia il percorso del database.
+- Impostazioni > Aspetto: i colori sotto Intensità dei colori hanno l'etichetta "Anteprima".
+
+### Modificato
+
+- Le conferme delle azioni che non si possono annullare (svuotare il cestino, eliminare definitivamente, ripristinare o eliminare un backup, eliminare o scartare un'automazione) hanno un pulsante rosso pieno. Gli altri pulsanti rossi hanno un bordo più visibile.
+- La ricerca delle note (Ctrl+O) mostra prima le note: Invio subito dopo l'apertura non annulla più l'ultima azione.
+- Impostazioni: il pulsante di reset di una riga sta sempre a destra del controllo e compare solo se il valore è stato cambiato, così i controlli sono allineati. "Ripristina" resta solo per backup, cestino e archivio; per le impostazioni ora è "Reimposta".
+- Impostazioni > Dati: i backup sono elencati in un riquadro, con un'icona a orologio per ripristinarli e l'unità accanto al numero da conservare.
+- L'anello di focus di pulsanti e campi usa il colore d'accento.
+- Il dialog delle scorciatoie scorre al suo interno, con una sfumatura in basso finché c'è altro sotto.
+- Template: un'icona più chiara per "Aggiorna dalla nota", Elimina separato dagli altri pulsanti, e il dialog è alto quanto la sua lista.
+- Il pulsante del colore nei dialog di nuova cartella e nuova nota mostra un'icona a tavolozza finché non si sceglie un colore.
+- Il task selezionato ha una barra del colore d'accento a sinistra; il numero di template nella barra laterale è un badge neutro; il menu della nota è diviso in gruppi.
+- Home: pulsanti squadrati, il riquadro dei workspace recenti è alto quanto il suo contenuto, e nomi e date lunghi vengono troncati.
+- Il player audio si sposta dalla sua intestazione, che contiene solo il pulsante di chiusura; il titolo ha una riga sua.
+- Mentre si trascina una sezione, la colonna "Nuovo gruppo" è essa stessa l'area di rilascio.
+- I messaggi di conferma spariscono dopo 3 secondi; gli errori restano per 8.
+
+### Corretto
+
+- Finestra stretta: la barra laterale e il pannello laterale non coprono più il pulsante che li nasconde.
+- La scheda Dettagli non taglia più la descrizione del task: la parte Audio occupa solo lo spazio che serve.
+- Il nome di un gruppo non si riduce più a "…" accanto alla barra di avanzamento e ai contatori.
+- Impostazioni > Informazioni: il percorso del database va a capo solo dopo un separatore di cartella.
+
 ## [0.8.1] - 2026-10-12
 
 ### Modificato
@@ -223,7 +254,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.6.0...v0.7.0
