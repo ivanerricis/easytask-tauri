@@ -59,6 +59,7 @@ export const dialogs: Translation["dialogs"] = {
         search: "Search templates",
         searchPlaceholder: "Search templates…",
         empty: "No templates. Create one from a note with the \"New template\" button, or from the menu of the note.",
+        shortHint: "To add more, use \"New template\" or the menu of a note.",
         new: "New template",
         noNotes: "There are no notes to make a template from.",
         pickNote: {

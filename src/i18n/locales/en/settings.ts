@@ -56,6 +56,7 @@ export const settings: Translation["settings"] = {
             label: "Color intensity",
             description: "How strongly the colors of folders, notes, groups and sections show. It does not change the task colors.",
             reset: "Reset",
+            preview: "Preview",
         },
     },
     shortcuts: {
@@ -87,6 +88,8 @@ export const settings: Translation["settings"] = {
         copied: "Link copied",
         openInBrowser: "Open in browser",
         copyLink: "Copy link",
+        copyPath: "Copy path",
+        pathCopied: "Path copied",
         update: {
             label: "Updates",
             checkButton: "Check for updates",
@@ -160,6 +163,7 @@ export const settings: Translation["settings"] = {
             keep: {
                 label: "Backups to keep",
                 description: "The oldest ones are deleted automatically.",
+                unit: "backups",
             },
             folder: {
                 label: "Open backups folder",

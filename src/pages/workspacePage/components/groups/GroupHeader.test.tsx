@@ -113,7 +113,8 @@ describe("GroupHeader name", () => {
     it("keeps the name on a single line and truncates a long one (full name as title)", () => {
         render(<GroupHeader group={makeGroup({ name: "Da fare" })} index={2} />)
         const name = screen.getByText("Da fare")
-        expect(name).toHaveClass("truncate", "min-w-0")
+        // A minimum width: next to the progress bar and the counts the name never shrinks to just "…"
+        expect(name).toHaveClass("truncate", "min-w-[6ch]")
         expect(name).not.toHaveClass("break-words")
         expect(name).toHaveAttribute("title", "Da fare")
         expect(name).not.toHaveClass("text-muted-foreground")

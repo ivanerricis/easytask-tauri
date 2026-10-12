@@ -30,10 +30,12 @@ const started = Date.now()
 const WS_MAIN = "Product Launch"
 const WS_EMPTY = "Personal"
 const WS_OLD = "Old workspace"
+const WS_LONG = "Quarterly planning and cross-team roadmap workspace"
 const NOTE_MAIN = "Roadmap"
 const NOTE_B = "Weekly sync"
 const NOTE_C = "Budget"
 const NOTE_OLD = "Old draft"
+const NOTE_LONG = "Minutes of the long term product strategy review meeting"
 const FOLDER_A = "Planning"
 const FOLDER_SUB = "Q4"
 const FOLDER_B = "Research"
@@ -113,8 +115,8 @@ const languageRadio = (label: string) => $(`//*[@role='radiogroup']//*[@role='ra
 const setAppearance = async (nextTheme: Theme, nextLang: Lang) => {
     await openSettings()
     await goCategory("appearance")
-    await $(`//button[.//span[normalize-space()='${await tr("settings.appearance.theme.toggle")}']]`).click()
-    const item = $(`//*[@role='menuitem'][normalize-space()='${await tr(`settings.appearance.theme.${nextTheme}`)}']`)
+    await $(`//button[@aria-label='${await tr("settings.appearance.theme.toggle")}']`).click()
+    const item = $(`//*[@role='menuitemradio'][normalize-space()='${await tr(`settings.appearance.theme.${nextTheme}`)}']`)
     await item.waitForDisplayed()
     await item.click()
     await languageRadio(nextLang === "it" ? "Italiano" : "English").click()
@@ -147,11 +149,27 @@ const openWs = async (name: string) => {
 
 const expanded = async (label: string) => (await byLabel(label).getAttribute("aria-expanded")) === "true"
 
+/**
+ * Opens/closes a sidebar. In the compact window the sidebars are overlays: the rail toggle must stay clickable and close
+ * the overlay; if the click does not work (or does not close it) Escape is the fallback.
+ */
 const setToggle = async (label: string, open: boolean) => {
-    if ((await expanded(label)) !== open) {
+    if ((await expanded(label)) === open) return
+    try {
         await byLabel(label).click()
-        await settle(500)
+    } catch {
+        await browser.keys("Escape")
     }
+    await settle(500)
+    if (!open && (await expanded(label)) !== open) {
+        await browser.keys("Escape")
+        await settle(400)
+    }
+}
+/** Notes in the tour index when an overlay covers the rail toggle (it must stay visible and clickable). */
+const checkToggleReachable = async (label: string, what: string) => {
+    const toggle = byLabel(label)
+    if (!(await toggle.isDisplayed()) || !(await toggle.isClickable())) skipped.push(`${what}: the rail toggle is covered by the overlay`)
 }
 const setSidebar = async (open: boolean) => setToggle(await tr("sidebar.toggle"), open)
 const setPanel = async (open: boolean) => setToggle(await tr("rightPanel.toggle"), open)
@@ -226,7 +244,7 @@ const taskExists = (text: string) => browser.waitUntil(
 
 /** Opens the "..." menu of a task (the button is only visible on hover, so it is hovered first). */
 const openTaskMenu = async (text: string) => {
-    const open = await tr("common.openMenu")
+    const open = await tr("common.menuOf", { name: text })
     let target: WebdriverIO.Element | undefined
     for (const candidate of await $$(`[aria-label="${await tr("tasks.editText")}"]`)) {
         if ((await candidate.getValue()) === text) target = candidate
@@ -296,10 +314,12 @@ const captureMain = async (compact: boolean) => {
             await setPanel(false)
             await shot(5, "workspace-note", "Workspace with an open note", "Open note with groups, sections and tasks, both sidebars closed (compact window: they are overlays).")
             await setSidebar(true)
-            await shot(9, "sidebar-overlay", "Left sidebar as an overlay", "Compact window: the folders/notes sidebar floats over the note with a dimmed backdrop.")
+            await checkToggleReachable(await tr("sidebar.toggle"), `left overlay ${sfx}`)
+            await shot(9, "sidebar-overlay", "Left sidebar as an overlay", "Compact window: the folders/notes sidebar floats over the note with a dimmed backdrop; the rail toggle stays visible.")
             await setSidebar(false)
             await setPanel(true)
-            await shot(10, "details-overlay-note", "Right panel as an overlay (no selection)", "Compact window: the details panel (note details) floats over the note.")
+            await checkToggleReachable(await tr("rightPanel.toggle"), `right overlay ${sfx}`)
+            await shot(10, "details-overlay-note", "Right panel as an overlay (no selection)", "Compact window: the details panel (note details) floats over the note; the rail toggle stays visible.")
         } else {
             await setSidebar(true)
             await setPanel(true)
@@ -319,6 +339,20 @@ const captureMain = async (compact: boolean) => {
         await openSettings()
         await goCategory("appearance")
         await shot(8, "settings-appearance", "Settings: Appearance", "Settings dialog on the Appearance page: theme, accent color, language and sidebar item size.")
+        await closeDialog()
+    })
+}
+
+/** Settings pages that are also captured in dark/en (long paths, backup lists). */
+const captureSettingsExtra = async () => {
+    await attempt(`settings-extra ${theme}/${lang}`, async () => {
+        await openSettings()
+        for (const [num, id] of [[64, "data"], [65, "about"]] as const) {
+            await attempt(`settings-${id} ${theme}/${lang}`, async () => {
+                await goCategory(id)
+                await shot(num, `settings-${id}`, `Settings: ${id}`, `Settings dialog, page "${id}", in the ${theme} theme and ${lang === "it" ? "Italian" : "English"}.`)
+            })
+        }
         await closeDialog()
     })
 }
@@ -359,13 +393,23 @@ describe("UI tour", () => {
             await $('[role="dialog"] button[type="submit"]').click()
             await waitDialogGone()
         }
-        for (const name of [WS_EMPTY, WS_OLD]) {
+        for (const name of [WS_EMPTY, WS_OLD, WS_LONG]) {
             await byText(await tr("home.createWorkspace.open")).click()
             await typeInto($('[role="dialog"] input[name="name"]'), name)
             await $('[role="dialog"] button[type="submit"]').click()
             await waitDialogGone()
         }
         await byLabel(await tr("home.workspace.open", { name: WS_OLD })).waitForDisplayed()
+        await attempt("home-long-name", async () => {
+            await $("h1").moveTo()
+            await shot(55, "home-long-name-grid", "Home with a very long workspace name (grid)", "The workspace card with a 50+ character name: the name and the date lines are truncated, nothing overflows.")
+            await byLabel(await tr("home.viewList")).click()
+            await $("h1").moveTo()
+            await shot(56, "home-long-name-list", "Home with a very long workspace name (list)", "The list row with a 50+ character name: the name truncates before the date.")
+            await byLabel(await tr("home.viewGrid")).click()
+            await $("h1").moveTo()
+            await settle(300)
+        })
     })
 
     it("workspace menus, dialogs and the home trash", async () => {
@@ -377,12 +421,13 @@ describe("UI tour", () => {
             })
         })
         await recover()
-        await attempt("home-rename-dialog", async () => {
+        await attempt("home-rename-inline", async () => {
             const menu = await openContextMenu(byLabel(await tr("home.workspace.open", { name: WS_OLD })))
             await byText(await tr("common.rename"), menu).click()
-            await dialogEl().waitForDisplayed()
-            await shot(23, "home-rename-dialog", "Rename dialog", "Dialog to rename an item (here a workspace).")
-            await closeDialog()
+            await byLabel(await tr("common.name")).waitForDisplayed({ timeoutMsg: "the inline rename input did not appear" })
+            await shot(23, "home-rename-inline", "Inline rename (workspace)", "Renaming a workspace in place: its name becomes an input (Enter confirms, Esc cancels).")
+            await browser.keys("Escape")
+            await settle(300)
         })
         await attempt("home-delete-dialog", async () => {
             const menu = await openContextMenu(byLabel(await tr("home.workspace.open", { name: WS_OLD })))
@@ -451,6 +496,13 @@ describe("UI tour", () => {
         await byLabel(await tr("sidebar.addNote")).click()
         await fillDialogName(NOTE_OLD)
         await submitDialog()
+        await byLabel(await tr("sidebar.addNote")).click()
+        await fillDialogName(NOTE_LONG)
+        await submitDialog()
+        await attempt("sidebar-long-name", async () => {
+            await treeRow(NOTE_LONG).waitForDisplayed()
+            await shot(57, "sidebar-long-name", "Sidebar with a very long note name", "A note with a 50+ character name in the tree: the name is truncated and the row keeps its badges/menu button.")
+        })
 
         // Folder context menu, nested folder and notes inside folders
         await attempt("folder-menu", async () => {
@@ -481,9 +533,10 @@ describe("UI tour", () => {
             const menu = await openContextMenu(treeRow(NOTE_OLD))
             await shot(34, "note-menu", "Note context menu", "Right click on a note in the tree: open, rename, change color, create template, delete.")
             await byText(await tr("common.rename"), menu).click()
-            await dialogEl().waitForDisplayed()
-            await shot(35, "rename-dialog", "Rename dialog (note)", "Dialog to rename a note.")
-            await closeDialog()
+            await byLabel(await tr("common.name")).waitForDisplayed({ timeoutMsg: "the inline rename input did not appear" })
+            await shot(35, "rename-inline", "Inline rename (note)", "Renaming a note in place: the name in the tree becomes an input (Enter confirms, Esc cancels).")
+            await browser.keys("Escape")
+            await settle(300)
         })
         await recover()
         await attempt("delete-dialog", async () => {
@@ -622,7 +675,7 @@ describe("UI tour", () => {
         await attempt("templates-dialog", async () => {
             await (await footerButton("dialogs.templates.title")).click()
             await dialogEl().waitForDisplayed()
-            await shot(38, "templates-dialog", "Templates dialog", "List of the saved templates, with create note / update / rename / delete actions.")
+            await shot(38, "templates-dialog", "Templates dialog (short list)", "Dialog with a single saved template: the dialog adapts to the short list; create note / update from note / rename / delete actions.")
             await attempt("note-from-template", async () => {
                 await byLabel(await tr("dialogs.templates.createNoteFrom", { name: "Meeting template" })).click()
                 await settle(500)
@@ -680,6 +733,7 @@ describe("UI tour", () => {
         for (const [t, l] of [["light", "it"], ["light", "en"], ["dark", "it"], ["dark", "en"]] as const) {
             await setAppearance(t, l)
             await captureMain(false)
+            if (t === "dark" && l === "en") await captureSettingsExtra()
         }
     })
 

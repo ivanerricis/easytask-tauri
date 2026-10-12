@@ -36,7 +36,7 @@ beforeEach(() => {
 describe("ResetAppearanceSetting", () => {
     it("is disabled while everything is already at its default", () => {
         render(<ResetAppearanceSetting />)
-        expect(screen.getByRole("button", { name: "Ripristina tutto" })).toBeDisabled()
+        expect(screen.getByRole("button", { name: "Reimposta tutto" })).toBeDisabled()
     })
 
     it.each([
@@ -49,13 +49,13 @@ describe("ResetAppearanceSetting", () => {
     ])("is enabled when the %s was changed", (_name, change) => {
         Object.assign(state, change)
         render(<ResetAppearanceSetting />)
-        expect(screen.getByRole("button", { name: "Ripristina tutto" })).toBeEnabled()
+        expect(screen.getByRole("button", { name: "Reimposta tutto" })).toBeEnabled()
     })
 
     it("treats the accent color case-insensitively", () => {
         state.primaryColor = DEFAULT_PRIMARY_COLOR.toUpperCase()
         render(<ResetAppearanceSetting />)
-        expect(screen.getByRole("button", { name: "Ripristina tutto" })).toBeDisabled()
+        expect(screen.getByRole("button", { name: "Reimposta tutto" })).toBeDisabled()
     })
 
     it("asks for confirmation and resets every control to its default", async () => {
@@ -63,12 +63,12 @@ describe("ResetAppearanceSetting", () => {
         const user = userEvent.setup()
         render(<ResetAppearanceSetting />)
 
-        await user.click(screen.getByRole("button", { name: "Ripristina tutto" }))
+        await user.click(screen.getByRole("button", { name: "Reimposta tutto" }))
         const dialog = await screen.findByRole("dialog")
-        expect(dialog).toHaveTextContent("Ripristinare l'aspetto?")
+        expect(dialog).toHaveTextContent("Reimpostare l'aspetto?")
         expect(setTheme).not.toHaveBeenCalled()
 
-        await user.click(screen.getByRole("button", { name: "Ripristina" }))
+        await user.click(screen.getByRole("button", { name: "Reimposta" }))
 
         expect(setTheme).toHaveBeenCalledWith("system")
         expect(setPrimaryColor).toHaveBeenCalledWith(DEFAULT_PRIMARY_COLOR)
@@ -83,7 +83,7 @@ describe("ResetAppearanceSetting", () => {
         state.theme = "dark"
         const user = userEvent.setup()
         render(<ResetAppearanceSetting />)
-        await user.click(screen.getByRole("button", { name: "Ripristina tutto" }))
+        await user.click(screen.getByRole("button", { name: "Reimposta tutto" }))
         await user.click(await screen.findByRole("button", { name: "Annulla" }))
         await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
         expect(setTheme).not.toHaveBeenCalled()

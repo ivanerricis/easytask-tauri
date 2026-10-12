@@ -1,8 +1,9 @@
 import { useTranslation } from "react-i18next"
 import { useRef, useState, useEffect } from "react"
-import { Play, Pause, RotateCcw, RotateCw, SkipBack, Volume2, VolumeX, Grip, X } from "lucide-react"
+import { Play, Pause, RotateCcw, RotateCw, SkipBack, Volume2, VolumeX, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { Separator } from "@/components/ui/separator"
 import { Slider } from "@/components/ui/slider"
 import { Toggle } from "@/components/ui/toggle"
 import { TooltipCustom } from "@/components/tooltip-custom"
@@ -225,24 +226,26 @@ export const AudioPlayer = ({
     const volumeLabel = muted ? 0 : Math.round(volume * 100)
 
     return (
-        <div className={`w-[350px] p-2 rounded-xs bg-background border shadow flex flex-col gap-2 text-muted-foreground ${open ? '' : 'hidden'}`}>
-            {/* The title has a row of its own, as wide as the player: two lines at most, the tooltip has the whole name */}
-            <div className="w-full flex items-center gap-2">
-                {/* The same handle as the groups */}
-                <div
-                    className="group shrink-0 flex items-center justify-center p-1 touch-none cursor-grab active:cursor-grabbing"
-                    {...listenersHandle} {...attributesHandle}
-                    aria-label={t("audio.player.move")}
-                >
-                    <Grip className="size-4 text-muted-foreground group-hover:text-foreground" />
-                </div>
-                <div className="flex-1 min-w-0 line-clamp-2 break-words text-sm font-medium text-foreground" title={title}>{title}</div>
+        <div className={`w-[350px] p-2 rounded-xs bg-background border shadow-lg flex flex-col gap-2 text-muted-foreground ${open ? '' : 'hidden'}`}>
+            {/* The header is the drag handle and only holds the close button */}
+            <div
+                className="-mx-2 -mt-2 -mb-2 p-0.5 flex items-center justify-end touch-none cursor-grab active:cursor-grabbing"
+                {...listenersHandle} {...attributesHandle}
+                aria-label={t("audio.player.move")}
+            >
                 <TooltipCustom text={t("audio.player.close")}>
-                    <Button type="button" variant="ghost" size="icon" onClick={handleClose} aria-label={t("audio.player.close")} className="size-6 shrink-0">
+                    <Button
+                        type="button" variant="ghost" size="icon" onClick={handleClose} aria-label={t("audio.player.close")}
+                        onPointerDown={event => event.stopPropagation()}
+                        className="size-5 shrink-0 cursor-pointer"
+                    >
                         <X className="!size-4" />
                     </Button>
                 </TooltipCustom>
             </div>
+            <Separator className="-mx-2 data-[orientation=horizontal]:w-[calc(100%+1rem)]" />
+            {/* The title has a row of its own, as wide as the player: two lines at most, the tooltip has the whole name */}
+            <div className="w-full line-clamp-2 break-words text-sm font-medium text-foreground" title={title}>{title}</div>
             <div className="w-full flex items-center gap-2 text-xs tabular-nums">
                 <span>{formatTime(currentTime)}</span>
                 <Slider

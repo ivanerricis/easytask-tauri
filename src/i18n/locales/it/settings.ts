@@ -1,5 +1,5 @@
 export const settings = {
-    resetAll: "Ripristina tutto",
+    resetAll: "Reimposta tutto",
     appearance: {
         language: {
             label: "Lingua",
@@ -13,9 +13,9 @@ export const settings = {
         title: "Aspetto",
         reset: {
             description: "Riporta tema, colore d'accento, lingua, dimensione di cartelle e note e intensità dei colori ai valori predefiniti.",
-            confirmTitle: "Ripristinare l'aspetto?",
+            confirmTitle: "Reimpostare l'aspetto?",
             confirmDescription: "Tema, colore d'accento, lingua, dimensione di cartelle e note e intensità dei colori tornano ai valori predefiniti. I tuoi dati non vengono toccati.",
-            confirm: "Ripristina",
+            confirm: "Reimposta",
         },
         theme: {
             label: "Tema",
@@ -27,7 +27,7 @@ export const settings = {
         accent: {
             label: "Colore d'accento",
             description: "Usato per pulsanti, selezioni ed evidenziazioni.",
-            reset: "Ripristina il colore d'accento",
+            reset: "Reimposta il colore d'accento",
             contrast: {
                 warning: {
                     light: "Questo colore ha poco contrasto con lo sfondo del tema chiaro ({{ratio}}:1, ne servono almeno {{min}}:1): bordi, selezioni ed evidenziazioni potrebbero essere difficili da vedere.",
@@ -53,21 +53,22 @@ export const settings = {
         colorIntensity: {
             label: "Intensità dei colori",
             description: "Quanto risaltano i colori di cartelle, note, gruppi e sezioni. Non cambia i colori dei task.",
-            reset: "Ripristina",
+            reset: "Reimposta",
+            preview: "Anteprima",
         },
     },
     shortcuts: {
         title: "Scorciatoie",
         hint: "Premi \"Modifica\" e poi la nuova combinazione di tasti. Esc annulla.",
-        resetAllTitle: "Ripristinare tutte le scorciatoie?",
+        resetAllTitle: "Reimpostare tutte le scorciatoie?",
         resetAllDescription: "Tutte le scorciatoie personalizzate torneranno ai valori predefiniti.",
         needsModifier: "Usa una combinazione con Ctrl o Alt.",
         conflict: "Già usata da: {{names}}.",
         pressKeys: "Premi i tasti…",
         edit: "Modifica",
         editAria: "Modifica: {{name}}",
-        reset: "Ripristina",
-        resetAria: "Ripristina: {{name}}",
+        reset: "Reimposta",
+        resetAria: "Reimposta: {{name}}",
     },
     title: "Impostazioni",
     description: "Impostazioni dell'applicazione suddivise per categoria",
@@ -85,6 +86,8 @@ export const settings = {
         copied: "Link copiato",
         openInBrowser: "Apri nel browser",
         copyLink: "Copia link",
+        copyPath: "Copia percorso",
+        pathCopied: "Percorso copiato",
         update: {
             label: "Aggiornamenti",
             checkButton: "Controlla aggiornamenti",
@@ -158,6 +161,7 @@ export const settings = {
             keep: {
                 label: "Backup da conservare",
                 description: "I più vecchi vengono eliminati automaticamente.",
+                unit: "backup",
             },
             folder: {
                 label: "Apri cartella backup",
@@ -250,9 +254,9 @@ export const settings = {
     audio: {
         title: "Audio",
         resetPlayer: {
-            label: "Ripristina la posizione del player audio",
+            label: "Reimposta la posizione del player audio",
             description: "Riporta il player alla posizione predefinita.",
-            button: "Ripristina",
+            button: "Reimposta",
         },
         volume: {
             label: "Volume predefinito",

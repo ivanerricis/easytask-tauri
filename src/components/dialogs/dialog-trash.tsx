@@ -220,6 +220,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                 open={confirm !== null}
                 onOpenChange={(open) => { if (!open) setConfirm(null) }}
                 destructive
+                irreversible
                 initialFocus="cancel"
                 title={confirm?.kind === "empty" ? t("trash.emptyTitle") : t("trash.purgeTitle")}
                 description={confirm?.kind === "empty" ? t("trash.emptyDescription") : t("trash.purgeDescription")}

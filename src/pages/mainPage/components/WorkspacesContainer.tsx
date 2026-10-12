@@ -40,7 +40,7 @@ export const WorkspacesContainer = ({ workspaces, view = "grid", sort = DEFAULT_
     const sorted = useMemo(() => sortWorkspaces(workspaces, sort), [workspaces, sort])
     return (
         <div className={cn(
-            "grid w-full overflow-y-auto h-[clamp(200px,42vh,420px)] gap-1 content-start",
+            "grid w-full overflow-y-auto max-h-[clamp(200px,42vh,420px)] gap-1 content-start",
             view === "grid" ? "grid-cols-[repeat(auto-fill,minmax(min(14rem,100%),1fr))]" : "grid-cols-1"
         )}>
             {loading ? (

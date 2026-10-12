@@ -97,7 +97,7 @@ describe("DialogSettings", () => {
         expect(screen.getByLabelText("Riapri le note all'avvio")).toBeChecked()
 
         await user.click(screen.getByRole("tab", { name: "Audio" }))
-        expect(screen.getByRole("button", { name: "Ripristina" })).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "Reimposta" })).toBeInTheDocument()
     })
 
     it("puts the reset of a section in the same place everywhere: in its title row, on the right", async () => {
@@ -105,7 +105,7 @@ describe("DialogSettings", () => {
         for (const section of ["Aspetto", "Audio"]) {
             await user.click(screen.getByRole("tab", { name: section }))
             const heading = screen.getByRole("heading", { name: section })
-            const reset = screen.getByRole("button", { name: "Ripristina tutto" })
+            const reset = screen.getByRole("button", { name: "Reimposta tutto" })
             // The button sits in a span that carries its tooltip
             expect(reset.parentElement?.parentElement).toBe(heading.parentElement)
             expect(heading.parentElement?.lastElementChild).toBe(reset.parentElement)
@@ -155,7 +155,7 @@ describe("DialogSettings", () => {
         await user.click(within(size).getByRole("radio", { name: "Piccolo" }))
         expect(audioPrefs.setAudioPlayerScale).toHaveBeenCalledWith(0.85)
 
-        await user.click(screen.getByRole("button", { name: "Ripristina tutto" }))
+        await user.click(screen.getByRole("button", { name: "Reimposta tutto" }))
         expect(audioPrefs.resetAudioSettings).toHaveBeenCalled()
     })
 
@@ -192,7 +192,7 @@ describe("DialogSettings", () => {
         fireEvent.keyDown(slider, { key: "ArrowLeft" })
         expect(setColorIntensity).toHaveBeenCalledWith(1.45)
 
-        await user.click(screen.getByRole("button", { name: "Ripristina" }))
+        await user.click(screen.getByRole("button", { name: "Reimposta" }))
         expect(setColorIntensity).toHaveBeenLastCalledWith(1)
     })
 

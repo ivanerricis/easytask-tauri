@@ -176,14 +176,17 @@ describe("AudioPlayer", () => {
             expect(title).toHaveAttribute("title", name)
             expect(title).toHaveClass("line-clamp-2")
             // Not in the row of the play button or in the row of the seek bar
-            expect(title.parentElement).not.toContainElement(playButton())
-            expect(title.parentElement).not.toContainElement(screen.getByRole("slider", { name: "Posizione di riproduzione" }))
+            expect(title).not.toContainElement(playButton())
+            expect(title).not.toContainElement(screen.getByRole("slider", { name: "Posizione di riproduzione" }))
         })
 
-        it("uses the same handle as the groups", () => {
+        it("has no grip: the header with only the close button is the drag handle, the title is below the separator", () => {
             const { container } = render(<AudioPlayer src="a.mp3" listenersHandle={undefined} attributesHandle={attributes} />)
-            expect(container.querySelector("svg.lucide-grip")).not.toBeNull()
-            expect(container.querySelector("svg.lucide-grip-vertical")).toBeNull()
+            expect(container.querySelector("svg.lucide-grip")).toBeNull()
+            const header = screen.getByLabelText("Sposta il player")
+            expect(header).toContainElement(screen.getByRole("button", { name: /chiudi/i }))
+            expect(header).not.toContainElement(container.querySelector("[title]"))
+            expect(container.querySelector('[data-slot="separator"]')).not.toBeNull()
         })
     })
 

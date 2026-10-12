@@ -18,9 +18,11 @@ type SettingsRowProps = {
     description?: string
     /** The control; as a function it receives the ids that tie it to the label and the description. */
     children: ReactNode | ((props: SettingsControlProps) => ReactNode)
+    /** Row-level reset (a RowResetButton), rendered only when the value differs from the default. */
+    reset?: ReactNode
 }
 
-export const SettingsRow = ({ label, description, children }: SettingsRowProps) => {
+export const SettingsRow = ({ label, description, children, reset }: SettingsRowProps) => {
     const base = useId()
     const ids: SettingsControlProps = { id: `${base}-control`, labelId: `${base}-label`, descriptionId: description ? `${base}-description` : undefined }
     return (
@@ -31,7 +33,11 @@ export const SettingsRow = ({ label, description, children }: SettingsRowProps) 
                     <p id={ids.descriptionId} className="text-xs text-muted-foreground">{description}</p>
                 )}
             </div>
-            <div className="shrink-0">{typeof children === "function" ? children(ids) : children}</div>
+            <div className="shrink-0 flex items-center gap-2">
+                {typeof children === "function" ? children(ids) : children}
+                {/* Reserved even when empty, so the controls line up across rows */}
+                <div className="size-8 shrink-0">{reset}</div>
+            </div>
         </div>
     )
 }

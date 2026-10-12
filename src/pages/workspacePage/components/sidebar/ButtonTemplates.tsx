@@ -28,6 +28,6 @@ export const ButtonTemplates = () => {
     }, [workspaceID, templatesVersion, countTemplates])
 
     return (
-        <ItemFooter type="template" text={t("dialogs.templates.title")} badge={count} badgeLabel={t("templates.badge", { count })} onClick={() => requestAppCommand("open-templates")} />
+        <ItemFooter type="template" text={t("dialogs.templates.title")} badge={count} badgeVariant="outline" badgeLabel={t("templates.badge", { count })} onClick={() => requestAppCommand("open-templates")} />
     )
 }

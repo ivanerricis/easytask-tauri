@@ -1,3 +1,4 @@
+import type { ComponentProps } from "react"
 import { useTranslation } from "react-i18next"
 import { Archive, Download, LayoutTemplate, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
@@ -16,6 +17,8 @@ type ItemFooterProps = {
     badge?: number
     /** Accessible label of the badge (default: the number of items in the trash). */
     badgeLabel?: string
+    /** Look of the badge (default: the accent colour). */
+    badgeVariant?: ComponentProps<typeof Badge>["variant"]
 }
 
 const iconMap: Record<IconType, LucideIcon> = {
@@ -25,7 +28,7 @@ const iconMap: Record<IconType, LucideIcon> = {
     template: LayoutTemplate
 }
 
-export const ItemFooter = ({ text, type, className, onClick, disabled, badge, badgeLabel }: ItemFooterProps) => {
+export const ItemFooter = ({ text, type, className, onClick, disabled, badge, badgeLabel, badgeVariant }: ItemFooterProps) => {
     const { t } = useTranslation()
 
     const Icon = iconMap[type]
@@ -45,7 +48,7 @@ export const ItemFooter = ({ text, type, className, onClick, disabled, badge, ba
             </span>
             {badge !== undefined && badge > 0 && (
                 <>
-                    <Badge aria-hidden="true" className="h-5 min-w-5 px-1 py-0 text-[11px] leading-none tabular-nums">{badge > 99 ? "99+" : badge}</Badge>
+                    <Badge variant={badgeVariant} aria-hidden="true" className="h-5 min-w-5 px-1 py-0 text-[11px] leading-none tabular-nums">{badge > 99 ? "99+" : badge}</Badge>
                     <span className="sr-only">{badgeLabel ?? t("sidebar.trashBadge", { count: badge })}</span>
                 </>
             )}

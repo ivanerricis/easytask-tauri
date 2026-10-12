@@ -1,5 +1,7 @@
 import { useTranslation } from "react-i18next"
 import { EmptyNoteIcon } from "@/components/empty-note-icon"
+import { Button } from "@/components/ui/button"
+import { requestAppCommand } from "@/lib/app-commands"
 import { EmptyState } from "./EmptyState"
 
 const HINTS = [
@@ -17,6 +19,11 @@ export const EmptyNoteHints = () => {
             title={t("notes.empty.title")}
             hints={HINTS.map(hint => ({ id: hint.id, label: t(hint.labelKey) }))}
             className="pointer-events-none absolute inset-0"
-        />
+        >
+            {/* The container lets the clicks through; the button opens the same form as the new-group shortcut */}
+            <Button className="pointer-events-auto mt-4 rounded-xs" onClick={() => requestAppCommand("new-group")}>
+                {t("menu.newGroup")}
+            </Button>
+        </EmptyState>
     )
 }

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Plus } from "lucide-react"
+import { Palette } from "lucide-react"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -13,8 +14,8 @@ type OptionalColorFieldProps = {
 }
 
 /**
- * "+" button for the creation dialogs, next to the name: it opens the usual color palette of the menus and takes the
- * color that was chosen. Without a color it is a plain "+" button.
+ * Palette button for the creation dialogs, next to the name: it opens the usual color palette of the menus and takes the
+ * color that was chosen. Without a color it shows a palette icon on a dashed border.
  */
 export const OptionalColorField = ({ value, onChange }: OptionalColorFieldProps) => {
     const { t } = useTranslation()
@@ -30,10 +31,10 @@ export const OptionalColorField = ({ value, onChange }: OptionalColorFieldProps)
                         variant="outline"
                         size="icon"
                         aria-label={label}
-                        className="size-9 shrink-0"
+                        className={cn("size-9 shrink-0", !value && "border-dashed")}
                         style={value ? { backgroundColor: value } : undefined}
                     >
-                        <Plus className={value ? "text-background dark:text-foreground" : undefined} />
+                        <Palette className={value ? "text-background dark:text-foreground" : "text-muted-foreground"} />
                     </Button>
                 </PopoverTrigger>
             </TooltipCustom>
