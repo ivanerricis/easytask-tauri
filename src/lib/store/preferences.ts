@@ -78,10 +78,13 @@ export type WorkspaceSortDir = "asc" | "desc"
 export type WorkspaceSort = { by: WorkspaceSortBy, dir: WorkspaceSortDir }
 export const DEFAULT_WORKSPACE_SORT: WorkspaceSort = { by: "edited", dir: "desc" }
 export type SidebarItemSize = "compact" | "normal" | "large"
-/** Speed of the animations: "slow" is the original one, "normal" (default) is faster, "none" turns them off. */
-export type AnimationSpeed = "slow" | "normal" | "none"
-export const ANIMATION_SPEEDS: readonly AnimationSpeed[] = ["none", "normal", "slow"]
-export const DEFAULT_ANIMATION_SPEED: AnimationSpeed = "normal"
+/**
+ * Speed of the animations: "slow" is the original one, "normal" is faster, "none" turns them off, "system" (default) follows
+ * the setting of the operating system (animation effects off in Windows = none, otherwise normal).
+ */
+export type AnimationSpeed = "system" | "slow" | "normal" | "none"
+export const ANIMATION_SPEEDS: readonly AnimationSpeed[] = ["system", "none", "normal", "slow"]
+export const DEFAULT_ANIMATION_SPEED: AnimationSpeed = "system"
 export type RightPanelTab = "details" | "history"
 
 export const DEFAULT_BACKUP_KEEP = 5

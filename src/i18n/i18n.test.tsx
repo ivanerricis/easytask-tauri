@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import i18n, { applyLanguagePreference, getSystemLanguage, initI18n, languageFromLocale, resolveLanguage } from "@/i18n"
@@ -108,10 +108,12 @@ describe("language setting", () => {
         await renderSettings()
         const group = await screen.findByRole("radiogroup", { name: "Lingua" })
         expect(group).toBeInTheDocument()
-        expect(screen.getByRole("radio", { name: "Sistema" })).toBeInTheDocument()
-        expect(screen.getByRole("radio", { name: "Italiano" })).toBeInTheDocument()
-        expect(screen.getByRole("radio", { name: "English" })).toBeInTheDocument()
-        await waitFor(() => expect(screen.getByRole("radio", { name: "Sistema" })).toHaveAttribute("aria-checked", "true"))
+        // The animation speed has a "Sistema" value too: look inside the language group
+        const language = within(group)
+        expect(language.getByRole("radio", { name: "Sistema" })).toBeInTheDocument()
+        expect(language.getByRole("radio", { name: "Italiano" })).toBeInTheDocument()
+        expect(language.getByRole("radio", { name: "English" })).toBeInTheDocument()
+        await waitFor(() => expect(language.getByRole("radio", { name: "Sistema" })).toHaveAttribute("aria-checked", "true"))
     })
 
     it("switches the UI immediately and persists the choice", async () => {

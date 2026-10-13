@@ -35,8 +35,6 @@ describe("VirtualTree", () => {
                     rows={rows}
                     collapsedIds={new Set()}
                     onToggleFolder={() => { }}
-                    overKey={null}
-                    overZone={null}
                     activeKey="note-400"
                     getScrollElement={() => scroller}
                 />
@@ -47,5 +45,25 @@ describe("VirtualTree", () => {
         expect(rendered).toBeLessThan(100)
         // The dragged row stays mounted although far outside the viewport
         expect(screen.getByText("Nota 400")).toBeTruthy()
+    })
+
+    it("draws one indent guide per level of depth, none for the root rows", () => {
+        const note = (id: number, name: string) => ({ id, name, color: null }) as unknown as Note
+        const inner = { id: 2, name: "Interna", color: null, notes: [note(3, "Profonda")], subfolders: [] }
+        const outer = { id: 1, name: "Esterna", color: null, notes: [note(4, "Figlia")], subfolders: [inner] }
+        const rows = flattenTree({ rootFolders: [outer as never], rootNotes: [note(5, "Radice")] }, new Set())
+        const scroller = document.createElement("div")
+        document.body.appendChild(scroller)
+        render(
+            <DndContext>
+                <VirtualTree rows={rows} collapsedIds={new Set()} onToggleFolder={() => { }} activeKey={null} getScrollElement={() => scroller} />
+            </DndContext>,
+        )
+        const guides = (name: string) => screen.getByText(name).closest("[data-testid='tree-row']")!.querySelectorAll("[data-testid='tree-guide']").length
+        expect(guides("Esterna")).toBe(0)
+        expect(guides("Radice")).toBe(0)
+        expect(guides("Interna")).toBe(1)
+        expect(guides("Figlia")).toBe(1)
+        expect(guides("Profonda")).toBe(2)
     })
 })

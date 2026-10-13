@@ -12,7 +12,7 @@ import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { useAutomations } from "@/hooks/use-automations"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { cn, getErrorMessage, hexToRgba } from "@/lib/utils"
-import React, { useCallback, useState } from "react"
+import React, { useCallback, useState, type HTMLAttributes } from "react"
 import { AutoTextarea } from "@/components/auto-textarea"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { AlignLeft, Flag, Info, ListTree, Plus } from "lucide-react"
@@ -21,6 +21,7 @@ import { TooltipCustom } from "@/components/tooltip-custom"
 import { AddTask } from "./AddTask"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
+import type { DropZone } from "../note-dnd"
 import { useIsTaskSelected, useSelectTask } from "@/contexts/use-tabs"
 import { useShowTaskDetails } from "../rightbar/use-right-panel"
 import { visibleTasks } from "../section/hide-completed"
@@ -41,7 +42,37 @@ type TaskProps = {
     renameOnClick?: boolean
 }
 
-export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, renameOnClick = true }: TaskProps) => {
+type TaskRowProps = TaskProps & {
+    /** Ref of the row: it is a drop target and a draggable (the hooks live in {@link Task}). */
+    setRowRef: (node: HTMLElement | null) => void
+    dragProps: HTMLAttributes<HTMLElement>
+    isDragging: boolean
+    /**
+     * Drop zone highlighted on this row while a task is dragged over it (null on every other row, also while a task is
+     * dragged: a flag shared by all the rows would re-render all of them when a drag starts and ends).
+     */
+    dropZone: DropZone | null
+}
+
+/**
+ * The drag & drop hooks of dnd-kit re-render the component that calls them every time the dragged item moves over another
+ * one, so they live in this thin shell: the heavy row below is memoized and only re-renders when its own props change
+ * (a note with hundreds of tasks would otherwise re-render every row on every step of a drag).
+ */
+export const Task = React.memo((props: TaskProps) => {
+    const { setNodeRef: setDropRef, zone, active } = useNoteDrop("task", props.task.id)
+    const { setNodeRef: setDragRef, dragProps, isDragging } = useNoteDrag("task", props.task.id)
+
+    // The row (without its subtasks) is both a drop target and the dimmed source while it is dragged
+    const setRowRef = useCallback((node: HTMLElement | null) => {
+        setDropRef(node)
+        setDragRef(node)
+    }, [setDropRef, setDragRef])
+
+    return <TaskRow {...props} setRowRef={setRowRef} dragProps={dragProps} isDragging={isDragging} dropZone={active?.kind === "task" ? zone : null} />
+})
+
+const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, renameOnClick = true, setRowRef, dragProps, isDragging, dropZone }: TaskRowProps) => {
     const { t } = useTranslation()
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
@@ -62,15 +93,6 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
     const selected = useIsTaskSelected(task.id)
     const selectTask = useSelectTask()
     const showTaskDetails = useShowTaskDetails()
-    const { setNodeRef: setDropRef, zone, active } = useNoteDrop("task", task.id)
-    const { setNodeRef: setDragRef, dragProps, isDragging } = useNoteDrag("task", task.id)
-
-    // The row (without its subtasks) is both a drop target and the dimmed source while it is dragged
-    const setRowRef = useCallback((node: HTMLElement | null) => {
-        setDropRef(node)
-        setDragRef(node)
-    }, [setDropRef, setDragRef])
-    const draggingTask = active?.kind === "task"
     const isSubtask = depth > 0
     // The line of a subtask runs under the checkbox of its parent: the checkbox of a subtask is 2px narrower than the one
     // of a task, so under a subtask (depth 2+) the line sits 1px to the left (and the tick is 1px longer to reach the checkbox). Both ends of a line keep 3px from the checkboxes
@@ -119,10 +141,10 @@ export const Task = React.memo(({ task, depth = 0, showSubtaskCount = true, hide
                         // Selected: a 2px bar in the primary colour on the left and a tint stronger than the hover one
                         selected && "bg-accent shadow-[inset_2px_0_0_0_var(--primary)]",
                         isDragging && "opacity-40",
-                        draggingTask && (zone === "inside" || zone === "inside-start") && "bg-primary/15 ring-1 ring-inset ring-primary",
+                        (dropZone === "inside" || dropZone === "inside-start") && "bg-primary/15 ring-1 ring-inset ring-primary",
                     )}
                 >
-                    {draggingTask && <DropLine zone={zone} outside />}
+                    <DropLine zone={dropZone} outside />
                     {/* The line of the subtasks starts under the checkbox: with a long text the row is tall, so it runs down to the bottom of the row where the line of the first subtask goes on */}
                     {(task.subtasks.length > 0 || isAddingSubtask) &&
                         <span aria-hidden className={cn(

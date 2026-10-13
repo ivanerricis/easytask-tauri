@@ -18,7 +18,7 @@ const state = {
     language: "system",
     sidebarItemSize: "normal",
     colorIntensity: DEFAULT_COLOR_INTENSITY,
-    animationSpeed: "normal",
+    animationSpeed: "system",
 }
 
 vi.mock("@/components/use-theme", () => ({ useTheme: () => ({ theme: state.theme, setTheme }) }))
@@ -29,7 +29,7 @@ vi.mock("@/contexts/use-preferences", () => ({
 beforeEach(() => {
     vi.clearAllMocks()
     Object.assign(state, {
-        theme: "system", primaryColor: DEFAULT_PRIMARY_COLOR, language: "system", sidebarItemSize: "normal", colorIntensity: DEFAULT_COLOR_INTENSITY, animationSpeed: "normal",
+        theme: "system", primaryColor: DEFAULT_PRIMARY_COLOR, language: "system", sidebarItemSize: "normal", colorIntensity: DEFAULT_COLOR_INTENSITY, animationSpeed: "system",
     })
 })
 
@@ -75,7 +75,7 @@ describe("ResetAppearanceSetting", () => {
         expect(setLanguage).toHaveBeenCalledWith("system")
         expect(setSidebarItemSize).toHaveBeenCalledWith("normal")
         expect(setColorIntensity).toHaveBeenCalledWith(DEFAULT_COLOR_INTENSITY)
-        expect(setAnimationSpeed).toHaveBeenCalledWith("normal")
+        expect(setAnimationSpeed).toHaveBeenCalledWith("system")
         await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument())
     })
 

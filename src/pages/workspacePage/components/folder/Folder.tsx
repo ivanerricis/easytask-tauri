@@ -3,7 +3,7 @@ import { ChevronDown, Folder as FolderIcon, FolderOpen } from "lucide-react"
 import React, { useState } from "react"
 import { DropLine } from "../sidebar/DropLine"
 import { useItemSize } from "../sidebar/item-size"
-import { isInsideZone, stopDragActivation, treeRowKey, treeRowKeyDown, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { isInsideZone, stopDragActivation, treeRowKey, treeRowKeyDown, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
 import { SelectionMark } from "../sidebar/SelectionMark"
 import { handleSelectionClick } from "../sidebar/selection"
 import { useIsSelected, useSelectionStore } from "../sidebar/selection-context"
@@ -19,6 +19,7 @@ import { hexToRgba } from "@/lib/utils"
 import { useTranslation } from "react-i18next"
 import { useInlineRename } from "@/hooks/use-inline-rename"
 import { InlineNameInput } from "@/components/inline-name-input"
+import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 
 /** Whether the note is anywhere inside the folder (subfolders included). */
 const holdsNote = (folder: Folder, noteId: number): boolean =>
@@ -36,10 +37,21 @@ type ItemFolderProps = {
     level?: number
 }
 
-export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, dropZone = null, level = 1 }: ItemFolderProps) => {
+type FolderRowProps = ItemFolderProps & Omit<ReturnType<typeof useTreeRow>, "ref"> & { dndRef: ReturnType<typeof useTreeRow>["ref"] }
+
+/**
+ * The drag & drop hooks of dnd-kit re-render the component that calls them every time the dragged item moves over another
+ * row, so they live in this thin shell: the row below is memoized and only re-renders when its own props change.
+ */
+export const ItemFolder = React.memo(({ dropZone, ...props }: ItemFolderProps) => {
+    const { ref, attributes, listeners, isDragging } = useTreeRow("folder", props.folder.id)
+    const hoverZone = useTreeDropZone("folder", props.folder.id)
+    return <FolderRow {...props} dropZone={dropZone ?? hoverZone} dndRef={ref} attributes={attributes} listeners={listeners} isDragging={isDragging} />
+})
+
+const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = null, level = 1, dndRef, attributes, listeners, isDragging }: FolderRowProps) => {
     const { t } = useTranslation()
     const [isHovered, setIsHovered] = useState(false)
-    const { ref, attributes, listeners, isDragging } = useTreeRow("folder", folder.id)
     // The sidebar tree is updated by the context: no reload
     const { editing, error, start: startRename, inputProps } = useInlineRename({ itemType: "folder", id: folder.id, name: folder.name })
 
@@ -64,7 +76,7 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
     }
 
     return (
-        <div className="relative flex flex-col gap-1 w-full">
+        <Collapsible open={isOpen && hasContent} className="relative flex flex-col w-full">
             <TreeRowTooltip
                 name={folder.name}
                 creationDate={folder.creation_date}
@@ -77,7 +89,7 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                         <div
                             {...attributes}
                             {...listeners}
-                            ref={ref}
+                            ref={dndRef}
                             role="treeitem"
                             aria-label={folder.name}
                             aria-level={level}
@@ -89,14 +101,15 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                             onKeyDown={treeRowKeyDown(listeners, handleActivate)}
                             onMouseEnter={() => setIsHovered(true)}
                             onMouseLeave={() => setIsHovered(false)}
-                            className={`${focusRing} relative group cursor-pointer gap-1 w-full min-w-0 pl-1 ${size.row} flex items-center rounded-xs border select-none ${selected ? "border-primary" : holdsActiveNote ? "border-primary/60" : "border-accent"} bg-background overflow-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
+                            // Flat row: a hover fill and no visible border, except a selected folder (accent border all around) and a collapsed one holding the open note (fainter)
+                            className={`${focusRing} relative group cursor-pointer gap-1 w-full min-w-0 pl-1 ${size.row} flex items-center rounded-xs border select-none hover:bg-accent ${selected ? "border-primary" : holdsActiveNote ? "border-primary/60" : "border-transparent"} overflow-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
                             style={{ backgroundColor: `${hexToRgba(colorAlpha.item(isHovered), folder.color)}` }}
                         >
 
                             <DropLine zone={dropZone} />
                             <SelectionMark selected={selected} />
                             <div className="flex min-w-0 items-center gap-1 w-full h-full">
-                                <ChevronDown className={`${isOpen ? 'rotate-0' : '-rotate-90'} ${size.icon} shrink-0`} />
+                                <ChevronDown className={`${isOpen ? 'rotate-0' : '-rotate-90'} ${size.icon} shrink-0 transition-transform`} />
                                 {isOpen ? (
                                     <FolderOpen className={`${size.icon} shrink-0`} />
                                 ) : (
@@ -116,16 +129,15 @@ export const ItemFolder = React.memo(({ folder, children, isOpen, onToggle, drop
                 </ButtonMenuFolder>
             </TreeRowTooltip>
 
-            {
-                isOpen && hasContent && (
-                    <div className="relative w-full">
-                        <div className={`absolute ${size.guide} h-full w-[1px] bg-foreground/25`} />
-                        <div className={`${size.indent} flex flex-col gap-1`}>
-                            {children}
-                        </div>
-                    </div>
-                )
-            }
-        </div >
+            {/* The children slide open and closed (the speed follows the animation setting); once closed they are unmounted */}
+            {/* pr-1 and pb-0.5 (with the negative margins): room for the 2px focus ring of the rows, which the clipping of the animation would cut */}
+            <CollapsibleContent className="relative -mr-1 pr-1 -mb-0.5 pb-0.5 overflow-hidden data-[state=open]:animate-collapsible-down data-[state=closed]:animate-collapsible-up">
+                <div className={`absolute ${size.guide} h-full w-[1px] bg-foreground/25`} />
+                {/* pt-1: the gap between the folder row and its children is inside the animated part, so it does not jump when the animation ends */}
+                <div className={`${size.indent} flex flex-col gap-1 pt-1`}>
+                    {children}
+                </div>
+            </CollapsibleContent>
+        </Collapsible>
     )
 })

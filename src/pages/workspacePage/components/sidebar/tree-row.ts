@@ -1,5 +1,6 @@
-import { useCallback } from "react"
+import { createContext, useCallback, useContext } from "react"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
+import { createExternalStore, useStoreSelector, type ExternalStore } from "@/lib/external-store"
 import type { DropZone, TreeItemType } from "./tree-dnd"
 
 export const treeRowKey = (type: TreeItemType, id: number) => `${type}-${id}`
@@ -8,6 +9,35 @@ export const treeRowKey = (type: TreeItemType, id: number) => `${type}-${id}`
 let lastDragEnd = 0
 export const markTreeDragEnd = () => { lastDragEnd = Date.now() }
 export const wasTreeJustDragged = () => Date.now() - lastDragEnd < 150
+
+/**
+ * What is hovered while a row of the tree is dragged: the key of the row under the pointer (null when the drop would be
+ * invalid or a no-op), the drop zone inside it, and whether the empty root area is the target.
+ */
+export type TreeHover = { overKey: string | null, zone: DropZone | null, rootActive: boolean }
+export const NO_TREE_HOVER: TreeHover = { overKey: null, zone: null, rootActive: false }
+
+/**
+ * The hover is kept in a store, not in React state: each row reads only its own drop zone, so moving the pointer over
+ * another row does not re-render every row of the tree.
+ */
+export type TreeHoverStore = ExternalStore<TreeHover>
+export const createTreeHoverStore = (): TreeHoverStore => createExternalStore(NO_TREE_HOVER)
+
+/** Without a provider (a row rendered alone) nothing is hovered. */
+const idleHover = createTreeHoverStore()
+export const TreeHoverStoreContext = createContext<TreeHoverStore>(idleHover)
+
+/** The drop zone highlighted on a row (null when the row is not the target). */
+export function useTreeDropZone(type: TreeItemType, id: number): DropZone | null {
+    const key = treeRowKey(type, id)
+    return useStoreSelector(useContext(TreeHoverStoreContext), hover => hover.overKey === key ? hover.zone : null)
+}
+
+/** Whether the empty root area is the target of the drag. */
+export function useTreeRootActive(): boolean {
+    return useStoreSelector(useContext(TreeHoverStoreContext), hover => hover.rootActive)
+}
 
 /** Makes a row both draggable and droppable, sharing the same DOM node. */
 export function useTreeRow(type: TreeItemType, id: number) {

@@ -2,7 +2,6 @@ import { useCallback, useMemo } from "react"
 import { defaultRangeExtractor, useVirtualizer, type Range } from "@tanstack/react-virtual"
 import { ItemNote } from "../note/Note"
 import { ItemFolder } from "../folder/Folder"
-import type { DropZone } from "./tree-dnd"
 import type { FlatRow } from "./flat-tree"
 import { useItemSize } from "./item-size"
 
@@ -14,15 +13,13 @@ type VirtualTreeProps = {
     rows: FlatRow[]
     collapsedIds: Set<number>
     onToggleFolder: (folderId: number) => void
-    overKey: string | null
-    overZone: DropZone | null
     /** Key of the row being dragged: it stays mounted even when scrolled out of the range. */
     activeKey: string | null
     getScrollElement: () => HTMLElement | null
 }
 
 /** Flat, virtualized rendering of the tree; only the rows near the viewport are in the DOM. */
-export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, overKey, overZone, activeKey, getScrollElement }: VirtualTreeProps) => {
+export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, activeKey, getScrollElement }: VirtualTreeProps) => {
     const size = useItemSize()
     const rowSize = size.rowPx + ROW_GAP
 
@@ -52,7 +49,6 @@ export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, overKey, overZ
             {virtualizer.getVirtualItems().map((virtualRow) => {
                 const row = rows[virtualRow.index]
                 if (!row) return null
-                const dropZone = overKey === row.key ? overZone : null
                 return (
                     <div
                         key={row.key}
@@ -64,16 +60,25 @@ export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, overKey, overZ
                             paddingLeft: row.depth * size.indentPx,
                         }}
                     >
+                        {/* One guide per ancestor level, under the chevron of its folder; it also crosses the gap above the row so the lines are continuous */}
+                        {Array.from({ length: row.depth }, (_, level) => (
+                            <span
+                                key={level}
+                                aria-hidden="true"
+                                data-testid="tree-guide"
+                                className="pointer-events-none absolute w-px bg-foreground/20"
+                                style={{ left: level * size.indentPx + size.guidePx, top: -ROW_GAP, height: size.rowPx + ROW_GAP }}
+                            />
+                        ))}
                         {row.kind === "folder" ? (
                             <ItemFolder
                                 folder={row.item}
                                 isOpen={!collapsedIds.has(row.item.id)}
                                 onToggle={onToggleFolder}
-                                dropZone={dropZone}
                                 level={row.depth + 1}
                             />
                         ) : (
-                            <ItemNote note={row.item} dropZone={dropZone} level={row.depth + 1} />
+                            <ItemNote note={row.item} level={row.depth + 1} />
                         )}
                     </div>
                 )

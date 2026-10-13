@@ -45,7 +45,7 @@ export const settings = {
         },
         animations: {
             label: "Animazioni",
-            description: "Velocità delle animazioni dell'interfaccia (finestre, menu, transizioni).",
+            description: "Velocità delle animazioni. «Sistema» segue quella del sistema.",
             slow: "Lente",
             normal: "Normali",
             none: "Assenti",

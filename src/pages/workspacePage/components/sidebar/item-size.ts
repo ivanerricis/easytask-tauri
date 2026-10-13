@@ -11,7 +11,7 @@ export type ItemSizeClasses = {
     row: string
     /** Row height in px (matches `row`), for virtualization. */
     rowPx: number
-    /** Indent per depth level in px (matches `indent`). */
+    /** Indent per depth level in px (matches `indent`): the width of the chevron plus the gap, so the icon of a child sits under the icon of its parent folder. */
     indentPx: number
     /** Row label. */
     text: string
@@ -21,6 +21,8 @@ export type ItemSizeClasses = {
     menu: string
     /** Vertical indent guide of an open folder (aligned with the chevron). */
     guide: string
+    /** Horizontal position in px of the guide inside the indent of a level (matches `guide`: the center of the chevron). */
+    guidePx: number
     /** Indent of the children of an open folder. */
     indent: string
 }
@@ -29,32 +31,35 @@ export const ITEM_SIZES: Record<SidebarItemSize, ItemSizeClasses> = {
     compact: {
         row: "h-6",
         rowPx: 24,
-        indentPx: 16,
+        indentPx: 18,
         text: "text-xs",
         icon: "size-3.5",
         menu: "[&_svg]:size-3.5",
         guide: "left-[11px]",
-        indent: "ml-[16px]",
+        guidePx: 11,
+        indent: "ml-[18px]",
     },
     normal: {
         row: "h-7",
         rowPx: 28,
-        indentPx: 17,
+        indentPx: 20,
         text: "text-sm",
         icon: "size-4",
         menu: "",
         guide: "left-[12px]",
-        indent: "ml-[17px]",
+        guidePx: 12,
+        indent: "ml-[20px]",
     },
     large: {
         row: "h-9",
         rowPx: 36,
-        indentPx: 19,
+        indentPx: 24,
         text: "text-base",
         icon: "size-5",
         menu: "[&_svg]:size-5",
         guide: "left-[14px]",
-        indent: "ml-[19px]",
+        guidePx: 14,
+        indent: "ml-[24px]",
     },
 }
 

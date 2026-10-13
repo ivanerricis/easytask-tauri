@@ -1,5 +1,5 @@
 import { getSectionLabel } from "./section/section-label"
-import { useMemo, useRef, useState } from "react"
+import { useMemo, useRef, useState, useSyncExternalStore } from "react"
 import type { CSSProperties, ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { createPortal } from "react-dom"
@@ -17,7 +17,7 @@ import {
     type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverKind, type NoteOverRef, type SectionTarget, type TaskTarget,
 } from "./note-dnd"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
-import { NO_HOVER, NoteDndContext, noteKey, useGroupMoves, useNoteMoves, type NoteHover } from "./note-dnd-state"
+import { NO_HOVER, NoteDndStoreContext, createNoteDndStore, noteKey, useGroupMoves, useNoteMoves, type NoteHover } from "./note-dnd-state"
 
 type PendingDrop =
     | { kind: "section", id: number, target: SectionTarget }
@@ -78,8 +78,9 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
     const { noteDataTree } = useActiveNote()
     const colorAlpha = useColorAlpha()
     const { moveSectionTo, moveTaskTo } = useNoteMoves()
-    const [active, setActive] = useState<NoteDragRef | null>(null)
-    const [hover, setHover] = useState<NoteHover>(NO_HOVER)
+    // What is being dragged and over what is in a store (see NoteDndStore): only the preview and the cursor depend on it here
+    const [store] = useState(createNoteDndStore)
+    const active = useSyncExternalStore(store.subscribe, () => store.getState().active)
     const { moveGroupTo } = useGroupMoves()
     const pendingRef = useRef<PendingDrop | null>(null)
 
@@ -99,13 +100,12 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
 
     const reset = () => {
         pendingRef.current = null
-        setActive(null)
-        setHover(NO_HOVER)
+        store.set({ active: null, hover: NO_HOVER })
     }
 
     const handleDragStart = (event: DragStartEvent) => {
         const data = event.active.data.current as NoteDragRef | undefined
-        setActive(data ? { kind: data.kind, id: data.id } : null)
+        store.set({ active: data ? { kind: data.kind, id: data.id } : null })
     }
 
     const handleDragMove = (event: DragMoveEvent) => {
@@ -113,7 +113,7 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         const over = event.over
         if (!dragged || !over || !noteDataTree) {
             pendingRef.current = null
-            setHover(prev => prev === NO_HOVER ? prev : NO_HOVER)
+            store.set({ hover: NO_HOVER })
             return
         }
 
@@ -146,7 +146,8 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
 
         const targetSectionId = pending?.kind === "task" ? pending.target.sectionId : null
         const next: NoteHover = pending ? { overKey: noteKey(overRef.kind, overRef.id), zone, targetSectionId } : NO_HOVER
-        setHover(prev => prev.overKey === next.overKey && prev.zone === next.zone && prev.targetSectionId === next.targetSectionId ? prev : next)
+        const prev = store.getState().hover
+        if (prev.overKey !== next.overKey || prev.zone !== next.zone || prev.targetSectionId !== next.targetSectionId) store.set({ hover: next })
     }
 
     const handleDragEnd = async () => {
@@ -159,8 +160,6 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
     }
 
     useGrabbingCursor(active !== null)
-
-    const state = useMemo(() => ({ active, hover }), [active, hover])
 
     const preview = useMemo(() => {
         if (!active || !noteDataTree) return null
@@ -198,7 +197,7 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
     }, [active, noteDataTree, colorAlpha])
 
     return (
-        <NoteDndContext.Provider value={state}>
+        <NoteDndStoreContext.Provider value={store}>
             <DndContext
                 sensors={sensors}
                 accessibility={accessibility}
@@ -211,6 +210,6 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
                 {children}
                 {createPortal(<DragOverlay dropAnimation={null}>{preview && <div className="rotate-2">{preview}</div>}</DragOverlay>, document.body)}
             </DndContext>
-        </NoteDndContext.Provider>
+        </NoteDndStoreContext.Provider>
     )
 }
