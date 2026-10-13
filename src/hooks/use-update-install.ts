@@ -11,16 +11,19 @@ export type InstallProgress = { downloaded: number, total: number | null }
 /**
  * Downloads and installs an update, then restarts the app (shared by the update dialog and Settings > About).
  * On failure an error toast is shown and `install` resolves to false, so the caller can offer the update again.
- * @returns `progress` (null when nothing is being installed), the derived `percent`/`label` and `install`.
+ * @returns `progress` (null when nothing is being installed), the derived `percent`/`label`, the last install `error`
+ * message (null when none, so a dialog can show it inline too) and `install`.
  */
 export const useUpdateInstall = () => {
     const { t } = useTranslation()
     const [progress, setProgress] = useState<InstallProgress | null>(null)
+    const [error, setError] = useState<string | null>(null)
 
     const install = useCallback(async (update: Update): Promise<boolean> => {
         let downloaded = 0
         let total: number | null = null
         setProgress({ downloaded, total })
+        setError(null)
         try {
             await update.downloadAndInstall(event => {
                 if (event.event === "Started") total = event.data.contentLength ?? null
@@ -31,7 +34,9 @@ export const useUpdateInstall = () => {
             return true
         } catch (error) {
             setProgress(null)
-            reportError(error, t("settings.about.update.installError", { message: getErrorMessage(error) }))
+            const message = t("settings.about.update.installError", { message: getErrorMessage(error) })
+            setError(message)
+            reportError(error, message)
             return false
         }
     }, [t])
@@ -45,5 +50,5 @@ export const useUpdateInstall = () => {
                 ? t("settings.about.update.installing")
                 : t("settings.about.update.downloading", { percent })
 
-    return { progress, percent, label, install }
+    return { progress, percent, label, error, install }
 }

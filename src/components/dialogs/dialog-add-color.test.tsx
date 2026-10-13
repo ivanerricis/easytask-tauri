@@ -60,7 +60,7 @@ describe("DialogAddColor", () => {
         await user.click(screen.getAllByRole("radio")[0])
         await waitFor(() => expect(addColorItem).toHaveBeenCalledWith("section", 4, "#e6194b"))
 
-        await user.click(screen.getByRole("button", { name: /Elimina/ }))
+        await user.click(screen.getByRole("button", { name: /Nessun colore/ }))
         await waitFor(() => expect(addColorItem).toHaveBeenCalledWith("section", 4))
     })
 
@@ -72,19 +72,19 @@ describe("DialogAddColor", () => {
         await waitFor(() => expect(addColorItem).toHaveBeenCalledWith("section", 4, "#00ff00"))
     })
 
-    it("removes the color when Elimina is clicked", async () => {
+    it("removes the color when Nessun colore is clicked", async () => {
         const user = userEvent.setup()
         const { addColorItem, getItemData } = setup()
-        await user.click(screen.getByRole("button", { name: /Elimina/ }))
+        await user.click(screen.getByRole("button", { name: /Nessun colore/ }))
 
         await waitFor(() => expect(getItemData).toHaveBeenCalledWith(2))
         expect(addColorItem).toHaveBeenCalledWith("section", 4)
     })
 
-    it("does nothing on Elimina if the item has no color", async () => {
+    it("does nothing on Nessun colore if the item has no color", async () => {
         const user = userEvent.setup()
         const { addColorItem } = setup({ item: { id: 4, color: null } })
-        await user.click(screen.getByRole("button", { name: /Elimina/ }))
+        await user.click(screen.getByRole("button", { name: /Nessun colore/ }))
         expect(addColorItem).not.toHaveBeenCalled()
     })
 

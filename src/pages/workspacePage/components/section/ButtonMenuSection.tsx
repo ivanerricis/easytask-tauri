@@ -80,8 +80,15 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
         }
     }
 
+    // Groups, apart by a separator: add, edit, move, the rest, delete (the same order in the menus of groups and tasks)
     const items = (
         <MenuGroup className="flex flex-col gap-1">
+            <ButtonInPopover
+                text={t("menu.duplicate")}
+                type="duplicate"
+                onClick={handleDuplicate}
+            />
+            <Separator />
             <ButtonInPopover
                 text={t("common.rename")}
                 type="rename"
@@ -90,19 +97,16 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
                     menu.close()
                 }}
             />
-            <ButtonInPopover
-                text={t("menu.duplicate")}
-                type="duplicate"
-                onClick={handleDuplicate}
-            />
             <ColorSubmenu
                 item={section}
                 itemType="section"
                 addColorItem={addColorItem}
                 onDone={menu.close}
             />
+            <Separator />
             <SectionStepMoves sectionId={section.id} onDone={menu.close} />
             <SectionMoveSubmenu sectionId={section.id} onDone={menu.close} />
+            <Separator />
             {noteId !== null && <ButtonInPopover
                 text={t("automations.menu")}
                 type="automations"

@@ -152,3 +152,38 @@ describe("isPortableAutomation with group rules", () => {
         expect(isPortableAutomation({ ...ok, actions: [{ type: "moveGroup", at: "middle" }] }, content)).toBe(false)
     })
 })
+
+describe("portable state rules", () => {
+    const sections = buildSectionIndex(content, [10, 11, 20])
+    const groups = buildGroupIndex(content, [5, 8])
+    const colorRule = [{ type: "setColor" as const, color: "#0f0" }]
+
+    it("maps the group state triggers like group.completed", () => {
+        for (const type of ["group.noOpenTasks", "group.hasOpenTasks"] as const) {
+            const rule = (groupId: number | null) => ({ name: null, enabled: true, trigger: { type, groupId }, actions: colorRule })
+            expect(toPortable(rule(8), sections, groups)).toEqual(rule(1))
+            expect(toPortable(rule(null), sections, groups)).toEqual(rule(null))
+            expect(toPortable(rule(99), sections, groups)).toBeNull()
+            expect(isPortableAutomation(rule(1), content)).toBe(true)
+            expect(isPortableAutomation(rule(2), content)).toBe(false)
+        }
+    })
+
+    it("maps the section state triggers like the section ones, null allowed", () => {
+        for (const type of ["section.noOpenTasks", "section.hasOpenTasks"] as const) {
+            const rule = (sectionId: unknown) => ({ name: null, enabled: true, trigger: { type, sectionId }, actions: colorRule })
+            expect(toPortable(rule(11) as never, sections, groups)).toEqual(rule({ group: 0, section: 1 }))
+            expect(toPortable(rule(null) as never, sections, groups)).toEqual(rule(null))
+            expect(toPortable(rule(99) as never, sections, groups)).toBeNull()
+            expect(isPortableAutomation(rule({ group: 1, section: 0 }), content)).toBe(true)
+            expect(isPortableAutomation(rule(null), content)).toBe(true)
+            expect(isPortableAutomation(rule({ group: 1, section: 1 }), content)).toBe(false)
+        }
+    })
+
+    it("rejects a state rule with another action", () => {
+        const trigger = { type: "section.noOpenTasks", sectionId: null }
+        expect(isPortableAutomation({ name: null, enabled: true, trigger, actions: [{ type: "setPriority", value: true }] }, content)).toBe(false)
+        expect(isPortableAutomation({ name: null, enabled: true, trigger: { type: "group.noOpenTasks", groupId: null }, actions: [{ type: "archiveGroup" }] }, content)).toBe(false)
+    })
+})

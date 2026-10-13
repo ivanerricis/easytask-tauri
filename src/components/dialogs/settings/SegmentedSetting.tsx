@@ -7,10 +7,12 @@ type SegmentedSettingProps<T extends string> = {
     value: T
     options: readonly { value: T, label: string }[]
     onChange: (value: T) => void
+    /** Classes of the segmented control, e.g. a fixed width (its options then share it equally with `[&>*]:flex-1`). */
+    className?: string
 }
 
 /** A setting with a few mutually exclusive values, as a row with a segmented control (a ToggleGroup: arrows move between the values). */
-export function SegmentedSetting<T extends string>({ label, description, value, options, onChange }: SegmentedSettingProps<T>) {
+export function SegmentedSetting<T extends string>({ label, description, value, options, onChange, className }: SegmentedSettingProps<T>) {
     return (
         <SettingsRow label={label} description={description}>
             {({ id, labelId, descriptionId }) => (
@@ -24,6 +26,7 @@ export function SegmentedSetting<T extends string>({ label, description, value, 
                     onValueChange={next => { if (next) onChange(next as T) }}
                     aria-labelledby={labelId}
                     aria-describedby={descriptionId}
+                    className={className}
                 >
                     {options.map(option => (
                         <ToggleGroupItem key={option.value} value={option.value} className="data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:hover:bg-primary/90 data-[state=on]:hover:text-primary-foreground">

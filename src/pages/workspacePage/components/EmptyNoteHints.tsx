@@ -1,4 +1,5 @@
 import { useTranslation } from "react-i18next"
+import { Plus } from "lucide-react"
 import { EmptyNoteIcon } from "@/components/empty-note-icon"
 import { Button } from "@/components/ui/button"
 import { requestAppCommand } from "@/lib/app-commands"
@@ -22,6 +23,7 @@ export const EmptyNoteHints = () => {
         >
             {/* The container lets the clicks through; the button opens the same form as the new-group shortcut */}
             <Button className="pointer-events-auto mt-4 rounded-xs" onClick={() => requestAppCommand("new-group")}>
+                <Plus />
                 {t("menu.newGroup")}
             </Button>
         </EmptyState>

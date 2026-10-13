@@ -1,7 +1,12 @@
-import { act, render, screen } from "@testing-library/react"
-import { afterEach, describe, expect, it } from "vitest"
+import { act, fireEvent, render, screen } from "@testing-library/react"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import i18n from "@/i18n"
 import { ReleaseNotes } from "./release-notes"
+
+const openUrl = vi.fn().mockResolvedValue(undefined)
+vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: (...a: unknown[]) => openUrl(...a) }))
+vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn() }))
+vi.mock("@/db/appPaths", () => ({ isPortable: vi.fn() }))
 
 const body = [
     "## English",
@@ -53,6 +58,33 @@ describe("ReleaseNotes", () => {
         expect(screen.getByText("Ctrl+Shift+H").tagName).toBe("CODE")
         expect(container).not.toHaveTextContent("Italiano")
         expect(container).not.toHaveTextContent("English")
+    })
+
+    it("renders bold, italic and snake_case words", async () => {
+        await act(() => i18n.changeLanguage("en"))
+        const { container } = render(<ReleaseNotes body={"A **strong** and *slanted* and _also_ foo_bar_baz."} />)
+        expect(screen.getByText("strong").tagName).toBe("STRONG")
+        expect(screen.getByText("slanted").tagName).toBe("EM")
+        expect(screen.getByText("also").tagName).toBe("EM")
+        expect(container).toHaveTextContent("foo_bar_baz.")
+    })
+
+    it("opens links with the opener, never in the webview", async () => {
+        await act(() => i18n.changeLanguage("en"))
+        openUrl.mockClear()
+        render(<ReleaseNotes body={"See [the docs](https://example.com/docs) now"} />)
+        const link = screen.getByRole("link", { name: "the docs" })
+        expect(fireEvent.click(link)).toBe(false) // default prevented
+        expect(openUrl).toHaveBeenCalledWith("https://example.com/docs")
+    })
+
+    it("nests indented bullets and spaces the headings", async () => {
+        await act(() => i18n.changeLanguage("en"))
+        render(<ReleaseNotes body={"### One\n\n- Parent\n  - Child\n- Other\n\n### Two"} />)
+        expect(screen.getAllByRole("list")).toHaveLength(2)
+        expect(screen.getAllByRole("listitem")).toHaveLength(3)
+        expect(screen.getByText("One")).not.toHaveClass("mt-2")
+        expect(screen.getByText("Two")).toHaveClass("mt-2")
     })
 
     it("shows an older release, written in one language only, to everybody", async () => {

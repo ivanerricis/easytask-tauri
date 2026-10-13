@@ -44,6 +44,9 @@ export const textMenu = {
     copy: "Copia",
     paste: "Incolla",
     selectAll: "Seleziona tutto",
+    undo: "Annulla",
+    redo: "Ripeti",
+    clipboardError: "Impossibile leggere gli appunti",
 }
 
 export const menu = {

@@ -17,6 +17,7 @@ vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), succe
 
 const fakeUpdate = (downloadAndInstall = vi.fn().mockResolvedValue(undefined)) => ({
     version: "1.2.3",
+    currentVersion: "1.2.0",
     body: "Nuove cose",
     downloadAndInstall,
 })
@@ -52,9 +53,9 @@ describe("UpdateSection", () => {
         check.mockResolvedValue(fakeUpdate(install))
         render(<UpdateSection />)
         await userEvent.click(screen.getByRole("button", { name: "Controlla aggiornamenti" }))
-        expect(await screen.findByText("Disponibile la versione 1.2.3.")).toBeInTheDocument()
+        expect(await screen.findByText("Disponibile la versione 1.2.3 (attuale: 1.2.0).")).toBeInTheDocument()
         expect(screen.getByText("Nuove cose")).toBeInTheDocument()
-        await userEvent.click(screen.getByRole("button", { name: "Scarica e installa" }))
+        await userEvent.click(screen.getByRole("button", { name: "Aggiorna ora" }))
         await waitFor(() => expect(relaunch).toHaveBeenCalledTimes(1))
         expect(install).toHaveBeenCalledTimes(1)
     })
@@ -71,10 +72,10 @@ describe("UpdateSection", () => {
         check.mockResolvedValue(fakeUpdate(vi.fn().mockRejectedValue(new Error("boom"))))
         render(<UpdateSection />)
         await userEvent.click(screen.getByRole("button", { name: "Controlla aggiornamenti" }))
-        await userEvent.click(await screen.findByRole("button", { name: "Scarica e installa" }))
+        await userEvent.click(await screen.findByRole("button", { name: "Aggiorna ora" }))
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith(expect.stringContaining("boom")))
         expect(relaunch).not.toHaveBeenCalled()
-        expect(screen.getByRole("button", { name: "Scarica e installa" })).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "Aggiorna ora" })).toBeInTheDocument()
     })
 
     it("in portable mode never installs and opens the Releases page", async () => {
@@ -83,9 +84,9 @@ describe("UpdateSection", () => {
         check.mockResolvedValue(update)
         render(<UpdateSection />)
         await userEvent.click(screen.getByRole("button", { name: "Controlla aggiornamenti" }))
-        await userEvent.click(await screen.findByRole("button", { name: "Apri la pagina Release" }))
+        await userEvent.click(await screen.findByRole("button", { name: "Apri la pagina delle Release" }))
         expect(openUrl).toHaveBeenCalledWith("https://github.com/ivanerricis/easytask-tauri/releases")
-        expect(screen.queryByRole("button", { name: "Scarica e installa" })).not.toBeInTheDocument()
+        expect(screen.queryByRole("button", { name: "Aggiorna ora" })).not.toBeInTheDocument()
         expect(update.downloadAndInstall).not.toHaveBeenCalled()
     })
 

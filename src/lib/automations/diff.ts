@@ -184,6 +184,22 @@ export function diffGroupStatements(before: NoteDataTree, after: NoteDataTree): 
 }
 
 /**
+ * The statements that write the colors of the sections that changed between two versions of the same note (sections in
+ * both trees only).
+ * @category Automations
+ */
+export function diffSectionStatements(before: NoteDataTree, after: NoteDataTree): TxStatement[] {
+    const previous = new Map(before.groups.flatMap(group => group.sections).map(section => [section.id, section]))
+    const statements: TxStatement[] = []
+    for (const section of after.groups.flatMap(group => group.sections)) {
+        const old = previous.get(section.id)
+        if (old && (old.color ?? null) !== (section.color ?? null))
+            statements.push({ sql: "UPDATE section SET color = ? WHERE id = ?", params: [section.color ?? null, section.id] })
+    }
+    return statements
+}
+
+/**
  * What an automation changed on a group: its place among the groups, its color, or whether it was archived (present in
  * only one of the two trees).
  * @category Automations

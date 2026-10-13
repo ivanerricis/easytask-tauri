@@ -46,6 +46,9 @@ export const textMenu: Translation["textMenu"] = {
     copy: "Copy",
     paste: "Paste",
     selectAll: "Select all",
+    undo: "Undo",
+    redo: "Redo",
+    clipboardError: "Unable to read the clipboard",
 }
 
 export const menu: Translation["menu"] = {

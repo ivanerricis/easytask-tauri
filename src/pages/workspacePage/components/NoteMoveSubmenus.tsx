@@ -40,7 +40,6 @@ export const SectionMoveSubmenu = ({ sectionId, onDone }: SectionMoveSubmenuProp
                 {destinations.groups.map(group => (
                     <MenuItem
                         key={group.id}
-                        className="text-xs"
                         onSelect={() => { onDone?.(); void moveSectionTo(sectionId, { type: "group", groupId: group.id, index: END_INDEX }) }}
                     >
                         <span className="shrink-0">{group.label}</span>
@@ -50,7 +49,6 @@ export const SectionMoveSubmenu = ({ sectionId, onDone }: SectionMoveSubmenuProp
                 {destinations.canCreateGroup && <>
                     {destinations.groups.length > 0 && <MenuSeparator />}
                     <MenuItem
-                        className="text-xs"
                         onSelect={() => { onDone?.(); void moveSectionTo(sectionId, { type: "new-group", index: destinations.newGroupIndex }) }}
                     >
                         {t("menu.newGroup")}
@@ -96,7 +94,6 @@ export const TaskMoveSubmenu = ({ taskId, onDone }: TaskMoveSubmenuProps) => {
                 {destinations.map(destination => (
                     <MenuItem
                         key={destination.key}
-                        className="text-xs"
                         style={{ paddingLeft: `${0.5 + destination.depth * 0.75}rem` }}
                         onSelect={() => {
                             onDone?.()
@@ -109,10 +106,10 @@ export const TaskMoveSubmenu = ({ taskId, onDone }: TaskMoveSubmenuProps) => {
                     >
                         {destination.type === "section"
                             ? <>
-                                <span className="truncate font-medium">{t("menu.sectionLabel", { label: destination.label })}</span>
+                                <span className="truncate font-medium" title={t("menu.sectionLabel", { label: destination.label })}>{t("menu.sectionLabel", { label: destination.label })}</span>
                                 {destination.hint && <span className="ml-auto shrink-0 text-muted-foreground">{destination.hint}</span>}
                             </>
-                            : <span className="truncate" title={t("menu.underTask", { label: destination.label })}>↳ {destination.label}</span>}
+                            : <span className="truncate" title={t("menu.underTask", { label: destination.label })}><span aria-hidden>↳ </span>{destination.label}</span>}
                     </MenuItem>
                 ))}
             </MenuSubContent>

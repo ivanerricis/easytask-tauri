@@ -38,7 +38,7 @@ export const ColorPalette = ({ value, onPick, className }: ColorPaletteProps) =>
             type="single"
             value={selectedColor}
             aria-label={t("dialogs.color.palette")}
-            className={cn("grid w-auto grid-cols-4 gap-0 rounded-none", className)}
+            className={cn("mx-auto grid w-fit grid-cols-[repeat(4,2rem)] gap-0 rounded-none", className)}
         >
             {PALETTE_COLORS.map((color, index) => {
                 const selected = selectedColor === color
@@ -49,7 +49,7 @@ export const ColorPalette = ({ value, onPick, className }: ColorPaletteProps) =>
                         aria-label={t("dialogs.color.swatch", { color: t(`common.colors.c${index + 1}` as "common.colors.c1") })}
                         onClick={e => onPick(color, e)}
                         className={cn(
-                            "size-7 min-w-0 p-0 rounded-none! hover:text-inherit focus-visible:ring-inset",
+                            "size-8 min-w-0 p-0 rounded-none! hover:text-inherit focus-visible:ring-inset",
                             selected && "ring-2 ring-inset ring-foreground",
                         )}
                         style={{ backgroundColor: color }}
@@ -58,7 +58,7 @@ export const ColorPalette = ({ value, onPick, className }: ColorPaletteProps) =>
             })}
             <div
                 className={cn(
-                    "relative flex items-center justify-center size-7 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring",
+                    "relative flex items-center justify-center size-8 focus-within:ring-2 focus-within:ring-inset focus-within:ring-ring",
                     customSelected && "ring-2 ring-inset ring-foreground",
                 )}
                 style={{ backgroundColor: customColor }}

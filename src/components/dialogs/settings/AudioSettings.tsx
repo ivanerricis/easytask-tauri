@@ -9,6 +9,9 @@ import { SettingsPanel, SettingsRow, SettingsSwitchRow } from "./SettingsRow"
 import { SegmentedSetting } from "./SegmentedSetting"
 import { SectionResetButton } from "./SectionResetButton"
 
+/** Width of the controls of this page (the segmented one, the sliders): they all start at the same place, in every language. */
+const CONTROL_WIDTH = "w-56"
+
 const SIZE_KEYS: Record<AudioPlayerScale, "small" | "normal" | "large"> = { 0.85: "small", 1: "normal", 1.2: "large" }
 
 const PercentRange = ({ label, value, min, onChange }: { label: string, value: number, min: number, onChange: (value: number) => void }) => {
@@ -16,7 +19,7 @@ const PercentRange = ({ label, value, min, onChange }: { label: string, value: n
     const [draft, setDraft] = useState<number | null>(null)
     const percent = Math.round((draft ?? value) * 100)
     return (
-        <div className="flex items-center gap-2">
+        <div className={`flex items-center gap-2 ${CONTROL_WIDTH}`}>
             <Slider
                 min={min * 100}
                 max={100}
@@ -28,7 +31,7 @@ const PercentRange = ({ label, value, min, onChange }: { label: string, value: n
                 onValueCommit={() => setDraft(null)}
                 aria-label={label}
                 aria-valuetext={`${percent}%`}
-                className="w-32"
+                className="flex-1 min-w-0"
             />
             <span aria-hidden className="w-10 text-right text-xs text-muted-foreground tabular-nums">{percent}%</span>
         </div>
@@ -65,6 +68,7 @@ export const AudioSettings = () => {
                 value={String(audioPlayerScale)}
                 options={AUDIO_PLAYER_SCALES.map(value => ({ value: String(value), label: t(`settings.audio.playerSize.${SIZE_KEYS[value]}`) }))}
                 onChange={value => setAudioPlayerScale(Number(value) as AudioPlayerScale)}
+                className={`${CONTROL_WIDTH} [&>*]:flex-1`}
             />
             <SettingsRow label={t("settings.audio.playerOpacity.label")} description={t("settings.audio.playerOpacity.description")}>
                 <PercentRange label={t("settings.audio.playerOpacity.label")} value={audioPlayerOpacity} min={MIN_AUDIO_PLAYER_OPACITY} onChange={setAudioPlayerOpacity} />

@@ -67,7 +67,20 @@ export const waitForApp = async () => {
 /** Fills a text input and waits until the value is the one typed. */
 export const typeInto = async (input: ChainablePromiseElement, value: string) => {
     await input.waitForDisplayed()
-    await input.click()
+    // Something can still cover the field (a closing dialog, a toast): wait a moment, then report what is on top
+    try {
+        await input.click()
+    } catch (error) {
+        await browser.pause(500)
+        await input.click().catch(async () => {
+            const covering = await browser.execute((el: HTMLElement) => {
+                const rect = el.getBoundingClientRect()
+                const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2)
+                return top ? `${top.tagName.toLowerCase()}.${String(top.className).slice(0, 80)} [${top.getAttribute("data-slot") ?? ""}]` : "nothing"
+            }, input as unknown as HTMLElement)
+            throw new Error(`typeInto: the field is covered by ${covering} (${String(error)})`)
+        })
+    }
     await input.setValue(value)
     // WebKitWebDriver (Linux) sometimes drops the Shift of the first key ("Auto" arrives as "auto"): the value is then set
     // through the native setter plus an input event, which React picks up like typing

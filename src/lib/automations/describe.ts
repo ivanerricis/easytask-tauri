@@ -1,4 +1,5 @@
 import i18n from "@/i18n"
+import { PALETTE_COLORS } from "@/lib/colors"
 import { triggerSubject, type Automation, type AutomationAction, type AutomationActionType, type AutomationSubject, type AutomationTrigger, type AutomationTriggerType } from "./types"
 
 /** The i18n key of every trigger type (the keys cannot contain the dot of the type). */
@@ -9,6 +10,10 @@ export const TRIGGER_KEYS = {
     "task.movedInto": "taskMovedInto",
     "subtasks.completed": "subtasksCompleted",
     "group.completed": "groupCompleted",
+    "section.noOpenTasks": "sectionNoOpenTasks",
+    "section.hasOpenTasks": "sectionHasOpenTasks",
+    "group.noOpenTasks": "groupNoOpenTasks",
+    "group.hasOpenTasks": "groupHasOpenTasks",
 } as const satisfies Record<AutomationTriggerType, string>
 
 export const triggerLabel = (type: AutomationTriggerType) => i18n.t(`automations.triggers.${TRIGGER_KEYS[type]}`)
@@ -25,13 +30,24 @@ const groupName = (labelOf: GroupLabelOf | undefined, id: number) => labelOf?.(i
 const sectionName = (titleOf: SectionTitleOf, id: number) => titleOf(id) ?? i18n.t("automations.describe.missingSection")
 
 function describeTrigger(trigger: AutomationTrigger, titleOf: SectionTitleOf, groupLabelOf?: GroupLabelOf): string {
-    if (trigger.type === "group.completed")
-        return trigger.groupId === null ? triggerLabel(trigger.type) : i18n.t("automations.describe.groupCompleted", { group: groupName(groupLabelOf, trigger.groupId) })
+    if ("groupId" in trigger)
+        return trigger.groupId === null ? triggerLabel(trigger.type) : i18n.t(`automations.describe.${TRIGGER_KEYS[trigger.type]}` as "automations.describe.groupCompleted", { group: groupName(groupLabelOf, trigger.groupId) })
+    if (trigger.type === "section.noOpenTasks" || trigger.type === "section.hasOpenTasks")
+        return trigger.sectionId === null ? triggerLabel(trigger.type) : i18n.t(`automations.describe.${TRIGGER_KEYS[trigger.type]}` as "automations.describe.sectionNoOpenTasks", { section: sectionName(titleOf, trigger.sectionId) })
     const text = triggerLabel(trigger.type)
     // "arrives in the section" already names the section in its label
     if (trigger.type === "task.movedInto") return `${text} "${sectionName(titleOf, trigger.sectionId)}"`
     return trigger.sectionId === null ? text : i18n.t("automations.describe.inSection", { trigger: text, section: sectionName(titleOf, trigger.sectionId) })
 }
+
+/** The translated name of a color: the palette ones have their own, any other is "custom color". */
+export function colorName(color: string): string {
+    const index = (PALETTE_COLORS as readonly string[]).indexOf(color.toLowerCase())
+    return i18n.t(index >= 0 ? (`common.colors.c${index + 1}` as "common.colors.c1") : "common.colors.custom")
+}
+
+/** A natural list in the current language ("A, B e C"). */
+export const joinList = (items: string[]) => new Intl.ListFormat(i18n.language, { style: "long", type: "conjunction" }).format(items)
 
 function describeAction(action: AutomationAction, titleOf: SectionTitleOf, subject: AutomationSubject): string {
     switch (action.type) {
@@ -39,8 +55,8 @@ function describeAction(action: AutomationAction, titleOf: SectionTitleOf, subje
         case "setCompleted": return i18n.t(action.value ? "automations.describe.complete" : "automations.describe.reopen")
         case "setPriority": return i18n.t(action.value ? "automations.describe.addPriority" : "automations.describe.removePriority")
         case "setColor": {
-            const suffix = subject === "group" ? "Group" : ""
-            return i18n.t(`automations.describe.${action.color ? "setColor" : "removeColor"}${suffix}`)
+            const suffix = subject === "group" ? "Group" : subject === "section" ? "Section" : ""
+            return i18n.t(`automations.describe.${action.color ? "setColor" : "removeColor"}${suffix}`, { color: action.color ? colorName(action.color) : "" })
         }
         case "completeSubtasks": return i18n.t("automations.describe.completeSubtasks")
         case "moveGroup": return i18n.t(action.at === "top" ? "automations.describe.moveGroupTop" : "automations.describe.moveGroupBottom")
@@ -56,7 +72,7 @@ function describeAction(action: AutomationAction, titleOf: SectionTitleOf, subje
 export function describeAutomation(rule: Pick<Automation, "trigger" | "actions">, titleOf: SectionTitleOf, groupLabelOf?: GroupLabelOf): string {
     return i18n.t("automations.describe.rule", {
         trigger: describeTrigger(rule.trigger, titleOf, groupLabelOf),
-        actions: rule.actions.map(action => describeAction(action, titleOf, triggerSubject(rule.trigger.type))).join(", "),
+        actions: joinList(rule.actions.map(action => describeAction(action, titleOf, triggerSubject(rule.trigger.type)))),
     })
 }
 

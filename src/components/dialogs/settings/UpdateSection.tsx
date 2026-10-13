@@ -4,8 +4,7 @@ import type { Update } from "@tauri-apps/plugin-updater"
 import { toast } from "sonner"
 import { Download, ExternalLink, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Progress } from "@/components/ui/progress"
-import { ReleaseNotes } from "@/components/release-notes"
+import { UpdateInstallProgress, UpdateNotesBox } from "@/components/update-parts"
 import { Switch } from "@/components/ui/switch"
 import { isPortable } from "@/db/appPaths"
 import { useUpdateInstall } from "@/hooks/use-update-install"
@@ -93,16 +92,11 @@ export const UpdateSection = () => {
                 )}
                 {status.kind === "available" && !installing && (
                     <>
-                        <p>{t("settings.about.update.available", { version: status.update.version })}</p>
-                        {status.update.body && (
-                            <div>
-                                <div className="text-xs text-muted-foreground">{t("settings.about.update.notes")}</div>
-                                <div className="max-h-40 overflow-y-auto text-xs"><ReleaseNotes body={status.update.body} /></div>
-                            </div>
-                        )}
+                        <p>{t("settings.about.update.available", { version: status.update.version, current: status.update.currentVersion })}</p>
+                        {status.update.body?.trim() && <UpdateNotesBox body={status.update.body} />}
                         {portable ? (
                             <>
-                                <p className="text-xs text-muted-foreground">{t("settings.about.update.portableHint")}</p>
+                                <p className="text-sm text-muted-foreground">{t("settings.about.update.portableHint")}</p>
                                 <div>
                                     <Button size="sm" onClick={() => void handleOpenReleases()}>
                                         <ExternalLink />
@@ -120,12 +114,7 @@ export const UpdateSection = () => {
                         )}
                     </>
                 )}
-                {installing && (
-                    <>
-                        <p className="text-muted-foreground">{installLabel}</p>
-                        <Progress value={percent ?? 0} aria-label={t("settings.about.update.label")} />
-                    </>
-                )}
+                {installing && <UpdateInstallProgress percent={percent} label={installLabel} />}
             </div>
 
             <SettingsRow label={t("settings.about.update.startup.label")} description={t("settings.about.update.startup.description")}>

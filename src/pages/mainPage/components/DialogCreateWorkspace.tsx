@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { OptionalColorField } from "@/components/optional-color-field"
 import { useWorkspace } from "@/contexts/use-workspace"
-import { ArrowRight, Plus } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useId, useState } from "react"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { getErrorMessage } from "@/lib/utils"
@@ -108,8 +108,8 @@ export function DialogCreateWorkspace() {
                     onClick={() => setIsOpen(true)}
                     className="flex items-center justify-center w-full min-w-0 p-6 rounded-xs gap-2 text-lg transition-all"
                 >
+                    <Plus className="h-5! w-5!" />
                     {t("home.createWorkspace.open")}
-                    <ArrowRight className="h-5! w-5!" />
                 </Button>
             </TooltipCustom>
         </>

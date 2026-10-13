@@ -17,7 +17,7 @@ describe("describeAutomation", () => {
         expect(describeAutomation({
             trigger: { type: "task.completed", sectionId: 1 },
             actions: [{ type: "moveTo", sectionId: 2, at: "bottom" }, { type: "setColor", color: "#fff" }],
-        }, titleOf)).toBe("Quando un task viene completato in \"Doing\", sposta in fondo a \"Done\", colora")
+        }, titleOf)).toBe("Quando un task viene completato in \"Doing\", sposta in fondo a \"Done\" e colora di Colore personalizzato")
     })
 
     it("names a section that no longer exists", () => {
@@ -29,7 +29,7 @@ describe("describeAutomation", () => {
             trigger: { type: "group.completed", groupId: 7 },
             actions: [{ type: "setColor", color: "#fff" }, { type: "moveGroup", at: "bottom" }, { type: "archiveGroup" }],
         }, titleOf, groupLabelOf)).toBe(
-            "Quando tutti i task del gruppo \"Sprint 3\" sono completati, colora il gruppo, sposta il gruppo in fondo alla nota, archivia il gruppo")
+            "Quando tutti i task del gruppo \"Sprint 3\" sono completati, colora il gruppo di Colore personalizzato, sposta il gruppo in fondo alla nota e archivia il gruppo")
     })
 
     it("describes a group rule for any group", () => {
@@ -37,7 +37,27 @@ describe("describeAutomation", () => {
             trigger: { type: "group.completed", groupId: null },
             actions: [{ type: "setColor", color: null }, { type: "moveGroup", at: "top" }],
         }, titleOf, groupLabelOf)).toBe(
-            "Quando tutti i task di un gruppo sono completati, rimuovi il colore dal gruppo, sposta il gruppo in cima alla nota")
+            "Quando tutti i task di un gruppo sono completati, rimuovi il colore dal gruppo e sposta il gruppo in cima alla nota")
+    })
+
+    it("describes the state rules of a section", () => {
+        expect(describeAutomation({
+            trigger: { type: "section.noOpenTasks", sectionId: null }, actions: [{ type: "setColor", color: "#fff" }],
+        }, titleOf)).toBe("Quando una sezione non ha task da completare, colora la sezione di Colore personalizzato")
+        expect(describeAutomation({
+            trigger: { type: "section.hasOpenTasks", sectionId: 1 }, actions: [{ type: "setColor", color: null }],
+        }, titleOf)).toBe("Quando la sezione \"Doing\" ha almeno un task da completare, rimuovi il colore dalla sezione")
+        expect(describeAutomation({ trigger: { type: "section.noOpenTasks", sectionId: 9 }, actions: [] }, titleOf)).toContain("(sezione eliminata)")
+    })
+
+    it("describes the state rules of a group", () => {
+        expect(describeAutomation({
+            trigger: { type: "group.noOpenTasks", groupId: null }, actions: [{ type: "setColor", color: "#fff" }],
+        }, titleOf, groupLabelOf)).toBe("Quando un gruppo non ha task da completare, colora il gruppo di Colore personalizzato")
+        expect(describeAutomation({
+            trigger: { type: "group.hasOpenTasks", groupId: 7 }, actions: [{ type: "setColor", color: null }],
+        }, titleOf, groupLabelOf)).toBe("Quando il gruppo \"Sprint 3\" ha almeno un task da completare, rimuovi il colore dal gruppo")
+        expect(describeAutomation({ trigger: { type: "group.noOpenTasks", groupId: 3 }, actions: [] }, titleOf)).toContain("(gruppo eliminato)")
     })
 
     it("shows a missing group, also without a resolver", () => {

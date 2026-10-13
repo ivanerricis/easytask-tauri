@@ -74,6 +74,40 @@ describe("DialogUpdate", () => {
         await waitFor(() => expect(toast.error).toHaveBeenCalled())
         expect(relaunch).not.toHaveBeenCalled()
         expect(screen.getByRole("button", { name: "Aggiorna ora" })).toBeEnabled()
+        expect(screen.getByRole("alert")).toHaveTextContent("rete")
+    })
+
+    it("starts with the focus on the main action, not on Skip", async () => {
+        render(<DialogUpdate />)
+        announce()
+        const button = await screen.findByRole("button", { name: "Aggiorna ora" })
+        await waitFor(() => expect(button).toHaveFocus())
+    })
+
+    it("makes the notes box keyboard scrollable and labelled", async () => {
+        render(<DialogUpdate />)
+        announce()
+        const region = await screen.findByRole("region", { name: "Novità" })
+        expect(region).toHaveAttribute("tabindex", "0")
+    })
+
+    it("shows a hint and an animated bar while installing with an unknown size", async () => {
+        render(<DialogUpdate />)
+        announce({ update: fakeUpdate(vi.fn(() => new Promise<void>(() => undefined))) as never })
+        await userEvent.click(await screen.findByRole("button", { name: "Aggiorna ora" }))
+        expect(await screen.findByText(/Non chiudere l'app/)).toBeInTheDocument()
+        expect(screen.getByRole("progressbar", { name: "Download dell'aggiornamento" })).toHaveAttribute("aria-valuetext", "Download in corso…")
+    })
+
+    it("tells with a toast when another dialog is open", async () => {
+        vi.mocked(toast).mockClear()
+        const other = document.createElement("div")
+        other.setAttribute("role", "dialog")
+        document.body.appendChild(other)
+        render(<DialogUpdate />)
+        announce()
+        expect(toast).toHaveBeenCalledWith("Aggiornamento disponibile", expect.objectContaining({ action: expect.objectContaining({ label: "Mostra" }) }))
+        act(() => other.remove())
     })
 
     it("closes on Later without skipping the version", async () => {

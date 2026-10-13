@@ -104,7 +104,7 @@ describe("TaskMoveSubmenu", () => {
     it("moves the task under another task of any section", async () => {
         const user = await openSubmenu(<TaskMoveSubmenu taskId={1} />)
         expect(screen.queryByText("Sezione Alpha")).not.toBeInTheDocument() // already top level there
-        await user.click(await screen.findByText("↳ Due"))
+        await user.click(await screen.findByText("Due"))
         await waitFor(() => expect(moveTask).toHaveBeenCalledWith(1, { sectionId: 1, parentTaskId: 2 }, expect.any(Number)))
         expect(applyTaskMove).toHaveBeenCalledWith(1, { sectionId: 1, parentTaskId: 2 }, moveTask.mock.calls[0][2])
     })

@@ -51,3 +51,6 @@ export const scheduleStartupUpdateCheck = (): void => {
 
 /** Opens the GitHub releases page in the browser (the only URL the opener permission allows besides the repo). */
 export const openReleasesPage = (): Promise<void> => openUrl(RELEASES_URL)
+
+/** Opens a link of the release notes in the browser (never in the webview). */
+export const openExternalUrl = (url: string): Promise<void> => openUrl(url)

@@ -37,7 +37,8 @@ function App() {
     const handler = (e: MouseEvent) => {
       const target = e.target as HTMLElement
       // Text fields get their own menu (TextContextMenu); everything else is blocked.
-      if (!target.closest("[data-contextmenu]") && !getEditableTarget(target)) {
+      // An item menu (data-contextmenu) handles its own right click; a writable field inside it is handled by getEditableTarget
+      if (!getEditableTarget(target) && !target.closest("[data-contextmenu]")) {
         e.preventDefault()
       }
     }
