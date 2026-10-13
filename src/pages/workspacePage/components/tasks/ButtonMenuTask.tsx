@@ -103,28 +103,9 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: Butto
     // The dialogs call it after their write succeeded: the cached tree needs no reload
     const noReload = async () => { }
 
+    // Groups, apart by a separator: add, edit, move, the rest, delete (the same order in the menus of sections and groups)
     const items = (
         <MenuGroup className="flex flex-col gap-1">
-            <ButtonInPopover
-                text={t("common.rename")}
-                type="rename"
-                onClick={() => { afterClose.current = "rename"; menu.close() }}
-            />
-            <ColorSubmenu
-                item={task}
-                itemType="task"
-                addColorItem={addColorItem}
-                getItemId={activeId ?? undefined}
-                getItemData={noReload}
-                onDone={menu.close}
-            />
-            <TaskStepMoves taskId={task.id} onDone={menu.close} />
-            <TaskMoveSubmenu taskId={task.id} onDone={menu.close} />
-            <ButtonInPopover
-                text={t("details.showTask")}
-                type="details"
-                onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id); menu.close() }}
-            />
             <ButtonInPopover
                 text={t("tasks.addSubtask")}
                 type="addSubtask"
@@ -140,6 +121,29 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: Butto
                 type={task.priority ? 'removePriority' : 'addPriority'}
                 onClick={() => { handleEditPriority(); menu.close() }}
             />
+            <Separator />
+            <ButtonInPopover
+                text={t("common.rename")}
+                type="rename"
+                onClick={() => { afterClose.current = "rename"; menu.close() }}
+            />
+            <ColorSubmenu
+                item={task}
+                itemType="task"
+                addColorItem={addColorItem}
+                getItemId={activeId ?? undefined}
+                getItemData={noReload}
+                onDone={menu.close}
+            />
+            <Separator />
+            <TaskStepMoves taskId={task.id} onDone={menu.close} />
+            <TaskMoveSubmenu taskId={task.id} onDone={menu.close} />
+            <Separator />
+            <ButtonInPopover
+                text={t("details.showTask")}
+                type="details"
+                onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id); menu.close() }}
+            />
             <ButtonInPopover
                 text={t("menu.archive")}
                 type="archive"
@@ -150,7 +154,10 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: Butto
                 text={t("common.delete")}
                 type="delete"
                 destructive
-                onClick={() => { setDeleteTaskOpen(true); menu.close() }}
+                onClick={() => {
+                    setDeleteTaskOpen(true)
+                    menu.close()
+                }}
             />
         </MenuGroup>
     )

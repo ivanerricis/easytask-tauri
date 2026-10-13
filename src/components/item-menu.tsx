@@ -52,7 +52,8 @@ export const ItemMenu = ({ state, items, dialogs, contentClassName, onCloseAutoF
     return (
         <ItemMenuContext.Provider value={value}>
             <ContextMenu open={state.contextOpen} onOpenChange={state.setContextOpen}>
-                <ContextMenuTrigger asChild onContextMenu={ignoreContextMenu}>
+                {/* data-contextmenu: the read-only text of the row (a task text) belongs to this menu, the text menu stays out of it */}
+                <ContextMenuTrigger asChild onContextMenu={ignoreContextMenu} data-contextmenu="">
                     {children}
                 </ContextMenuTrigger>
                 <ContextMenuContent

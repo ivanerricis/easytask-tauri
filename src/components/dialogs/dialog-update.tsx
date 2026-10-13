@@ -1,12 +1,11 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { Update } from "@tauri-apps/plugin-updater"
 import { toast } from "sonner"
 import { Download, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Progress } from "@/components/ui/progress"
-import { ReleaseNotes } from "@/components/release-notes"
+import { UpdateInstallProgress, UpdateNotesBox } from "@/components/update-parts"
 import { useUpdateInstall } from "@/hooks/use-update-install"
 import { reportError } from "@/lib/report-error"
 import { saveSkippedUpdateVersion } from "@/lib/store/preferences"
@@ -25,17 +24,22 @@ export const DialogUpdate = () => {
     const { t } = useTranslation()
     const [pending, setPending] = useState<UpdateAvailableDetail | null>(null)
     const [open, setOpen] = useState(false)
-    const { progress, percent, label, install } = useUpdateInstall()
+    const { progress, percent, label, error: installError, install } = useUpdateInstall()
+    const updateButton = useRef<HTMLButtonElement>(null)
     const installing = progress !== null
 
     useEffect(() => {
         const handler = (event: Event) => {
             setPending((event as CustomEvent<UpdateAvailableDetail>).detail)
-            if (!otherDialogOpen()) setOpen(true)
+            if (!otherDialogOpen()) { setOpen(true); return }
+            // Another dialog is in front: the cue that something is waiting (the dialog also opens by itself once it closes)
+            toast(t("settings.about.update.dialog.title"), {
+                action: { label: t("settings.about.update.dialog.show"), onClick: () => setOpen(true) },
+            })
         }
         window.addEventListener(UPDATE_AVAILABLE_EVENT, handler)
         return () => window.removeEventListener(UPDATE_AVAILABLE_EVENT, handler)
-    }, [])
+    }, [t])
 
     // Another dialog was open when the update arrived: open as soon as it closes
     useEffect(() => {
@@ -87,7 +91,12 @@ export const DialogUpdate = () => {
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent showCloseButton={!installing} className="sm:max-w-lg">
+            <DialogContent
+                showCloseButton={!installing}
+                className="sm:max-w-lg"
+                // The focus starts on the main action: Enter right after opening must not skip the version
+                onOpenAutoFocus={e => { e.preventDefault(); updateButton.current?.focus() }}
+            >
                 <DialogHeader>
                     <DialogTitle>{t("settings.about.update.dialog.title")}</DialogTitle>
                     <DialogDescription>
@@ -95,21 +104,15 @@ export const DialogUpdate = () => {
                     </DialogDescription>
                 </DialogHeader>
 
-                {update.body?.trim() && (
-                    <div className="flex flex-col gap-1">
-                        <div className="text-xs text-muted-foreground">{t("settings.about.update.notes")}</div>
-                        <div className="max-h-64 overflow-y-auto rounded-xs border p-2">
-                            <ReleaseNotes body={update.body} />
-                        </div>
-                    </div>
-                )}
-                {portable && <p className="text-xs text-muted-foreground">{t("settings.about.update.portableHint")}</p>}
+                {update.body?.trim() && <UpdateNotesBox body={update.body} />}
+                {portable && <p className="text-sm text-muted-foreground">{t("settings.about.update.portableHint")}</p>}
 
-                {installing && (
-                    <div role="status" aria-live="polite" className="flex flex-col gap-2 text-sm">
-                        <p className="text-muted-foreground">{label}</p>
-                        <Progress value={percent ?? 0} aria-label={t("settings.about.update.label")} />
-                    </div>
+                {/* Always mounted so that screen readers announce the content when it is filled */}
+                <div role="status" aria-live="polite" className="flex flex-col gap-2 text-sm">
+                    {installing && <UpdateInstallProgress percent={percent} label={label} />}
+                </div>
+                {installError && !installing && (
+                    <p role="alert" className="text-sm text-destructive break-words">{installError}</p>
                 )}
 
                 <DialogFooter>
@@ -119,7 +122,7 @@ export const DialogUpdate = () => {
                     <Button variant="outline" disabled={installing} onClick={close}>
                         {t("settings.about.update.dialog.later")}
                     </Button>
-                    <Button disabled={installing} onClick={() => void handleUpdate(update)}>
+                    <Button ref={updateButton} disabled={installing} onClick={() => void handleUpdate(update)}>
                         {portable ? <ExternalLink /> : <Download />}
                         {portable ? t("settings.about.update.openReleases") : t("settings.about.update.dialog.updateNow")}
                     </Button>

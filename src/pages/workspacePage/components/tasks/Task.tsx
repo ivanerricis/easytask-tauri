@@ -97,7 +97,9 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
     // The line of a subtask runs under the checkbox of its parent: the checkbox of a subtask is 2px narrower than the one
     // of a task, so under a subtask (depth 2+) the line sits 1px to the left (and the tick is 1px longer to reach the checkbox). Both ends of a line keep 3px from the checkboxes
     const nestedSubtask = depth > 1
-    const lineLeft = nestedSubtask ? "-left-[2px]" : "-left-px"
+    // The checkbox of a subtask starts where the text of its parent starts (the subtasks are indented by the checkbox of the
+    // parent, 16px, or 14px when the parent is a subtask, plus the gap), so the tree connector sits at 3px (4px) from the row
+    const lineLeft = nestedSubtask ? "left-[4px]" : "left-[3px]"
     const doneSubtasks = task.subtasks.filter(subtask => subtask.completed).length
     const hasDescription = !!task.description?.trim()
 
@@ -278,9 +280,9 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     {open && <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />}
                 </div>
             </ButtonMenuTask>
-            {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute top-[16px] h-px bg-muted-foreground/45", lineLeft, nestedSubtask ? "w-[19px]" : "w-[18px]")} />}
+            {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute top-[16px] h-px bg-muted-foreground/45", lineLeft, nestedSubtask ? "w-[13px]" : "w-[14px]")} />}
             {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
-            {(task.subtasks.length > 0 || isAddingSubtask) && <div className="flex flex-col self-stretch ml-7 mb-1">
+            {(task.subtasks.length > 0 || isAddingSubtask) && <div className={cn("flex flex-col self-stretch mb-1", isSubtask ? "ml-[22px]" : "ml-6")}>
                 {visibleTasks(task.subtasks, hideCompleted).map(subtask =>
                     <Task key={subtask.id} task={subtask} depth={depth + 1} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} />)}
                 {isAddingSubtask &&

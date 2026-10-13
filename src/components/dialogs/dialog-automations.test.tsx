@@ -14,6 +14,8 @@ vi.mock("@/db/queries/automation", () => ({
     setDBAutomationEnabled: vi.fn(),
 }))
 vi.mock("@/db/queries/note", () => ({ getDBNoteData: vi.fn() }))
+const sync = vi.fn()
+vi.mock("@/hooks/use-automations", () => ({ useAutomations: () => ({ dispatch: vi.fn(), sync }) }))
 
 const dates = { creation_date: "", creation_time: "", edit_date: "", edit_time: "" }
 const noteData = {
@@ -54,6 +56,7 @@ beforeEach(() => {
     mocked(updateDBAutomation).mockResolvedValue(undefined as never)
     mocked(deleteDBAutomation).mockResolvedValue(undefined as never)
     mocked(setDBAutomationEnabled).mockResolvedValue(undefined as never)
+    sync.mockResolvedValue(undefined)
 })
 
 describe("DialogAutomations", () => {
@@ -68,6 +71,8 @@ describe("DialogAutomations", () => {
     it("shows the empty state", async () => {
         renderDialog()
         expect(await screen.findByText("Nessuna automazione in questa nota.")).toBeInTheDocument()
+        expect(screen.getByText(/Ad esempio/)).toBeInTheDocument()
+        expect(screen.getAllByRole("button", { name: "Nuova automazione" })).toHaveLength(1)
     })
 
     it("creates a rule from the editor", async () => {
@@ -77,7 +82,7 @@ describe("DialogAutomations", () => {
         // Step 1: the trigger
         expect(screen.getByRole("button", { name: /Quando/ })).toHaveAttribute("aria-current", "step")
         expect(screen.queryByRole("button", { name: "Indietro" })).not.toBeInTheDocument()
-        await pick(user, "Nella sezione", "Doing")
+        await pick(user, "In quale sezione", "Doing")
         await click(user, "Avanti")
         // Step 2: the actions
         expect(screen.getByRole("button", { name: /Allora/ })).toHaveAttribute("aria-current", "step")
@@ -86,7 +91,7 @@ describe("DialogAutomations", () => {
         // Step 3: the summary
         expect(screen.getByRole("button", { name: /Riepilogo/ })).toHaveAttribute("aria-current", "step")
         expect(screen.getByText("Quando un task viene completato in \"Doing\", sposta in fondo a \"Done\"")).toBeInTheDocument()
-        expect(screen.getByRole("switch", { name: "Attiva" })).toBeChecked()
+        expect(screen.getByRole("switch", { name: "Regola attiva" })).toBeChecked()
         expect(screen.queryByRole("button", { name: "Avanti" })).not.toBeInTheDocument()
         await user.click(screen.getByRole("button", { name: "Salva" }))
         await waitFor(() => expect(createDBAutomation).toHaveBeenCalledTimes(1))
@@ -152,9 +157,9 @@ describe("DialogAutomations", () => {
         await click(user, "Allora")
         await pick(user, "Sposta in", "Doing")
         await user.click(screen.getByRole("button", { name: /Quando/ }))
-        await pick(user, "Nella sezione", "Done")
+        await pick(user, "In quale sezione", "Done")
         await click(user, "Riepilogo")
-        await user.click(screen.getByRole("switch", { name: "Attiva" }))
+        await user.click(screen.getByRole("switch", { name: "Regola attiva" }))
         await user.click(screen.getByRole("button", { name: "Salva" }))
         await waitFor(() => expect(updateDBAutomation).toHaveBeenCalledTimes(1))
         expect(updateDBAutomation).toHaveBeenCalledWith(10, {
@@ -172,7 +177,7 @@ describe("DialogAutomations", () => {
         await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
         await click(user, "Avanti")
         await click(user, "Indietro")
-        expect(screen.getByRole("combobox", { name: "Nella sezione" })).toBeInTheDocument()
+        expect(screen.getByRole("combobox", { name: "In quale sezione" })).toBeInTheDocument()
     })
 
     it("asks before discarding an edited draft on Cancel", async () => {
@@ -205,6 +210,98 @@ describe("DialogAutomations", () => {
         expect(await screen.findByText("Nessuna automazione in questa nota.")).toBeInTheDocument()
     })
 
+    it("re-aligns the open note after saving, toggling and deleting a rule", async () => {
+        const user = userEvent.setup()
+        mocked(getDBAutomations).mockResolvedValue([rule()])
+        renderDialog()
+        await user.click(await screen.findByRole("switch", { name: "Attiva l'automazione \"Chiudi\"" }))
+        await waitFor(() => expect(sync).toHaveBeenCalledTimes(1))
+
+        await user.click(screen.getByRole("button", { name: "Elimina l'automazione \"Chiudi\"" }))
+        await user.click(await screen.findByRole("button", { name: "Elimina" }))
+        await waitFor(() => expect(sync).toHaveBeenCalledTimes(2))
+
+        await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+        await click(user, "Avanti")
+        await click(user, "Avanti")
+        await user.click(screen.getByRole("button", { name: "Salva" }))
+        await waitFor(() => expect(sync).toHaveBeenCalledTimes(3))
+    })
+
+    describe("state rules", () => {
+        const SECTION_TRIGGER = "una sezione non ha task da completare"
+        const SECTION_HAS = "una sezione ha almeno un task da completare"
+        const GROUP_NONE = "un gruppo non ha task da completare"
+
+        it("offers the four state triggers after the existing ones", async () => {
+            const user = userEvent.setup()
+            renderDialog()
+            await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+            await user.click(screen.getByRole("combobox", { name: "Quando" }))
+            const options = (await screen.findAllByRole("option")).map(option => option.textContent)
+            expect(options.slice(-4)).toEqual([SECTION_TRIGGER, SECTION_HAS, GROUP_NONE, "un gruppo ha almeno un task da completare"])
+        })
+
+        it("shows the section select (any allowed) and only the color action", async () => {
+            const user = userEvent.setup()
+            renderDialog()
+            await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+            await pick(user, "Quando", SECTION_TRIGGER)
+            await user.click(screen.getByRole("combobox", { name: "In quale sezione" }))
+            expect(await screen.findByRole("option", { name: "Qualsiasi sezione" })).toBeInTheDocument()
+            await user.keyboard("{Escape}")
+
+            await click(user, "Avanti")
+            // The only action is the color: no second type to add
+            expect(screen.getByRole("combobox", { name: "Tipo di azione" })).toHaveTextContent("Colore")
+            expect(screen.queryByRole("button", { name: "Aggiungi azione" })).not.toBeInTheDocument()
+            await user.click(screen.getByRole("combobox", { name: "Tipo di azione" }))
+            expect((await screen.findAllByRole("option")).map(option => option.textContent)).toEqual(["Colore"])
+        })
+
+        it("shows the group select for a group state trigger", async () => {
+            const user = userEvent.setup()
+            renderDialog()
+            await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+            await pick(user, "Quando", GROUP_NONE)
+            expect(screen.queryByRole("combobox", { name: "In quale sezione" })).not.toBeInTheDocument()
+            expect(screen.getByRole("combobox", { name: "Gruppo" })).toHaveTextContent("Qualsiasi gruppo")
+            await click(user, "Avanti")
+            expect(screen.getByRole("combobox", { name: "Colore" })).toBeInTheDocument()
+        })
+
+        it("saves section.noOpenTasks -> green", async () => {
+            const user = userEvent.setup()
+            renderDialog()
+            await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+            await pick(user, "Quando", SECTION_TRIGGER)
+            await click(user, "Avanti")
+            await pick(user, "Colore", "Verde")
+            await click(user, "Avanti")
+            await user.click(screen.getByRole("button", { name: "Salva" }))
+            await waitFor(() => expect(createDBAutomation).toHaveBeenCalledTimes(1))
+            expect(createDBAutomation).toHaveBeenCalledWith(1, {
+                name: null,
+                enabled: true,
+                trigger: { type: "section.noOpenTasks", sectionId: null },
+                actions: [{ type: "setColor", color: "#3cb44b" }],
+            })
+        })
+
+        it("resets the actions between an event trigger and a state trigger", async () => {
+            const user = userEvent.setup()
+            renderDialog()
+            await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+            await pick(user, "Quando", SECTION_TRIGGER)
+            await click(user, "Avanti")
+            await user.click(screen.getByRole("button", { name: /Quando/ }))
+            await pick(user, "Quando", "un task viene completato")
+            await click(user, "Avanti")
+            expect(screen.getByRole("combobox", { name: "Tipo di azione" })).toHaveTextContent("Sposta in")
+            expect(screen.getByRole("button", { name: "Aggiungi azione" })).toBeInTheDocument()
+        })
+    })
+
     describe("group rules", () => {
         const groupRule = (over: Partial<Automation> = {}): Automation => rule({
             id: 20, name: null, trigger: { type: "group.completed", groupId: 1 }, actions: [{ type: "archiveGroup" }], ...over,
@@ -216,7 +313,7 @@ describe("DialogAutomations", () => {
             renderDialog()
             await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
             await pick(user, "Quando", GROUP_TRIGGER)
-            expect(screen.queryByRole("combobox", { name: "Nella sezione" })).not.toBeInTheDocument()
+            expect(screen.queryByRole("combobox", { name: "In quale sezione" })).not.toBeInTheDocument()
             await user.click(screen.getByRole("combobox", { name: "Gruppo" }))
             expect(await screen.findByRole("option", { name: "Qualsiasi gruppo" })).toBeInTheDocument()
             expect(screen.getByRole("option", { name: "Flusso" })).toBeInTheDocument()

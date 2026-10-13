@@ -30,11 +30,11 @@ describe("OptionalColorField", () => {
         expect(screen.getByRole("radio", { name: "Colore Blu" })).toHaveAttribute("aria-checked", "true")
     })
 
-    it("removes the color with Elimina", async () => {
+    it("removes the color with Nessun colore", async () => {
         const onChange = vi.fn()
         render(<OptionalColorField value="#4363d8" onChange={onChange} />)
         await userEvent.click(screen.getByRole("button", { name: "Cambia colore" }))
-        await userEvent.click(screen.getByRole("button", { name: "Elimina" }))
+        await userEvent.click(screen.getByRole("button", { name: "Nessun colore" }))
         expect(onChange).toHaveBeenCalledWith(undefined)
     })
 })

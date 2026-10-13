@@ -101,7 +101,7 @@ export function addNoteAutomations(
 
         let triggerSql = "?"
         const { trigger } = rule
-        if (trigger.type === "group.completed") {
+        if ("groupId" in trigger) {
             if (trigger.groupId === null) {
                 params.push(JSON.stringify(trigger))
             } else {

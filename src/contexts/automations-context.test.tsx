@@ -1,4 +1,4 @@
-import { renderHook } from "@testing-library/react"
+import { renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { NoteDataTree } from "@/types/types"
@@ -15,25 +15,32 @@ const mocks = vi.hoisted(() => ({
     notifyArchiveChanged: vi.fn(),
     applyDBAutomationChanges: vi.fn(async (...args: unknown[]) => { void args }),
     toastSuccess: vi.fn(),
+    recorder: null as unknown as { record: (command: UndoCommand) => void, track: (promise: Promise<void>) => Promise<void> },
+    getDBAutomations: vi.fn(async () => [] as Automation[]),
+}))
+
+// Stable like the real actions: new functions on every render would re-run the sync effect
+const noteActions = vi.hoisted(() => ({
+    getNoteTree: () => mocks.tree,
+    setNoteDataTree: (tree: NoteDataTree) => { mocks.tree = tree; mocks.setNoteDataTree(tree) },
+    refreshActiveNote: mocks.refreshActiveNote,
 }))
 
 vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, info: vi.fn(), error: vi.fn() } }))
 vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => 1 }))
 vi.mock("@/contexts/use-active-note", () => ({
-    useActiveNoteActions: () => ({
-        getNoteTree: () => mocks.tree,
-        setNoteDataTree: (tree: NoteDataTree) => { mocks.tree = tree; mocks.setNoteDataTree(tree) },
-        refreshActiveNote: mocks.refreshActiveNote,
-    }),
+    useActiveNote: () => ({ noteDataTree: mocks.tree }),
+    useActiveNoteActions: () => noteActions,
 }))
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ notifyArchiveChanged: mocks.notifyArchiveChanged }) }))
 vi.mock("@/contexts/undo/use-undo", () => ({
-    useUndoRecorder: () => ({ record: (command: UndoCommand) => mocks.recorded.push(command), track: (promise: Promise<void>) => promise }),
+    // Stable like the real recorder: a new one on every render would re-run the sync effect
+    useUndoRecorder: () => mocks.recorder,
     useOptionalUndo: () => ({ undo: vi.fn(), isLatest: () => true }),
 }))
 vi.mock("@/db/queries/note", () => ({ getDBNoteData: vi.fn(async () => ({ groups: [], sections: [], tasks: [] })) }))
 vi.mock("@/db/queries/automation", () => ({
-    getDBAutomations: vi.fn(async () => mocks.rules),
+    getDBAutomations: mocks.getDBAutomations,
     applyDBAutomationChanges: mocks.applyDBAutomationChanges,
 }))
 
@@ -48,11 +55,14 @@ const fresh = () => makeGroups(
     { 1: "Sprint" },
 )
 
+mocks.recorder = { record: command => { mocks.recorded.push(command) }, track: promise => promise }
+
 beforeEach(() => {
     vi.clearAllMocks()
     mocks.recorded = []
     mocks.tree = fresh()
     mocks.rules = [makeRule(1, { type: "group.completed", groupId: null }, [{ type: "archiveGroup" }])]
+    mocks.getDBAutomations.mockImplementation(async () => mocks.rules)
 })
 
 describe("AutomationsProvider with group rules", () => {
@@ -68,7 +78,9 @@ describe("AutomationsProvider with group rules", () => {
         expect(mocks.notifyArchiveChanged).toHaveBeenCalledTimes(1)
         expect(mocks.recorded).toHaveLength(1)
         expect(mocks.toastSuccess).toHaveBeenCalledTimes(1)
-        expect(mocks.toastSuccess.mock.calls[0][0]).toContain("Sprint")
+        // A short title, and the sentence of the rule (which names the group) as the description
+        expect(mocks.toastSuccess.mock.calls[0][0]).toBe("Automazione eseguita")
+        expect(mocks.toastSuccess.mock.calls[0][1].description).toContain("Sprint")
     })
 
     it("undo brings the group back and redo archives it again, notifying each time", async () => {
@@ -148,5 +160,117 @@ describe("AutomationsProvider with group rules", () => {
             expect(sqlHas(2, "archived_at = datetime")).toBe(true)
             expect(completes(2, 12, 1)).toBe(true)
         })
+    })
+})
+
+describe("AutomationsProvider state rules (sync)", () => {
+    const GREEN = "#00ff00"
+    const RED = "#ff0000"
+    const stateRules = () => [
+        makeRule(1, { type: "section.noOpenTasks", sectionId: null }, [{ type: "setColor", color: GREEN }]),
+        makeRule(2, { type: "section.hasOpenTasks", sectionId: null }, [{ type: "setColor", color: RED }]),
+    ]
+    const sectionColor = (id: number) => mocks.tree!.groups.flatMap(g => g.sections).find(s => s.id === id)?.color
+    const written = (call: number) => mocks.applyDBAutomationChanges.mock.calls[call][0] as { sql: string, params: unknown[] }[]
+    // The sync of the effect has settled once the colors are in the tree
+    const settled = () => waitFor(() => expect(sectionColor(20)).toBe(RED))
+
+    beforeEach(() => { mocks.rules = stateRules() })
+
+    it("applies the colors and writes section and group statements, without a toast or an undo entry", async () => {
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await result.current.sync()
+
+        expect(sectionColor(10)).toBe(GREEN)
+        expect(sectionColor(20)).toBe(RED)
+        expect(mocks.applyDBAutomationChanges).toHaveBeenCalled()
+        const sql = written(0).map(s => s.sql).join(" ")
+        expect(sql).toContain("UPDATE section SET color")
+        expect(mocks.toastSuccess).not.toHaveBeenCalled()
+        expect(mocks.recorded).toHaveLength(0)
+    })
+
+    it("does nothing without enabled state rules (no write)", async () => {
+        mocks.rules = [
+            makeRule(1, { type: "group.completed", groupId: null }, [{ type: "setColor", color: GREEN }]),
+            makeRule(2, { type: "section.noOpenTasks", sectionId: null }, [{ type: "setColor", color: GREEN }], { enabled: false }),
+        ]
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await result.current.sync()
+        expect(mocks.applyDBAutomationChanges).not.toHaveBeenCalled()
+        expect(mocks.setNoteDataTree).not.toHaveBeenCalled()
+    })
+
+    it("reads the rules again on every sync", async () => {
+        mocks.rules = []
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await result.current.sync()
+        expect(mocks.applyDBAutomationChanges).not.toHaveBeenCalled()
+        const calls = mocks.getDBAutomations.mock.calls.length
+
+        mocks.rules = stateRules()
+        await result.current.sync()
+        expect(mocks.getDBAutomations.mock.calls.length).toBe(calls + 1)
+        expect(sectionColor(20)).toBe(RED)
+    })
+
+    it("runs when a note opens and when tasks or sections change, but not after a color-only change", async () => {
+        const { result, rerender } = renderHook(() => useAutomations(), { wrapper })
+        void result
+        await settled()
+        expect(sectionColor(10)).toBe(GREEN)
+        // The sync recolors the tree it was given: re-rendering with the colored tree must not sync again
+        rerender()
+        await new Promise(resolve => setTimeout(resolve, 20))
+        const writes = mocks.applyDBAutomationChanges.mock.calls.length
+        expect(writes).toBe(1)
+        expect(mocks.getDBAutomations.mock.calls.length).toBe(1)
+
+        // Completing the open task of section 20
+        const groups = mocks.tree!.groups.map(g => ({
+            ...g, sections: g.sections.map(s => s.id === 20 ? { ...s, tasks: s.tasks.map(t => ({ ...t, completed: true })) } : s),
+        }))
+        mocks.tree = { groups }
+        rerender()
+        await waitFor(() => expect(sectionColor(20)).toBe(GREEN))
+        expect(mocks.applyDBAutomationChanges).toHaveBeenCalledTimes(2)
+
+        // A new task (open) in section 20
+        const source = mocks.tree.groups[1].sections[0].tasks[0]
+        mocks.tree = { groups: mocks.tree.groups.map(g => ({
+            ...g, sections: g.sections.map(s => s.id === 20 ? { ...s, tasks: [...s.tasks, { ...source, id: 22, completed: false }] } : s),
+        })) }
+        rerender()
+        await waitFor(() => expect(sectionColor(20)).toBe(RED))
+
+        // Removing it
+        mocks.tree = { groups: mocks.tree.groups.map(g => ({
+            ...g, sections: g.sections.map(s => s.id === 20 ? { ...s, tasks: s.tasks.filter(t => t.id !== 22) } : s),
+        })) }
+        rerender()
+        await waitFor(() => expect(sectionColor(20)).toBe(GREEN))
+
+        // A new empty section
+        const sectionCalls = mocks.getDBAutomations.mock.calls.length
+        const base = mocks.tree.groups[0].sections[0]
+        mocks.tree = { groups: mocks.tree.groups.map((g, i) => i === 0 ? { ...g, sections: [...g.sections, { ...base, id: 30, tasks: [], color: null }] } : g) }
+        rerender()
+        await waitFor(() => expect(sectionColor(30)).toBe(GREEN))
+        expect(mocks.getDBAutomations.mock.calls.length).toBeGreaterThan(sectionCalls)
+
+        // A color-only change does not sync
+        const before = mocks.getDBAutomations.mock.calls.length
+        mocks.tree = { groups: mocks.tree.groups.map(g => ({ ...g, sections: g.sections.map(s => ({ ...s, color: "#123456", title: "x" })) })) }
+        rerender()
+        await new Promise(resolve => setTimeout(resolve, 20))
+        expect(mocks.getDBAutomations.mock.calls.length).toBe(before)
+    })
+
+    it("reloads the note when the write fails and does not throw", async () => {
+        mocks.applyDBAutomationChanges.mockRejectedValueOnce(new Error("boom"))
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await expect(result.current.sync()).resolves.toBeUndefined()
+        expect(mocks.refreshActiveNote).toHaveBeenCalled()
+        expect(mocks.recorded).toHaveLength(0)
     })
 })

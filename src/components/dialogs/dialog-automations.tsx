@@ -15,12 +15,14 @@ import { getDBNoteData } from "@/db/queries/note"
 import { createDBAutomation, deleteDBAutomation, getDBAutomations, setDBAutomationEnabled, updateDBAutomation } from "@/db/queries/automation"
 import { buildNoteTree } from "@/contexts/tree-builders"
 import { PALETTE_COLORS } from "@/lib/colors"
-import { actionLabel, automationName, describeAutomation, triggerLabel } from "@/lib/automations/describe"
+import { actionLabel, automationName, colorName, describeAutomation, triggerLabel } from "@/lib/automations/describe"
 import {
-    ACTIONS_BY_SUBJECT, TRIGGER_TYPES, isValidRule, referencedGroups, referencedSections, triggerSubject,
-    type AutomationSubject, type Automation, type AutomationAction, type AutomationActionType, type AutomationDraft, type AutomationTrigger, type AutomationTriggerType,
+    TRIGGER_TYPES, actionsForTrigger, isGroupTrigger, isStateTrigger, isValidRule, referencedGroups, referencedSections, triggerSubject,
+    type Automation, type AutomationAction, type AutomationActionType, type AutomationDraft, type AutomationTrigger, type AutomationTriggerType,
 } from "@/lib/automations/types"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
+import { useAutomations } from "@/hooks/use-automations"
+import { reportError } from "@/lib/report-error"
 import { cn, getErrorMessage } from "@/lib/utils"
 
 type SectionOption = { id: number, title: string }
@@ -74,15 +76,21 @@ function defaultAction(type: AutomationActionType, sections: SectionOption[], av
     }
 }
 
-/** The actions a new rule of this subject starts with. */
-const defaultActions = (subject: AutomationSubject, sections: SectionOption[], avoid: number | null): AutomationAction[] =>
-    [subject === "group" ? { type: "archiveGroup" } : defaultAction("moveTo", sections, avoid)]
+/** The actions a new rule of this trigger starts with (a state trigger only has the color). */
+const defaultActions = (type: AutomationTriggerType, sections: SectionOption[], avoid: number | null): AutomationAction[] => {
+    if (isStateTrigger(type)) return [defaultAction("setColor", sections, avoid)]
+    return [triggerSubject(type) === "group" ? { type: "archiveGroup" } : defaultAction("moveTo", sections, avoid)]
+}
 
-/** The trigger of a type, keeping the section of the previous task trigger (a group trigger starts on any group). */
-function defaultTrigger(type: AutomationTriggerType, sectionId: number | null, sections: SectionOption[]): AutomationTrigger {
-    if (type === "group.completed") return { type, groupId: null }
+/** Two triggers share their actions when they have the same subject and are both events or both states. */
+const sameActions = (a: AutomationTriggerType, b: AutomationTriggerType) =>
+    triggerSubject(a) === triggerSubject(b) && isStateTrigger(a) === isStateTrigger(b)
+
+/** The trigger of a type, keeping the section of the previous trigger; a group trigger starts on `groupId` (null = any group). */
+function defaultTrigger(type: AutomationTriggerType, sectionId: number | null, sections: SectionOption[], groupId: number | null = null): AutomationTrigger {
+    if (isGroupTrigger(type)) return { type, groupId } as AutomationTrigger
     if (type === "task.movedInto") return { type, sectionId: sectionId ?? sections[0].id }
-    return { type, sectionId }
+    return { type, sectionId } as AutomationTrigger
 }
 
 /**
@@ -102,6 +110,9 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
     // Closing or cancelling an edited draft asks first: which of the two is waiting for the answer
     const [discarding, setDiscarding] = useState<"close" | "cancel" | null>(null)
     const { saving, run } = useSubmitOnce()
+    const { sync } = useAutomations()
+    // The state rules (colors by open tasks) align the open note right away; not awaited, the list does not wait for it
+    const resync = () => { sync().catch(err => reportError(err, getErrorMessage(err))) }
 
     const sections = useMemo(() => groups.flatMap(group => group.sections), [groups])
     const titleOf = useCallback((id: number) => sections.find(section => section.id === id)?.title, [sections])
@@ -133,8 +144,8 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
         const trigger: AutomationTrigger = groupId !== undefined
             ? { type: "group.completed", groupId }
             : { type: "task.completed", sectionId: sectionId ?? null }
-        const avoid = trigger.type === "group.completed" ? null : trigger.sectionId
-        openEditor(null, { name: null, enabled: true, trigger, actions: defaultActions(triggerSubject(trigger.type), sections, avoid) })
+        const avoid = "sectionId" in trigger ? trigger.sectionId : null
+        openEditor(null, { name: null, enabled: true, trigger, actions: defaultActions(trigger.type, sections, avoid) })
     }
 
     const goTo = (step: Step) => {
@@ -155,6 +166,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
             else await updateDBAutomation(editing.id, editing.draft)
             toast.success(t("automations.saved"))
             setEditing(null)
+            resync()
             await reload()
         } catch (err) {
             setError(getErrorMessage(err))
@@ -165,6 +177,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
         setRules(list => list.map(item => item.id === rule.id ? { ...item, enabled } : item))
         try {
             await setDBAutomationEnabled(rule.id, enabled)
+            resync()
         } catch (err) {
             setRules(list => list.map(item => item.id === rule.id ? { ...item, enabled: rule.enabled } : item))
             setError(getErrorMessage(err))
@@ -175,6 +188,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
         try {
             await deleteDBAutomation(rule.id)
             toast.success(t("automations.deletedToast"))
+            resync()
             await reload()
         } catch (err) {
             setError(getErrorMessage(err))
@@ -209,7 +223,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
         <>
             <Dialog open={isOpen} onOpenChange={handleOpenChange}>
                 {/* The header and the footer stay visible: only the editor scrolls when the rule is taller than the window */}
-                <DialogContent className="sm:max-w-xl flex flex-col h-[min(640px,85vh)] overflow-hidden">
+                <DialogContent className="sm:max-w-xl flex flex-col max-h-[min(640px,85vh)] min-h-[min(480px,85vh)] overflow-hidden">
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Zap className="size-4" />
@@ -225,7 +239,13 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                     ) : editing ? (
                         <>
                             <StepIndicator step={editing.step} draft={editing.draft} onSelect={goTo} />
-                            <div className="min-h-0 flex-1 overflow-y-auto -mx-1 px-1 py-1">
+                            {/* Enter in the name field (the only text input) saves on the last step, goes on otherwise */}
+                            <form className="min-h-0 flex-1 overflow-y-auto -mx-1 px-1 py-1"
+                                onSubmit={event => {
+                                    event.preventDefault()
+                                    if (editing.step === LAST_STEP) void save()
+                                    else goTo((editing.step + 1) as Step)
+                                }}>
                                 <AutomationEditor
                                     step={editing.step}
                                     draft={editing.draft}
@@ -233,14 +253,29 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                                     sections={sections}
                                     titleOf={titleOf}
                                     groupLabelOf={groupLabelOf}
+                                    openedSectionId={sectionId ?? null}
+                                    openedGroupId={groupId ?? null}
                                     onChange={draft => { setError(null); setEditing({ ...editing, draft }) }}
                                 />
-                            </div>
+                            </form>
+                            {!stepValid(editing.step, editing.draft) && (
+                                <p className="text-xs text-muted-foreground">
+                                    {t(editing.draft.actions.length === 0 ? "automations.errors.noActions" : "automations.errors.invalidActions")}
+                                </p>
+                            )}
                         </>
                     ) : sections.length === 0 ? (
                         <p className="py-6 text-center text-muted-foreground text-sm">{t("automations.noSections")}</p>
                     ) : rules.length === 0 ? (
-                        <p className="py-6 text-center text-muted-foreground text-sm">{t("automations.empty")}</p>
+                        <div className="flex flex-1 flex-col items-center justify-center gap-2 py-6 text-center">
+                            <Zap className="size-8 text-muted-foreground" aria-hidden />
+                            <p className="text-muted-foreground text-sm">{t("automations.empty")}</p>
+                            <p className="max-w-xs text-xs text-muted-foreground">{t("automations.emptyExample")}</p>
+                            <Button type="button" className="mt-1" onClick={startNew}>
+                                <Plus />
+                                {t("automations.add")}
+                            </Button>
+                        </div>
                     ) : (
                         <ul className="flex min-h-0 flex-1 flex-col divide-y border rounded-xs overflow-y-auto">
                             {rules.map(rule => {
@@ -253,7 +288,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                                             onCheckedChange={checked => void toggle(rule, checked)}
                                             aria-label={t("automations.enabledAria", { name: automationName(rule, titleOf, groupLabelOf) })}
                                         />
-                                        <div className="flex flex-col min-w-0 flex-1">
+                                        <div className={cn("flex flex-col min-w-0 flex-1", !rule.enabled && "opacity-60")}>
                                             {rule.name && <span className="text-sm font-medium truncate">{rule.name}</span>}
                                             <span className={cn("break-words", rule.name ? "text-xs text-muted-foreground" : "text-sm")}>
                                                 {describeAutomation(rule, titleOf, groupLabelOf)}
@@ -272,7 +307,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                                             </Button>
                                         </TooltipCustom>
                                         <TooltipCustom text={t("automations.delete")}>
-                                            <Button variant="destructive" size="icon" aria-label={t("automations.deleteAria", { name: automationName(rule, titleOf, groupLabelOf) })}
+                                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" aria-label={t("automations.deleteAria", { name: automationName(rule, titleOf, groupLabelOf) })}
                                                 onClick={() => setDeleting(rule)}>
                                                 <Trash2 />
                                             </Button>
@@ -285,7 +320,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
 
                     {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
 
-                    {/* mt-auto: with few or no rules the buttons stay at the bottom of the (fixed height) dialog */}
+                    {/* mt-auto: with few or no rules the buttons stay at the bottom of the (minimum height) dialog */}
                     <DialogFooter className={editing ? "mt-auto sm:justify-between" : "mt-auto"}>
                         {editing ? (
                             <>
@@ -317,10 +352,13 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                                 <Button variant="outline" type="button" onClick={() => handleOpenChange(false)}>
                                     {t("common.close")}
                                 </Button>
-                                <Button type="button" onClick={startNew} disabled={!loaded || sections.length === 0}>
-                                    <Plus />
-                                    {t("automations.add")}
-                                </Button>
+                                {/* The empty state has its own "new" button */}
+                                {loaded && (rules.length > 0 || sections.length === 0) && (
+                                    <Button type="button" onClick={startNew} disabled={!loaded || sections.length === 0}>
+                                        <Plus />
+                                        {t("automations.add")}
+                                    </Button>
+                                )}
                             </>
                         )}
                     </DialogFooter>
@@ -356,6 +394,7 @@ const StepIndicator = ({ step, draft, onSelect }: { step: Step, draft: Automatio
             <ol className="flex items-center gap-2">
                 {STEPS.map((name, index) => {
                     const current = index === step
+                    const done = index < step && stepValid(index, draft)
                     return (
                         <li key={name} className={cn("flex items-center gap-2 min-w-0", index < LAST_STEP && "flex-1")}>
                             <Button variant="ghost" size="sm" type="button" className="shrink-0 px-2"
@@ -365,7 +404,8 @@ const StepIndicator = ({ step, draft, onSelect }: { step: Step, draft: Automatio
                                 <span aria-hidden className={cn(
                                     "flex size-5 items-center justify-center rounded-full border text-xs",
                                     current && "border-primary bg-primary text-primary-foreground",
-                                )}>{index + 1}</span>
+                                    done && "border-primary text-primary",
+                                )}>{done ? <Check className="size-3" /> : index + 1}</span>
                                 <span className={cn(!current && "text-muted-foreground")}>{t(`automations.steps.${name}`)}</span>
                             </Button>
                             {index < LAST_STEP && <span aria-hidden className="h-px min-w-2 flex-1 bg-border" />}
@@ -384,6 +424,9 @@ type AutomationEditorProps = {
     sections: SectionOption[]
     titleOf: (id: number) => string | undefined
     groupLabelOf: (id: number) => string | undefined
+    /** The section / group the dialog was opened for: where a new state trigger starts. */
+    openedSectionId: number | null
+    openedGroupId: number | null
     onChange: (draft: AutomationDraft) => void
 }
 
@@ -392,15 +435,15 @@ const ANY = "any"
 const NO_COLOR = "none"
 
 /** A select whose value is a section id (grouped by group); a missing section is shown as such instead of silently picking another one. */
-const SectionSelect = ({ value, groups, sections, onChange, allowAny, label, className }: {
+const SectionSelect = ({ value, groups, sections, onChange, allowAny, label, className, id }: {
     value: number | null, groups: GroupOption[], sections: SectionOption[], onChange: (id: number | null) => void,
-    allowAny?: boolean, label: string, className?: string,
+    allowAny?: boolean, label: string, className?: string, id?: string,
 }) => {
     const { t } = useTranslation()
     const missing = value !== null && !sections.some(section => section.id === value)
     return (
         <Select value={value === null ? ANY : String(value)} onValueChange={next => onChange(next === ANY ? null : Number(next))}>
-            <SelectTrigger aria-label={label} className={cn("w-full", className)}><SelectValue /></SelectTrigger>
+            <SelectTrigger id={id} aria-label={label} className={cn("w-full", className)}><SelectValue /></SelectTrigger>
             <SelectContent>
                 {allowAny && <SelectItem value={ANY}>{t("automations.anySection")}</SelectItem>}
                 {missing && <SelectItem value={String(value)}>{t("automations.describe.missingSection")}</SelectItem>}
@@ -416,14 +459,14 @@ const SectionSelect = ({ value, groups, sections, onChange, allowAny, label, cla
 }
 
 /** A select whose value is a group of the note ("any group" = null); a missing group is shown as such. */
-const GroupSelect = ({ value, groups, onChange, label }: {
-    value: number | null, groups: GroupOption[], onChange: (id: number | null) => void, label: string,
+const GroupSelect = ({ value, groups, onChange, label, id }: {
+    value: number | null, groups: GroupOption[], onChange: (id: number | null) => void, label: string, id?: string,
 }) => {
     const { t } = useTranslation()
     const missing = value !== null && !groups.some(group => group.id === value)
     return (
         <Select value={value === null ? ANY : String(value)} onValueChange={next => onChange(next === ANY ? null : Number(next))}>
-            <SelectTrigger aria-label={label} className="w-full"><SelectValue /></SelectTrigger>
+            <SelectTrigger id={id} aria-label={label} className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
                 <SelectItem value={ANY}>{t("automations.anyGroup")}</SelectItem>
                 {missing && <SelectItem value={String(value)}>{t("automations.describe.missingGroup")}</SelectItem>}
@@ -452,21 +495,19 @@ const ColorDot = ({ color }: { color: string | null }) => (
     <span aria-hidden className="inline-block size-3.5 shrink-0 rounded-full align-[-0.2em] ring-1 ring-inset ring-foreground/20 in-data-[slot=select-value]:me-2" style={color ? { backgroundColor: color } : undefined} />
 )
 
-/** The translated name of a color: the palette ones have their own, any other is "custom color". */
-function colorName(color: string): string {
-    const index = (PALETTE_COLORS as readonly string[]).indexOf(color.toLowerCase())
-    return i18n.t(index >= 0 ? (`common.colors.c${index + 1}` as "common.colors.c1") : "common.colors.custom")
-}
-
-const AutomationEditor = ({ step, draft, groups, sections, titleOf, groupLabelOf, onChange }: AutomationEditorProps) => {
+const AutomationEditor = ({ step, draft, groups, sections, titleOf, groupLabelOf, openedSectionId, openedGroupId, onChange }: AutomationEditorProps) => {
     const { t } = useTranslation()
     const nameId = useId()
     const enabledId = useId()
+    const whereId = useId()
     const container = useRef<HTMLDivElement>(null)
     const { trigger, actions } = draft
-    const subject = triggerSubject(trigger.type)
+    const groupTrigger = isGroupTrigger(trigger.type)
+    const allowedActions = actionsForTrigger(trigger.type)
     // The section of the trigger: a group trigger has none
-    const triggerSection = trigger.type === "group.completed" ? null : trigger.sectionId
+    const triggerSection = "sectionId" in trigger ? trigger.sectionId : null
+    // A state trigger only has the color: the "add action" button goes away once it is used
+    const canAddAction = !isStateTrigger(trigger.type) || allowedActions.some(type => !actions.some(action => action.type === type))
 
     // Every step starts with the focus on its first control
     useEffect(() => {
@@ -479,26 +520,31 @@ const AutomationEditor = ({ step, draft, groups, sections, titleOf, groupLabelOf
     return (
         <div ref={container} className="flex flex-col gap-4">
             {step === 0 && (
-                <fieldset className="grid gap-2">
-                    <legend className="text-sm font-medium">{t("automations.when")}</legend>
-                    <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+                <div className="grid gap-2">
+                    <p className="text-sm text-muted-foreground">{t("automations.whenHint")}</p>
+                    <div className="grid gap-3">
                         <ChoiceSelect label={t("automations.when")} value={trigger.type}
                             options={TRIGGER_TYPES.map(type => ({ value: type, label: triggerLabel(type) }))}
                             onChange={type => {
-                                const next = defaultTrigger(type, triggerSection, sections)
-                                // Another subject: the actions of the old one no longer apply
-                                if (triggerSubject(type) === subject) onChange({ ...draft, trigger: next })
-                                else onChange({ ...draft, trigger: next, actions: defaultActions(triggerSubject(type), sections, null) })
+                                // A state trigger starts on the section / group the dialog was opened for
+                                const next = defaultTrigger(type, triggerSection ?? openedSectionId, sections, openedGroupId)
+                                // Other subject or kind: the actions of the old trigger no longer apply
+                                if (sameActions(type, trigger.type)) onChange({ ...draft, trigger: next })
+                                else onChange({ ...draft, trigger: next, actions: defaultActions(type, sections, null) })
                             }} />
-                        {trigger.type === "group.completed" ? (
+                        <div className="grid gap-1.5">
+                        <Label htmlFor={whereId}>{t(groupTrigger ? "automations.group" : "automations.where")}</Label>
+                        {"groupId" in trigger ? (
                             <GroupSelect
+                                id={whereId}
                                 label={t("automations.group")}
                                 value={trigger.groupId}
                                 groups={groups}
-                                onChange={id => onChange({ ...draft, trigger: { type: trigger.type, groupId: id } })}
+                                onChange={id => onChange({ ...draft, trigger: { type: trigger.type, groupId: id } as AutomationTrigger })}
                             />
                         ) : (
                             <SectionSelect
+                                id={whereId}
                                 label={t("automations.where")}
                                 value={trigger.sectionId}
                                 groups={groups}
@@ -507,23 +553,24 @@ const AutomationEditor = ({ step, draft, groups, sections, titleOf, groupLabelOf
                                 onChange={id => onChange({ ...draft, trigger: defaultTrigger(trigger.type, id, sections) })}
                             />
                         )}
+                        </div>
                     </div>
-                </fieldset>
+                </div>
             )}
 
             {step === 1 && (
-                <fieldset className="grid gap-2">
-                    <legend className="text-sm font-medium">{t("automations.then")}</legend>
+                <div className="grid gap-2">
+                    <p className="text-sm text-muted-foreground">{t("automations.thenHint")}</p>
                     {actions.map((action, index) => (
                         // One block per action: the type on the first line, its parameters on the second, so the layout never
                         // depends on the chosen action or on the length of the section names
                         <div key={index} className="grid gap-2 rounded-xs border p-2">
                             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2">
                                 <ChoiceSelect label={t("automations.actionType")} value={action.type}
-                                    options={ACTIONS_BY_SUBJECT[subject].map(type => ({ value: type, label: actionLabel(type) }))}
+                                    options={allowedActions.map(type => ({ value: type, label: actionLabel(type) }))}
                                     onChange={type => setAction(index, defaultAction(type, sections, triggerSection))} />
                                 <TooltipCustom text={t("automations.removeAction")}>
-                                    <Button variant="ghost" size="icon" aria-label={t("automations.removeAction")}
+                                    <Button variant="ghost" size="icon" type="button" aria-label={t("automations.removeAction")}
                                         onClick={() => onChange({ ...draft, actions: actions.filter((_, i) => i !== index) })}>
                                         <X />
                                     </Button>
@@ -532,12 +579,19 @@ const AutomationEditor = ({ step, draft, groups, sections, titleOf, groupLabelOf
                             <ActionParams action={action} groups={groups} sections={sections} onChange={next => setAction(index, next)} />
                         </div>
                     ))}
-                    <Button variant="outline" size="sm" type="button" className="justify-self-start"
-                        onClick={() => onChange({ ...draft, actions: [...actions, defaultAction(subject === "group" ? "setColor" : "setPriority", sections, triggerSection)] })}>
-                        <Plus />
-                        {t("automations.addAction")}
-                    </Button>
-                </fieldset>
+                    {canAddAction && (
+                        <Button variant="outline" size="sm" type="button" className="justify-self-start"
+                            onClick={() => {
+                                const type = isStateTrigger(trigger.type)
+                                    ? allowedActions.find(candidate => !actions.some(action => action.type === candidate)) ?? "setColor"
+                                    : triggerSubject(trigger.type) === "group" ? "setColor" : "setPriority"
+                                onChange({ ...draft, actions: [...actions, defaultAction(type, sections, triggerSection)] })
+                            }}>
+                            <Plus />
+                            {t("automations.addAction")}
+                        </Button>
+                    )}
+                </div>
             )}
 
             {step === 2 && (

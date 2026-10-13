@@ -75,10 +75,10 @@ export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getI
                     variant="ghost"
                     size="sm"
                     onClick={handleDeleteColor}
-                    className="w-full justify-start text-xs text-destructive hover:bg-destructive/15 hover:text-destructive"
+                    className="w-full justify-start text-xs"
                 >
                     <X />
-                    {t("common.delete")}
+                    {t("details.noColor")}
                 </Button>
             </div>
         </div>

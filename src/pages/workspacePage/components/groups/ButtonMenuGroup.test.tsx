@@ -103,7 +103,7 @@ describe("ButtonMenuGroup", () => {
         const user = userEvent.setup()
         const row = setup("#e6194b")
         await openColorMenu(user, row)
-        await user.click(await screen.findByText("Elimina", { selector: "button[type=button]" }))
+        await user.click(await screen.findByText("Nessun colore", { selector: "button[type=button]" }))
 
         expect(patchGroup).toHaveBeenCalledWith(3, { color: null })
         expect(updateItemColor).toHaveBeenCalledWith("section_group", 3, undefined)

@@ -246,7 +246,7 @@ export const AudioPlayer = ({
             <Separator className="-mx-2 data-[orientation=horizontal]:w-[calc(100%+1rem)]" />
             {/* The title has a row of its own, as wide as the player: two lines at most, the tooltip has the whole name */}
             <div className="w-full line-clamp-2 break-words text-sm font-medium text-foreground" title={title}>{title}</div>
-            <div className="w-full flex items-center gap-2 text-xs tabular-nums">
+            <div className="w-full flex items-center gap-2 text-[13px] text-foreground tabular-nums">
                 <span>{formatTime(currentTime)}</span>
                 <Slider
                     min={0}
@@ -257,6 +257,7 @@ export const AudioPlayer = ({
                     onKeyDown={handleSeekKeyDown}
                     aria-label={t("audio.player.seek")}
                     aria-valuetext={t("audio.player.position", { current: formatTime(currentTime), total: formatTime(duration) })}
+                    thumbClassName="size-5"
                     className="flex-1 min-w-0"
                 />
                 <span>{formatTime(duration)}</span>
@@ -320,15 +321,15 @@ export const AudioPlayer = ({
                         onClick={cycleRate}
                         aria-label={t("audio.player.speed", { rate })}
                         className={cn(
-                            "shrink-0 h-8 min-w-10 px-1 text-xs tabular-nums",
-                            rate !== 1 && "text-foreground font-medium",
+                            "shrink-0 h-8 min-w-10 px-1 text-[13px] tabular-nums text-foreground",
+                            rate !== 1 && "font-medium",
                         )}
                     >
                         {rate}×
                     </Button>
                 </TooltipCustom>
             </div>
-            <div className="w-full flex items-center gap-2 text-xs">
+            <div className="w-full flex items-center gap-2 text-[13px] text-foreground">
                 <TooltipCustom text={muted ? t("audio.player.unmute") : t("audio.player.mute")}>
                     <Toggle
                         pressed={muted}
@@ -349,9 +350,10 @@ export const AudioPlayer = ({
                     onKeyDown={handleVolumeKeyDown}
                     aria-label={t("audio.player.volume")}
                     aria-valuetext={`${volumeLabel}%`}
+                    thumbClassName="size-5"
                     className="flex-1 min-w-0"
                 />
-                <span className="w-7 text-right tabular-nums">{volumeLabel}</span>
+                <span className="w-8 text-right tabular-nums">{volumeLabel}</span>
             </div>
 
             <audio

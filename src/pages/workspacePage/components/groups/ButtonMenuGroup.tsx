@@ -67,8 +67,18 @@ export const ButtonMenuGroup = ({ group, onRename, children }: Props) => {
         }
     }
 
+    // Groups, apart by a separator: add, edit, move, the rest, delete (the same order in the menus of sections and tasks)
     const items = (
         <MenuGroup className="flex flex-col gap-1">
+            <ButtonInPopover
+                text={t("audio.add")}
+                type="addAudio"
+                onClick={() => {
+                    menu.close()
+                    void addFiles(group.id)
+                }}
+            />
+            <Separator />
             <ButtonInPopover
                 text={t("common.rename")}
                 type="rename"
@@ -83,15 +93,9 @@ export const ButtonMenuGroup = ({ group, onRename, children }: Props) => {
                 addColorItem={addColorItem}
                 onDone={menu.close}
             />
+            <Separator />
             <GroupStepMoves groupId={group.id} onDone={menu.close} />
-            <ButtonInPopover
-                text={t("audio.add")}
-                type="addAudio"
-                onClick={() => {
-                    menu.close()
-                    void addFiles(group.id)
-                }}
-            />
+            <Separator />
             {noteId !== null && <ButtonInPopover
                 text={t("automations.menu")}
                 type="automations"

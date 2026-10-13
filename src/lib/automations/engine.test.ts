@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { groupIds, layout, makeGroups, makeRule, makeTree, taskOf, type TaskSpec } from "@/test/automation-fixtures"
-import { allSubtasksCompleted, allTasksCompleted, MAX_AUTOMATION_STEPS, runAutomations } from "./engine"
+import { allSubtasksCompleted, allTasksCompleted, MAX_AUTOMATION_STEPS, runAutomations, syncStateRules } from "./engine"
 import type { AutomationEvent } from "./types"
 
 const completed = (taskId: number): AutomationEvent => ({ type: "task.completed", taskId })
@@ -602,5 +602,113 @@ describe("group.completed", () => {
         const outcome = runAutomations(tree, rules, completed(10))
         expect(outcome.touchedGroups.length).toBeLessThanOrEqual(1)
         expect(outcome.tree.groups[0].color).toBe("#fff")
+    })
+})
+
+describe("syncStateRules", () => {
+    const green = [{ type: "setColor", color: "#0f0" }] as const
+    const red = [{ type: "setColor", color: "#f00" }] as const
+    const sectionPair = (id = 1, sectionId: number | null = null) => [
+        makeRule(id, { type: "section.noOpenTasks", sectionId }, [...green]),
+        makeRule(id + 1, { type: "section.hasOpenTasks", sectionId }, [...red]),
+    ]
+    const colors = (tree: ReturnType<typeof makeTree>) =>
+        Object.fromEntries(tree.groups.flatMap(group => group.sections).map(section => [section.id, section.color ?? null]))
+
+    it("colors the sections by their state, an empty one counting as without open tasks", () => {
+        const tree = makeTree({ 1: [{ id: 10, completed: true }], 2: [{ id: 20, completed: true }, { id: 21 }], 3: [] })
+        const outcome = syncStateRules(tree, sectionPair())
+        expect(colors(outcome.tree)).toEqual({ 1: "#0f0", 2: "#f00", 3: "#0f0" })
+        expect(outcome.touchedSections).toEqual([1, 3, 2])
+        expect(outcome.touchedGroups).toEqual([])
+    })
+
+    it("counts a task whose subtasks are all done, at any depth, as done", () => {
+        const done = makeTree({ 1: [{ id: 10, subs: [{ id: 11, completed: true }, { id: 12, subs: [{ id: 13, completed: true }] }] }] })
+        expect(colors(syncStateRules(done, sectionPair()).tree)).toEqual({ 1: "#0f0" })
+        const open = makeTree({ 1: [{ id: 10, subs: [{ id: 11, completed: true }, { id: 12, subs: [{ id: 13 }] }] }] })
+        expect(colors(syncStateRules(open, sectionPair()).tree)).toEqual({ 1: "#f00" })
+    })
+
+    it("applies a rule on a specific section only", () => {
+        const tree = makeTree({ 1: [{ id: 10 }], 2: [{ id: 20 }] })
+        const outcome = syncStateRules(tree, [makeRule(1, { type: "section.hasOpenTasks", sectionId: 2 }, [...red])])
+        expect(colors(outcome.tree)).toEqual({ 1: null, 2: "#f00" })
+        expect(outcome.touchedSections).toEqual([2])
+    })
+
+    it("colors the groups looking at all their sections", () => {
+        const tree = makeGroups({
+            1: { 1: [{ id: 10, completed: true }], 2: [{ id: 11 }] },
+            2: { 3: [{ id: 20, completed: true }] },
+            3: { 4: [] },
+        })
+        const rules = [
+            makeRule(1, { type: "group.noOpenTasks", groupId: null }, [...green]),
+            makeRule(2, { type: "group.hasOpenTasks", groupId: null }, [...red]),
+        ]
+        const outcome = syncStateRules(tree, rules)
+        expect(outcome.tree.groups.map(group => group.color)).toEqual(["#f00", "#0f0", "#0f0"])
+        expect(outcome.touchedGroups).toEqual([2, 3, 1])
+        expect(outcome.touchedSections).toEqual([])
+        const specific = syncStateRules(tree, [makeRule(1, { type: "group.hasOpenTasks", groupId: 1 }, [...red])])
+        expect(specific.tree.groups.map(group => group.color ?? null)).toEqual(["#f00", null, null])
+    })
+
+    it("can remove the color", () => {
+        const tree = makeTree({ 1: [{ id: 10 }] })
+        const colored = { groups: [{ ...tree.groups[0], sections: tree.groups[0].sections.map(section => ({ ...section, color: "#f00" })) }] }
+        const outcome = syncStateRules(colored, [makeRule(1, { type: "section.hasOpenTasks", sectionId: null }, [{ type: "setColor", color: null }])])
+        expect(colors(outcome.tree)).toEqual({ 1: null })
+        expect(outcome.touchedSections).toEqual([1])
+    })
+
+    it("returns the very tree when every color is already right", () => {
+        const tree = makeTree({ 1: [{ id: 10 }], 2: [] })
+        const first = syncStateRules(tree, sectionPair())
+        const second = syncStateRules(first.tree, sectionPair())
+        expect(second.tree).toBe(first.tree)
+        expect(second.touchedSections).toEqual([])
+        const none = syncStateRules(tree, [])
+        expect(none.tree).toBe(tree)
+    })
+
+    it("lets the last rule by position win on the same target", () => {
+        const tree = makeTree({ 1: [] })
+        const a = makeRule(1, { type: "section.noOpenTasks", sectionId: null }, [{ type: "setColor", color: "#aaa" }], { position: 5 })
+        const b = makeRule(2, { type: "section.noOpenTasks", sectionId: 1 }, [{ type: "setColor", color: "#bbb" }], { position: 1 })
+        expect(colors(syncStateRules(tree, [a, b]).tree)).toEqual({ 1: "#aaa" })
+        expect(colors(syncStateRules(tree, [b, { ...a, position: 0 }]).tree)).toEqual({ 1: "#bbb" })
+        // same position: the higher id wins
+        expect(colors(syncStateRules(tree, [{ ...a, position: 1 }, b]).tree)).toEqual({ 1: "#bbb" })
+    })
+
+    it("skips disabled, paused and invalid rules", () => {
+        const tree = makeTree({ 1: [] })
+        const disabled = makeRule(1, { type: "section.noOpenTasks", sectionId: null }, [...green], { enabled: false })
+        const pausedSection = makeRule(2, { type: "section.noOpenTasks", sectionId: 99 }, [...green])
+        const pausedGroup = makeRule(3, { type: "group.noOpenTasks", groupId: 99 }, [...green])
+        const invalid = makeRule(4, { type: "section.noOpenTasks", sectionId: null }, [{ type: "archiveGroup" }])
+        const outcome = syncStateRules(tree, [disabled, pausedSection, pausedGroup, invalid])
+        expect(outcome.tree).toBe(tree)
+        expect(outcome.touchedSections).toEqual([])
+        expect(outcome.touchedGroups).toEqual([])
+    })
+
+    it("leaves tasks, order and archive alone, and ignores the event rules", () => {
+        const tree = makeTree({ 1: [{ id: 10, completed: true }], 2: [] })
+        const event = makeRule(1, { type: "task.completed", sectionId: null }, [{ type: "setPriority", value: true }])
+        const outcome = syncStateRules(tree, [event, ...sectionPair(2)])
+        expect(layout(outcome.tree)).toEqual(layout(tree))
+        expect(taskOf(outcome.tree, 10).priority).toBe(false)
+        expect(outcome.tree.groups).toHaveLength(1)
+    })
+
+    it("is ignored by runAutomations, even when the section is empty or the event is related", () => {
+        const tree = makeTree({ 1: [{ id: 10, completed: true }], 2: [] })
+        const rules = [...sectionPair(), makeRule(5, { type: "group.noOpenTasks", groupId: null }, [...green])]
+        const outcome = runAutomations(tree, rules, completed(10))
+        expect(outcome.tree).toBe(tree)
+        expect(outcome.applied).toEqual([])
     })
 })

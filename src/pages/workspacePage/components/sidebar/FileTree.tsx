@@ -114,11 +114,11 @@ const EmptyTree = () => {
                 <EmptyDescription>{t("sidebar.emptyTreeHint")}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-                <Button variant="outline" size="sm" onClick={() => setNoteOpen(true)}>
+                <Button size="sm" onClick={() => setNoteOpen(true)}>
                     <FilePlus />
                     {t("sidebar.addNote")}
                 </Button>
-                <Button variant="outline" size="sm" onClick={() => setFolderOpen(true)}>
+                <Button size="sm" onClick={() => setFolderOpen(true)}>
                     <FolderPlus />
                     {t("sidebar.addFolder")}
                 </Button>

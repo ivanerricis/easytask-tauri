@@ -14,6 +14,7 @@ function Slider({
   onValueChange,
   onValueDrag,
   deferChange = false,
+  thumbClassName,
   onValueCommit,
   onPointerDown,
   ...props
@@ -23,6 +24,8 @@ function Slider({
   onValueDrag?: (value: number[]) => void
   /** The owner hears of a pointer drag only when the thumb is released (the keys still apply at once). */
   deferChange?: boolean
+  /** Classes of the thumb(s), over the default ones (e.g. a bigger one). */
+  thumbClassName?: string
 }) {
   // While the thumb is dragged it follows the pointer from a local value, and the owner is told at most once per frame:
   // a controlled value that is stored (and re-renders a tree of consumers) on every pointer move made the thumb lag
@@ -101,7 +104,7 @@ function Slider({
           aria-label={ariaLabel}
           aria-labelledby={ariaLabelledby}
           aria-valuetext={ariaValuetext}
-          className="block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50"
+          className={cn("block size-4 shrink-0 rounded-full border border-primary bg-white shadow-sm ring-ring transition-[color,box-shadow] hover:ring-4 focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50", thumbClassName)}
         />
       ))}
     </SliderPrimitive.Root>

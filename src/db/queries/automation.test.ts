@@ -92,6 +92,24 @@ describe("createDBAutomation / getDBAutomations", () => {
         ])
     })
 
+    it("round-trips the state triggers, with a section, a group or null", async () => {
+        const triggers: AutomationTrigger[] = [
+            { type: "section.noOpenTasks", sectionId: 2 }, { type: "section.hasOpenTasks", sectionId: null },
+            { type: "group.noOpenTasks", groupId: 1 }, { type: "group.hasOpenTasks", groupId: null },
+        ]
+        for (const trigger of triggers) await createDBAutomation(1, draft({ trigger, actions: [{ type: "setColor", color: "#0f0" }] }))
+        expect((await getDBAutomations(1)).map(rule => rule.trigger)).toEqual(triggers)
+    })
+
+    it("skips a state rule with an action other than setColor, or the wrong reference", async () => {
+        const insert = sqlite.prepare("INSERT INTO automation (noteID, trigger, actions, position) VALUES (1, ?, ?, ?)")
+        insert.run('{"type":"section.noOpenTasks","sectionId":null}', '[{"type":"archiveGroup"}]', 0)
+        insert.run('{"type":"group.hasOpenTasks","groupId":null}', '[{"type":"moveGroup","at":"top"}]', 1)
+        insert.run('{"type":"group.noOpenTasks","sectionId":null}', '[{"type":"setColor","color":null}]', 2)
+        insert.run('{"type":"section.hasOpenTasks","groupId":null}', '[{"type":"setColor","color":null}]', 3)
+        expect(await getDBAutomations(1)).toEqual([])
+    })
+
     it("orders by position, then id", async () => {
         const a = await createDBAutomation(1, draft())
         const b = await createDBAutomation(1, draft())

@@ -134,7 +134,7 @@ describe("DialogAddColor and undo", () => {
         const user = userEvent.setup()
         const addColorItem = vi.fn().mockResolvedValue(undefined)
         render(withUndo(<DialogAddColor item={{ id: 4, color: "#111111", name: "F" } as never} itemType="folder" addColorItem={addColorItem} />))
-        await user.click(screen.getByRole("button", { name: "Elimina" }))
+        await user.click(screen.getByRole("button", { name: "Nessun colore" }))
 
         await waitFor(() => expect(recorder.color).toHaveBeenCalledWith("folder", 4, "F", "#111111", null))
     })

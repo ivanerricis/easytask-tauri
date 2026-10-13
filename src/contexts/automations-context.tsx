@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react"
 import { toast } from "sonner"
 import i18n from "@/i18n"
-import type { NoteDataTree } from "@/types/types"
-import { useActiveNoteActions } from "@/contexts/use-active-note"
+import type { NoteDataTree, Task } from "@/types/types"
+import { useActiveNote, useActiveNoteActions } from "@/contexts/use-active-note"
 import { useActiveNoteId } from "@/contexts/use-tabs"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useOptionalUndo, useUndoRecorder } from "@/contexts/undo/use-undo"
@@ -11,13 +11,13 @@ import { findSection } from "@/contexts/note-tree-ops"
 import { buildNoteTree } from "@/contexts/tree-builders"
 import { getDBNoteData } from "@/db/queries/note"
 import { applyDBAutomationChanges, getDBAutomations } from "@/db/queries/automation"
-import { runAutomations } from "@/lib/automations/engine"
+import { runAutomations, syncStateRules } from "@/lib/automations/engine"
 import {
-    diffGroupStatements, diffTaskStatements, groupChanges, restoreGroups, restoreTasks, taskChanges, withGroups,
+    diffGroupStatements, diffSectionStatements, diffTaskStatements, groupChanges, restoreGroups, restoreTasks, taskChanges, withGroups,
     type GroupChange, type TaskChange,
 } from "@/lib/automations/diff"
 import { automationName } from "@/lib/automations/describe"
-import type { AutomationEvent } from "@/lib/automations/types"
+import { isStateTrigger, type AutomationEvent } from "@/lib/automations/types"
 import { reportError } from "@/lib/report-error"
 import { getErrorMessage } from "@/lib/utils"
 import { getGroupLabel } from "@/pages/workspacePage/components/groups/group-label"
@@ -46,6 +46,28 @@ function groupLabelIn(...trees: NoteDataTree[]) {
     }
 }
 
+/** Adds the id and completed flag of a task and of its subtasks to `out`. */
+function taskSignature(task: Task, out: string[]) {
+    out.push(task.completed ? `${task.id}+` : `${task.id}-`)
+    for (const sub of task.subtasks) taskSignature(sub, out)
+}
+
+/**
+ * What decides the state rules: the ids and order of groups and sections, the ids and completed flag of every task.
+ * Never colors, names or descriptions, so recoloring a note cannot trigger another sync. One pass, no JSON.
+ */
+function structureSignature(tree: NoteDataTree): string {
+    const parts: string[] = []
+    for (const group of tree.groups) {
+        parts.push(`g${group.id}`)
+        for (const section of group.sections) {
+            parts.push(`s${section.id}`)
+            for (const task of section.tasks) taskSignature(task, parts)
+        }
+    }
+    return parts.join(",")
+}
+
 /**
  * Runs the automations of the open note after a user action on a task.
  * `dispatch` is called once the action has been applied (cached note updated and written): the rules run on the
@@ -60,6 +82,7 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
     const activeIdRef = useRef(activeId)
     useEffect(() => { activeIdRef.current = activeId }, [activeId])
 
+    const { noteDataTree } = useActiveNote()
     const { getNoteTree, setNoteDataTree, refreshActiveNote } = useActiveNoteActions()
     const { notifyArchiveChanged } = useWorkspaceActions()
     const recorder = useUndoRecorder()
@@ -135,9 +158,14 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
             if (isLatestRef.current?.(command)) void undo?.()
             else toast.info(i18n.t("automations.undoUnavailable"))
         }
+        // A short title, then the sentence of each rule (one per line) in plain text: the whole sentence in bold was a wall of text
         toast.success(
-            names.length === 1 ? i18n.t("automations.ran", { name: names[0] }) : i18n.t("automations.ranMany", { names: names.join(", ") }),
-            undo ? { action: { label: i18n.t("undo.undo"), onClick: undoAutomation } } : undefined,
+            i18n.t(names.length === 1 ? "automations.ranTitle" : "automations.ranManyTitle"),
+            {
+                description: names.join("\n"),
+                classNames: { description: "whitespace-pre-line" },
+                ...(undo ? { action: { label: i18n.t("undo.undo"), onClick: undoAutomation } } : {}),
+            },
         )
     }, [getNoteTree, setNoteDataTree, refreshActiveNote, notifyArchiveChanged, recorder, restore])
 
@@ -146,6 +174,38 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         reportError(error, getErrorMessage(error))
     })), [recorder, run])
 
-    const value = useMemo(() => ({ dispatch }), [dispatch])
+    /**
+     * Aligns the colors with the state rules (no tasks to do -> one color, some -> another). Silent on purpose: no toast and
+     * no undo entry, because the color derives from the tasks (undoing the user action re-aligns it). Never rejects.
+     */
+    const sync = useCallback(() => recorder.track((async () => {
+        const noteId = activeIdRef.current
+        if (noteId === null) return
+        const rules = await getDBAutomations(noteId)
+        if (!rules.some(rule => rule.enabled && isStateTrigger(rule.trigger.type))) return
+        // Read after the await: the user may have acted while the rules were loading
+        const before = activeIdRef.current === noteId ? getNoteTree() : null
+        if (!before) return
+        const { tree: after } = syncStateRules(before, rules)
+        if (after === before) return
+        setNoteDataTree(after)
+        try {
+            await applyDBAutomationChanges([...diffGroupStatements(before, after), ...diffSectionStatements(before, after)])
+        } catch (error) {
+            await refreshActiveNote().catch(() => {})
+            throw error
+        }
+    })().catch(error => {
+        reportError(error, getErrorMessage(error))
+    })), [recorder, getNoteTree, setNoteDataTree, refreshActiveNote])
+
+    // Only the structure matters: the sync itself changes colors, which keep the signature (and so avoid a loop)
+    const signature = useMemo(() => noteDataTree ? structureSignature(noteDataTree) : null, [noteDataTree])
+    useEffect(() => {
+        if (signature === null) return
+        void sync()
+    }, [signature, activeId, sync])
+
+    const value = useMemo(() => ({ dispatch, sync }), [dispatch, sync])
     return <AutomationsContext.Provider value={value}>{children}</AutomationsContext.Provider>
 }

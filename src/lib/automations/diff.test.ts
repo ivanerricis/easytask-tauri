@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
 import { buildPositionUpdate } from "@/db/queries/ordering"
 import type { NoteDataTree } from "@/types/types"
-import { moveGroupInList, moveTask, patchGroup, patchTask, removeGroup, removeSection, removeTask } from "@/contexts/note-tree-ops"
+import { moveGroupInList, moveTask, patchGroup, patchSection, patchTask, removeGroup, removeSection, removeTask } from "@/contexts/note-tree-ops"
 import { groupIds, layout, makeGroups, makeRule, makeTree, taskOf } from "@/test/automation-fixtures"
-import { diffGroupStatements, diffTaskStatements, groupChanges, restoreGroups, restoreTasks, taskChanges, withGroups } from "./diff"
+import { diffGroupStatements, diffSectionStatements, diffTaskStatements, groupChanges, restoreGroups, restoreTasks, taskChanges, withGroups } from "./diff"
 import { runAutomations } from "./engine"
 
 const base = () => makeTree({
@@ -384,5 +384,30 @@ describe("withGroups", () => {
         expect(diffTaskStatements(before, withGroups(after, archived))).toEqual([
             { sql: "UPDATE task SET completed = ? WHERE id = ?", params: [1, 10] },
         ])
+    })
+})
+
+describe("diffSectionStatements", () => {
+    it("returns nothing for equal trees", () => {
+        const tree = base()
+        expect(diffSectionStatements(tree, tree)).toEqual([])
+        expect(diffSectionStatements(tree, base())).toEqual([])
+    })
+
+    it("writes the changed colors only, and treats undefined like null", () => {
+        const before = base()
+        const after = patchSection(patchSection(before, 2, { color: "#00ff00" }), 3, { color: undefined })
+        expect(diffSectionStatements(before, after)).toEqual([
+            { sql: "UPDATE section SET color = ? WHERE id = ?", params: ["#00ff00", 2] },
+        ])
+        expect(diffSectionStatements(after, patchSection(after, 2, { color: null }))).toEqual([
+            { sql: "UPDATE section SET color = ? WHERE id = ?", params: [null, 2] },
+        ])
+    })
+
+    it("ignores the sections present in only one of the trees", () => {
+        const before = patchSection(base(), 1, { color: "#f00" })
+        expect(diffSectionStatements(before, removeSection(before, 1))).toEqual([])
+        expect(diffSectionStatements(removeSection(before, 1), before)).toEqual([])
     })
 })

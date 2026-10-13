@@ -1,10 +1,11 @@
 import { MenuItem } from "@/components/menu-kind"
-import { Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, HelpCircle, Info, Link2, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2, Upload, Zap, ListCollapse, ListChevronsUpDown } from "lucide-react"
+import { Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, Info, Link2, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2, Upload, Zap, ListCollapse, ListChevronsUpDown } from "lucide-react"
 import React from "react"
 
 type ButtonInPopoverProps = {
     text: string
-    type: string
+    /** The icon of the entry: only the names of the map below (a typo is a compile error, not a "?" icon). */
+    type: ButtonInPopoverIcon
     children?: React.ReactNode
     className?: string
     destructive?: boolean
@@ -13,7 +14,7 @@ type ButtonInPopoverProps = {
     onClick?: () => void | Promise<void>
 }
 
-const iconMap: Record<string, React.ElementType> = {
+const iconMap = {
     open: SquareArrowOutUpRight,
     details: Info,
     addFolder: FolderPlus,
@@ -42,10 +43,12 @@ const iconMap: Record<string, React.ElementType> = {
     collapseAll: ListCollapse,
     expandAll: ListChevronsUpDown,
     delete: Trash2,
-}
+} satisfies Record<string, React.ElementType>
+
+export type ButtonInPopoverIcon = keyof typeof iconMap
 
 export const ButtonInPopover = React.memo(({ text, type, children, className, destructive, disabled, onClick }: ButtonInPopoverProps) => {
-    const IconComponent = iconMap[type] || HelpCircle
+    const IconComponent = iconMap[type]
 
     return (
         <MenuItem

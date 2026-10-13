@@ -17,6 +17,11 @@ export type AutomationTrigger =
     | { type: "subtasks.completed", sectionId: number | null }
     /** Every task of a group is completed (groupId null = any group of the note). The actions apply to the group. */
     | { type: "group.completed", groupId: number | null }
+    /** State (not event) triggers: they hold while the note is in that state, see syncStateRules. */
+    | { type: "section.noOpenTasks", sectionId: number | null }
+    | { type: "section.hasOpenTasks", sectionId: number | null }
+    | { type: "group.noOpenTasks", groupId: number | null }
+    | { type: "group.hasOpenTasks", groupId: number | null }
 
 /**
  * What a rule does to the subject of its trigger (a task or a group).
@@ -68,30 +73,50 @@ export type AutomationEvent =
     /** `fromSectionId` is the section the task was in before the move. */
     | { type: "task.moved", taskId: number, fromSectionId: number }
 
-export const TRIGGER_TYPES: readonly AutomationTriggerType[] = ["task.completed", "task.reopened", "task.created", "task.movedInto", "subtasks.completed", "group.completed"]
+export const TRIGGER_TYPES: readonly AutomationTriggerType[] = ["task.completed", "task.reopened", "task.created", "task.movedInto", "subtasks.completed", "group.completed",
+    "section.noOpenTasks", "section.hasOpenTasks", "group.noOpenTasks", "group.hasOpenTasks"]
 export const ACTION_TYPES: readonly AutomationActionType[] = ["moveTo", "setCompleted", "setPriority", "setColor", "completeSubtasks", "moveGroup", "archiveGroup"]
 
 /**
- * What a rule acts on: the task of a `task.*` / `subtasks.completed` trigger, or the group of `group.completed`.
+ * What a rule acts on: the task of a `task.*` / `subtasks.completed` trigger, the group of the group triggers, the
+ * section of the `section.*` ones.
  * @category Automations
  */
-export type AutomationSubject = "task" | "group"
+export type AutomationSubject = "task" | "group" | "section"
+
+/** Whether the trigger is a state (it holds while the note is in that state) and not an event. */
+export const isStateTrigger = (type: AutomationTriggerType) =>
+    type === "section.noOpenTasks" || type === "section.hasOpenTasks" || type === "group.noOpenTasks" || type === "group.hasOpenTasks"
+
+/** Whether the trigger refers to a group (`groupId`) and the rule acts on it. */
+export const isGroupTrigger = (type: AutomationTriggerType) =>
+    type === "group.completed" || type === "group.noOpenTasks" || type === "group.hasOpenTasks"
 
 /** The subject of the rules with this trigger. */
-export const triggerSubject = (type: AutomationTriggerType): AutomationSubject => type === "group.completed" ? "group" : "task"
+export const triggerSubject = (type: AutomationTriggerType): AutomationSubject =>
+    type === "section.noOpenTasks" || type === "section.hasOpenTasks" ? "section" : isGroupTrigger(type) ? "group" : "task"
 
 /** The actions a rule can have for each subject (`setColor` acts on the subject, whichever it is). */
 export const ACTIONS_BY_SUBJECT: Record<AutomationSubject, readonly AutomationActionType[]> = {
     task: ["moveTo", "setCompleted", "setPriority", "setColor", "completeSubtasks"],
     group: ["setColor", "moveGroup", "archiveGroup"],
+    section: ["setColor"],
 }
 
 /**
- * Whether every action is allowed for the subject of the trigger (the list may be empty: that is checked by the editor).
+ * The actions a rule can have with this trigger: a state trigger holds for as long as the state lasts, so only the
+ * color (idempotent) is allowed (e.g. archiving would archive every empty group).
+ * @category Automations
+ */
+export const actionsForTrigger = (type: AutomationTriggerType): readonly AutomationActionType[] =>
+    isStateTrigger(type) ? ["setColor"] : ACTIONS_BY_SUBJECT[triggerSubject(type)]
+
+/**
+ * Whether every action is allowed for the trigger (the list may be empty: that is checked by the editor).
  * @category Automations
  */
 export const isValidRule = (trigger: AutomationTrigger, actions: readonly AutomationAction[]) =>
-    actions.every(action => ACTIONS_BY_SUBJECT[triggerSubject(trigger.type)].includes(action.type))
+    actions.every(action => actionsForTrigger(trigger.type).includes(action.type))
 
 const isSectionRef = (value: unknown, allowNull: boolean) =>
     (allowNull && value === null) || (typeof value === "number" && Number.isInteger(value))
@@ -103,7 +128,7 @@ const isSectionRef = (value: unknown, allowNull: boolean) =>
 export function isAutomationTrigger(value: unknown): value is AutomationTrigger {
     if (typeof value !== "object" || value === null) return false
     const { type, sectionId, groupId } = value as { type?: unknown, sectionId?: unknown, groupId?: unknown }
-    if (type === "group.completed") return isSectionRef(groupId, true)
+    if (isGroupTrigger(type as AutomationTriggerType)) return TRIGGER_TYPES.includes(type as AutomationTriggerType) && isSectionRef(groupId, true)
     if (type === "task.movedInto") return isSectionRef(sectionId, false)
     return TRIGGER_TYPES.includes(type as AutomationTriggerType) && isSectionRef(sectionId, true)
 }
@@ -133,7 +158,7 @@ export function isAutomationAction(value: unknown): value is AutomationAction {
  */
 export function referencedSections(rule: Pick<Automation, "trigger" | "actions">): number[] {
     const ids = new Set<number>()
-    if (rule.trigger.type !== "group.completed" && rule.trigger.sectionId !== null) ids.add(rule.trigger.sectionId)
+    if (!isGroupTrigger(rule.trigger.type) && "sectionId" in rule.trigger && rule.trigger.sectionId !== null) ids.add(rule.trigger.sectionId)
     for (const action of rule.actions) if (action.type === "moveTo") ids.add(action.sectionId)
     return [...ids]
 }
@@ -143,5 +168,5 @@ export function referencedSections(rule: Pick<Automation, "trigger" | "actions">
  * @category Automations
  */
 export function referencedGroups(rule: Pick<Automation, "trigger">): number[] {
-    return rule.trigger.type === "group.completed" && rule.trigger.groupId !== null ? [rule.trigger.groupId] : []
+    return "groupId" in rule.trigger && rule.trigger.groupId !== null ? [rule.trigger.groupId] : []
 }

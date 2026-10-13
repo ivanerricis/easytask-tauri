@@ -1,7 +1,7 @@
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
     byLabel, byText, createFromSidebar, createWorkspace, cssColor, currentLang, domClick, openContextMenu, openWorkspace, sectionCard, tr, treeRow,
-    typeInto, waitForApp,
+    sql, typeInto, waitForApp,
     addTaskButton, topDialog,
 } from "../helpers"
 
@@ -25,7 +25,11 @@ type Chainable = ReturnType<typeof $>
 const ruleDescription = async (from: string, to: string) =>
     tr("automations.describe.rule", {
         trigger: await tr("automations.describe.inSection", { trigger: await tr("automations.triggers.taskCompleted"), section: from }),
-        actions: [await tr("automations.describe.moveBottom", { section: to }), await tr("automations.describe.setColor")].join(", "),
+        actions: new Intl.ListFormat(await currentLang(), { style: "long", type: "conjunction" }).format([
+            await tr("automations.describe.moveBottom", { section: to }),
+            // The color of the rule is picked by name in the test (GREEN)
+            await tr("automations.describe.setColor", { color: await tr("common.colors.c2") }),
+        ]),
     })
 
 /** Values of the task text areas of a section card. */
@@ -147,6 +151,41 @@ const closeAllDialogs = async () => {
         await browser.keys("Escape")
         await browser.waitUntil(async () => (await open()) === 0, { timeout: 1_500 }).catch(() => undefined)
     }
+}
+
+const STATE_NOTE = "Auto State Note"
+const STATE_GROUP = "Auto State Group"
+const WITH_TASK = "Auto Stato Con"
+const EMPTY = "Auto Stato Vuota"
+const STATE_TASK = "Auto stato task uno"
+const STATE_TASK_2 = "Auto stato task due"
+const RED_HEX = "#e6194b" // PALETTE_COLORS[0], "common.colors.c1"
+const GREEN_HEX = "#3cb44b" // PALETTE_COLORS[1], "common.colors.c2"
+
+/** The color of a section of this test (null = none); the titles are unique to the test. */
+const colorOf = async (title: string) => {
+    const rows = await sql<{ color: string | null }[]>("select", "SELECT color FROM section WHERE title = ? AND deleted_at IS NULL", [title])
+    return rows[0]?.color?.toLowerCase() ?? null
+}
+
+const waitForColor = (title: string, color: string) =>
+    browser.waitUntil(async () => (await colorOf(title)) === color, {
+        timeout: 15_000,
+        timeoutMsg: `the section "${title}" did not become ${color}`,
+    })
+
+/** Creates "<trigger> (any section) -> color" in the open automations dialog. */
+const createStateRule = async (dialog: Chainable, trigger: string, colorKey: string) => {
+    await byText(await tr("automations.add"), dialog).click()
+    await currentStep(dialog, 0)
+    await choose(dialog, await tr("automations.when"), await tr(`automations.triggers.${trigger}`))
+    await next(dialog, 1)
+    // A state trigger only has the color action
+    expect(await dialog.$$(`[aria-label=${JSON.stringify(await tr("automations.actionType"))}]`)).toHaveLength(1)
+    await choose(dialog, await tr("automations.actions.setColor"), await tr(`common.colors.${colorKey}`))
+    await next(dialog, 2)
+    await footerButton(dialog, await tr("common.save")).click()
+    await dialog.$(`h2=${await tr("automations.title")}`).waitForDisplayed({ timeoutMsg: "the editor did not close after saving" })
 }
 
 describe("Automations", () => {
@@ -279,7 +318,7 @@ describe("Automations", () => {
         await waitForTaskIn(TASK_1, DONE)
         expect(await isCompleted(TASK_1)).toBe(true)
         const name = await ruleDescription(TODO, DONE)
-        await toastWith(await tr("automations.ran", { name })).waitForDisplayed({ timeoutMsg: "the automation toast did not show up" })
+        await toastWith(name).waitForDisplayed({ timeoutMsg: "the automation toast did not show up" })
 
         // The color of the second action
         const found = await locate(TASK_1)
@@ -306,7 +345,7 @@ describe("Automations", () => {
 
         await domClick(await checkbox(TASK_2))
         await waitForTaskIn(TASK_2, DONE)
-        const ran = toastWith(await tr("automations.ran", { name: await ruleDescription(TODO, DONE) }))
+        const ran = toastWith(await ruleDescription(TODO, DONE))
         await ran.waitForDisplayed({ timeoutMsg: "the automation toast did not show up" })
 
         // Another undoable action right after: priority on another task
@@ -509,5 +548,43 @@ describe("Automations", () => {
             await gotoStep(dialog, 0)
             expect(await overflows()).toEqual([])
         })
+    })
+
+    it("colors sections by their open tasks with two state rules, as the tasks change", async () => {
+        await createFromSidebar("sidebar.addNote", "dialogs.addNote.submit", STATE_NOTE)
+        await treeRow(STATE_NOTE).click()
+        await byLabel(await tr("notes.closeCurrent")).waitForDisplayed()
+        await byText(await tr("menu.newGroup")).click()
+        await typeInto(byLabel(await tr("groups.nameLabel")), STATE_GROUP)
+        await browser.keys("Enter")
+        await byText(STATE_GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
+        for (const title of [WITH_TASK, EMPTY]) {
+            await byText(await tr("sections.new")).click()
+            await typeInto(byLabel(await tr("sections.titleLabel")), title)
+            await browser.keys("Enter")
+            await sectionCard(title).waitForDisplayed()
+        }
+        await addTask(WITH_TASK, STATE_TASK)
+
+        const dialog = await openAutomations(STATE_NOTE)
+        await createStateRule(dialog, "sectionNoOpenTasks", "c2")
+        await createStateRule(dialog, "sectionHasOpenTasks", "c1")
+        await expect(dialog.$("ul")).toBeDisplayed()
+        await browser.keys("Escape")
+        await dialog.waitForExist({ reverse: true })
+
+        // Saving the rules aligns the open note: the empty section is green, the one with a task red
+        await waitForColor(EMPTY, GREEN_HEX)
+        await waitForColor(WITH_TASK, RED_HEX)
+
+        // The only task is completed: no open task left
+        await domClick(await checkbox(STATE_TASK))
+        await waitForColor(WITH_TASK, GREEN_HEX)
+        expect(await colorOf(EMPTY)).toBe(GREEN_HEX)
+
+        // A new task in the empty section
+        await addTask(EMPTY, STATE_TASK_2)
+        await waitForColor(EMPTY, RED_HEX)
+        expect(await colorOf(WITH_TASK)).toBe(GREEN_HEX)
     })
 })

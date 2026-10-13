@@ -1,6 +1,6 @@
 import type { NoteTemplateContent } from "@/types/template"
 import {
-    isAutomationAction, isValidRule, TRIGGER_TYPES,
+    isAutomationAction, isGroupTrigger, isValidRule, TRIGGER_TYPES,
     type Automation, type AutomationAction, type AutomationTrigger, type AutomationTriggerType,
 } from "./types"
 
@@ -11,13 +11,15 @@ import {
  */
 export type PortableSectionRef = { group: number, section: number }
 
+type GroupTriggerType = "group.completed" | "group.noOpenTasks" | "group.hasOpenTasks"
+
 /**
  * A trigger of a portable rule: the section is a position in the content (null = any section); the group of
- * `group.completed` is its index in `content.groups` (null = any group).
+ * the group triggers is its index in `content.groups` (null = any group).
  */
 export type PortableTrigger =
-    | { type: Exclude<AutomationTriggerType, "group.completed">, sectionId: PortableSectionRef | null }
-    | { type: "group.completed", groupId: number | null }
+    | { type: Exclude<AutomationTriggerType, GroupTriggerType>, sectionId: PortableSectionRef | null }
+    | { type: GroupTriggerType, groupId: number | null }
 
 /** An action of a portable rule: a move targets a position in the content. */
 export type PortableAction =
@@ -95,7 +97,7 @@ export function toPortable(
 ): PortableAutomation | null {
     const source = rule.trigger
     let trigger: PortableTrigger
-    if (source.type === "group.completed") {
+    if ("groupId" in source) {
         if (source.groupId === null) {
             trigger = { type: source.type, groupId: null }
         } else {
@@ -145,7 +147,7 @@ export function isPortableAutomation(value: unknown, content: NoteTemplateConten
     if (typeof trigger !== "object" || trigger === null) return false
     const { type, sectionId, groupId } = trigger as { type?: unknown, sectionId?: unknown, groupId?: unknown }
     if (!TRIGGER_TYPES.includes(type as AutomationTriggerType)) return false
-    if (type === "group.completed") {
+    if (isGroupTrigger(type as AutomationTriggerType)) {
         if (!(groupId === null || (isIndex(groupId) && groupId < content.groups.length))) return false
     } else if (sectionId === null ? type === "task.movedInto" : !isSectionInContent(sectionId, content)) return false
 

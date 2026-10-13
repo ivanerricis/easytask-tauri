@@ -1,6 +1,6 @@
 import type { Group, NoteDataTree, Task } from "@/types/types"
-import { findGroup, findSection, findTask, mapTask, moveGroupInList, moveTask, patchGroup, patchTask, removeGroup } from "@/contexts/note-tree-ops"
-import { isValidRule, referencedGroups, referencedSections, type Automation, type AutomationAction, type AutomationEvent, type AutomationTrigger } from "./types"
+import { findGroup, findSection, findTask, mapTask, moveGroupInList, moveTask, patchGroup, patchSection, patchTask, removeGroup } from "@/contexts/note-tree-ops"
+import { isStateTrigger, isValidRule, referencedGroups, referencedSections, type Automation, type AutomationAction, type AutomationEvent, type AutomationTrigger } from "./types"
 
 /**
  * Most events handled for one user action: the actions of a rule raise new events (a move, a completion…) and the
@@ -46,8 +46,11 @@ export function allTasksCompleted(group: Group): boolean {
 }
 
 function matches(trigger: AutomationTrigger, event: EngineEvent, tree: NoteDataTree): boolean {
+    // The state triggers are not events: syncStateRules handles them
+    if (isStateTrigger(trigger.type)) return false
     // The group rules only see group events, the task rules never do
-    if (trigger.type === "group.completed") {
+    if ("groupId" in trigger) {
+        if (trigger.type !== "group.completed") return false
         if (event.type !== "group.completed") return false
         if (trigger.groupId !== null && trigger.groupId !== event.groupId) return false
         const found = findGroup(tree, event.groupId)
@@ -66,6 +69,7 @@ function matches(trigger: AutomationTrigger, event: EngineEvent, tree: NoteDataT
         case "task.created": return event.type === "task.created" && topLevel && inSection
         case "task.movedInto": return event.type === "task.moved" && topLevel && section === trigger.sectionId && event.fromSectionId !== section
         case "subtasks.completed": return event.type === "subtasks.completed" && inSection && allSubtasksCompleted(found.task)
+        default: return false
     }
 }
 
@@ -172,6 +176,7 @@ function applyAction(tree: NoteDataTree, taskId: number, action: AutomationActio
 export function runAutomations(tree: NoteDataTree, rules: readonly Automation[], event: AutomationEvent): AutomationOutcome {
     const active = rules
         .filter(rule => rule.enabled
+            && !isStateTrigger(rule.trigger.type)
             && isValidRule(rule.trigger, rule.actions)
             && referencedSections(rule).every(id => !!findSection(tree, id))
             && referencedGroups(rule).every(id => !!findGroup(tree, id)))
@@ -226,4 +231,66 @@ export function runAutomations(tree: NoteDataTree, rules: readonly Automation[],
         }
     }
     return { tree: current, applied: [...applied.values()], touched: [...touched], touchedGroups: [...touchedGroups], archivedGroups }
+}
+
+/** Whether a task counts as done: completed, or with subtasks that are all done (at any depth). */
+const isTaskDone = (task: Task): boolean => !!task.completed || (task.subtasks.length > 0 && task.subtasks.every(isTaskDone))
+
+/** Records the color the setColor actions of a rule give to a target (the last action wins). */
+function record(colors: Map<number, string | null>, id: number, actions: readonly AutomationAction[]) {
+    for (const action of actions) if (action.type === "setColor") colors.set(id, action.color)
+}
+
+/**
+ * Applies the state rules ("a section/group has no open tasks" / "has open tasks") to a note: the color of every
+ * target whose state matches the trigger of an enabled rule. Pure and idempotent: a color already equal is left alone,
+ * and nothing else (tasks, order, archive) is touched. An empty section or group has no open tasks. A rule that is
+ * paused (its section or group is gone), invalid or disabled is skipped; when several rules hit the same target the
+ * last one (by position, then id) wins.
+ * @param tree The note.
+ * @param rules The rules of the note (the event rules are ignored).
+ * @returns The new note (the very `tree` when nothing changed) and the sections and groups that changed color.
+ * @category Automations
+ */
+export function syncStateRules(tree: NoteDataTree, rules: readonly Automation[]): { tree: NoteDataTree, touchedSections: number[], touchedGroups: number[] } {
+    const active = rules
+        .filter(rule => rule.enabled
+            && isStateTrigger(rule.trigger.type)
+            && isValidRule(rule.trigger, rule.actions)
+            && referencedSections(rule).every(id => !!findSection(tree, id))
+            && referencedGroups(rule).every(id => !!findGroup(tree, id)))
+        .sort((a, b) => a.position - b.position || a.id - b.id)
+
+    // The color each target should have: later rules overwrite earlier ones
+    const sectionColors = new Map<number, string | null>()
+    const groupColors = new Map<number, string | null>()
+    for (const { trigger, actions } of active) {
+        const wantsNoOpen = trigger.type === "section.noOpenTasks" || trigger.type === "group.noOpenTasks"
+        const holds = (tasks: Task[]) => tasks.every(isTaskDone) === wantsNoOpen
+        if (trigger.type === "section.noOpenTasks" || trigger.type === "section.hasOpenTasks") {
+            for (const group of tree.groups)
+                for (const section of group.sections)
+                    if ((trigger.sectionId === null || trigger.sectionId === section.id) && holds(section.tasks)) record(sectionColors, section.id, actions)
+        } else if (trigger.type === "group.noOpenTasks" || trigger.type === "group.hasOpenTasks") {
+            for (const group of tree.groups)
+                if ((trigger.groupId === null || trigger.groupId === group.id) && holds(group.sections.flatMap(section => section.tasks))) record(groupColors, group.id, actions)
+        }
+    }
+
+    let current = tree
+    const touchedSections: number[] = []
+    const touchedGroups: number[] = []
+    for (const [id, color] of sectionColors) {
+        const found = findSection(current, id)
+        if (!found || (found.section.color ?? null) === color) continue
+        current = patchSection(current, id, { color })
+        touchedSections.push(id)
+    }
+    for (const [id, color] of groupColors) {
+        const found = findGroup(current, id)
+        if (!found || (found.group.color ?? null) === color) continue
+        current = patchGroup(current, id, { color })
+        touchedGroups.push(id)
+    }
+    return { tree: current, touchedSections, touchedGroups }
 }

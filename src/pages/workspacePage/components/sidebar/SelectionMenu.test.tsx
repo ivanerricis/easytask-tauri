@@ -217,7 +217,7 @@ describe("color", () => {
         select("folder-1", "note-10", "folder-2")
         fireEvent.contextMenu(row)
         await user.hover(await screen.findByText("Colore"))
-        fireEvent.click(await screen.findByRole("button", { name: "Elimina" }))
+        fireEvent.click(await screen.findByRole("button", { name: "Nessun colore" }))
         await waitFor(() => expect(recorder.colorMany).toHaveBeenCalledTimes(1))
         expect(updateItemColor.mock.calls).toEqual([["folder", 2, undefined], ["note", 10, undefined]])
         expect(recorder.colorMany).toHaveBeenCalledWith([
