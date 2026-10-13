@@ -4,6 +4,30 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-13
+
+### Aggiunto
+
+- Automazioni: quattro trigger "di stato" (una sezione o un gruppo non ha task da completare / ha almeno un task da completare) che impostano un colore. Bastano due regole per colorare di verde un gruppo o una sezione quando non resta nulla da fare e di rosso altrimenti. Si applicano in silenzio, senza notifica e senza voce di annullamento, e sono rivalutate a ogni cambio dei task della nota e al salvataggio delle regole.
+- Automazioni: una schermata per quando non ce ne sono, con un esempio e un solo pulsante "Nuova automazione".
+
+### Modificato
+
+- Palette: sei colori (Giallo, Ciano, Lime, Rosa, Lavanda, Beige) sono più scuri perché il testo resti leggibile in entrambi i temi; i colori già assegnati non cambiano. I campioni sono quadrati e un test controlla il contrasto.
+- Automazioni: la frase di una regola nomina il colore, gli elenchi si uniscono con "e", i passaggi sono controllati, Invio va avanti e la notifica mostra un titolo breve con una riga per regola.
+- La finestra di aggiornamento e le Impostazioni condividono le stesse parti: focus su "Aggiorna ora", note di rilascio scorribili da tastiera e con link, avanzamento e un suggerimento.
+- Menu di sezioni, gruppi e task riordinati con separatori; nel sottomenu del colore c'è "Nessun colore" al posto di "Elimina"; "Sposta in…" rifinito.
+- I pulsanti di creazione hanno il "+" e sono pieni quando una lista è vuota. Le checkbox dei sottotask sono allineate al testo del task padre, e il player audio e Impostazioni > Audio sono allineati.
+
+### Corretto
+
+- Menu del testo: posizione errata, annulla e ripeti, campi di sola lettura e numerici o email; il testo di un task mantiene il menu del task.
+- Il selettore "Quando" dell'editor delle automazioni non taglia più il testo.
+
+### Note
+
+- Tornando a una versione precedente le nuove regole di stato vengono ignorate senza errori.
+
 ## [0.9.1] - 2026-10-13
 
 ### Aggiunto

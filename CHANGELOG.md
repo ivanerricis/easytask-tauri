@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-13
+
+### Added
+
+- Automations: four "state" triggers (a section or a group has no open tasks / has at least one open task) that set a color. Two rules are enough to turn a group or a section green when nothing is left to do and red otherwise. They apply silently, with no notification and no undo entry, and are re-evaluated whenever the tasks of the note change and when the rules are saved.
+- Automations: an empty-state screen with an example and a single "New automation" button.
+
+### Changed
+
+- Palette: six colors (Yellow, Cyan, Lime, Pink, Lavender, Beige) are darker so the text stays readable in both themes; colors already assigned do not change. The swatches are squares, and a test guards the contrast.
+- Automations: the sentence of a rule names its color, lists are joined with "and", the steps are checked, Enter moves forward, and the notification shows a short title with one line per rule.
+- Update dialog and Settings share the same parts: focus on "Update now", release notes you can scroll with the keyboard and with links, progress and a hint.
+- Menus of sections, groups and tasks are reordered with separators; the color submenu has "No color" instead of "Delete"; "Move to…" is polished.
+- Buttons for creating things have a "+" and are filled when a list is empty. The checkboxes of subtasks are aligned with the text of their parent, and the audio player and Settings > Audio are aligned.
+
+### Fixed
+
+- Text context menu: wrong position, undo and redo, read-only and number or email fields; the text of a task keeps the task menu.
+- The "When" selector of the automation editor no longer cuts its text.
+
+### Notes
+
+- Going back to an older version ignores the new state rules without errors.
+
 ## [0.9.1] - 2026-10-13
 
 ### Added
