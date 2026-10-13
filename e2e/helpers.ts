@@ -80,11 +80,21 @@ export const typeInto = async (input: ChainablePromiseElement, value: string) =>
     }
 }
 
-/** Creates a workspace from the home page and checks that it shows up in the list. */
+/**
+ * Creates a workspace from the home page and checks that it shows up in the list.
+ * The click on the button is repeated when the dialog does not open: right after the start the home page can still be
+ * drawing itself (the button is replaced under the click), which happened now and then in the Linux job of the CI.
+ */
 export const createWorkspace = async (name: string) => {
-    await byText(await tr("home.createWorkspace.open")).click()
+    const open = byText(await tr("home.createWorkspace.open"))
     const dialog = $('[role="dialog"]')
-    await dialog.waitForDisplayed()
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        await open.waitForClickable()
+        await open.click()
+        const shown = await dialog.waitForDisplayed({ timeout: attempt < 3 ? 4_000 : 10_000 }).then(() => true, () => false)
+        if (shown) break
+    }
+    await dialog.waitForDisplayed({ timeoutMsg: "the create workspace dialog did not open" })
     await typeInto(dialog.$('input[name="name"]'), name)
     await byText(await tr("home.createWorkspace.title"), dialog).click()
     await dialog.waitForExist({ reverse: true })
