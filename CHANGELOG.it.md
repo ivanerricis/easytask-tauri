@@ -4,6 +4,24 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-13
+
+### Aggiunto
+
+- Tasto destro sullo spazio vuoto dell'albero della barra laterale: un menu per creare una nota o una cartella nella radice del workspace, creare una nota da un template, importare, e comprimere o espandere tutte le cartelle.
+- Impostazioni > Aspetto > Animazioni: un nuovo valore "Sistema", ora quello predefinito, che segue l'impostazione delle animazioni del sistema operativo (in Windows: Impostazioni > Accessibilità > Effetti visivi > Effetti di animazione) e cambia con essa. Chi aveva scelto una velocità la mantiene.
+
+### Modificato
+
+- Le cartelle si aprono e si chiudono con un'animazione a scorrimento, e la loro freccia ruota in modo fluido (segue l'impostazione delle animazioni).
+- Barra laterale: le righe non hanno bordo finché non ci passi sopra; la nota aperta o selezionata ha un bordo d'accento su tutti i lati, e una cartella chiusa che contiene la nota aperta lo ha più tenue. L'icona di una nota sta sotto l'icona della sua cartella, e i pulsanti in alto sono raggruppati (crea, file, vista) da separatori.
+- Impostazioni > Aspetto > Animazioni: una descrizione più breve.
+
+### Corretto
+
+- Il trascinamento di gruppi, sezioni e task in una nota, e di note e cartelle nella barra laterale, è fluido anche con centinaia di task: quando il puntatore cambia bersaglio viene ridisegnata solo la riga interessata (in una nota con 213 task i frame di un trascinamento sono passati da 100 ms a 17 ms).
+- L'anello di focus dell'ultimo elemento di una cartella era tagliato in basso.
+
 ## [0.9.0] - 2026-10-12
 
 ### Aggiunto
@@ -254,7 +272,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...v0.8.0

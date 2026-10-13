@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-10-13
+
+### Added
+
+- Right click on the empty space of the sidebar tree: a menu to create a note or a folder in the root of the workspace, create a note from a template, import, and collapse or expand all the folders.
+- Settings > Appearance > Animations: a new "System" value, now the default, that follows the animation setting of the operating system (in Windows: Settings > Accessibility > Visual effects > Animation effects) and changes with it. Whoever chose a speed before keeps it.
+
+### Changed
+
+- Folders open and close with a sliding animation, and their arrow turns smoothly (it follows the animation setting).
+- Sidebar: the rows have no border until they are hovered; the open or selected note has an accent border all around, and a collapsed folder that holds the open note a fainter one. The icon of a note sits under the icon of its folder, and the buttons at the top are grouped (create, files, view) by dividers.
+- Settings > Appearance > Animations: a shorter description.
+
+### Fixed
+
+- Dragging groups, sections and tasks in a note, and notes and folders in the sidebar, is smooth also with hundreds of tasks: only the row concerned is redrawn when the pointer changes target (in a note with 213 tasks, the frames of a drag went from up to 100 ms to 17 ms).
+- The focus ring of the last item of a folder was cut at the bottom.
+
 ## [0.9.0] - 2026-10-12
 
 ### Added
@@ -256,7 +274,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.7.0...v0.8.0
