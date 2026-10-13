@@ -67,7 +67,13 @@ export const waitForApp = async () => {
 /** Fills a text input and waits until the value is the one typed. */
 export const typeInto = async (input: ChainablePromiseElement, value: string) => {
     await input.waitForDisplayed()
-    await input.click()
+    // A closing dialog or a toast can still cover the field for a moment: retry the click once, then focus it
+    try {
+        await input.click()
+    } catch {
+        await browser.pause(300)
+        await input.click().catch(() => browser.execute((el: HTMLElement) => el.focus(), input as unknown as HTMLElement))
+    }
     await input.setValue(value)
     // WebKitWebDriver (Linux) sometimes drops the Shift of the first key ("Auto" arrives as "auto"): the value is then set
     // through the native setter plus an input event, which React picks up like typing
