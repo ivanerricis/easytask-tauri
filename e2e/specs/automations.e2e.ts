@@ -551,6 +551,8 @@ describe("Automations", () => {
     })
 
     it("colors sections by their open tasks with two state rules, as the tasks change", async () => {
+        // The toast of the previous test may still be on screen
+        await browser.waitUntil(async () => (await $("[data-sonner-toast]")).length === 0, { timeout: 15_000, timeoutMsg: "a toast stayed on screen" })
         await createFromSidebar("sidebar.addNote", "dialogs.addNote.submit", STATE_NOTE)
         await treeRow(STATE_NOTE).click()
         await byLabel(await tr("notes.closeCurrent")).waitForDisplayed()
