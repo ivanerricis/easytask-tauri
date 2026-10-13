@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { useTranslation } from "react-i18next"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
@@ -39,7 +40,7 @@ const calculateCompletionPercentage = (tasks: Task[]): number => {
     return (completedTasks / totalTasks) * 100
 }
 
-export const SectionHeader = ({ isOpen, onOpenChange, section, dragProps }: SectionHeaderProps) => {
+export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }: SectionHeaderProps) => {
     const { t } = useTranslation()
     const { renameItem } = useWorkspaceActions()
     const { patchSection } = useActiveNoteActions()
@@ -120,4 +121,4 @@ export const SectionHeader = ({ isOpen, onOpenChange, section, dragProps }: Sect
             </ButtonMenuSection>
         </div>
     )
-}
+})

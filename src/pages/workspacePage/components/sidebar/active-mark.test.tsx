@@ -34,13 +34,13 @@ describe("note open in the active tab", () => {
 
         const open = screen.getByRole("treeitem", { name: /Idee/ })
         expect(open).toHaveAttribute("aria-current", "true")
+        // Accent border all around, not a ring (the ring is the keyboard focus)
         expect(open.className).toContain("border-primary")
-        expect(open.className).toContain("ring-primary")
+        expect(open.className).not.toContain("ring-primary")
         expect(open.querySelector("span.font-semibold")).not.toBeNull()
         const other = screen.getByRole("treeitem", { name: /Spesa/ })
         expect(other).not.toHaveAttribute("aria-current")
-        expect(other.className).toContain("border-accent")
-        expect(other.className).not.toContain("ring-primary")
+        expect(other.className).toContain("border-transparent")
         expect(other.querySelector("span.font-semibold")).toBeNull()
     })
 
@@ -48,7 +48,7 @@ describe("note open in the active tab", () => {
         renderIn(<ItemNote note={note(1, "Spesa")} />)
         const row = screen.getByRole("treeitem", { name: /Spesa/ })
         expect(row).not.toHaveAttribute("aria-current")
-        expect(row.className).toContain("border-accent")
+        expect(row.className).toContain("border-transparent")
     })
 })
 

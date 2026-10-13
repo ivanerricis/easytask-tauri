@@ -2,6 +2,7 @@ import i18n from "@/i18n"
 import { useCallback, useEffect, useState } from "react"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
+import { Separator } from "@/components/ui/separator"
 import { DialogSettings } from "@/components/dialogs/dialog-settings"
 import { reportError } from "@/lib/report-error"
 import { SideBar } from "./SideBar"
@@ -93,14 +94,23 @@ export const SideBarLeft = () => {
                     bottomContainer={<DialogSettings className="relative top-0 left-0" />}
                 >
                     <SideBarContainer
+                        // Three groups told apart by a divider: create, bring in files, change the view
                         header={<SideBarHeader className="border-b">
-                            <DialogAddFolder />
-                            <DialogAddNote />
-                            <ButtonNoteFromTemplate />
-                            <ButtonImportItems />
-                            <ButtonUpload />
-                            <ButtonCollapseItems allCollapsed={allCollapsed} onToggle={toggleAll} disabled={folders.length === 0} />
-                            <ButtonCloseNotes />
+                            <div className="flex items-center gap-0.5">
+                                <DialogAddFolder />
+                                <DialogAddNote />
+                                <ButtonNoteFromTemplate />
+                            </div>
+                            <Separator orientation="vertical" className="data-[orientation=vertical]:h-5 bg-foreground/30" />
+                            <div className="flex items-center gap-0.5">
+                                <ButtonImportItems />
+                                <ButtonUpload />
+                            </div>
+                            <Separator orientation="vertical" className="data-[orientation=vertical]:h-5 bg-foreground/30" />
+                            <div className="flex items-center gap-0.5">
+                                <ButtonCollapseItems allCollapsed={allCollapsed} onToggle={toggleAll} disabled={folders.length === 0} />
+                                <ButtonCloseNotes />
+                            </div>
                         </SideBarHeader>}
                         footer={<div className="flex flex-col gap-1 border-t p-1 w-full">
                             <ButtonTemplates />
@@ -109,7 +119,7 @@ export const SideBarLeft = () => {
                             <ComboboxWorkspace />
                         </div>}
                     >
-                        <FileTree collapsedIds={collapsedIds} onToggleFolder={toggleFolder} onExpandFolder={expandFolder} />
+                        <FileTree collapsedIds={collapsedIds} onToggleFolder={toggleFolder} onExpandFolder={expandFolder} onToggleAll={toggleAll} allCollapsed={allCollapsed} />
                     </SideBarContainer>
                 </SideBar>
                 <SidebarDialogs />

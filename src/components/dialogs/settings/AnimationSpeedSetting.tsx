@@ -12,7 +12,7 @@ export const AnimationSpeedSetting = () => {
             label={t("settings.appearance.animations.label")}
             description={t("settings.appearance.animations.description")}
             value={animationSpeed}
-            options={ANIMATION_SPEEDS.map(value => ({ value, label: t(`settings.appearance.animations.${value}`) }))}
+            options={ANIMATION_SPEEDS.map(value => ({ value, label: value === "system" ? t("common.system") : t(`settings.appearance.animations.${value}`) }))}
             onChange={setAnimationSpeed}
         />
     )

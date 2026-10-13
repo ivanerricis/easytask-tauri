@@ -23,13 +23,14 @@ import {
 } from "./tree-dnd"
 import { useItemSize } from "./item-size"
 import { useGrabbingCursor } from "@/hooks/use-grabbing-cursor"
-import { markTreeDragEnd, treeRowKey } from "./tree-row"
+import { NO_TREE_HOVER, TreeHoverStoreContext, createTreeHoverStore, markTreeDragEnd, treeRowKey, useTreeRootActive, type TreeHover } from "./tree-row"
 import { VIRTUALIZE_THRESHOLD, flattenTree } from "./flat-tree"
 import { rowKeys, selectionKey } from "./selection"
 import { useSelectionStore } from "./selection-context"
 import { useSelectionActions } from "./selection-actions"
 import type { PlannedMove } from "./tree-multi-move"
 import { VirtualTree } from "./VirtualTree"
+import { TreeBackgroundMenu } from "./TreeBackgroundMenu"
 import { AddNoteDialog } from "../AddNoteDialog"
 import { AddFolderDialog } from "../AddFolderDialog"
 import { Button } from "@/components/ui/button"
@@ -42,14 +43,12 @@ type FileTreeItemProps = {
     item: Folder | Note
     collapsedIds: Set<number>
     onToggleFolder: (folderId: number) => void
-    overKey: string | null
-    overZone: DropZone | null
     /** Nesting depth, 0 for the root items. */
     depth?: number
 }
 
 /** Recursive tree node. Defined at module level so the tree is not remounted on every render. */
-export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, overZone, depth = 0 }: FileTreeItemProps) => {
+export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, depth = 0 }: FileTreeItemProps) => {
     if (!item) return null
 
     if ("subfolders" in item) {
@@ -58,7 +57,6 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, over
                 folder={item}
                 isOpen={!collapsedIds.has(item.id)}
                 onToggle={onToggleFolder}
-                dropZone={overKey === treeRowKey("folder", item.id) ? overZone : null}
                 level={depth + 1}
             >
                 {item.subfolders?.map((child) => (
@@ -67,8 +65,6 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, over
                         item={child}
                         collapsedIds={collapsedIds}
                         onToggleFolder={onToggleFolder}
-                        overKey={overKey}
-                        overZone={overZone}
                         depth={depth + 1}
                     />
                 ))}
@@ -76,7 +72,6 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, over
                     <ItemNote
                         key={`note-${note.id}`}
                         note={note}
-                        dropZone={overKey === treeRowKey("note", note.id) ? overZone : null}
                         level={depth + 2}
                     />
                 ))}
@@ -84,7 +79,7 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, overKey, over
         )
     }
 
-    return <ItemNote note={item} dropZone={overKey === treeRowKey("note", item.id) ? overZone : null} level={depth + 1} />
+    return <ItemNote note={item} level={depth + 1} />
 }
 
 /** What follows the pointer: the dragged item, or "N items" when the whole selection is dragged. */
@@ -134,14 +129,21 @@ const EmptyTree = () => {
     )
 }
 
-const RootDropArea = ({ highlighted, children, rootRef, treeLabel }: { highlighted: boolean, children: React.ReactNode, rootRef?: React.RefObject<HTMLDivElement | null>, treeLabel?: string }) => {
+type RootDropAreaProps = React.ComponentProps<"div"> & { rootRef?: React.RefObject<HTMLDivElement | null>, treeLabel?: string }
+
+// The rest of the props and the ref are the ones the right click menu (its trigger) gives to the area
+const RootDropArea = ({ children, rootRef, treeLabel, ref: triggerRef, ...triggerProps }: RootDropAreaProps) => {
     const { setNodeRef } = useDroppable({ id: ROOT_ID })
+    const highlighted = useTreeRootActive()
     const setRefs = useCallback((node: HTMLDivElement | null) => {
         setNodeRef(node)
         if (rootRef) rootRef.current = node
-    }, [setNodeRef, rootRef])
+        if (typeof triggerRef === "function") triggerRef(node)
+        else if (triggerRef) triggerRef.current = node
+    }, [setNodeRef, rootRef, triggerRef])
     return (
         <div
+            {...triggerProps}
             ref={setRefs}
             role={treeLabel ? "tree" : undefined}
             aria-label={treeLabel}
@@ -172,10 +174,11 @@ type FileTreeProps = {
     collapsedIds: Set<number>
     onToggleFolder: (folderId: number) => void
     onExpandFolder: (folderId: number) => void
+    /** Collapses or expands every folder (an entry of the menu of the empty space of the tree). */
+    onToggleAll?: () => void
+    allCollapsed?: boolean
 }
 
-type HoverState = { overKey: string | null, zone: DropZone | null, rootActive: boolean }
-const NO_HOVER: HoverState = { overKey: null, zone: null, rootActive: false }
 
 /**
  * Sidebar tree with drag & drop. Drop zones (from the pointer position on the hovered row):
@@ -186,12 +189,13 @@ const NO_HOVER: HoverState = { overKey: null, zone: null, rootActive: false }
  * Folders are always listed above notes, so a note dropped next to a folder becomes the first note
  * of that parent and a folder dropped next to a note becomes its last folder.
  */
-export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileTreeProps) => {
+export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggleAll, allCollapsed = false }: FileTreeProps) => {
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { workspaceDataTree, getWorkspaceData, moveTreeItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
-    const [hover, setHover] = useState<HoverState>(NO_HOVER)
+    // What is hovered lives in a store: each row reads only its own drop zone (see TreeHover)
+    const [hoverStore] = useState(createTreeHoverStore)
     const [activeRef, setActiveRef] = useState<TreeRef | null>(null)
     useGrabbingCursor(activeRef !== null)
     const targetRef = useRef<DropTarget | null>(null)
@@ -222,8 +226,8 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         multiPlanRef.current = null
         setMultiCount(0)
         setActiveRef(null)
-        setHover(NO_HOVER)
-    }, [])
+        hoverStore.set(NO_TREE_HOVER)
+    }, [hoverStore])
 
     const handleDragStart = (event: DragStartEvent) => {
         const data = event.active.data.current as TreeRef | undefined
@@ -238,7 +242,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         if (!active || !over) {
             targetRef.current = null
             multiPlanRef.current = null
-            setHover(prev => prev === NO_HOVER ? prev : NO_HOVER)
+            hoverStore.set(NO_TREE_HOVER)
             return
         }
 
@@ -260,12 +264,13 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
         const target = multiCount > 0 ? null : computeDropTarget(tree, active, overRef, zone)
         targetRef.current = target
         const valid = multiCount > 0 ? !!plan : !!target
-        const next: HoverState = {
+        const next: TreeHover = {
             overKey: overRef && valid ? treeRowKey(overRef.type, overRef.id) : null,
             zone: valid ? zone : null,
             rootActive: !overRef && valid,
         }
-        setHover(prev => prev.overKey === next.overKey && prev.zone === next.zone && prev.rootActive === next.rootActive ? prev : next)
+        const prev = hoverStore.getState()
+        if (prev.overKey !== next.overKey || prev.zone !== next.zone || prev.rootActive !== next.rootActive) hoverStore.set(next)
     }
 
     const handleDragEnd = async (event: DragEndEvent) => {
@@ -305,12 +310,22 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
     }
 
     // Open a collapsed folder after hovering it for a while during a drag
-    const hoveredFolderId = hover.overKey?.startsWith("folder-") ? Number(hover.overKey.slice("folder-".length)) : null
+    // (listening to the store, not to its state: the tree does not re-render each time the pointer changes row)
     useEffect(() => {
-        if (hoveredFolderId == null || !collapsedIds.has(hoveredFolderId)) return
-        const timer = setTimeout(() => onExpandFolder(hoveredFolderId), AUTO_EXPAND_DELAY)
-        return () => clearTimeout(timer)
-    }, [hoveredFolderId, collapsedIds, onExpandFolder])
+        let timer: ReturnType<typeof setTimeout> | undefined
+        let hovered: number | null = null
+        const check = () => {
+            const key = hoverStore.getState().overKey
+            const folderId = key?.startsWith("folder-") ? Number(key.slice("folder-".length)) : null
+            if (folderId === hovered) return
+            hovered = folderId
+            clearTimeout(timer)
+            if (folderId != null && collapsedIds.has(folderId)) timer = setTimeout(() => onExpandFolder(folderId), AUTO_EXPAND_DELAY)
+        }
+        check()
+        const unsubscribe = hoverStore.subscribe(check)
+        return () => { unsubscribe(); clearTimeout(timer) }
+    }, [hoverStore, collapsedIds, onExpandFolder])
 
     const activeItem = activeRef ? findTreeItem(tree, activeRef) : undefined
     const rootElRef = useRef<HTMLDivElement | null>(null)
@@ -325,6 +340,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
     const isEmpty = tree.rootFolders.length === 0 && tree.rootNotes.length === 0
 
     return (
+        <TreeHoverStoreContext.Provider value={hoverStore}>
         <DndContext
             sensors={sensors}
             accessibility={accessibility}
@@ -335,7 +351,8 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
             onDragCancel={handleDragCancel}
             autoScroll
         >
-            <RootDropArea highlighted={hover.rootActive} rootRef={rootElRef} treeLabel={isEmpty ? undefined : t("sidebar.treeLabel")}>
+            <TreeBackgroundMenu allCollapsed={allCollapsed} onToggleAll={onToggleAll} hasFolders={tree.rootFolders.length > 0}>
+            <RootDropArea rootRef={rootElRef} treeLabel={isEmpty ? undefined : t("sidebar.treeLabel")}>
                 {isEmpty ? (
                     <EmptyTree />
                 ) : virtualized ? (
@@ -343,8 +360,6 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
                         rows={flatRows}
                         collapsedIds={collapsedIds}
                         onToggleFolder={onToggleFolder}
-                        overKey={hover.overKey}
-                        overZone={hover.zone}
                         activeKey={activeRef ? treeRowKey(activeRef.type, activeRef.id) : null}
                         getScrollElement={getScrollElement}
                     />
@@ -356,8 +371,6 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
                                 item={folder}
                                 collapsedIds={collapsedIds}
                                 onToggleFolder={onToggleFolder}
-                                overKey={hover.overKey}
-                                overZone={hover.zone}
                             />
                         ))}
                         {tree.rootNotes.map((note) => (
@@ -366,16 +379,16 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder }: FileT
                                 item={note}
                                 collapsedIds={collapsedIds}
                                 onToggleFolder={onToggleFolder}
-                                overKey={hover.overKey}
-                                overZone={hover.zone}
                             />
                         ))}
                     </>
                 )}
             </RootDropArea>
+            </TreeBackgroundMenu>
             <DragOverlay dropAnimation={null}>
                 {activeItem && activeRef ? <div className="rotate-2"><DragPreview item={activeItem} isFolder={activeRef.type === "folder"} count={multiCount} /></div> : null}
             </DragOverlay>
         </DndContext>
+        </TreeHoverStoreContext.Provider>
     )
 }

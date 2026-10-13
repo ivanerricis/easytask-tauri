@@ -1,9 +1,9 @@
 import { SectionHeader } from "./SectionHeader"
 import { SectionBody } from "./SectionBody"
-import { memo, useCallback, useContext } from "react"
+import { memo, useCallback } from "react"
 import type { Section as SectionType } from "@/types/types"
 import { cn } from "@/lib/utils"
-import { NoteDndContext, useNoteDrag, useNoteDrop } from "../note-dnd-state"
+import { useNoteDndSelector, useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { useSectionOpen } from "@/contexts/use-tabs"
 import { DropLine } from "../sidebar/DropLine"
 
@@ -25,8 +25,7 @@ export const Section = memo(({ section }: SectionProps) => {
 
     const draggingSection = active?.kind === "section"
     // A dragged task: the whole card is outlined when it is the destination, wherever the pointer is inside it
-    const { hover } = useContext(NoteDndContext)
-    const taskDestination = active?.kind === "task" && hover.targetSectionId === section.id
+    const taskDestination = useNoteDndSelector(state => state.active?.kind === "task" && state.hover.targetSectionId === section.id)
 
     return (
         <div

@@ -1,5 +1,5 @@
 import i18n from "@/i18n"
-import { createContext, useCallback, useContext, type HTMLAttributes, type PointerEvent } from "react"
+import { createContext, useCallback, useContext, useMemo, useSyncExternalStore, type HTMLAttributes, type PointerEvent } from "react"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { reportError } from "@/lib/report-error"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -31,7 +31,50 @@ export type NoteDndState = { active: NoteDragRef | null, hover: NoteHover }
 
 export const NO_HOVER: NoteHover = { overKey: null, zone: null }
 
-export const NoteDndContext = createContext<NoteDndState>({ active: null, hover: NO_HOVER })
+/**
+ * The state of the drag lives in a small store, not in a React context: a context change re-renders every droppable of the
+ * note (hundreds of rows) each time the pointer moves over another one, while with the store each row subscribes only to
+ * what concerns it (its own drop zone, the kind of item being dragged).
+ */
+export type NoteDndStore = {
+    getState: () => NoteDndState
+    subscribe: (listener: () => void) => () => void
+    /** Replaces the parts given; the listeners are called only when one of them is really different. */
+    set: (next: Partial<NoteDndState>) => void
+}
+
+export const createNoteDndStore = (): NoteDndStore => {
+    let state: NoteDndState = { active: null, hover: NO_HOVER }
+    const listeners = new Set<() => void>()
+    return {
+        getState: () => state,
+        subscribe: listener => {
+            listeners.add(listener)
+            return () => { listeners.delete(listener) }
+        },
+        set: next => {
+            const merged = { ...state, ...next }
+            if (merged.active === state.active && merged.hover === state.hover) return
+            state = merged
+            listeners.forEach(listener => listener())
+        },
+    }
+}
+
+/** Without a provider (a row rendered alone) nothing is being dragged. */
+const idleStore = createNoteDndStore()
+
+export const NoteDndStoreContext = createContext<NoteDndStore>(idleStore)
+
+/**
+ * Reads a part of the drag state. The selector must return a primitive (or a value that is the same object while nothing
+ * changed): the component re-renders only when the selected value changes.
+ * @category Note DnD
+ */
+export function useNoteDndSelector<T>(selector: (state: NoteDndState) => T): T {
+    const store = useContext(NoteDndStoreContext)
+    return useSyncExternalStore(store.subscribe, () => selector(store.getState()))
+}
 
 /** Droppable key of a target, also used as dnd-kit id. */
 export const noteKey = (kind: NoteOverKind, id: number) => `${kind}-${id}`
@@ -44,8 +87,11 @@ export const noteKey = (kind: NoteOverKind, id: number) => `${kind}-${id}`
 export function useNoteDrop(kind: NoteOverKind, id: number) {
     const key = noteKey(kind, id)
     const { setNodeRef } = useDroppable({ id: key, data: { kind, id, accepts: ACCEPTS[kind] } })
-    const { active, hover } = useContext(NoteDndContext)
-    return { setNodeRef, zone: hover.overKey === key ? hover.zone : null, active }
+    const zone = useNoteDndSelector(state => state.hover.overKey === key ? state.hover.zone : null)
+    const activeKind = useNoteDndSelector(state => state.active?.kind ?? null)
+    // Only the kind of the dragged item is used by the droppables
+    const active = useMemo(() => activeKind ? { kind: activeKind } : null, [activeKind])
+    return { setNodeRef, zone, active }
 }
 
 /**
@@ -58,9 +104,11 @@ export function useNoteDrop(kind: NoteOverKind, id: number) {
 export function useNoteDrag(kind: NoteDragKind, id: number) {
     const { setNodeRef, listeners, isDragging } = useDraggable({ id: `drag-${kind}-${id}`, data: { kind, id } })
     const start = listeners?.onPointerDown as ((event: PointerEvent<HTMLElement>) => void) | undefined
-    const dragProps: HTMLAttributes<HTMLElement> = start
-        ? { onPointerDown: event => { if (event.currentTarget.contains(event.target as Node)) start(event) } }
-        : {}
+    // Kept the same object while `start` is the same, so a memoized row does not re-render because of it
+    const dragProps = useMemo<HTMLAttributes<HTMLElement>>(
+        () => start ? { onPointerDown: event => { if (event.currentTarget.contains(event.target as Node)) start(event) } } : {},
+        [start],
+    )
     return { setNodeRef, dragProps, isDragging }
 }
 

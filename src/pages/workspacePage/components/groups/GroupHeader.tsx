@@ -1,3 +1,4 @@
+import { memo } from "react"
 import { useTranslation } from "react-i18next"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
@@ -41,7 +42,7 @@ type GroupHeaderProps = {
     audioCount?: number
 }
 
-export const GroupHeader = ({ group, index = 0, dragProps, audioCount = 0 }: GroupHeaderProps) => {
+export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }: GroupHeaderProps) => {
     const { t } = useTranslation()
     const { showSectionCount, showTaskCount, showAudioFileCount, showGroupProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
     const colorAlpha = useColorAlpha()
@@ -120,4 +121,4 @@ export const GroupHeader = ({ group, index = 0, dragProps, audioCount = 0 }: Gro
             </div>
         </ButtonMenuGroup>
     )
-}
+})

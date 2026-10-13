@@ -1,5 +1,5 @@
 import { MenuItem } from "@/components/menu-kind"
-import { Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, HelpCircle, Info, Link2, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2, Upload, Zap } from "lucide-react"
+import { Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, HelpCircle, Info, Link2, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2, Upload, Zap, ListCollapse, ListChevronsUpDown } from "lucide-react"
 import React from "react"
 
 type ButtonInPopoverProps = {
@@ -39,6 +39,8 @@ const iconMap: Record<string, React.ElementType> = {
     relink: Link2,
     archive: Archive,
     automations: Zap,
+    collapseAll: ListCollapse,
+    expandAll: ListChevronsUpDown,
     delete: Trash2,
 }
 

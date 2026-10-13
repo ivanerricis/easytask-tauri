@@ -47,7 +47,7 @@ export const settings: Translation["settings"] = {
         },
         animations: {
             label: "Animations",
-            description: "Speed of the interface animations (dialogs, menus, transitions).",
+            description: "Speed of the animations. \"System\" follows the system setting.",
             slow: "Slow",
             normal: "Normal",
             none: "Off",
