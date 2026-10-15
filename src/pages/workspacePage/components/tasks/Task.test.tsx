@@ -20,7 +20,7 @@ vi.mock("@/contexts/workspace-data", () => ({
     }),
 }))
 vi.mock("@/contexts/use-active-note", () => ({
-    useActiveNoteActions: () => ({ patchTask: () => () => { }, removeTask: vi.fn() }),
+    useActiveNoteActions: () => ({ patchTask: () => () => { }, setTaskCompletion: () => () => { }, removeTask: vi.fn() }),
 }))
 vi.mock("../note-dnd-state", () => ({
     useNoteDrop: vi.fn(() => ({ setNodeRef: () => { }, zone: null, active: null })),

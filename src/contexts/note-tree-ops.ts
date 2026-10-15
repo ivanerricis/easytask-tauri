@@ -190,6 +190,47 @@ export function patchTask(tree: NoteDataTree, taskId: number, patch: Partial<Tas
     return mapTask(tree, taskId, task => ({ ...task, ...patch }))
 }
 
+/**
+ * The completion of a task cascades: its subtasks take the same value and every ancestor is completed exactly when all its
+ * subtasks are. Returns the new value of every task that changes (empty when the task is not found or nothing changes).
+ */
+export function completionChanges(tree: NoteDataTree, taskId: number, completed: boolean): Map<number, boolean> {
+    const changes = new Map<number, boolean>()
+    const path: Task[] = []
+    const search = (tasks: Task[]): Task | undefined => {
+        for (const task of tasks) {
+            path.push(task)
+            if (task.id === taskId) return task
+            const inner = search(task.subtasks)
+            if (inner) return inner
+            path.pop()
+        }
+        return undefined
+    }
+    let target: Task | undefined
+    for (const group of tree.groups) {
+        for (const section of group.sections) {
+            target = search(section.tasks)
+            if (target) break
+        }
+        if (target) break
+    }
+    if (!target) return changes
+
+    const setAll = (task: Task) => {
+        if (!!task.completed !== completed) changes.set(task.id, completed)
+        task.subtasks.forEach(setAll)
+    }
+    setAll(target)
+    // Ancestors, from the closest: the value of a task already changed is the new one
+    const valueOf = (task: Task) => changes.get(task.id) ?? !!task.completed
+    for (let i = path.length - 2; i >= 0; i--) {
+        const all = path[i].subtasks.every(valueOf)
+        if (all !== valueOf(path[i])) changes.set(path[i].id, all)
+    }
+    return changes
+}
+
 /* ------------------------------------------------------------------------------------ */
 // Insert
 

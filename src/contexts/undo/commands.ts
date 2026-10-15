@@ -22,7 +22,7 @@ export type UndoDeps = {
         "renameItem" | "updateItemColor" | "deleteItem" | "restoreItem" | "archiveItem" | "unarchiveItem" | "moveTreeItem" | "moveSection" | "moveTask" |
         "updateTaskCompletion" | "updateTaskPriority" | "updateTaskDescription" | "updateFolderColorContent" | "getWorkspaceData">
     note: Pick<ActiveNoteActionsType,
-        "patchTask" | "patchSection" | "patchGroup" | "removeGroup" | "removeSection" | "removeTask" |
+        "patchTask" | "setTaskCompletion" | "patchSection" | "patchGroup" | "removeGroup" | "removeSection" | "removeTask" |
         "applySectionMove" | "applyTaskMove" | "refreshActiveNote">
 }
 
@@ -187,7 +187,7 @@ export function createUndoCommands(deps: UndoDeps) {
     }
 
     const setTaskFlag = (key: "completed" | "priority", taskId: number) => async (value: boolean) => {
-        await withRollback(note.patchTask(taskId, { [key]: value }), () =>
+        await withRollback(key === "completed" ? note.setTaskCompletion(taskId, value) : note.patchTask(taskId, { [key]: value }), () =>
             key === "completed" ? workspace.updateTaskCompletion(taskId, value) : workspace.updateTaskPriority(taskId, value))
     }
 

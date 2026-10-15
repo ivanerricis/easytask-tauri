@@ -21,7 +21,7 @@ function makeDeps() {
             updateTaskDescription: fn(), updateFolderColorContent: fn(), getWorkspaceData: fn(),
         },
         note: {
-            patchTask: vi.fn(() => rollbacks.patch), patchSection: vi.fn(() => rollbacks.patch), patchGroup: vi.fn(() => rollbacks.patch),
+            patchTask: vi.fn(() => rollbacks.patch), setTaskCompletion: vi.fn(() => rollbacks.patch), patchSection: vi.fn(() => rollbacks.patch), patchGroup: vi.fn(() => rollbacks.patch),
             removeGroup: vi.fn(() => rollbacks.remove), removeSection: vi.fn(() => rollbacks.remove), removeTask: vi.fn(() => rollbacks.remove),
             applySectionMove: vi.fn(() => rollbacks.section), applyTaskMove: vi.fn(() => rollbacks.task),
             refreshActiveNote: fn(),
@@ -152,7 +152,7 @@ describe("task flags", () => {
         const command = commands.taskCompletion(9, "Buy milk", false, true)
         expect(command.label).toBe("Completa task \"Buy milk\"")
         await command.undo()
-        expect(ctx.deps.note.patchTask).toHaveBeenLastCalledWith(9, { completed: false })
+        expect(ctx.deps.note.setTaskCompletion).toHaveBeenLastCalledWith(9, false)
         expect(ctx.deps.workspace.updateTaskCompletion).toHaveBeenLastCalledWith(9, false)
         await command.redo()
         expect(ctx.deps.workspace.updateTaskCompletion).toHaveBeenLastCalledWith(9, true)
