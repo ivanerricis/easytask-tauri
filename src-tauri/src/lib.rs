@@ -263,10 +263,10 @@ fn read_audio_metadata(path: &Path) -> Result<AudioMetadata, String> {
         info.album = text(tag.album().as_deref());
         info.genre = text(tag.genre().as_deref());
         info.comment = text(tag.comment().as_deref());
-        info.album_artist = text(tag.get_string(&ItemKey::AlbumArtist));
-        info.composer = text(tag.get_string(&ItemKey::Composer));
-        info.date = text(tag.get_string(&ItemKey::RecordingDate))
-            .or_else(|| tag.year().map(|year| year.to_string()));
+        info.album_artist = text(tag.get_string(ItemKey::AlbumArtist));
+        info.composer = text(tag.get_string(ItemKey::Composer));
+        info.date = text(tag.get_string(ItemKey::RecordingDate))
+            .or_else(|| tag.date().map(|date| date.year.to_string()));
         info.track = tag.track();
         info.track_total = tag.track_total();
         info.disc = tag.disk();
