@@ -13,8 +13,7 @@ Su sfondo scuro usare sempre le versioni `*-reversed` (l'inchiostro sparisce sul
 
 ## File
 - `master/`: `symbol`, `symbol-small` (per 16–32 px), `lockup-horizontal`, `lockup-stacked`, ciascuno normale e `-reversed`.
-- `variants/`: nero, bianco, monocromatico, quadrato, favicon, icona app, PNG 1200 px.
-- `icons/`: favicon.ico, PNG 16/32/48/192/512, apple-touch, maskable, webmanifest, `head-snippet.html`.
+- `variants/`: nero, bianco, monocromatico, quadrato, PNG 1200 px.
 - `presentation/`: slide con mockup e scheda di test.
 
 ## Regole
