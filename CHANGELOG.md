@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-16
+
+### Fixed
+
+- App icon: it is back on a dark rounded tile with a larger symbol. The transparent version showed white shapes that disappeared on light backgrounds (light taskbar, file explorer, installer), leaving only the orange pill.
+- Security: `rustls` is updated to 0.23.46, which fixes four advisories in its TLS handling (RUSTSEC-2026-0346, 0347, 0348 and 0349).
+
+### Changed
+
+- Updated the dependencies: the Tauri plugins and the other Rust crates, the npm packages, the GitHub Actions and the audio tag reader (`lofty` 0.25). Tags and the year of the audio files are read as before.
+
+
 ## [0.10.0] - 2026-10-13
 
 ### Added
@@ -298,7 +310,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.0...v0.10.1
+[0.10.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...v0.8.1
