@@ -4,6 +4,18 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-10-16
+
+### Corretto
+
+- Icona dell'app: torna su un riquadro scuro con gli angoli arrotondati e il simbolo più grande. La versione trasparente mostrava forme bianche che sparivano sugli sfondi chiari (barra delle applicazioni chiara, esplora risorse, installer) e lasciava visibile solo la pillola arancione.
+- Sicurezza: `rustls` passa alla 0.23.46, che corregge quattro avvisi nella gestione del TLS (RUSTSEC-2026-0346, 0347, 0348 e 0349).
+
+### Modificato
+
+- Aggiornate le dipendenze: i plugin di Tauri e le altre librerie Rust, i pacchetti npm, le GitHub Actions e la lettura dei tag audio (`lofty` 0.25). I tag e l'anno dei file audio si leggono come prima.
+
+
 ## [0.10.0] - 2026-10-13
 
 ### Aggiunto
@@ -296,7 +308,9 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.1...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...HEAD
+[0.10.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.0...v0.10.1
+[0.10.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.1...v0.9.0
 [0.8.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.8.0...v0.8.1
