@@ -109,7 +109,7 @@ jobs:
       - run: npm ci
       - name: npm audit (production dependencies, high and critical)
         run: npm audit --omit=dev --audit-level=high
-      - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2.87.28
+      - uses: taiki-e/install-action@8cca0918f8471c33515202b73f56ab27f2bed283 # v2.87.29
         with:
           tool: cargo-audit,cargo-deny
       - name: cargo audit
