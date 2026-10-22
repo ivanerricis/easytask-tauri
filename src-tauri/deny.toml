@@ -24,6 +24,13 @@ ignore = [
     # compatible version exists. The updater checks the minisign signature of the download before extracting it.
     # Revisit when tauri-plugin-updater moves to zip 9.0.3 or the advisories are published (due by the end of October 2026).
     { crate = "zip@4.6.1", reason = "yanked by the maintainer for security fixes, pulled in by tauri-plugin-updater, no compatible version yet" },
+    # The advisories behind that yank (fixed in zip 9 only; tauri-plugin-updater 2.14 still needs zip 4.x). They are about
+    # extracting a malicious archive (SUID bits, symlinks out of the destination). The app ships unzipped updater
+    # artifacts (createUpdaterArtifacts: true, not "v1Compatible": the NSIS installer and the AppImage are downloaded as
+    # is), and every download is checked against the minisign key before use. Revisit with the zip@4.6.1 entry above.
+    { id = "RUSTSEC-2026-0367", reason = "zip 4.6.1 via tauri-plugin-updater, no compatible fix; updater artifacts are not zip archives and are signature-checked" },
+    { id = "RUSTSEC-2026-0368", reason = "zip 4.6.1 via tauri-plugin-updater, no compatible fix; updater artifacts are not zip archives and are signature-checked" },
+    { id = "RUSTSEC-2026-0369", reason = "zip 4.6.1 via tauri-plugin-updater, no compatible fix; updater artifacts are not zip archives and are signature-checked" },
 ]
 
 [licenses]
