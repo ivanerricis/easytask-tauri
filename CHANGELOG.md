@@ -6,6 +6,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-22
+
+### Added
+
+- Settings: a search box finds an option by its name. Esc, the X button or choosing a category clears it.
+- Settings > System (new): start EasyTask with Windows, and close it to the notification area. When this option is on, closing the window hides it and the icon in the notification area opens it again or quits. Both options are off by default.
+- Settings > Data: the trash can empty itself of items deleted more than a chosen number of days ago (checked when the app starts). The automatic backup has a frequency and can be saved in a folder of your choice.
+- Settings > Notes: new tasks can be added at the top or at the bottom, the task list has a density setting, and the spell check can be turned off.
+
+### Changed
+
+- Faster with large notes and workspaces: dragging tasks, sections and sidebar items, switching notes and tabs, playing audio and exporting a workspace do much less work.
+- Settings are laid out as cards in a wider dialog.
+- Sidebar rows no longer show the folder and note icons.
+
+### Fixed
+
+- "No color" removes the color of folders and notes in the sidebar again.
+- The tooltip of a sidebar row no longer comes back after its right-click menu closes.
+- Ctrl, Alt or Shift with the arrow keys no longer switch notes from the tab bar.
+- Long error messages in the delete dialogs wrap instead of overflowing.
+- Security: `rustls-webpki` 0.103.16 and `webpki-root-certs` 1.0.10 fix two certificate advisories (RUSTSEC-2026-0382 and 0383).
+
+
 ## [0.10.1] - 2026-10-16
 
 ### Fixed
@@ -310,7 +334,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.0...v0.9.1
