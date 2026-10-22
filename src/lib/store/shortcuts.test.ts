@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { getShortcutOverrides, sanitizeShortcutOverrides } from "./shortcuts"
+import { getShortcutOverrides, saveShortcutOverrides, sanitizeShortcutOverrides } from "./shortcuts"
 
+vi.mock("./save-soon", () => ({ saveStoreSoon: vi.fn().mockResolvedValue(undefined) }))
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn() },
 }))
@@ -42,5 +43,15 @@ describe("getShortcutOverrides", () => {
     it("returns only the sanitized stored overrides", async () => {
         vi.mocked(store.get).mockResolvedValue({ "go-home": { key: "k", ctrl: true }, ghost: { key: "a" }, undo: { key: 1 } })
         expect(await getShortcutOverrides()).toEqual({ "go-home": { key: "k", ctrl: true } })
+    })
+})
+
+describe("saveShortcutOverrides", () => {
+    it("sets the value in memory and schedules a debounced save", async () => {
+        const { saveStoreSoon } = await import("./save-soon")
+        await saveShortcutOverrides({ "go-home": { key: "k" } })
+        expect(store.set).toHaveBeenCalledWith("shortcutOverrides", { "go-home": { key: "k" } })
+        expect(store.save).not.toHaveBeenCalled()
+        expect(saveStoreSoon).toHaveBeenCalled()
     })
 })

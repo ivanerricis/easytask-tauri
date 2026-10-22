@@ -24,6 +24,7 @@ import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { useAutomations } from "@/hooks/use-automations"
 import { reportError } from "@/lib/report-error"
 import { cn, getErrorMessage } from "@/lib/utils"
+import { FormError } from "@/components/form-error"
 
 type SectionOption = { id: number, title: string }
 type GroupOption = { id: number, label: string, sections: SectionOption[] }
@@ -318,7 +319,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                         </ul>
                     )}
 
-                    {error && <p role="alert" className="text-sm text-destructive break-words">{error}</p>}
+                    {error && <FormError>{error}</FormError>}
 
                     {/* mt-auto: with few or no rules the buttons stay at the bottom of the (minimum height) dialog */}
                     <DialogFooter className={editing ? "mt-auto sm:justify-between" : "mt-auto"}>
@@ -354,7 +355,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                                 </Button>
                                 {/* The empty state has its own "new" button */}
                                 {loaded && (rules.length > 0 || sections.length === 0) && (
-                                    <Button type="button" onClick={startNew} disabled={!loaded || sections.length === 0}>
+                                    <Button type="button" onClick={startNew} disabled={sections.length === 0}>
                                         <Plus />
                                         {t("automations.add")}
                                     </Button>
@@ -633,13 +634,13 @@ const ActionParams = ({ action, groups, sections, onChange }: {
             )
         case "setCompleted":
             return (
-                <ChoiceSelect label={label} className="w-full" value={String(action.value)}
+                <ChoiceSelect label={label} value={String(action.value)}
                     options={[{ value: "true", label: t("automations.values.completed") }, { value: "false", label: t("automations.values.open") }]}
                     onChange={value => onChange({ ...action, value: value === "true" })} />
             )
         case "setPriority":
             return (
-                <ChoiceSelect label={label} className="w-full" value={String(action.value)}
+                <ChoiceSelect label={label} value={String(action.value)}
                     options={[{ value: "true", label: t("automations.values.add") }, { value: "false", label: t("automations.values.remove") }]}
                     onChange={value => onChange({ ...action, value: value === "true" })} />
             )

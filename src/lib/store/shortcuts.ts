@@ -1,5 +1,6 @@
 import { SHORTCUTS, type Binding } from "@/lib/shortcuts"
 import { store } from "./initStore"
+import { saveStoreSoon } from "./save-soon"
 
 const SHORTCUT_OVERRIDES_KEY = "shortcutOverrides"
 
@@ -47,5 +48,5 @@ export const getShortcutOverrides = async (): Promise<Record<string, Binding>> =
  */
 export const saveShortcutOverrides = async (overrides: Record<string, Binding>): Promise<void> => {
     await store.set(SHORTCUT_OVERRIDES_KEY, overrides)
-    await store.save()
+    await saveStoreSoon()
 }

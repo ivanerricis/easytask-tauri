@@ -1,8 +1,8 @@
 import i18n from "@/i18n"
-import { createError, handleDBError, isAppError } from "@/types/error";
+import { createError, handleDBError, toAppError } from "@/types/error";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
-import { buildPositionUpdate, clampIndex } from "./ordering";
+import { addPositions, clampIndex, isSelfOrAncestor, siblingIds } from "./ordering";
 
 type TreeItemType = "folder" | "note"
 
@@ -44,14 +44,7 @@ export async function moveDBTreeItem(itemType: TreeItemType, itemId: number, tar
             if (itemType === "folder") {
                 // Walk up from the target through the primary key: the moved folder is among its ancestors
                 // (or is the target itself) exactly when the target lies in the moved subtree
-                const ancestors = await db.select<{ found: number }[]>(
-                    `WITH RECURSIVE anc(id, parent) AS (
-                        SELECT id, folderID FROM folder WHERE id = ?
-                        UNION
-                        SELECT f.id, f.folderID FROM folder f INNER JOIN anc ON f.id = anc.parent
-                    )
-                    SELECT EXISTS (SELECT 1 FROM anc WHERE id = ?) AS found`, [targetFolderId, itemId])
-                if (ancestors[0]?.found)
+                if (await isSelfOrAncestor(db, "folder", targetFolderId, itemId))
                     throw createError("FOLDER_MOVE_INVALID", i18n.t("errors.tree.folderIntoItself"))
             }
 
@@ -61,37 +54,24 @@ export async function moveDBTreeItem(itemType: TreeItemType, itemId: number, tar
                 throw createError("FOLDER_MOVE_INVALID", i18n.t("errors.tree.folderTargetInvalid"))
         }
 
-        const loadSiblings = async (parentId: number | null) => {
-            const rows = parentId == null
-                ? await db.select<{ id: number }[]>(
-                    `SELECT id FROM ${table} WHERE workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL AND id <> ?
-                     ORDER BY position, name COLLATE NOCASE`, [item.workspaceID, itemId])
-                : await db.select<{ id: number }[]>(
-                    `SELECT id FROM ${table} WHERE workspaceID = ? AND folderID = ? AND deleted_at IS NULL AND id <> ?
-                     ORDER BY position, name COLLATE NOCASE`, [item.workspaceID, parentId, itemId])
-            return rows.map(row => row.id)
-        }
+        const loadSiblings = (parentId: number | null) => parentId == null
+            ? siblingIds(db, table, "workspaceID = ? AND folderID IS NULL", [item.workspaceID], itemId, "position, name COLLATE NOCASE")
+            : siblingIds(db, table, "workspaceID = ? AND folderID = ?", [item.workspaceID, parentId], itemId, "position, name COLLATE NOCASE")
 
         const order = await loadSiblings(targetFolderId)
         const index = clampIndex(targetIndex, order.length)
         order.splice(index, 0, itemId)
 
         const tx = new Transaction()
-        const destination = buildPositionUpdate(table, order, { column: "folderID", value: targetFolderId })
-        tx.add(destination.sql, destination.params)
+        addPositions(tx, table, order, { column: "folderID", value: targetFolderId })
 
         if ((item.folderID ?? null) !== targetFolderId) {
             // The moved item is excluded by loadSiblings: it already belongs to the destination
-            const remaining = await loadSiblings(item.folderID ?? null)
-            if (remaining.length > 0) {
-                const source = buildPositionUpdate(table, remaining, { column: "folderID", value: item.folderID ?? null })
-                tx.add(source.sql, source.params)
-            }
+            addPositions(tx, table, await loadSiblings(item.folderID ?? null), { column: "folderID", value: item.folderID ?? null })
         }
         await tx.run()
     } catch (error: unknown) {
         // createError objects are already user facing, only unexpected failures are wrapped
-        if (isAppError(error)) throw error
-        handleDBError(error, itemType.toUpperCase(), { UNIQUE: MOVE_UNIQUE_MESSAGE() })
+        throw toAppError(error, e => handleDBError(e, itemType.toUpperCase(), { UNIQUE: MOVE_UNIQUE_MESSAGE() }))
     }
 }

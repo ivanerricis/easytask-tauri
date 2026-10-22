@@ -10,7 +10,10 @@ import {
 } from "@/db/queries/audio"
 import { usePreferences } from "./use-preferences"
 import { useWorkspaceActions, useWorkspaceState } from "./workspace-data"
-import { AudioContext, type AudioContextType, type AudioTrack, type PlaybackState } from "./audio-context-object"
+import {
+    AudioActionsContext, AudioContext, AudioFilesContext,
+    type AudioActionsContextType, type AudioContextType, type AudioFilesContextType, type AudioTrack, type PlaybackState,
+} from "./audio-context-object"
 import { getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
 import { FolderSearch, Trash2 } from "lucide-react"
@@ -42,7 +45,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
     // Both counters only grow, so their sum changes whenever either does (audioVersion, not trashVersion: that one
     // moves with every task move and would reload the audio of every group)
-    const version = localVersion + (audioVersion ?? 0)
+    const version = localVersion + audioVersion
 
     useEffect(() => {
         trackRef.current = track
@@ -170,12 +173,19 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
 
     const playbackState: PlaybackState = track === null ? "paused" : reportedState
 
+    // Three views of the same state: the full one, the files (version) and the stable actions, so a consumer re-renders only for what it reads
+    const actions = useMemo<AudioActionsContextType>(() => ({
+        setPlaybackState, togglePlayback, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError,
+    }), [togglePlayback, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError])
+    const files = useMemo<AudioFilesContextType>(() => ({ filesCache, version }), [filesCache, version])
     const value = useMemo<AudioContextType>(() => ({
-        track, playbackState, setPlaybackState, toggleSeq, togglePlayback, filesCache, version, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError,
-    }), [track, playbackState, toggleSeq, togglePlayback, filesCache, version, playFile, closePlayer, addFiles, relinkFile, refresh, reportPlaybackError])
+        ...actions, ...files, track, playbackState, toggleSeq,
+    }), [actions, files, track, playbackState, toggleSeq])
 
     return (
         <AudioContext.Provider value={value}>
+            <AudioActionsContext.Provider value={actions}>
+            <AudioFilesContext.Provider value={files}>
             {children}
             <ConfirmDialog
                 open={missing !== null}
@@ -190,6 +200,8 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
                     {missing?.path}
                 </p>
             </ConfirmDialog>
+            </AudioFilesContext.Provider>
+            </AudioActionsContext.Provider>
         </AudioContext.Provider>
     )
 }

@@ -5,7 +5,7 @@ import { ButtonInPopover } from "@/components/button-in-popover";
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete";
 import { ColorSubmenu } from "@/pages/workspacePage/components/ColorSubmenu";
 import { useWorkspace } from "@/contexts/use-workspace";
-import { useWorkspaceData } from "@/contexts/workspace-data";
+import { useWorkspaceActions } from "@/contexts/workspace-data";
 import { MenuGroup, MenuSeparator } from "@/components/menu-kind";
 import { ItemMenu } from "@/components/item-menu";
 import { useItemMenuState } from "@/hooks/use-item-menu-state";
@@ -28,7 +28,7 @@ export const ButtonMenuWorkspace = ({ workspace, onRename, children }: ButtonMen
     const { exportWorkspace } = useWorkspaceTransfer();
 
     const { getWorkspaces } = useWorkspace();
-    const { updateItemColor } = useWorkspaceData();
+    const { updateItemColor } = useWorkspaceActions();
 
     const items = (
         <MenuGroup className="flex flex-col gap-1">
@@ -72,13 +72,13 @@ export const ButtonMenuWorkspace = ({ workspace, onRename, children }: ButtonMen
 
     const dialogs = (
         <>
-            <DialogDeleteItem
+            {isDeleteOpen && <DialogDeleteItem
                 item={workspace}
                 itemType="workspace"
                 isOpen={isDeleteOpen}
                 onOpenChange={setDeleteOpen}
                 getItemData={getWorkspaces}
-            />
+            />}
         </>
     );
 

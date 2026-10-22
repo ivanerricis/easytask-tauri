@@ -17,6 +17,7 @@ import {
     type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverKind, type NoteOverRef, type SectionTarget, type TaskTarget,
 } from "./note-dnd"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
+import type { NoteDataTree } from "@/types/types"
 import { NO_HOVER, NoteDndStoreContext, createNoteDndStore, noteKey, useGroupMoves, useNoteMoves, type NoteHover } from "./note-dnd-state"
 
 type PendingDrop =
@@ -83,6 +84,7 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
     const active = useSyncExternalStore(store.subscribe, () => store.getState().active)
     const { moveGroupTo } = useGroupMoves()
     const pendingRef = useRef<PendingDrop | null>(null)
+    const lastMoveRef = useRef<{ key: string, tree: NoteDataTree } | null>(null)
 
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
@@ -100,11 +102,13 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
 
     const reset = () => {
         pendingRef.current = null
+        lastMoveRef.current = null
         store.set({ active: null, hover: NO_HOVER })
     }
 
     const handleDragStart = (event: DragStartEvent) => {
         const data = event.active.data.current as NoteDragRef | undefined
+        lastMoveRef.current = null
         store.set({ active: data ? { kind: data.kind, id: data.id } : null })
     }
 
@@ -113,6 +117,7 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         const over = event.over
         if (!dragged || !over || !noteDataTree) {
             pendingRef.current = null
+            lastMoveRef.current = null
             store.set({ hover: NO_HOVER })
             return
         }
@@ -130,6 +135,11 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
             const overTask = overRef.kind === "task" ? findTask(noteDataTree, overRef.id) : undefined
             zone = computeDropZone(dragged.kind, overRef.kind, over.rect, pointerY, { hasSubtasks: (overTask?.subtasks.length ?? 0) > 0 })
         }
+
+        // Same item over the same zone of the same tree: the target is the one already computed
+        const moveKey = `${dragged.kind}-${dragged.id}|${noteKey(overRef.kind, overRef.id)}|${zone}`
+        if (lastMoveRef.current?.key === moveKey && lastMoveRef.current.tree === noteDataTree) return
+        lastMoveRef.current = { key: moveKey, tree: noteDataTree }
 
         let pending: PendingDrop | null = null
         if (dragged.kind === "group") {

@@ -26,8 +26,9 @@ src-tauri/gen
 *.sln
 *.sw?
 
-# Claude Code local settings and worktrees
-.claude/
+# Claude Code local settings and worktrees (the project skills are shared)
+.claude/*
+!.claude/skills/
 
 # Env and TS build info
 .env*

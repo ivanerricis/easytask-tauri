@@ -54,7 +54,7 @@ export const createTaskTrigger = `
 `
 
 /**
- * Migration v4: drops the old unused `archived` flag of the tasks (tasks cannot be archived): the trigger that lists
+ * Migration v4: drops the old unused `archived` flag of the tasks (tasks became archivable again in v6, with `archived_at`): the trigger that lists
  * it is dropped first and recreated without it. The DROP COLUMN is retried safely by initDb.
  * @category Database Schema
  */

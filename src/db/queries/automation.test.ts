@@ -1,7 +1,8 @@
 // @vitest-environment node
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { DatabaseSync, type SQLInputValue } from "node:sqlite"
+import { DatabaseSync } from "node:sqlite"
+import { sqliteRows } from "@/test/db-mock"
 import { latestSchema } from "../schema/initial"
 
 // These tests run the real query SQL against a real SQLite database (latest schema)
@@ -9,15 +10,10 @@ let sqlite: DatabaseSync
 // Substring of a statement that must fail (to check that a transaction is rolled back)
 let failOn: string | null = null
 
-vi.mock("../dbManager", () => ({
-    getDB: vi.fn(async () => ({
-        execute: async (sql: string, params: unknown[] = []) => {
-            const r = sqlite.prepare(sql).run(...(params as SQLInputValue[]))
-            return { rowsAffected: Number(r.changes), lastInsertId: Number(r.lastInsertRowid) }
-        },
-        select: async (sql: string, params: unknown[] = []) => sqlite.prepare(sql).all(...(params as SQLInputValue[])),
-    })),
-}))
+vi.mock("../dbManager", async () => {
+    const { createSqliteDb } = await import("@/test/db-mock")
+    return { getDB: vi.fn(async () => createSqliteDb(() => sqlite)) }
+})
 
 vi.mock("@tauri-apps/api/core", async () => {
     const { createSqliteInvoke } = await import("@/test/db-mock")
@@ -34,7 +30,7 @@ import {
 } from "./automation"
 import { getDBNoteData } from "./note"
 
-const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
+const rows = sqliteRows(() => sqlite)
 
 const draft = (overrides: Partial<AutomationDraft> = {}): AutomationDraft => ({
     name: null,

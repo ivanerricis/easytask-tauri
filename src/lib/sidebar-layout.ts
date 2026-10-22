@@ -5,8 +5,8 @@ export const SIDEBAR_DEFAULT_WIDTH = 260
 export const SIDEBAR_MIN_WIDTH = 224
 export const SIDEBAR_MAX_WIDTH = 480
 /** Keyboard step of the resizer (Shift for the large one). */
-export const SIDEBAR_KEY_STEP = 16
-export const SIDEBAR_KEY_STEP_LARGE = 64
+const SIDEBAR_KEY_STEP = 16
+const SIDEBAR_KEY_STEP_LARGE = 64
 /** Below this window width the sidebar becomes a collapsible overlay. */
 export const COMPACT_BREAKPOINT = 900
 /** Minimum height of the strip at the top of the panels (sidebar header, right panel tabs, note tabs): they all line up. */

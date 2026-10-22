@@ -9,17 +9,24 @@ import { FormError } from "@/components/form-error"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { usePreferences } from "@/contexts/use-preferences"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { UNDO_LIMIT_OPTIONS } from "@/lib/store/preferences"
+import { TRASH_AUTO_EMPTY_DAYS, UNDO_LIMIT_OPTIONS, type TrashAutoEmptyDays } from "@/lib/store/preferences"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
 import { getErrorMessage } from "@/lib/utils"
 import { BackupSettings } from "./BackupSettings"
 import { SettingsPanel, SettingsRow, SettingsSubsection } from "./SettingsRow"
 
+const TRASH_OPTION_KEYS = {
+    0: "settings.data.trashAutoEmpty.never",
+    7: "settings.data.trashAutoEmpty.days7",
+    30: "settings.data.trashAutoEmpty.days30",
+    90: "settings.data.trashAutoEmpty.days90",
+} as const satisfies Record<TrashAutoEmptyDays, string>
+
 export const DataSettings = () => {
     const { t } = useTranslation()
     const { exportWorkspace, importWorkspace, isBusy } = useWorkspaceTransfer()
     const { currentWorkspace } = useWorkspace()
-    const { undoLimit, setUndoLimit } = usePreferences()
+    const { undoLimit, setUndoLimit, trashAutoEmptyDays, setTrashAutoEmptyDays } = usePreferences()
     const { pathname } = useLocation()
     // currentWorkspace is not cleared on the start page: offer the export only inside a workspace
     const current = pathname.startsWith("/workspace/") ? currentWorkspace : null
@@ -63,23 +70,42 @@ export const DataSettings = () => {
                 )}
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.data.sections.folder")}>
-                <SettingsRow label={t("settings.data.folder.label")} description={t("settings.data.folder.description")}>
-                    <Button variant="outline" size="sm" onClick={() => void openDataFolder()}>
-                        <FolderOpen />
-                        {t("settings.data.folder.button")}
-                    </Button>
-                </SettingsRow>
-                <FormError>{folderError}</FormError>
-                {inOneDrive && (
-                    // A standing notice, not an alert: it must not interrupt a screen reader every time the page opens
-                    <Alert role="note" className="border-warning/50 bg-warning/10 text-foreground">
-                        <TriangleAlert className="text-warning" />
-                        <AlertDescription className="text-foreground">{t("settings.data.folder.oneDriveWarning")}</AlertDescription>
-                    </Alert>
-                )}
+                {/* The error and the OneDrive notice belong to the folder: same row */}
+                <div className="flex flex-col gap-3">
+                    <SettingsRow label={t("settings.data.folder.label")} description={t("settings.data.folder.description")}>
+                        <Button variant="outline" size="sm" onClick={() => void openDataFolder()}>
+                            <FolderOpen />
+                            {t("settings.data.folder.button")}
+                        </Button>
+                    </SettingsRow>
+                    <FormError>{folderError}</FormError>
+                    {inOneDrive && (
+                        // A standing notice, not an alert: it must not interrupt a screen reader every time the page opens
+                        <Alert role="note" className="border-warning/50 bg-warning/10 text-foreground">
+                            <TriangleAlert className="text-warning" />
+                            <AlertDescription className="text-foreground">{t("settings.data.folder.oneDriveWarning")}</AlertDescription>
+                        </Alert>
+                    )}
+                </div>
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.data.sections.backup")}>
                 <BackupSettings />
+            </SettingsSubsection>
+            <SettingsSubsection title={t("settings.data.sections.trash")}>
+                <SettingsRow label={t("settings.data.trashAutoEmpty.label")} description={t("settings.data.trashAutoEmpty.description")}>
+                    {({ id, descriptionId }) => (
+                    <Select value={String(trashAutoEmptyDays)} onValueChange={value => setTrashAutoEmptyDays(Number(value) as TrashAutoEmptyDays)}>
+                        <SelectTrigger id={id} aria-describedby={descriptionId} size="sm" className="w-40">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {TRASH_AUTO_EMPTY_DAYS.map(value => (
+                                <SelectItem key={value} value={String(value)}>{t(TRASH_OPTION_KEYS[value])}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    )}
+                </SettingsRow>
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.data.sections.history")}>
                 <SettingsRow label={t("settings.data.undoLimit.label")} description={t("settings.data.undoLimit.description")}>

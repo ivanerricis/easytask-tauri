@@ -32,6 +32,31 @@ describe("task queries SQL", () => {
         expect(db.execute).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO task (sectionID, text, position)"), [1, "t", 1])
     })
 
+    it("createDBTask puts the task before its siblings (one below the lowest position) when asked", async () => {
+        await createDBTask(1, "t", "top")
+        const sql = db.execute.mock.calls[0][0] as string
+        expect(sql).toContain("MIN(position) - 1")
+        expect(sql).not.toContain("MAX(position)")
+        expect(db.execute.mock.calls[0][1]).toEqual([1, "t", 1])
+    })
+
+    it("createDBTask appends the task by default and with bottom", async () => {
+        await createDBTask(1, "t")
+        await createDBTask(1, "t", "bottom")
+        for (const [sql] of db.execute.mock.calls) {
+            expect(sql).toContain("MAX(position) + 1")
+            expect(sql).not.toContain("MIN(position)")
+        }
+    })
+
+    it("createDBSubTask puts the subtask before its siblings when asked", async () => {
+        await createDBSubTask(2, "s", "top")
+        const [sql, params] = db.execute.mock.calls[0] as [string, unknown[]]
+        expect(sql).toContain("MIN(position) - 1")
+        expect(sql).not.toContain("MAX(position)")
+        expect(params).toEqual(["s", 2, 2])
+    })
+
     it("createDBTask and createDBSubTask return the id of the new row", async () => {
         db.execute.mockResolvedValueOnce({ rowsAffected: 1, lastInsertId: 42 })
         expect(await createDBTask(1, "t")).toBe(42)

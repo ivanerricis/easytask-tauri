@@ -11,7 +11,10 @@ const ctx = {
     createTask: vi.fn(),
     createSubTask: vi.fn(),
     appendTask: vi.fn(),
+    applyTaskMove: vi.fn(),
 }
+let prefs = { newTaskPosition: "bottom", taskDensity: "normal" }
+vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ctx }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }))
 
@@ -23,6 +26,7 @@ const open = async (user: ReturnType<typeof userEvent.setup>) => {
 describe("AddTask", () => {
     beforeEach(() => {
         vi.resetAllMocks()
+        prefs = { newTaskPosition: "bottom", taskDensity: "normal" }
         ctx.createTask.mockResolvedValue(50)
         ctx.createSubTask.mockResolvedValue(60)
     })
@@ -44,8 +48,32 @@ describe("AddTask", () => {
         await user.type(input, "  Buy milk  {Enter}")
 
         await waitFor(() => expect(ctx.appendTask).toHaveBeenCalledWith(50, { sectionId: 3 }, "Buy milk"))
-        expect(ctx.createTask).toHaveBeenCalledWith(3, "Buy milk")
+        expect(ctx.createTask).toHaveBeenCalledWith(3, "Buy milk", "bottom")
+        expect(ctx.applyTaskMove).not.toHaveBeenCalled()
         expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
+    })
+
+    it("puts the new task before its siblings, also in the cached note, when new tasks go on top", async () => {
+        prefs = { newTaskPosition: "top", taskDensity: "normal" }
+        const user = userEvent.setup()
+        render(<AddTask sectionId={3} />)
+        const input = await open(user)
+
+        await user.type(input, "Buy milk{Enter}")
+
+        await waitFor(() => expect(ctx.applyTaskMove).toHaveBeenCalledWith(50, { sectionId: 3, parentTaskId: null }, 0))
+        expect(ctx.createTask).toHaveBeenCalledWith(3, "Buy milk", "top")
+    })
+
+    it("puts the new subtask before its sibling subtasks when new tasks go on top", async () => {
+        prefs = { newTaskPosition: "top", taskDensity: "normal" }
+        const user = userEvent.setup()
+        render(<AddTask sectionId={3} parentTaskId={7} />)
+
+        await user.type(screen.getByPlaceholderText("Nuovo sottotask…"), "Sub{Enter}")
+
+        await waitFor(() => expect(ctx.applyTaskMove).toHaveBeenCalledWith(60, { sectionId: 3, parentTaskId: 7 }, 0))
+        expect(ctx.createSubTask).toHaveBeenCalledWith(7, "Sub", "top")
     })
 
     it("does not create a task for an empty or blank name", async () => {
@@ -132,7 +160,7 @@ describe("AddTask", () => {
             await user.type(input, "  Step one  {Enter}")
 
             await waitFor(() => expect(ctx.appendTask).toHaveBeenCalledWith(60, { parentTaskId: 7 }, "Step one"))
-            expect(ctx.createSubTask).toHaveBeenCalledWith(7, "Step one")
+            expect(ctx.createSubTask).toHaveBeenCalledWith(7, "Step one", "bottom")
             expect(ctx.createTask).not.toHaveBeenCalled()
         })
 
@@ -146,7 +174,7 @@ describe("AddTask", () => {
             const input = screen.getByPlaceholderText(placeholder)
             expect(input).toHaveValue("")
             await user.type(input, "Two{Enter}")
-            await waitFor(() => expect(ctx.createSubTask).toHaveBeenLastCalledWith(7, "Two"))
+            await waitFor(() => expect(ctx.createSubTask).toHaveBeenLastCalledWith(7, "Two", "bottom"))
             expect(onClose).not.toHaveBeenCalled()
         })
 

@@ -5,6 +5,7 @@ import { isAutomationAction, isAutomationTrigger, isValidRule, type Automation, 
 import { buildGroupIndex, buildSectionIndex, sectionOffsets, toPortable, type PortableAutomation } from "@/lib/automations/portable"
 import type { NoteTemplateContent } from "@/types/template"
 import { getDB } from "../dbManager"
+import { chunked, placeholders } from "./sql"
 import { runTransaction, type Transaction, type TxRef, type TxStatement } from "../transaction"
 
 type AutomationRow = {
@@ -68,9 +69,44 @@ export async function getDBAutomations(noteId: number): Promise<Automation[]> {
 export async function getDBPortableAutomations(
     noteId: number, content: NoteTemplateContent, sectionIds: readonly number[], groupIds: readonly number[],
 ): Promise<PortableAutomation[]> {
+    return toPortableAutomations(await getDBAutomations(noteId), content, sectionIds, groupIds)
+}
+
+/**
+ * The rules of many notes at once (a few selects for the whole list instead of one per note), like getDBAutomations.
+ * @param noteIds The notes.
+ * @returns The rules of every note, by note id (an empty list for a note without rules).
+ * @category Database Queries
+ */
+export async function getDBAutomationsByNote(noteIds: readonly number[]): Promise<Map<number, Automation[]>> {
+    try {
+        const db = await getDB()
+        const result = new Map<number, Automation[]>(noteIds.map(id => [id, []]))
+        for (const ids of chunked(noteIds)) {
+            const rows = await db.select<AutomationRow[]>(
+                `SELECT id, noteID, name, enabled, trigger, actions, position FROM automation
+                 WHERE noteID IN (${placeholders(ids.length)}) ORDER BY position, id`, ids)
+            for (const row of rows) {
+                const rule = toAutomation(row)
+                if (rule) result.get(row.noteID)?.push(rule)
+            }
+        }
+        return result
+    } catch (error: unknown) {
+        return fail("load", error)
+    }
+}
+
+/**
+ * The rules in their portable form (see getDBPortableAutomations), out of rules already loaded.
+ * @category Database Queries
+ */
+export function toPortableAutomations(
+    rules: readonly Automation[], content: NoteTemplateContent, sectionIds: readonly number[], groupIds: readonly number[],
+): PortableAutomation[] {
     const index = buildSectionIndex(content, sectionIds)
     const groupIndex = buildGroupIndex(content, groupIds)
-    return (await getDBAutomations(noteId))
+    return rules
         .map(rule => toPortable(rule, index, groupIndex))
         .filter(rule => rule !== null)
 }

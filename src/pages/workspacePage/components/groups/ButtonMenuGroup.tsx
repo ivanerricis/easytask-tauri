@@ -11,7 +11,7 @@ import { ItemMenu } from "@/components/item-menu";
 import { useItemMenuState } from "@/hooks/use-item-menu-state";
 import { useRenameAfterClose } from "@/hooks/use-rename-after-close";
 import { useActiveNoteActions } from "@/contexts/use-active-note";
-import { useAudio } from "@/contexts/use-audio";
+import { useAudioActions } from "@/contexts/use-audio";
 import { GroupStepMoves } from "../NoteStepMoves";
 import type { Group } from "@/types/types";
 import { useState, type ReactElement } from "react";
@@ -41,7 +41,7 @@ export const ButtonMenuGroup = ({ group, onRename, children }: Props) => {
     const menu = useItemMenuState()
     const { requestRename, onCloseAutoFocus } = useRenameAfterClose(onRename)
     const { patchGroup, removeGroup } = useActiveNoteActions()
-    const { addFiles } = useAudio()
+    const { addFiles } = useAudioActions()
     const { updateItemColor, archiveItem } = useWorkspaceActions()
     const recorder = useUndoRecorder()
 
@@ -132,13 +132,13 @@ export const ButtonMenuGroup = ({ group, onRename, children }: Props) => {
                     onOpenChange={setAutomationsOpen}
                 />
             </LazyMount>}
-            <DialogDeleteItem
+            {isDeleteOpen && <DialogDeleteItem
                 item={group}
                 itemType="section_group"
                 isOpen={isDeleteOpen}
                 onOpenChange={setDeleteOpen}
                 optimistic={() => removeGroup(group.id)}
-            />
+            />}
         </>
     )
 

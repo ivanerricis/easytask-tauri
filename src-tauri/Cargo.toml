@@ -25,7 +25,7 @@ tauri-build = { version = "2.7.0", features = [] }
 
 [dependencies]
 log = "0.4"
-tauri = { version = "2.12.0", features = ["protocol-asset"] }
+tauri = { version = "2.12.0", features = ["protocol-asset", "tray-icon"] }
 tauri-plugin-log = "2"
 tauri-plugin-window-state = "2.0.0"
 tauri-plugin-sql = { version = "2.0", features = ["sqlite"] }
@@ -45,6 +45,7 @@ base64 = "0.23.1"
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"
 tauri-plugin-single-instance = "2"
+tauri-plugin-autostart = "2.7.0"
 
 [target.'cfg(windows)'.dependencies]
 # The identity of the process (set_app_user_model_id) and the media session of the system (media_session.rs)
@@ -60,3 +61,7 @@ codegen-units = 1
 # The MSVC linker prints "Creating library ….lib and object ….exp" for the cdylib: informational, not a warning
 [lints.rust]
 linker_messages = "allow"
+
+# Dependencies without debug info in debug builds: much smaller target/ (the app code keeps it)
+[profile.dev.package."*"]
+debug = false

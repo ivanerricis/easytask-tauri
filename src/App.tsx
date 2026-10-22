@@ -14,6 +14,7 @@ import { DialogShortcuts } from './components/dialogs/dialog-shortcuts'
 import { DialogUpdate } from './components/dialogs/dialog-update'
 import { TextContextMenu } from './components/text-context-menu'
 import { getEditableTarget } from './lib/editable-target'
+import { useCloseToTray } from './lib/use-close-to-tray'
 
 import { ErrorBoundary } from './components/error-boundary'
 import { LoadingPage } from './components/pages/loading-page'
@@ -26,6 +27,7 @@ const WorkSpacePage = lazy(loadWorkSpacePage)
 
 function App() {
   const { t } = useTranslation()
+  useCloseToTray()
 
   // The note page is the biggest chunk: load it once the home page is up, so opening the first workspace does not wait for it
   useEffect(() => {

@@ -11,7 +11,7 @@ const createWorkspaceFolder = vi.fn()
 const createSubFolder = vi.fn()
 const create = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({
-    useWorkspaceData: () => ({ createWorkspaceNote, createNoteInFolder, createNoteFromTemplate, createWorkspaceFolder, createSubFolder }),
+    useWorkspaceActions: () => ({ createWorkspaceNote, createNoteInFolder, createNoteFromTemplate, createWorkspaceFolder, createSubFolder }),
 }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create }) }))

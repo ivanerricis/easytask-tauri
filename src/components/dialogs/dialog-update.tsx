@@ -11,6 +11,7 @@ import { reportError } from "@/lib/report-error"
 import { saveSkippedUpdateVersion } from "@/lib/store/preferences"
 import { openReleasesPage, UPDATE_AVAILABLE_EVENT, type UpdateAvailableDetail } from "@/lib/updater"
 import { getErrorMessage } from "@/lib/utils"
+import { FormError } from "@/components/form-error"
 
 /** True while another dialog (settings, confirmation...) is open: the update dialog waits for it to close. */
 const otherDialogOpen = () => document.querySelector('[role="dialog"]') !== null
@@ -112,7 +113,7 @@ export const DialogUpdate = () => {
                     {installing && <UpdateInstallProgress percent={percent} label={label} />}
                 </div>
                 {installError && !installing && (
-                    <p role="alert" className="text-sm text-destructive break-words">{installError}</p>
+                    <FormError>{installError}</FormError>
                 )}
 
                 <DialogFooter>

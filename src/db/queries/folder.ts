@@ -4,10 +4,11 @@ import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
 
 /**
- * Creates a new task in the database.
- * @param sectionId The ID of the section to which the task belongs.
- * @param text The text of the task.
- * @param color The color of the task (optional).
+ * Creates a new folder at the root of a workspace, appended after its siblings.
+ * @param workspaceId The ID of the workspace to which the folder belongs.
+ * @param name The name of the folder.
+ * @param color The color of the folder (optional).
+ * @returns The ID of the new folder.
  * @category Database Queries
  */
 export async function createDBWorkspaceFolder(workspaceId: number, name: string, color?: string | null) {
@@ -28,10 +29,11 @@ export async function createDBWorkspaceFolder(workspaceId: number, name: string,
 }
 
 /**
- * Edits an existing folder in the database.
- * @param folderId The ID of the folder to edit.
- * @param name The new name of the folder.
- * @param color The new color of the folder (optional).
+ * Creates a new subfolder inside a folder, appended after its siblings.
+ * @param workspaceID The ID of the workspace of the folder.
+ * @param folderId The ID of the parent folder.
+ * @param name The name of the new folder.
+ * @returns The ID of the new folder.
  * @category Database Queries
  */
 export async function createDBSubFolder(workspaceID: number, folderId: number, name: string) {
@@ -59,32 +61,18 @@ export async function createDBSubFolder(workspaceID: number, folderId: number, n
  */
 export async function updateDBFolderColorContent(folderId: number, color?: string | null) {
     try {
-        const db = await getDB()
-        const folders = await db.select<{ id: number }[]>(
-            `
-            WITH RECURSIVE folder_tree AS (
+        // The subtree is a recursive CTE inside each UPDATE (no list of ids to bind); both run in one transaction
+        const subtree = `WITH RECURSIVE folder_tree AS (
                 SELECT id FROM folder WHERE id = ?
                 UNION
                 SELECT f.id FROM folder f
                 INNER JOIN folder_tree ft ON f.folderID = ft.id
-            )
-            SELECT id FROM folder_tree
-            `,
-            [folderId]
-        )
-
-        const folderIds = folders.map(f => f.id)
-        if (folderIds.length === 0) return
-
-        const placeholders = folderIds.map(() => '?').join(',')
-
+            )`
         const tx = new Transaction()
-        tx.add(`UPDATE folder SET color = ? WHERE id IN (${placeholders})`, [color, ...folderIds])
-        tx.add(`UPDATE note SET color = ? WHERE folderID IN (${placeholders})`, [color, ...folderIds])
+        tx.add(`${subtree} UPDATE folder SET color = ? WHERE id IN (SELECT id FROM folder_tree)`, [folderId, color ?? null])
+        tx.add(`${subtree} UPDATE note SET color = ? WHERE folderID IN (SELECT id FROM folder_tree)`, [folderId, color ?? null])
         await tx.run()
-
     } catch (error: unknown) {
-        console.error(error)
         handleDBError(error, "FOLDER", {
             UNIQUE: i18n.t("errors.folder.unique"),
             CHECK: i18n.t("errors.folder.check"),

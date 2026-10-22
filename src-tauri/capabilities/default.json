@@ -12,6 +12,10 @@
     "core:window:allow-toggle-maximize",
     "core:window:allow-close",
     "core:window:allow-destroy",
+    "core:window:allow-show",
+    "core:window:allow-hide",
+    "core:window:allow-unminimize",
+    "core:window:allow-set-focus",
     "window-state:default",
     "dialog:allow-open",
     "dialog:allow-save",
@@ -48,6 +52,9 @@
     "clipboard-manager:allow-read-text",
     "clipboard-manager:allow-write-text",
     "process:allow-restart",
-    "updater:default"
+    "updater:default",
+    "autostart:allow-enable",
+    "autostart:allow-disable",
+    "autostart:allow-is-enabled"
   ]
 }

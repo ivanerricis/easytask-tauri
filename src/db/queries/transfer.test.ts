@@ -1,7 +1,8 @@
 // @vitest-environment node
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { DatabaseSync, type SQLInputValue } from "node:sqlite"
+import { DatabaseSync } from "node:sqlite"
+import { sqliteRows } from "@/test/db-mock"
 import { MAX_IMPORT_ITEMS } from "@/types/transfer"
 import { latestSchema } from "../schema/initial"
 
@@ -12,15 +13,10 @@ let failOn: string | null = null
 // Answer of the Rust audio_file_exists command (used by the default existence check)
 let audioFileExists: (path: string) => boolean = () => true
 
-vi.mock("../dbManager", () => ({
-    getDB: vi.fn(async () => ({
-        execute: async (sql: string, params: unknown[] = []) => {
-            const r = sqlite.prepare(sql).run(...(params as SQLInputValue[]))
-            return { rowsAffected: Number(r.changes), lastInsertId: Number(r.lastInsertRowid) }
-        },
-        select: async (sql: string, params: unknown[] = []) => sqlite.prepare(sql).all(...(params as SQLInputValue[])),
-    })),
-}))
+vi.mock("../dbManager", async () => {
+    const { createSqliteDb } = await import("@/test/db-mock")
+    return { getDB: vi.fn(async () => createSqliteDb(() => sqlite)) }
+})
 
 // db_transaction runs on the same in-memory database, with real BEGIN/COMMIT/ROLLBACK
 vi.mock("@tauri-apps/api/core", async () => {
@@ -36,7 +32,7 @@ import { getDBNoteData } from "./note"
 import { getDBAutomations } from "./automation"
 import { buildDBItemExport, buildDBItemsExport, buildDBWorkspaceExport, importDBItems, importDBWorkspace, suggestDBItemNames, suggestDBWorkspaceImportName, validateWorkspaceExport } from "./transfer"
 
-const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
+const rows = sqliteRows(() => sqlite)
 
 async function thrown(p: Promise<unknown>): Promise<unknown> {
     try {
@@ -112,6 +108,41 @@ describe("buildDBWorkspaceExport", () => {
         expect(source.audio).toEqual([{ groupIndex: 0, name: "song.mp3", path: "/x/song.mp3", position: 0 }])
         expect(data.notes.find(n => n.name === "Nella cartella")!.folderRef).toBe(data.folders[0].ref)
         expect(data.templates.map(t => t.name)).toEqual(["T"])
+    })
+
+    it("keeps the groups, archived items and audio of every note apart (bulk loading)", async () => {
+        sqlite.exec(`
+            INSERT INTO note (id, workspaceID, name, position) VALUES (7, 1, 'Seconda', 5);
+            INSERT INTO section_group (id, noteID, position, name, archived_at) VALUES
+                (10, 7, 1, 'Archiviato', datetime('now')), (11, 7, 0, 'Primo', NULL);
+            INSERT INTO section (id, groupID, title, position, archived_at) VALUES
+                (10, 10, 'In archiviato', 0, NULL), (11, 11, 'S2', 1, NULL), (12, 11, 'S1', 0, datetime('now'));
+            INSERT INTO task (id, sectionID, taskID, text, position, archived_at) VALUES
+                (20, 11, NULL, 'T2', 1, NULL), (21, 11, NULL, 'T1', 0, datetime('now')), (22, 12, NULL, 'In archiviata', 0, NULL),
+                (23, 11, 20, 'Sub', 0, NULL);
+            INSERT INTO audio_file (name, path, section_groupID, position) VALUES
+                ('a.mp3', '/x/a.mp3', 10, 1), ('b.mp3', '/x/b.mp3', 11, 0), ('c.mp3', '/x/c.mp3', 10, 0);
+        `)
+        const data = await exportOf()
+        expect(data.notes.map(n => n.name).sort()).toEqual(["Nella cartella", "Seconda", "Sorgente"])
+        const second = data.notes.find(n => n.name === "Seconda")!
+        expect(second.content.groups.map(g => g.name)).toEqual(["Primo", "Archiviato"])
+        expect(second.content.groups[1].archived_at).toBeTruthy()
+        expect(second.content.groups[0].sections.map(s => s.title)).toEqual(["S1", "S2"])
+        expect(second.content.groups[0].sections[0].archived_at).toBeTruthy()
+        expect(second.content.groups[0].sections[1].tasks.map(t => [t.text, t.subtasks.map(s => s.text)])).toEqual([["T1", []], ["T2", ["Sub"]]])
+        expect(second.audio.map(a => [a.groupIndex, a.name])).toEqual([[0, "b.mp3"], [1, "c.mp3"], [1, "a.mp3"]])
+        // The first note is untouched by the other one
+        const source = data.notes.find(n => n.name === "Sorgente")!
+        expect(source.audio).toEqual([{ groupIndex: 0, name: "song.mp3", path: "/x/song.mp3", position: 0 }])
+        expect(source.content.groups.map(g => g.name)).toEqual(["Sprint", null])
+    })
+
+    it("exports an items selection of several notes and folders with the same content", async () => {
+        const data = await buildDBItemsExport([{ type: "note", id: 1 }, { type: "folder", id: 1 }, { type: "note", id: 1 }])
+        expect(data.notes.map(n => [n.name, n.folderRef])).toEqual([["Sorgente", null], ["Nella cartella", "f1"]])
+        expect(data.notes[0].audio).toHaveLength(1)
+        expect(data.folders.map(f => f.name)).toEqual(["Cartella"])
     })
 
     it("fails for a missing workspace", async () => {

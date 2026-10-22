@@ -12,7 +12,7 @@ import { reportError } from "@/lib/report-error"
 import { getCheckUpdatesOnStartup, saveCheckUpdatesOnStartup } from "@/lib/store/preferences"
 import { checkForUpdate, openReleasesPage } from "@/lib/updater"
 import { getErrorMessage } from "@/lib/utils"
-import { SettingsRow } from "./SettingsRow"
+import { SettingsCard, SettingsRow } from "./SettingsRow"
 
 type Status =
     | { kind: "idle" }
@@ -70,51 +70,54 @@ export const UpdateSection = () => {
     const busy = status.kind === "checking" || installing
 
     return (
-        <div className="flex flex-col gap-3">
-            <SettingsRow label={t("settings.about.update.label")}>
-                <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleCheck()}>
-                    <RefreshCw />
-                    {t("settings.about.update.checkButton")}
-                </Button>
-            </SettingsRow>
+        <SettingsCard>
+            {/* The result of the check belongs to the check: same row (the live region stays mounted, empty while idle) */}
+            <div className="flex flex-col">
+                <SettingsRow label={t("settings.about.update.label")}>
+                    <Button variant="outline" size="sm" disabled={busy} onClick={() => void handleCheck()}>
+                        <RefreshCw />
+                        {t("settings.about.update.checkButton")}
+                    </Button>
+                </SettingsRow>
 
-            <div role="status" aria-live="polite" className="flex flex-col gap-2 text-sm">
-                {status.kind === "checking" && (
-                    <p className="text-muted-foreground">{t("settings.about.update.checking")}</p>
-                )}
-                {status.kind === "upToDate" && (
-                    <p className="text-muted-foreground">{t("settings.about.update.upToDate")}</p>
-                )}
-                {status.kind === "error" && (
-                    <p className="text-destructive break-words">
-                        {t("settings.about.update.error", { message: status.message })}
-                    </p>
-                )}
-                {status.kind === "available" && !installing && (
-                    <>
-                        <p>{t("settings.about.update.available", { version: status.update.version, current: status.update.currentVersion })}</p>
-                        {status.update.body?.trim() && <UpdateNotesBox body={status.update.body} />}
-                        {portable ? (
-                            <>
-                                <p className="text-sm text-muted-foreground">{t("settings.about.update.portableHint")}</p>
+                <div role="status" aria-live="polite" className="flex flex-col gap-2 text-sm not-empty:mt-3">
+                    {status.kind === "checking" && (
+                        <p className="text-muted-foreground">{t("settings.about.update.checking")}</p>
+                    )}
+                    {status.kind === "upToDate" && (
+                        <p className="text-muted-foreground">{t("settings.about.update.upToDate")}</p>
+                    )}
+                    {status.kind === "error" && (
+                        <p className="text-destructive break-words">
+                            {t("settings.about.update.error", { message: status.message })}
+                        </p>
+                    )}
+                    {status.kind === "available" && !installing && (
+                        <>
+                            <p>{t("settings.about.update.available", { version: status.update.version, current: status.update.currentVersion })}</p>
+                            {status.update.body?.trim() && <UpdateNotesBox body={status.update.body} />}
+                            {portable ? (
+                                <>
+                                    <p className="text-sm text-muted-foreground">{t("settings.about.update.portableHint")}</p>
+                                    <div>
+                                        <Button size="sm" onClick={() => void handleOpenReleases()}>
+                                            <ExternalLink />
+                                            {t("settings.about.update.openReleases")}
+                                        </Button>
+                                    </div>
+                                </>
+                            ) : (
                                 <div>
-                                    <Button size="sm" onClick={() => void handleOpenReleases()}>
-                                        <ExternalLink />
-                                        {t("settings.about.update.openReleases")}
+                                    <Button size="sm" onClick={() => void handleInstall(status.update)}>
+                                        <Download />
+                                        {t("settings.about.update.install")}
                                     </Button>
                                 </div>
-                            </>
-                        ) : (
-                            <div>
-                                <Button size="sm" onClick={() => void handleInstall(status.update)}>
-                                    <Download />
-                                    {t("settings.about.update.install")}
-                                </Button>
-                            </div>
-                        )}
-                    </>
-                )}
-                {installing && <UpdateInstallProgress percent={percent} label={installLabel} />}
+                            )}
+                        </>
+                    )}
+                    {installing && <UpdateInstallProgress percent={percent} label={installLabel} />}
+                </div>
             </div>
 
             <SettingsRow label={t("settings.about.update.startup.label")} description={t("settings.about.update.startup.description")}>
@@ -124,6 +127,6 @@ export const UpdateSection = () => {
                     onCheckedChange={handleStartupChange}
                 />
             </SettingsRow>
-        </div>
+        </SettingsCard>
     )
 }

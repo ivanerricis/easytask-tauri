@@ -26,6 +26,31 @@ const DialogAutomations = lazyWithPreload(() => import("@/components/dialogs/dia
 const DialogCreateTemplate = lazyWithPreload(() => import("@/components/dialogs/dialog-create-template").then(m => ({ default: m.DialogCreateTemplate })))
 preloadWhenIdle(DialogAutomations, DialogCreateTemplate)
 
+/** The tab moves are the keyboard way to reorder the tabs. Kept apart so the tabs are read only while the menu is open, not by every sidebar row. */
+const TabMoveItems = ({ noteId, onDone }: { noteId: number, onDone: () => void }) => {
+    const { t } = useTranslation()
+    const { tabs } = useTabs()
+    const { reorderTabs } = useTabsActions()
+    // Position of the note among the open tabs (-1 when it is not open)
+    const tabIndex = tabs.findIndex(tab => tab.id === noteId)
+    if (tabIndex < 0) return null
+    return (
+        <>
+            <ButtonInPopover
+                text={t("notes.moveTabLeft")}
+                type="moveLeft"
+                disabled={tabIndex === 0}
+                onClick={() => { onDone(); reorderTabs(tabIndex, tabIndex - 1) }}
+            />
+            <ButtonInPopover
+                text={t("notes.moveTabRight")}
+                type="moveRight"
+                disabled={tabIndex === tabs.length - 1}
+                onClick={() => { onDone(); reorderTabs(tabIndex, tabIndex + 1) }}
+            />
+        </>
+    )
+}
 type ButtonMenuNoteProps = {
     note: Note
     /** The note row or tab: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
@@ -43,10 +68,7 @@ export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps
     const { requestRename, onCloseAutoFocus } = useRenameAfterClose(onRename)
     const multi = useIsInMultiSelection("note", note.id)
     const { updateItemColor, duplicateNote, archiveItem } = useWorkspaceActions()
-    const { openNote, reorderTabs } = useTabsActions()
-    const { tabs } = useTabs()
-    // Position of the note among the open tabs (-1 when it is not open): the tab moves are the keyboard way to reorder them
-    const tabIndex = tabs.findIndex(tab => tab.id === note.id)
+    const { openNote } = useTabsActions()
     const recorder = useUndoRecorder()
     const { exportItem } = useItemTransfer()
 
@@ -104,20 +126,7 @@ export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps
                 folderID={note.folderID}
                 onDone={menu.close}
             />
-            {tabIndex >= 0 && <>
-                <ButtonInPopover
-                    text={t("notes.moveTabLeft")}
-                    type="moveLeft"
-                    disabled={tabIndex === 0}
-                    onClick={() => { menu.close(); reorderTabs(tabIndex, tabIndex - 1) }}
-                />
-                <ButtonInPopover
-                    text={t("notes.moveTabRight")}
-                    type="moveRight"
-                    disabled={tabIndex === tabs.length - 1}
-                    onClick={() => { menu.close(); reorderTabs(tabIndex, tabIndex + 1) }}
-                />
-            </>}
+            <TabMoveItems noteId={note.id} onDone={menu.close} />
             <Separator />
             <ButtonInPopover
                 text={t("menu.createTemplate")}
@@ -168,12 +177,12 @@ export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps
                     onOpenChange={setAutomationsOpen}
                 />
             </LazyMount>
-            <DialogDeleteItem
+            {isDeleteOpen && <DialogDeleteItem
                 item={note}
                 itemType="note"
                 isOpen={isDeleteOpen}
                 onOpenChange={setDeleteOpen}
-            />
+            />}
         </>
     )
 

@@ -251,19 +251,30 @@ describe("AutomationsProvider state rules (sync)", () => {
         await waitFor(() => expect(sectionColor(20)).toBe(GREEN))
 
         // A new empty section
-        const sectionCalls = mocks.getDBAutomations.mock.calls.length
+        const sectionWrites = mocks.applyDBAutomationChanges.mock.calls.length
         const base = mocks.tree.groups[0].sections[0]
         mocks.tree = { groups: mocks.tree.groups.map((g, i) => i === 0 ? { ...g, sections: [...g.sections, { ...base, id: 30, tasks: [], color: null }] } : g) }
         rerender()
         await waitFor(() => expect(sectionColor(30)).toBe(GREEN))
-        expect(mocks.getDBAutomations.mock.calls.length).toBeGreaterThan(sectionCalls)
+        // The rules are cached, so a sync shows as a write of the new color
+        expect(mocks.applyDBAutomationChanges.mock.calls.length).toBeGreaterThan(sectionWrites)
 
         // A color-only change does not sync
-        const before = mocks.getDBAutomations.mock.calls.length
+        const before = mocks.applyDBAutomationChanges.mock.calls.length
         mocks.tree = { groups: mocks.tree.groups.map(g => ({ ...g, sections: g.sections.map(s => ({ ...s, color: "#123456", title: "x" })) })) }
         rerender()
         await new Promise(resolve => setTimeout(resolve, 20))
-        expect(mocks.getDBAutomations.mock.calls.length).toBe(before)
+        expect(mocks.applyDBAutomationChanges.mock.calls.length).toBe(before)
+    })
+
+    it("reads the rules once for the actions and syncs of a note, and again after an outside sync", async () => {
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await result.current.dispatch({ type: "task.completed", taskId: 11 })
+        await result.current.dispatch({ type: "task.completed", taskId: 11 })
+        expect(mocks.getDBAutomations).toHaveBeenCalledTimes(1)
+        // The automations dialog calls sync after a write: the rules are read again
+        await result.current.sync()
+        expect(mocks.getDBAutomations).toHaveBeenCalledTimes(2)
     })
 
     it("reloads the note when the write fails and does not throw", async () => {

@@ -68,6 +68,18 @@ describe("PreferencesContext", () => {
         }
     })
 
+    it("keeps the same value and setters while nothing changes", async () => {
+        const { result, rerender } = renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(result.current.undoLimit).toBe(200))
+        const before = result.current
+        rerender()
+        expect(result.current).toBe(before)
+        act(() => result.current.setUndoLimit(100))
+        expect(result.current).not.toBe(before)
+        expect(result.current.setUndoLimit).toBe(before.setUndoLimit)
+        expect(result.current.setAudioPlayerPosition).toBe(before.setAudioPlayerPosition)
+    })
+
     it("has defaults for the audio count, the separators and the undo limit before the store answers", () => {
         const { result } = renderHook(() => usePreferences(), { wrapper })
         expect(result.current.showAudioFileCount).toBe(true)
@@ -93,6 +105,24 @@ describe("PreferencesContext", () => {
         expect(prefs.savePref).toHaveBeenCalledWith("undoLimit", 25)
         expect(prefs.savePref).toHaveBeenCalledWith("showUnnamedLabels", false)
         expect(prefs.savePref).toHaveBeenCalledWith("renameOnClick", true)
+    })
+
+    it("sets the spellcheck of the document from the preference", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(document.documentElement.spellcheck).toBe(true)
+        act(() => result.current.setSpellcheck(false))
+        expect(document.documentElement.spellcheck).toBe(false)
+        expect(prefs.savePref).toHaveBeenCalledWith("spellcheck", false)
+        act(() => result.current.setSpellcheck(true))
+        expect(document.documentElement.spellcheck).toBe(true)
+        await waitFor(() => expect(result.current.primaryColor).toBe("#123456"))
+    })
+
+    it("applies a stored spellcheck off", async () => {
+        stored.spellcheck = false
+        renderHook(() => usePreferences(), { wrapper })
+        await waitFor(() => expect(document.documentElement.spellcheck).toBe(false))
+        document.documentElement.spellcheck = true
     })
 
     it("throws when used outside the provider", () => {

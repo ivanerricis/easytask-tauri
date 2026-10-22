@@ -1,6 +1,6 @@
 import i18n from "@/i18n"
 import type { Task } from "@/types/types"
-import { createError, handleDBError, isAppError } from "@/types/error"
+import { createError, handleDBError, toAppError } from "@/types/error"
 import { getErrorMessage } from "@/lib/utils"
 import { getDB } from "../dbManager"
 import { Transaction, TransactionError } from "../transaction"
@@ -55,8 +55,7 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
         content = built.content
         automations = await getDBPortableAutomations(noteId, content, built.sectionIds, built.groupIds)
     } catch (error: unknown) {
-        if (isAppError(error)) throw error
-        throw createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.load", { message: getErrorMessage(error) }))
+        throw toAppError(error, e => createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.load", { message: getErrorMessage(e) })))
     }
 
     const tx = new Transaction()
@@ -107,8 +106,7 @@ export async function duplicateDBSection(sectionId: number): Promise<number> {
             'SELECT * FROM task WHERE sectionID = ? AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, id', [sectionId])
         snapshot = createSectionSnapshotter(tasks)({ ...source, title: source.title ?? "" })
     } catch (error: unknown) {
-        if (isAppError(error)) throw error
-        throw createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.load", { message: getErrorMessage(error) }))
+        throw toAppError(error, e => createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.load", { message: getErrorMessage(e) })))
     }
 
     const tx = new Transaction()

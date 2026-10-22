@@ -1,5 +1,5 @@
 import { DEFAULT_PRIMARY_COLOR, applyAccentColor } from "@/lib/accent-color"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
     UI_PREFS,
     getPref,
@@ -44,6 +44,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [prefs, setPrefs] = useState<PrefValues>(DEFAULT_PREFS)
     const [primaryColor, setPrimaryColorState] = useState(DEFAULT_PRIMARY_COLOR)
     useEffect(() => applyAnimationSpeed(prefs.animationSpeed), [prefs.animationSpeed])
+    // The spellcheck attribute is inherited: on the root it covers every text field of the app
+    useEffect(() => { document.documentElement.spellcheck = prefs.spellcheck }, [prefs.spellcheck])
     const [audioPlayerPosition, setAudioPlayerPositionState] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 })
     const audioPlayerContainerRef = useRef<HTMLDivElement>(null)
     const positionRef = useRef<AudioPlayerPosition>(audioPlayerPosition)
@@ -96,8 +98,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     }, [refitPosition])
 
     /** Sets the state of a preference (nothing changes, so nothing renders, when the value is the same). */
-    const setPref = <K extends UiPrefName>(name: K, value: PrefValue<K>) =>
-        setPrefs(current => Object.is(current[name], value) ? current : { ...current, [name]: value })
+    const setPref = useCallback(<K extends UiPrefName>(name: K, value: PrefValue<K>) =>
+        setPrefs(current => Object.is(current[name], value) ? current : { ...current, [name]: value }), [])
 
     useEffect(() => {
         for (const name of PREF_NAMES) {
@@ -115,75 +117,79 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             setPrimaryColorState(hex)
             applyAccentColor(hex)
         }).catch(reportError)
-    }, [])
+    }, [setPref])
 
-    // One setter per preference: it brings the value into the allowed ones, updates the state and saves it
-    const setters = Object.fromEntries(PREF_NAMES.map(name => [setterName(name), (value: unknown) => {
-        const normalized = normalizePref(name, value)
-        setPref(name, normalized)
-        if (name === "language") void applyLanguagePreference(normalized as PrefValues["language"])
-        savePref(name, normalized).catch(reportError)
-    }])) as Pick<PreferencesContextType, PrefSetterName<UiPrefName>>
+    // The actions only go through setState and refs: built once, so their identity never changes and the value below
+    // changes only with the preferences (every colored row reads it through useColorAlpha)
+    const actions = useMemo(() => {
+        // One setter per preference: it brings the value into the allowed ones, updates the state and saves it
+        const setters = Object.fromEntries(PREF_NAMES.map(name => [setterName(name), (value: unknown) => {
+            const normalized = normalizePref(name, value)
+            setPref(name, normalized)
+            if (name === "language") void applyLanguagePreference(normalized as PrefValues["language"])
+            savePref(name, normalized).catch(reportError)
+        }])) as Pick<PreferencesContextType, PrefSetterName<UiPrefName>>
 
-    const setPrimaryColor = (hex: string) => {
-        setPrimaryColorState(hex)
-        applyAccentColor(hex)
-        savePrimaryColor(hex).catch(reportError)
-    }
-
-    const setAudioPlayerPosition = (position: AudioPlayerPosition) => {
-        setAudioPlayerPositionState(position)
-        positionRef.current = position
-        saveAudioPlayerPosition(position).catch(reportError)
-    }
-
-    const setAudioPlayerScale = (value: AudioPlayerScale) => {
-        const scale = normalizePref("audioPlayerScale", value)
-        setters.setAudioPlayerScale(scale)
-        // A bigger player must not overflow the window: pull it back inside
-        if (!audioPlayerContainerRef.current) return
-        const fitted = fitPosition(audioPlayerPosition, scale)
-        if (fitted !== audioPlayerPosition) setAudioPlayerPosition(fitted)
-    }
-
-    const resetAudioSettings = () => {
-        setters.setAudioVolume(DEFAULT_AUDIO_VOLUME)
-        setters.setAudioPlayerVisible(true)
-        setAudioPlayerScale(DEFAULT_AUDIO_PLAYER_SCALE)
-        setters.setAudioPlayerOpacity(DEFAULT_AUDIO_PLAYER_OPACITY)
-    }
-
-    const resetPlayerPosition = () => {
-        const container = audioPlayerContainerRef.current
-        if (!container) {
-            resetAudioPlayerPosition().catch(reportError)
-            return
+        const setPrimaryColor = (hex: string) => {
+            setPrimaryColorState(hex)
+            applyAccentColor(hex)
+            savePrimaryColor(hex).catch(reportError)
         }
-        const { width: playerWidth, height: playerHeight } = playerSizeRef.current
-            ?? { width: AUDIO_PLAYER_WIDTH * prefs.audioPlayerScale, height: AUDIO_PLAYER_HEIGHT * prefs.audioPlayerScale }
-        // Computed once and set once (setAudioPlayerPosition also saves it, replacing the stored position)
-        setAudioPlayerPosition({
-            x: Math.max(0, container.offsetWidth / 2 - playerWidth / 2),
-            y: Math.max(0, container.offsetHeight - playerHeight - AUDIO_PLAYER_MARGIN),
-            scaleX: 1,
-            scaleY: 1
-        })
-    }
+
+        const setAudioPlayerPosition = (position: AudioPlayerPosition) => {
+            setAudioPlayerPositionState(position)
+            positionRef.current = position
+            saveAudioPlayerPosition(position).catch(reportError)
+        }
+
+        const setAudioPlayerScale = (value: AudioPlayerScale) => {
+            const scale = normalizePref("audioPlayerScale", value)
+            setters.setAudioPlayerScale(scale)
+            // A bigger player must not overflow the window: pull it back inside
+            if (!audioPlayerContainerRef.current) return
+            const current = positionRef.current
+            const fitted = fitPositionRef.current(current, scale)
+            if (fitted !== current) setAudioPlayerPosition(fitted)
+        }
+
+        const resetAudioSettings = () => {
+            setters.setAudioVolume(DEFAULT_AUDIO_VOLUME)
+            setters.setAudioPlayerVisible(true)
+            setAudioPlayerScale(DEFAULT_AUDIO_PLAYER_SCALE)
+            setters.setAudioPlayerOpacity(DEFAULT_AUDIO_PLAYER_OPACITY)
+        }
+
+        const resetPlayerPosition = () => {
+            const container = audioPlayerContainerRef.current
+            if (!container) {
+                resetAudioPlayerPosition().catch(reportError)
+                return
+            }
+            const { width: playerWidth, height: playerHeight } = playerSizeRef.current
+                ?? { width: AUDIO_PLAYER_WIDTH * scaleRef.current, height: AUDIO_PLAYER_HEIGHT * scaleRef.current }
+            // Computed once and set once (setAudioPlayerPosition also saves it, replacing the stored position)
+            setAudioPlayerPosition({
+                x: Math.max(0, container.offsetWidth / 2 - playerWidth / 2),
+                y: Math.max(0, container.offsetHeight - playerHeight - AUDIO_PLAYER_MARGIN),
+                scaleX: 1,
+                scaleY: 1
+            })
+        }
+
+        return { ...setters, setAudioPlayerScale, setPrimaryColor, setAudioPlayerPosition, resetPlayerPosition, resetAudioSettings }
+    }, [setPref])
+
+    const value = useMemo(() => ({
+        ...prefs,
+        ...actions,
+        primaryColor,
+        audioPlayerPosition,
+        audioPlayerContainerRef,
+        reportAudioPlayerSize,
+    }), [prefs, actions, primaryColor, audioPlayerPosition, reportAudioPlayerSize])
 
     return (
-        <PreferencesContext.Provider value={{
-            ...prefs,
-            ...setters,
-            setAudioPlayerScale,
-            primaryColor,
-            setPrimaryColor,
-            audioPlayerPosition,
-            audioPlayerContainerRef,
-            reportAudioPlayerSize,
-            setAudioPlayerPosition,
-            resetPlayerPosition,
-            resetAudioSettings
-        }}>
+        <PreferencesContext.Provider value={value}>
             {children}
         </PreferencesContext.Provider>
     )

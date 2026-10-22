@@ -8,8 +8,7 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useOptionalUndo, useUndoRecorder } from "@/contexts/undo/use-undo"
 import type { UndoCommand } from "@/contexts/undo/stack"
 import { findSection } from "@/contexts/note-tree-ops"
-import { buildNoteTree } from "@/contexts/tree-builders"
-import { getDBNoteData } from "@/db/queries/note"
+import { fetchNoteTree } from "@/contexts/tree-builders"
 import { applyDBAutomationChanges, getDBAutomations } from "@/db/queries/automation"
 import { runAutomations, syncStateRules } from "@/lib/automations/engine"
 import {
@@ -17,16 +16,11 @@ import {
     type GroupChange, type TaskChange,
 } from "@/lib/automations/diff"
 import { automationName } from "@/lib/automations/describe"
-import { isStateTrigger, type AutomationEvent } from "@/lib/automations/types"
+import { isStateTrigger, type Automation, type AutomationEvent } from "@/lib/automations/types"
 import { reportError } from "@/lib/report-error"
 import { getErrorMessage } from "@/lib/utils"
 import { getGroupLabel } from "@/pages/workspacePage/components/groups/group-label"
 import { AutomationsContext } from "./automations-context-object"
-
-async function loadNoteTree(noteId: number): Promise<NoteDataTree> {
-    const data = await getDBNoteData(noteId)
-    return buildNoteTree(data?.groups ?? [], data?.sections ?? [], data?.tasks ?? [])
-}
 
 /**
  * One version of the note an automation produced: the tree the user sees and the same tree plus the groups the
@@ -80,11 +74,34 @@ function structureSignature(tree: NoteDataTree): string {
 export function AutomationsProvider({ children }: { children: ReactNode }) {
     const activeId = useActiveNoteId()
     const activeIdRef = useRef(activeId)
-    useEffect(() => { activeIdRef.current = activeId }, [activeId])
+    // The rules of the open note, read once and shared by `run` and `sync` (both fire on every task action). Dropped when
+    // the open note changes or when `sync` is called from outside, which is what the automations dialog does after a write.
+    const rulesCache = useRef<{ noteId: number, rules: Promise<Automation[]> } | null>(null)
+    const getRules = useCallback((noteId: number) => {
+        if (rulesCache.current?.noteId === noteId) return rulesCache.current.rules
+        const entry = { noteId, rules: getDBAutomations(noteId) }
+        rulesCache.current = entry
+        // A failed read must not stay cached
+        entry.rules.catch(() => { if (rulesCache.current === entry) rulesCache.current = null })
+        return entry.rules
+    }, [])
+    useEffect(() => {
+        activeIdRef.current = activeId
+        rulesCache.current = null
+    }, [activeId])
 
     const { noteDataTree } = useActiveNote()
     const { getNoteTree, setNoteDataTree, refreshActiveNote } = useActiveNoteActions()
     const { notifyArchiveChanged } = useWorkspaceActions()
+    // An automation is applied to the cached note first: when the write fails the note is reloaded and the error goes on
+    const applyOrRefresh = useCallback(async (write: () => Promise<void>) => {
+        try {
+            await write()
+        } catch (error) {
+            await refreshActiveNote().catch(() => {})
+            throw error
+        }
+    }, [refreshActiveNote])
     const recorder = useUndoRecorder()
     const undoContext = useOptionalUndo()
     const undoRef = useRef(undoContext?.undo)
@@ -100,27 +117,24 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         noteId: number, source: Side, other: Side, tasks: TaskChange[], groups: GroupChange[],
     ) => {
         const cached = activeIdRef.current === noteId ? getNoteTree() : null
-        const base = cached ?? await loadNoteTree(noteId)
+        const base = cached ?? await fetchNoteTree(noteId)
         const next = restoreTasks(restoreGroups(base, source.tree, groups), source.full, tasks)
         if (cached) setNoteDataTree(next)
-        try {
-            // The tasks of an archived group are compared with what the database holds: `other.full` has the groups as they
-            // were before this restore, `source.full` as they are after it
-            await applyDBAutomationChanges([
-                ...diffGroupStatements(base, next),
-                ...diffTaskStatements(withGroups(base, other.full.groups), withGroups(next, source.full.groups)),
-            ])
-        } catch (error) {
-            if (cached) await refreshActiveNote().catch(() => {})
-            throw error
-        }
+        // The tasks of an archived group are compared with what the database holds: `other.full` has the groups as they
+        // were before this restore, `source.full` as they are after it
+        const write = () => applyDBAutomationChanges([
+            ...diffGroupStatements(base, next),
+            ...diffTaskStatements(withGroups(base, other.full.groups), withGroups(next, source.full.groups)),
+        ])
+        if (cached) await applyOrRefresh(write)
+        else await write()
         if (groups.some(change => change.archived)) notifyArchiveChanged()
-    }, [getNoteTree, setNoteDataTree, refreshActiveNote, notifyArchiveChanged])
+    }, [getNoteTree, setNoteDataTree, applyOrRefresh, notifyArchiveChanged])
 
     const run = useCallback(async (event: AutomationEvent) => {
         const noteId = activeIdRef.current
         if (noteId === null) return
-        const rules = await getDBAutomations(noteId)
+        const rules = await getRules(noteId)
         if (!rules.some(rule => rule.enabled)) return
         // The note may have been left while the rules were loading
         const before = activeIdRef.current === noteId ? getNoteTree() : null
@@ -132,13 +146,8 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         // `after` plus the archived groups as they ended up: their tasks may have been changed before the archive
         const fullAfter = withGroups(after, archivedGroups)
         setNoteDataTree(after)
-        try {
-            // Groups first (archive, color, order), then the tasks: the tasks of an archived group are not in `after`
-            await applyDBAutomationChanges([...diffGroupStatements(before, after), ...diffTaskStatements(before, fullAfter)])
-        } catch (error) {
-            await refreshActiveNote().catch(() => {})
-            throw error
-        }
+        // Groups first (archive, color, order), then the tasks: the tasks of an archived group are not in `after`
+        await applyOrRefresh(() => applyDBAutomationChanges([...diffGroupStatements(before, after), ...diffTaskStatements(before, fullAfter)]))
 
         const tasks = taskChanges(before, fullAfter, touched)
         const groups = groupChanges(before, after, touchedGroups)
@@ -167,7 +176,7 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
                 ...(undo ? { action: { label: i18n.t("undo.undo"), onClick: undoAutomation } } : {}),
             },
         )
-    }, [getNoteTree, setNoteDataTree, refreshActiveNote, notifyArchiveChanged, recorder, restore])
+    }, [getRules, getNoteTree, setNoteDataTree, applyOrRefresh, notifyArchiveChanged, recorder, restore])
 
     /** Runs the rules for an event (never rejects: a failure is reported). An undo asked meanwhile waits for it. */
     const dispatch = useCallback((event: AutomationEvent) => recorder.track(run(event).catch(error => {
@@ -178,10 +187,10 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
      * Aligns the colors with the state rules (no tasks to do -> one color, some -> another). Silent on purpose: no toast and
      * no undo entry, because the color derives from the tasks (undoing the user action re-aligns it). Never rejects.
      */
-    const sync = useCallback(() => recorder.track((async () => {
+    const syncRules = useCallback(() => recorder.track((async () => {
         const noteId = activeIdRef.current
         if (noteId === null) return
-        const rules = await getDBAutomations(noteId)
+        const rules = await getRules(noteId)
         if (!rules.some(rule => rule.enabled && isStateTrigger(rule.trigger.type))) return
         // Read after the await: the user may have acted while the rules were loading
         const before = activeIdRef.current === noteId ? getNoteTree() : null
@@ -189,22 +198,23 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         const { tree: after } = syncStateRules(before, rules)
         if (after === before) return
         setNoteDataTree(after)
-        try {
-            await applyDBAutomationChanges([...diffGroupStatements(before, after), ...diffSectionStatements(before, after)])
-        } catch (error) {
-            await refreshActiveNote().catch(() => {})
-            throw error
-        }
+        await applyOrRefresh(() => applyDBAutomationChanges([...diffGroupStatements(before, after), ...diffSectionStatements(before, after)]))
     })().catch(error => {
         reportError(error, getErrorMessage(error))
-    })), [recorder, getNoteTree, setNoteDataTree, refreshActiveNote])
+    })), [recorder, getRules, getNoteTree, setNoteDataTree, applyOrRefresh])
+
+    /** The public `sync`: whoever asks from outside has just changed the rules (the automations dialog), so they are read again. */
+    const sync = useCallback(() => {
+        rulesCache.current = null
+        return syncRules()
+    }, [syncRules])
 
     // Only the structure matters: the sync itself changes colors, which keep the signature (and so avoid a loop)
     const signature = useMemo(() => noteDataTree ? structureSignature(noteDataTree) : null, [noteDataTree])
     useEffect(() => {
         if (signature === null) return
-        void sync()
-    }, [signature, activeId, sync])
+        void syncRules()
+    }, [signature, activeId, syncRules])
 
     const value = useMemo(() => ({ dispatch, sync }), [dispatch, sync])
     return <AutomationsContext.Provider value={value}>{children}</AutomationsContext.Provider>

@@ -1,7 +1,8 @@
 // @vitest-environment node
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { DatabaseSync, type SQLInputValue } from "node:sqlite"
+import { DatabaseSync } from "node:sqlite"
+import { sqliteRows } from "@/test/db-mock"
 import { latestSchema } from "../schema/initial"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v4)
@@ -9,15 +10,10 @@ let sqlite: DatabaseSync
 // Substring of a statement that must fail (to check that a multi-statement move is rolled back)
 let failOn: string | null = null
 
-vi.mock("../dbManager", () => ({
-    getDB: vi.fn(async () => ({
-        execute: async (sql: string, params: unknown[] = []) => {
-            const r = sqlite.prepare(sql).run(...(params as SQLInputValue[]))
-            return { rowsAffected: Number(r.changes), lastInsertId: Number(r.lastInsertRowid) }
-        },
-        select: async (sql: string, params: unknown[] = []) => sqlite.prepare(sql).all(...(params as SQLInputValue[])),
-    })),
-}))
+vi.mock("../dbManager", async () => {
+    const { createSqliteDb } = await import("@/test/db-mock")
+    return { getDB: vi.fn(async () => createSqliteDb(() => sqlite)) }
+})
 
 // db_transaction runs on the same in-memory database, with real BEGIN/COMMIT/ROLLBACK
 vi.mock("@tauri-apps/api/core", async () => {
@@ -33,7 +29,7 @@ import { deleteDBItem } from "./shared_queries"
 import { restoreDBItem } from "./trash"
 import { createDBGroup } from "./group"
 
-const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
+const rows = sqliteRows(() => sqlite)
 const sectionsOf = (groupId: number) =>
     rows(`SELECT title FROM section WHERE groupID = ${groupId} AND deleted_at IS NULL ORDER BY position, id`).map(r => r.title)
 const topTasks = (sectionId: number) =>

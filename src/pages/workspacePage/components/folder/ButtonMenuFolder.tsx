@@ -7,7 +7,7 @@ import { AddFolderDialog } from "../AddFolderDialog"
 import { AddNoteDialog } from "../AddNoteDialog"
 import { useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
-import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { MoveToSubmenu } from "../MoveToSubmenu"
@@ -38,7 +38,7 @@ export const ButtonMenuFolder = ({ folder, onRename, children }: ButtonMenuFolde
     const multi = useIsInMultiSelection("folder", folder.id)
     const { exportItem, importItems } = useItemTransfer()
     // Rename, color and delete are applied to the sidebar tree by the context: the dialogs need no reload
-    const { updateFolderColorContent, updateItemColor, archiveItem } = useWorkspaceData()
+    const { updateFolderColorContent, updateItemColor, archiveItem } = useWorkspaceActions()
     const recorder = useUndoRecorder()
 
     const handleColorContent = async () => {
@@ -126,22 +126,22 @@ export const ButtonMenuFolder = ({ folder, onRename, children }: ButtonMenuFolde
 
     const dialogs = (
         <>
-            <AddNoteDialog
+            {isAddNoteOpen && <AddNoteDialog
                 parentId={folder.id}
                 open={isAddNoteOpen}
                 onOpenChange={setAddNoteOpen}
-            />
-            <AddFolderDialog
+            />}
+            {isAddSubFolderOpen && <AddFolderDialog
                 parentId={folder.id}
                 open={isAddSubFolderOpen}
                 onOpenChange={setAddSubFolderOpen}
-            />
-            <DialogDeleteItem
+            />}
+            {isDeleteFolderOpen && <DialogDeleteItem
                 item={folder}
                 itemType="folder"
                 isOpen={isDeleteFolderOpen}
                 onOpenChange={setDeleteFolderOpen}
-            />
+            />}
         </>
     )
 

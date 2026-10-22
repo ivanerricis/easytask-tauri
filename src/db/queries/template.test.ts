@@ -1,7 +1,8 @@
 // @vitest-environment node
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { DatabaseSync, type SQLInputValue } from "node:sqlite"
+import { DatabaseSync } from "node:sqlite"
+import { sqliteRows } from "@/test/db-mock"
 import { latestSchema } from "../schema/initial"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v8)
@@ -9,15 +10,10 @@ let sqlite: DatabaseSync
 // Set to a substring to make the next matching statement fail (simulates a failure in the middle of the creation)
 let failOn: string | null = null
 
-vi.mock("../dbManager", () => ({
-    getDB: vi.fn(async () => ({
-        execute: async (sql: string, params: unknown[] = []) => {
-            const r = sqlite.prepare(sql).run(...(params as SQLInputValue[]))
-            return { rowsAffected: Number(r.changes), lastInsertId: Number(r.lastInsertRowid) }
-        },
-        select: async (sql: string, params: unknown[] = []) => sqlite.prepare(sql).all(...(params as SQLInputValue[])),
-    })),
-}))
+vi.mock("../dbManager", async () => {
+    const { createSqliteDb } = await import("@/test/db-mock")
+    return { getDB: vi.fn(async () => createSqliteDb(() => sqlite)) }
+})
 
 // db_transaction runs on the same in-memory database, with real BEGIN/COMMIT/ROLLBACK
 vi.mock("@tauri-apps/api/core", async () => {
@@ -33,7 +29,7 @@ import { deleteDBItem, renameDBItem, updateDBColor } from "./shared_queries"
 import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "./trash"
 import { countTemplateContent } from "@/types/template"
 
-const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
+const rows = sqliteRows(() => sqlite)
 
 async function thrown(p: Promise<unknown>): Promise<unknown> {
     try {

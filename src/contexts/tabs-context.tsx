@@ -1,12 +1,13 @@
-import { useEffect, useMemo, useReducer, useRef, useState } from "react"
+import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react"
 import type { MutableRefObject } from "react"
 import type { Note } from "@/types/types"
 import type { TabsBridge } from "./workspace-data/types"
 import {
-    ActiveIdContext, TabUiContext, TabsActionsContext, TabsContext,
+    ActiveIdContext, ActiveIdStoreContext, TabUiContext, TabsActionsContext, TabsContext,
     type ScrollPosition, type SelectedItem, type TabUiStore, type TabsActionsType, type TabsContextType,
 } from "./tabs-context-object"
 import { initialTabsState, tabsReducer } from "./tabs-reducer"
+import { createExternalStore } from "@/lib/external-store"
 import { reportError } from "@/lib/report-error"
 import { getReopenNotes } from "@/lib/store/preferences"
 import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
@@ -93,6 +94,7 @@ type TabsProviderProps = {
 export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsProviderProps) {
     const [state, dispatch] = useReducer(tabsReducer, initialTabsState)
     const [uiStore] = useState(createTabUiStore)
+    const [activeStore] = useState(() => createExternalStore<number | null>(null))
     const [restoredTick, setRestoredTick] = useState(0)
 
     const notesRef = useRef(notes)
@@ -106,6 +108,11 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
     useEffect(() => {
         notesRef.current = notes
     }, [notes])
+
+    // Before paint, so the rows that read the store never show a stale active note
+    useLayoutEffect(() => {
+        activeStore.set(state.activeId)
+    }, [activeStore, state.activeId])
 
     useEffect(() => {
         stateRef.current = state
@@ -199,9 +206,11 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
         <TabsActionsContext.Provider value={actions}>
             <TabUiContext.Provider value={uiStore}>
                 <ActiveIdContext.Provider value={state.activeId}>
-                    <TabsContext.Provider value={value}>
-                        {children}
-                    </TabsContext.Provider>
+                    <ActiveIdStoreContext.Provider value={activeStore}>
+                        <TabsContext.Provider value={value}>
+                            {children}
+                        </TabsContext.Provider>
+                    </ActiveIdStoreContext.Provider>
                 </ActiveIdContext.Provider>
             </TabUiContext.Provider>
         </TabsActionsContext.Provider>

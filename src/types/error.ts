@@ -23,6 +23,19 @@ export function isAppError(error: unknown): error is Error {
     return typeof error === "object" && error !== null && Object.getPrototypeOf(error) === Object.prototype && "code" in error && "message" in error
 }
 
+/**
+ * The error to throw from a catch block: an app error (built with createError) is kept as it is, anything else
+ * (driver errors, strings) is turned into one by `wrap`.
+ * ```ts
+ * } catch (error: unknown) {
+ *     throw toAppError(error, e => createError("X_FAILED", i18n.t("errors.x", { message: getErrorMessage(e) })))
+ * }
+ * ```
+ */
+export function toAppError(error: unknown, wrap: (error: unknown) => Error): Error {
+    return isAppError(error) ? error : wrap(error)
+}
+
 export function handleDBError(error: unknown, codePrefix: string, messages: DBErrorMap = {}): never {
     const message = String(error)
     if (message.includes("UNIQUE")) {

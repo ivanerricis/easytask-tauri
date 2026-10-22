@@ -6,6 +6,7 @@ import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { getErrorMessage } from "@/lib/utils"
 import { countTemplateContent, type NoteTemplate } from "@/types/template"
+import { FormError } from "@/components/form-error"
 
 type DialogPickTemplateProps = {
     isOpen: boolean
@@ -49,7 +50,7 @@ export const DialogPickTemplate = ({ isOpen, onOpenChange, onPick }: DialogPickT
         >
             <CommandInput placeholder={t("dialogs.pickTemplate.placeholder")} />
             <CommandList>
-                {error && <p role="alert" className="px-3 py-2 text-xs text-destructive break-words">{error}</p>}
+                {error && <FormError className="px-3 py-2 text-xs">{error}</FormError>}
                 <CommandEmpty>{loaded && templates.length === 0 ? t("dialogs.pickTemplate.none") : t("common.noResults")}</CommandEmpty>
                 <CommandGroup heading={t("dialogs.pickTemplate.heading")}>
                     {templates.map(template => {

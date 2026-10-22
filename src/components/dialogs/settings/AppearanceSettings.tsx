@@ -4,7 +4,7 @@ import { ModeToggle } from "@/components/mode-toggle"
 import { Input } from "@/components/ui/input"
 import { usePreferences } from "@/contexts/use-preferences"
 import { DEFAULT_PRIMARY_COLOR, applyAccentColor } from "@/lib/accent-color"
-import { SettingsPanel, SettingsRow } from "./SettingsRow"
+import { SettingsCard, SettingsPanel, SettingsRow } from "./SettingsRow"
 import { AccentContrastHint } from "./AccentContrastHint"
 import { LanguageSetting } from "./LanguageSetting"
 import { SidebarItemSizeSetting } from "./SidebarItemSizeSetting"
@@ -88,19 +88,24 @@ export const AppearanceSettings = () => {
     const { t } = useTranslation()
     return (
         <SettingsPanel title={t("settings.appearance.title")} action={<ResetAppearanceSetting />}>
-            <SettingsRow label={t("settings.appearance.theme.label")} description={t("settings.appearance.theme.description")}>
-                <ModeToggle />
-            </SettingsRow>
-            <AccentColorPicker
-                label={t("settings.appearance.accent.label")}
-                description={t("settings.appearance.accent.description")}
-                resetLabel={t("settings.appearance.accent.reset")}
-            />
-            <AccentContrastHint />
-            <LanguageSetting />
-            <SidebarItemSizeSetting />
-            <ColorIntensitySetting />
-            <AnimationSpeedSetting />
+            <SettingsCard>
+                <SettingsRow label={t("settings.appearance.theme.label")} description={t("settings.appearance.theme.description")}>
+                    <ModeToggle />
+                </SettingsRow>
+                {/* The contrast warning belongs to the accent color: same row */}
+                <div className="flex flex-col gap-3">
+                    <AccentColorPicker
+                        label={t("settings.appearance.accent.label")}
+                        description={t("settings.appearance.accent.description")}
+                        resetLabel={t("settings.appearance.accent.reset")}
+                    />
+                    <AccentContrastHint />
+                </div>
+                <LanguageSetting />
+                <SidebarItemSizeSetting />
+                <ColorIntensitySetting />
+                <AnimationSpeedSetting />
+            </SettingsCard>
         </SettingsPanel>
     )
 }

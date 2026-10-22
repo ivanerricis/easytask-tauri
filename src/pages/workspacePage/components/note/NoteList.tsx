@@ -69,6 +69,8 @@ export const NoteList = () => {
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
         const target = e.target as HTMLElement
         if (target.getAttribute("role") !== "tab" || tabs.length === 0) return
+        // A modifier makes it a shortcut (e.g. Ctrl+arrow bound to a sidebar), not a move between the tabs
+        if (e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return
         const index = tabs.findIndex(note => String(note.id) === target.dataset.noteId)
         if (index < 0) return
         const next = e.key === "ArrowRight" ? (index + 1) % tabs.length

@@ -13,8 +13,20 @@ const listPreMigrationBackups = vi.fn()
 const saveBackupKeep = vi.fn()
 const saveAutoBackup = vi.fn()
 const invoke = vi.fn()
+const saveBackupFolder = vi.fn()
+const saveBackupFrequency = vi.fn()
+const openDialog = vi.fn()
+const writeTextFile = vi.fn()
+const removeFile = vi.fn()
+let storedFolder: string | null = null
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: (...a: unknown[]) => invoke(...a) }))
+vi.mock("@tauri-apps/plugin-dialog", () => ({ open: (...a: unknown[]) => openDialog(...a) }))
+vi.mock("@tauri-apps/api/path", () => ({ join: async (...parts: string[]) => parts.join("/") }))
+vi.mock("@tauri-apps/plugin-fs", () => ({
+    writeTextFile: (...a: unknown[]) => writeTextFile(...a),
+    remove: (...a: unknown[]) => removeFile(...a),
+}))
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 vi.mock("@/db/backup", () => ({
     createBackup: (...a: unknown[]) => createBackup(...a),
@@ -24,6 +36,11 @@ vi.mock("@/db/backup", () => ({
     listPreMigrationBackups: () => listPreMigrationBackups(),
 }))
 vi.mock("@/lib/store/preferences", () => ({
+    BACKUP_FREQUENCIES: ["daily", "weekly", "monthly"],
+    getBackupFrequency: async () => "weekly",
+    getBackupFolder: async () => storedFolder,
+    saveBackupFolder: (...a: unknown[]) => saveBackupFolder(...a),
+    saveBackupFrequency: (...a: unknown[]) => saveBackupFrequency(...a),
     DEFAULT_BACKUP_KEEP: 7,
     MIN_BACKUP_KEEP: 1,
     MAX_BACKUP_KEEP: 100,
@@ -51,6 +68,11 @@ beforeEach(() => {
     saveBackupKeep.mockResolvedValue(undefined)
     saveAutoBackup.mockResolvedValue(undefined)
     invoke.mockResolvedValue(undefined)
+    storedFolder = null
+    saveBackupFolder.mockResolvedValue(undefined)
+    saveBackupFrequency.mockResolvedValue(undefined)
+    writeTextFile.mockResolvedValue(undefined)
+    removeFile.mockResolvedValue(undefined)
 })
 
 describe("BackupSettings", () => {
@@ -148,5 +170,51 @@ describe("BackupSettings", () => {
         expect(saveBackupKeep).toHaveBeenLastCalledWith(12)
         await user.click(screen.getByRole("button", { name: "Apri" }))
         expect(invoke).toHaveBeenCalledWith("open_data_folder", { subfolder: "backups" })
+    })
+
+    it("shows the stored frequency and disables it while the automatic backup is off", async () => {
+        const user = userEvent.setup()
+        render(<BackupSettings />)
+        const frequency = screen.getByRole("combobox", { name: "Frequenza del backup automatico" })
+        await waitFor(() => expect(frequency).toHaveTextContent("Ogni settimana"))
+        expect(frequency).toBeEnabled()
+        await user.click(screen.getByRole("switch", { name: "Backup automatico" }))
+        expect(frequency).toBeDisabled()
+    })
+
+    it("chooses a writable folder, saves it and can go back to the default one", async () => {
+        const user = userEvent.setup()
+        openDialog.mockResolvedValue("/mnt/usb")
+        render(<BackupSettings />)
+        await screen.findByText("2 KB")
+        expect(screen.getByText(/^Predefinita/)).toBeInTheDocument()
+        await user.click(screen.getByRole("button", { name: "Scegli…" }))
+        expect(openDialog).toHaveBeenCalledWith(expect.objectContaining({ directory: true }))
+        await waitFor(() => expect(saveBackupFolder).toHaveBeenCalledWith("/mnt/usb"))
+        expect(writeTextFile).toHaveBeenCalledWith("/mnt/usb/easytask-write-test.tmp", "")
+        expect(removeFile).toHaveBeenCalledWith("/mnt/usb/easytask-write-test.tmp")
+        expect(await screen.findByText("/mnt/usb")).toBeInTheDocument()
+        await user.click(screen.getByRole("button", { name: "Usa la predefinita" }))
+        await waitFor(() => expect(saveBackupFolder).toHaveBeenLastCalledWith(null))
+    })
+
+    it("does not save a folder that is not writable", async () => {
+        const user = userEvent.setup()
+        openDialog.mockResolvedValue("/readonly")
+        writeTextFile.mockRejectedValue(new Error("denied"))
+        render(<BackupSettings />)
+        await screen.findByText("2 KB")
+        await user.click(screen.getByRole("button", { name: "Scegli…" }))
+        await waitFor(() => expect(toast.error).toHaveBeenCalled())
+        expect(saveBackupFolder).not.toHaveBeenCalled()
+    })
+
+    it("does nothing when the folder picker is cancelled", async () => {
+        const user = userEvent.setup()
+        openDialog.mockResolvedValue(null)
+        render(<BackupSettings />)
+        await screen.findByText("2 KB")
+        await user.click(screen.getByRole("button", { name: "Scegli…" }))
+        expect(saveBackupFolder).not.toHaveBeenCalled()
     })
 })

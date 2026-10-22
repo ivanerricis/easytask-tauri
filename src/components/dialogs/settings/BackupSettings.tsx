@@ -1,11 +1,15 @@
 import { useCallback, useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { invoke } from "@tauri-apps/api/core"
-import { DatabaseBackup, FolderOpen, History, Trash2 } from "lucide-react"
+import { open } from "@tauri-apps/plugin-dialog"
+import { join } from "@tauri-apps/api/path"
+import { remove as removeFile, writeTextFile } from "@tauri-apps/plugin-fs"
+import { DatabaseBackup, FolderOpen, FolderSearch, History, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "../dialog-confirm"
 import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import {
     createBackup,
@@ -18,14 +22,20 @@ import {
 } from "@/db/backup"
 import { reportError } from "@/lib/report-error"
 import {
+    BACKUP_FREQUENCIES,
     clampBackupKeep,
     DEFAULT_BACKUP_KEEP,
     getAutoBackup,
+    getBackupFolder,
+    getBackupFrequency,
     getBackupKeep,
     MAX_BACKUP_KEEP,
     MIN_BACKUP_KEEP,
     saveAutoBackup,
+    saveBackupFolder,
+    saveBackupFrequency,
     saveBackupKeep,
+    type BackupFrequency,
 } from "@/lib/store/preferences"
 import { getErrorMessage } from "@/lib/utils"
 import { FormError } from "@/components/form-error"
@@ -38,12 +48,21 @@ function formatSize(bytes: number): string {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+/** Checks that files can be created in the folder by writing and deleting a temporary one. */
+async function assertWritable(folder: string): Promise<void> {
+    const probe = await join(folder, "easytask-write-test.tmp")
+    await writeTextFile(probe, "")
+    await removeFile(probe)
+}
+
 export const BackupSettings = () => {
     const { t, i18n } = useTranslation()
     const [backups, setBackups] = useState<BackupInfo[]>([])
     const [preMigration, setPreMigration] = useState<PreMigrationBackupInfo[]>([])
     const [keep, setKeep] = useState(String(DEFAULT_BACKUP_KEEP))
     const [auto, setAuto] = useState(true)
+    const [frequency, setFrequency] = useState<BackupFrequency>("daily")
+    const [customFolder, setCustomFolder] = useState<string | null>(null)
     const [busy, setBusy] = useState(false)
     const [toRestore, setToRestore] = useState<BackupInfo | null>(null)
     const [toDelete, setToDelete] = useState<BackupInfo | null>(null)
@@ -68,10 +87,12 @@ export const BackupSettings = () => {
 
     useEffect(() => {
         let cancelled = false
-        void Promise.all([getBackupKeep(), getAutoBackup()]).then(([storedKeep, storedAuto]) => {
+        void Promise.all([getBackupKeep(), getAutoBackup(), getBackupFrequency(), getBackupFolder()]).then(([storedKeep, storedAuto, storedFrequency, storedFolder]) => {
             if (cancelled) return
             setKeep(String(storedKeep))
             setAuto(storedAuto)
+            setFrequency(storedFrequency)
+            setCustomFolder(storedFolder)
         }).catch(error => reportError(error))
         // eslint-disable-next-line react-hooks/set-state-in-effect -- initial load of the list
         void refresh()
@@ -130,6 +151,37 @@ export const BackupSettings = () => {
         void saveAutoBackup(value).catch(err => fail(err, t("settings.data.backup.errors.save")))
     }
 
+    const changeFrequency = (value: BackupFrequency) => {
+        setFrequency(value)
+        void saveBackupFrequency(value).catch(err => fail(err, t("settings.data.backup.errors.save")))
+    }
+
+    // The dialog plugin adds the chosen folder to the fs scope (this session; at startup Rust does it again)
+    const chooseFolder = async () => {
+        try {
+            const picked = await open({ directory: true, multiple: false, title: t("settings.data.backup.location.dialogTitle") })
+            if (typeof picked !== "string") return
+            await assertWritable(picked)
+            await saveBackupFolder(picked)
+            setCustomFolder(picked)
+            await refresh()
+        } catch (err) {
+            reportError(err)
+            toast.error(t("settings.data.backup.location.error", { message: getErrorMessage(err) }))
+        }
+    }
+
+    const resetFolder = async () => {
+        try {
+            await saveBackupFolder(null)
+            setCustomFolder(null)
+            await refresh()
+        } catch (err) {
+            reportError(err)
+            toast.error(t("settings.data.backup.location.error", { message: getErrorMessage(err) }))
+        }
+    }
+
     return (
         <>
             <FormError>{error}</FormError>
@@ -145,6 +197,20 @@ export const BackupSettings = () => {
                 checked={auto}
                 onCheckedChange={changeAuto}
             />
+            <SettingsRow label={t("settings.data.backup.frequency.label")} description={t("settings.data.backup.frequency.description")}>
+                {({ id, descriptionId }) => (
+                    <Select value={frequency} onValueChange={value => changeFrequency(value as BackupFrequency)} disabled={!auto}>
+                        <SelectTrigger id={id} aria-describedby={descriptionId} size="sm" className="w-32">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {BACKUP_FREQUENCIES.map(value => (
+                                <SelectItem key={value} value={value}>{t(`settings.data.backup.frequency.${value}`)}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                )}
+            </SettingsRow>
             <SettingsRow label={t("settings.data.backup.keep.label")} description={t("settings.data.backup.keep.description")}>
                 {({ id, descriptionId }) => (
                     <div className="flex items-center gap-2">
@@ -169,6 +235,24 @@ export const BackupSettings = () => {
                     {t("settings.data.backup.folder.button")}
                 </Button>
             </SettingsRow>
+            <div className="flex flex-col gap-3">
+                <SettingsRow label={t("settings.data.backup.location.label")} description={t("settings.data.backup.location.description")}>
+                    <Button variant="outline" size="sm" onClick={() => void chooseFolder()}>
+                        <FolderSearch />
+                        {t("settings.data.backup.location.choose")}
+                    </Button>
+                </SettingsRow>
+                <div className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate text-xs text-muted-foreground" title={customFolder ?? undefined}>
+                        {customFolder ?? t("settings.data.backup.location.default")}
+                    </span>
+                    {customFolder && (
+                        <Button variant="ghost" size="sm" onClick={() => void resetFolder()}>
+                            {t("settings.data.backup.location.reset")}
+                        </Button>
+                    )}
+                </div>
+            </div>
             <div className="flex flex-col gap-2">
                 <div className="text-sm">{t("settings.data.backup.list.title")}</div>
                 {backups.length === 0 ? (

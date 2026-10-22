@@ -2,7 +2,7 @@ import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import { useActiveNote } from "@/contexts/use-active-note"
-import { useAudio } from "@/contexts/use-audio"
+import { useAudioActions } from "@/contexts/use-audio"
 import { Music } from "lucide-react"
 
 /**
@@ -12,7 +12,7 @@ import { Music } from "lucide-react"
 export const ButtonUpload = () => {
     const { t } = useTranslation()
     const { noteDataTree } = useActiveNote()
-    const { addFiles } = useAudio()
+    const { addFiles } = useAudioActions()
     const firstGroup = noteDataTree?.groups[0]
 
     return (

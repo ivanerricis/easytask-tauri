@@ -111,7 +111,7 @@ export const formatBinding = (binding: Binding): string[] => {
 export const bindingEquals = (a: Binding, b: Binding): boolean =>
     a.key.toLowerCase() === b.key.toLowerCase() && !!a.ctrl === !!b.ctrl && !!a.alt === !!b.alt && !!a.shift === !!b.shift
 
-export const scopesOverlap = (a: ShortcutScope, b: ShortcutScope): boolean => a === b || a === "global" || b === "global"
+const scopesOverlap = (a: ShortcutScope, b: ShortcutScope): boolean => a === b || a === "global" || b === "global"
 
 /** Ids of the shortcuts (other than `id`) that would clash with `binding` given the current bindings. */
 export const findConflictsFor = (id: string, binding: Binding, bindings: Record<string, Binding>): string[] => {

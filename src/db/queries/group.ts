@@ -2,7 +2,7 @@ import i18n from "@/i18n"
 import type { Group } from "@/types/types";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
-import { buildPositionUpdate } from "./ordering";
+import { addPositions } from "./ordering";
 import { createError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -37,9 +37,8 @@ export async function updateDBGroupPositions(groups: Group[]) {
         if (groups.length === 0) return
         // Positions are assigned sequentially in the order of the given positions
         const ordered = [...groups].sort((a, b) => a.position - b.position)
-        const update = buildPositionUpdate("section_group", ordered.map(group => group.id))
         const tx = new Transaction()
-        tx.add(update.sql, update.params)
+        addPositions(tx, "section_group", ordered.map(group => group.id))
         await tx.run()
     } catch (error: unknown) {
         throw createError('GROUP_UPDATE_ERROR', i18n.t("errors.group.updatePositions", { message: getErrorMessage(error) }))

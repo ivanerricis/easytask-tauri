@@ -2,10 +2,9 @@ import i18n from "@/i18n"
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { reportError } from "@/lib/report-error"
 import type { NoteDataTree } from "@/types/types"
-import { getDBNoteData } from "@/db/queries/note"
 import { useActiveNoteId, useTabs } from "./use-tabs"
 import { ActiveNoteActionsContext, ActiveNoteContext, type ActiveNoteActionsType } from "./active-note-context-object"
-import { buildNoteTree } from "./tree-builders"
+import { fetchNoteTree } from "./tree-builders"
 import { createNoteOptimisticActions, type NoteOptimisticActions, type Rollback } from "./note-optimistic"
 
 /* ------------------------------------------------------------------------------------ */
@@ -92,8 +91,7 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
 
     const loadNote = useCallback(async (noteId: number) => {
         const seq = nextSeq(noteId)
-        const data = await getDBNoteData(noteId)
-        const tree = buildNoteTree(data?.groups ?? [], data?.sections ?? [], data?.tasks ?? [])
+        const tree = await fetchNoteTree(noteId)
         // Superseded by a newer request/optimistic update, or the tab has been closed meanwhile
         if (requestSeq.current.get(noteId) !== seq || !openIdsRef.current.includes(noteId)) return
         cache.set(noteId, tree)

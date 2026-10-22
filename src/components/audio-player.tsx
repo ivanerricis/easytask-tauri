@@ -9,7 +9,7 @@ import { Toggle } from "@/components/ui/toggle"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import type { DraggableAttributes, useDraggable } from "@dnd-kit/core"
 import type { PlaybackState } from "@/contexts/audio-context-object"
-import { useMediaSession } from "@/hooks/use-media-session"
+import { useMediaSession, type MediaSessionActions } from "@/hooks/use-media-session"
 
 type SyntheticListenerMap = ReturnType<typeof useDraggable>["listeners"]
 
@@ -53,6 +53,82 @@ const formatTime = (seconds: number) => {
     return h > 0 ? `${h}:${m < 10 ? "0" : ""}${m}:${ss}` : `${m}:${ss}`
 }
 
+/**
+ * The position and the length of the loaded track, followed on the audio element. `timeupdate` fires about four times a
+ * second: the state lives in the components that show it, so the rest of the player does not re-render with it.
+ */
+const useAudioProgress = (audioRef: React.RefObject<HTMLAudioElement | null>) => {
+    const [currentTime, setCurrentTime] = useState(0)
+    const [duration, setDuration] = useState(0)
+
+    useEffect(() => {
+        const audio = audioRef.current
+        if (!audio) return
+
+        const updateTime = () => setCurrentTime(audio.currentTime)
+        const setMeta = () => setDuration(audio.duration)
+
+        audio.addEventListener("timeupdate", updateTime)
+        audio.addEventListener("loadedmetadata", setMeta)
+
+        return () => {
+            audio.removeEventListener("timeupdate", updateTime)
+            audio.removeEventListener("loadedmetadata", setMeta)
+        }
+    }, [audioRef])
+
+    return { currentTime, duration }
+}
+
+/** Shows the new position at once after the player moved it itself (the browser fires its own `timeupdate` a moment later). */
+const notifyProgress = (audio: HTMLAudioElement) => { audio.dispatchEvent(new Event("timeupdate")) }
+
+type SeekBarProps = {
+    audioRef: React.RefObject<HTMLAudioElement | null>
+    onSeek: (time: number) => void
+    onKeyDown: (e: React.KeyboardEvent<HTMLSpanElement>) => void
+}
+
+/** The elapsed time, the seek slider and the length of the track. */
+const SeekBar = ({ audioRef, onSeek, onKeyDown }: SeekBarProps) => {
+    const { t } = useTranslation()
+    const { currentTime, duration } = useAudioProgress(audioRef)
+
+    return (
+        <div className="w-full flex items-center gap-2 text-[13px] text-foreground tabular-nums">
+            <span>{formatTime(currentTime)}</span>
+            <Slider
+                min={0}
+                max={duration > 0 ? duration : 1}
+                step={0.1}
+                value={[Math.min(currentTime, duration > 0 ? duration : 0)]}
+                onValueChange={([time]) => onSeek(time)}
+                onKeyDown={onKeyDown}
+                aria-label={t("audio.player.seek")}
+                aria-valuetext={t("audio.player.position", { current: formatTime(currentTime), total: formatTime(duration) })}
+                thumbClassName="size-5"
+                className="flex-1 min-w-0"
+            />
+            <span>{formatTime(duration)}</span>
+        </div>
+    )
+}
+
+type MediaSessionSyncProps = {
+    audioRef: React.RefObject<HTMLAudioElement | null>
+    title: string
+    playing: boolean
+    actions: MediaSessionActions
+}
+
+/** Publishes the track to the system (media keys, volume flyout, lock screen); renders nothing. */
+const MediaSessionSync = ({ audioRef, title, playing, actions }: MediaSessionSyncProps) => {
+    const { currentTime, duration } = useAudioProgress(audioRef)
+    // Hardware media keys, the volume flyout and the lock screen of the system show the title and drive the player
+    useMediaSession({ title, artist: "EasyTask", playing, position: currentTime, duration, actions })
+    return null
+}
+
 export const AudioPlayer = ({
     src, fileName, listenersHandle, attributesHandle, open = true, onClose, autoPlayKey, toggleKey, onStateChange, onError,
     volume: volumeProp = 1, onVolumeChange,
@@ -62,8 +138,6 @@ export const AudioPlayer = ({
     const [isPlaying, setIsPlaying] = useState(false)
     // Played to the end (until it plays again, is moved back or another track is loaded)
     const [ended, setEnded] = useState(false)
-    const [currentTime, setCurrentTime] = useState(0)
-    const [duration, setDuration] = useState(0)
     const [volume, setVolume] = useState(volumeProp)
     const [lastVolumeProp, setLastVolumeProp] = useState(volumeProp)
     // Muting is only for this player: it is not saved as the default volume
@@ -93,28 +167,12 @@ export const AudioPlayer = ({
         audio.playbackRate = rate
     }, [rate])
 
-    useEffect(() => {
-        const audio = audioRef.current
-        if (!audio) return
-
-        const updateTime = () => setCurrentTime(audio.currentTime)
-        const setMeta = () => setDuration(audio.duration)
-
-        audio.addEventListener("timeupdate", updateTime)
-        audio.addEventListener("loadedmetadata", setMeta)
-
-        return () => {
-            audio.removeEventListener("timeupdate", updateTime)
-            audio.removeEventListener("loadedmetadata", setMeta)
-        }
-    }, [])
-
     // A play request (new file) starts the track from the beginning
     useEffect(() => {
         const audio = audioRef.current
         if (!audio || autoPlayKey === undefined || !src) return
         audio.currentTime = 0
-        setCurrentTime(0)
+        notifyProgress(audio)
         audio.play().catch(() => setIsPlaying(false))
     }, [autoPlayKey, src])
 
@@ -138,7 +196,7 @@ export const AudioPlayer = ({
         const audio = audioRef.current
         if (!audio) return
         audio.currentTime = 0
-        setCurrentTime(0)
+        notifyProgress(audio)
         audio.play().catch(() => setIsPlaying(false))
     }
 
@@ -155,23 +213,21 @@ export const AudioPlayer = ({
         const max = Number.isFinite(audio.duration) ? audio.duration : time
         const clamped = Math.min(Math.max(time, 0), max)
         audio.currentTime = clamped
-        setCurrentTime(clamped)
+        notifyProgress(audio)
     }
 
     // Back / forward by a fixed amount, within the track
     const skip = (seconds: number) => seekTo((audioRef.current?.currentTime ?? 0) + seconds)
-
-    const handleSeek = ([time]: number[]) => seekTo(time)
 
     // The arrows of a slider move it by its tiny step (0.1 s): here they jump by a few seconds, and Space plays or pauses
     // (a slider does not use it)
     const handleSeekKeyDown = (e: React.KeyboardEvent<HTMLSpanElement>) => {
         if (e.key === "ArrowRight" || e.key === "ArrowUp") {
             e.preventDefault()
-            seekTo((audioRef.current?.currentTime ?? 0) + KEY_SEEK_SECONDS)
+            skip(KEY_SEEK_SECONDS)
         } else if (e.key === "ArrowLeft" || e.key === "ArrowDown") {
             e.preventDefault()
-            seekTo((audioRef.current?.currentTime ?? 0) - KEY_SEEK_SECONDS)
+            skip(-KEY_SEEK_SECONDS)
         } else if (e.key === " ") {
             e.preventDefault()
             togglePlay()
@@ -204,22 +260,14 @@ export const AudioPlayer = ({
         onClose?.()
     }
 
-    // Hardware media keys, the volume flyout and the lock screen of the system show the title and drive the player
-    useMediaSession({
-        title: fileName ?? t("audio.player.defaultTitle"),
-        artist: "EasyTask",
-        playing: isPlaying,
-        position: currentTime,
-        duration,
-        actions: {
-            play: () => { void audioRef.current?.play().catch(() => undefined) },
-            pause: () => audioRef.current?.pause(),
-            stop: handleClose,
-            seekTo,
-            seekBackward: (seconds = SKIP_SECONDS) => skip(-seconds),
-            seekForward: (seconds = SKIP_SECONDS) => skip(seconds),
-        },
-    })
+    const mediaActions: MediaSessionActions = {
+        play: () => { void audioRef.current?.play().catch(() => undefined) },
+        pause: () => audioRef.current?.pause(),
+        stop: handleClose,
+        seekTo,
+        seekBackward: (seconds = SKIP_SECONDS) => skip(-seconds),
+        seekForward: (seconds = SKIP_SECONDS) => skip(seconds),
+    }
 
     const title = fileName ?? t("audio.player.defaultTitle")
     const silent = muted || volume === 0
@@ -246,22 +294,8 @@ export const AudioPlayer = ({
             <Separator className="-mx-2 data-[orientation=horizontal]:w-[calc(100%+1rem)]" />
             {/* The title has a row of its own, as wide as the player: two lines at most, the tooltip has the whole name */}
             <div className="w-full line-clamp-2 break-words text-sm font-medium text-foreground" title={title}>{title}</div>
-            <div className="w-full flex items-center gap-2 text-[13px] text-foreground tabular-nums">
-                <span>{formatTime(currentTime)}</span>
-                <Slider
-                    min={0}
-                    max={duration > 0 ? duration : 1}
-                    step={0.1}
-                    value={[Math.min(currentTime, duration > 0 ? duration : 0)]}
-                    onValueChange={handleSeek}
-                    onKeyDown={handleSeekKeyDown}
-                    aria-label={t("audio.player.seek")}
-                    aria-valuetext={t("audio.player.position", { current: formatTime(currentTime), total: formatTime(duration) })}
-                    thumbClassName="size-5"
-                    className="flex-1 min-w-0"
-                />
-                <span>{formatTime(duration)}</span>
-            </div>
+            <SeekBar audioRef={audioRef} onSeek={seekTo} onKeyDown={handleSeekKeyDown} />
+            <MediaSessionSync audioRef={audioRef} title={title} playing={isPlaying} actions={mediaActions} />
             {/* Transport: start over, 15 s back, play / pause, 15 s forward, speed */}
             <div className="w-full flex items-center justify-center gap-1.5 text-xs">
                 <TooltipCustom text={t("audio.player.restart")}>

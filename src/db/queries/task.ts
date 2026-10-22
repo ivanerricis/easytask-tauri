@@ -2,21 +2,31 @@ import i18n from "@/i18n"
 import { createError, handleDBError } from "@/types/error"
 import { getDB } from "../dbManager"
 import { getErrorMessage } from "@/lib/utils"
+import type { NewTaskPosition } from "@/lib/store/preferences"
 
 /**
- * Creates a new top level task in a section, appended after its siblings.
+ * SQL of the position of a new row among its siblings: after the last one, or before the first one ("top": one below the
+ * lowest position, so the siblings are not renumbered and the order stays valid for restore from the trash and for the
+ * moves, which renumber the whole list anyway). The siblings are selected by `where`, an empty list starts at 0.
+ */
+const newPositionSql = (position: NewTaskPosition, from: string, where: string) =>
+    position === "top"
+        ? `COALESCE((SELECT MIN(position) - 1 FROM ${from} WHERE ${where}), 0)`
+        : `COALESCE((SELECT MAX(position) + 1 FROM ${from} WHERE ${where}), 0)`
+
+/**
+ * Creates a new top level task in a section, after its siblings or before them.
  * @param sectionId The ID of the section to which the task belongs.
  * @param text The text of the task.
- * @param color The color of the task (optional).
+ * @param position Where the task goes among its siblings (default: at the end).
  * @category Database
  */
-export async function createDBTask(sectionId: number, text: string) {
+export async function createDBTask(sectionId: number, text: string, position: NewTaskPosition = "bottom") {
     try {
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO task (sectionID, text, position)
-             SELECT ?, ?, COALESCE(MAX(position) + 1, 0) FROM task
-             WHERE sectionID = ? AND taskID IS NULL AND deleted_at IS NULL`,
+             SELECT ?, ?, ${newPositionSql(position, "task", "sectionID = ? AND taskID IS NULL AND deleted_at IS NULL")}`,
             [sectionId, text, sectionId])
         return result.lastInsertId as number
     } catch (error: unknown) {
@@ -28,19 +38,19 @@ export async function createDBTask(sectionId: number, text: string) {
 }
 
 /**
- * Creates a new subtask, appended after its siblings and in the same section as the parent.
+ * Creates a new subtask, after its siblings or before them, in the same section as the parent.
  * @param taskId The ID of the task to create a subtask for.
  * @param text The text of the subtask.
- * @param color The color of the subtask (optional).
+ * @param position Where the subtask goes among its siblings (default: at the end).
  * @category Database
  */
-export async function createDBSubTask(taskId: number, text: string) {
+export async function createDBSubTask(taskId: number, text: string, position: NewTaskPosition = "bottom") {
     let result: { rowsAffected: number, lastInsertId?: number }
     try {
         const db = await getDB()
         result = await db.execute(
             `INSERT INTO task (sectionID, taskID, text, position)
-             SELECT sectionID, id, ?, COALESCE((SELECT MAX(position) + 1 FROM task WHERE taskID = ? AND deleted_at IS NULL), 0)
+             SELECT sectionID, id, ?, ${newPositionSql(position, "task", "taskID = ? AND deleted_at IS NULL")}
              FROM task WHERE id = ? AND deleted_at IS NULL`,
             [text, taskId, taskId])
     } catch (error: unknown) {

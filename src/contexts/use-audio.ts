@@ -3,7 +3,7 @@ import { useContext, useEffect, useState } from "react"
 import type { AudioFile } from "@/types/types"
 import { getDBGroupAudioFiles, getDBNoteAudioFiles } from "@/db/queries/audio"
 import { reportError } from "@/lib/report-error"
-import { AudioContext } from "./audio-context-object"
+import { AudioActionsContext, AudioContext, AudioFilesContext } from "./audio-context-object"
 
 /**
  * The audio state and actions.
@@ -16,13 +16,26 @@ export const useAudio = () => {
 }
 
 /**
+ * The audio actions only. Unlike `useAudio` the result keeps its identity while the playback changes, so the component does not
+ * re-render on play/pause.
+ * @category Audio Context
+ */
+export const useAudioActions = () => {
+    const context = useContext(AudioActionsContext)
+    if (!context) throw new Error("useAudioActions must be used within an AudioProvider")
+    return context
+}
+
+/**
  * The audio files of a group, reloaded whenever the audio state changes. The last list is remembered, so a group that
  * is collapsed and opened again (it is unmounted while collapsed) shows its files in the first render.
  * @param groupId The ID of the group.
  * @category Audio Context
  */
 export function useGroupAudioFiles(groupId: number): AudioFile[] {
-    const { version, filesCache } = useAudio()
+    const context = useContext(AudioFilesContext)
+    if (!context) throw new Error("useGroupAudioFiles must be used within an AudioProvider")
+    const { version, filesCache } = context
     const [files, setFiles] = useState<AudioFile[]>(() => filesCache.get(groupId) ?? [])
 
     useEffect(() => {
@@ -48,7 +61,7 @@ export function useGroupAudioFiles(groupId: number): AudioFile[] {
  * @category Audio Context
  */
 export function useNoteAudioCounts(noteId: number | null, enabled = true): Record<number, number> {
-    const version = useContext(AudioContext)?.version ?? 0
+    const version = useContext(AudioFilesContext)?.version ?? 0
     const [loaded, setLoaded] = useState<{ noteId: number, counts: Record<number, number> } | null>(null)
 
     useEffect(() => {

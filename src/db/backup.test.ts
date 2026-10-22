@@ -14,6 +14,8 @@ let validation: MockDb
 let validationRows: { application_id: number, user_version: number, integrity: string }
 let keep = 7
 let auto = true
+let frequency: "daily" | "weekly" | "monthly" = "daily"
+let folder: string | null = null
 
 const BACKUPS = "/data/backups"
 const PRE_MIGRATION = `${BACKUPS}/pre-migration`
@@ -47,6 +49,8 @@ vi.mock("@/lib/report-error", () => ({
 vi.mock("@/lib/store/preferences", () => ({
     getBackupKeep: async () => keep,
     getAutoBackup: async () => auto,
+    getBackupFrequency: async () => frequency,
+    getBackupFolder: async () => folder,
 }))
 
 import {
@@ -92,6 +96,8 @@ beforeEach(() => {
     reportError.mockReset()
     keep = 7
     auto = true
+    frequency = "daily"
+    folder = null
     vi.useRealTimers()
 })
 
@@ -272,6 +278,35 @@ describe("runAutoBackup", () => {
         expect(db.execute).not.toHaveBeenCalled()
     })
 
+    it("weekly: skips with a backup in the last 7 days, runs otherwise", async () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(at(2026, 3, 20))
+        frequency = "weekly"
+        seed("easytask-20260315-100000.db")
+        expect(await runAutoBackup()).toBe(false)
+        files.clear()
+        seed("easytask-20260312-100000.db")
+        expect(await runAutoBackup()).toBe(true)
+    })
+
+    it("monthly: skips with a backup in the last 30 days, runs otherwise", async () => {
+        vi.useFakeTimers()
+        vi.setSystemTime(at(2026, 3, 20))
+        frequency = "monthly"
+        seed("easytask-20260225-100000.db")
+        expect(await runAutoBackup()).toBe(false)
+        files.clear()
+        seed("easytask-20260215-100000.db")
+        expect(await runAutoBackup()).toBe(true)
+    })
+
+    it("does not count the pre-restore copy", async () => {
+        frequency = "weekly"
+        await createBackup("pre-restore")
+        db.execute.mockClear()
+        expect(await runAutoBackup()).toBe(true)
+    })
+
     it("does nothing when disabled", async () => {
         auto = false
         expect(await runAutoBackup()).toBe(false)
@@ -283,6 +318,39 @@ describe("runAutoBackup", () => {
         await expect(runAutoBackup()).resolves.toBe(false)
         expect(reportError).toHaveBeenCalledTimes(1)
         expect(reportError.mock.calls[0]).toHaveLength(1)
+    })
+})
+
+describe("custom backup folder", () => {
+    const CUSTOM = "/mnt/usb/easy"
+
+    beforeEach(() => { folder = CUSTOM })
+
+    it("writes, lists, rotates, deletes and restores in the custom folder", async () => {
+        keep = 1
+        files.set(`${CUSTOM}/easytask-20260101-100000.db`, 50)
+        files.set("/data/easytask.db", 5)
+        const backup = await createBackup("manual")
+        expect(backup.path.startsWith(`${CUSTOM}/`)).toBe(true)
+        expect(String(db.execute.mock.calls[0][0])).toContain(`VACUUM INTO '${CUSTOM}/easytask-`)
+        // rotated in the custom folder
+        expect((await listBackups()).map(b => b.name)).toEqual([backup.name])
+        await restoreBackup(backup.name)
+        expect(files.get("/data/easytask.db")).toBe(1234)
+        await deleteBackup(backup.name)
+        expect(files.has(backup.path)).toBe(false)
+        // nothing was written in the default folder
+        expect([...files.keys()].some(path => path.startsWith(`${BACKUPS}/`))).toBe(false)
+    })
+
+    it("keeps the pre-migration copies in the data folder", async () => {
+        const other = createMockDb()
+        other.execute.mockImplementation(async (sql: unknown) => {
+            files.set(/INTO '(.*)'/.exec(String(sql))![1], 7)
+            return { rowsAffected: 0, lastInsertId: 0 }
+        })
+        const copy = await createPreMigrationBackup(other as never, 6, 7)
+        expect(copy?.path).toBe(`${PRE_MIGRATION}/easytask-pre-migration-v6-to-v7.db`)
     })
 })
 

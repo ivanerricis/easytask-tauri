@@ -474,11 +474,12 @@ describe("preference table", () => {
 
     it("keeps the keys saved on disk", () => {
         expect(Object.values(all).map(definition => definition.key).sort()).toEqual([
-            "animationSpeed", "audioPlayerOpacity", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupKeep",
-            "checkUpdatesOnStartup", "colorIntensity", "hideCompletedTasks", "language", "lastWorkspaceId", "renameOnClick", "reopenLastWorkspace",
-            "reopenNotes", "rightPanelTab", "showAudioFileCount", "showGroupProgressBar", "showGroupSeparators", "showProgressBar",
-            "showSectionCount", "showSubtaskCount", "showTaskCount", "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth",
-            "sidebarRightOpen", "sidebarRightWidth", "skippedUpdateVersion", "taskBackground", "undoLimit", "workspaceSort", "workspaceView",
+            "animationSpeed", "audioPlayerOpacity", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupFolder",
+            "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "hideCompletedTasks", "language",
+            "lastWorkspaceId", "newTaskPosition", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
+            "showGroupProgressBar", "showGroupSeparators", "showProgressBar", "showSectionCount", "showSubtaskCount", "showTaskCount",
+            "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth", "sidebarRightOpen", "sidebarRightWidth",
+            "skippedUpdateVersion", "spellcheck", "taskBackground", "taskDensity", "trashAutoEmptyDays", "undoLimit", "workspaceSort", "workspaceView",
         ])
     })
 

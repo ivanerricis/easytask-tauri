@@ -57,19 +57,19 @@ export const MIN_AUDIO_PLAYER_OPACITY = 0.4
 export const DEFAULT_AUDIO_PLAYER_OPACITY = 1
 
 /** Brings a volume into 0-1 (non-numbers give the default). */
-export const clampAudioVolume = (value: unknown): number => {
+const clampAudioVolume = (value: unknown): number => {
     if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_AUDIO_VOLUME
     return Math.min(1, Math.max(0, Math.round(value * 100) / 100))
 }
 
 /** Brings an opacity into 0.4-1 (non-numbers give the default). */
-export const clampAudioPlayerOpacity = (value: unknown): number => {
+const clampAudioPlayerOpacity = (value: unknown): number => {
     if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_AUDIO_PLAYER_OPACITY
     return Math.min(1, Math.max(MIN_AUDIO_PLAYER_OPACITY, Math.round(value * 100) / 100))
 }
 
 /** Returns the allowed scale (0.85, 1 or 1.2) a stored value stands for; anything else gives 1. */
-export const normalizeAudioPlayerScale = (value: unknown): AudioPlayerScale =>
+const normalizeAudioPlayerScale = (value: unknown): AudioPlayerScale =>
     AUDIO_PLAYER_SCALES.find(scale => scale === value) ?? DEFAULT_AUDIO_PLAYER_SCALE
 
 export type WorkspaceView = "grid" | "list"
@@ -78,6 +78,20 @@ export type WorkspaceSortDir = "asc" | "desc"
 export type WorkspaceSort = { by: WorkspaceSortBy, dir: WorkspaceSortDir }
 export const DEFAULT_WORKSPACE_SORT: WorkspaceSort = { by: "edited", dir: "desc" }
 export type SidebarItemSize = "compact" | "normal" | "large"
+
+/** Where a new top level task goes in its section. */
+export type NewTaskPosition = "top" | "bottom"
+
+/** Spacing and text size of the tasks in the notes. */
+export type TaskDensity = "compact" | "normal" | "large"
+
+/** After how many days the trash is emptied at startup (0 = never). */
+export const TRASH_AUTO_EMPTY_DAYS = [0, 7, 30, 90] as const
+export type TrashAutoEmptyDays = typeof TRASH_AUTO_EMPTY_DAYS[number]
+
+/** How often the automatic backup runs at startup. */
+export const BACKUP_FREQUENCIES = ["daily", "weekly", "monthly"] as const
+export type BackupFrequency = typeof BACKUP_FREQUENCIES[number]
 /**
  * Speed of the animations: "slow" is the original one, "normal" is faster, "none" turns them off, "system" (default) follows
  * the setting of the operating system (animation effects off in Windows = none, otherwise normal).
@@ -101,7 +115,7 @@ export const clampBackupKeep = (value: unknown): number => {
 export const UNDO_LIMIT_OPTIONS = [25, 50, 100, 200, 500] as const
 
 /** Whether a stored value is a valid undo limit (a positive integer up to the largest option). */
-export const isValidUndoLimit = (value: unknown): value is number =>
+const isValidUndoLimit = (value: unknown): value is number =>
     typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= UNDO_LIMIT_OPTIONS[UNDO_LIMIT_OPTIONS.length - 1]
 
 /**
@@ -154,6 +168,14 @@ export const UI_PREFS = {
     colorIntensity: def<number>({ key: "colorIntensity", default: DEFAULT_COLOR_INTENSITY, normalize: clampColorIntensity }),
     hideCompletedTasks: def({ key: "hideCompletedTasks", default: false }),
     language: def<LanguagePreference>({ key: "language", default: DEFAULT_LANGUAGE_PREFERENCE, normalize: value => isLanguagePreference(value) ? value : DEFAULT_LANGUAGE_PREFERENCE }),
+    newTaskPosition: def<NewTaskPosition>({ key: "newTaskPosition", default: "bottom", normalize: value => value === "top" ? "top" : "bottom" }),
+    taskDensity: def<TaskDensity>({ key: "taskDensity", default: "normal", normalize: value => value === "compact" || value === "large" ? value : "normal" }),
+    spellcheck: def({ key: "spellcheck", default: true, normalize: value => value !== false }),
+    trashAutoEmptyDays: def<TrashAutoEmptyDays>({
+        key: "trashAutoEmptyDays",
+        default: 0,
+        normalize: value => TRASH_AUTO_EMPTY_DAYS.includes(value as TrashAutoEmptyDays) ? value as TrashAutoEmptyDays : 0,
+    }),
 }
 
 /** The preferences used by the app only (not part of `usePreferences()`); saving null removes them from the store. */
@@ -163,6 +185,14 @@ export const APP_PREFS = {
     checkUpdatesOnStartup: def({ key: "checkUpdatesOnStartup", default: true }),
     autoBackup: def({ key: "autoBackup", default: true }),
     backupKeep: def<number>({ key: "backupKeep", default: DEFAULT_BACKUP_KEEP, normalize: clampBackupKeep }),
+    backupFrequency: def<BackupFrequency>({
+        key: "backupFrequency",
+        default: "daily",
+        normalize: value => BACKUP_FREQUENCIES.includes(value as BackupFrequency) ? value as BackupFrequency : "daily",
+    }),
+    /** A folder chosen by the user for the backups; null = the "backups" folder in the data folder. */
+    backupFolder: def<string | null>({ key: "backupFolder", default: null, normalize: value => typeof value === "string" && value.trim().length > 0 ? value : null }),
+    closeToTray: def({ key: "closeToTray", default: false, normalize: value => value === true }),
 }
 
 const ALL_PREFS = { ...UI_PREFS, ...APP_PREFS }
@@ -212,6 +242,13 @@ export const getAutoBackup = () => getPref("autoBackup")
 export const saveAutoBackup = (value: boolean) => savePref("autoBackup", value)
 export const getBackupKeep = () => getPref("backupKeep")
 export const saveBackupKeep = (value: number) => savePref("backupKeep", value)
+export const getBackupFrequency = () => getPref("backupFrequency")
+export const saveBackupFrequency = (value: BackupFrequency) => savePref("backupFrequency", value)
+export const getBackupFolder = () => getPref("backupFolder")
+export const saveBackupFolder = (path: string | null) => savePref("backupFolder", path)
+export const getCloseToTray = () => getPref("closeToTray")
+export const saveCloseToTray = (value: boolean) => savePref("closeToTray", value)
+export const getTrashAutoEmptyDays = () => getPref("trashAutoEmptyDays")
 export const getCheckUpdatesOnStartup = () => getPref("checkUpdatesOnStartup")
 export const saveCheckUpdatesOnStartup = (value: boolean) => savePref("checkUpdatesOnStartup", value)
 export const getSkippedUpdateVersion = () => getPref("skippedUpdateVersion")

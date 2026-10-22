@@ -1,4 +1,5 @@
 import type { Folder, Group, Note, NoteDataTree, Section, Task } from "@/types/types"
+import { getDBNoteData } from "@/db/queries/note"
 
 /**
  * Builds a tree structure for the workspace, organizing folders and notes.
@@ -92,4 +93,10 @@ export function buildNoteTree(groups: Group[], sections: Section[], tasks: Task[
             })),
         })),
     }
+}
+
+/** Reads a note from the database and builds its tree (empty when the note does not exist). */
+export async function fetchNoteTree(noteId: number): Promise<NoteDataTree> {
+    const data = await getDBNoteData(noteId)
+    return buildNoteTree(data?.groups ?? [], data?.sections ?? [], data?.tasks ?? [])
 }
