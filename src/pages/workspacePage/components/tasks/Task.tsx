@@ -26,6 +26,8 @@ import { useIsTaskSelected, useSelectTask } from "@/contexts/use-tabs"
 import { useShowTaskDetails } from "../rightbar/use-right-panel"
 import { visibleTasks } from "../section/hide-completed"
 import { DropLine } from "../sidebar/DropLine"
+import type { TaskDensity } from "@/lib/store/preferences"
+import { TASK_DENSITIES } from "./task-density"
 
 // Clicks on these keep their own action (checkbox, buttons) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
@@ -40,6 +42,8 @@ type TaskProps = {
     hideCompleted?: boolean
     /** Whether a click on the text starts the rename (preference "Rename on click"); otherwise only the menu does. */
     renameOnClick?: boolean
+    /** Spacing and text size of the rows (preference "Task density"); a primitive prop, so the memo holds when other preferences change. */
+    density?: TaskDensity
 }
 
 type TaskRowProps = TaskProps & {
@@ -72,7 +76,7 @@ export const Task = React.memo((props: TaskProps) => {
     return <TaskRow {...props} setRowRef={setRowRef} dragProps={dragProps} isDragging={isDragging} dropZone={active?.kind === "task" ? zone : null} />
 })
 
-const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, renameOnClick = true, setRowRef, dragProps, isDragging, dropZone }: TaskRowProps) => {
+const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, renameOnClick = true, density = "normal", setRowRef, dragProps, isDragging, dropZone }: TaskRowProps) => {
     const { t } = useTranslation()
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
@@ -94,6 +98,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
     const selectTask = useSelectTask()
     const showTaskDetails = useShowTaskDetails()
     const isSubtask = depth > 0
+    const sizes = TASK_DENSITIES[density]
     // The line of a subtask runs under the checkbox of its parent: the checkbox of a subtask is 2px narrower than the one
     // of a task, so under a subtask (depth 2+) the line sits 1px to the left (and the tick is 1px longer to reach the checkbox). Both ends of a line keep 3px from the checkboxes
     const nestedSubtask = depth > 1
@@ -125,7 +130,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
             {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└). Only the direct child of the last subtask counts (a plain descendant selector would hide the lines of every deeper level) */}
             {isSubtask && <>
                 <span aria-hidden className={cn("pointer-events-none absolute -top-px -bottom-px w-px bg-muted-foreground/45 [.subtask:last-child>&]:hidden", lineLeft)} />
-                <span aria-hidden className={cn("pointer-events-none absolute -top-px h-[18px] w-px [.subtask:last-child>&]:bg-muted-foreground/45", lineLeft)} />
+                <span aria-hidden className={cn("pointer-events-none absolute -top-px w-px [.subtask:last-child>&]:bg-muted-foreground/45", sizes.tickHeight, lineLeft)} />
             </>}
             <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)} onRename={startEdit}>
                 <div
@@ -151,7 +156,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     {(task.subtasks.length > 0 || isAddingSubtask) &&
                         <span aria-hidden className={cn(
                             "pointer-events-none absolute bottom-0 w-px bg-muted-foreground/45",
-                            isSubtask ? "left-[27px] top-[26px]" : "left-[28px] top-[27px]",
+                            isSubtask ? ["left-[27px]", sizes.lineTop.subtask] : ["left-[28px]", sizes.lineTop.task],
                         )} />}
                     <div className="flex flex-col w-full">
                         {/* Color Container */}
@@ -160,7 +165,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                         {task.color && <div className="w-1 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
 
                         {/* Task items container */}
-                        <div className="relative group flex min-w-0 items-start justify-between w-full px-1 py-1.5">
+                        <div className={cn("relative group flex min-w-0 items-start justify-between w-full px-1", sizes.padding)}>
 
                             {/* Checkbox && text container */}
                             <div className="flex min-w-0 items-start justify-between gap-2 ml-4 w-full">
@@ -168,7 +173,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                     checked={!!task.completed}
                                     onCheckedChange={handleCheckedChange}
                                     aria-label={t("tasks.toggleCompleted", { text: task.text })}
-                                    className={isSubtask ? "mt-[3px] size-3.5" : "mt-0.5"}
+                                    className={isSubtask ? cn("size-3.5", sizes.subtaskCheckbox) : sizes.checkbox}
                                 />
                                 {!isTextAreaOpen && <AutoTextarea
                                     onClick={renameOnClick ? startEdit : undefined}
@@ -184,7 +189,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                     // Read only until the click opens the editing: a right click here opens the menu of the task, not the one of a text field
                                     readOnly
                                     className={cn(
-                                        "w-full min-w-0 max-h-auto text-wrap break-words [overflow-wrap:anywhere] whitespace-normal resize-none text-sm",
+                                        "w-full min-w-0 max-h-auto text-wrap break-words [overflow-wrap:anywhere] whitespace-normal resize-none", sizes.text,
                                         !renameOnClick && "cursor-default",
                                         task.completed && "line-through text-muted-foreground"
                                     )}
@@ -193,7 +198,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                     {...inputProps}
                                     onPointerDown={e => e.stopPropagation()}
                                     minRows={1}
-                                    className="w-full min-w-0 max-h-auto text-wrap break-words [overflow-wrap:anywhere] whitespace-normal resize-none text-sm"
+                                    className={cn("w-full min-w-0 max-h-auto text-wrap break-words [overflow-wrap:anywhere] whitespace-normal resize-none", sizes.text)}
                                 /></InlineErrorTooltip>}
                             </div>
 
@@ -280,11 +285,11 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     {open && <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />}
                 </div>
             </ButtonMenuTask>
-            {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute top-[16px] h-px bg-muted-foreground/45", lineLeft, nestedSubtask ? "w-[13px]" : "w-[14px]")} />}
+            {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute h-px bg-muted-foreground/45", sizes.tickTop, lineLeft, nestedSubtask ? "w-[13px]" : "w-[14px]")} />}
             {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
-            {(task.subtasks.length > 0 || isAddingSubtask) && <div className={cn("flex flex-col self-stretch mb-1", isSubtask ? "ml-[22px]" : "ml-6")}>
+            {(task.subtasks.length > 0 || isAddingSubtask) && <div className={cn("flex flex-col self-stretch", sizes.subtasks, isSubtask ? "ml-[22px]" : "ml-6")}>
                 {visibleTasks(task.subtasks, hideCompleted).map(subtask =>
-                    <Task key={subtask.id} task={subtask} depth={depth + 1} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} />)}
+                    <Task key={subtask.id} task={subtask} depth={depth + 1} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} density={density} />)}
                 {isAddingSubtask &&
                     <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}
             </div>}

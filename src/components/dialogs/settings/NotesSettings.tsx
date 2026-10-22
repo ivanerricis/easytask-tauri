@@ -1,6 +1,10 @@
 import { useTranslation } from "react-i18next"
 import { usePreferences } from "@/contexts/use-preferences"
+import { SegmentedSetting } from "./SegmentedSetting"
 import { SettingsPanel, SettingsSubsection, SettingsSwitchRow } from "./SettingsRow"
+
+const TASK_DENSITY_OPTIONS = ["compact", "normal", "large"] as const
+const NEW_TASK_POSITION_OPTIONS = ["bottom", "top"] as const
 
 export const NotesSettings = () => {
     const { t } = useTranslation()
@@ -15,6 +19,9 @@ export const NotesSettings = () => {
         showUnnamedLabels, setShowUnnamedLabels,
         taskBackground, setTaskBackground,
         renameOnClick, setRenameOnClick,
+        taskDensity, setTaskDensity,
+        newTaskPosition, setNewTaskPosition,
+        spellcheck, setSpellcheck,
         hideCompletedTasks, setHideCompletedTasks,
         reopenNotes, setReopenNotes,
         reopenLastWorkspace, setReopenLastWorkspace,
@@ -37,9 +44,24 @@ export const NotesSettings = () => {
                 <SettingsSwitchRow label={t("settings.notes.unnamedLabels.label")} description={t("settings.notes.unnamedLabels.description")} checked={showUnnamedLabels} onCheckedChange={setShowUnnamedLabels} />
                 <SettingsSwitchRow label={t("settings.notes.taskBackground.label")} description={t("settings.notes.taskBackground.description")} checked={taskBackground} onCheckedChange={setTaskBackground} />
                 <SettingsSwitchRow label={t("settings.notes.hideCompleted.label")} description={t("settings.notes.hideCompleted.description")} checked={hideCompletedTasks} onCheckedChange={setHideCompletedTasks} />
+                <SegmentedSetting
+                    label={t("settings.notes.taskDensity.label")}
+                    description={t("settings.notes.taskDensity.description")}
+                    value={taskDensity}
+                    options={TASK_DENSITY_OPTIONS.map(value => ({ value, label: t(`settings.notes.taskDensity.${value}`) }))}
+                    onChange={setTaskDensity}
+                />
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.notes.sections.behavior")}>
                 <SettingsSwitchRow label={t("settings.notes.renameOnClick.label")} description={t("settings.notes.renameOnClick.description")} checked={renameOnClick} onCheckedChange={setRenameOnClick} />
+                <SegmentedSetting
+                    label={t("settings.notes.newTaskPosition.label")}
+                    description={t("settings.notes.newTaskPosition.description")}
+                    value={newTaskPosition}
+                    options={NEW_TASK_POSITION_OPTIONS.map(value => ({ value, label: t(`settings.notes.newTaskPosition.${value}`) }))}
+                    onChange={setNewTaskPosition}
+                />
+                <SettingsSwitchRow label={t("settings.notes.spellcheck.label")} description={t("settings.notes.spellcheck.description")} checked={spellcheck} onCheckedChange={setSpellcheck} />
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.notes.sections.startup")}>
                 <SettingsSwitchRow label={t("settings.notes.reopenWorkspace.label")} description={t("settings.notes.reopenWorkspace.description")} checked={reopenLastWorkspace} onCheckedChange={setReopenLastWorkspace} />

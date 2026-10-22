@@ -56,7 +56,6 @@ export const settings: Translation["settings"] = {
             label: "Color intensity",
             description: "How strongly the colors of folders, notes, groups and sections show. It does not change the task colors.",
             reset: "Reset",
-            preview: "Preview",
         },
     },
     shortcuts: {
@@ -129,6 +128,16 @@ export const settings: Translation["settings"] = {
             folder: "Data folder",
             backup: "Backup",
             history: "History",
+            trash: "Trash",
+        },
+        trashAutoEmpty: {
+            label: "Empty the trash automatically",
+            description: "At startup, permanently deletes what has been in the trash longer than this, in every workspace.",
+            never: "Never",
+            days7: "After 7 days",
+            days30: "After 30 days",
+            days90: "After 90 days",
+            done: "Trash: permanently deleted {{count}} items older than {{days}} days",
         },
         undoLimit: {
             label: "Undoable actions",
@@ -161,7 +170,23 @@ export const settings: Translation["settings"] = {
             },
             auto: {
                 label: "Automatic backup",
-                description: "Makes a backup at startup, at most once a day.",
+                description: "Makes a backup at startup, as often as chosen below.",
+            },
+            frequency: {
+                label: "Automatic backup frequency",
+                description: "How often to make the backup at startup.",
+                daily: "Every day",
+                weekly: "Every week",
+                monthly: "Every month",
+            },
+            location: {
+                label: "Backup folder",
+                description: "Where the backups are saved.",
+                default: "Default (backups folder in the EasyTask data)",
+                choose: "Choose…",
+                reset: "Use the default",
+                dialogTitle: "Choose the backup folder",
+                error: "Could not use this folder: {{message}}",
             },
             keep: {
                 label: "Backups to keep",
@@ -251,6 +276,23 @@ export const settings: Translation["settings"] = {
             label: "Hide completed tasks",
             description: "Completed tasks (and their subtasks) are not shown in the notes. A line tells how many are hidden.",
         },
+        newTaskPosition: {
+            label: "Position of new tasks",
+            description: "Where a new task is added in the section.",
+            top: "At the top",
+            bottom: "At the bottom",
+        },
+        taskDensity: {
+            label: "Task density",
+            description: "Spacing between tasks and text size in the notes.",
+            compact: "Compact",
+            normal: "Normal",
+            large: "Roomy",
+        },
+        spellcheck: {
+            label: "Spell check",
+            description: "Underlines misspelled words while you type.",
+        },
         reopenNotes: {
             label: "Reopen notes at startup",
             description: "Restores the open notes and the active one when you reopen a workspace.",
@@ -286,6 +328,29 @@ export const settings: Translation["settings"] = {
             description: "Volume, visibility, size and transparency go back to their defaults.",
         },
     },
+    search: {
+        label: "Search settings",
+        placeholder: "Search settings…",
+        clear: "Clear the search",
+        noResults: "No setting matches \"{{query}}\".",
+    },
+    system: {
+        title: "System",
+        autostart: {
+            label: "Start with Windows",
+            description: "Opens EasyTask when you sign in to Windows.",
+            error: "Could not change the automatic start: {{message}}",
+        },
+        closeToTray: {
+            label: "Minimize to the notification area",
+            description: "Closing the window keeps EasyTask running in the notification area. To quit, use \"Quit\" in the menu of its icon.",
+        },
+        tray: {
+            tooltip: "EasyTask",
+            open: "Open EasyTask",
+            quit: "Quit",
+        },
+    },
     nav: "Settings categories",
     categories: {
         appearance: "Appearance",
@@ -293,6 +358,7 @@ export const settings: Translation["settings"] = {
         audio: "Audio",
         shortcuts: "Shortcuts",
         data: "Data",
+        system: "System",
         about: "About",
     },
 }

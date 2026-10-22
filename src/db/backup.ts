@@ -4,7 +4,7 @@ import { relaunch } from "@tauri-apps/plugin-process"
 import Database from "@tauri-apps/plugin-sql"
 import i18n from "@/i18n"
 import { reportError } from "@/lib/report-error"
-import { getAutoBackup, getBackupKeep } from "@/lib/store/preferences"
+import { getAutoBackup, getBackupFolder, getBackupFrequency, getBackupKeep, type BackupFrequency } from "@/lib/store/preferences"
 import { createError, isAppError } from "@/types/error"
 import { ensureAppFolder } from "./appPaths"
 import { closeDB, DB_FILE, getDB, setRestoring } from "./dbManager"
@@ -58,10 +58,19 @@ export function parseBackupName(name: string): { date: Date, preRestore: boolean
     return { date: new Date(year, month - 1, day, hour, minute, second), preRestore: preRestore !== null, sequence: match[7] ? Number(match[7]) : 1 }
 }
 
-async function backupFolderPath(): Promise<string> {
+/** The default backups folder, inside the data folder. Pre-migration copies always live here. */
+async function defaultBackupFolderPath(): Promise<string> {
     const folder = await join(await ensureAppFolder(), BACKUP_FOLDER)
     if (!(await exists(folder))) await mkdir(folder, { recursive: true })
     return folder
+}
+
+/** The folder regular and pre-restore backups live in: the custom one chosen in the settings, else the default one. */
+async function backupFolderPath(): Promise<string> {
+    const custom = await getBackupFolder()
+    if (!custom) return defaultBackupFolderPath()
+    if (!(await exists(custom))) await mkdir(custom, { recursive: true })
+    return custom
 }
 
 /**
@@ -143,7 +152,7 @@ export function preMigrationFileName(from: number, to: number): string {
 }
 
 async function preMigrationFolderPath(): Promise<string> {
-    const folder = await join(await backupFolderPath(), PRE_MIGRATION_FOLDER)
+    const folder = await join(await defaultBackupFolderPath(), PRE_MIGRATION_FOLDER)
     if (!(await exists(folder))) await mkdir(folder, { recursive: true })
     return folder
 }
@@ -204,18 +213,34 @@ export async function listPreMigrationBackups(): Promise<PreMigrationBackupInfo[
     return list.sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0) || b.name.localeCompare(a.name))
 }
 
+/** Minimum distance between two automatic backups that is not "once a day": weekly = 7 days, monthly = 30 days. */
+const FREQUENCY_DAYS: Record<Exclude<BackupFrequency, "daily">, number> = { weekly: 7, monthly: 30 }
+const DAY_MS = 24 * 60 * 60 * 1000
+
 /**
- * Backup at startup: skipped when disabled or when a backup was already taken today.
- * Best effort: a failure is only logged, never shown or thrown.
+ * True when no regular backup is recent enough for the frequency: daily = none taken today (calendar day),
+ * weekly = none in the last 7 days, monthly = none in the last 30 days. The pre-restore copy does not count.
+ */
+export function isBackupDue(frequency: BackupFrequency, backups: readonly BackupInfo[], now = new Date()): boolean {
+    const regular = backups.filter(backup => !backup.preRestore)
+    if (frequency === "daily") {
+        const today = formatTimestamp(now).slice(0, 8)
+        return !regular.some(backup => formatTimestamp(backup.date).startsWith(today))
+    }
+    const since = now.getTime() - FREQUENCY_DAYS[frequency] * DAY_MS
+    return !regular.some(backup => backup.date.getTime() > since)
+}
+
+/**
+ * Backup at startup: skipped when disabled or when a regular backup is recent enough for the chosen frequency
+ * (see {@link isBackupDue}). Best effort: a failure is only logged, never shown or thrown.
  * @returns True when a backup was created.
  * @category Database
  */
 export async function runAutoBackup(): Promise<boolean> {
     try {
         if (!(await getAutoBackup())) return false
-        const today = formatTimestamp(new Date()).slice(0, 8)
-        const taken = (await listBackups()).some(backup => !backup.preRestore && formatTimestamp(backup.date).startsWith(today))
-        if (taken) return false
+        if (!isBackupDue(await getBackupFrequency(), await listBackups())) return false
         await createBackup("auto")
         return true
     } catch (error) {

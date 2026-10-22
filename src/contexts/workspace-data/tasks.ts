@@ -1,6 +1,7 @@
 import { useCallback, useMemo } from "react"
 import { createDBSubTask, createDBTask, updateDBTaskCompletion, updateDBTaskDescription, updateDBTaskPriority } from "@/db/queries/task"
 import { moveDBTask, type TaskMoveTarget } from "@/db/queries/move"
+import type { NewTaskPosition } from "@/lib/store/preferences"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type TaskActions = Pick<WorkspaceActionsType,
@@ -11,11 +12,11 @@ type TaskActions = Pick<WorkspaceActionsType,
  * @category WorkspaceData Context
  */
 export function useTaskActions({ withLoading, withTrashChange }: Runtime): TaskActions {
-    const createTask = useCallback((sectionID: number, text: string) =>
-        withLoading(() => createDBTask(sectionID, text)), [withLoading])
+    const createTask = useCallback((sectionID: number, text: string, position?: NewTaskPosition) =>
+        withLoading(() => createDBTask(sectionID, text, position)), [withLoading])
 
-    const createSubTask = useCallback((taskID: number, text: string) =>
-        withLoading(() => createDBSubTask(taskID, text)), [withLoading])
+    const createSubTask = useCallback((taskID: number, text: string, position?: NewTaskPosition) =>
+        withLoading(() => createDBSubTask(taskID, text, position)), [withLoading])
 
     /**
      * Edit the priority of a task.

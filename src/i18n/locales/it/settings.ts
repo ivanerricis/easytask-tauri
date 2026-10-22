@@ -54,7 +54,6 @@ export const settings = {
             label: "Intensità dei colori",
             description: "Quanto risaltano i colori di cartelle, note, gruppi e sezioni. Non cambia i colori dei task.",
             reset: "Reimposta",
-            preview: "Anteprima",
         },
     },
     shortcuts: {
@@ -127,6 +126,16 @@ export const settings = {
             folder: "Cartella dati",
             backup: "Backup",
             history: "Cronologia",
+            trash: "Cestino",
+        },
+        trashAutoEmpty: {
+            label: "Svuota automaticamente il cestino",
+            description: "All'avvio elimina definitivamente ciò che è nel cestino da più di questo tempo, in tutti i workspace.",
+            never: "Mai",
+            days7: "Dopo 7 giorni",
+            days30: "Dopo 30 giorni",
+            days90: "Dopo 90 giorni",
+            done: "Cestino: eliminati definitivamente {{count}} elementi più vecchi di {{days}} giorni",
         },
         undoLimit: {
             label: "Azioni annullabili",
@@ -159,7 +168,23 @@ export const settings = {
             },
             auto: {
                 label: "Backup automatico",
-                description: "Esegue un backup all'avvio, al massimo una volta al giorno.",
+                description: "Esegue un backup all'avvio, con la frequenza scelta sotto.",
+            },
+            frequency: {
+                label: "Frequenza del backup automatico",
+                description: "Ogni quanto fare il backup all'avvio.",
+                daily: "Ogni giorno",
+                weekly: "Ogni settimana",
+                monthly: "Ogni mese",
+            },
+            location: {
+                label: "Cartella dei backup",
+                description: "Dove salvare i backup.",
+                default: "Predefinita (cartella backups nei dati di EasyTask)",
+                choose: "Scegli…",
+                reset: "Usa la predefinita",
+                dialogTitle: "Scegli la cartella dei backup",
+                error: "Impossibile usare questa cartella: {{message}}",
             },
             keep: {
                 label: "Backup da conservare",
@@ -249,6 +274,23 @@ export const settings = {
             label: "Nascondi task completati",
             description: "I task completati (con i loro sottotask) non vengono mostrati nelle note. Una riga indica quanti sono nascosti.",
         },
+        newTaskPosition: {
+            label: "Posizione dei nuovi task",
+            description: "Dove aggiungere un task nuovo nella sezione.",
+            top: "In cima",
+            bottom: "In fondo",
+        },
+        taskDensity: {
+            label: "Densità dei task",
+            description: "Spazio tra i task e dimensione del testo nelle note.",
+            compact: "Compatta",
+            normal: "Normale",
+            large: "Ampia",
+        },
+        spellcheck: {
+            label: "Controllo ortografico",
+            description: "Sottolinea le parole sbagliate mentre scrivi.",
+        },
         reopenNotes: {
             label: "Riapri le note all'avvio",
             description: "Ripristina le note aperte e quella attiva quando riapri un workspace.",
@@ -284,6 +326,29 @@ export const settings = {
             description: "Volume, visibilità, dimensione e trasparenza tornano ai valori predefiniti.",
         },
     },
+    search: {
+        label: "Cerca nelle impostazioni",
+        placeholder: "Cerca nelle impostazioni…",
+        clear: "Cancella la ricerca",
+        noResults: "Nessuna impostazione corrisponde a \"{{query}}\".",
+    },
+    system: {
+        title: "Sistema",
+        autostart: {
+            label: "Avvia con Windows",
+            description: "Apre EasyTask quando accedi a Windows.",
+            error: "Impossibile cambiare l'avvio automatico: {{message}}",
+        },
+        closeToTray: {
+            label: "Riduci nell'area di notifica",
+            description: "Chiudendo la finestra EasyTask resta attivo nell'area di notifica. Per uscire usa \"Esci\" dal menu della sua icona.",
+        },
+        tray: {
+            tooltip: "EasyTask",
+            open: "Apri EasyTask",
+            quit: "Esci",
+        },
+    },
     nav: "Categorie impostazioni",
     categories: {
         appearance: "Aspetto",
@@ -291,6 +356,7 @@ export const settings = {
         audio: "Audio",
         shortcuts: "Scorciatoie",
         data: "Dati",
+        system: "Sistema",
         about: "Informazioni",
     },
 }

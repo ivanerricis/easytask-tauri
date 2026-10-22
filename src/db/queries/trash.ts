@@ -13,7 +13,7 @@ const RESTORE_UNIQUE_MESSAGE = () => i18n.t("errors.trash.restoreUnique")
 type TrashRow = { type: DBItemType, id: number, name: string, context: string | null, deleted_at: string, extra: number }
 
 /** What a trashed item contained; a missing key counts as zero. */
-export type TrashCounts = Partial<Record<"folders" | "notes" | "groups" | "sections" | "tasks" | "audio", number>>
+type TrashCounts = Partial<Record<"folders" | "notes" | "groups" | "sections" | "tasks" | "audio", number>>
 
 // Counters shown for each type, in display order (audio files have no content)
 const SUMMARY_FIELDS: Partial<Record<DBItemType, (keyof TrashCounts)[]>> = {
@@ -63,7 +63,7 @@ const liveTasks = (sectionsSql: string) => `tt(sec, id) AS (
         SELECT tt.sec, t.id FROM task t INNER JOIN tt ON t.taskID = tt.id WHERE t.deleted_at IS NULL)`
 
 /** Column that hides an item: `deleted_at` (trash) or `archived_at` (archive). */
-export type HideColumn = "deleted_at" | "archived_at"
+type HideColumn = "deleted_at" | "archived_at"
 
 /**
  * Counts the children that come back with each trashed item (or archived one, with `column` "archived_at":
@@ -76,12 +76,13 @@ export type HideColumn = "deleted_at" | "archived_at"
 export async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, workspaceId: number, types: Set<DBItemType>, column: HideColumn = "deleted_at") {
     // Condition on the root items, written with the table/alias name of the row
     const root = (name: string) => column === "deleted_at" ? `${name}.deleted_at IS NOT NULL` : `${name}.archived_at IS NOT NULL AND ${name}.deleted_at IS NULL`
-    const counts = new Map<DBItemType, Map<number, TrashCounts>>()
-    const load = async (type: DBItemType, sql: string, params: number[]) => {
-        if (types.has(type)) counts.set(type, toCountMap(await db.select<CountRow[]>(sql, params)))
+    // One query per type, independent selects (no transaction): they run in parallel on the pooled connection
+    const queries: [DBItemType, string, number[]][] = []
+    const load = (type: DBItemType, sql: string, params: number[]) => {
+        if (types.has(type)) queries.push([type, sql, params])
     }
 
-    await load("folder",
+    load("folder",
         `WITH RECURSIVE tree(root, id) AS (
             SELECT id, id FROM folder WHERE workspaceID = ? AND ${root("folder")}
             UNION ALL
@@ -91,7 +92,7 @@ export async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, wor
                    AND n.folderID IN (SELECT t2.id FROM tree t2 WHERE t2.root = tree.root)) AS notes
          FROM tree GROUP BY tree.root`, [workspaceId])
 
-    await load("note",
+    load("note",
         `WITH RECURSIVE ${liveTasks(`SELECT s.id FROM section s
                 INNER JOIN section_group g ON g.id = s.groupID
                 INNER JOIN note n ON n.id = g.noteID
@@ -104,7 +105,7 @@ export async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, wor
                   WHERE g.noteID = n.id) AS tasks
          FROM note n WHERE n.workspaceID = ? AND ${root("n")}`, [workspaceId, workspaceId])
 
-    await load("section_group",
+    load("section_group",
         `WITH RECURSIVE ${liveTasks(`SELECT s.id FROM section s
                 INNER JOIN section_group g ON g.id = s.groupID
                 INNER JOIN note n ON n.id = g.noteID
@@ -116,18 +117,19 @@ export async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, wor
          FROM section_group g INNER JOIN note n ON n.id = g.noteID
          WHERE ${root("g")} AND n.workspaceID = ?`, [workspaceId, workspaceId])
 
-    await load("section",
+    load("section",
         `WITH RECURSIVE ${liveTasks(`SELECT id FROM section WHERE ${root("section")} AND id IN (${WORKSPACE_SECTIONS})`)}
          SELECT sec AS id, COUNT(*) AS tasks FROM tt GROUP BY sec`, [workspaceId])
 
-    await load("task",
+    load("task",
         `WITH RECURSIVE tree(root, id) AS (
             SELECT id, id FROM task WHERE ${root("task")} AND sectionID IN (${WORKSPACE_SECTIONS})
             UNION ALL
             SELECT tree.root, t.id FROM task t INNER JOIN tree ON t.taskID = tree.id WHERE t.deleted_at IS NULL)
          SELECT root AS id, COUNT(*) - 1 AS tasks FROM tree GROUP BY root`, [workspaceId])
 
-    return counts
+    const results = await Promise.all(queries.map(([, sql, params]) => db.select<CountRow[]>(sql, params)))
+    return new Map<DBItemType, Map<number, TrashCounts>>(queries.map(([type], i) => [type, toCountMap(results[i])]))
 }
 
 /** Counts of a trashed template, read from its JSON snapshot (a corrupted one counts as empty). */
@@ -286,7 +288,7 @@ export async function getDBTrashedWorkspaces(): Promise<TrashedWorkspace[]> {
 }
 
 /** A parametrized SQL statement of a transaction. */
-export type Statement = { sql: string, params: number[] }
+type Statement = { sql: string, params: number[] }
 
 // Clears `column` on the folder whose id is returned by startSql and on every ancestor folder that has it set
 const folderChain = (column: HideColumn, startSql: string, params: number[]): Statement => ({
@@ -442,6 +444,41 @@ export async function emptyDBTrash(workspaceId: number) {
                 SELECT g.id FROM section_group g INNER JOIN note n ON n.id = g.noteID WHERE n.workspaceID = ?)`, [workspaceId])
         tx.add('DELETE FROM note_template WHERE workspaceID = ? AND deleted_at IS NOT NULL', [workspaceId])
         await tx.run()
+    } catch (error: unknown) {
+        throw createError("TRASH_EMPTY_FAILED", i18n.t("errors.trash.empty", { message: getErrorMessage(error) }))
+    }
+}
+
+// Every table with a trash, children before parents (a cascade then never hides a row that is still to be counted)
+const TRASHABLE_TABLES = ["audio_file", "task", "section", "section_group", "note", "folder", "note_template", "workspace"] as const
+
+/**
+ * Permanently deletes everything that has been in the trash for more than `days` days, in ALL workspaces
+ * (trashed workspaces included), all in one transaction. Archived items are not in the trash and are never touched.
+ * Children of a deleted item go with it through the foreign keys, but only the items that were themselves in the trash count.
+ * @param days Age in days (a positive integer); anything else deletes nothing.
+ * @returns How many trashed items were deleted.
+ * @throws A createError('TRASH_EMPTY_FAILED') error when a query fails (nothing is deleted).
+ * @category Database Queries
+ */
+export async function purgeDBTrashOlderThan(days: number): Promise<number> {
+    if (!Number.isInteger(days) || days <= 0) return 0
+    try {
+        const db = await getDB()
+        // deleted_at is written with datetime('now','localtime'): same format and time zone as the cutoff
+        const cutoff = `datetime('now', 'localtime', ?)`
+        const modifier = `-${days} days`
+        const [counts] = await db.select<Record<string, number>[]>(
+            `SELECT ${TRASHABLE_TABLES.map(table => `(SELECT COUNT(*) FROM ${table} WHERE deleted_at IS NOT NULL AND deleted_at < ${cutoff}) AS ${table}`).join(", ")}`,
+            TRASHABLE_TABLES.map(() => modifier))
+        const total = TRASHABLE_TABLES.reduce((sum, table) => sum + (counts?.[table] ?? 0), 0)
+        if (total === 0) return 0
+
+        const tx = new Transaction()
+        for (const table of TRASHABLE_TABLES)
+            tx.add(`DELETE FROM ${table} WHERE deleted_at IS NOT NULL AND deleted_at < ${cutoff}`, [modifier])
+        await tx.run()
+        return total
     } catch (error: unknown) {
         throw createError("TRASH_EMPTY_FAILED", i18n.t("errors.trash.empty", { message: getErrorMessage(error) }))
     }

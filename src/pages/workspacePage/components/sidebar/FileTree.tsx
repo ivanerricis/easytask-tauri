@@ -5,7 +5,7 @@ import {
     DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useDroppable, useSensor, useSensors,
     type CollisionDetection, type DragEndEvent, type DragMoveEvent, type DragStartEvent,
 } from "@dnd-kit/core"
-import { File, FilePlus, Folder as FolderIcon, FolderPlus } from "lucide-react"
+import { FilePlus, Folder as FolderIcon, FolderPlus } from "lucide-react"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { reportError } from "@/lib/report-error"
 import type { Folder, Note } from "@/types/types"
@@ -48,7 +48,7 @@ type FileTreeItemProps = {
 }
 
 /** Recursive tree node. Defined at module level so the tree is not remounted on every render. */
-export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, depth = 0 }: FileTreeItemProps) => {
+const FileTreeItem = ({ item, collapsedIds, onToggleFolder, depth = 0 }: FileTreeItemProps) => {
     if (!item) return null
 
     if ("subfolders" in item) {
@@ -83,11 +83,10 @@ export const FileTreeItem = ({ item, collapsedIds, onToggleFolder, depth = 0 }: 
 }
 
 /** What follows the pointer: the dragged item, or "N items" when the whole selection is dragged. */
-const DragPreview = ({ item, isFolder, count }: { item: Folder | Note, isFolder: boolean, count: number }) => {
+const DragPreview = ({ item, count }: { item: Folder | Note, count: number }) => {
     const { t } = useTranslation()
     const size = useItemSize()
     const colorAlpha = useColorAlpha()
-    const Icon = isFolder ? FolderIcon : File
     // The color of the item, over the background, like its row (a dragged selection has no single color)
     const tint = count > 1 || !item.color ? undefined : hexToRgba(colorAlpha.item(false), item.color)
     return (
@@ -95,7 +94,6 @@ const DragPreview = ({ item, isFolder, count }: { item: Folder | Note, isFolder:
             className={`flex items-center gap-1 ${size.row} px-1 rounded-xs border border-accent bg-background shadow-md opacity-90 w-48`}
             style={tint ? { backgroundImage: `linear-gradient(${tint}, ${tint})` } : undefined}
         >
-            <Icon className={`${size.icon} shrink-0`} />
             <span className={`${size.text} truncate`}>{count > 1 ? t("menu.selection.dragCount", { count }) : item.name}</span>
         </div>
     )
@@ -204,6 +202,10 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
     const selectionActions = useSelectionActions()
     const [multiCount, setMultiCount] = useState(0)
     const multiPlanRef = useRef<PlannedMove[] | null>(null)
+    // The items a multi drag moves, computed once at drag start (not on every pointer move)
+    const multiTargetsRef = useRef<TreeRef[]>([])
+    // What the last pointer move resolved to: while it stays the same nothing needs recomputing
+    const lastMoveRef = useRef<{ tree: object, active: string, over: string | null, zone: DropZone } | null>(null)
 
     const sensors = useSensors(
         useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -224,6 +226,8 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
     const reset = useCallback(() => {
         targetRef.current = null
         multiPlanRef.current = null
+        multiTargetsRef.current = []
+        lastMoveRef.current = null
         setMultiCount(0)
         setActiveRef(null)
         hoverStore.set(NO_TREE_HOVER)
@@ -233,7 +237,10 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
         const data = event.active.data.current as TreeRef | undefined
         setActiveRef(data ?? null)
         const dragsSelection = !!data && !!store && !!selectionActions && store.has(selectionKey(data.type, data.id)) && store.getSelected().size >= 2
-        setMultiCount(dragsSelection ? selectionActions.getTargets().length : 0)
+        const targets = dragsSelection ? selectionActions.getTargets() : []
+        multiTargetsRef.current = targets.map(item => ({ type: item.itemType, id: item.id }))
+        lastMoveRef.current = null
+        setMultiCount(targets.length)
     }
 
     const handleDragMove = (event: DragMoveEvent) => {
@@ -242,6 +249,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
         if (!active || !over) {
             targetRef.current = null
             multiPlanRef.current = null
+            lastMoveRef.current = null
             hoverStore.set(NO_TREE_HOVER)
             return
         }
@@ -258,8 +266,15 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
             zone = computeDropZone(overRef.type, over.rect, pointerY, { expandedWithChildren })
         }
 
+        // Same row, zone and tree as the last move: the target and the plan would come out the same
+        const last = lastMoveRef.current
+        const activeKey = treeRowKey(active.type, active.id)
+        const overKey = overRef ? treeRowKey(overRef.type, overRef.id) : null
+        if (last && last.tree === tree && last.active === activeKey && last.over === overKey && last.zone === zone) return
+        lastMoveRef.current = { tree, active: activeKey, over: overKey, zone }
+
         // Invalid or no-op targets (e.g. a folder into its own descendant) show no indicator
-        const plan = multiCount > 0 && selectionActions ? selectionActions.planDrop(overRef, zone) : null
+        const plan = multiCount > 0 && selectionActions ? selectionActions.planDrop(overRef, zone, multiTargetsRef.current) : null
         multiPlanRef.current = plan
         const target = multiCount > 0 ? null : computeDropTarget(tree, active, overRef, zone)
         targetRef.current = target
@@ -386,7 +401,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
             </RootDropArea>
             </TreeBackgroundMenu>
             <DragOverlay dropAnimation={null}>
-                {activeItem && activeRef ? <div className="rotate-2"><DragPreview item={activeItem} isFolder={activeRef.type === "folder"} count={multiCount} /></div> : null}
+                {activeItem && activeRef ? <div className="rotate-2"><DragPreview item={activeItem} count={multiCount} /></div> : null}
             </DragOverlay>
         </DndContext>
         </TreeHoverStoreContext.Provider>

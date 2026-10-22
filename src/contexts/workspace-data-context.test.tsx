@@ -551,7 +551,10 @@ describe("WorkspaceDataContext", () => {
         it("forwards createTask to the db layer", async () => {
             const { result } = renderHook(() => useAll(), { wrapper })
             await act(() => result.current.createTask(3, "hello"))
-            expect(createDBTask).toHaveBeenCalledWith(3, "hello")
+            // No position: the db layer appends (its own default)
+            expect(createDBTask).toHaveBeenCalledWith(3, "hello", undefined)
+            await act(() => result.current.createTask(3, "first", "top"))
+            expect(createDBTask).toHaveBeenLastCalledWith(3, "first", "top")
         })
 
         it("forwards renameItem and propagates errors", async () => {

@@ -3,6 +3,7 @@ import type { ArchiveItem, ArchiveItemType, Folder, Group, Note, TrashItem, Work
 import type { DBItemType } from "@/db/queries/shared_queries"
 import type { TaskMoveTarget } from "@/db/queries/move"
 import type { NoteTemplate } from "@/types/template"
+import type { NewTaskPosition } from "@/lib/store/preferences"
 
 export type WorkspaceStateType = {
     folders: Folder[]
@@ -63,8 +64,8 @@ export type WorkspaceActionsType = {
     createGroup: (noteID: number, name: string) => Promise<number>
     createSection: (noteID: number, title: string, position: number) => Promise<{ groupId: number, sectionId: number }>
     createSectionInGroup: (groupId: number, title: string) => Promise<number>
-    createTask: (sectionID: number, text: string) => Promise<number>
-    createSubTask: (taskID: number, text: string) => Promise<number>
+    createTask: (sectionID: number, text: string, position?: NewTaskPosition) => Promise<number>
+    createSubTask: (taskID: number, text: string, position?: NewTaskPosition) => Promise<number>
 
     updateTaskPriority: (taskID: number, priority: boolean) => Promise<void>
     updateTaskCompletion: (taskID: number, isCompleted: boolean) => Promise<void>

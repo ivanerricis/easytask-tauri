@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext } from "react"
+import { createContext, useCallback, useContext, type FocusEvent } from "react"
 import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { createExternalStore, useStoreSelector, type ExternalStore } from "@/lib/external-store"
 import type { DropZone, TreeItemType } from "./tree-dnd"
@@ -80,4 +80,13 @@ export function treeRowKeyDown(
         }
         dndKeyDown?.(e)
     }
+}
+
+/**
+ * `onFocus` of the `TooltipTrigger` of a row: only a keyboard focus opens the tooltip. A menu of the row gives the focus back
+ * to it when it closes, also after a click elsewhere, and the tooltip would open again with the pointer far from the row.
+ */
+export const openOnKeyboardFocus = (event: FocusEvent<HTMLElement>) => {
+    // preventDefault skips the handler of the trigger, which opens the tooltip
+    if (!(event.target as HTMLElement).matches(":focus-visible")) event.preventDefault()
 }

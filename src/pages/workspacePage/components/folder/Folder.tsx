@@ -1,9 +1,9 @@
-import { useActiveNoteId } from "@/contexts/use-tabs"
-import { ChevronDown, Folder as FolderIcon, FolderOpen } from "lucide-react"
+import { useActiveNoteSelector } from "@/contexts/use-tabs"
+import { ChevronDown } from "lucide-react"
 import React, { useState } from "react"
 import { DropLine } from "../sidebar/DropLine"
 import { useItemSize } from "../sidebar/item-size"
-import { isInsideZone, stopDragActivation, treeRowKey, treeRowKeyDown, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { isInsideZone, openOnKeyboardFocus, stopDragActivation, treeRowKey, treeRowKeyDown, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
 import { SelectionMark } from "../sidebar/SelectionMark"
 import { handleSelectionClick } from "../sidebar/selection"
 import { useIsSelected, useSelectionStore } from "../sidebar/selection-context"
@@ -61,8 +61,8 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
     const store = useSelectionStore()
     const selected = useIsSelected("folder", folder.id)
     // A collapsed folder hides the open note: it gets a discreet mark so that the note can be found again
-    const activeNoteId = useActiveNoteId()
-    const holdsActiveNote = !isOpen && activeNoteId !== null && holdsNote(folder, activeNoteId)
+    // (selector: a tab switch re-renders only the collapsed folders whose answer changes)
+    const holdsActiveNote = useActiveNoteSelector(activeId => !isOpen && activeId !== null && holdsNote(folder, activeId))
 
     // Ctrl/Cmd+click and Shift+click only select; a plain click toggles the folder and clears the selection
     const handleClick = (e: React.MouseEvent) => {
@@ -85,7 +85,7 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
                 editTime={folder.edit_time}
             >
                 <ButtonMenuFolder folder={folder} onRename={startRename}>
-                    <TooltipTrigger asChild>
+                    <TooltipTrigger asChild onFocus={openOnKeyboardFocus}>
                         <div
                             {...attributes}
                             {...listeners}
@@ -103,18 +103,13 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
                             onMouseLeave={() => setIsHovered(false)}
                             // Flat row: a hover fill and no visible border, except a selected folder (accent border all around) and a collapsed one holding the open note (fainter)
                             className={`${focusRing} relative group cursor-pointer gap-1 w-full min-w-0 pl-1 ${size.row} flex items-center rounded-xs border select-none hover:bg-accent ${selected ? "border-primary" : holdsActiveNote ? "border-primary/60" : "border-transparent"} overflow-hidden ${isDragging ? "opacity-40" : ""} ${isInsideZone(dropZone) ? "ring-2 ring-primary ring-inset" : ""}`}
-                            style={{ backgroundColor: `${hexToRgba(colorAlpha.item(isHovered), folder.color)}` }}
+                            style={{ backgroundColor: hexToRgba(colorAlpha.item(isHovered), folder.color) }}
                         >
 
                             <DropLine zone={dropZone} />
                             <SelectionMark selected={selected} />
                             <div className="flex min-w-0 items-center gap-1 w-full h-full">
                                 <ChevronDown className={`${isOpen ? 'rotate-0' : '-rotate-90'} ${size.icon} shrink-0 transition-transform`} />
-                                {isOpen ? (
-                                    <FolderOpen className={`${size.icon} shrink-0`} />
-                                ) : (
-                                    <FolderIcon className={`${size.icon} shrink-0`} />
-                                )}
                                 {editing
                                     ? <InlineNameInput {...inputProps} error={error} aria-label={t("common.name")} className={size.text} />
                                     : <span className={`w-full ${size.text} min-w-0 truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>

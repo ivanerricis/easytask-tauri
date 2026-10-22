@@ -1,15 +1,16 @@
 import type { ComponentType } from "react"
-import { Database, Info, Keyboard, LayoutList, Music, Palette, type LucideIcon } from "lucide-react"
+import { Database, Info, Keyboard, LayoutList, Monitor, Music, Palette, type LucideIcon } from "lucide-react"
 import { AppearanceSettings } from "./AppearanceSettings"
 import { NotesSettings } from "./NotesSettings"
 import { AudioSettings } from "./AudioSettings"
 import { DataSettings } from "./DataSettings"
 import { ShortcutsSettings } from "./ShortcutsSettings"
+import { SystemSettings } from "./SystemSettings"
 import { AboutSettings } from "./AboutSettings"
 
 export type SettingsCategory = {
     id: string
-    labelKey: `settings.categories.${"appearance" | "notes" | "audio" | "shortcuts" | "data" | "about"}`
+    labelKey: `settings.categories.${"appearance" | "notes" | "audio" | "shortcuts" | "data" | "system" | "about"}`
     icon: LucideIcon
     Panel: ComponentType
 }
@@ -21,5 +22,6 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
     { id: "audio", labelKey: "settings.categories.audio", icon: Music, Panel: AudioSettings },
     { id: "shortcuts", labelKey: "settings.categories.shortcuts", icon: Keyboard, Panel: ShortcutsSettings },
     { id: "data", labelKey: "settings.categories.data", icon: Database, Panel: DataSettings },
+    { id: "system", labelKey: "settings.categories.system", icon: Monitor, Panel: SystemSettings },
     { id: "about", labelKey: "settings.categories.about", icon: Info, Panel: AboutSettings },
 ]

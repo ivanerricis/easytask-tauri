@@ -1,7 +1,8 @@
 import { useId, type ReactNode } from "react"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
+import { cn } from "@/lib/utils"
+import { HIDE_WHEN_NO_ROWS, SettingsSearchContext, matchesSearch, useSettingsSearch } from "./settings-search-context"
 
 /** Ids a control of a {@link SettingsRow} uses to be named and described by the row. */
 export type SettingsControlProps = {
@@ -24,9 +25,12 @@ type SettingsRowProps = {
 
 export const SettingsRow = ({ label, description, children, reset }: SettingsRowProps) => {
     const base = useId()
+    const { query, scopeMatches } = useSettingsSearch()
+    // While searching, a row shows only when it (or its panel / subsection title) matches
+    if (query && !scopeMatches && !matchesSearch(query, label, description)) return null
     const ids: SettingsControlProps = { id: `${base}-control`, labelId: `${base}-label`, descriptionId: description ? `${base}-description` : undefined }
     return (
-        <div className="flex items-center justify-between gap-4 w-full">
+        <div data-settings-row className="flex items-center justify-between gap-4 w-full">
             <div className="min-w-0">
                 <Label id={ids.labelId} htmlFor={ids.id} className="font-normal">{label}</Label>
                 {description && (
@@ -66,24 +70,55 @@ type SettingsPanelProps = {
     children: ReactNode
 }
 
-export const SettingsPanel = ({ title, action, children }: SettingsPanelProps) => (
-    <section className="flex flex-col gap-4">
-        {/* pr-8: the close button (X) of the dialog sits in the top right corner, the action stays on its left */}
-        <div className="flex items-center justify-between gap-3 min-h-8 pr-8">
-            <h3 className="text-base font-semibold">{title}</h3>
-            {action}
-        </div>
-        {children}
-    </section>
-)
+/** Provides the search to the rows inside a titled container: all of them show when the title matches. */
+const TitleScope = ({ title, children }: { title: string, children: ReactNode }) => {
+    const search = useSettingsSearch()
+    const scopeMatches = search.scopeMatches || (search.query !== "" && matchesSearch(search.query, title))
+    return <SettingsSearchContext.Provider value={{ query: search.query, scopeMatches }}>{children}</SettingsSearchContext.Provider>
+}
 
-/** Titled group of rows inside a panel, set apart from what precedes it by a separator. */
-export const SettingsSubsection = ({ title, children }: { title: string, children: ReactNode }) => (
-    <>
-        <Separator />
-        <section aria-label={title} className="flex flex-col gap-3">
-            <h4 className="text-sm font-semibold">{title}</h4>
+export const SettingsPanel = ({ title, action, children }: SettingsPanelProps) => {
+    const { query } = useSettingsSearch()
+    return (
+        <TitleScope title={title}>
+            <section className={cn("flex flex-col gap-6", query && HIDE_WHEN_NO_ROWS)}>
+                {/* pr-8: the close button (X) of the dialog sits in the top right corner, the action stays on its left */}
+                <div className="flex items-center justify-between gap-3 min-h-8 pr-8">
+                    <h3 className="text-base font-semibold">{title}</h3>
+                    {action}
+                </div>
+                {children}
+            </section>
+        </TitleScope>
+    )
+}
+
+/**
+ * Card holding the rows of a panel, one under the other with a line between them. Every direct child is a row
+ * (it gets the padding of the card), so wrap together what must stay in a single row.
+ */
+export const SettingsCard = ({ children }: { children: ReactNode }) => {
+    const { query } = useSettingsSearch()
+    return (
+        <div className={cn(
+            "flex flex-col divide-y rounded-xs border bg-card [&>*]:px-4 [&>*]:py-3",
+            // While searching only the rows stay (the other children are info, lists, hints); the empty card goes away
+            query && `${HIDE_WHEN_NO_ROWS} divide-y-0 [&>*+*]:border-t [&>*:not([data-settings-row]):not(:has([data-settings-row]))]:hidden`,
+        )}>
             {children}
-        </section>
-    </>
-)
+        </div>
+    )
+}
+
+/** Titled group of rows inside a panel: the title, then the rows in a {@link SettingsCard}. */
+export const SettingsSubsection = ({ title, children }: { title: string, children: ReactNode }) => {
+    const { query } = useSettingsSearch()
+    return (
+        <TitleScope title={title}>
+            <section aria-label={title} className={cn("flex flex-col gap-2", query && HIDE_WHEN_NO_ROWS)}>
+                <h4 className="text-sm font-semibold">{title}</h4>
+                <SettingsCard>{children}</SettingsCard>
+            </section>
+        </TitleScope>
+    )
+}

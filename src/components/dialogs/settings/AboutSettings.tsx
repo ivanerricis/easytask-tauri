@@ -8,7 +8,7 @@ import { toast } from "sonner"
 import { getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { SettingsPanel } from "./SettingsRow"
+import { SettingsCard, SettingsPanel } from "./SettingsRow"
 import { UpdateSection } from "./UpdateSection"
 
 const REPO_URL = "https://github.com/ivanerricis/easytask-tauri"
@@ -140,14 +140,14 @@ export const AboutSettings = () => {
             <p className="text-sm text-muted-foreground">
                 {t("settings.about.description")}
             </p>
-            <div className="flex flex-col gap-2">
+            <SettingsCard>
                 <InfoRow label={t("settings.about.application")} value={info.name} />
                 <InfoRow label={t("settings.about.version")} value={info.version} />
                 <InfoRow label={t("settings.about.tauriVersion")} value={info.tauri} />
                 <InfoRow label={t("settings.about.author")} value="Ivan Erricis" />
                 <RepositoryRow />
                 <DatabaseRow path={info.dbPath} />
-            </div>
+            </SettingsCard>
             <UpdateSection />
         </SettingsPanel>
     )

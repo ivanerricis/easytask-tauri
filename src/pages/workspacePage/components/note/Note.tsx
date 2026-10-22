@@ -1,6 +1,5 @@
 import type { Note } from "@/types/types"
-import { useActiveNoteId, useTabsActions } from "@/contexts/use-tabs"
-import { File } from "lucide-react"
+import { useActiveNoteSelector, useTabsActions } from "@/contexts/use-tabs"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import { ItemMenuButton } from "@/components/item-menu"
 import React, { useCallback, useState } from "react"
@@ -8,7 +7,7 @@ import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { hexToRgba } from "@/lib/utils"
 import { useItemSize } from "../sidebar/item-size"
 import { DropLine } from "../sidebar/DropLine"
-import { stopDragActivation, treeRowKey, treeRowKeyDown, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { openOnKeyboardFocus, stopDragActivation, treeRowKey, treeRowKeyDown, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
 import { SelectionMark } from "../sidebar/SelectionMark"
 import { handleSelectionClick } from "../sidebar/selection"
 import { useIsSelected, useSelectionStore } from "../sidebar/selection-context"
@@ -52,7 +51,7 @@ const NoteRow = React.memo(({ note, className, dropZone = null, level = 1, dndRe
     const store = useSelectionStore()
     const selected = useIsSelected("note", note.id)
     // The note open in the active tab
-    const isActive = useActiveNoteId() === note.id
+    const isActive = useActiveNoteSelector(activeId => activeId === note.id)
 
     // Ctrl/Cmd+click and Shift+click only select; a plain click opens the note and clears the selection
     const handleOpenFile = useCallback((e: React.MouseEvent) => {
@@ -76,7 +75,7 @@ const NoteRow = React.memo(({ note, className, dropZone = null, level = 1, dndRe
             editTime={note.edit_time}
         >
             <ButtonMenuNote note={note} onRename={startRename}>
-                <TooltipTrigger asChild>
+                <TooltipTrigger asChild onFocus={openOnKeyboardFocus}>
                     <div
                         {...attributes}
                         {...listeners}
@@ -93,13 +92,11 @@ const NoteRow = React.memo(({ note, className, dropZone = null, level = 1, dndRe
                         onMouseLeave={() => setIsHovered(false)}
                         // Flat row: a hover fill and no visible border, except the open or selected note, which has an accent border all around
                         className={`${focusRing} relative group cursor-pointer w-full min-w-0 ${size.row} flex items-center rounded-xs border select-none hover:bg-accent ${selected || isActive ? "border-primary" : "border-transparent"} ${isActive ? "bg-accent" : ""} overflow-hidden ${isDragging ? "opacity-40" : ""} ${className ?? ""}`}
-                        style={{ backgroundColor: `${hexToRgba(colorAlpha.item(isHovered), note.color)}` }}
+                        style={{ backgroundColor: hexToRgba(colorAlpha.item(isHovered), note.color) }}
                     >
                         <DropLine zone={dropZone} />
                         <SelectionMark selected={selected} />
-                        {/* Icon + Text */}
                         <div className="flex min-w-0 items-center gap-1 px-1 overflow-hidden w-full">
-                            <File className={`${size.icon} shrink-0 text-foreground`} />
                             {editing
                                 ? <InlineNameInput {...inputProps} error={error} aria-label={t("common.name")} className={size.text} />
                                 : <span className={`${size.text} ${isActive ? "font-semibold" : ""} text-foreground min-w-0 truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>

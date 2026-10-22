@@ -56,6 +56,10 @@ vi.mock("@/contexts/use-preferences", () => ({
         resetAudioSettings: () => audioPrefs.resetAudioSettings(),
         colorIntensity: colorPrefs.colorIntensity, setColorIntensity: (value: number) => setColorIntensity(value),
         sidebarItemSize: "normal", setSidebarItemSize: (value: string) => setSidebarItemSize(value),
+        newTaskPosition: "bottom", setNewTaskPosition: vi.fn(),
+        taskDensity: "normal", setTaskDensity: vi.fn(),
+        spellcheck: true, setSpellcheck: vi.fn(),
+        trashAutoEmptyDays: 0, setTrashAutoEmptyDays: vi.fn(),
     }),
 }))
 
@@ -89,7 +93,7 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
-        expect(screen.getAllByRole("switch")).toHaveLength(13)
+        expect(screen.getAllByRole("switch")).toHaveLength(14)
         expect(screen.getByRole("switch", { name: "Nascondi task completati" })).not.toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra il nome dei gruppi e delle sezioni senza nome" })).not.toBeChecked()
@@ -177,7 +181,7 @@ describe("DialogSettings", () => {
         expect(within(group).getByRole("radio", { name: "Normale" })).toBeChecked()
     })
 
-    it("sets the color intensity with the slider, previews it and can reset it", async () => {
+    it("sets the color intensity with the slider and can reset it", async () => {
         colorPrefs.colorIntensity = 1.5
         const user = await open()
         const slider = screen.getByRole("slider", { name: "Intensità dei colori" })
@@ -185,9 +189,6 @@ describe("DialogSettings", () => {
         expect(slider).toHaveAttribute("aria-valuemin", "25")
         expect(slider).toHaveAttribute("aria-valuemax", "175")
         expect(slider).toHaveAttribute("aria-valuetext", "150%")
-        const swatches = screen.getByTestId("color-intensity-preview").children
-        expect(swatches).toHaveLength(3)
-        expect((swatches[0] as HTMLElement).style.backgroundColor).toBe("rgba(239, 68, 68, 0.45)")
 
         fireEvent.keyDown(slider, { key: "ArrowLeft" })
         expect(setColorIntensity).toHaveBeenCalledWith(1.45)

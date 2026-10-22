@@ -1,13 +1,12 @@
 import { useTranslation } from "react-i18next"
-import { Fragment, useEffect, useState } from "react"
+import { useEffect, useState } from "react"
 import { Pencil, RotateCcw, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Separator } from "@/components/ui/separator"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { KbdKeys } from "@/components/kbd"
 import { useShortcutsContext } from "@/contexts/use-shortcuts"
 import { SHORTCUTS, SHORTCUT_CATEGORIES, bindingFromEvent, categoryLabel, findConflictsFor, formatBinding, isValidBinding, shortcutDescription } from "@/lib/shortcuts"
-import { SettingsPanel, SettingsRow } from "./SettingsRow"
+import { SettingsPanel, SettingsRow, SettingsSubsection } from "./SettingsRow"
 import { SectionResetButton } from "./SectionResetButton"
 import { RowResetButton } from "./RowResetButton"
 import { ConfirmDialog } from "../dialog-confirm"
@@ -68,45 +67,41 @@ export const ShortcutsSettings = () => {
             {SHORTCUT_CATEGORIES.map(category => ({ category, items: SHORTCUTS.filter(s => s.category === category && s.editable && s.defaultBinding) }))
                 .filter(({ items }) => items.length > 0)
                 .map(({ category, items }) => (
-                <Fragment key={category}>
-                    <Separator />
-                    <section aria-label={categoryLabel(category)} className="flex flex-col gap-3">
-                        <h4 className="text-sm font-semibold">{categoryLabel(category)}</h4>
-                        {items.map(s => {
-                            const isRecording = recordingId === s.id
-                            return (
-                                <SettingsRow
-                                    key={s.id}
-                                    label={shortcutDescription(s.id)}
-                                    reset={s.id in overrides && !isRecording
-                                        ? <RowResetButton label={t("settings.shortcuts.resetAria", { name: shortcutDescription(s.id) })} onClick={() => { resetBinding(s.id); setError(null) }} />
-                                        : undefined}
-                                >
-                                    <div className="flex flex-col items-end gap-1">
-                                        <div className="flex items-center gap-2">
-                                            {isRecording
-                                                ? <span className="text-xs text-muted-foreground">{t("settings.shortcuts.pressKeys")}</span>
-                                                : <KbdKeys keys={formatBinding(bindings[s.id])} />}
-                                            <TooltipCustom text={isRecording ? t("common.cancel") : t("settings.shortcuts.edit")}>
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    aria-label={t("settings.shortcuts.editAria", { name: shortcutDescription(s.id) })}
-                                                    onClick={() => isRecording ? setRecordingId(null) : startRecording(s.id)}
-                                                >
-                                                    {isRecording ? <X /> : <Pencil />}
-                                                </Button>
-                                            </TooltipCustom>
-                                        </div>
-                                        {error?.id === s.id && (
-                                            <p role="alert" className="text-xs text-destructive">{error.message}</p>
-                                        )}
+                <SettingsSubsection key={category} title={categoryLabel(category)}>
+                    {items.map(s => {
+                        const isRecording = recordingId === s.id
+                        return (
+                            <SettingsRow
+                                key={s.id}
+                                label={shortcutDescription(s.id)}
+                                reset={s.id in overrides && !isRecording
+                                    ? <RowResetButton label={t("settings.shortcuts.resetAria", { name: shortcutDescription(s.id) })} onClick={() => { resetBinding(s.id); setError(null) }} />
+                                    : undefined}
+                            >
+                                <div className="flex flex-col items-end gap-1">
+                                    <div className="flex items-center gap-2">
+                                        {isRecording
+                                            ? <span className="text-xs text-muted-foreground">{t("settings.shortcuts.pressKeys")}</span>
+                                            : <KbdKeys keys={formatBinding(bindings[s.id])} />}
+                                        <TooltipCustom text={isRecording ? t("common.cancel") : t("settings.shortcuts.edit")}>
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                aria-label={t("settings.shortcuts.editAria", { name: shortcutDescription(s.id) })}
+                                                onClick={() => isRecording ? setRecordingId(null) : startRecording(s.id)}
+                                            >
+                                                {isRecording ? <X /> : <Pencil />}
+                                            </Button>
+                                        </TooltipCustom>
                                     </div>
-                                </SettingsRow>
-                            )
-                        })}
-                    </section>
-                </Fragment>
+                                    {error?.id === s.id && (
+                                        <p role="alert" className="text-xs text-destructive">{error.message}</p>
+                                    )}
+                                </div>
+                            </SettingsRow>
+                        )
+                    })}
+                </SettingsSubsection>
             ))}
             <ConfirmDialog
                 open={confirmResetAll}

@@ -1,21 +1,17 @@
 // @vitest-environment node
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { DatabaseSync, type SQLInputValue } from "node:sqlite"
+import { DatabaseSync } from "node:sqlite"
+import { sqliteRows } from "@/test/db-mock"
 import { latestSchema } from "../schema/initial"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v4)
 let sqlite: DatabaseSync
 
-vi.mock("../dbManager", () => ({
-    getDB: vi.fn(async () => ({
-        execute: async (sql: string, params: unknown[] = []) => {
-            const r = sqlite.prepare(sql).run(...(params as SQLInputValue[]))
-            return { rowsAffected: Number(r.changes), lastInsertId: Number(r.lastInsertRowid) }
-        },
-        select: async (sql: string, params: unknown[] = []) => sqlite.prepare(sql).all(...(params as SQLInputValue[])),
-    })),
-}))
+vi.mock("../dbManager", async () => {
+    const { createSqliteDb } = await import("@/test/db-mock")
+    return { getDB: vi.fn(async () => createSqliteDb(() => sqlite)) }
+})
 
 // db_transaction runs on the same in-memory database, with real BEGIN/COMMIT/ROLLBACK
 vi.mock("@tauri-apps/api/core", async () => {
@@ -24,14 +20,14 @@ vi.mock("@tauri-apps/api/core", async () => {
 })
 
 import { moveDBTreeItem } from "./tree"
-import { emptyDBTrash, formatTrashSummary, getDBTrash, getDBTrashCount, getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from "./trash"
+import { emptyDBTrash, formatTrashSummary, getDBTrash, getDBTrashCount, getDBTrashedWorkspaces, purgeDBItem, purgeDBTrashOlderThan, restoreDBItem } from "./trash"
 import { deleteDBItem, renameDBItem } from "./shared_queries"
 import { createDBSubFolder, createDBWorkspaceFolder } from "./folder"
 import { createDBNoteInFolder, createDBWorkspaceNote, getDBNoteData } from "./note"
 import { createDBSubTask } from "./task"
 import { getDBWorkspaceData, getDBWorkspaces } from "./workspace"
 
-const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
+const rows = sqliteRows(() => sqlite)
 const names = (table: string, where = "1=1") =>
     rows(`SELECT name FROM ${table} WHERE ${where} ORDER BY position`).map(r => r.name)
 const one = (sql: string) => Object.values(rows(sql)[0])[0]
@@ -395,5 +391,50 @@ describe("soft delete, trash and restore", () => {
         expect(rows("SELECT id FROM folder").map(r => r.id)).toEqual([1])
         expect(rows("SELECT id FROM note").map(r => r.id)).toEqual([3]) // deep was in the deleted folder, root deleted
         expect(rows("SELECT id FROM task").map(r => r.id)).toEqual([4]) // children cascaded with their note
+    })
+})
+
+describe("purgeDBTrashOlderThan", () => {
+    const ago = (days: number) => `datetime('now','localtime','-${days} days')`
+
+    beforeEach(() => {
+        sqlite.exec(`
+            INSERT INTO workspace (id, name, deleted_at) VALUES (3, 'old ws', ${ago(40)}), (4, 'new ws', ${ago(1)});
+            INSERT INTO folder (id, workspaceID, name, deleted_at) VALUES (1, 1, 'old folder', ${ago(40)}), (2, 1, 'new folder', ${ago(2)});
+            INSERT INTO note (id, workspaceID, name, deleted_at, archived_at) VALUES
+                (1, 1, 'old note', ${ago(31)}, NULL), (2, 2, 'new note', ${ago(29)}, NULL),
+                (3, 1, 'live', NULL, NULL), (4, 1, 'archived', NULL, ${ago(100)});
+            INSERT INTO section_group (id, noteID, position, deleted_at) VALUES (1, 1, 0, NULL), (2, 3, 0, ${ago(50)}), (3, 3, 1, ${ago(1)});
+            INSERT INTO section (id, groupID, title, deleted_at) VALUES (1, 2, 'cascaded', NULL), (2, 3, 'old section', ${ago(35)});
+            INSERT INTO task (id, sectionID, text, deleted_at) VALUES (1, 2, 'old task', ${ago(60)}), (2, 2, 'live task', NULL);
+            INSERT INTO note_template (id, workspaceID, name, content, deleted_at) VALUES (1, 2, 'old tpl', '{}', ${ago(45)});
+        `)
+    })
+
+    it("deletes what is older than the cutoff in every workspace and returns how many trashed items it removed", async () => {
+        // folder 1, note 1, group 2, section 2, task 1, template 1, workspace 3 (the section/task under group 2 cascade without counting)
+        expect(await purgeDBTrashOlderThan(30)).toBe(7)
+        expect(rows("SELECT id FROM workspace ORDER BY id").map(r => r.id)).toEqual([1, 2, 4])
+        expect(rows("SELECT id FROM folder").map(r => r.id)).toEqual([2])
+        expect(rows("SELECT id FROM note ORDER BY id").map(r => r.id)).toEqual([2, 3, 4])
+        expect(rows("SELECT id FROM section_group ORDER BY id").map(r => r.id)).toEqual([3])
+        expect(rows("SELECT id FROM section")).toEqual([])
+        expect(rows("SELECT id FROM task")).toEqual([])
+        expect(rows("SELECT id FROM note_template")).toEqual([])
+    })
+
+    it("uses the number of days as the cutoff and never touches archived items", async () => {
+        expect(await purgeDBTrashOlderThan(90)).toBe(0)
+        expect(one("SELECT COUNT(*) FROM note")).toBe(4)
+        expect(await purgeDBTrashOlderThan(7)).toBe(8)
+        expect(one("SELECT COUNT(*) FROM note WHERE archived_at IS NOT NULL")).toBe(1)
+    })
+
+    it("deletes nothing for 0 or an invalid number of days", async () => {
+        expect(await purgeDBTrashOlderThan(0)).toBe(0)
+        expect(await purgeDBTrashOlderThan(-5)).toBe(0)
+        expect(await purgeDBTrashOlderThan(1.5)).toBe(0)
+        expect(one("SELECT COUNT(*) FROM workspace")).toBe(4)
+        expect(one("SELECT COUNT(*) FROM note")).toBe(4)
     })
 })

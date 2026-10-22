@@ -4,6 +4,7 @@ import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { usePreferences } from "@/contexts/use-preferences"
 import { cn, getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Check, Loader2, Plus, X } from "lucide-react"
@@ -13,6 +14,7 @@ import { keyLabel } from "@/lib/shortcuts"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { useAutomations } from "@/hooks/use-automations"
 import { reportError } from "@/lib/report-error"
+import { TASK_DENSITIES, useTaskDensity } from "./task-density"
 import { PlusButton } from "../section/PlusButton"
 import { CloseButton } from "../section/CloseButton"
 
@@ -32,12 +34,14 @@ type AddTaskProps = {
  * - Blur / click outside closes it only when empty: typed text is never lost silently.
  * While saving the input is read-only (not disabled, so it keeps focus) and further submits are ignored.
  */
-const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose?: () => void }) => {
+const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: number, sectionId: number | null, onClose?: () => void }) => {
     const { t } = useTranslation()
     const [text, setText] = useState("")
     const { saving, run } = useSubmitOnce()
     const { createSubTask } = useWorkspaceActions()
-    const { appendTask } = useActiveNoteActions()
+    const { appendTask, applyTaskMove } = useActiveNoteActions()
+    const { newTaskPosition } = usePreferences()
+    const sizes = TASK_DENSITIES[useTaskDensity()]
     const recorder = useUndoRecorder()
     const inputRef = useRef<HTMLInputElement>(null)
 
@@ -47,9 +51,11 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
         if (!value) return
         await run(async () => {
             try {
-                const id = await createSubTask(parentTaskId, value)
+                const id = await createSubTask(parentTaskId, value, newTaskPosition)
                 setText("")
                 appendTask(id, { parentTaskId }, value)
+                // The cache appends it: at the top it moves before its siblings, as the database ordered it
+                if (newTaskPosition === "top" && sectionId !== null) applyTaskMove(id, { sectionId, parentTaskId }, 0)
                 recorder.create("task", id, value)
             } catch (error: unknown) {
                 reportError(error, getErrorMessage(error) || t("tasks.errors.createSubtask"))
@@ -61,10 +67,10 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
 
     return (
         <form onSubmit={handleSubmit} className="w-full border-b">
-            <div className="flex items-start w-full px-1 py-1.5">
+            <div className={cn("flex items-start w-full px-1", sizes.padding)}>
                 <div className="flex items-start gap-2 ml-4 w-full">
                     {/* Inert placeholder in the exact spot (and look) of a real subtask checkbox */}
-                    <span aria-hidden className="mt-0.5 size-4 shrink-0 rounded-xs border border-input opacity-50" />
+                    <span aria-hidden className={cn("size-4 shrink-0 rounded-xs border border-input opacity-50", sizes.checkbox)} />
                     <Input
                         ref={inputRef}
                         value={text}
@@ -82,7 +88,7 @@ const SubtaskInput = ({ parentTaskId, onClose }: { parentTaskId: number, onClose
                         onBlur={() => {
                             if (!text.trim() && !saving) onClose?.()
                         }}
-                        className={cn("flex-1 h-6 px-1 py-0 text-sm md:text-sm shadow-none", saving && "opacity-60")}
+                        className={cn("flex-1 px-1 py-0 shadow-none", sizes.input, saving && "opacity-60")}
                     />
                     <div className="flex items-center gap-0.5 shrink-0">
                         <TooltipCustom text={t("common.add")} shortcut={keyLabel("enter")}>
@@ -121,7 +127,8 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
     const [isOpen, setOpen] = useState(false)
     const [text, setText] = useState("")
     const { createTask } = useWorkspaceActions()
-    const { appendTask } = useActiveNoteActions()
+    const { appendTask, applyTaskMove } = useActiveNoteActions()
+    const { newTaskPosition } = usePreferences()
     const recorder = useUndoRecorder()
     const { dispatch } = useAutomations()
     const formRef = useRef<HTMLFormElement>(null)
@@ -159,9 +166,11 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
             await run(async () => {
                 try {
                     const value = text.trim()
-                    const id = await createTask(sectionId, value)
+                    const id = await createTask(sectionId, value, newTaskPosition)
                     handleOpen()
                     appendTask(id, { sectionId }, value)
+                    // The cache appends it: at the top it moves before its siblings, as the database ordered it
+                    if (newTaskPosition === "top") applyTaskMove(id, { sectionId, parentTaskId: null }, 0)
                     recorder.create("task", id, value)
                     void dispatch({ type: "task.created", taskId: id })
                 } catch (error: unknown) {
@@ -212,5 +221,5 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
 
 export const AddTask = ({ sectionId, parentTaskId, onClose }: AddTaskProps) =>
     parentTaskId !== undefined
-        ? <SubtaskInput parentTaskId={parentTaskId} onClose={onClose} />
+        ? <SubtaskInput parentTaskId={parentTaskId} sectionId={sectionId} onClose={onClose} />
         : <TopLevelAddTask sectionId={sectionId} />

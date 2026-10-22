@@ -11,11 +11,11 @@ export type ItemSizeClasses = {
     row: string
     /** Row height in px (matches `row`), for virtualization. */
     rowPx: number
-    /** Indent per depth level in px (matches `indent`): the width of the chevron plus the gap, so the icon of a child sits under the icon of its parent folder. */
+    /** Indent per depth level in px (matches `indent`): the width of the chevron plus the gap, so a child starts under the name of its parent folder. */
     indentPx: number
     /** Row label. */
     text: string
-    /** Row icons (chevron, folder, note). */
+    /** The chevron of a folder row. */
     icon: string
     /** Resizes the icon of the hover menu button. */
     menu: string

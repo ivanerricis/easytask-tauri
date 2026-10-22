@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { usePreferences } from "@/contexts/use-preferences"
 import { AUDIO_PLAYER_SCALES, MIN_AUDIO_PLAYER_OPACITY, type AudioPlayerScale } from "@/lib/store/preferences"
-import { SettingsPanel, SettingsRow, SettingsSwitchRow } from "./SettingsRow"
+import { SettingsCard, SettingsPanel, SettingsRow, SettingsSwitchRow } from "./SettingsRow"
 import { SegmentedSetting } from "./SegmentedSetting"
 import { SectionResetButton } from "./SectionResetButton"
 
@@ -53,32 +53,34 @@ export const AudioSettings = () => {
             title={t("settings.audio.title")}
             action={<SectionResetButton title={t("settings.audio.resetAll.description")} onClick={resetAudioSettings} />}
         >
-            <SettingsRow label={t("settings.audio.volume.label")} description={t("settings.audio.volume.description")}>
-                <PercentRange label={t("settings.audio.volume.label")} value={audioVolume} min={0} onChange={setAudioVolume} />
-            </SettingsRow>
-            <SettingsSwitchRow
-                label={t("settings.audio.playerVisible.label")}
-                description={t("settings.audio.playerVisible.description")}
-                checked={audioPlayerVisible}
-                onCheckedChange={setAudioPlayerVisible}
-            />
-            <SegmentedSetting
-                label={t("settings.audio.playerSize.label")}
-                description={t("settings.audio.playerSize.description")}
-                value={String(audioPlayerScale)}
-                options={AUDIO_PLAYER_SCALES.map(value => ({ value: String(value), label: t(`settings.audio.playerSize.${SIZE_KEYS[value]}`) }))}
-                onChange={value => setAudioPlayerScale(Number(value) as AudioPlayerScale)}
-                className={`${CONTROL_WIDTH} [&>*]:flex-1`}
-            />
-            <SettingsRow label={t("settings.audio.playerOpacity.label")} description={t("settings.audio.playerOpacity.description")}>
-                <PercentRange label={t("settings.audio.playerOpacity.label")} value={audioPlayerOpacity} min={MIN_AUDIO_PLAYER_OPACITY} onChange={setAudioPlayerOpacity} />
-            </SettingsRow>
-            <SettingsRow label={t("settings.audio.resetPlayer.label")} description={t("settings.audio.resetPlayer.description")}>
-                <Button variant="outline" size="sm" onClick={resetPlayerPosition}>
-                    <RotateCcw />
-                    {t("settings.audio.resetPlayer.button")}
-                </Button>
-            </SettingsRow>
+            <SettingsCard>
+                <SettingsRow label={t("settings.audio.volume.label")} description={t("settings.audio.volume.description")}>
+                    <PercentRange label={t("settings.audio.volume.label")} value={audioVolume} min={0} onChange={setAudioVolume} />
+                </SettingsRow>
+                <SettingsSwitchRow
+                    label={t("settings.audio.playerVisible.label")}
+                    description={t("settings.audio.playerVisible.description")}
+                    checked={audioPlayerVisible}
+                    onCheckedChange={setAudioPlayerVisible}
+                />
+                <SegmentedSetting
+                    label={t("settings.audio.playerSize.label")}
+                    description={t("settings.audio.playerSize.description")}
+                    value={String(audioPlayerScale)}
+                    options={AUDIO_PLAYER_SCALES.map(value => ({ value: String(value), label: t(`settings.audio.playerSize.${SIZE_KEYS[value]}`) }))}
+                    onChange={value => setAudioPlayerScale(Number(value) as AudioPlayerScale)}
+                    className={`${CONTROL_WIDTH} [&>*]:flex-1`}
+                />
+                <SettingsRow label={t("settings.audio.playerOpacity.label")} description={t("settings.audio.playerOpacity.description")}>
+                    <PercentRange label={t("settings.audio.playerOpacity.label")} value={audioPlayerOpacity} min={MIN_AUDIO_PLAYER_OPACITY} onChange={setAudioPlayerOpacity} />
+                </SettingsRow>
+                <SettingsRow label={t("settings.audio.resetPlayer.label")} description={t("settings.audio.resetPlayer.description")}>
+                    <Button variant="outline" size="sm" onClick={resetPlayerPosition}>
+                        <RotateCcw />
+                        {t("settings.audio.resetPlayer.button")}
+                    </Button>
+                </SettingsRow>
+            </SettingsCard>
         </SettingsPanel>
     )
 }

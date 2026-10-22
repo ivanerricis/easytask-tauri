@@ -15,6 +15,12 @@ const LOG_MAX_FILE_SIZE: u128 = 1_000_000;
 const LOG_FILES_KEPT: usize = 5;
 /// Subfolders of the data folder the UI is allowed to open in the file manager.
 const OPENABLE_SUBFOLDERS: [&str; 2] = ["backups", "logs"];
+/// Name of the "backups" subfolder, which the user can move elsewhere (the `backupFolder` preference).
+const BACKUPS_SUBFOLDER: &str = "backups";
+/// Settings file of tauri-plugin-store (the same the JS side loads in src/lib/store/initStore.ts) and the key
+/// holding the custom backup folder.
+const SETTINGS_FILE: &str = "settings.dat";
+const BACKUP_FOLDER_KEY: &str = "backupFolder";
 
 /// Where the app keeps its data and whether it runs in portable mode.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -110,7 +116,17 @@ fn is_portable(info: tauri::State<'_, DataDirInfo>) -> bool {
     info.portable
 }
 
-/// Opens the data folder (or one of its allowed subfolders) in the file manager.
+/// The custom backup folder chosen in the settings, read from the settings file of the data folder. None when
+/// there is none, or when it is not an existing absolute folder (the default folder is used then).
+fn custom_backup_folder(data_dir: &Path) -> Option<PathBuf> {
+    let content = std::fs::read(data_dir.join(SETTINGS_FILE)).ok()?;
+    let settings: serde_json::Value = serde_json::from_slice(&content).ok()?;
+    let folder = PathBuf::from(settings.get(BACKUP_FOLDER_KEY)?.as_str()?.trim());
+    (folder.is_absolute() && folder.is_dir()).then_some(folder)
+}
+
+/// Opens the data folder (or one of its allowed subfolders) in the file manager. The "backups" subfolder resolves
+/// to the custom backup folder when one is set; the UI never passes a path.
 #[tauri::command]
 fn open_data_folder(
     app: tauri::AppHandle,
@@ -124,8 +140,13 @@ fn open_data_folder(
         if !OPENABLE_SUBFOLDERS.contains(&name.as_str()) {
             return Err("folder not allowed".to_string());
         }
-        target.push(name);
-        std::fs::create_dir_all(&target).map_err(|error| error.to_string())?;
+        match custom_backup_folder(&info.path).filter(|_| name == BACKUPS_SUBFOLDER) {
+            Some(custom) => target = custom,
+            None => {
+                target.push(name);
+                std::fs::create_dir_all(&target).map_err(|error| error.to_string())?;
+            }
+        }
     }
     app.opener()
         .open_path(target.to_string_lossy(), None::<&str>)
@@ -483,6 +504,11 @@ pub fn run() {
             app.fs_scope().allow_directory(&info.path, true)?;
             app.asset_protocol_scope()
                 .allow_directory(&info.path, true)?;
+            // The custom backup folder (if any): only the folder itself, not its subfolders. When the user picks a
+            // new one the dialog plugin adds it to the scope for the current session.
+            if let Some(folder) = custom_backup_folder(&info.path) {
+                app.fs_scope().allow_directory(&folder, false)?;
+            }
 
             // File logging (rotated by size) in <data>/logs, also in release builds.
             let mut log = tauri_plugin_log::Builder::default()
@@ -539,6 +565,13 @@ pub fn run() {
             #[cfg(desktop)]
             app.handle()
                 .plugin(tauri_plugin_updater::Builder::new().build())?;
+
+            // Start with the system: registered but never enabled by the app, the user turns it on in the settings.
+            #[cfg(desktop)]
+            app.handle().plugin(tauri_plugin_autostart::init(
+                tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+                None,
+            ))?;
 
             app.manage(info);
             #[cfg(windows)]
@@ -783,6 +816,30 @@ mod tests {
             let error = resolve_data_dir(Some(dir), &exe, &docs).unwrap_err();
             assert!(error.contains(DATA_DIR_ENV), "{error}");
         }
+    }
+
+    #[test]
+    fn custom_backup_folder_needs_an_existing_absolute_folder() {
+        let data = temp_dir("cbf-data");
+        assert_eq!(custom_backup_folder(&data), None);
+        let target = temp_dir("cbf-target");
+        let write = |value: serde_json::Value| {
+            std::fs::write(
+                data.join(SETTINGS_FILE),
+                json!({ BACKUP_FOLDER_KEY: value }).to_string(),
+            )
+            .unwrap()
+        };
+        write(json!(target.to_str().unwrap()));
+        assert_eq!(custom_backup_folder(&data), Some(target.clone()));
+        write(json!(null));
+        assert_eq!(custom_backup_folder(&data), None);
+        write(json!("relative/folder"));
+        assert_eq!(custom_backup_folder(&data), None);
+        write(json!(target.join("missing").to_str().unwrap()));
+        assert_eq!(custom_backup_folder(&data), None);
+        std::fs::write(data.join(SETTINGS_FILE), b"not json").unwrap();
+        assert_eq!(custom_backup_folder(&data), None);
     }
 
     #[test]
