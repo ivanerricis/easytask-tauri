@@ -4,6 +4,30 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.11.0] - 2026-10-22
+
+### Aggiunto
+
+- Impostazioni: una casella di ricerca trova un'opzione dal nome. Esc, il pulsante X o la scelta di una categoria la svuotano.
+- Impostazioni > Sistema (nuova): avvio di EasyTask con Windows e chiusura nell'area di notifica. Con questa opzione attiva, chiudere la finestra la nasconde e l'icona nell'area di notifica la riapre o chiude l'app. Entrambe le opzioni sono disattivate di default.
+- Impostazioni > Dati: il cestino può svuotarsi da solo degli elementi eliminati da più di un numero di giorni a scelta (il controllo avviene all'avvio). Il backup automatico ha una frequenza e può essere salvato in una cartella a scelta.
+- Impostazioni > Note: i nuovi task possono essere aggiunti in cima o in fondo, l'elenco dei task ha un'impostazione di densità e il controllo ortografico si può disattivare.
+
+### Modificato
+
+- Più veloce con note e workspace grandi: trascinare task, sezioni ed elementi della sidebar, cambiare nota e scheda, riprodurre l'audio ed esportare un workspace richiedono molto meno lavoro.
+- Le impostazioni sono organizzate in riquadri, in una finestra più larga.
+- Le righe della sidebar non mostrano più le icone di cartelle e note.
+
+### Corretto
+
+- "Nessun colore" toglie di nuovo il colore a cartelle e note nella sidebar.
+- Il tooltip di una riga della sidebar non ricompare più dopo la chiusura del menu del tasto destro.
+- Ctrl, Alt o Maiusc con le frecce non cambiano più nota dalla barra delle schede.
+- I messaggi di errore lunghi nelle finestre di eliminazione vanno a capo invece di uscire dal riquadro.
+- Sicurezza: `rustls-webpki` 0.103.16 e `webpki-root-certs` 1.0.10 correggono due avvisi sui certificati (RUSTSEC-2026-0382 e 0383).
+
+
 ## [0.10.1] - 2026-10-16
 
 ### Corretto
@@ -308,7 +332,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...HEAD
+[0.11.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.1...v0.10.0
 [0.9.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.0...v0.9.1
