@@ -17,7 +17,7 @@ export type TaskParent = { sectionId: number } | { parentTaskId: number }
 /** Location of a task in the tree. */
 export type TaskLocation = { task: Task, parent: TaskParent, index: number }
 
-export const clamp = (index: number | undefined, length: number) =>
+const clamp = (index: number | undefined, length: number) =>
     index === undefined ? length : Math.max(0, Math.min(Math.trunc(index) || 0, length))
 
 export const insertAt = <T,>(list: T[], item: T, index?: number): T[] => {

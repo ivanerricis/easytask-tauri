@@ -100,3 +100,35 @@ export function createRecordingInvoke(options: { results?: FakeResult[], error?:
     })
     return { invoke, calls }
 }
+
+// The part of node:sqlite's DatabaseSync used to answer queries (structural, like SqliteLike)
+type SqliteQueryLike = {
+    prepare(sql: string): {
+        run(...params: never[]): { changes: number | bigint, lastInsertRowid: number | bigint }
+        all(...params: never[]): unknown[]
+    }
+}
+
+/**
+ * Fake of the tauri-plugin-sql Database (`execute` / `select`) on a real node:sqlite database, read lazily on every call.
+ * Use it in the factory of `vi.mock("../dbManager", ...)`:
+ * `async () => { const { createSqliteDb } = await import("@/test/db-mock"); return { getDB: vi.fn(async () => createSqliteDb(() => sqlite)) } }`
+ * @category Test helpers
+ */
+export function createSqliteDb(getSqlite: () => SqliteQueryLike) {
+    return {
+        execute: async (sql: string, params: unknown[] = []) => {
+            const result = getSqlite().prepare(sql).run(...(params as never[]))
+            return { rowsAffected: Number(result.changes), lastInsertId: Number(result.lastInsertRowid) }
+        },
+        select: async (sql: string, params: unknown[] = []) => getSqlite().prepare(sql).all(...(params as never[])),
+    }
+}
+
+/**
+ * A `rows(sql)` helper that reads rows straight from the test database (to assert on what the queries wrote).
+ * @category Test helpers
+ */
+export function sqliteRows(getSqlite: () => SqliteQueryLike) {
+    return (sql: string) => getSqlite().prepare(sql).all() as Record<string, unknown>[]
+}

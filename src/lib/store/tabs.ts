@@ -1,5 +1,6 @@
 import type { TabsState } from "@/contexts/tabs-reducer"
 import { store } from "./initStore"
+import { saveStoreSoon } from "./save-soon"
 
 const tabsKey = (workspaceId: number) => `openTabs:${workspaceId}`
 
@@ -25,5 +26,5 @@ export const getWorkspaceTabs = async (workspaceId: number): Promise<TabsState> 
  */
 export const saveWorkspaceTabs = async (workspaceId: number, tabs: TabsState): Promise<void> => {
     await store.set(tabsKey(workspaceId), tabs)
-    await store.save()
+    await saveStoreSoon()
 }

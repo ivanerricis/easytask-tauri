@@ -6,7 +6,7 @@ import { en } from "./locales/en"
 export type Language = "it" | "en"
 export type LanguagePreference = "system" | Language
 
-export const SUPPORTED_LANGUAGES: Language[] = ["it", "en"]
+const SUPPORTED_LANGUAGES: Language[] = ["it", "en"]
 export const DEFAULT_LANGUAGE_PREFERENCE: LanguagePreference = "system"
 
 export const isLanguagePreference = (value: unknown): value is LanguagePreference =>

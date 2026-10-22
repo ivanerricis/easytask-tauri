@@ -1,14 +1,11 @@
 import { useCallback, useMemo } from "react"
 import { archiveDBItem, getDBArchive, getDBArchiveCount, unarchiveDBItem } from "@/db/queries/archive"
-import type { ArchiveItemType, Folder } from "@/types/types"
+import type { ArchiveItemType } from "@/types/types"
 import { withRollback } from "../with-rollback"
-import { findTreeItem, insertTreeItem, removeTreeItem } from "../workspace-tree-ops"
+import { removeOptimistically } from "./remove-optimistic"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type ArchiveActions = Pick<WorkspaceActionsType, "archiveItem" | "unarchiveItem" | "getArchive" | "getArchiveCount">
-
-/** The ids of a folder and of every folder under it. */
-const collectFolderIds = (folder: Folder): number[] => [folder.id, ...folder.subfolders.flatMap(collectFolderIds)]
 
 /**
  * Archive and unarchive. Every write that changes the archive bumps archiveVersion (the trash actions bump it too, because
@@ -29,25 +26,12 @@ export function useArchiveActions({ tabsBridge, withLoading, withArchiveChange, 
      * @category Workspace Data Context
      */
     const archiveItem = useCallback((itemType: ArchiveItemType, itemID: number) => withArchiveChange(async () => {
-        const tabsBefore = tabsBridge.current?.snapshot()
-        const tree = getTree()
-        const found = tree && (itemType === "folder" || itemType === "note") ? findTreeItem(tree, itemType, itemID) : undefined
-        const rollback = found && (itemType === "folder" || itemType === "note")
-            ? applyTree(
-                t => removeTreeItem(t, itemType, itemID),
-                t => insertTreeItem(t, itemType, found.item, found.parentId, found.index))
-            : null
-        const folderIds = new Set(itemType === "folder" && found ? collectFolderIds(found.item as Folder) : [itemID])
-        const undoRemoval = rollback && (() => {
-            rollback()
-            // The tree is back: so are the tabs that the optimistic removal closed
-            if (tabsBefore) tabsBridge.current?.reopen(tabsBefore)
-        })
+        const { undoRemoval, clearCurrentFolder } = removeOptimistically({ tabsBridge, applyTree, getTree, setCurrentFolder }, itemType, itemID)
         await withRollback(undoRemoval, () => archiveDBItem(itemType, itemID))
         // Groups, notes and folders carry audio files
         if (itemType !== "section" && itemType !== "task") bumpAudioVersion()
 
-        if (itemType === "folder") setCurrentFolder(current => current && folderIds.has(current.id) ? null : current)
+        clearCurrentFolder()
     }), [tabsBridge, withArchiveChange, applyTree, getTree, bumpAudioVersion, setCurrentFolder])
 
     /**

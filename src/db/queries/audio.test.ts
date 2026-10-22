@@ -1,21 +1,17 @@
 // @vitest-environment node
 /// <reference types="node" />
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { DatabaseSync, type SQLInputValue } from "node:sqlite"
+import { DatabaseSync } from "node:sqlite"
+import { sqliteRows } from "@/test/db-mock"
 import { latestSchema } from "../schema/initial"
 
 // These tests run the real query SQL against a real SQLite database (schema migrated to v6)
 let sqlite: DatabaseSync
 
-vi.mock("../dbManager", () => ({
-    getDB: vi.fn(async () => ({
-        execute: async (sql: string, params: unknown[] = []) => {
-            const r = sqlite.prepare(sql).run(...(params as SQLInputValue[]))
-            return { rowsAffected: Number(r.changes), lastInsertId: Number(r.lastInsertRowid) }
-        },
-        select: async (sql: string, params: unknown[] = []) => sqlite.prepare(sql).all(...(params as SQLInputValue[])),
-    })),
-}))
+vi.mock("../dbManager", async () => {
+    const { createSqliteDb } = await import("@/test/db-mock")
+    return { getDB: vi.fn(async () => createSqliteDb(() => sqlite)) }
+})
 
 vi.mock("@tauri-apps/api/core", async () => {
     const { createSqliteInvoke } = await import("@/test/db-mock")
@@ -24,12 +20,12 @@ vi.mock("@tauri-apps/api/core", async () => {
 
 import {
     createDBAudioFile, getDBAudioFile, getDBGroupAudioFiles, getDBNoteAudioFiles, getFileName, makeUniqueName,
-    renameDBAudioFile, updateDBAudioFilePath,
+    updateDBAudioFilePath,
 } from "./audio"
 import { emptyDBTrash, getDBTrash, purgeDBItem, restoreDBItem } from "./trash"
 import { deleteDBItem, renameDBItem } from "./shared_queries"
 
-const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
+const rows = sqliteRows(() => sqlite)
 
 beforeEach(() => {
     sqlite = new DatabaseSync(":memory:")
@@ -97,10 +93,10 @@ describe("audio queries", () => {
         await createDBAudioFile(1, "/m/b.mp3")
         await updateDBAudioFilePath(a.id, "/new/a.mp3")
         expect(await getDBAudioFile(a.id)).toMatchObject({ name: "a.mp3", path: "/new/a.mp3" })
-        await renameDBAudioFile(a.id, "Intro")
+        await renameDBItem("audio_file", a.id, "Intro")
         expect((await getDBAudioFile(a.id))?.name).toBe("Intro")
-        await expect(renameDBAudioFile(a.id, "b.mp3")).rejects.toMatchObject({ code: "AUDIO_EXISTS" })
-        await expect(renameDBAudioFile(a.id, "")).rejects.toMatchObject({ code: "AUDIO_CHECK_FAILED" })
+        await expect(renameDBItem("audio_file", a.id, "b.mp3")).rejects.toMatchObject({ code: "AUDIO_FILE_EXISTS" })
+        await expect(renameDBItem("audio_file", a.id, "")).rejects.toMatchObject({ code: "AUDIO_FILE_CHECK_FAILED" })
         await expect(updateDBAudioFilePath(a.id, "")).rejects.toMatchObject({ code: "AUDIO_CHECK_FAILED" })
     })
 

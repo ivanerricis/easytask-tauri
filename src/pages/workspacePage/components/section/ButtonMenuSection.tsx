@@ -143,13 +143,13 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
                     onOpenChange={setAutomationsOpen}
                 />
             </LazyMount>}
-            <DialogDeleteItem
+            {isDeleteOpen && <DialogDeleteItem
                 item={section}
                 itemType="section"
                 isOpen={isDeleteOpen}
                 onOpenChange={setDeleteOpen}
                 optimistic={() => removeSection(section.id)}
-            />
+            />}
         </>
     )
 

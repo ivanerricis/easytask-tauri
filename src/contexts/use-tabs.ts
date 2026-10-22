@@ -1,5 +1,6 @@
 import { useCallback, useContext, useSyncExternalStore } from "react"
-import { ActiveIdContext, TabUiContext, TabsActionsContext, TabsContext } from "./tabs-context-object"
+import { useStoreSelector } from "@/lib/external-store"
+import { ActiveIdContext, ActiveIdStoreContext, TabUiContext, TabsActionsContext, TabsContext } from "./tabs-context-object"
 
 /**
  * The open tabs, the active one and the derived Note objects. Re-renders when tabs or notes change.
@@ -26,6 +27,14 @@ export const useTabsActions = () => {
  * @category Tabs
  */
 export const useActiveNoteId = () => useContext(ActiveIdContext)
+
+/**
+ * Reads a derived value of the active note id (e.g. "is it this note?"): re-renders only when that value changes,
+ * not on every tab switch. The selector must return a primitive.
+ * @category Tabs
+ */
+export const useActiveNoteSelector = <S,>(selector: (activeId: number | null) => S): S =>
+    useStoreSelector(useContext(ActiveIdStoreContext), selector)
 
 /**
  * The store of the per-note UI state.

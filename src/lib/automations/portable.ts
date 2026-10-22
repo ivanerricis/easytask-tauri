@@ -28,7 +28,7 @@ export type PortableAction =
 
 /**
  * A rule independent of the ids of its note, to be copied or exported together with the note content
- * (see `buildContent` in src/db/queries/template.ts for the order of the sections).
+ * (see `buildContentWithSectionIds` in src/db/queries/template.ts for the order of the sections).
  * @category Automations
  */
 export type PortableAutomation = {

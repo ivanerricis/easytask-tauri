@@ -2,11 +2,12 @@ import { useTranslation } from "react-i18next"
 import { Trash2 } from "lucide-react"
 import { useRef, useState } from "react"
 import { ConfirmDialog } from "./dialog-confirm"
-import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useOptionalUndo, useUndoRecorder } from "@/contexts/undo/use-undo"
 import type { TreeItemRef } from "@/contexts/undo/commands"
 import { getErrorMessage } from "@/lib/utils"
 import { toastTrashed } from "@/lib/toast-trashed"
+import { FormError } from "@/components/form-error"
 
 type DialogDeleteSelectionProps = {
     /** The folders and notes to move to the trash (already reduced to the top-most ones). */
@@ -22,7 +23,7 @@ type DialogDeleteSelectionProps = {
  */
 export const DialogDeleteSelection = ({ items, isOpen, onOpenChange }: DialogDeleteSelectionProps) => {
     const { t } = useTranslation()
-    const { deleteItem } = useWorkspaceData()
+    const { deleteItem } = useWorkspaceActions()
     const recorder = useUndoRecorder()
     const undo = useOptionalUndo()?.undo
     const [error, setError] = useState<string | null>(null)
@@ -66,7 +67,7 @@ export const DialogDeleteSelection = ({ items, isOpen, onOpenChange }: DialogDel
             description={t("dialogs.deleteSelection.description", { count: items.length })}
             confirm={{ label: t("dialogs.deleteSelection.confirm", { count: items.length }), icon: Trash2, onClick: handleDelete }}
         >
-            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            {error && <FormError>{error}</FormError>}
         </ConfirmDialog>
     )
 }

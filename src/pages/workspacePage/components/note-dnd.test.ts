@@ -3,7 +3,7 @@ import type { NoteDataTree } from "@/types/types"
 import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import {
     computeDropZone, computeGroupDropZone, computeGroupTarget, computeSectionTarget, moveGroupInList, computeTaskTarget, findSection, findTask,
-    getSectionMoveDestinations, getTaskMoveDestinations,
+    getSectionMoveDestinations, getTaskMoveDestinations, indexTree,
 } from "./note-dnd"
 
 /*
@@ -154,6 +154,20 @@ describe("lookups", () => {
         expect(findSection(tree, 2)?.title).toBe("S2")
         expect(findTask(tree, 13)?.text).toBe("T1a1")
         expect(findTask(tree, 99)).toBeUndefined()
+    })
+
+    it("indexes a tree once and a replaced tree again", () => {
+        expect(indexTree(tree)).toBe(indexTree(tree))
+        // A change replaces the tree: the new one is indexed from scratch, the old index is not reused
+        const renamed: NoteDataTree = {
+            groups: tree.groups.map(group => ({
+                ...group,
+                sections: group.sections.map(section => section.id === 2 ? { ...section, title: "S2 bis" } : section),
+            })),
+        }
+        expect(indexTree(renamed)).not.toBe(indexTree(tree))
+        expect(findSection(renamed, 2)?.title).toBe("S2 bis")
+        expect(findSection(tree, 2)?.title).toBe("S2")
     })
 })
 

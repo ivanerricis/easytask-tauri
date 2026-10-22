@@ -28,8 +28,8 @@ export type SelectionActions = {
     moveTo: (folderId: number | null) => Promise<void>
     /** Runs a plan of {@link planMultiMove} (a drop); one undo step. */
     executeMove: (plan: PlannedMove[]) => Promise<void>
-    /** Plans the drop of the selection onto a row / the root area. */
-    planDrop: (over: TreeRef | null, zone: DropZone) => PlannedMove[] | null
+    /** Plans the drop of the selection onto a row / the root area. Pass `targets` (from getTargets) to skip recomputing them on every pointer move. */
+    planDrop: (over: TreeRef | null, zone: DropZone, targets?: TreeRef[]) => PlannedMove[] | null
     /** Exports the selection in one file. */
     exportSelection: () => Promise<void>
 }
@@ -126,8 +126,8 @@ export function SelectionActionsProvider({ children }: { children: ReactNode }) 
         }
     }, [moveTreeItem, recorder, currentWorkspace, getWorkspaceData, t])
 
-    const planDrop = useCallback((over: TreeRef | null, zone: DropZone) =>
-        planMultiMove(tree, getTargets().map(item => ({ type: item.itemType, id: item.id })), over, zone),
+    const planDrop = useCallback((over: TreeRef | null, zone: DropZone, targets?: TreeRef[]) =>
+        planMultiMove(tree, targets ?? getTargets().map(item => ({ type: item.itemType, id: item.id })), over, zone),
     [tree, getTargets])
 
     const moveTo = useCallback(async (folderId: number | null) => {

@@ -17,7 +17,7 @@ const openNote = vi.fn()
 const onToggle = vi.fn()
 
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ sidebarItemSize: "normal" }) }))
-vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote }), useActiveNoteId: () => null }))
+vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote }), useActiveNoteId: () => null, useActiveNoteSelector: (select: (id: number | null) => unknown) => select(null) }))
 vi.mock("../folder/ButtonMenuFolder", () => ({ ButtonMenuFolder: ({ children }: { children: ReactNode }) => <>{children}</> }))
 vi.mock("../note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: ReactNode }) => <>{children}</> }))
 vi.mock("@/components/tooltip-custom", () => ({ TooltipCustom: ({ children }: { children: ReactNode }) => <>{children}</> }))

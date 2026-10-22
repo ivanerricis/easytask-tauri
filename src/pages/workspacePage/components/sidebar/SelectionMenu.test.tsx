@@ -34,7 +34,7 @@ vi.mock("@/contexts/workspace-data", () => ({
         workspaceDataTree, deleteItem, updateItemColor, moveTreeItem, getWorkspaceData, archiveItem,
         updateFolderColorContent: vi.fn(),
     }),
-    useWorkspaceActions: () => ({ updateItemColor, duplicateNote: vi.fn() }),
+    useWorkspaceActions: () => ({ updateItemColor, duplicateNote: vi.fn(), deleteItem }),
 }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
 vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn(), reorderTabs: vi.fn() }), useTabs: () => ({ tabs: [] }) }))

@@ -1,11 +1,11 @@
 import i18n from "@/i18n"
 import type { NoteTemplate, NoteTemplateContent, TemplateGroup, TemplateSection, TemplateTask } from "@/types/template";
 import type { Group, Section, Task } from "@/types/types";
-import { createError, handleDBError, isAppError } from "@/types/error";
+import { createError, handleDBError, toAppError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { Transaction, TransactionError, type TxRef } from "../transaction";
-import { getDBNoteData } from "./note";
+import { getDBNoteData, getDBNotesData, type NoteData } from "./note";
 
 const TEMPLATE_UNIQUE_MESSAGE = () => i18n.t("errors.template.unique")
 const TEMPLATE_CHECK_MESSAGE = () => i18n.t("errors.template.check")
@@ -48,7 +48,9 @@ export function createSectionSnapshotter(tasks: Task[]): (section: Pick<Section,
     for (const task of tasks) {
         const bucket = task.taskID != null ? childrenOf : topOf
         const key = task.taskID != null ? task.taskID : (task.sectionID as number)
-        bucket.set(key, [...(bucket.get(key) ?? []), task])
+        const list = bucket.get(key)
+        if (list) list.push(task)
+        else bucket.set(key, [task])
     }
 
     const snapshotTask = (task: Task): TemplateTask => ({
@@ -71,31 +73,24 @@ export function createSectionSnapshotter(tasks: Task[]): (section: Pick<Section,
     })
 }
 
-/**
- * Builds the template content of a note: an exact copy of its visible groups, sections and tasks (neither deleted nor
- * archived; subtasks at any depth; a subtask whose ancestor is in the trash is hidden with it). Audio files are not included.
- * @param noteId The ID of the note.
- * @param includeArchived Keeps the archived groups and sections, with their `archived_at` (used by the export; default false).
- * @category Database Queries
- */
-export async function buildContent(noteId: number, includeArchived = false): Promise<NoteTemplateContent> {
-    return (await buildContentWithSectionIds(noteId, includeArchived)).content
-}
+/** The template content of a note, the ids of its source sections and groups (see buildContentWithSectionIds). */
+export type NoteContent = { content: NoteTemplateContent, sectionIds: number[], groupIds: number[] }
 
 /**
- * Like buildContent, and also returns the ids of the source sections in content order (the groups first, then the
- * sections of each group): the position `i` of a section in the content is `sectionIds[i]`. `groupIds` has the ids of
- * the source groups in content order.
- * @param noteId The ID of the note.
- * @param includeArchived Keeps the archived groups and sections (default false).
+ * Builds the template content out of rows already loaded (see getDBNoteData): an exact copy of the groups, sections and
+ * tasks it is given, in their order. Returns the same as buildContentWithSectionIds.
+ * @param data The groups, sections and tasks of a note.
  * @category Database Queries
  */
-export async function buildContentWithSectionIds(
-    noteId: number, includeArchived = false,
-): Promise<{ content: NoteTemplateContent, sectionIds: number[], groupIds: number[] }> {
-    const { groups, sections, tasks } = await getDBNoteData(noteId, includeArchived)
+export function buildContentFromRows({ groups, sections, tasks }: NoteData): NoteContent {
     const snapshotSection = createSectionSnapshotter(tasks)
-    const sectionsOf = (group: Group) => sections.filter(section => section.groupID === group.id)
+    const sectionsByGroup = new Map<number, Section[]>()
+    for (const section of sections) {
+        const list = sectionsByGroup.get(section.groupID)
+        if (list) list.push(section)
+        else sectionsByGroup.set(section.groupID, [section])
+    }
+    const sectionsOf = (group: Group) => sectionsByGroup.get(group.id) ?? []
 
     return {
         content: {
@@ -114,6 +109,32 @@ export async function buildContentWithSectionIds(
 }
 
 /**
+ * Builds the template content of a note: an exact copy of its visible groups, sections and tasks (neither deleted nor
+ * archived; subtasks at any depth; a subtask whose ancestor is in the trash is hidden with it). Audio files are not included.
+ * It also returns the ids of the source sections in content order (the groups first, then the
+ * sections of each group): the position `i` of a section in the content is `sectionIds[i]`. `groupIds` has the ids of
+ * the source groups in content order.
+ * @param noteId The ID of the note.
+ * @param includeArchived Keeps the archived groups and sections, with their `archived_at` (used by the export; default false).
+ * @category Database Queries
+ */
+export async function buildContentWithSectionIds(noteId: number, includeArchived = false): Promise<NoteContent> {
+    return buildContentFromRows(await getDBNoteData(noteId, includeArchived))
+}
+
+/**
+ * Like buildContentWithSectionIds for many notes at once (a few selects for the whole list instead of three per note).
+ * @param noteIds The IDs of the notes.
+ * @param includeArchived Keeps the archived groups and sections (default false).
+ * @returns The content of every note, by note id.
+ * @category Database Queries
+ */
+export async function buildNotesContent(noteIds: readonly number[], includeArchived = false): Promise<Map<number, NoteContent>> {
+    const data = await getDBNotesData(noteIds, includeArchived)
+    return new Map([...data].map(([noteId, rows]) => [noteId, buildContentFromRows(rows)]))
+}
+
+/**
  * Creates a template from an existing note: an independent, exact snapshot of its content at this moment.
  * @param noteId The ID of the source note (it must not be deleted).
  * @param name The name of the template (unique in the workspace).
@@ -129,14 +150,13 @@ export async function createDBTemplateFromNote(noteId: number, name: string): Pr
         if (notes.length === 0)
             throw createError("TEMPLATE_SOURCE_MISSING", SOURCE_MISSING_MESSAGE())
 
-        const content = await buildContent(noteId)
+        const { content } = await buildContentWithSectionIds(noteId)
         const result = await db.execute(
             'INSERT INTO note_template (workspaceID, sourceNoteID, name, color, content) VALUES (?, ?, ?, ?, ?)',
             [notes[0].workspaceID, noteId, name.trim(), notes[0].color ?? null, JSON.stringify(content)])
         return result.lastInsertId as number
     } catch (error: unknown) {
-        if (isAppError(error)) throw error
-        handleDBError(error, "TEMPLATE", { UNIQUE: TEMPLATE_UNIQUE_MESSAGE(), CHECK: TEMPLATE_CHECK_MESSAGE() })
+        throw toAppError(error, e => handleDBError(e, "TEMPLATE", { UNIQUE: TEMPLATE_UNIQUE_MESSAGE(), CHECK: TEMPLATE_CHECK_MESSAGE() }))
     }
 }
 
@@ -209,12 +229,11 @@ export async function updateDBTemplateFromNote(templateId: number) {
         if (rows.length === 0)
             throw createError("TEMPLATE_SOURCE_MISSING", SOURCE_MISSING_MESSAGE())
 
-        const content = await buildContent(rows[0].noteID)
+        const { content } = await buildContentWithSectionIds(rows[0].noteID)
         await db.execute('UPDATE note_template SET color = ?, content = ? WHERE id = ?',
             [rows[0].color ?? null, JSON.stringify(content), templateId])
     } catch (error: unknown) {
-        if (isAppError(error)) throw error
-        throw createError("TEMPLATE_UPDATE_FAILED", i18n.t("errors.template.update", { message: getErrorMessage(error) }))
+        throw toAppError(error, e => createError("TEMPLATE_UPDATE_FAILED", i18n.t("errors.template.update", { message: getErrorMessage(e) })))
     }
 }
 
@@ -290,8 +309,7 @@ export async function createDBNoteFromTemplate(templateId: number, workspaceId: 
             throw createError("TEMPLATE_NOT_FOUND", i18n.t("errors.template.notFound"))
         template = toTemplate(rows[0])
     } catch (error: unknown) {
-        if (isAppError(error)) throw error
-        throw createError("TEMPLATE_LOAD_FAILED", i18n.t("errors.template.load", { message: getErrorMessage(error) }))
+        throw toAppError(error, e => createError("TEMPLATE_LOAD_FAILED", i18n.t("errors.template.load", { message: getErrorMessage(e) })))
     }
 
     const tx = new Transaction()

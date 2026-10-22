@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { OptionalColorField } from "@/components/optional-color-field"
 import { useTemplates } from "@/hooks/use-templates"
 import { useWorkspace } from "@/contexts/use-workspace"
-import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 
@@ -40,7 +40,7 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
     const [error, setError] = useState<string | null>(null)
     const [templateId, setTemplateId] = useState("")
     const { currentWorkspace } = useWorkspace()
-    const { createWorkspaceNote, createNoteInFolder, createNoteFromTemplate } = useWorkspaceData()
+    const { createWorkspaceNote, createNoteInFolder, createNoteFromTemplate } = useWorkspaceActions()
     const recorder = useUndoRecorder()
     const { saving, run } = useSubmitOnce()
     const nameId = useId()

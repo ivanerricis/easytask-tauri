@@ -54,4 +54,18 @@ export type AudioContextType = {
     reportPlaybackError: () => Promise<void>
 }
 
+/**
+ * The files part of the audio state, in its own context so the lists of the groups do not re-render when the playback
+ * changes (play, pause, next track): only a change of `version` reaches them.
+ */
+export type AudioFilesContextType = Pick<AudioContextType, "filesCache" | "version">
+
+/**
+ * The actions of the audio state, which keep their identity across playback changes: a component that only starts a
+ * playback or attaches files does not re-render on play/pause.
+ */
+export type AudioActionsContextType = Pick<AudioContextType, "setPlaybackState" | "togglePlayback" | "playFile" | "closePlayer" | "addFiles" | "relinkFile" | "refresh" | "reportPlaybackError">
+
 export const AudioContext = createContext<AudioContextType | null>(null)
+export const AudioFilesContext = createContext<AudioFilesContextType | null>(null)
+export const AudioActionsContext = createContext<AudioActionsContextType | null>(null)

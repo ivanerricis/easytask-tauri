@@ -11,7 +11,7 @@ import { DialogRenameItem } from "./dialog-rename"
 // The dialogs record the successful actions in the undo history
 const deleteItem = vi.fn()
 const renameItem = vi.fn()
-vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => ({ deleteItem, renameItem }) }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => ({ renameItem }), useWorkspaceActions: () => ({ deleteItem, renameItem }) }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
 const recorder = { rename: vi.fn(), color: vi.fn(), remove: vi.fn() }

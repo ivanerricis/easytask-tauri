@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDelayedFlag } from "@/hooks/use-delayed-flag"
 import { ITEM_ICONS } from "./item-list-utils"
+import { FormError } from "@/components/form-error"
 
 type ItemRowProps = {
     icon: LucideIcon
@@ -65,7 +66,7 @@ export const ListError = ({ message, onRetry }: { message: string, onRetry: () =
     const { t } = useTranslation()
     return (
         <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <p role="alert" className="text-sm text-destructive break-words">{message}</p>
+            <FormError>{message}</FormError>
             <Button variant="outline" size="sm" onClick={onRetry}>{t("common.retry")}</Button>
         </div>
     )

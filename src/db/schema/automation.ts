@@ -4,7 +4,7 @@
  * A rule is removed with its note (ON DELETE CASCADE, when the note is purged) and deleted for good on its own.
  * @category Database Schema
  */
-export const createAutomationTable = `
+const createAutomationTable = `
     CREATE TABLE IF NOT EXISTS automation (
         id INTEGER PRIMARY KEY,
         noteID INTEGER NOT NULL,
@@ -23,7 +23,7 @@ export const createAutomationTable = `
  * Indexes of the automation table.
  * @category Database Schema
  */
-export const createAutomationIndexes = `
+const createAutomationIndexes = `
     CREATE INDEX IF NOT EXISTS idx_automation_note ON automation(noteID, position);
 `
 

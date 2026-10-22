@@ -1,6 +1,6 @@
 import i18n from "@/i18n"
 import type { AudioFile } from "@/types/types";
-import { createError, handleDBError, isAppError } from "@/types/error";
+import { createError, handleDBError, toAppError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 
@@ -12,6 +12,8 @@ import { getDB } from "../dbManager";
 export const AUDIO_EXTENSIONS = ["mp3", "wav", "ogg", "m4a", "aac", "flac", "opus", "webm"] as const
 
 const COLUMNS = "id, section_groupID, name, path, position, creation_date, creation_time"
+// The same columns for a query on `audio_file a` joined with other tables
+const AUDIO_COLUMNS = COLUMNS.split(", ").map(column => `a.${column}`).join(", ")
 
 /**
  * Returns the file name of an absolute path (Windows or POSIX separators).
@@ -52,8 +54,7 @@ export async function getDBGroupAudioFiles(groupId: number): Promise<AudioFile[]
     try {
         const db = await getDB()
         return await db.select<AudioFile[]>(
-            `SELECT a.id, a.section_groupID, a.name, a.path, a.position, a.creation_date, a.creation_time
-             FROM audio_file a INNER JOIN section_group g ON g.id = a.section_groupID
+            `SELECT ${AUDIO_COLUMNS} FROM audio_file a INNER JOIN section_group g ON g.id = a.section_groupID
              WHERE a.section_groupID = ? AND a.deleted_at IS NULL AND g.archived_at IS NULL
              ORDER BY a.position, a.id`,
             [groupId])
@@ -72,8 +73,7 @@ export async function getDBNoteAudioFiles(noteId: number): Promise<Record<number
     try {
         const db = await getDB()
         const rows = await db.select<AudioFile[]>(
-            `SELECT a.id, a.section_groupID, a.name, a.path, a.position, a.creation_date, a.creation_time
-             FROM audio_file a INNER JOIN section_group g ON g.id = a.section_groupID
+            `SELECT ${AUDIO_COLUMNS} FROM audio_file a INNER JOIN section_group g ON g.id = a.section_groupID
              WHERE g.noteID = ? AND g.deleted_at IS NULL AND g.archived_at IS NULL AND a.deleted_at IS NULL
              ORDER BY a.section_groupID, a.position, a.id`, [noteId])
 
@@ -127,32 +127,13 @@ export async function createDBAudioFile(groupId: number, path: string): Promise<
         if (!created) throw createError("AUDIO_UNKNOWN_ERROR", i18n.t("errors.audio.notCreated"))
         return created
     } catch (error: unknown) {
-        if (isAppError(error)) throw error
-        handleDBError(error, "AUDIO", {
+        throw toAppError(error, e => handleDBError(e, "AUDIO", {
             UNIQUE: i18n.t("errors.audio.unique"),
             CHECK: i18n.t("errors.audio.checkCreate"),
-        })
-        throw error
+        }))
     }
 }
 
-/**
- * Renames an audio file (the file on disk is not touched).
- * @param audioId The ID of the audio file.
- * @param name The new display name.
- * @category Database Queries
- */
-export async function renameDBAudioFile(audioId: number, name: string) {
-    try {
-        const db = await getDB()
-        await db.execute('UPDATE audio_file SET name = ? WHERE id = ?', [name, audioId])
-    } catch (error: unknown) {
-        handleDBError(error, "AUDIO", {
-            UNIQUE: i18n.t("errors.audio.unique"),
-            CHECK: i18n.t("errors.nameEmpty"),
-        })
-    }
-}
 
 /**
  * Points an audio file to a new location (relink after the file was moved). The display name is kept.

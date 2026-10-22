@@ -9,7 +9,7 @@ export function isSemver(value) {
 }
 
 /** Name of the app crate in src-tauri/Cargo.toml / Cargo.lock. */
-export const CRATE_NAME = 'app'
+const CRATE_NAME = 'app'
 
 /** Replaces the first top-level `"version": "..."` of a JSON text, keeping its formatting. */
 export function setJsonVersion(text, version) {

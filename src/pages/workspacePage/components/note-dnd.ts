@@ -84,9 +84,15 @@ export function computeGroupDropZone(rect: { left: number, width: number }, poin
 }
 
 type TaskInfo = { task: Task, sectionId: number, parentId: number | null }
+type TreeIndex = { sections: Map<number, { section: Section, groupId: number }>, tasks: Map<number, TaskInfo> }
 
-/** Flat lookups over the tree (small trees, rebuilt on demand). */
-export function indexTree(tree: NoteDataTree) {
+// The tree is immutable (every change replaces it): its index is built once and reused, a drag asks for it on every pointer move
+const treeIndexes = new WeakMap<NoteDataTree, TreeIndex>()
+
+/** Flat lookups over the tree (built once per tree). */
+export function indexTree(tree: NoteDataTree): TreeIndex {
+    const cached = treeIndexes.get(tree)
+    if (cached) return cached
     const sections = new Map<number, { section: Section, groupId: number }>()
     const tasks = new Map<number, TaskInfo>()
     const visit = (list: Task[], sectionId: number, parentId: number | null) => {
@@ -101,7 +107,9 @@ export function indexTree(tree: NoteDataTree) {
             visit(section.tasks ?? [], section.id, null)
         }
     }
-    return { sections, tasks }
+    const index = { sections, tasks }
+    treeIndexes.set(tree, index)
+    return index
 }
 
 /** Finds a section in the tree. */
@@ -111,7 +119,7 @@ export const findSection = (tree: NoteDataTree, id: number): Section | undefined
 export const findTask = (tree: NoteDataTree, id: number): Task | undefined => indexTree(tree).tasks.get(id)?.task
 
 /** Ids of a task and of all its descendants. */
-export function getTaskSubtreeIds(task: Task): Set<number> {
+function getTaskSubtreeIds(task: Task): Set<number> {
     const result = new Set<number>()
     const visit = (current: Task) => {
         result.add(current.id)

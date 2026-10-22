@@ -1,4 +1,5 @@
-import type { TxRef } from "../transaction"
+import type Database from "@tauri-apps/plugin-sql"
+import type { Transaction, TxRef } from "../transaction"
 
 /**
  * Clamps a caller supplied index to the valid range [0, length].
@@ -7,7 +8,7 @@ import type { TxRef } from "../transaction"
 export const clampIndex = (index: number, length: number) => Math.max(0, Math.min(Math.trunc(index) || 0, length))
 
 /** A column assigned to the same value on every row of a position update (the new parent of the rows). */
-export type PositionParent = { column: "groupID" | "folderID", value: number | TxRef | null }
+type PositionParent = { column: "groupID" | "folderID", value: number | TxRef | null }
 
 /**
  * Builds the single UPDATE that assigns sequential positions to an ordered list of rows,
@@ -32,4 +33,62 @@ export function buildPositionUpdate(
         sql: `UPDATE ${table} SET ${parent ? `${parent.column} = ?, ` : ""}position = CASE id ${cases} END WHERE id IN (${placeholders})`,
         params,
     }
+}
+
+/**
+ * Adds to a transaction the UPDATE built by buildPositionUpdate; nothing is added for an empty list.
+ * @param tx The transaction collecting the statements.
+ * @param table Table to update (see buildPositionUpdate).
+ * @param ids Row ids in their final order.
+ * @param parent Parent column to set on every row, omitted when the rows keep their parent.
+ * @category Database Queries
+ */
+export function addPositions(
+    tx: Transaction,
+    table: Parameters<typeof buildPositionUpdate>[0],
+    ids: (number | TxRef)[],
+    parent?: Parameters<typeof buildPositionUpdate>[2],
+) {
+    if (ids.length === 0) return
+    const update = buildPositionUpdate(table, ids, parent)
+    tx.add(update.sql, update.params)
+}
+
+/**
+ * The ids of the living siblings of a row (the row itself excluded), in position order.
+ * @param db The database.
+ * @param table Table to read (fixed by the callers, never user input).
+ * @param where Condition that selects the siblings (the parent), with `?` placeholders for `params`.
+ * @param params Parameters of `where`.
+ * @param excludeId The row that is being moved.
+ * @param orderBy Order of the siblings (default: position, then id).
+ * @category Database Queries
+ */
+export async function siblingIds(
+    db: Database, table: string, where: string, params: unknown[], excludeId: number, orderBy = "position, id",
+): Promise<number[]> {
+    const rows = await db.select<{ id: number }[]>(
+        `SELECT id FROM ${table} WHERE ${where} AND deleted_at IS NULL AND id <> ? ORDER BY ${orderBy}`, [...params, excludeId])
+    return rows.map(row => row.id)
+}
+
+/**
+ * Tells whether `ancestorId` is `startId` itself or one of its ancestors: walks up from `startId` through the primary key.
+ * Used to refuse moving a folder/task into its own subtree.
+ * @param db The database.
+ * @param table "folder" or "task".
+ * @param startId The row where the walk starts (the destination).
+ * @param ancestorId The row that is being moved.
+ * @category Database Queries
+ */
+export async function isSelfOrAncestor(db: Database, table: "folder" | "task", startId: number, ancestorId: number): Promise<boolean> {
+    const parent = table === "folder" ? "folderID" : "taskID"
+    const rows = await db.select<{ found: number }[]>(
+        `WITH RECURSIVE anc(id, parent) AS (
+            SELECT id, ${parent} FROM ${table} WHERE id = ?
+            UNION
+            SELECT t.id, t.${parent} FROM ${table} t INNER JOIN anc ON t.id = anc.parent
+        )
+        SELECT EXISTS (SELECT 1 FROM anc WHERE id = ?) AS found`, [startId, ancestorId])
+    return !!rows[0]?.found
 }

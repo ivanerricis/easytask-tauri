@@ -5,8 +5,8 @@ export const DEFAULT_COLOR_INTENSITY = 1
 export const COLOR_INTENSITY_STEP = 0.05
 
 /** Alpha limits that keep the text readable (contrast of at least 4.5:1 on the lightest colors) while the color stays visible. */
-export const MIN_COLOR_ALPHA = 0.05
-export const MAX_COLOR_ALPHA = 0.85
+const MIN_COLOR_ALPHA = 0.05
+const MAX_COLOR_ALPHA = 0.85
 
 /** Base alphas used by the colored elements at 100% intensity. */
 export const COLOR_ALPHA_BASE = {

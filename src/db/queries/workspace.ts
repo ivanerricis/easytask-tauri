@@ -16,12 +16,15 @@ import { getErrorMessage } from "@/lib/utils";
 export async function getDBWorkspaceData(workspaceID: number) {
     try {
         const db = await getDB()
-        const folders = await db.select<Folder[]>(
-            'SELECT * FROM folder WHERE workspaceID=? AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, name COLLATE NOCASE ASC',
-            [workspaceID])
-        const notes = await db.select<Note[]>(
-            'SELECT * FROM note WHERE workspaceID=? AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, name COLLATE NOCASE ASC',
-            [workspaceID])
+        // Two independent selects (no transaction): the pooled connection can serve them in parallel
+        const [folders, notes] = await Promise.all([
+            db.select<Folder[]>(
+                'SELECT * FROM folder WHERE workspaceID=? AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, name COLLATE NOCASE ASC',
+                [workspaceID]),
+            db.select<Note[]>(
+                'SELECT * FROM note WHERE workspaceID=? AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, name COLLATE NOCASE ASC',
+                [workspaceID]),
+        ])
 
         return { folders, notes }
     } catch (error: unknown) {
@@ -32,6 +35,7 @@ export async function getDBWorkspaceData(workspaceID: number) {
 /**
  * Retrieves all workspaces from the database.
  * @returns A list of all workspaces ordered by edit date and time.
+ * @throws A createError('WORKSPACE_DATA_LOAD_FAILED') error when the query fails.
  * @category Database Queries
  */
 export async function getDBWorkspaces() {
@@ -39,10 +43,7 @@ export async function getDBWorkspaces() {
         const db = await getDB()
         return await db.select<Workspace[]>('SELECT * FROM workspace WHERE deleted_at IS NULL ORDER BY edit_date DESC, edit_time DESC')
     } catch (error: unknown) {
-        handleDBError(error, "ERROR_ON_GET_WORKSPACE", {
-            UNIQUE: i18n.t("errors.workspace.unique"),
-            CHECK: i18n.t("errors.workspace.check"),
-        })
+        throw createError('WORKSPACE_DATA_LOAD_FAILED', i18n.t("errors.workspace.load", { message: getErrorMessage(error) }))
     }
 }
 

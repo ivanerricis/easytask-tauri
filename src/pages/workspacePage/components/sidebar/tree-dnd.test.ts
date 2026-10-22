@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import type { Folder, Note } from "@/types/types"
 import { makeNote } from "@/test/ui-fixtures"
-import { computeDropTarget, computeDropZone, getMoveDestinations, type TreeData } from "./tree-dnd"
+import { computeDropTarget, computeDropZone, getFolderSubtreeIds, getMoveDestinations, listTreeItems, type TreeData } from "./tree-dnd"
 
 const dates = { creation_date: "", creation_time: "", edit_date: "", edit_time: "" }
 const folder = (id: number, folderID: number | null, subfolders: Folder[] = [], notes: Note[] = []): Folder => ({
@@ -117,5 +117,23 @@ describe("getMoveDestinations", () => {
     it("excludes a folder, its descendants and its parent", () => {
         expect(getMoveDestinations(tree(), { ...F(1), folderID: null }).map(d => d.id)).toEqual([2])
         expect(getMoveDestinations(tree(), { ...F(3), folderID: 1 }).map(d => d.id)).toEqual([null, 4, 2])
+    })
+})
+
+describe("tree lookups cache", () => {
+    it("reuses the lookups of the same tree and rebuilds them for a replaced one", () => {
+        const before = tree()
+        expect(listTreeItems(before)).toBe(listTreeItems(before))
+        expect(getFolderSubtreeIds(before, 1)).toBe(getFolderSubtreeIds(before, 1))
+        expect([...getFolderSubtreeIds(before, 1)].sort()).toEqual([1, 3, 4])
+
+        // An update replaces the touched path (the wrapper may be rebuilt or reused around new lists)
+        const after: TreeData = { ...before, rootFolders: [folder(1, null, [folder(3, 1)], []), folder(2, null)] }
+        expect(listTreeItems(after).notes.has(6)).toBe(false)
+        expect([...getFolderSubtreeIds(after, 1)].sort()).toEqual([1, 3])
+        const reused = before
+        reused.rootFolders = after.rootFolders
+        expect(listTreeItems(reused).notes.has(6)).toBe(false)
+        expect([...getFolderSubtreeIds(reused, 1)].sort()).toEqual([1, 3])
     })
 })

@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { OptionalColorField } from "@/components/optional-color-field"
 import { useWorkspace } from "@/contexts/use-workspace"
-import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 
@@ -35,7 +35,7 @@ export function AddFolderDialog({ open, onOpenChange, parentId, withColor = fals
     const [color, setColor] = useState<string | undefined>(undefined)
     const [error, setError] = useState<string | null>(null)
     const { currentWorkspace } = useWorkspace()
-    const { createWorkspaceFolder, createSubFolder } = useWorkspaceData()
+    const { createWorkspaceFolder, createSubFolder } = useWorkspaceActions()
     const recorder = useUndoRecorder()
     const { saving, run } = useSubmitOnce()
     const nameId = useId()

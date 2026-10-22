@@ -1,17 +1,10 @@
-import { DEFAULT_PRIMARY_COLOR, applyAccentColor } from "@/lib/accent-color"
-import { store } from "@/lib/store/initStore"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { ThemeProviderContext, type Theme } from "./theme-context"
 
 type ThemeProviderProps = {
     children: React.ReactNode
     defaultTheme?: Theme
     storageKey?: string
-}
-
-type StoredColor = {
-    hex: string;
-    hsl: string;
 }
 
 export function ThemeProvider({
@@ -42,25 +35,14 @@ export function ThemeProvider({
         root.classList.add(theme)
     }, [theme])
 
-    useEffect(() => {
-        const applyInitialAccentColor = async () => {
-            const primaryColor = await store.get<StoredColor>('primaryColor');
-            const colorToApply = primaryColor?.hex || DEFAULT_PRIMARY_COLOR;
-
-            applyAccentColor(colorToApply);
-        };
-
-        applyInitialAccentColor();
-    }, []);
-
-
-    const value = {
+    // The accent color is applied by the PreferencesProvider (it reads and validates the stored one)
+    const value = useMemo(() => ({
         theme,
         setTheme: (theme: Theme) => {
             localStorage.setItem(storageKey, theme)
             setTheme(theme)
         },
-    }
+    }), [theme, storageKey])
 
     return (
         <ThemeProviderContext.Provider {...props} value={value}>

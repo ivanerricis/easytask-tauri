@@ -1,5 +1,6 @@
 import { createContext } from "react"
 import type { Note } from "@/types/types"
+import { createExternalStore, type ExternalStore } from "@/lib/external-store"
 
 export type TabsContextType = {
     /** Ids of the open notes, in tab order. */
@@ -58,4 +59,6 @@ export type TabUiStore = {
 export const TabsContext = createContext<TabsContextType | null>(null)
 export const TabsActionsContext = createContext<TabsActionsType | null>(null)
 export const ActiveIdContext = createContext<number | null>(null)
+/** The active note id as a store: a row reads only whether it is the active one, so a tab switch re-renders just the rows that change. */
+export const ActiveIdStoreContext = createContext<ExternalStore<number | null>>(createExternalStore<number | null>(null))
 export const TabUiContext = createContext<TabUiStore | null>(null)

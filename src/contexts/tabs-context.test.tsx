@@ -2,7 +2,7 @@ import { act, render, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { TabsProvider } from "./tabs-context"
-import { useActiveNoteId, useGroupOpen, useIsTaskSelected, useSelectTask, useSelectedTask, useSectionOpen, useTabs, useTabsActions } from "./use-tabs"
+import { useActiveNoteId, useActiveNoteSelector, useGroupOpen, useIsTaskSelected, useSelectTask, useSelectedTask, useSectionOpen, useTabs, useTabsActions } from "./use-tabs"
 import { getReopenNotes } from "@/lib/store/preferences"
 import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
 import { makeNote } from "@/test/ui-fixtures"
@@ -289,5 +289,30 @@ describe("TabsProvider", () => {
             act(() => result.current.openNote(1))
             expect(result.current.selected[0]).toBeNull()
         })
+    })
+})
+
+describe("useActiveNoteSelector", () => {
+    it("re-renders a row only when its own answer changes", () => {
+        vi.mocked(getReopenNotes).mockResolvedValue(false)
+        const renders = { one: 0, two: 0 }
+        const answers = { one: false, two: false }
+        const Row = ({ id, name }: { id: number, name: "one" | "two" }) => {
+            answers[name] = useActiveNoteSelector(activeId => activeId === id)
+            renders[name]++
+            return null
+        }
+        let actions: ReturnType<typeof useTabsActions>
+        const Grab = () => { actions = useTabsActions(); return null }
+        render(<TabsProvider notes={notesOf(1, 2, 3)} workspaceId={null}><Grab /><Row id={1} name="one" /><Row id={2} name="two" /></TabsProvider>)
+        act(() => actions.openNote(1))
+        expect(answers).toEqual({ one: true, two: false })
+        const twoBefore = renders.two
+        act(() => actions.openNote(3))
+        expect(answers).toEqual({ one: false, two: false })
+        // Row 2 was inactive before and after the switch to note 3: no re-render for it
+        expect(renders.two).toBe(twoBefore)
+        act(() => actions.openNote(2))
+        expect(answers).toEqual({ one: false, two: true })
     })
 })

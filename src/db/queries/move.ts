@@ -1,20 +1,11 @@
 import i18n from "@/i18n"
-import { createError, handleDBError, isAppError } from "@/types/error"
+import { createError, handleDBError, toAppError } from "@/types/error"
 import { getDB } from "../dbManager"
 import { Transaction, type TxRef } from "../transaction"
-import { buildPositionUpdate, clampIndex } from "./ordering"
+import { addPositions, clampIndex, isSelfOrAncestor, siblingIds } from "./ordering"
 
 const SECTION_UNIQUE_MESSAGE = () => i18n.t("errors.move.sectionUnique")
 
-/**
- * Rethrows createError objects (already user facing) and wraps anything else.
- * @category Database Queries
- */
-function rethrow(error: unknown, prefix: string, messages: { UNIQUE?: string } = {}): never {
-    if (isAppError(error)) throw error
-    handleDBError(error, prefix, messages)
-    throw error
-}
 
 /**
  * Moves a section to a group of the same note, at a given index among the sections of that group.
@@ -47,29 +38,19 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
         if (!targets[0] || targets[0].noteID !== section.noteID)
             throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.groupInvalid"))
 
-        const siblings = await db.select<{ id: number }[]>(
-            `SELECT id FROM section WHERE groupID = ? AND deleted_at IS NULL AND id <> ? ORDER BY position, id`,
-            [targetGroupId, sectionId])
-        const order = siblings.map(row => row.id)
+        const order = await siblingIds(db, "section", "groupID = ?", [targetGroupId], sectionId)
         order.splice(clampIndex(targetIndex, order.length), 0, sectionId)
 
         const tx = new Transaction()
-        const destination = buildPositionUpdate("section", order, { column: "groupID", value: targetGroupId })
-        tx.add(destination.sql, destination.params)
+        addPositions(tx, "section", order, { column: "groupID", value: targetGroupId })
 
         if (section.groupID !== targetGroupId) {
             // The moved section is excluded: it is already in the destination
-            const remaining = await db.select<{ id: number }[]>(
-                'SELECT id FROM section WHERE groupID = ? AND deleted_at IS NULL AND id <> ? ORDER BY position, id',
-                [section.groupID, sectionId])
-            if (remaining.length > 0) {
-                const update = buildPositionUpdate("section", remaining.map(row => row.id))
-                tx.add(update.sql, update.params)
-            }
+            addPositions(tx, "section", await siblingIds(db, "section", "groupID = ?", [section.groupID], sectionId))
         }
         await tx.run()
     } catch (error: unknown) {
-        rethrow(error, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE() })
+        throw toAppError(error, e => handleDBError(e, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE() }))
     }
 }
 
@@ -102,9 +83,7 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
         const index = clampIndex(groupPosition, order.length)
 
         // The source group is renumbered without the moved section (it is about to leave)
-        const remaining = await db.select<{ id: number }[]>(
-            'SELECT id FROM section WHERE groupID = ? AND deleted_at IS NULL AND id <> ? ORDER BY position, id',
-            [section.groupID, sectionId])
+        const remaining = await siblingIds(db, "section", "groupID = ?", [section.groupID], sectionId)
 
         const tx = new Transaction()
         const created = tx.add('INSERT INTO section_group (noteID, position) VALUES (?, ?)', [section.noteID, index])
@@ -113,16 +92,12 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
         groupOrder.splice(index, 0, newGroup)
 
         tx.add('UPDATE section SET groupID = ?, position = 0 WHERE id = ?', [newGroup, sectionId])
-        if (remaining.length > 0) {
-            const update = buildPositionUpdate("section", remaining.map(row => row.id))
-            tx.add(update.sql, update.params)
-        }
-        const groupUpdate = buildPositionUpdate("section_group", groupOrder)
-        tx.add(groupUpdate.sql, groupUpdate.params)
+        addPositions(tx, "section", remaining)
+        addPositions(tx, "section_group", groupOrder)
         const results = await tx.run()
         return results[created].lastInsertId
     } catch (error: unknown) {
-        rethrow(error, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE() })
+        throw toAppError(error, e => handleDBError(e, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE() }))
     }
 }
 
@@ -180,25 +155,16 @@ export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetI
 
             // Walk up from the new parent: the moved task is among its ancestors (or is the parent itself)
             // exactly when the parent lies in the moved subtree
-            const ancestors = await db.select<{ found: number }[]>(
-                `WITH RECURSIVE anc(id, parent) AS (
-                    SELECT id, taskID FROM task WHERE id = ?
-                    UNION
-                    SELECT t.id, t.taskID FROM task t INNER JOIN anc ON t.id = anc.parent
-                )
-                SELECT EXISTS (SELECT 1 FROM anc WHERE id = ?) AS found`, [parentId, taskId])
-            if (ancestors[0]?.found)
+            if (await isSelfOrAncestor(db, "task", parentId, taskId))
                 throw createError("TASK_MOVE_INVALID", i18n.t("errors.move.taskIntoItself"))
         }
 
-        const siblings = parentId == null
-            ? await db.select<{ id: number }[]>(
-                `SELECT id FROM task WHERE sectionID = ? AND taskID IS NULL AND deleted_at IS NULL AND id <> ?
-                 ORDER BY position, id`, [target.sectionId, taskId])
-            : await db.select<{ id: number }[]>(
-                `SELECT id FROM task WHERE taskID = ? AND deleted_at IS NULL AND id <> ? ORDER BY position, id`,
-                [parentId, taskId])
-        const order = siblings.map(row => row.id)
+        // The siblings of a task: the top level tasks of a section or the subtasks of a parent task
+        const taskSiblings = (sectionID: number, parentID: number | null) => parentID == null
+            ? siblingIds(db, "task", "sectionID = ? AND taskID IS NULL", [sectionID], taskId)
+            : siblingIds(db, "task", "taskID = ?", [parentID], taskId)
+
+        const order = await taskSiblings(target.sectionId, parentId)
         order.splice(clampIndex(targetIndex, order.length), 0, taskId)
 
         // The moved task changes parent and every row of its subtree gets the new sectionID (the siblings
@@ -215,25 +181,15 @@ export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetI
                 taskID = CASE WHEN id = ? THEN ? ELSE taskID END
             WHERE id IN (SELECT id FROM subtree) OR id = ?`,
             [taskId, target.sectionId, taskId, parentId, taskId])
-        const destination = buildPositionUpdate("task", order)
-        tx.add(destination.sql, destination.params)
+        addPositions(tx, "task", order)
 
         const sameParent = task.sectionID === target.sectionId && (task.taskID ?? null) === parentId
         if (!sameParent) {
             // The moved task is excluded: it already belongs to the destination
-            const remaining = task.taskID == null
-                ? await db.select<{ id: number }[]>(
-                    `SELECT id FROM task WHERE sectionID = ? AND taskID IS NULL AND deleted_at IS NULL AND id <> ? ORDER BY position, id`,
-                    [task.sectionID, taskId])
-                : await db.select<{ id: number }[]>(
-                    `SELECT id FROM task WHERE taskID = ? AND deleted_at IS NULL AND id <> ? ORDER BY position, id`, [task.taskID, taskId])
-            if (remaining.length > 0) {
-                const update = buildPositionUpdate("task", remaining.map(row => row.id))
-                tx.add(update.sql, update.params)
-            }
+            addPositions(tx, "task", await taskSiblings(task.sectionID, task.taskID))
         }
         await tx.run()
     } catch (error: unknown) {
-        rethrow(error, "TASK")
+        throw toAppError(error, e => handleDBError(e, "TASK"))
     }
 }

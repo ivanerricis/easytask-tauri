@@ -32,7 +32,15 @@ export function computeDropZone(
     return "inside"
 }
 
-export const listTreeItems = (tree: TreeData) => {
+type TreeIndex = { folders: Map<number, Folder>, notes: Map<number, Note> }
+// The tree objects are immutable (every change builds a new one, see workspace-tree-ops), so the lookups of a tree are
+// computed once. The roots are checked too, in case a wrapper object is reused around other lists.
+const indexCache = new WeakMap<TreeData, { rootFolders: Folder[], rootNotes: Note[], index: TreeIndex }>()
+const subtreeCache = new WeakMap<TreeData, { rootFolders: Folder[], ids: Map<number, Set<number>> }>()
+
+export const listTreeItems = (tree: TreeData): TreeIndex => {
+    const cached = indexCache.get(tree)
+    if (cached && cached.rootFolders === tree.rootFolders && cached.rootNotes === tree.rootNotes) return cached.index
     const folders = new Map<number, Folder>()
     const notes = new Map<number, Note>()
     const walkFolders = (items: Folder[]) => {
@@ -44,7 +52,9 @@ export const listTreeItems = (tree: TreeData) => {
     }
     walkFolders(tree.rootFolders)
     for (const note of tree.rootNotes) notes.set(note.id, note)
-    return { folders, notes }
+    const index = { folders, notes }
+    indexCache.set(tree, { rootFolders: tree.rootFolders, rootNotes: tree.rootNotes, index })
+    return index
 }
 
 export const childFolders = (tree: TreeData, parentId: number | null, byId: Map<number, Folder>): Folder[] =>
@@ -53,8 +63,15 @@ export const childFolders = (tree: TreeData, parentId: number | null, byId: Map<
 export const childNotes = (tree: TreeData, parentId: number | null, byId: Map<number, Folder>): Note[] =>
     parentId == null ? tree.rootNotes : byId.get(parentId)?.notes ?? []
 
-/** Ids of a folder and of all its descendant folders. */
+/** Ids of a folder and of all its descendant folders (shared per tree: do not modify the set). */
 export function getFolderSubtreeIds(tree: TreeData, folderId: number): Set<number> {
+    let entry = subtreeCache.get(tree)
+    if (!entry || entry.rootFolders !== tree.rootFolders) {
+        entry = { rootFolders: tree.rootFolders, ids: new Map() }
+        subtreeCache.set(tree, entry)
+    }
+    const known = entry.ids.get(folderId)
+    if (known) return known
     const { folders } = listTreeItems(tree)
     const result = new Set<number>()
     const visit = (id: number) => {
@@ -62,6 +79,7 @@ export function getFolderSubtreeIds(tree: TreeData, folderId: number): Set<numbe
         folders.get(id)?.subfolders?.forEach(child => visit(child.id))
     }
     visit(folderId)
+    entry.ids.set(folderId, result)
     return result
 }
 

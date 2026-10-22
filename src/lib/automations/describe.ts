@@ -3,7 +3,7 @@ import { PALETTE_COLORS } from "@/lib/colors"
 import { triggerSubject, type Automation, type AutomationAction, type AutomationActionType, type AutomationSubject, type AutomationTrigger, type AutomationTriggerType } from "./types"
 
 /** The i18n key of every trigger type (the keys cannot contain the dot of the type). */
-export const TRIGGER_KEYS = {
+const TRIGGER_KEYS = {
     "task.completed": "taskCompleted",
     "task.reopened": "taskReopened",
     "task.created": "taskCreated",
@@ -47,7 +47,7 @@ export function colorName(color: string): string {
 }
 
 /** A natural list in the current language ("A, B e C"). */
-export const joinList = (items: string[]) => new Intl.ListFormat(i18n.language, { style: "long", type: "conjunction" }).format(items)
+const joinList = (items: string[]) => new Intl.ListFormat(i18n.language, { style: "long", type: "conjunction" }).format(items)
 
 function describeAction(action: AutomationAction, titleOf: SectionTitleOf, subject: AutomationSubject): string {
     switch (action.type) {

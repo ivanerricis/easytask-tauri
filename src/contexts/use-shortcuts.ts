@@ -9,7 +9,7 @@ export const useShortcutsContext = () => {
 }
 
 /** The effective binding of a shortcut (the default one outside a provider). */
-export const useBinding = (id: string): Binding | undefined => {
+const useBinding = (id: string): Binding | undefined => {
     const context = useContext(ShortcutsContext)
     return context ? context.getBinding(id) : getShortcut(id).defaultBinding
 }

@@ -7,47 +7,66 @@ import {
     MAX_IMPORT_ITEMS, WORKSPACE_EXPORT_FORMAT, WORKSPACE_EXPORT_VERSION,
     type ExportAudio, type ExportFolder, type ExportNote, type ExportTemplate, type WorkspaceExport,
 } from "@/types/transfer";
-import { createError, handleDBError, isAppError } from "@/types/error";
+import { createError, handleDBError, toAppError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { AUDIO_EXTENSIONS } from "./audio";
 import { isPortableAutomation } from "@/lib/automations/portable";
-import { addNoteContent, buildContentWithSectionIds, parseTemplateContent } from "./template";
-import { addNoteAutomations, getDBPortableAutomations } from "./automation";
+import { addNoteContent, buildNotesContent, parseTemplateContent } from "./template";
+import { addNoteAutomations, getDBAutomationsByNote, toPortableAutomations } from "./automation";
+import { chunked, placeholders } from "./sql";
 import { Transaction, TransactionError, type TxRef } from "../transaction";
 
 const INVALID_FILE_MESSAGE = () => i18n.t("errors.transfer.invalidFile")
 const MALFORMED_MESSAGE = () => i18n.t("errors.transfer.malformed")
 
-/** Exports one note (content and audio paths); `folderRef` is where the note sits inside the file. */
-async function buildNoteExport(db: Database, note: Note & { color: string | null }, folderRef: string | null): Promise<ExportNote> {
-    const { content, sectionIds, groupIds } = await buildContentWithSectionIds(note.id, true)
-    const automations = await getDBPortableAutomations(note.id, content, sectionIds, groupIds)
-    const audio = await db.select<{ section_groupID: number, name: string, path: string, position: number }[]>(
-        `SELECT a.section_groupID, a.name, a.path, a.position FROM audio_file a
-         INNER JOIN section_group g ON g.id = a.section_groupID
-         WHERE g.noteID = ? AND g.deleted_at IS NULL AND a.deleted_at IS NULL
-         ORDER BY a.position, a.id`, [note.id])
-    // Group ids in content order (same criteria as buildContent with the archived: not deleted, by position)
-    const groupRows = await db.select<{ id: number }[]>(
-        'SELECT id FROM section_group WHERE noteID = ? AND deleted_at IS NULL ORDER BY position', [note.id])
-    const groupIndex = new Map(groupRows.map((row, index) => [row.id, index]))
-    return {
-        ref: `n${note.id}`,
-        folderRef,
-        name: note.name,
-        color: note.color ?? null,
-        ...(note.archived_at ? { archived_at: note.archived_at } : {}),
-        position: note.position,
-        content,
-        ...(automations.length > 0 ? { automations } : {}),
-        audio: audio.flatMap((file): ExportAudio[] => {
-            const index = groupIndex.get(file.section_groupID)
-            return index === undefined ? [] : [{ groupIndex: index, name: file.name, path: file.path, position: file.position }]
-        }),
-    }
-}
+type AudioRow = { section_groupID: number, name: string, path: string, position: number }
 
+type ExportEntry ={ note: Note & { color: string | null }, folderRef: string | null }
+
+/**
+ * Exports notes (content and audio paths), in the given order; `folderRef` is where each note sits inside the file.
+ * The rows of all the notes are loaded in bulk (a few selects for the whole list), not note by note.
+ */
+async function buildNotesExport(db: Database, entries: ExportEntry[]): Promise<ExportNote[]> {
+    const noteIds = entries.map(({ note }) => note.id)
+    const [contents, rules] = await Promise.all([buildNotesContent(noteIds, true), getDBAutomationsByNote(noteIds)])
+
+    const audioByNote = new Map<number, AudioRow[]>()
+    for (const ids of chunked(noteIds)) {
+        const rows = await db.select<(AudioRow & { noteID: number })[]>(
+            `SELECT a.section_groupID, a.name, a.path, a.position, g.noteID FROM audio_file a
+             INNER JOIN section_group g ON g.id = a.section_groupID
+             WHERE g.noteID IN (${placeholders(ids.length)}) AND g.deleted_at IS NULL AND a.deleted_at IS NULL
+             ORDER BY a.position, a.id`, ids)
+        for (const row of rows) {
+            const list = audioByNote.get(row.noteID)
+            if (list) list.push(row)
+            else audioByNote.set(row.noteID, [row])
+        }
+    }
+
+    return entries.map(({ note, folderRef }): ExportNote => {
+        const { content, sectionIds, groupIds } = contents.get(note.id)!
+        const automations = toPortableAutomations(rules.get(note.id) ?? [], content, sectionIds, groupIds)
+        // Index of every group in the content (groupIds is in content order)
+        const groupIndex = new Map(groupIds.map((id, index) => [id, index]))
+        return {
+            ref: `n${note.id}`,
+            folderRef,
+            name: note.name,
+            color: note.color ?? null,
+            ...(note.archived_at ? { archived_at: note.archived_at } : {}),
+            position: note.position,
+            content,
+            ...(automations.length > 0 ? { automations } : {}),
+            audio: (audioByNote.get(note.id) ?? []).flatMap((file): ExportAudio[] => {
+                const index = groupIndex.get(file.section_groupID)
+                return index === undefined ? [] : [{ groupIndex: index, name: file.name, path: file.path, position: file.position }]
+            }),
+        }
+    })
+}
 /**
  * Builds the export of a workspace: folders, notes (with content and audio paths) and templates, without any trashed item
  * (archived items are included, with their `archived_at`).
@@ -94,9 +113,8 @@ export async function buildDBWorkspaceExport(workspaceId: number): Promise<Works
             position: folder.position,
         }))
 
-        const exportNotes: ExportNote[] = []
-        for (const note of notes.filter(note => isReachable(note.folderID)))
-            exportNotes.push(await buildNoteExport(db, note, refOf(note.folderID)))
+        const exportNotes = await buildNotesExport(db,
+            notes.filter(note => isReachable(note.folderID)).map(note => ({ note, folderRef: refOf(note.folderID) })))
 
         const exportTemplates: ExportTemplate[] = templates.map(template => {
             // A corrupted snapshot is exported as an empty template
@@ -113,8 +131,7 @@ export async function buildDBWorkspaceExport(workspaceId: number): Promise<Works
             templates: exportTemplates,
         }
     } catch (error: unknown) {
-        if (isAppError(error)) throw error
-        throw createError("TRANSFER_EXPORT_FAILED", i18n.t("errors.transfer.export", { message: getErrorMessage(error) }))
+        throw toAppError(error, e => createError("TRANSFER_EXPORT_FAILED", i18n.t("errors.transfer.export", { message: getErrorMessage(e) })))
     }
 }
 
@@ -148,32 +165,46 @@ export async function buildDBItemsExport(items: { type: "note" | "folder", id: n
         if (items.length === 0) throw missing()
 
         // The living subtree (ids) of every selected folder, to leave out what another selected folder already brings
+        // (one recursive query for all the selected folders, which also loads the folder rows)
+        type FolderRow = Folder & { color: string | null }
+        const selectedFolderIds = [...new Set(items.filter(item => item.type === "folder").map(item => item.id))]
         const subtreeOf = new Map<number, Set<number>>()
-        for (const item of items) {
-            if (item.type !== "folder" || subtreeOf.has(item.id)) continue
-            const rows = await db.select<{ id: number }[]>(
-                `WITH RECURSIVE subtree(id) AS (
-                    SELECT id FROM folder WHERE id = ? AND deleted_at IS NULL
+        const folderById = new Map<number, FolderRow>()
+        for (const ids of chunked(selectedFolderIds)) {
+            const rows = await db.select<(FolderRow & { _root: number })[]>(
+                `WITH RECURSIVE subtree(root, id) AS (
+                    SELECT id, id FROM folder WHERE id IN (${placeholders(ids.length)}) AND deleted_at IS NULL
                     UNION ALL
-                    SELECT f.id FROM folder f INNER JOIN subtree s ON f.folderID = s.id WHERE f.deleted_at IS NULL
+                    SELECT s.root, f.id FROM folder f INNER JOIN subtree s ON f.folderID = s.id WHERE f.deleted_at IS NULL
                  )
-                 SELECT id FROM subtree`, [item.id])
-            if (rows.length === 0) throw missing()
-            subtreeOf.set(item.id, new Set(rows.map(row => row.id)))
+                 SELECT s.root AS _root, f.* FROM subtree s INNER JOIN folder f ON f.id = s.id ORDER BY f.position, f.id`, ids)
+            for (const { _root, ...folder } of rows) {
+                if (!subtreeOf.has(_root)) subtreeOf.set(_root, new Set())
+                subtreeOf.get(_root)!.add(folder.id)
+                if (!folderById.has(folder.id)) folderById.set(folder.id, folder as FolderRow)
+            }
         }
+        if (selectedFolderIds.some(id => !subtreeOf.has(id))) throw missing()
         const insideOther = (folderId: number) =>
             [...subtreeOf].some(([topId, ids]) => topId !== folderId && ids.has(folderId))
-        const topFolderIds = [...new Set(items.filter(item => item.type === "folder").map(item => item.id))].filter(id => !insideOther(id))
+        const topFolderIds = selectedFolderIds.filter(id => !insideOther(id))
         const folderIds = new Set(topFolderIds.flatMap(id => [...subtreeOf.get(id)!]))
 
-        const exportNotes: ExportNote[] = []
         const exportFolders: ExportFolder[] = []
         let root: { name: string, color: string | null } | null = null
         const topFolders = new Set(topFolderIds)
 
-        const folderRows = folderIds.size === 0 ? [] : await db.select<(Folder & { color: string | null })[]>(
-            `SELECT * FROM folder WHERE id IN (${[...folderIds].map(() => "?").join(", ")}) ORDER BY position, id`, [...folderIds])
-        const folderById = new Map(folderRows.map(folder => [folder.id, folder]))
+        const folderRows = [...folderById.values()].filter(folder => folderIds.has(folder.id))
+
+        // The selected notes, in one query
+        const selectedNotes = new Map<number, Note & { color: string | null }>()
+        for (const ids of chunked([...new Set(items.filter(item => item.type === "note").map(item => item.id))])) {
+            const rows = await db.select<(Note & { color: string | null })[]>(
+                `SELECT * FROM note WHERE id IN (${placeholders(ids.length)}) AND deleted_at IS NULL`, ids)
+            for (const note of rows) selectedNotes.set(note.id, note)
+        }
+
+        const entries: ExportEntry[] = []
         const exported = new Set<number>()
         // Folders in the order of the selection, each followed by its subtree
         for (const item of items) {
@@ -192,24 +223,23 @@ export async function buildDBItemsExport(items: { type: "note" | "folder", id: n
                     })
                 }
             } else {
-                const notes = await db.select<(Note & { color: string | null })[]>(
-                    'SELECT * FROM note WHERE id = ? AND deleted_at IS NULL', [item.id])
-                if (notes.length === 0) throw missing()
+                const note = selectedNotes.get(item.id)
+                if (!note) throw missing()
                 // Inside a selected folder: exported with it
-                if (notes[0].folderID !== null && folderIds.has(notes[0].folderID)) continue
-                if (exportNotes.some(note => note.ref === `n${item.id}`)) continue
-                root ??= { name: notes[0].name, color: notes[0].color ?? null }
-                exportNotes.push(await buildNoteExport(db, notes[0], null))
+                if (note.folderID !== null && folderIds.has(note.folderID)) continue
+                if (entries.some(entry => entry.note.id === item.id)) continue
+                root ??= { name: note.name, color: note.color ?? null }
+                entries.push({ note, folderRef: null })
             }
         }
         if (!root) throw missing()
-        if (folderIds.size > 0) {
-            const inFolders = await db.select<(Note & { color: string | null })[]>(
-                `SELECT * FROM note WHERE deleted_at IS NULL AND folderID IN (${[...folderIds].map(() => "?").join(", ")}) ORDER BY position, id`,
-                [...folderIds])
-            for (const note of inFolders) exportNotes.push(await buildNoteExport(db, note, `f${note.folderID}`))
-        }
-
+        const inFolders: (Note & { color: string | null })[] = []
+        for (const ids of chunked([...folderIds]))
+            inFolders.push(...await db.select<(Note & { color: string | null })[]>(
+                `SELECT * FROM note WHERE deleted_at IS NULL AND folderID IN (${placeholders(ids.length)}) ORDER BY position, id`, ids))
+        inFolders.sort((a, b) => a.position - b.position || a.id - b.id)
+        for (const note of inFolders) entries.push({ note, folderRef: `f${note.folderID}` })
+        const exportNotes = await buildNotesExport(db, entries)
         const single = exportFolders.filter(folder => folder.parentRef === null).length + exportNotes.filter(note => note.folderRef === null).length === 1
         return {
             format: WORKSPACE_EXPORT_FORMAT,
@@ -222,8 +252,7 @@ export async function buildDBItemsExport(items: { type: "note" | "folder", id: n
             templates: [],
         }
     } catch (error: unknown) {
-        if (isAppError(error)) throw error
-        throw createError("TRANSFER_EXPORT_FAILED", i18n.t("errors.transfer.export", { message: getErrorMessage(error) }))
+        throw toAppError(error, e => createError("TRANSFER_EXPORT_FAILED", i18n.t("errors.transfer.export", { message: getErrorMessage(e) })))
     }
 }
 
@@ -674,7 +703,6 @@ export async function importDBItems(
             ],
         }
     } catch (error: unknown) {
-        if (isAppError(error)) throw error
-        throw createError("TRANSFER_IMPORT_FAILED", i18n.t("errors.transfer.import", { message: getErrorMessage(error) }))
+        throw toAppError(error, e => createError("TRANSFER_IMPORT_FAILED", i18n.t("errors.transfer.import", { message: getErrorMessage(e) })))
     }
 }

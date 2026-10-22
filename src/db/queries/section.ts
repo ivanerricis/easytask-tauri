@@ -7,7 +7,6 @@ import { Transaction } from "../transaction";
  * Creates a new section in a specific group, appended after its siblings.
  * @param groupId The ID of the group where the section will be created.
  * @param title The title of the section (blank = no title, stored as NULL).
- * @param color The color of the section (optional).
  * @category Database Queries
  */
 export async function createDBSectionInGroup(groupId: number, title: string) {
@@ -28,10 +27,10 @@ export async function createDBSectionInGroup(groupId: number, title: string) {
 }
 
 /**
- * Creates a new section in the database.
- * @param workspaceId The ID of the workspace to which the section belongs.
- * @param name The name of the section.
- * @param color The color of the section (optional).
+ * Creates a new section in a new group of a note.
+ * @param noteId The ID of the note to which the group belongs.
+ * @param title The title of the section (blank = no title, stored as NULL).
+ * @param position The position of the new group in the note.
  * @returns The ids of the new group and section.
  * @category Database Queries
  */

@@ -1,7 +1,8 @@
 import { useTranslation } from "react-i18next"
 import { Trash2 } from "lucide-react"
 import { ConfirmDialog } from "./dialog-confirm"
-import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { FormError } from "@/components/form-error"
 import { useOptionalUndo, useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getItemName, isUndoableType } from "@/contexts/undo/commands"
 import { useState } from "react"
@@ -27,7 +28,7 @@ type defaultItemType = {
 
 export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, getItemId, isOpen, onOpenChange, getItemData, optimistic }: DialogDeleteProps<T>) => {
     const { t } = useTranslation()
-    const { deleteItem } = useWorkspaceData()
+    const { deleteItem } = useWorkspaceActions()
     const recorder = useUndoRecorder()
     const undo = useOptionalUndo()?.undo
 
@@ -60,7 +61,7 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             description={t("dialogs.delete.description")}
             confirm={{ label: t("dialogs.delete.confirm"), icon: Trash2, onClick: handleDelete }}
         >
-            {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+            {error && <FormError>{error}</FormError>}
         </ConfirmDialog>
     )
 }
