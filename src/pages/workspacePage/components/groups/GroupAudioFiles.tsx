@@ -116,7 +116,7 @@ const AudioFileRow = ({ file, groupId }: AudioFileRowProps) => {
                     <span className="flex-1 truncate">{file.name}</span>
                     {state && <span className="sr-only">{t(`audio.${state === "playing" ? "nowPlaying" : state}`)}</span>}
                 </button>
-                <div className="flex items-center leading-none shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                <div className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                     <ItemMenuButton name={file.name} />
                 </div>
             </div>
