@@ -1,6 +1,7 @@
 import { useEffect } from "react"
 import type { ReactNode } from "react"
-import { act, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { GroupContainer } from "./GroupContainer"
 import { useTabsActions } from "@/contexts/use-tabs"
@@ -10,6 +11,10 @@ import { getDBNoteAudioFiles } from "@/db/queries/audio"
 import { updateDBGroupPositions } from "@/db/queries/group"
 import { deferred, renderWithProviders } from "@/test/ui-render"
 import { makeGroup } from "@/test/ui-fixtures"
+import { APP_COMMAND_EVENT } from "@/lib/app-commands"
+import { ItemMenu } from "@/components/item-menu"
+import { MenuItem } from "@/components/menu-kind"
+import { useItemMenuState } from "@/hooks/use-item-menu-state"
 
 vi.mock("@/db/queries/workspace", () => ({ getDBWorkspaces: vi.fn(), createDBWorkspace: vi.fn(), getDBWorkspaceData: vi.fn() }))
 vi.mock("@/db/queries/note", () => ({ getDBNoteData: vi.fn(), createDBNoteInFolder: vi.fn(), createDBWorkspaceNote: vi.fn() }))
@@ -22,7 +27,8 @@ vi.mock("@/db/queries/task", () => ({
 vi.mock("@/db/queries/group", () => ({ updateDBGroupPositions: vi.fn() }))
 vi.mock("@/db/queries/shared_queries", () => ({ renameDBItem: vi.fn(), updateDBColor: vi.fn(), deleteDBItem: vi.fn() }))
 
-const prefs = { showAudioFileCount: true, showGroupSeparators: false }
+const setHideCompletedTasks = vi.fn()
+const prefs = { showAudioFileCount: true, showGroupSeparators: false, hideCompletedTasks: false, setHideCompletedTasks }
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("@/db/queries/audio", () => ({ getDBGroupAudioFiles: vi.fn(), getDBNoteAudioFiles: vi.fn() }))
 
@@ -31,7 +37,9 @@ let moveGroupTo: (groupId: number, index: number) => Promise<void>
 vi.mock("./Group", () => ({
     Group: function GroupStub({ group }: { group: { id: number } }) {
         moveGroupTo = useGroupMoves().moveGroupTo
-        return <div data-testid="group">{group.id}</div>
+        const menu = useItemMenuState()
+        // Like the real group: its own menu on its right click
+        return <ItemMenu state={menu} items={<MenuItem>Menu del gruppo</MenuItem>}><div data-testid="group">{group.id}</div></ItemMenu>
     },
 }))
 vi.mock("../section/AddSection", () => ({ AddSection: () => null }))
@@ -48,6 +56,7 @@ describe("GroupContainer reorder", () => {
     beforeEach(() => {
         vi.resetAllMocks()
         prefs.showGroupSeparators = false
+        prefs.hideCompletedTasks = false
         vi.mocked(getDBNoteAudioFiles).mockResolvedValue({})
         vi.mocked(getDBNoteData).mockResolvedValue({
             groups: [makeGroup({ id: 1, position: 0 }), makeGroup({ id: 2, position: 1 }), makeGroup({ id: 3, position: 2 })],
@@ -126,5 +135,65 @@ describe("GroupContainer reorder", () => {
         const lines = screen.getAllByTestId("group-separator")
         expect(lines).toHaveLength(2)
         lines.forEach(line => expect(line).toHaveAttribute("aria-hidden", "true"))
+    })
+
+    describe("right click on the empty area", () => {
+        const emptyArea = () => screen.getByTestId("group-scroll")
+
+        it("opens a menu with exactly the new group and the hide completed entries", async () => {
+            await renderLoaded()
+            fireEvent.contextMenu(emptyArea())
+            const items = screen.getAllByRole("menuitem")
+            expect(items.map(item => item.textContent)).toEqual([
+                expect.stringContaining("Nuovo gruppo"),
+                expect.stringContaining("Nascondi task completati"),
+            ])
+        })
+
+        it("opens it on an empty note too", async () => {
+            vi.mocked(getDBNoteData).mockResolvedValue({ groups: [], sections: [], tasks: [] } as never)
+            renderWithProviders(<SelectNote><GroupContainer /></SelectNote>)
+            await screen.findByText("Nota vuota")
+            fireEvent.contextMenu(screen.getByText("Nota vuota"))
+            expect(screen.getAllByRole("menuitem")).toHaveLength(2)
+        })
+
+        it("asks for the new group form once the menu has closed", async () => {
+            const commands: string[] = []
+            const onCommand = (event: Event) => commands.push((event as CustomEvent<string>).detail)
+            window.addEventListener(APP_COMMAND_EVENT, onCommand)
+            await renderLoaded()
+            fireEvent.contextMenu(emptyArea())
+            await userEvent.setup().click(screen.getByRole("menuitem", { name: /Nuovo gruppo/ }))
+            await waitFor(() => expect(commands).toEqual(["new-group"]))
+            window.removeEventListener(APP_COMMAND_EVENT, onCommand)
+        })
+
+        it("toggles the completed tasks and flips its label", async () => {
+            await renderLoaded()
+            fireEvent.contextMenu(emptyArea())
+            await userEvent.setup().click(screen.getByRole("menuitem", { name: /Nascondi task completati/ }))
+            expect(setHideCompletedTasks).toHaveBeenCalledWith(true)
+        })
+
+        it("offers to show the completed tasks when they are hidden", async () => {
+            prefs.hideCompletedTasks = true
+            await renderLoaded()
+            fireEvent.contextMenu(emptyArea())
+            await userEvent.setup().click(screen.getByRole("menuitem", { name: /Mostra task completati/ }))
+            expect(setHideCompletedTasks).toHaveBeenCalledWith(false)
+        })
+
+        it("leaves the right click on a group to the menu of the group", async () => {
+            await renderLoaded()
+            fireEvent.contextMenu(screen.getAllByTestId("group")[0])
+            expect(screen.getByRole("menuitem", { name: "Menu del gruppo" })).toBeInTheDocument()
+            expect(screen.queryByRole("menuitem", { name: /Nuovo gruppo/ })).toBeNull()
+        })
+
+        it("makes the horizontal scrollbar of the groups taller", async () => {
+            await renderLoaded()
+            expect(emptyArea().className).toContain("[&::-webkit-scrollbar]:h-3.5!")
+        })
     })
 })

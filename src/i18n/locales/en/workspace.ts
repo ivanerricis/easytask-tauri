@@ -63,6 +63,7 @@ export const notes: Translation["notes"] = {
         short: "Search…",
     },
     hideCompleted: "Hide completed tasks",
+    showCompleted: "Show completed tasks",
     closeCurrent: "Close current note",
     close: "Close note",
     openTabs: "Open notes",

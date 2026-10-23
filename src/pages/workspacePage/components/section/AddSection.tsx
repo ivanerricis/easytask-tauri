@@ -38,7 +38,15 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     useShortcut("new-group", handleOpen, { enabled: !inGroup, allowInInputs: true })
 
     // The "New group" button of the empty note asks for the same form (it only opens it)
-    useAppCommand("new-group", () => { setOpen(true); setName("") }, { enabled: !inGroup })
+    // The form sits at the end of a possibly long horizontal list: when asked from elsewhere it is scrolled into view
+    const revealForm = useRef(false)
+    useAppCommand("new-group", () => { revealForm.current = true; setOpen(true); setName("") }, { enabled: !inGroup })
+
+    useEffect(() => {
+        if (!isOpen || !revealForm.current) return
+        revealForm.current = false
+        formRef.current?.scrollIntoView({ inline: "end", block: "nearest" })
+    }, [isOpen])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

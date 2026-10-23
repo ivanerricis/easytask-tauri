@@ -18,6 +18,8 @@ The name is optional: press `Enter` on an empty field and the group or section i
 
 Click the name to rename it in place (`Enter` saves, `Esc` cancels), or open the menu of the group or section with its menu button or a right-click.
 
+A right-click on the empty area of the note (outside any group, section or task) opens a small menu with **New group** and **Hide / Show completed tasks**.
+
 ![Group menu](../screenshots/en/group-menu-light.png)
 
 | Entry                                  | Group | Section | What it does                                                    |
