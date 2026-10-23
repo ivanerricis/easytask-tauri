@@ -278,3 +278,14 @@ describe("GroupHeader task count with direct tasks", () => {
         expect(container.querySelector("svg.lucide-layout-list")?.parentElement).toHaveTextContent("1")
     })
 })
+
+describe("GroupHeader compact", () => {
+    const group = () => makeGroup({ name: "G", sections: [makeSection({ tasks: [makeTask({ completed: true }), makeTask({ id: 2 })] })] })
+
+    it("shows the completion bar by default and hides it when compact", () => {
+        const { rerender } = render(<GroupHeader group={group()} />)
+        expect(screen.getByRole("progressbar")).toBeInTheDocument()
+        rerender(<GroupHeader group={group()} compact />)
+        expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
+    })
+})

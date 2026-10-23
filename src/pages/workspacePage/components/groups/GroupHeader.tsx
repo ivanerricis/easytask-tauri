@@ -41,9 +41,11 @@ type GroupHeaderProps = {
     dragProps?: HTMLAttributes<HTMLElement>
     /** Number of audio files of the group (the badge is hidden when 0). */
     audioCount?: number
+    /** Narrow group: the completion bar is hidden so the name keeps its space. */
+    compact?: boolean
 }
 
-export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }: GroupHeaderProps) => {
+export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0, compact = false }: GroupHeaderProps) => {
     const { t } = useTranslation()
     const { showSectionCount, showTaskCount, showAudioFileCount, showGroupProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
     const colorAlpha = useColorAlpha()
@@ -105,7 +107,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }
                         className="h-6 min-w-0 flex-1 mr-1 px-1 py-0 text-sm font-semibold md:text-sm border-primary"
                     />
                 </InlineErrorTooltip>}
-                {showGroupProgressBar && progress.total > 0 && <div className="flex items-center gap-2 shrink-0 mr-1">
+                {showGroupProgressBar && !compact && progress.total > 0 && <div className="flex items-center gap-2 shrink-0 mr-1">
                     <Progress className="w-20" value={progress.percent} aria-label={t("groups.progress")} />
                     <span className="text-xs shrink-0 tabular-nums">
                         {Math.round(progress.percent)} %
