@@ -24,6 +24,7 @@ The shortcuts work when you are not typing, with a few exceptions: the shortcuts
 | Action | Shortcut | Can be changed |
 | --- | --- | --- |
 | Search a note | `Ctrl+K` | Yes |
+| Search in the note | `Ctrl+F` | Yes |
 | New note | `Ctrl+N` | Yes |
 | New folder | `Ctrl+M` | Yes |
 | Close the active note | `Ctrl+L` | Yes |
