@@ -13,7 +13,7 @@ const ctx = {
     appendTask: vi.fn(),
     applyTaskMove: vi.fn(),
 }
-let prefs = { newTaskPosition: "bottom", taskDensity: "normal" }
+let prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: false }
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ctx }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }))
@@ -26,7 +26,7 @@ const open = async (user: ReturnType<typeof userEvent.setup>) => {
 describe("AddTask", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        prefs = { newTaskPosition: "bottom", taskDensity: "normal" }
+        prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: false }
         ctx.createTask.mockResolvedValue(50)
         ctx.createSubTask.mockResolvedValue(60)
     })
@@ -53,8 +53,46 @@ describe("AddTask", () => {
         expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
     })
 
+    it("with keepAddingTasks on, Enter creates the task and keeps an empty, focused input open", async () => {
+        prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: true }
+        const user = userEvent.setup()
+        render(<AddTask sectionId={3} />)
+        const input = await open(user)
+
+        await user.type(input, "Buy milk{Enter}")
+
+        await waitFor(() => expect(ctx.appendTask).toHaveBeenCalledWith(50, { sectionId: 3 }, "Buy milk"))
+        const next = screen.getByPlaceholderText("Nuovo task…")
+        expect(next).toHaveValue("")
+        await waitFor(() => expect(next).toHaveFocus())
+
+        await user.type(next, "Second{Enter}")
+        await waitFor(() => expect(ctx.createTask).toHaveBeenCalledTimes(2))
+    })
+
+    it("with keepAddingTasks on, Enter on an empty field closes the input", async () => {
+        prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: true }
+        const user = userEvent.setup()
+        render(<AddTask sectionId={3} />)
+        const input = await open(user)
+
+        await user.type(input, "{Enter}")
+
+        expect(ctx.createTask).not.toHaveBeenCalled()
+        expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
+    })
+
+    it("with keepAddingTasks on, Escape still closes the input", async () => {
+        prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: true }
+        const user = userEvent.setup()
+        render(<AddTask sectionId={3} />)
+        await user.type(await open(user), "draft{Escape}")
+
+        expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
+    })
+
     it("puts the new task before its siblings, also in the cached note, when new tasks go on top", async () => {
-        prefs = { newTaskPosition: "top", taskDensity: "normal" }
+        prefs = { newTaskPosition: "top", taskDensity: "normal", keepAddingTasks: false }
         const user = userEvent.setup()
         render(<AddTask sectionId={3} />)
         const input = await open(user)
@@ -66,7 +104,7 @@ describe("AddTask", () => {
     })
 
     it("puts the new subtask before its sibling subtasks when new tasks go on top", async () => {
-        prefs = { newTaskPosition: "top", taskDensity: "normal" }
+        prefs = { newTaskPosition: "top", taskDensity: "normal", keepAddingTasks: false }
         const user = userEvent.setup()
         render(<AddTask sectionId={3} parentTaskId={7} />)
 

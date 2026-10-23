@@ -265,6 +265,10 @@ export const settings: Translation["settings"] = {
             label: "Rename by clicking the name",
             description: "Clicking the name of a task, section or group starts the rename. If off, use Rename in the context menu or press Enter on the name.",
         },
+        keepAddingTasks: {
+            label: "Keep adding tasks",
+            description: "After creating a task the field stays open for the next one. Esc or an empty field closes it.",
+        },
         subtaskCount: {
             label: "Show completed subtasks",
             description: "A task with subtasks shows how many of them are completed (e.g. 1/3).",

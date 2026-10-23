@@ -50,6 +50,46 @@ describe("AudioPlayer", () => {
         expect(playButton().querySelector("svg.lucide-play")).not.toBeNull()
     })
 
+    it("has the pin toggle on the left of the header, before the close button, and calls onPinnedChange", async () => {
+        const user = userEvent.setup()
+        const onPinnedChange = vi.fn()
+        render(<AudioPlayer src="a.mp3" listenersHandle={undefined} attributesHandle={attributes} onPinnedChange={onPinnedChange} />)
+        const pin = screen.getByRole("button", { name: "Fissa la posizione del lettore" })
+        expect(pin).toHaveAttribute("aria-pressed", "false")
+        const header = screen.getByLabelText("Sposta il player")
+        expect(header.firstElementChild).toContainElement(pin)
+        expect(header.lastElementChild).toContainElement(screen.getByRole("button", { name: "Chiudi il player" }))
+        expect(header).toHaveClass("cursor-grab")
+
+        await user.click(pin)
+        expect(onPinnedChange).toHaveBeenCalledWith(true)
+    })
+
+    it("when pinned shows the unpin label, no grab cursor and no drag listeners", async () => {
+        const user = userEvent.setup()
+        const onPointerDown = vi.fn()
+        const onPinnedChange = vi.fn()
+        render(<AudioPlayer src="a.mp3" listenersHandle={{ onPointerDown }} attributesHandle={attributes} pinned onPinnedChange={onPinnedChange} />)
+        const header = screen.getByLabelText("Sposta il player")
+        expect(header).toHaveClass("cursor-default")
+        expect(header).not.toHaveClass("cursor-grab")
+
+        fireEvent.pointerDown(header)
+        expect(onPointerDown).not.toHaveBeenCalled()
+
+        const unpin = screen.getByRole("button", { name: "Sblocca la posizione del lettore" })
+        expect(unpin).toHaveAttribute("aria-pressed", "true")
+        await user.click(unpin)
+        expect(onPinnedChange).toHaveBeenCalledWith(false)
+    })
+
+    it("keeps the drag listeners on the header while not pinned", () => {
+        const onPointerDown = vi.fn()
+        render(<AudioPlayer src="a.mp3" listenersHandle={{ onPointerDown }} attributesHandle={attributes} />)
+        fireEvent.pointerDown(screen.getByLabelText("Sposta il player"))
+        expect(onPointerDown).toHaveBeenCalled()
+    })
+
     it("toggles between play and pause", async () => {
         const user = userEvent.setup()
         setup()

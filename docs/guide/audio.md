@@ -20,7 +20,7 @@ Each file has a menu with **Rename**, **Show details**, **Update path** and **De
 
 ## The floating player
 
-When you play a file, a small player opens over the note. Drag its top bar to move it. It remembers where you left it.
+When you play a file, a small player opens over the note. Drag its top bar to move it. It remembers where you left it. The pin button on the left of the top bar locks the player in place until you unpin it.
 
 | Control | What it does |
 | --- | --- |
