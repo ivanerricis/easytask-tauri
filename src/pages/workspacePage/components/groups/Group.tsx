@@ -121,7 +121,7 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
                     <AddSection inGroup groupId={group.id} open={addingSection} onClose={closeSectionForm} />
                 </div>
             </>}
-            <GroupResizeHandle getWidth={getWidth} width={width} onResize={setLiveWidth} onCommit={commitWidth} />
+            {false && <GroupResizeHandle getWidth={getWidth} width={width} onResize={setLiveWidth} onCommit={commitWidth} />}
         </div>
     )
 })
