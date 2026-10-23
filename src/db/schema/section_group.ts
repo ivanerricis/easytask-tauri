@@ -37,3 +37,11 @@ export const addGroupColorColumn = `
 export const addGroupArchivedAt: string[] = [
     `ALTER TABLE section_group ADD COLUMN archived_at TEXT DEFAULT NULL;`,
 ]
+
+/**
+ * Migration v8: adds the width in pixels of a group (NULL = the default width).
+ * @category Database Schema
+ */
+export const addGroupWidthColumn: string[] = [
+    `ALTER TABLE section_group ADD COLUMN width INTEGER CHECK (width IS NULL OR width > 0) DEFAULT NULL;`,
+]
