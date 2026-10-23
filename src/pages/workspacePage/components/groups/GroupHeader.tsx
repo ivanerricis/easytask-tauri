@@ -115,7 +115,8 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }
                     {showTaskCount && <CountBadge icon={SquareCheckBig} count={taskCount} label={t("common.counts.task", { count: taskCount })} />}
                     {showAudioFileCount && audioCount > 0 && <CountBadge icon={FileAudio} count={audioCount} label={t("groups.audioCount", { count: audioCount })} />}
                 </div>
-                <div className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                {/* flex + leading-none: in a block wrapper the line height leaves a gap under the button, which then sits off-center */}
+                <div className="flex items-center leading-none shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                     <ItemMenuButton name={label} />
                 </div>
             </div>

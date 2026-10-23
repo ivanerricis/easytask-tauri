@@ -113,7 +113,7 @@ export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }:
                                 {Math.round(completionPercentage)} %
                             </span>
                         </div>}
-                        <div className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                        <div className="flex items-center leading-none shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                             <ItemMenuButton name={getSectionLabel(section)} />
                         </div>
                     </div>
