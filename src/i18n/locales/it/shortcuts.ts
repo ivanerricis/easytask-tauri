@@ -7,6 +7,7 @@ export const shortcuts = {
     },
     items: {
         "show-shortcuts": "Mostra le scorciatoie",
+        "open-docs": "Apri la documentazione",
         "go-home": "Torna alla home",
         "undo": "Annulla l'ultima azione",
         "redo": "Ripeti l'azione annullata",

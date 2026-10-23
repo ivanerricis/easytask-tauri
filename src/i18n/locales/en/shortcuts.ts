@@ -9,6 +9,7 @@ export const shortcuts: Translation["shortcuts"] = {
     },
     items: {
         "show-shortcuts": "Show shortcuts",
+        "open-docs": "Open the documentation",
         "go-home": "Back to home",
         "undo": "Undo the last action",
         "redo": "Redo the undone action",

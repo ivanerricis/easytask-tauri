@@ -24,6 +24,7 @@ npm run e2e:typecheck
 | `audio` | the audio player: play/pause/resume, skip, seek keys, speed, mute, row icon, missing file dialog |
 | `persistence` | language, accent color, hide-completed and data survive an app restart. The theme is not checked: the driver does not share the webview profile between sessions (localStorage is lost), so it is on the manual list |
 | `ui-tour/` | screenshots tour (`npm run ui-tour`), not part of the regular run |
+| `docs-shots/` | screenshots of the documentation site in English and Italian, light and dark (`npm run docs:screenshots`, writes `docs/screenshots/`), not part of the regular run |
 
 ## What the e2e cannot cover (manual checklist before each release)
 

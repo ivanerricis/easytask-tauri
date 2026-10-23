@@ -1,10 +1,13 @@
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { $, $$, browser } from "@wdio/globals"
+import { $, browser } from "@wdio/globals"
+import { byLabel, byText, openContextMenu, sectionCard, topDialog, tr, treeRow, typeInto, waitForApp } from "../helpers"
 import {
-    byLabel, byText, currentLang, openContextMenu, openSubmenu, sectionCard, topDialog, tr, treeRow, typeInto, waitForApp,
-} from "../helpers"
+    addGroup, addSection, addSubtask, addTask, applyAppearance, closeDialog, dialogEl, fillDialogName, goCategory, goHome,
+    openNote, openSettings, openTaskMenu, openWs, pad, pickColor, recover, setPanel, setSidebar, setTab, settle, submitDialog,
+    taskRowAction, waitDialogGone, waitHome, type Lang, type Theme,
+} from "./tour-kit"
 
 /**
  * Visual tour of the real app: seeds a few workspaces through the UI and saves PNG screenshots of every main screen
@@ -15,8 +18,6 @@ import {
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..")
 const OUT = path.join(root, "e2e", "output", "ui-tour")
 
-type Theme = "light" | "dark"
-type Lang = "it" | "en"
 type Entry = { file: string; title: string; desc: string; theme: Theme; lang: Lang; size: string }
 
 const manifest: Entry[] = []
@@ -56,22 +57,12 @@ const T_BLOG = "Write the launch blog post"
 const T_IDEA = "Dark mode for the website"
 const T_TEMP = "Temporary task"
 
-const settle = (ms = 400) => browser.pause(ms)
-const pad = (n: number) => String(n).padStart(2, "0")
-
 const shot = async (num: number, key: string, title: string, desc: string, wait = 400) => {
     await settle(wait)
     const file = `${pad(num)}-${key}-${theme}-${lang}${compactSuffix}.png`
     await browser.saveScreenshot(path.join(OUT, file))
     manifest.push({ file, title, desc, theme, lang, size })
     console.log(`[ui-tour] ${file}`)
-}
-
-const recover = async () => {
-    for (let i = 0; i < 3; i++) {
-        await browser.keys("Escape").catch(() => undefined)
-        await settle(150)
-    }
 }
 
 /** Runs a non-critical capture: on failure it is noted, the UI is brought back to a neutral state and the tour goes on. */
@@ -92,209 +83,21 @@ const setSize = async (width: number, height: number) => {
     await settle(800)
 }
 
-const dialogEl = () => $('[role="dialog"], [role="alertdialog"]')
-const waitDialogGone = async () => { await $('[role="dialog"], [role="alertdialog"]').waitForExist({ reverse: true, timeout: 10_000 }) }
-const closeDialog = async () => { await browser.keys("Escape"); await waitDialogGone() }
-
-/* ------------------------------------------------------------------ appearance / settings */
-
-const openSettings = async () => {
-    await byLabel(await tr("settings.title")).click()
-    await dialogEl().waitForDisplayed()
-}
-
-const goCategory = async (id: string) => {
-    const nav = $(`[role="tablist"][aria-label=${JSON.stringify(await tr("settings.nav"))}]`)
-    await byText(await tr(`settings.categories.${id}`), nav).click()
-    await settle(500)
-}
-
-const languageRadio = (label: string) => $(`//*[@role='radiogroup']//*[@role='radio'][normalize-space()='${label}']`)
-
-/** Theme and language are changed from Settings -> Appearance, exactly as a user would. */
 const setAppearance = async (nextTheme: Theme, nextLang: Lang) => {
-    await openSettings()
-    await goCategory("appearance")
-    await $(`//button[@aria-label='${await tr("settings.appearance.theme.toggle")}']`).click()
-    const item = $(`//*[@role='menuitemradio'][normalize-space()='${await tr(`settings.appearance.theme.${nextTheme}`)}']`)
-    await item.waitForDisplayed()
-    await item.click()
-    await languageRadio(nextLang === "it" ? "Italiano" : "English").click()
-    await browser.waitUntil(async () => (await currentLang()) === nextLang, { timeoutMsg: "language did not change" })
-    await browser.waitUntil(
-        async () => (await browser.execute(() => document.documentElement.classList.contains("dark"))) === (nextTheme === "dark"),
-        { timeoutMsg: "theme did not change" },
-    )
+    await applyAppearance(nextTheme, nextLang)
     theme = nextTheme
     lang = nextLang
-    await closeDialog()
 }
 
-/* ------------------------------------------------------------------ navigation helpers */
-
-const waitHome = async () => { await $(`h2=${await tr("home.recent")}`).waitForDisplayed({ timeout: 20_000 }) }
-const waitWorkspace = async () => { await byLabel(await tr("sidebar.toggle")).waitForDisplayed({ timeout: 20_000 }) }
-
-const goHome = async () => {
-    await byLabel(await tr("workspace.backHome")).click()
-    await waitHome()
-    await settle(300)
-}
-
-const openWs = async (name: string) => {
-    await byLabel(await tr("home.workspace.open", { name })).click()
-    await waitWorkspace()
-    await settle(600)
-}
-
-const expanded = async (label: string) => (await byLabel(label).getAttribute("aria-expanded")) === "true"
-
-/**
- * Opens/closes a sidebar. In the compact window the sidebars are overlays: the rail toggle must stay clickable and close
- * the overlay; if the click does not work (or does not close it) Escape is the fallback.
- */
-const setToggle = async (label: string, open: boolean) => {
-    if ((await expanded(label)) === open) return
-    try {
-        await byLabel(label).click()
-    } catch {
-        await browser.keys("Escape")
-    }
-    await settle(500)
-    if (!open && (await expanded(label)) !== open) {
-        await browser.keys("Escape")
-        await settle(400)
-    }
-}
 /** Notes in the tour index when an overlay covers the rail toggle (it must stay visible and clickable). */
 const checkToggleReachable = async (label: string, what: string) => {
     const toggle = byLabel(label)
     if (!(await toggle.isDisplayed()) || !(await toggle.isClickable())) skipped.push(`${what}: the rail toggle is covered by the overlay`)
 }
-const setSidebar = async (open: boolean) => setToggle(await tr("sidebar.toggle"), open)
-const setPanel = async (open: boolean) => setToggle(await tr("rightPanel.toggle"), open)
-const setTab = async (tab: "details" | "history") => {
-    await $(`//*[@role='tab'][normalize-space()='${await tr(`rightPanel.${tab}`)}']`).click()
-    await settle(300)
-}
-
-const openNote = async (name: string) => {
-    await setSidebar(true)
-    await treeRow(name).click()
-    await byLabel(await tr("notes.closeCurrent")).waitForDisplayed({ timeout: 10_000 })
-    await settle(500)
-}
 
 /** Makes sure the active note is the given one (the app may or may not reopen the notes of the last visit). */
 const ensureNote = async (name: string) => {
     await openNote(name)
-}
-
-/* ------------------------------------------------------------------ seed helpers */
-
-const submitDialog = async () => {
-    const dialog = $('[role="dialog"]')
-    await dialog.$('button[type="submit"]').click()
-    await waitDialogGone()
-}
-
-const fillDialogName = async (name: string) => {
-    const dialog = $('[role="dialog"]')
-    await dialog.waitForDisplayed()
-    await typeInto(dialog.$('input[name="name"]'), name)
-}
-
-// Same order as PALETTE_COLORS (src/lib/colors.ts): the swatches are named after their color
-const PALETTE_ORDER = ["#e6194b", "#3cb44b", "#ffe119", "#4363d8", "#f58231", "#911eb4", "#46f0f0", "#f032e6", "#bcf60c", "#fabebe", "#008080", "#e6beff", "#9a6324", "#fffac8", "#000075"]
-
-const pickColor = async (menu: ChainablePromiseElement | WebdriverIO.Element, colour: string, afterOpen?: () => Promise<void>) => {
-    const colourName = await tr(`common.colors.c${PALETTE_ORDER.indexOf(colour) + 1}`)
-    const swatch = byLabel(await tr("dialogs.color.swatch", { color: colourName }))
-    await openSubmenu(menu, await tr("menu.changeColor"), swatch)
-    if (afterOpen) await afterOpen()
-    await swatch.click()
-    await settle(400)
-}
-
-const taskRowAction = async (text: string, selector: string) => {
-    const edit = await tr("tasks.editText")
-    const found = await browser.execute(
-        (value: string, aria: string, sel: string) => {
-            const area = Array.from(document.querySelectorAll<HTMLTextAreaElement>(`textarea[aria-label="${aria}"]`))
-                .find((a) => a.value === value)
-            const row = area?.closest("[data-task-id]")
-            const target = row?.querySelector<HTMLElement>(sel)
-            if (!target) return false
-            target.click()
-            return true
-        },
-        text, edit, selector,
-    )
-    if (!found) throw new Error(`task "${text}" or its control "${selector}" not found`)
-}
-
-const taskExists = (text: string) => browser.waitUntil(
-    async () => browser.execute(
-        (value: string, aria: string) =>
-            Array.from(document.querySelectorAll<HTMLTextAreaElement>(`textarea[aria-label="${aria}"]`)).some((a) => a.value === value),
-        text, await tr("tasks.editText"),
-    ),
-    { timeoutMsg: `task "${text}" not shown` },
-)
-
-/** Opens the "..." menu of a task (the button is only visible on hover, so it is hovered first). */
-const openTaskMenu = async (text: string) => {
-    const open = await tr("common.menuOf", { name: text })
-    let target: WebdriverIO.Element | undefined
-    for (const candidate of await $$(`[aria-label="${await tr("tasks.editText")}"]`)) {
-        if ((await candidate.getValue()) === text) target = candidate
-    }
-    if (!target) throw new Error(`task "${text}" not found`)
-    await target.scrollIntoView()
-    const row = await target.$(`./ancestor::div[.//button[@aria-label="${open}"]][1]`)
-    await row.moveTo()
-    await row.$(`button[aria-label="${open}"]`).click()
-    const menu = $('[role="menu"]')
-    await menu.waitForDisplayed()
-    return menu
-}
-
-const addTask = async (section: string, text: string) => {
-    await sectionCard(section).$(`[aria-label="${await tr("tasks.add")}"]`).click()
-    const input = sectionCard(section).$("input")
-    await typeInto(input, text)
-    await browser.keys("Enter")
-    await taskExists(text)
-}
-
-const addSubtask = async (parent: string, text: string) => {
-    await taskRowAction(parent, `button[aria-label="${await tr("tasks.addSubtask")}"]`)
-    const input = byLabel(await tr("tasks.newSubtask"))
-    await typeInto(input, text)
-    await browser.keys("Enter")
-    await taskExists(text)
-    await browser.keys("Escape")
-    await settle(300)
-}
-
-const lastByText = async (text: string) => {
-    const all = Array.from(await $$(`//button[normalize-space()=${JSON.stringify(text)}]`))
-    if (all.length === 0) throw new Error(`no button "${text}"`)
-    return all[all.length - 1]
-}
-
-const addGroup = async (name: string) => {
-    await (await lastByText(await tr("menu.newGroup"))).click()
-    await typeInto(byLabel(await tr("groups.nameLabel")), name)
-    await browser.keys("Enter")
-    await byText(name).waitForDisplayed({ timeoutMsg: `group ${name} not created` })
-}
-
-const addSection = async (title: string) => {
-    await (await lastByText(await tr("sections.new"))).click()
-    await typeInto(byLabel(await tr("sections.titleLabel")), title)
-    await browser.keys("Enter")
-    await sectionCard(title).waitForDisplayed({ timeoutMsg: `section ${title} not created` })
 }
 
 /* ------------------------------------------------------------------ the main screens (repeated per theme / language / size) */

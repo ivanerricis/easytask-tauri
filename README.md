@@ -6,6 +6,8 @@ An **advanced todo list** based on **Workspaces**, inspired by tools like Notion
 Each Workspace is fully customizable and supports hierarchical management of elements, with the ability to color any object.
 Everything is stored locally on your computer.
 
+**Documentation:** [ivanerricis.github.io/easytask-tauri](https://ivanerricis.github.io/easytask-tauri/) (English) · [in italiano](https://ivanerricis.github.io/easytask-tauri/it/). In the app, press `F1` or open **Help > Documentation**.
+
 ---
 
 ## Key Features
@@ -24,9 +26,13 @@ Everything is stored locally on your computer.
 - **Undo / redo** with `Ctrl+Z` / `Ctrl+Y` (`Ctrl+Shift+Z` also redoes)
 - **Search notes** with `Ctrl+O`
 - **Customizable keyboard shortcuts** (Settings > Shortcuts); press `?` to see the list
+- **Settings search**: type in the Settings dialog to find an option by its name
 - **Italian and English** interface: choose the language in Settings, the default follows the system language
 - **Light, dark or system theme**, accent color (with a contrast warning and a suggested color), color intensity, sidebar size and animation speed (normal, slow or off)
-- **Automatic backups** (at startup, at most once a day, 5 kept by default), manual backups and one-click restore; a separate copy is kept before every database update (the last 10)
+- **Task list options**: new tasks at the top or at the bottom, list density, spell check on or off
+- **Start with Windows** and **close to the notification area** (Settings > System, both off by default)
+- **Trash auto-empty**: optionally delete for good the items trashed more than a chosen number of days ago
+- **Automatic backups** at startup with a chosen frequency and an optional folder of your choice (5 kept by default), manual backups and one-click restore; a separate copy is kept before every database update (the last 10)
 - **Export / import** a workspace as an `.easytask.json` file
 - **Update check** at startup (can be turned off) and from Settings > About
 
@@ -46,6 +52,7 @@ Default shortcuts (all but the fixed ones can be changed in Settings > Shortcuts
 | `Alt+P` | Play / pause the audio (while the player is open) |
 | `Ctrl+H` | Go to the home page |
 | `Ctrl+Z` / `Ctrl+Y` | Undo / redo (not active while typing in a text field) |
+| `F1` | Open the documentation |
 | `?` | Show all the shortcuts |
 
 ---
@@ -140,6 +147,9 @@ npm install
 | `npm run lint` | ESLint |
 | `npm run e2e` | End-to-end tests (needs `tauri-driver`, see `e2e/wdio.conf.ts`) |
 | `npm run release:check` | Check that the version files agree |
+| `npm run docs:screenshots` | Regenerate the screenshots of the documentation site (`docs/screenshots/`) |
+
+The documentation site is a [VitePress](https://vitepress.dev/) project in `docs/` with its own dependencies: `cd docs && npm install && npm run dev`. It is published to GitHub Pages by the `Docs` workflow on every push to `master` that touches `docs/`.
 
 Coverage thresholds (enforced by `test:coverage`): 73% statements, 66% branches, 72% functions, 74% lines.
 

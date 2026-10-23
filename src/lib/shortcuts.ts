@@ -43,6 +43,7 @@ export const keyLabel = (key: ShortcutKey | "ctrl" | "alt"): string => i18n.t(`s
 // "?" is fixed: it needs Shift on most layouts and would clash with the modifier rule of the recorder.
 export const SHORTCUTS: Shortcut[] = [
     { id: "show-shortcuts", defaultBinding: { key: "?" }, editable: false, scope: "global", category: "general" },
+    { id: "open-docs", defaultBinding: { key: "F1" }, editable: true, scope: "global", category: "general" },
     { id: "go-home", defaultBinding: { key: "h", ctrl: true }, editable: true, scope: "workspace", category: "general" },
     { id: "toggle-sidebar", defaultBinding: { key: "b", ctrl: true }, editable: true, scope: "workspace", category: "general" },
     { id: "toggle-right-sidebar", defaultBinding: { key: "b", ctrl: true, shift: true }, editable: true, scope: "workspace", category: "general" },

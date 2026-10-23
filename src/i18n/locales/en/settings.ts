@@ -78,6 +78,7 @@ export const settings: Translation["settings"] = {
         description: "EasyTask is an advanced to-do list based on workspaces, inspired by tools like Notion, Obsidian and Trello. It organizes folders, notes, sections and nested tasks, with customizable colors and drag & drop.",
         application: "Application",
         repository: "Repository",
+        docs: "Documentation",
         version: "Version",
         tauriVersion: "Tauri version",
         author: "Author",

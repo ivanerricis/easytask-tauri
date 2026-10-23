@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import {
-    Archive, ArrowLeft, ArrowRight, CircleX, EyeOff, FileDown, FilePlus, FileText, FolderPlus, House, Info, Keyboard, LayoutTemplate,
+    Archive, ArrowLeft, ArrowRight, BookOpen, CircleX, EyeOff, FileDown, FilePlus, FileText, FolderPlus, House, Info, Keyboard, LayoutTemplate,
     LogOut, Monitor, Moon, PanelLeft, PanelRight, Plus, Redo2, Rows3, ScrollText, Search, Settings, Sun, SunMoon, Trash2, Undo2, X, type LucideIcon,
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
@@ -24,6 +24,8 @@ import { useShortcutKeys, useShortcutsContext } from "@/contexts/use-shortcuts"
 import { requestAppCommand, useIsAppCommandActive, type AppCommand } from "@/lib/app-commands"
 import { OPEN_SETTINGS_EVENT, openReleasesPage, requestOpenSettings } from "@/lib/updater"
 import { reportError } from "@/lib/report-error"
+import { openDocs } from "@/lib/docs"
+import { useShortcut } from "@/hooks/use-shortcut"
 
 type AppMenuProps = {
     // The home page has no notes: only the entries that make sense there are shown
@@ -66,7 +68,7 @@ const ActionItem = ({ action, label, icon: Icon }: { action: () => void, label: 
  * @category Layout
  */
 export const AppMenu = ({ page }: AppMenuProps) => {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { theme, setTheme } = useTheme()
     const rootRef = useRef<HTMLDivElement>(null)
 
@@ -114,6 +116,9 @@ export const AppMenu = ({ page }: AppMenuProps) => {
     const openSettings = () => { window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_EVENT, { detail: {} })) }
     const exit = () => { getCurrentWindow().close().catch(error => reportError(error)) }
     const releaseNotes = () => { openReleasesPage().catch(error => reportError(error)) }
+    const docs = () => { openDocs(i18n.language).catch(error => reportError(error)) }
+
+    useShortcut("open-docs", docs, { allowInInputs: true })
 
     return (
         <Menubar ref={rootRef} aria-label={t("appMenu.label")} className="pl-1">
@@ -192,6 +197,7 @@ export const AppMenu = ({ page }: AppMenuProps) => {
             <MenubarMenu>
                 <MenubarTrigger>{t("appMenu.help")}</MenubarTrigger>
                 <MenubarContent>
+                    <ShortcutItem id="open-docs" icon={BookOpen} label={t("appMenu.docs")} />
                     <ShortcutItem id="show-shortcuts" icon={Keyboard} label={t("appMenu.shortcuts")} />
                     <ActionItem action={releaseNotes} icon={ScrollText} label={t("appMenu.releaseNotes")} />
                     <MenubarSeparator />
