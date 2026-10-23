@@ -62,6 +62,8 @@ beforeEach(() => {
             (3, 2, 'Idee', NULL, 0),
             (4, 3, 'Nel gruppo eliminato', NULL, 0),
             (5, 1, 'Sezione eliminata', NULL, 2);
+        INSERT INTO section (id, groupID, title, position, is_default) VALUES (20, 1, NULL, 0, 1), (21, 2, NULL, 0, 1), (22, 3, NULL, 0, 1);
+        UPDATE section_group SET width = 400 WHERE id = 1;
         INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, color, position) VALUES
             (1, 1, NULL, 'Radice B', 'descrizione', 1, 1, '#0000ff', 1),
             (2, 1, NULL, 'Radice A', NULL, 0, 0, NULL, 0),
@@ -73,7 +75,9 @@ beforeEach(() => {
             (8, 1, 1, 'Figlio eliminato', NULL, 0, 0, NULL, 2),
             (9, 3, NULL, 'Idea', NULL, 0, 0, NULL, 0),
             (10, 4, NULL, 'Nel gruppo eliminato', NULL, 0, 0, NULL, 0),
-            (11, 5, NULL, 'Nella sezione eliminata', NULL, 0, 0, NULL, 0);
+            (11, 5, NULL, 'Nella sezione eliminata', NULL, 0, 0, NULL, 0),
+            (12, 20, NULL, 'Diretto', NULL, 0, 1, NULL, 0),
+            (13, 20, 12, 'Figlio diretto', NULL, 0, 0, NULL, 0);
         UPDATE task SET deleted_at = datetime('now') WHERE id IN (6, 8);
         UPDATE section SET deleted_at = datetime('now') WHERE id = 5;
         UPDATE section_group SET deleted_at = datetime('now') WHERE id = 3;
@@ -98,7 +102,7 @@ describe("buildDBWorkspaceExport", () => {
             INSERT INTO note_template (workspaceID, name, content, deleted_at) VALUES (1, 'T2', '{"version":1,"groups":[]}', datetime('now'));
         `)
         const data = await exportOf()
-        expect(data).toMatchObject({ format: "easytask-workspace", version: 1, workspace: { name: "WS", color: null } })
+        expect(data).toMatchObject({ format: "easytask-workspace", version: 2, workspace: { name: "WS", color: null } })
         expect(data.folders.map(f => f.name)).toEqual(["Cartella"])
         expect(data.folders[0].parentRef).toBeNull()
         expect(data.notes.map(n => n.name).sort()).toEqual(["Nella cartella", "Sorgente"])
@@ -160,7 +164,10 @@ describe("validateWorkspaceExport", () => {
         const good = JSON.parse(JSON.stringify(await exportOf()))
         expect(() => validateWorkspaceExport(null)).toThrow(expect.objectContaining({ message: "Il file non è un export di EasyTask." }))
         expect(() => validateWorkspaceExport({ format: "x" })).toThrow(expect.objectContaining({ message: "Il file non è un export di EasyTask." }))
-        expect(() => validateWorkspaceExport({ ...good, version: 2 })).toThrow(expect.objectContaining({ code: "TRANSFER_UNSUPPORTED_VERSION" }))
+        // Only the current version (2) is accepted: files of the version without direct tasks are not
+        expect(good.version).toBe(2)
+        expect(() => validateWorkspaceExport({ ...good, version: 1 })).toThrow(expect.objectContaining({ code: "TRANSFER_UNSUPPORTED_VERSION" }))
+        expect(() => validateWorkspaceExport({ ...good, version: 3 })).toThrow(expect.objectContaining({ code: "TRANSFER_UNSUPPORTED_VERSION" }))
         expect(() => validateWorkspaceExport({ ...good, folders: {} })).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
         expect(() => validateWorkspaceExport({ ...good, workspace: { name: "" } })).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
         const badRef = { ...good, notes: [{ ...good.notes[0], folderRef: "nope" }] }
@@ -169,6 +176,53 @@ describe("validateWorkspaceExport", () => {
         expect(() => validateWorkspaceExport(badAudio)).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
         const badContent = { ...good, notes: [{ ...good.notes[0], content: { version: 1 } }] }
         expect(() => validateWorkspaceExport(badContent)).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
+    })
+})
+
+describe("direct tasks and width of a group in the export", () => {
+    it("exports the direct tasks (with their subtasks) and the width, and imports them again", async () => {
+        const data = JSON.parse(JSON.stringify(await exportOf()))
+        const note = data.notes.find((n: { name: string }) => n.name === "Sorgente")
+        expect(note.content.groups[0]).toMatchObject({ width: 400, tasks: [{ text: "Diretto", subtasks: [{ text: "Figlio diretto", subtasks: [] }] }] })
+        // A group without direct tasks or width has neither field
+        expect(note.content.groups[1]).not.toHaveProperty("tasks")
+        expect(note.content.groups[1]).not.toHaveProperty("width")
+
+        const { workspaceId } = await importDBWorkspace(validateWorkspaceExport(data))
+        const noteId = rows(`SELECT id FROM note WHERE workspaceID = ${workspaceId} AND name = 'Sorgente'`)[0].id as number
+        const groups = rows(`SELECT id, width FROM section_group WHERE noteID = ${noteId} AND deleted_at IS NULL ORDER BY position`)
+        expect(groups.map(g => g.width)).toEqual([400, null])
+        // Every group of the import has exactly one default section; the direct tasks live in the first one
+        expect(rows(`SELECT groupID, COUNT(*) AS n FROM section WHERE is_default = 1 AND groupID IN (${groups.map(g => g.id).join(",")}) GROUP BY groupID`).map(r => r.n)).toEqual([1, 1])
+        expect(rows(`SELECT t.text, t.taskID IS NULL AS top FROM task t JOIN section s ON s.id = t.sectionID
+            WHERE s.is_default = 1 AND s.groupID = ${groups[0].id} ORDER BY t.id`)).toEqual([{ text: "Diretto", top: 1 }, { text: "Figlio diretto", top: 0 }])
+    })
+
+    it("rejects a malformed width or direct tasks", async () => {
+        const good = JSON.parse(JSON.stringify(await exportOf()))
+        const withGroup = (patch: object) => ({
+            ...good,
+            notes: good.notes.map((n: { name: string, content: { groups: object[] } }) => n.name === "Sorgente"
+                ? { ...n, content: { ...n.content, groups: [{ ...n.content.groups[0], ...patch }, ...n.content.groups.slice(1)] } } : n),
+        })
+        expect(() => validateWorkspaceExport(withGroup({ width: 300 }))).not.toThrow()
+        for (const patch of [{ width: 0 }, { width: -5 }, { width: 12.5 }, { width: "300" }, { tasks: {} }, { tasks: [{ text: 1 }] }])
+            expect(() => validateWorkspaceExport(withGroup(patch))).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
+    })
+
+    it("fixes the blank texts and colors of the direct tasks", () => {
+        const base = {
+            format: "easytask-workspace", version: 2, workspace: { name: "W", color: null }, folders: [], templates: [],
+            notes: [{
+                ref: "n1", folderRef: null, name: "N", color: null, position: 0, audio: [],
+                content: { version: 1, groups: [{ name: null, position: 0, sections: [], tasks: [
+                    { text: "  ", description: null, completed: false, priority: false, color: "", position: 0, subtasks: [] },
+                ] }] },
+            }],
+        }
+        const checked = validateWorkspaceExport(base)
+        expect(checked.notes[0].content.groups[0].tasks![0]).toMatchObject({ color: null })
+        expect(checked.notes[0].content.groups[0].tasks![0].text.trim()).not.toBe("")
     })
 })
 
@@ -341,7 +395,7 @@ describe("items export and import", () => {
 
     it("exports a note as an items file with the note at the top", async () => {
         const data = await json("note", 1)
-        expect(data).toMatchObject({ format: "easytask-workspace", version: 1, scope: "items", workspace: { name: "Sorgente", color: "#ff0000" }, folders: [], templates: [] })
+        expect(data).toMatchObject({ format: "easytask-workspace", version: 2, scope: "items", workspace: { name: "Sorgente", color: "#ff0000" }, folders: [], templates: [] })
         expect(data.notes).toHaveLength(1)
         expect(data.notes[0]).toMatchObject({ name: "Sorgente", folderRef: null })
         expect(data.notes[0].content.groups.map((g: { name: string | null }) => g.name)).toEqual(["Sprint", null])
@@ -545,7 +599,12 @@ describe("automations in export/import", () => {
     // Sections in content order: by group, then by position
     const sectionsOf = async (noteId: number) => {
         const { groups, sections } = await getDBNoteData(noteId, true)
-        return groups.flatMap(g => sections.filter(s => s.groupID === g.id)).map(s => ({ id: s.id, title: s.title }))
+        return groups.flatMap(g => sections.filter(s => s.groupID === g.id && !s.is_default)).map(s => ({ id: s.id, title: s.title }))
+    }
+    // The default section (the direct area) of every group of a note, in group order
+    const directsOf = async (noteId: number) => {
+        const { groups, sections } = await getDBNoteData(noteId, true)
+        return groups.map(g => sections.find(s => s.groupID === g.id && s.is_default)!.id)
     }
     const ruleView = (rules: Awaited<ReturnType<typeof getDBAutomations>>) => rules.map(r => ({
         name: r.name, enabled: r.enabled, position: r.position, trigger: r.trigger, actions: r.actions,
@@ -600,6 +659,55 @@ describe("automations in export/import", () => {
         expect(rules[0].actions[1]).toEqual({ type: "moveTo", sectionId: c.id, at: "top" })
         // the source rules are untouched
         expect((await getDBAutomations(1))[0].trigger).toEqual({ type: "task.movedInto", sectionId: 1 })
+    })
+
+    it("exports and imports the rules that use the direct area of a group", async () => {
+        sqlite.exec(`
+            INSERT INTO automation (noteID, name, enabled, trigger, actions, position) VALUES
+                (1, 'Diretti', 1, '{"type":"task.completed","sectionId":20}', '[{"type":"moveTo","sectionId":21,"at":"bottom"}]', 0),
+                (1, 'Arriva', 1, '{"type":"task.movedInto","sectionId":21}', '[{"type":"moveTo","sectionId":3,"at":"top"}]', 1);
+        `)
+        const data = JSON.parse(JSON.stringify(await exportOf()))
+        const note = data.notes.find((n: { name: string }) => n.name === "Sorgente")
+        expect(note.automations).toEqual([
+            {
+                name: "Diretti", enabled: true, trigger: { type: "task.completed", sectionId: { group: 0, direct: true } },
+                actions: [{ type: "moveTo", sectionId: { group: 1, direct: true }, at: "bottom" }],
+            },
+            {
+                name: "Arriva", enabled: true, trigger: { type: "task.movedInto", sectionId: { group: 1, direct: true } },
+                actions: [{ type: "moveTo", sectionId: { group: 1, section: 0 }, at: "top" }],
+            },
+        ])
+        // The default sections are not among the sections of the content
+        expect(note.content.groups.map((g: { sections: unknown[] }) => g.sections.length)).toEqual([2, 1])
+
+        const { workspaceId } = await importDBWorkspace(validateWorkspaceExport(data))
+        const noteId = rows(`SELECT id FROM note WHERE workspaceID = ${workspaceId} AND name = 'Sorgente'`)[0].id as number
+        const [d0, d1] = await directsOf(noteId)
+        const [, , idee] = await sectionsOf(noteId)
+        expect(ruleView(await getDBAutomations(noteId)).map(r => [r.trigger, r.actions])).toEqual([
+            [{ type: "task.completed", sectionId: d0 }, [{ type: "moveTo", sectionId: d1, at: "bottom" }]],
+            [{ type: "task.movedInto", sectionId: d1 }, [{ type: "moveTo", sectionId: idee.id, at: "top" }]],
+        ])
+        expect([d0, d1]).not.toContain(20)
+        expect(rows(`SELECT COUNT(*) AS n FROM task WHERE sectionID = ${d0}`)[0].n).toBe(2)
+    })
+
+    it("rejects a malformed reference to a direct area", async () => {
+        const rule = {
+            name: null, enabled: true, trigger: { type: "task.completed", sectionId: { group: 0, direct: true } },
+            actions: [{ type: "moveTo", sectionId: { group: 0, direct: true }, at: "top" }],
+        }
+        const good = JSON.parse(JSON.stringify(await exportOf()))
+        const withRule = (next: unknown) => ({
+            ...good, notes: good.notes.map((n: { name: string }) => n.name === "Sorgente" ? { ...n, automations: [next] } : n),
+        })
+        expect(() => validateWorkspaceExport(withRule(rule))).not.toThrow()
+        for (const ref of [{ group: 0, direct: false }, { group: 9, direct: true }, { group: 0, section: 0, direct: true }, { direct: true }]) {
+            expect(() => validateWorkspaceExport(withRule({ ...rule, trigger: { ...rule.trigger, sectionId: ref } }))).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
+            expect(() => validateWorkspaceExport(withRule({ ...rule, actions: [{ type: "moveTo", sectionId: ref, at: "top" }] }))).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
+        }
     })
 
     it("keeps the group rules, archived groups included, pointing to the imported groups", async () => {

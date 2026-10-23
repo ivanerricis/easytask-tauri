@@ -28,6 +28,7 @@ export const appMenu: Translation["appMenu"] = {
     undo: "Undo",
     redo: "Redo",
     searchNotes: "Search notes…",
+    searchInNote: "Search in the note…",
     archive: "Archive…",
     trash: "Trash…",
     leftSidebar: "Sidebar",

@@ -3,8 +3,8 @@ import { automationSchema } from "./automation";
 import { addFolderArchivedAt, createFolderIndexes, createFolderTable, createFolderTrigger } from "./folder";
 import { addNoteArchivedAt, createNoteIndexes, createNoteTable, createNoteTrigger } from "./note";
 import { createNoteTemplateIndexes, createNoteTemplateTable, createNoteTemplateTrigger } from "./note_template";
-import { addSectionArchivedAt, makeSectionTitleOptional, createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
-import { addGroupArchivedAt, addGroupColorColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
+import { addSectionArchivedAt, addSectionDefaultFlag, makeSectionTitleOptional, createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
+import { addGroupArchivedAt, addGroupColorColumn, addGroupWidthColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
 import { createTaskIndexes, createTaskTable, addTaskArchivedAt, createTaskTrigger, dropTaskArchivedColumn } from "./task";
 import { createWorkspaceEditTriggers } from "./workspace_edit";
 import { createWorkspaceIndexes, createWorkspaceTable, createWorkspaceTrigger } from "./workspace";
@@ -71,10 +71,16 @@ export const taskArchiveSchema: string[] = [...addTaskArchivedAt]
 export const sectionTitleSchema: string[] = [...makeSectionTitleOptional]
 
 /**
+ * Migration v8: hidden default section per group (tasks directly in the group) and width of the groups.
+ * @category Database Schema
+ */
+export const groupStructureSchema: string[] = [...addSectionDefaultFlag, ...addGroupWidthColumn]
+
+/**
  * The whole schema at the latest version (initial schema plus every additive migration), as statements.
  * Used by the tests to build a database in one go: the app itself goes through the migrations in initDb.
  * @category Database Schema
  */
 export const latestSchema: string[] = [
-    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema,
+    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema, ...groupStructureSchema,
 ]

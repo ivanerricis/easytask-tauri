@@ -3,7 +3,9 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { GroupHeader } from "./GroupHeader"
 import { PreferencesContext, type PreferencesContextType } from "@/contexts/preferences-context-object"
-import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { searchingStore } from "@/test/search-store"
+import { NoteSearchContext } from "../note-search-context"
 
 // Radix tooltips measure their arrow with a ResizeObserver, which jsdom lacks
 vi.stubGlobal("ResizeObserver", class { observe() { } unobserve() { } disconnect() { } })
@@ -262,5 +264,56 @@ describe("GroupHeader audio file count", () => {
         prefs.showAudioFileCount = false
         const { container } = render(<GroupHeader group={makeGroup({ name: "G" })} audioCount={3} />)
         expect(badge(container)).not.toBeInTheDocument()
+    })
+})
+
+describe("GroupHeader task count with direct tasks", () => {
+    it("counts the tasks directly in the group together with those of its sections, but only the visible sections", () => {
+        const group = makeGroup({
+            name: "G",
+            defaultSection: makeDefaultSection({ id: 9, tasks: [makeTask({ id: 1 }), makeTask({ id: 2 })] }),
+            sections: [makeSection({ id: 3, tasks: [makeTask({ id: 4 })] })],
+        })
+        const { container } = render(<GroupHeader group={group} />)
+        expect(container.querySelector("svg.lucide-square-check-big")?.parentElement).toHaveTextContent("3")
+        // The hidden default section is not a section
+        expect(container.querySelector("svg.lucide-layout-list")?.parentElement).toHaveTextContent("1")
+    })
+})
+
+describe("GroupHeader compact", () => {
+    const group = () => makeGroup({ name: "G", sections: [makeSection({ tasks: [makeTask({ completed: true }), makeTask({ id: 2 })] })] })
+
+    it("shows the completion bar by default and hides it when compact", () => {
+        const { rerender } = render(<GroupHeader group={group()} />)
+        expect(screen.getByRole("progressbar")).toBeInTheDocument()
+        rerender(<GroupHeader group={group()} compact />)
+        expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
+    })
+})
+
+describe("GroupHeader search", () => {
+    const group = makeGroup({ id: 5, name: "Spesa della settimana" })
+
+    it("renders the plain name when nothing is searched", () => {
+        const { container } = render(<GroupHeader group={group} />)
+        expect(container.querySelector("mark")).toBeNull()
+    })
+
+    it("marks the matches of the name and strengthens the current one", () => {
+        const { container } = render(
+            <NoteSearchContext.Provider value={searchingStore([group], "spesa")}><GroupHeader group={group} /></NoteSearchContext.Provider>,
+        )
+        const marks = container.querySelectorAll("mark")
+        expect(marks).toHaveLength(1)
+        expect(marks[0]).toHaveTextContent("Spesa")
+        expect(marks[0]).toHaveAttribute("data-active", "true")
+    })
+
+    it("marks nothing when the name does not match", () => {
+        const { container } = render(
+            <NoteSearchContext.Provider value={searchingStore([group], "zzz")}><GroupHeader group={group} /></NoteSearchContext.Provider>,
+        )
+        expect(container.querySelector("mark")).toBeNull()
     })
 })

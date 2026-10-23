@@ -3,6 +3,7 @@ import { createError, handleDBError, toAppError } from "@/types/error"
 import { getDB } from "../dbManager"
 import { Transaction, type TxRef } from "../transaction"
 import { addPositions, clampIndex, isSelfOrAncestor, siblingIds } from "./ordering"
+import { DEFAULT_SECTION_SQL } from "./sql"
 
 const SECTION_UNIQUE_MESSAGE = () => i18n.t("errors.move.sectionUnique")
 
@@ -28,7 +29,7 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
         const sections = await db.select<{ id: number, groupID: number, noteID: number }[]>(
             `SELECT s.id, s.groupID, g.noteID FROM section s
              INNER JOIN section_group g ON g.id = s.groupID
-             WHERE s.id = ? AND s.deleted_at IS NULL`, [sectionId])
+             WHERE s.id = ? AND s.deleted_at IS NULL AND s.is_default = 0`, [sectionId])
         const section = sections[0]
         if (!section)
             throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.sectionMissing"))
@@ -38,7 +39,7 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
         if (!targets[0] || targets[0].noteID !== section.noteID)
             throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.groupInvalid"))
 
-        const order = await siblingIds(db, "section", "groupID = ?", [targetGroupId], sectionId)
+        const order = await siblingIds(db, "section", "groupID = ? AND is_default = 0", [targetGroupId], sectionId)
         order.splice(clampIndex(targetIndex, order.length), 0, sectionId)
 
         const tx = new Transaction()
@@ -46,7 +47,7 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
 
         if (section.groupID !== targetGroupId) {
             // The moved section is excluded: it is already in the destination
-            addPositions(tx, "section", await siblingIds(db, "section", "groupID = ?", [section.groupID], sectionId))
+            addPositions(tx, "section", await siblingIds(db, "section", "groupID = ? AND is_default = 0", [section.groupID], sectionId))
         }
         await tx.run()
     } catch (error: unknown) {
@@ -61,18 +62,18 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
  * The caller is responsible for updating the note data (the new group id is returned for that).
  * @param sectionId ID of the section to move.
  * @param groupPosition Index of the new group among the groups of the note (0 based, clamped).
- * @returns The ID of the new group.
+ * @returns The IDs of the new group and of its hidden default section.
  * @throws SECTION_MOVE_INVALID when the section does not exist.
  * @category Database Queries
  */
-export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: number): Promise<number> {
+export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: number): Promise<{ groupId: number, defaultSectionId: number }> {
     const db = await getDB()
 
     try {
         const sections = await db.select<{ id: number, groupID: number, noteID: number }[]>(
             `SELECT s.id, s.groupID, g.noteID FROM section s
              INNER JOIN section_group g ON g.id = s.groupID
-             WHERE s.id = ? AND s.deleted_at IS NULL`, [sectionId])
+             WHERE s.id = ? AND s.deleted_at IS NULL AND s.is_default = 0`, [sectionId])
         const section = sections[0]
         if (!section)
             throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.sectionMissing"))
@@ -83,11 +84,12 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
         const index = clampIndex(groupPosition, order.length)
 
         // The source group is renumbered without the moved section (it is about to leave)
-        const remaining = await siblingIds(db, "section", "groupID = ?", [section.groupID], sectionId)
+        const remaining = await siblingIds(db, "section", "groupID = ? AND is_default = 0", [section.groupID], sectionId)
 
         const tx = new Transaction()
         const created = tx.add('INSERT INTO section_group (noteID, position) VALUES (?, ?)', [section.noteID, index])
         const newGroup = tx.idOf(created)
+        const createdDefault = tx.add(DEFAULT_SECTION_SQL, [newGroup])
         const groupOrder: (number | TxRef)[] = [...order]
         groupOrder.splice(index, 0, newGroup)
 
@@ -95,7 +97,7 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
         addPositions(tx, "section", remaining)
         addPositions(tx, "section_group", groupOrder)
         const results = await tx.run()
-        return results[created].lastInsertId
+        return { groupId: results[created].lastInsertId, defaultSectionId: results[createdDefault].lastInsertId }
     } catch (error: unknown) {
         throw toAppError(error, e => handleDBError(e, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE() }))
     }

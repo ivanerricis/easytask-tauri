@@ -19,15 +19,32 @@ const TRIGGER_KEYS = {
 export const triggerLabel = (type: AutomationTriggerType) => i18n.t(`automations.triggers.${TRIGGER_KEYS[type]}`)
 export const actionLabel = (type: AutomationActionType) => i18n.t(`automations.actions.${type}`)
 
-/** Title of a section of the note, undefined when it no longer exists. */
-export type SectionTitleOf = (sectionId: number) => string | undefined
+/**
+ * What a section of a rule is called: its title, or `{ group }` (the label of the group) for the direct area of a group, which
+ * is the hidden default section and has no title of its own.
+ */
+export type SectionName = string | { group: string }
+
+/** Name of a section of the note, undefined when it no longer exists. */
+export type SectionTitleOf = (sectionId: number) => SectionName | undefined
 
 /** Label of a group of the note (its name or "Group N"), undefined when it no longer exists. */
 export type GroupLabelOf = (groupId: number) => string | undefined
 
 const groupName = (labelOf: GroupLabelOf | undefined, id: number) => labelOf?.(id) ?? i18n.t("automations.describe.missingGroup")
 
-const sectionName = (titleOf: SectionTitleOf, id: number) => titleOf(id) ?? i18n.t("automations.describe.missingSection")
+/** The section as a plain name; the direct area of a group reads "Group, direct tasks". */
+const sectionName = (titleOf: SectionTitleOf, id: number) => {
+    const name = titleOf(id)
+    if (name === undefined) return i18n.t("automations.describe.missingSection")
+    return typeof name === "string" ? name : i18n.t("automations.directTasks", { group: name.group })
+}
+
+/** The group label when the section is the direct area of a group. */
+const directGroup = (titleOf: SectionTitleOf, id: number) => {
+    const name = titleOf(id)
+    return typeof name === "object" ? name.group : undefined
+}
 
 function describeTrigger(trigger: AutomationTrigger, titleOf: SectionTitleOf, groupLabelOf?: GroupLabelOf): string {
     if ("groupId" in trigger)
@@ -36,8 +53,13 @@ function describeTrigger(trigger: AutomationTrigger, titleOf: SectionTitleOf, gr
         return trigger.sectionId === null ? triggerLabel(trigger.type) : i18n.t(`automations.describe.${TRIGGER_KEYS[trigger.type]}` as "automations.describe.sectionNoOpenTasks", { section: sectionName(titleOf, trigger.sectionId) })
     const text = triggerLabel(trigger.type)
     // "arrives in the section" already names the section in its label
-    if (trigger.type === "task.movedInto") return `${text} "${sectionName(titleOf, trigger.sectionId)}"`
-    return trigger.sectionId === null ? text : i18n.t("automations.describe.inSection", { trigger: text, section: sectionName(titleOf, trigger.sectionId) })
+    const direct = trigger.sectionId === null ? undefined : directGroup(titleOf, trigger.sectionId)
+    if (trigger.type === "task.movedInto")
+        return direct !== undefined ? i18n.t("automations.describe.movedIntoDirect", { group: direct }) : `${text} "${sectionName(titleOf, trigger.sectionId)}"`
+    if (trigger.sectionId === null) return text
+    return direct !== undefined
+        ? i18n.t("automations.describe.inDirect", { trigger: text, group: direct })
+        : i18n.t("automations.describe.inSection", { trigger: text, section: sectionName(titleOf, trigger.sectionId) })
 }
 
 /** The translated name of a color: the palette ones have their own, any other is "custom color". */
@@ -51,7 +73,11 @@ const joinList = (items: string[]) => new Intl.ListFormat(i18n.language, { style
 
 function describeAction(action: AutomationAction, titleOf: SectionTitleOf, subject: AutomationSubject): string {
     switch (action.type) {
-        case "moveTo": return i18n.t(action.at === "top" ? "automations.describe.moveTop" : "automations.describe.moveBottom", { section: sectionName(titleOf, action.sectionId) })
+        case "moveTo": {
+            const direct = directGroup(titleOf, action.sectionId)
+            if (direct !== undefined) return i18n.t(action.at === "top" ? "automations.describe.moveTopDirect" : "automations.describe.moveBottomDirect", { group: direct })
+            return i18n.t(action.at === "top" ? "automations.describe.moveTop" : "automations.describe.moveBottom", { section: sectionName(titleOf, action.sectionId) })
+        }
         case "setCompleted": return i18n.t(action.value ? "automations.describe.complete" : "automations.describe.reopen")
         case "setPriority": return i18n.t(action.value ? "automations.describe.addPriority" : "automations.describe.removePriority")
         case "setColor": {

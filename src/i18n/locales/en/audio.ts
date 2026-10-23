@@ -16,6 +16,8 @@ export const audio: Translation["audio"] = {
         unmute: "Unmute",
         speed: "Playback speed: {{rate}}×",
         move: "Move the player",
+        pin: "Pin the player in place",
+        unpin: "Unpin the player",
     },
     nowPlaying: "Playing",
     paused: "Paused",

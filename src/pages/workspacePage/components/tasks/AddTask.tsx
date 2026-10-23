@@ -25,6 +25,8 @@ type AddTaskProps = {
     parentTaskId?: number
     /** Called when the input is dismissed (only meaningful with parentTaskId). */
     onClose?: () => void
+    /** The task goes directly in a group: the closed state is a dashed "New task" button instead of the "+" of a section. */
+    inGroup?: boolean
 }
 
 /**
@@ -122,16 +124,17 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
     )
 }
 
-const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
+const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inGroup?: boolean }) => {
     const { t } = useTranslation()
     const [isOpen, setOpen] = useState(false)
     const [text, setText] = useState("")
     const { createTask } = useWorkspaceActions()
     const { appendTask, applyTaskMove } = useActiveNoteActions()
-    const { newTaskPosition } = usePreferences()
+    const { newTaskPosition, keepAddingTasks } = usePreferences()
     const recorder = useUndoRecorder()
     const { dispatch } = useAutomations()
     const formRef = useRef<HTMLFormElement>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
     const { saving, run } = useSubmitOnce()
 
     useEffect(() => {
@@ -151,8 +154,15 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
         setText("")
     }
 
-    // Escape closes the row and discards the text, like the X button
+    // Escape closes the row and discards the text, like the X button.
+    // With keepAddingTasks, Enter on an empty field closes it too (the disabled submit button blocks the form submit there).
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" && keepAddingTasks && !text.trim() && !saving && !e.nativeEvent.isComposing) {
+            e.preventDefault()
+            setOpen(false)
+            setText("")
+            return
+        }
         if (e.key !== "Escape") return
         e.preventDefault()
         e.stopPropagation()
@@ -167,7 +177,8 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                 try {
                     const value = text.trim()
                     const id = await createTask(sectionId, value, newTaskPosition)
-                    handleOpen()
+                    if (keepAddingTasks) setText("")
+                    else handleOpen()
                     appendTask(id, { sectionId }, value)
                     // The cache appends it: at the top it moves before its siblings, as the database ordered it
                     if (newTaskPosition === "top") applyTaskMove(id, { sectionId, parentTaskId: null }, 0)
@@ -175,6 +186,8 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                     void dispatch({ type: "task.created", taskId: id })
                 } catch (error: unknown) {
                     reportError(error, getErrorMessage(error) || t("tasks.errors.createTask"))
+                } finally {
+                    if (keepAddingTasks) inputRef.current?.focus()
                 }
             })
         }
@@ -182,16 +195,30 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
 
     return (
         !isOpen ? (
-            <Button
-                type="button"
-                variant="ghost"
-                onClick={handleOpen}
-                aria-label={t("tasks.add")}
-                title={t("tasks.add")}
-                className="w-full h-9 rounded-none font-normal text-muted-foreground hover:text-foreground"
-            >
-                <Plus />
-            </Button>
+            inGroup ? (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleOpen}
+                    aria-label={t("groups.addTask")}
+                    title={t("groups.addTask")}
+                    className="w-full h-9 rounded-xs border border-dashed border-muted-foreground/45 hover:border-foreground/60 font-normal text-muted-foreground hover:text-foreground"
+                >
+                    <Plus />
+                    <span className="text-nowrap">{t("groups.addTask")}</span>
+                </Button>
+            ) : (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleOpen}
+                    aria-label={t("tasks.add")}
+                    title={t("tasks.add")}
+                    className="w-full h-9 rounded-none font-normal text-muted-foreground hover:text-foreground"
+                >
+                    <Plus />
+                </Button>
+            )
         ) : (
             <form
                 ref={formRef}
@@ -200,6 +227,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
             >
                 <div className="flex items-center justify-center w-full bg-background">
                     <Input
+                        ref={inputRef}
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         onKeyDown={handleKeyDown}
@@ -219,7 +247,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
     )
 }
 
-export const AddTask = ({ sectionId, parentTaskId, onClose }: AddTaskProps) =>
+export const AddTask = ({ sectionId, parentTaskId, onClose, inGroup }: AddTaskProps) =>
     parentTaskId !== undefined
         ? <SubtaskInput parentTaskId={parentTaskId} sectionId={sectionId} onClose={onClose} />
-        : <TopLevelAddTask sectionId={sectionId} />
+        : <TopLevelAddTask sectionId={sectionId} inGroup={inGroup} />

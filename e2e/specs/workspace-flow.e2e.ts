@@ -3,6 +3,8 @@ import {
     byLabel, byText, createFromSidebar, createWorkspace, domClick, openContextMenu, openSubmenu, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
     waitForApp,
     addTaskButton, menuButton, menuButtonPredicate,
+    groupCard, newSectionInGroup,
+    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "E2E Workspace"
@@ -71,15 +73,14 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
 
         for (const title of [SECTION_A, SECTION_B]) {
-            await byText(await tr("sections.new")).click()
-            await typeInto(byLabel(await tr("sections.titleLabel")), title)
-            await browser.keys("Enter")
-            await sectionCard(title).waitForDisplayed()
+            await newSectionInGroup(groupCard(GROUP), title)
         }
 
         await (await addTaskButton(sectionCard(SECTION_A))).click()
         await typeInto(sectionCard(SECTION_A).$("input"), TASK)
         await sectionCard(SECTION_A).$(`[aria-label="${await tr("common.add")}"]`).click()
+        // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+        await closeTaskInput()
         await browser.waitUntil(async () => (await taskValues(SECTION_A)).includes(TASK), { timeoutMsg: "task not created" })
     })
 

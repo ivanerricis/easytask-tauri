@@ -33,23 +33,24 @@ async function thrown(p: Promise<unknown>): Promise<unknown> {
 }
 
 describe("createDBSection", () => {
-    it("inserts the group then the section in one transaction, using a reference to the new group id", async () => {
+    it("inserts the group, its default section, then the section in one transaction, using a reference to the new group id", async () => {
         await createDBSection(3, "Title", 2)
         expect(invoke).toHaveBeenCalledTimes(1)
         expect(calls).toEqual([[
             { sql: "INSERT INTO section_group (noteID, position) VALUES (?, ?)", params: [3, 2] },
-            { sql: "INSERT INTO section (groupID, title) VALUES (?, ?)", params: [{ $ref: 0, offset: 0 }, "Title"] },
+            { sql: "INSERT INTO section (groupID, title, position, is_default) VALUES (?, NULL, 0, 1)", params: [{ $ref: 0, offset: 0 }] },
+            { sql: "INSERT INTO section (groupID, title, position) VALUES (?, ?, 0)", params: [{ $ref: 0, offset: 0 }, "Title"] },
         ]])
         expect(db.execute).not.toHaveBeenCalled()
     })
 
-    it("returns the ids of the new group and section", async () => {
-        mockTransaction({ results: [{ rowsAffected: 1, lastInsertId: 11 }, { rowsAffected: 1, lastInsertId: 22 }] })
-        expect(await createDBSection(3, "Title", 2)).toEqual({ groupId: 11, sectionId: 22 })
+    it("returns the ids of the new group, of its default section and of the section", async () => {
+        mockTransaction({ results: [{ rowsAffected: 1, lastInsertId: 11 }, { rowsAffected: 1, lastInsertId: 21 }, { rowsAffected: 1, lastInsertId: 22 }] })
+        expect(await createDBSection(3, "Title", 2)).toEqual({ groupId: 11, defaultSectionId: 21, sectionId: 22 })
     })
 
     it("maps a failure of the section insert (nothing is left behind: no cleanup statement is needed)", async () => {
-        mockTransaction({ error: "statement 1 failed: UNIQUE constraint failed" })
+        mockTransaction({ error: "statement 2 failed: UNIQUE constraint failed" })
         expect(await thrown(createDBSection(3, "Title", 0))).toEqual({
             code: "SECTION_EXISTS",
             message: "Esiste già una sezione con questo nome.",
@@ -58,7 +59,7 @@ describe("createDBSection", () => {
     })
 
     it("maps a check failure", async () => {
-        mockTransaction({ error: "statement 1 failed: CHECK constraint failed" })
+        mockTransaction({ error: "statement 2 failed: CHECK constraint failed" })
         expect(await thrown(createDBSection(3, "", 0))).toEqual({
             code: "SECTION_CHECK_FAILED",
             message: "Il nome della sezione non può essere vuoto.",
@@ -75,6 +76,8 @@ describe("createDBSectionInGroup", () => {
     it("inserts the section", async () => {
         await createDBSectionInGroup(5, "S")
         expect(db.execute).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO section (groupID, title, position)"), [5, "S", 5])
+        // The position follows the visible sections: the default section of the group does not count
+        expect(vi.mocked(db.execute).mock.calls[0][0]).toContain("is_default = 0")
     })
 
     it("maps errors", async () => {

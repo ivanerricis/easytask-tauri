@@ -7,6 +7,8 @@ import {
     backgroundOf, byLabel, byText, compose, contrastRatio, createFromSidebar, createWorkspace, cssColor, domClick, inTheme,
     openWorkspace, sql, tr, treeRow, typeInto, waitForApp, type Rgba,
     addTaskButton,
+    groupCard, newSectionInGroup,
+    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Layout Workspace"
@@ -55,6 +57,8 @@ const addTask = async (text: string) => {
     await (await addTaskButton(card)).click()
     await typeInto(card.$("input"), text)
     await card.$(`[aria-label="${await tr("common.add")}"]`).click()
+    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+    await closeTaskInput()
     await browser.waitUntil(
         async () => browser.execute((value: string) => Array.from(document.querySelectorAll("textarea")).some(area => area.value === value), text),
         { timeoutMsg: `task "${text}" not created` },
@@ -120,10 +124,7 @@ describe("Layout and appearance", () => {
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
         await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
-        await byText(await tr("sections.new")).click()
-        await typeInto(byLabel(await tr("sections.titleLabel")), SECTION)
-        await browser.keys("Enter")
-        await $(`//div[@data-section-card][.//button[@title='${SECTION}']]`).waitForDisplayed()
+        await newSectionInGroup(groupCard(GROUP), SECTION)
 
         await addTask(TASK)
         await addTask(DONE_TASK)

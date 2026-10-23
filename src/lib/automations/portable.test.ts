@@ -187,3 +187,43 @@ describe("portable state rules", () => {
         expect(isPortableAutomation({ name: null, enabled: true, trigger: { type: "group.noOpenTasks", groupId: null }, actions: [{ type: "archiveGroup" }] }, content)).toBe(false)
     })
 })
+
+describe("direct area of a group", () => {
+    const direct = buildSectionIndex(content, [10, 11, 20], [100, 200])
+
+    it("maps the default sections to the direct area of their group", () => {
+        expect(direct.get(100)).toEqual({ group: 0, direct: true })
+        expect(direct.get(200)).toEqual({ group: 1, direct: true })
+        expect(direct.get(11)).toEqual({ group: 0, section: 1 })
+        expect(direct.size).toBe(5)
+        // A group without a default section is simply left out
+        expect(buildSectionIndex(content, [10, 11, 20], [null, 200]).size).toBe(4)
+    })
+
+    it("turns the ids of a rule into direct references, in the trigger and in the actions", () => {
+        expect(toPortable({
+            name: null, enabled: true,
+            trigger: { type: "task.movedInto", sectionId: 200 },
+            actions: [{ type: "moveTo", sectionId: 100, at: "top" }],
+        }, direct)).toEqual({
+            name: null, enabled: true,
+            trigger: { type: "task.movedInto", sectionId: { group: 1, direct: true } },
+            actions: [{ type: "moveTo", sectionId: { group: 0, direct: true }, at: "top" }],
+        })
+    })
+
+    it("leaves a reference to the direct area out when the index does not know it", () => {
+        const withoutDirect = buildSectionIndex(content, [10, 11, 20])
+        expect(toPortable({ name: null, enabled: true, trigger: { type: "task.completed", sectionId: 100 }, actions: [] }, withoutDirect)).toBeNull()
+    })
+
+    it("accepts a valid reference and rejects a malformed one", () => {
+        const rule = (ref: unknown) => ({
+            name: null, enabled: true, trigger: { type: "task.completed", sectionId: ref },
+            actions: [{ type: "moveTo", sectionId: ref, at: "bottom" }],
+        })
+        expect(isPortableAutomation(rule({ group: 1, direct: true }), content)).toBe(true)
+        for (const ref of [{ group: 2, direct: true }, { group: 0, direct: false }, { group: 0, direct: 1 }, { group: 0, section: 0, direct: true }, { group: -1, direct: true }, { direct: true }])
+            expect(isPortableAutomation(rule(ref), content)).toBe(false)
+    })
+})

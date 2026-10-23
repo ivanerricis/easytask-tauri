@@ -37,6 +37,10 @@ export type TemplateGroup = {
     color?: string | null
     /** Archive date: only in the export files (a template never contains archived items). */
     archived_at?: string | null
+    /** Width in pixels; absent when the group has the default width. */
+    width?: number | null
+    /** Tasks directly in the group (its hidden default section); absent when there are none. */
+    tasks?: TemplateTask[]
     position: number
     sections: TemplateSection[]
 }
@@ -87,6 +91,7 @@ export function countTemplateContent(content: NoteTemplateContent) {
     }
     for (const group of content.groups) {
         sections += group.sections.length
+        countTasks(group.tasks ?? [])
         for (const section of group.sections) countTasks(section.tasks)
     }
     return { groups: content.groups.length, sections, tasks }

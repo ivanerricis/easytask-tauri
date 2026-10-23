@@ -44,6 +44,7 @@ export const automations = {
     anySection: "Qualsiasi sezione",
     group: "Gruppo",
     anyGroup: "Qualsiasi gruppo",
+    directTasks: "{{group}}, task diretti",
     deleteConfirm: {
         title: "Eliminare l'automazione?",
     },
@@ -85,6 +86,10 @@ export const automations = {
     describe: {
         rule: "Quando {{trigger}}, {{actions}}",
         inSection: "{{trigger}} in \"{{section}}\"",
+        inDirect: "{{trigger}} nei task diretti di \"{{group}}\"",
+        movedIntoDirect: "un task arriva nei task diretti di \"{{group}}\"",
+        moveTopDirect: "sposta in cima ai task diretti di \"{{group}}\"",
+        moveBottomDirect: "sposta in fondo ai task diretti di \"{{group}}\"",
         missingSection: "(sezione eliminata)",
         missingGroup: "(gruppo eliminato)",
         groupCompleted: "tutti i task del gruppo \"{{group}}\" sono completati",

@@ -30,16 +30,17 @@ export type NoteOptimisticActions = {
      * Appends the row just created by the database (`id` is the id it returned) to the note, with the defaults of
      * the database columns. When it cannot apply (id missing, or parent not in the cache) the note is reloaded in background.
      */
-    appendGroup: (id: number, noteId: number, name: string) => Rollback
+    appendGroup: (id: number, noteId: number, name: string, defaultSectionId: number) => Rollback
     appendSection: (id: number, groupId: number, title: string) => Rollback
     appendTask: (id: number, parent: TaskParent, text: string) => Rollback
     /** Same semantics as the database move: `index` counts the destination siblings without the moved item. */
     applySectionMove: (sectionId: number, targetGroupId: number, index: number) => Rollback
     /**
-     * Moves a section into the new group the database just created (`groupId`) at `index` among the groups.
+     * Moves a section into the new group the database just created (`groupId`, with its default section `defaultSectionId`)
+     * at `index` among the groups.
      * When it cannot apply (id missing, section not in the cache) the note is reloaded in background.
      */
-    applySectionMoveToNewGroup: (sectionId: number, groupId: number, index: number) => Rollback
+    applySectionMoveToNewGroup: (sectionId: number, groupId: number, index: number, defaultSectionId: number) => Rollback
     applyTaskMove: (taskId: number, target: { sectionId: number, parentTaskId: number | null }, index: number) => Rollback
 }
 
@@ -146,8 +147,8 @@ export function createNoteOptimisticActions(store: NoteTreeStore): BaseNoteOptim
             return apply(t => removeTask(t, taskId), t => insertTask(t, found.parent, found.task, found.index))
         },
 
-        appendGroup: (id, noteId, name) => Number.isInteger(id) ? tryApply(
-            t => insertGroup(t, buildGroup(id, noteId, name, t.groups)),
+        appendGroup: (id, noteId, name, defaultSectionId) => Number.isInteger(id) && Number.isInteger(defaultSectionId) ? tryApply(
+            t => insertGroup(t, buildGroup(id, noteId, name, t.groups, defaultSectionId)),
             t => removeGroup(t, id)) : null,
         appendSection: (id, groupId, title) => Number.isInteger(id) ? tryApply(
             t => {
@@ -173,14 +174,14 @@ export function createNoteOptimisticActions(store: NoteTreeStore): BaseNoteOptim
                 t => moveSection(t, sectionId, targetGroupId, index),
                 t => moveSection(t, sectionId, found.groupId, found.index))
         },
-        applySectionMoveToNewGroup: (sectionId, groupId, index) => {
+        applySectionMoveToNewGroup: (sectionId, groupId, index, defaultSectionId) => {
             const found = lookup(t => findSection(t, sectionId))
-            if (!found || !Number.isInteger(groupId)) return null
+            if (!found || found.index < 0 || !Number.isInteger(groupId) || !Number.isInteger(defaultSectionId)) return null
             return tryApply(
                 t => {
                     const origin = findGroup(t, found.groupId)
                     if (!origin) return t
-                    const group: Group = { id: groupId, noteID: origin.group.noteID, position: index, name: null, sections: [] }
+                    const group: Group = { ...buildGroup(groupId, origin.group.noteID, null, [], defaultSectionId), position: index }
                     return moveSection(insertGroup(t, group, index), sectionId, groupId, 0)
                 },
                 t => removeGroup(moveSection(t, sectionId, found.groupId, found.index), groupId))

@@ -24,6 +24,8 @@ function stepIndex<T extends { id: number }>(siblings: T[], id: number, step: St
 
 /**
  * Destination of a task (or subtask) moved one step among its siblings, null when it is already first/last.
+ * A step never crosses a section: the first/last task of a section (the direct tasks of a group included) has no step
+ * further, the "Sposta in…" menu moves it to another section or to the direct area of a group.
  * @param hideCompleted Siblings hidden by the "hide completed" rule (isHiddenTask) are not on screen, so they are jumped over.
  * @category Note DnD
  */
@@ -44,6 +46,7 @@ export function getSectionStep(tree: NoteDataTree, sectionId: number, step: Step
     const info = sections.get(sectionId)
     if (!info) return null
     const group = tree.groups.find(candidate => candidate.id === info.groupId)
+    // Only the visible sections: the default section of the group is not part of the section order
     const index = stepIndex(group?.sections ?? [], sectionId, step, () => true)
     return index === null ? null : { type: "group", groupId: info.groupId, index }
 }

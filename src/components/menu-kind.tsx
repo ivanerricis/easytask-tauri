@@ -3,6 +3,7 @@ import {
     DropdownMenuGroup,
     DropdownMenuItem,
     DropdownMenuSeparator,
+    DropdownMenuShortcut,
     DropdownMenuSub,
     DropdownMenuSubContent,
     DropdownMenuSubTrigger,
@@ -11,6 +12,7 @@ import {
     ContextMenuGroup,
     ContextMenuItem,
     ContextMenuSeparator,
+    ContextMenuShortcut,
     ContextMenuSub,
     ContextMenuSubContent,
     ContextMenuSubTrigger,
@@ -39,6 +41,10 @@ export function MenuItem(props: React.ComponentProps<typeof DropdownMenuItem>) {
 
 export function MenuSeparator(props: React.ComponentProps<typeof DropdownMenuSeparator>) {
     return useMenuKind() === "context" ? <ContextMenuSeparator {...props} /> : <DropdownMenuSeparator {...props} />
+}
+
+export function MenuShortcut(props: React.ComponentProps<typeof DropdownMenuShortcut>) {
+    return useMenuKind() === "context" ? <ContextMenuShortcut {...props} /> : <DropdownMenuShortcut {...props} />
 }
 
 export function MenuSub(props: React.ComponentProps<typeof DropdownMenuSub>) {

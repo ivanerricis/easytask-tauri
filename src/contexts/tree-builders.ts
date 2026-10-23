@@ -1,5 +1,6 @@
 import type { Folder, Group, Note, NoteDataTree, Section, Task } from "@/types/types"
 import { getDBNoteData } from "@/db/queries/note"
+import { isDefaultSection } from "@/lib/group-sections"
 
 /**
  * Builds a tree structure for the workspace, organizing folders and notes.
@@ -84,14 +85,19 @@ export function buildNoteTree(groups: Group[], sections: Section[], tasks: Task[
         }))
     }
 
+    const withTasks = (section: Section): Section => ({ ...section, tasks: buildTasks(rootTasksBySection.get(section.id)) })
+
     return {
-        groups: groups.map(group => ({
-            ...group,
-            sections: (sectionsByGroup.get(group.id) ?? []).map(section => ({
-                ...section,
-                tasks: buildTasks(rootTasksBySection.get(section.id)),
-            })),
-        })),
+        groups: groups.map(group => {
+            // The default section (direct tasks of the group) stays out of `sections`
+            const all = sectionsByGroup.get(group.id) ?? []
+            const defaultSection = all.find(isDefaultSection)
+            return {
+                ...group,
+                ...(defaultSection ? { defaultSection: withTasks(defaultSection) } : {}),
+                sections: all.filter(section => !isDefaultSection(section)).map(withTasks),
+            }
+        }),
     }
 }
 

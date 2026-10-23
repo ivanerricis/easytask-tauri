@@ -6,7 +6,7 @@ import { useActiveNote, useActiveNoteActions } from "./use-active-note"
 import { useTabs, useTabsActions } from "./use-tabs"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
 import { getDBNoteData } from "@/db/queries/note"
-import { updateDBGroupPositions } from "@/db/queries/group"
+import { updateDBGroupPositions, updateDBGroupWidth } from "@/db/queries/group"
 import { createDBTask } from "@/db/queries/task"
 import { deleteDBItem, renameDBItem, updateDBColor } from "@/db/queries/shared_queries"
 import { createDBSection } from "@/db/queries/section"
@@ -45,7 +45,7 @@ vi.mock("@/db/queries/task", () => ({
     updateDBTaskDescription: vi.fn(),
     updateDBTaskPriority: vi.fn(),
 }))
-vi.mock("@/db/queries/group", () => ({ updateDBGroupPositions: vi.fn() }))
+vi.mock("@/db/queries/group", () => ({ updateDBGroupPositions: vi.fn(), updateDBGroupWidth: vi.fn() }))
 vi.mock("@/db/queries/tree", () => ({ moveDBTreeItem: vi.fn() }))
 vi.mock("@/db/queries/move", () => ({ moveDBSection: vi.fn(), moveDBSectionToNewGroup: vi.fn(), moveDBTask: vi.fn() }))
 vi.mock("@/db/queries/trash", () => ({
@@ -874,6 +874,28 @@ describe("WorkspaceDataContext", () => {
 
             await act(async () => {
                 await expect(result.current.updateGroupsPositions([makeGroup({ id: 1 })])).rejects.toThrow("fail")
+            })
+            expect(result.current.isLoading).toBe(false)
+        })
+    })
+
+    describe("setGroupWidth", () => {
+        it("persists the width, or null for the automatic one", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+
+            await act(() => result.current.setGroupWidth(3, 420))
+            await act(() => result.current.setGroupWidth(3, null))
+
+            expect(updateDBGroupWidth).toHaveBeenNthCalledWith(1, 3, 420)
+            expect(updateDBGroupWidth).toHaveBeenNthCalledWith(2, 3, null)
+        })
+
+        it("rejects when the db update fails", async () => {
+            vi.mocked(updateDBGroupWidth).mockRejectedValue(new Error("fail"))
+            const { result } = renderHook(() => useAll(), { wrapper })
+
+            await act(async () => {
+                await expect(result.current.setGroupWidth(1, 300)).rejects.toThrow("fail")
             })
             expect(result.current.isLoading).toBe(false)
         })

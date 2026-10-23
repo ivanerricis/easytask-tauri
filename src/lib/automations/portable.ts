@@ -5,11 +5,12 @@ import {
 } from "./types"
 
 /**
- * A section of a note content by position: `content.groups[group].sections[section]`. Ids change when a note is copied or
- * imported, positions in the content do not.
+ * A section of a note content by position: `content.groups[group].sections[section]`, or the direct area of the group
+ * (its default section, where the tasks created directly in the group live) when `direct` is set.
+ * Ids change when a note is copied or imported, positions in the content do not.
  * @category Automations
  */
-export type PortableSectionRef = { group: number, section: number }
+export type PortableSectionRef = { group: number, section: number } | { group: number, direct: true }
 
 type GroupTriggerType = "group.completed" | "group.noOpenTasks" | "group.hasOpenTasks"
 
@@ -39,18 +40,26 @@ export type PortableAutomation = {
 }
 
 /**
- * Maps the id of every section of a note to its position in `content`.
+ * Maps the id of every section of a note to its position in `content` (the default section of a group maps to
+ * the direct area of the group).
  * @param content The note content.
  * @param sectionIds The ids of the source sections, in content order (groups first, then the sections of each group).
+ * @param defaultSectionIds The ids of the default sections of the groups, in group order.
  * @category Automations
  */
-export function buildSectionIndex(content: NoteTemplateContent, sectionIds: readonly number[]): Map<number, PortableSectionRef> {
+export function buildSectionIndex(
+    content: NoteTemplateContent, sectionIds: readonly number[], defaultSectionIds: readonly (number | null)[] = [],
+): Map<number, PortableSectionRef> {
     const index = new Map<number, PortableSectionRef>()
     let flat = 0
-    content.groups.forEach((group, g) => group.sections.forEach((_, s) => {
-        const id = sectionIds[flat++]
-        if (id !== undefined) index.set(id, { group: g, section: s })
-    }))
+    content.groups.forEach((group, g) => {
+        const direct = defaultSectionIds[g]
+        if (direct != null) index.set(direct, { group: g, direct: true })
+        group.sections.forEach((_, s) => {
+            const id = sectionIds[flat++]
+            if (id !== undefined) index.set(id, { group: g, section: s })
+        })
+    })
     return index
 }
 
@@ -130,8 +139,11 @@ const isIndex = (value: unknown): value is number => typeof value === "number" &
 
 function isSectionInContent(value: unknown, content: NoteTemplateContent): value is PortableSectionRef {
     if (typeof value !== "object" || value === null) return false
-    const { group, section } = value as { group?: unknown, section?: unknown }
-    return isIndex(group) && isIndex(section) && group < content.groups.length && section < content.groups[group].sections.length
+    const { group, section, direct } = value as { group?: unknown, section?: unknown, direct?: unknown }
+    if (!isIndex(group) || group >= content.groups.length) return false
+    // The direct area of a group has no section index
+    if (direct !== undefined) return direct === true && section === undefined
+    return isIndex(section) && section < content.groups[group].sections.length
 }
 
 /**

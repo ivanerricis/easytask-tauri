@@ -10,7 +10,6 @@ import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn().mockResolvedValue(false) }))
 vi.mock("@/pages/workspacePage/components/note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
-vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ hideCompletedTasks: false, setHideCompletedTasks: vi.fn() }) }))
 vi.mock("@/hooks/use-inline-rename", () => ({ useInlineRename: () => ({ editing: false, error: null, start: () => {}, inputProps: {} }) }))
 vi.mock("@/lib/store/tabs", () => ({ getWorkspaceTabs: vi.fn(), saveWorkspaceTabs: vi.fn() }))
 
@@ -116,7 +115,7 @@ describe("useTabShortcuts", () => {
         const { latest } = setup()
         fireEvent.keyDown(document, { key: "l" })
         fireEvent.keyDown(document, { key: "t" })
-        fireEvent.keyDown(document, { key: "o", ctrlKey: true })
+        fireEvent.keyDown(document, { key: "k", ctrlKey: true })
         expect(latest.current.openIds).toEqual([1, 2, 3])
     })
 })

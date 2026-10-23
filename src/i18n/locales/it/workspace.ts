@@ -60,7 +60,21 @@ export const notes = {
         suggestions: "Suggerimenti",
         short: "Cerca…",
     },
+    noteSearch: {
+        inNote: "Cerca nella nota",
+        placeholder: "Cerca nella nota…",
+        counter: "{{current}} di {{total}}",
+        noResults: "Nessun risultato",
+        next: "Risultato successivo",
+        previous: "Risultato precedente",
+        close: "Chiudi la ricerca",
+    },
     hideCompleted: "Nascondi task completati",
+    showCompleted: "Mostra task completati",
+    path: {
+        label: "Percorso della nota",
+        reveal: "Mostra {{name}} nella barra laterale",
+    },
     closeCurrent: "Chiudi nota corrente",
     close: "Chiudi nota",
     openTabs: "Note aperte",
@@ -70,6 +84,8 @@ export const notes = {
 
 export const groups = {
     defaultLabel: "Gruppo {{index}}",
+    directTasks: "Task del gruppo",
+    addTask: "Nuovo task",
     collapse: "Comprimi gruppo",
     expand: "Espandi gruppo",
     nameLabel: "Nome del gruppo",
@@ -78,6 +94,11 @@ export const groups = {
     progress: "Avanzamento del gruppo",
     audioCount_one: "{{count}} file audio",
     audioCount_other: "{{count}} file audio",
+    width: {
+        handle: "Ridimensiona il gruppo",
+        value: "{{width}} pixel",
+        auto: "larghezza automatica",
+    },
 }
 
 export const sidebar = {

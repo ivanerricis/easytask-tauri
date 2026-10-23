@@ -16,7 +16,6 @@ vi.mock("@/hooks/use-inline-rename", () => ({
 }))
 
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn().mockResolvedValue(false) }))
-vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ hideCompletedTasks: false, setHideCompletedTasks: vi.fn() }) }))
 vi.mock("@/lib/store/tabs", () => ({ getWorkspaceTabs: vi.fn(), saveWorkspaceTabs: vi.fn() }))
 vi.mock("./note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 // Radix tooltips measure their arrow with a ResizeObserver, which jsdom lacks

@@ -1,6 +1,6 @@
 # Gruppi, sezioni e task
 
-Il contenuto di una nota è organizzato su tre livelli. Una nota contiene dei **gruppi**, affiancati come colonne. Un gruppo contiene delle **sezioni**, impilate nella colonna. Una sezione contiene dei **task**, e un task può avere dei **sottotask**, annidati quanto serve.
+Il contenuto di una nota è organizzato su tre livelli. Una nota contiene dei **gruppi**, affiancati come colonne. Un gruppo contiene delle **sezioni**, impilate nella colonna. Una sezione contiene dei **task**, e un task può avere dei **sottotask**, annidati quanto serve. Un gruppo può anche contenere task propri, subito sotto l'intestazione, senza alcuna sezione.
 
 ![Dettagli del task](../../screenshots/it/task-details-light.png){.light-only}
 ![Dettagli del task](../../screenshots/it/task-details-dark.png){.dark-only}
@@ -10,7 +10,7 @@ Il contenuto di una nota è organizzato su tre livelli. Una nota contiene dei **
 ### Aggiungerli
 
 - Fai clic su **Nuovo gruppo**, oppure premi `Alt+N`, scrivi un nome e premi `Invio`. `Esc` chiude il campo.
-- Dentro un gruppo fai clic su **Nuova sezione**, scrivi un titolo e premi `Invio`.
+- Dentro un gruppo apri il suo menu (il pulsante del menu del gruppo, o il clic destro sull'intestazione), scegli **Nuova sezione**, scrivi un titolo e premi `Invio`. Il campo si apre in fondo al gruppo.
 
 Il nome è facoltativo: premi `Invio` su un campo vuoto e il gruppo o la sezione viene creato senza nome. EasyTask mostra allora **Gruppo 1**, **Gruppo 2**… o **Sezione senza titolo** in grigio. Puoi nascondere queste etichette con **Impostazioni > Note e sezioni > Mostra il nome dei gruppi e delle sezioni senza nome**.
 
@@ -18,11 +18,14 @@ Il nome è facoltativo: premi `Invio` su un campo vuoto e il gruppo o la sezione
 
 Fai clic sul nome per rinominarlo sul posto (`Invio` salva, `Esc` annulla), oppure apri il menu del gruppo o della sezione con il suo pulsante o con il clic destro.
 
+Il clic destro sull'area vuota della nota (fuori da gruppi, sezioni e task) apre un piccolo menu con **Nuovo gruppo** e **Nascondi / Mostra task completati**.
+
 ![Menu del gruppo](../../screenshots/it/group-menu-light.png)
 
 | Voce                                   | Gruppo | Sezione | Cosa fa                                                          |
 | -------------------------------------- | :----: | :-----: | ---------------------------------------------------------------- |
 | **Aggiungi file audio**                | sì     |         | Aggiunge file audio al gruppo. Vedi [File audio](./audio).       |
+| **Nuova sezione**                      | sì     |         | Apre il campo per il titolo di una nuova sezione nel gruppo.     |
 | **Duplica**                            |        | sì      | Copia la sezione, con i suoi task, subito dopo l'originale.      |
 | **Rinomina**                           | sì     | sì      | Modifica il nome.                                                |
 | **Cambia colore**                      | sì     | sì      | Imposta o toglie il colore.                                      |
@@ -44,12 +47,18 @@ Puoi spostare gli elementi anche trascinandoli:
 
 Ogni gruppo e ogni sezione ha un pulsante per comprimerlo (**Comprimi gruppo**, **Comprimi sezione**). Un gruppo può mostrare quante sezioni, task e file audio contiene. Gruppi e sezioni possono mostrare anche una barra d'avanzamento con la percentuale di task completati (per un gruppo contano tutti i task e i sottotask). Scegli cosa mostrare in **Impostazioni > Note e sezioni**: **Mostra barra d'avanzamento nelle sezioni**, **Mostra barra d'avanzamento nei gruppi**, **Mostra numero di sezioni**, **Mostra numero di task**, **Mostra numero di file audio**. L'opzione **Linee tra i gruppi** disegna una sottile linea guida tra le colonne.
 
+### Ridimensionare un gruppo
+
+Trascina il bordo destro di un gruppo per allargarlo o restringerlo. Da tastiera, porta il focus sul bordo e usa `Sinistra` e `Destra` (con `Maiusc` i passi sono più grandi), `Home` per la larghezza minima e `Fine` per quella massima. Con un doppio clic sul bordo torni alla larghezza automatica. La barra di avanzamento del gruppo sparisce quando il gruppo è troppo stretto per mostrarla.
+
 ## Task e sottotask
 
 ### Aggiungere un task
 
-1. In fondo a una sezione fai clic sul pulsante **+** (**Aggiungi task**).
+1. In fondo a una sezione fai clic sul pulsante **+** (**Aggiungi task**). Per aggiungere un task a un gruppo senza sezione, fai clic sul pulsante tratteggiato **Nuovo task** del gruppo: si trova subito sotto i task del gruppo, sopra le sue sezioni.
 2. Scrivi il testo in **Nuovo task…** e conferma con `Invio` o con il pulsante di aggiunta. `Esc` chiude il campo.
+
+I task di un gruppo contano nella barra di avanzamento e nel numero di task del gruppo. Trascinane uno in una sezione, o il contrario, oppure usa **Sposta in…** (il gruppo compare nell'elenco come **Task del gruppo**). **Sposta su** e **Sposta giù** restano dentro la stessa lista.
 
 I nuovi task vanno in fondo alla sezione. Per metterli in cima scegli **In cima** in **Impostazioni > Note e sezioni > Posizione dei nuovi task**.
 
@@ -94,9 +103,19 @@ Trascina un task dalla sua riga. Rilascialo:
 
 **Sposta su**, **Sposta giù** e **Sposta in…** nel menu fanno lo stesso senza trascinare.
 
+### Selezionare più task
+
+Tieni premuto **Ctrl** (**Cmd** su macOS) e clicca per aggiungere un task alla selezione o toglierlo. Clicca un task con **Maiusc** per selezionare tutti i task visibili tra l'ultimo cliccato e questo, anche tra sezioni e gruppi. **Esc** annulla la selezione, come un normale clic.
+
+Fai clic destro su un task selezionato (o apri il suo menu) per agire su tutti insieme: **Elimina**, **Archivia**, **Colora** e **Sposta in…** (in fondo a una sezione, o tra i task diretti di un gruppo). Un task selezionato vale anche per i suoi sottotask, che vengono eliminati, archiviati e spostati con lui. Ogni azione è un solo passo nella [cronologia di annullamento](./undo-and-history.md). Il trascinamento sposta sempre un task alla volta.
+
+## Cercare in una nota
+
+Premi `Ctrl+F` o clicca la lente nella barra del percorso sopra i gruppi per aprire il campo di ricerca. Mentre scrivi, le corrispondenze vengono evidenziate nel testo di task e sottotask e nei nomi di sezioni e gruppi (non nelle descrizioni dei task), senza distinguere maiuscole e accenti, e il contatore indica a quale sei arrivato, ad esempio "3 di 12". **Invio** va alla corrispondenza successiva e **Maiusc+Invio** alla precedente; quella corrente è più marcata, viene portata in vista e apre il gruppo o la sezione compressi che la contengono. I task completati nascosti non vengono cercati. **Esc** (o il pulsante di chiusura) chiude il campo e toglie le evidenziazioni.
+
 ## Nascondere i task completati
 
-Premi `Ctrl+Maiusc+H`, usa il pulsante a forma di occhio sulla scheda attiva, oppure scegli **Visualizza > Nascondi task completati**. I task completati e i loro sottotask spariscono, e ogni sezione indica quanti sono nascosti. Un task completato che ha ancora un sottotask aperto resta visibile, così il lavoro aperto non si perde. Non viene eliminato nulla: premi di nuovo la scorciatoia per rivederli. Per partire con i task nascosti usa **Impostazioni > Note e sezioni > Nascondi task completati**.
+Premi `Ctrl+Maiusc+H`, usa il pulsante a forma di occhio nella barra del percorso sopra i gruppi, oppure scegli **Visualizza > Nascondi task completati**. I task completati e i loro sottotask spariscono, e ogni sezione indica quanti sono nascosti. Un task completato che ha ancora un sottotask aperto resta visibile, così il lavoro aperto non si perde. Non viene eliminato nulla: premi di nuovo la scorciatoia per rivederli. Per partire con i task nascosti usa **Impostazioni > Note e sezioni > Nascondi task completati**.
 
 ## Il pannello dei dettagli
 

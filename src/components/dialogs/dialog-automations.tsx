@@ -15,7 +15,7 @@ import { getDBNoteData } from "@/db/queries/note"
 import { createDBAutomation, deleteDBAutomation, getDBAutomations, setDBAutomationEnabled, updateDBAutomation } from "@/db/queries/automation"
 import { buildNoteTree } from "@/contexts/tree-builders"
 import { PALETTE_COLORS } from "@/lib/colors"
-import { actionLabel, automationName, colorName, describeAutomation, triggerLabel } from "@/lib/automations/describe"
+import { actionLabel, automationName, colorName, describeAutomation, triggerLabel, type SectionName } from "@/lib/automations/describe"
 import {
     TRIGGER_TYPES, actionsForTrigger, isGroupTrigger, isStateTrigger, isValidRule, referencedGroups, referencedSections, triggerSubject,
     type Automation, type AutomationAction, type AutomationActionType, type AutomationDraft, type AutomationTrigger, type AutomationTriggerType,
@@ -26,8 +26,10 @@ import { reportError } from "@/lib/report-error"
 import { cn, getErrorMessage } from "@/lib/utils"
 import { FormError } from "@/components/form-error"
 
-type SectionOption = { id: number, title: string }
-type GroupOption = { id: number, label: string, sections: SectionOption[] }
+/** A section a rule can point to; `group` is set for the direct area of a group (its default section), `title` is then its picker label. */
+type SectionOption = { id: number, title: string, group?: string }
+/** `direct` is the direct area of the group, listed ahead of its sections. */
+type GroupOption = { id: number, label: string, direct?: SectionOption, sections: SectionOption[] }
 
 type DialogAutomationsProps = {
     noteId: number
@@ -56,11 +58,15 @@ const stepReachable = (step: number, draft: AutomationDraft) => STEPS.slice(0, s
 async function loadDialogData(noteId: number): Promise<DialogData> {
     const [rules, data] = await Promise.all([getDBAutomations(noteId), getDBNoteData(noteId)])
     const tree = buildNoteTree(data?.groups ?? [], data?.sections ?? [], data?.tasks ?? [])
-    const groups = tree.groups.map((group, index) => ({
-        id: group.id,
-        label: group.name?.trim() || i18n.t("groups.defaultLabel", { index: index + 1 }),
-        sections: group.sections.map(section => ({ id: section.id, title: section.title })),
-    }))
+    const groups = tree.groups.map((group, index): GroupOption => {
+        const label = group.name?.trim() || i18n.t("groups.defaultLabel", { index: index + 1 })
+        return {
+            id: group.id,
+            label,
+            direct: group.defaultSection ? { id: group.defaultSection.id, title: i18n.t("automations.directTasks", { group: label }), group: label } : undefined,
+            sections: group.sections.map(section => ({ id: section.id, title: section.title })),
+        }
+    })
     return { rules, groups }
 }
 
@@ -91,6 +97,8 @@ const sameActions = (a: AutomationTriggerType, b: AutomationTriggerType) =>
 function defaultTrigger(type: AutomationTriggerType, sectionId: number | null, sections: SectionOption[], groupId: number | null = null): AutomationTrigger {
     if (isGroupTrigger(type)) return { type, groupId } as AutomationTrigger
     if (type === "task.movedInto") return { type, sectionId: sectionId ?? sections[0].id }
+    // The colors of the state triggers belong to the visible sections: the direct area of a group is not offered for them
+    if (isStateTrigger(type) && sections.find(section => section.id === sectionId)?.group !== undefined) return { type, sectionId: null } as AutomationTrigger
     return { type, sectionId } as AutomationTrigger
 }
 
@@ -115,8 +123,11 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
     // The state rules (colors by open tasks) align the open note right away; not awaited, the list does not wait for it
     const resync = () => { sync().catch(err => reportError(err, getErrorMessage(err))) }
 
-    const sections = useMemo(() => groups.flatMap(group => group.sections), [groups])
-    const titleOf = useCallback((id: number) => sections.find(section => section.id === id)?.title, [sections])
+    const sections = useMemo(() => groups.flatMap(group => group.direct ? [group.direct, ...group.sections] : group.sections), [groups])
+    const titleOf = useCallback((id: number): SectionName | undefined => {
+        const section = sections.find(candidate => candidate.id === id)
+        return section?.group !== undefined ? { group: section.group } : section?.title
+    }, [sections])
     const groupLabelOf = useCallback((id: number) => groups.find(group => group.id === id)?.label, [groups])
 
     const apply = useCallback((data: DialogData) => {
@@ -423,7 +434,7 @@ type AutomationEditorProps = {
     draft: AutomationDraft
     groups: GroupOption[]
     sections: SectionOption[]
-    titleOf: (id: number) => string | undefined
+    titleOf: (id: number) => SectionName | undefined
     groupLabelOf: (id: number) => string | undefined
     /** The section / group the dialog was opened for: where a new state trigger starts. */
     openedSectionId: number | null
@@ -436,9 +447,10 @@ const ANY = "any"
 const NO_COLOR = "none"
 
 /** A select whose value is a section id (grouped by group); a missing section is shown as such instead of silently picking another one. */
-const SectionSelect = ({ value, groups, sections, onChange, allowAny, label, className, id }: {
+const SectionSelect = ({ value, groups, sections, onChange, allowAny, noDirect, label, className, id }: {
     value: number | null, groups: GroupOption[], sections: SectionOption[], onChange: (id: number | null) => void,
-    allowAny?: boolean, label: string, className?: string, id?: string,
+    /** `noDirect` leaves out the direct area of the groups (the state triggers color the visible sections only). */
+    allowAny?: boolean, noDirect?: boolean, label: string, className?: string, id?: string,
 }) => {
     const { t } = useTranslation()
     const missing = value !== null && !sections.some(section => section.id === value)
@@ -448,9 +460,10 @@ const SectionSelect = ({ value, groups, sections, onChange, allowAny, label, cla
             <SelectContent>
                 {allowAny && <SelectItem value={ANY}>{t("automations.anySection")}</SelectItem>}
                 {missing && <SelectItem value={String(value)}>{t("automations.describe.missingSection")}</SelectItem>}
-                {groups.filter(group => group.sections.length > 0).map(group => (
+                {groups.filter(group => group.sections.length > 0 || (group.direct && !noDirect)).map(group => (
                     <SelectGroup key={group.id}>
                         <SelectLabel>{group.label}</SelectLabel>
+                        {group.direct && !noDirect && <SelectItem value={String(group.direct.id)}>{group.direct.title}</SelectItem>}
                         {group.sections.map(section => <SelectItem key={section.id} value={String(section.id)}>{section.title}</SelectItem>)}
                     </SelectGroup>
                 ))}
@@ -551,6 +564,7 @@ const AutomationEditor = ({ step, draft, groups, sections, titleOf, groupLabelOf
                                 groups={groups}
                                 sections={sections}
                                 allowAny={trigger.type !== "task.movedInto"}
+                                noDirect={isStateTrigger(trigger.type)}
                                 onChange={id => onChange({ ...draft, trigger: defaultTrigger(trigger.type, id, sections) })}
                             />
                         )}

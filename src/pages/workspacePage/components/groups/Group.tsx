@@ -1,11 +1,19 @@
 import type { Group as GroupType } from "@/types/types"
-import { memo, useCallback, useLayoutEffect, useRef } from "react"
+import { memo, useCallback, useLayoutEffect, useRef, useState } from "react"
 import { Section } from "../section/Section"
 import { AddSection } from "../section/AddSection"
 import { GroupHeader } from "./GroupHeader"
-import { cn } from "@/lib/utils"
+import { cn, getErrorMessage } from "@/lib/utils"
+import { useTranslation } from "react-i18next"
+import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { useActiveNoteActions } from "@/contexts/use-active-note"
+import { withRollback } from "@/contexts/with-rollback"
+import { reportError } from "@/lib/report-error"
+import { GROUP_MIN_WIDTH, GROUP_PROGRESS_MIN_WIDTH } from "@/lib/group-width"
+import { GroupResizeHandle } from "./GroupResizeHandle"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { GroupAudioFiles } from "./GroupAudioFiles"
+import { GroupTasks } from "./GroupTasks"
 import { useGroupOpen } from "@/contexts/use-tabs"
 import { DropLine } from "../sidebar/DropLine"
 
@@ -35,14 +43,45 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
         setDragRef(node)
     }, [setDropRef, setDragRef])
     const draggingGroup = active?.kind === "group"
-    const [isOpen] = useGroupOpen(group.id)
+    const [isOpen, toggleOpen] = useGroupOpen(group.id)
+    const { t } = useTranslation()
+    const { setGroupWidth } = useWorkspaceActions()
+    const { patchGroup } = useActiveNoteActions()
+    // Width while the user is resizing; kept until the saved one lands, so the group never flickers back
+    const [liveWidth, setLiveWidth] = useState<number | null>(null)
+    const width = liveWidth ?? group.width ?? null
+    // Only a width chosen by the user hides the completion bar: a group of automatic width (about the minimum one)
+    // keeps it, like before the width could be set
+    const compact = width !== null && width < GROUP_PROGRESS_MIN_WIDTH
+    const getWidth = useCallback(() => nodeRef.current?.offsetWidth ?? GROUP_MIN_WIDTH, [])
+    const commitWidth = useCallback(async (next: number | null) => {
+        try {
+            await withRollback(patchGroup(group.id, { width: next }), () => setGroupWidth(group.id, next))
+        } catch (error) {
+            reportError(error, t("errors.group.updateWidth", { message: getErrorMessage(error) }))
+        } finally {
+            setLiveWidth(null)
+        }
+    }, [group.id, patchGroup, setGroupWidth, t])
+    // The form of a new section: asked from the menu of the group (there is no section button in the group anymore)
+    const [addingSection, setAddingSection] = useState(false)
+    const closeSectionForm = useCallback(() => setAddingSection(false), [])
+    const addSection = useCallback(() => {
+        if (!isOpen) toggleOpen()
+        setAddingSection(true)
+    }, [isOpen, toggleOpen])
 
     // While open, follow the width of the group (its content can grow or shrink); the cleanup runs before the
     // sections are removed from the DOM, so the width of the collapsed group is never recorded
     useLayoutEffect(() => {
         const node = nodeRef.current
         if (!node || !isOpen) return
-        const record = () => { openWidths.set(group.id, node.getBoundingClientRect().width) }
+        const record = () => {
+            const measured = node.getBoundingClientRect().width
+            // An element that is not laid out (width 0) says nothing
+            if (measured <= 0) return
+            openWidths.set(group.id, measured)
+        }
         record()
         const observer = new ResizeObserver(record)
         observer.observe(node)
@@ -52,11 +91,14 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
     return (
         <div
             ref={setRef}
-            style={isOpen ? undefined : { minWidth: openWidths.get(group.id) }}
+            data-group-card
+            // An explicit width (also while collapsed) replaces the content-driven one
+            style={width !== null ? { width } : isOpen ? undefined : { minWidth: openWidths.get(group.id) }}
             className={cn(
                 // Same minimum width as a section: an empty group would otherwise shrink to "Nuova sezione" and clip its header.
                 // Readable column: at most 32rem, so long task texts and audio names wrap or truncate instead of widening it
-                "relative flex flex-col gap-1 h-full min-w-[250px] max-w-[32rem] rounded-xs",
+                "relative flex flex-col gap-1 h-full min-w-[250px] rounded-xs",
+                width === null && "max-w-[32rem]",
                 isDragging && "opacity-40",
                 !draggingGroup && zone && "ring-2 ring-primary",
             )}
@@ -67,14 +109,19 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
                 index={index}
                 audioCount={audioCount}
                 dragProps={dragProps}
+                compact={compact}
+                onAddSection={addSection}
             />
             {isOpen && <>
                 <GroupAudioFiles groupId={group.id} />
+                {/* Direct tasks, their "New task" button, the sections and the form of a new section scroll together */}
                 <div className="flex flex-col gap-1 overflow-y-auto">
+                    <GroupTasks group={group} />
                     {group.sections.map(section => <Section key={section.id} section={section} />)}
+                    <AddSection inGroup groupId={group.id} open={addingSection} onClose={closeSectionForm} />
                 </div>
-                <AddSection inGroup groupId={group.id} />
             </>}
+            <GroupResizeHandle getWidth={getWidth} width={width} onResize={setLiveWidth} onCommit={commitWidth} />
         </div>
     )
 })

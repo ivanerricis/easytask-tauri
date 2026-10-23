@@ -163,6 +163,7 @@ export const AppMenu = ({ page }: AppMenuProps) => {
                         <ShortcutItem id="redo" icon={Redo2} label={t("appMenu.redo")} />
                         <MenubarSeparator />
                         <ShortcutItem id="search-notes" icon={Search} label={t("appMenu.searchNotes")} />
+                        <ShortcutItem id="search-in-note" icon={Search} label={t("appMenu.searchInNote")} />
                     </MenubarContent>
                 </MenubarMenu>
             )}

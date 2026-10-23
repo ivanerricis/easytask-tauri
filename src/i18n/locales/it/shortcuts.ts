@@ -13,6 +13,7 @@ export const shortcuts = {
         "redo": "Ripeti l'azione annullata",
         "redo-alt": "Ripeti l'azione annullata (alternativa)",
         "search-notes": "Cerca una nota",
+        "search-in-note": "Cerca nella nota",
         "new-note": "Nuova nota",
         "new-folder": "Nuova cartella",
         "close-note": "Chiudi la nota attiva",

@@ -6,7 +6,7 @@ import { DatabaseSync, type SQLInputValue } from "node:sqlite"
 import type Database from "@tauri-apps/plugin-sql"
 import { createMockDb, type MockDb } from "@/test/db-mock"
 import { initDB, legacyDbMessage, newerDbMessage } from "./initDb"
-import { APPLICATION_ID, archiveSchema, initialSchema, latestSchema, taskArchiveSchema } from "./schema/initial"
+import { APPLICATION_ID, archiveSchema, groupStructureSchema, initialSchema, latestSchema, taskArchiveSchema } from "./schema/initial"
 import { automationSchema } from "./schema/automation"
 import { addGroupColorColumn } from "./schema/section_group"
 import { createWorkspaceEditTriggers } from "./schema/workspace_edit"
@@ -44,8 +44,8 @@ describe("initDB final schema", () => {
         await initDB(adapter())
     })
 
-    it("sets user_version to 7 and the application id", () => {
-        expect(pragma("user_version")).toBe(7)
+    it("sets user_version to 8 and the application id", () => {
+        expect(pragma("user_version")).toBe(8)
         expect(pragma("application_id")).toBe(APPLICATION_ID)
     })
 
@@ -62,7 +62,7 @@ describe("initDB final schema", () => {
             "idx_folder_name", "idx_folder_parent", "idx_folder_workspace_parent",
             "idx_note_name", "idx_note_parent", "idx_note_template_name", "idx_note_template_source",
             "idx_note_template_workspace", "idx_note_workspace_parent",
-            "idx_section_group_note", "idx_section_parent", "idx_section_title",
+            "idx_section_default", "idx_section_group_note", "idx_section_parent", "idx_section_title",
             "idx_task_parent", "idx_task_section",
             "idx_workspace_name",
         ])
@@ -113,12 +113,12 @@ describe("initDB behaviour", () => {
         await initDB(adapter())
         expect(sqlite.prepare("SELECT type, name, sql FROM sqlite_master ORDER BY name").all()).toEqual(snapshot)
         expect(sqlite.prepare("SELECT name FROM workspace").all()).toEqual([{ name: "WS" }])
-        expect(pragma("user_version")).toBe(7)
+        expect(pragma("user_version")).toBe(8)
     })
 
     it("does not execute anything when already at the latest version", async () => {
         const db: MockDb = createMockDb()
-        db.select.mockResolvedValueOnce([{ user_version: 7 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
+        db.select.mockResolvedValueOnce([{ user_version: 8 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
         await initDB(db as unknown as Database)
         expect(db.execute).not.toHaveBeenCalled()
     })
@@ -127,14 +127,14 @@ describe("initDB behaviour", () => {
         const db: MockDb = createMockDb()
         db.select.mockResolvedValueOnce([{ user_version: 0 }])
         await initDB(db as unknown as Database)
-        expect(db.execute.mock.calls.map(c => c[0])).toEqual([...initialSchema, "PRAGMA user_version = 1", addGroupColorColumn, "PRAGMA user_version = 2", ...createWorkspaceEditTriggers, "PRAGMA user_version = 3", ...archiveSchema, "PRAGMA user_version = 4", ...automationSchema, "PRAGMA user_version = 5", ...taskArchiveSchema, "PRAGMA user_version = 6", ...sectionTitleSchema, "PRAGMA user_version = 7"])
+        expect(db.execute.mock.calls.map(c => c[0])).toEqual([...initialSchema, "PRAGMA user_version = 1", addGroupColorColumn, "PRAGMA user_version = 2", ...createWorkspaceEditTriggers, "PRAGMA user_version = 3", ...archiveSchema, "PRAGMA user_version = 4", ...automationSchema, "PRAGMA user_version = 5", ...taskArchiveSchema, "PRAGMA user_version = 6", ...sectionTitleSchema, "PRAGMA user_version = 7", ...groupStructureSchema, "PRAGMA user_version = 8"])
     })
 
     it("treats an empty PRAGMA result as a fresh database", async () => {
         const db: MockDb = createMockDb()
         db.select.mockResolvedValueOnce([])
         await initDB(db as unknown as Database)
-        expect(db.execute.mock.calls.at(-1)?.[0]).toBe("PRAGMA user_version = 7")
+        expect(db.execute.mock.calls.at(-1)?.[0]).toBe("PRAGMA user_version = 8")
     })
 
     it("refuses a legacy database (user_version > 0 without the application id) and leaves it untouched", async () => {
@@ -155,7 +155,7 @@ describe("initDB behaviour", () => {
 
     it("refuses a database of a newer version", async () => {
         const db: MockDb = createMockDb()
-        db.select.mockResolvedValueOnce([{ user_version: 8 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
+        db.select.mockResolvedValueOnce([{ user_version: 9 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
         await expect(initDB(db as unknown as Database)).rejects.toThrow(newerDbMessage())
         expect(db.execute).not.toHaveBeenCalled()
     })
@@ -206,7 +206,7 @@ describe("initDB v2 (group color)", () => {
     it("migrates a real v1 database to v2 preserving its data and application id", async () => {
         makeV1()
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(7)
+        expect(pragma("user_version")).toBe(8)
         expect(pragma("application_id")).toBe(APPLICATION_ID)
         expect(sqlite.prepare("SELECT id, name, color FROM section_group").all()).toEqual([{ id: 1, name: "Idee", color: null }])
         expect(sqlite.prepare("SELECT name FROM note").all()).toEqual([{ name: "N" }])
@@ -216,14 +216,14 @@ describe("initDB v2 (group color)", () => {
     it("a v1 and a fresh database end up with the same columns", async () => {
         makeV1()
         await initDB(adapter())
-        expect(columns("section_group")).toEqual(["id", "noteID", "position", "deleted_at", "name", "color", "archived_at"])
+        expect(columns("section_group")).toEqual(["id", "noteID", "position", "deleted_at", "name", "color", "archived_at", "width"])
     })
 
     it("retries safely when the column exists but the version was not bumped", async () => {
         makeV1()
         sqlite.exec("ALTER TABLE section_group ADD COLUMN color TEXT CHECK (LENGTH(color) > 0) DEFAULT NULL")
         await expect(initDB(adapter())).resolves.toBeUndefined()
-        expect(pragma("user_version")).toBe(7)
+        expect(pragma("user_version")).toBe(8)
     })
 
     it("still fails on other ALTER errors", async () => {
@@ -314,13 +314,13 @@ describe("initDB v3 (workspace edit triggers)", () => {
         for (const q of [...initialSchema, addGroupColorColumn]) sqlite.exec(q)
         sqlite.exec("PRAGMA user_version = 2")
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(7)
+        expect(pragma("user_version")).toBe(8)
         expect(names("trigger").filter(n => n.startsWith("workspace_edit_on_"))).toHaveLength(21)
     })
 })
 
 describe("initDB beforeMigrate", () => {
-    const latest = 7
+    const latest = 8
 
     it("is not called for a new database", async () => {
         const beforeMigrate = vi.fn()
@@ -378,20 +378,20 @@ describe("initDB v4 (archive)", () => {
     it("adds archived_at to folder, note, section_group and section, and drops the old archived flags", async () => {
         makeV3()
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(7)
+        expect(pragma("user_version")).toBe(8)
         for (const t of ["folder", "note", "section_group", "section"]) expect(columns(t)).toContain("archived_at")
         // The old `archived` flag is gone; v6 adds the archive date to the tasks
         expect(columns("task")).not.toContain("archived")
         expect(columns("task")).toContain("archived_at")
         expect(columns("section")).not.toContain("archived")
         expect(columns("task")).not.toContain("archived")
-        expect(sqlite.prepare("SELECT archived_at FROM section").all()).toEqual([{ archived_at: null }])
+        expect(sqlite.prepare("SELECT archived_at FROM section WHERE is_default = 0").all()).toEqual([{ archived_at: null }])
     })
 
     it("keeps the data, the foreign keys and the application id", async () => {
         makeV3()
         await initDB(adapter())
-        expect(sqlite.prepare("SELECT title FROM section").all()).toEqual([{ title: "S" }])
+        expect(sqlite.prepare("SELECT title FROM section WHERE is_default = 0").all()).toEqual([{ title: "S" }])
         expect(sqlite.prepare("SELECT text FROM task").all()).toEqual([{ text: "T" }])
         expect(sqlite.prepare("SELECT name FROM folder").all()).toEqual([{ name: "F" }])
         expect(sqlite.prepare("PRAGMA foreign_key_check").all()).toEqual([])
@@ -405,8 +405,8 @@ describe("initDB v4 (archive)", () => {
         expect(sqlOf("update_task_edit_timestamp")).not.toMatch(/archived/)
         for (const [table, set] of [["section", "title = 'X'"], ["task", "text = 'X'"]] as const) {
             sqlite.exec(`UPDATE ${table} SET edit_date = '2000-01-01', edit_time = '00:00'`)
-            sqlite.exec(`UPDATE ${table} SET ${set}`)
-            expect(sqlite.prepare(`SELECT edit_date FROM ${table}`).get(), table).not.toEqual({ edit_date: "2000-01-01" })
+            sqlite.exec(`UPDATE ${table} SET ${set} WHERE id = 1`)
+            expect(sqlite.prepare(`SELECT edit_date FROM ${table} WHERE id = 1`).get(), table).not.toEqual({ edit_date: "2000-01-01" })
         }
         // archiving is not a content edit
         sqlite.exec("UPDATE section SET edit_date = '2000-01-01'")
@@ -469,7 +469,7 @@ describe("initDB v4 (archive)", () => {
         sqlite.exec("ALTER TABLE section DROP COLUMN archived")
         sqlite.exec("ALTER TABLE task DROP COLUMN archived")
         await expect(initDB(adapter())).resolves.toBeUndefined()
-        expect(pragma("user_version")).toBe(7)
+        expect(pragma("user_version")).toBe(8)
         expect(names("trigger")).toContain("update_task_edit_timestamp")
         expect(names("trigger")).toContain("update_section_edit_timestamp")
         expect(columns("folder")).toContain("archived_at")
@@ -497,8 +497,8 @@ describe("initDB v7 (optional section title)", () => {
     it("keeps the sections and their tasks, and the foreign keys keep working", async () => {
         makeV6()
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(7)
-        expect(sqlite.prepare("SELECT id, title, color FROM section ORDER BY id").all()).toEqual([
+        expect(pragma("user_version")).toBe(8)
+        expect(sqlite.prepare("SELECT id, title, color FROM section WHERE is_default = 0 ORDER BY id").all()).toEqual([
             { id: 1, title: "S1", color: "#ff0000" }, { id: 2, title: "S2", color: null },
         ])
         expect(sqlite.prepare("SELECT COUNT(*) AS c FROM task").get()).toEqual({ c: 4 })
@@ -537,5 +537,105 @@ describe("initDB v7 (optional section title)", () => {
         expect(sqlite.prepare("SELECT COUNT(*) AS c FROM section").get()).toEqual({ c: 2 })
         expect(sqlite.prepare("SELECT COUNT(*) AS c FROM task").get()).toEqual({ c: 4 })
         expect(names("trigger")).toEqual(triggersBefore)
+    })
+})
+
+describe("initDB v8 (default section, group width)", () => {
+    // A real v7 database: a workspace with a live, a trashed and an archived group, one of them already holding sections and tasks
+    const makeV7 = () => {
+        sqlite = new DatabaseSync(":memory:")
+        sqlite.exec("PRAGMA foreign_keys=ON")
+        for (const q of [...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema])
+            sqlite.exec(q)
+        sqlite.exec("PRAGMA user_version = 7")
+        sqlite.exec(`
+            INSERT INTO workspace (id, name) VALUES (1, 'WS'), (2, 'Other');
+            INSERT INTO note (id, workspaceID, name, position) VALUES (1, 1, 'N', 0), (2, 2, 'M', 0);
+            INSERT INTO section_group (id, noteID, name, position) VALUES (1, 1, 'G', 0), (2, 1, 'Trashed', 1), (3, 2, 'Archived', 0);
+            UPDATE section_group SET deleted_at = '2024-01-01' WHERE id = 2;
+            UPDATE section_group SET archived_at = '2024-01-01' WHERE id = 3;
+            INSERT INTO section (id, groupID, title, position) VALUES (1, 1, 'S1', 0), (2, 1, NULL, 1);
+            INSERT INTO task (id, sectionID, text) VALUES (1, 1, 'T1');
+            UPDATE workspace SET edit_date = '2000-01-01', edit_time = '00:00';
+        `)
+    }
+    const defaults = () => sqlite.prepare("SELECT groupID, title, position, is_default FROM section WHERE is_default = 1 ORDER BY groupID").all()
+    const editDates = () => sqlite.prepare("SELECT id, edit_date, edit_time FROM workspace ORDER BY id").all()
+    const master = () => sqlite.prepare("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name").all()
+
+    it("creates exactly one default section per group, trashed and archived groups included", async () => {
+        makeV7()
+        await initDB(adapter())
+        expect(pragma("user_version")).toBe(8)
+        expect(defaults()).toEqual([1, 2, 3].map(groupID => ({ groupID, title: null, position: 0, is_default: 1 })))
+        expect(sqlite.prepare("SELECT COUNT(*) AS c FROM section").get()).toEqual({ c: 5 })
+        expect(sqlite.prepare("SELECT title FROM section WHERE is_default = 0 ORDER BY id").all()).toEqual([{ title: "S1" }, { title: null }])
+        expect(sqlite.prepare("SELECT COUNT(*) AS c FROM task").get()).toEqual({ c: 1 })
+        expect(sqlite.prepare("SELECT width FROM section_group").all()).toEqual([{ width: null }, { width: null }, { width: null }])
+        expect(sqlite.prepare("PRAGMA foreign_key_check").all()).toEqual([])
+    })
+
+    it("running the migration again creates no duplicates", async () => {
+        makeV7()
+        await initDB(adapter())
+        // the version was not bumped: the columns exist already and the backfill adds nothing
+        sqlite.exec("PRAGMA user_version = 7")
+        await initDB(adapter())
+        expect(defaults()).toHaveLength(3)
+        expect(sqlite.prepare("SELECT COUNT(*) AS c FROM section").get()).toEqual({ c: 5 })
+    })
+
+    it("does not change the edit date of the workspaces", async () => {
+        makeV7()
+        await initDB(adapter())
+        expect(editDates()).toEqual([{ id: 1, edit_date: "2000-01-01", edit_time: "00:00" }, { id: 2, edit_date: "2000-01-01", edit_time: "00:00" }])
+    })
+
+    it("allows only one default section per group", async () => {
+        makeV7()
+        await initDB(adapter())
+        expect(() => sqlite.exec("INSERT INTO section (groupID, title, is_default) VALUES (1, NULL, 1)")).toThrow(/UNIQUE/)
+        // another group may have its own, and any number of normal sections can coexist with it
+        sqlite.exec("INSERT INTO section_group (id, noteID, position) VALUES (4, 1, 2)")
+        expect(() => sqlite.exec("INSERT INTO section (groupID, title, is_default) VALUES (4, NULL, 1)")).not.toThrow()
+        expect(() => sqlite.exec("INSERT INTO section (groupID, title) VALUES (4, NULL), (4, NULL)")).not.toThrow()
+    })
+
+    it("recreates the workspace insert trigger: a new section still refreshes the workspace", async () => {
+        makeV7()
+        await initDB(adapter())
+        expect(names("trigger")).toContain("workspace_edit_on_section_insert")
+        sqlite.exec("INSERT INTO section (groupID, title) VALUES (1, 'New')")
+        expect(sqlite.prepare("SELECT edit_date FROM workspace WHERE id = 1").get()).not.toEqual({ edit_date: "2000-01-01" })
+        expect(sqlite.prepare("SELECT edit_date FROM workspace WHERE id = 2").get()).toEqual({ edit_date: "2000-01-01" })
+    })
+
+    it("recovers when a previous run stopped with the trigger dropped", async () => {
+        makeV7()
+        sqlite.exec("ALTER TABLE section ADD COLUMN is_default BOOLEAN NOT NULL DEFAULT FALSE; DROP TRIGGER workspace_edit_on_section_insert")
+        await initDB(adapter())
+        expect(names("trigger")).toContain("workspace_edit_on_section_insert")
+        expect(defaults()).toHaveLength(3)
+    })
+
+    it("adds the width column with a positive check", async () => {
+        makeV7()
+        await initDB(adapter())
+        expect(() => sqlite.exec("UPDATE section_group SET width = 320 WHERE id = 1")).not.toThrow()
+        expect(() => sqlite.exec("UPDATE section_group SET width = 0 WHERE id = 1")).toThrow(/CHECK/)
+        expect(() => sqlite.exec("UPDATE section_group SET width = NULL WHERE id = 1")).not.toThrow()
+    })
+
+    it("a migrated and a fresh database have the same schema", async () => {
+        await initDB(adapter())
+        const fresh = master()
+        makeV7()
+        await initDB(adapter())
+        expect(master()).toEqual(fresh)
+        expect(columns("section")).toContain("is_default")
+        expect(columns("section_group")).toContain("width")
+        sqlite = new DatabaseSync(":memory:")
+        for (const q of latestSchema) sqlite.exec(q)
+        expect(master()).toEqual(fresh)
     })
 })

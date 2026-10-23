@@ -14,6 +14,8 @@ export const audio = {
         unmute: "Riattiva l'audio",
         speed: "Velocità di riproduzione: {{rate}}×",
         move: "Sposta il player",
+        pin: "Fissa la posizione del lettore",
+        unpin: "Sblocca la posizione del lettore",
     },
     nowPlaying: "In riproduzione",
     paused: "In pausa",

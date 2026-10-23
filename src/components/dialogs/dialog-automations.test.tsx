@@ -392,3 +392,83 @@ describe("DialogAutomations", () => {
         })
     })
 })
+
+describe("DialogAutomations with the direct area of a group", () => {
+    // Every group has its hidden default section (the direct area): 7 in "Flusso", 8 in the unnamed group
+    const withDirect = {
+        ...noteData,
+        sections: [
+            { id: 7, groupID: 1, title: null, position: 0, is_default: 1, ...dates },
+            ...noteData.sections,
+            { id: 8, groupID: 2, title: null, position: 0, is_default: 1, ...dates },
+        ],
+    }
+
+    beforeEach(() => {
+        mocked(getDBNoteData).mockResolvedValue(withDirect as never)
+    })
+
+    it("offers one entry per group, labelled with the group, ahead of its sections", async () => {
+        const user = userEvent.setup()
+        renderDialog()
+        await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+        await user.click(screen.getByRole("combobox", { name: "In quale sezione" }))
+        const options = (await screen.findAllByRole("option")).map(option => option.textContent)
+        expect(options).toEqual(["Qualsiasi sezione", "Flusso, task diretti", "Doing", "Done", "Gruppo 2, task diretti"])
+    })
+
+    it("saves a rule that moves into the direct tasks of a group and describes it", async () => {
+        const user = userEvent.setup()
+        renderDialog()
+        await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+        await pick(user, "In quale sezione", "Doing")
+        await click(user, "Avanti")
+        await pick(user, "Sposta in", "Gruppo 2, task diretti")
+        await click(user, "Avanti")
+        expect(screen.getByText("Quando un task viene completato in \"Doing\", sposta in fondo ai task diretti di \"Gruppo 2\"")).toBeInTheDocument()
+        await user.click(screen.getByRole("button", { name: "Salva" }))
+        await waitFor(() => expect(createDBAutomation).toHaveBeenCalledWith(1, {
+            name: null, enabled: true,
+            trigger: { type: "task.completed", sectionId: 1 },
+            actions: [{ type: "moveTo", sectionId: 8, at: "bottom" }],
+        }))
+    })
+
+    it("uses the direct area as the place of the trigger", async () => {
+        const user = userEvent.setup()
+        renderDialog()
+        await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+        await pick(user, "In quale sezione", "Flusso, task diretti")
+        await click(user, "Avanti")
+        await click(user, "Avanti")
+        await user.click(screen.getByRole("button", { name: "Salva" }))
+        await waitFor(() => expect(createDBAutomation).toHaveBeenCalledWith(1, expect.objectContaining({
+            trigger: { type: "task.completed", sectionId: 7 },
+        })))
+    })
+
+    it("lists a saved rule on the direct area with its sentence", async () => {
+        mocked(getDBAutomations).mockResolvedValue([rule({
+            name: null, trigger: { type: "task.movedInto", sectionId: 7 }, actions: [{ type: "moveTo", sectionId: 2, at: "top" }],
+        })])
+        renderDialog()
+        expect(await screen.findByText("Quando un task arriva nei task diretti di \"Flusso\", sposta in cima a \"Done\"")).toBeInTheDocument()
+        expect(screen.queryByText("In pausa: sezione eliminata")).not.toBeInTheDocument()
+    })
+
+    it("does not offer the direct area to the state triggers (they color the visible sections)", async () => {
+        const user = userEvent.setup()
+        renderDialog()
+        await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+        await pick(user, "Quando", "una sezione non ha task da completare")
+        await user.click(screen.getByRole("combobox", { name: "In quale sezione" }))
+        const options = (await screen.findAllByRole("option")).map(option => option.textContent)
+        expect(options).toEqual(["Qualsiasi sezione", "Doing", "Done"])
+    })
+
+    it("a note whose groups have no section still lets a rule be created on the direct areas", async () => {
+        mocked(getDBNoteData).mockResolvedValue({ groups: noteData.groups, sections: [withDirect.sections[0]], tasks: [] } as never)
+        renderDialog()
+        expect(await screen.findByRole("button", { name: "Nuova automazione" })).toBeEnabled()
+    })
+})

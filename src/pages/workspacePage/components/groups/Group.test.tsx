@@ -1,18 +1,33 @@
-import { render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Group } from "./Group"
-import { makeGroup } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection } from "@/test/ui-fixtures"
 
 const groupOpen = { value: true }
-vi.mock("@/contexts/use-tabs", () => ({ useGroupOpen: () => [groupOpen.value, vi.fn()] }))
+const toggleOpen = vi.fn()
+vi.mock("@/contexts/use-tabs", () => ({ useGroupOpen: () => [groupOpen.value, toggleOpen] }))
 vi.mock("../note-dnd-state", () => ({
     useNoteDrop: () => ({ setNodeRef: vi.fn(), zone: null, active: null }),
     useNoteDrag: () => ({ setNodeRef: vi.fn(), setActivatorNodeRef: vi.fn(), attributes: {}, listeners: {}, isDragging: false }),
 }))
-vi.mock("./GroupHeader", () => ({ GroupHeader: () => <div>header</div> }))
+// The header is a sibling of the button that stands for the "Nuova sezione" entry of its menu
+vi.mock("./GroupHeader", () => ({
+    GroupHeader: ({ compact, onAddSection }: { compact?: boolean, onAddSection?: () => void }) =>
+        <><div data-compact={String(!!compact)}>header</div><button onClick={onAddSection}>menu nuova sezione</button></>,
+}))
+const setGroupWidth = vi.fn()
+const patchGroup = vi.fn()
+const rollback = vi.fn()
+const reportError = vi.fn()
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ setGroupWidth }) }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchGroup }) }))
+vi.mock("@/lib/report-error", async importOriginal => ({ ...await importOriginal<object>(), reportError: (...args: unknown[]) => reportError(...args) }))
 vi.mock("./GroupAudioFiles", () => ({ GroupAudioFiles: () => null }))
 vi.mock("../section/Section", () => ({ Section: () => <div>section</div> }))
-vi.mock("../section/AddSection", () => ({ AddSection: () => <div>add section</div> }))
+vi.mock("./GroupTasks", () => ({ GroupTasks: () => <div>direct tasks</div> }))
+vi.mock("../section/AddSection", () => ({
+    AddSection: ({ open, onClose }: { open?: boolean, onClose?: () => void }) => open ? <button onClick={onClose}>form sezione</button> : null,
+}))
 
 class FakeResizeObserver {
     static instances: FakeResizeObserver[] = []
@@ -31,6 +46,11 @@ let width = 0
 
 beforeEach(() => {
     groupOpen.value = true
+    toggleOpen.mockClear()
+    setGroupWidth.mockReset().mockResolvedValue(undefined)
+    patchGroup.mockReset().mockReturnValue(rollback)
+    rollback.mockReset()
+    reportError.mockReset()
     FakeResizeObserver.instances = []
     vi.stubGlobal("ResizeObserver", FakeResizeObserver)
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(() => ({ width }) as DOMRect)
@@ -95,3 +115,130 @@ describe("Group width when collapsed", () => {
     })
 })
 
+
+describe("Group explicit width", () => {
+    const handle = () => screen.getByRole("separator")
+    const drag = (by: number) => {
+        fireEvent.mouseDown(handle(), { clientX: 100 })
+        fireEvent.mouseMove(window, { clientX: 100 + by })
+    }
+
+    it("applies the saved width and drops the cap of the content-driven one", () => {
+        render(<Group group={makeGroup({ id: 201, width: 480 })} />)
+        expect(root().style.width).toBe("480px")
+        expect(root()).not.toHaveClass("max-w-[32rem]")
+    })
+
+    it("keeps the old behaviour when the width is null", () => {
+        render(<Group group={makeGroup({ id: 202, width: null })} />)
+        expect(root().style.width).toBe("")
+        expect(root()).toHaveClass("max-w-[32rem]")
+    })
+
+    it("keeps the explicit width when the group is collapsed", () => {
+        groupOpen.value = false
+        render(<Group group={makeGroup({ id: 203, width: 400 })} />)
+        expect(root().style.width).toBe("400px")
+        expect(root().style.minWidth).toBe("")
+    })
+
+    it("follows the drag live and saves the width once, on mouse up", async () => {
+        render(<Group group={makeGroup({ id: 204 })} />)
+        drag(60)
+        expect(root().style.width).toBe("310px")
+        expect(patchGroup).not.toHaveBeenCalled()
+
+        fireEvent.mouseUp(window)
+        await waitFor(() => expect(setGroupWidth).toHaveBeenCalledTimes(1))
+        expect(patchGroup).toHaveBeenCalledWith(204, { width: 310 })
+        expect(setGroupWidth).toHaveBeenCalledWith(204, 310)
+    })
+
+    it("restores the previous width and reports the error when saving fails", async () => {
+        setGroupWidth.mockRejectedValue(new Error("boom"))
+        render(<Group group={makeGroup({ id: 205, width: 400 })} />)
+        drag(50)
+        fireEvent.mouseUp(window)
+
+        await waitFor(() => expect(reportError).toHaveBeenCalled())
+        expect(rollback).toHaveBeenCalled()
+        expect(String(reportError.mock.calls[0][1])).toContain("boom")
+        expect(root().style.width).toBe("400px")
+    })
+
+    it("goes back to the automatic width on double click", async () => {
+        render(<Group group={makeGroup({ id: 206, width: 400 })} />)
+        fireEvent.doubleClick(handle())
+        await waitFor(() => expect(setGroupWidth).toHaveBeenCalledWith(206, null))
+        expect(patchGroup).toHaveBeenCalledWith(206, { width: null })
+    })
+
+    it("does not start the drag of the group from the handle", () => {
+        const onPointerDown = vi.fn()
+        render(<div onPointerDown={onPointerDown}><Group group={makeGroup({ id: 207 })} /></div>)
+        fireEvent.pointerDown(handle())
+        expect(onPointerDown).not.toHaveBeenCalled()
+    })
+})
+
+describe("Group compact header", () => {
+    const compact = () => screen.getByText("header").getAttribute("data-compact")
+
+    it("is compact below the progress threshold and not above, for an explicit width", () => {
+        const { rerender } = render(<Group group={makeGroup({ id: 211, width: 300 })} />)
+        expect(compact()).toBe("true")
+        rerender(<Group group={makeGroup({ id: 211, width: 400 })} />)
+        expect(compact()).toBe("false")
+    })
+
+    it("is never compact when the width is automatic, however narrow the group is measured", () => {
+        width = 280
+        render(<Group group={makeGroup({ id: 212 })} />)
+        expect(compact()).toBe("false")
+        width = 200
+        act(() => FakeResizeObserver.instances.at(-1)?.fire())
+        expect(compact()).toBe("false")
+    })
+})
+
+describe("Group content", () => {
+    it("shows the direct tasks first, then the sections, and no section button", () => {
+        const group = makeGroup({ id: 110, defaultSection: makeDefaultSection({ id: 5 }), sections: [makeSection({ id: 6 })] })
+        render(<Group group={group} />)
+
+        const order = [screen.getByText("direct tasks"), screen.getByText("section")]
+        expect(order[0].compareDocumentPosition(order[1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(screen.queryByRole("button", { name: /Nuova sezione/ })).not.toBeInTheDocument()
+        expect(screen.queryByText("form sezione")).not.toBeInTheDocument()
+    })
+
+    it("still shows the direct tasks area in a group without sections", () => {
+        render(<Group group={makeGroup({ id: 111, defaultSection: makeDefaultSection({ id: 5 }) })} />)
+        expect(screen.getByText("direct tasks")).toBeInTheDocument()
+        expect(screen.queryByText("section")).not.toBeInTheDocument()
+    })
+
+    it("opens the form of a new section from the menu of the group and closes it again", () => {
+        render(<Group group={makeGroup({ id: 112 })} />)
+        fireEvent.click(screen.getByText("menu nuova sezione"))
+        expect(toggleOpen).not.toHaveBeenCalled()
+
+        fireEvent.click(screen.getByText("form sezione"))
+        expect(screen.queryByText("form sezione")).not.toBeInTheDocument()
+    })
+
+    it("expands a collapsed group when a section is asked from its menu", () => {
+        groupOpen.value = false
+        render(<Group group={makeGroup({ id: 113 })} />)
+        fireEvent.click(screen.getByText("menu nuova sezione"))
+        expect(toggleOpen).toHaveBeenCalledTimes(1)
+    })
+
+    it("shows only the header while collapsed", () => {
+        groupOpen.value = false
+        render(<Group group={makeGroup({ id: 114, defaultSection: makeDefaultSection({ id: 5 }), sections: [makeSection({ id: 6 })] })} />)
+        expect(screen.getByText("header")).toBeInTheDocument()
+        expect(screen.queryByText("direct tasks")).not.toBeInTheDocument()
+        expect(screen.queryByText("section")).not.toBeInTheDocument()
+    })
+})

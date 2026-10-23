@@ -1,6 +1,6 @@
 # Groups, sections and tasks
 
-The content of a note is organized in three levels. A note holds **groups**, shown side by side as columns. A group holds **sections**, stacked in the column. A section holds **tasks**, and a task can have **subtasks**, as deep as you need.
+The content of a note is organized in three levels. A note holds **groups**, shown side by side as columns. A group holds **sections**, stacked in the column. A section holds **tasks**, and a task can have **subtasks**, as deep as you need. A group can also hold tasks of its own, directly under its header, without any section.
 
 ![Task details](../screenshots/en/task-details-light.png){.light-only}
 ![Task details](../screenshots/en/task-details-dark.png){.dark-only}
@@ -10,7 +10,7 @@ The content of a note is organized in three levels. A note holds **groups**, sho
 ### Add them
 
 - Click **New group**, or press `Alt+N`, type a name and press `Enter`. `Esc` closes the field.
-- Inside a group, click **New section**, type a title and press `Enter`.
+- Inside a group, open its menu (the menu button of the group, or a right-click on its header), choose **New section**, type a title and press `Enter`. The field opens at the end of the group.
 
 The name is optional: press `Enter` on an empty field and the group or section is created without a name. EasyTask then shows **Group 1**, **Group 2**… or **Untitled section** in muted text. You can hide those labels with **Settings > Notes and sections > Show names of unnamed groups and sections**.
 
@@ -18,11 +18,14 @@ The name is optional: press `Enter` on an empty field and the group or section i
 
 Click the name to rename it in place (`Enter` saves, `Esc` cancels), or open the menu of the group or section with its menu button or a right-click.
 
+A right-click on the empty area of the note (outside any group, section or task) opens a small menu with **New group** and **Hide / Show completed tasks**.
+
 ![Group menu](../screenshots/en/group-menu-light.png)
 
 | Entry                                  | Group | Section | What it does                                                    |
 | -------------------------------------- | :---: | :-----: | --------------------------------------------------------------- |
 | **Add audio files**                    | yes   |         | Adds audio files to the group. See [Audio files](./audio).      |
+| **New section**                        | yes   |         | Opens the field for the title of a new section in the group.    |
 | **Duplicate**                          |       | yes     | Copies the section, with its tasks, right after the original.   |
 | **Rename**                             | yes   | yes     | Edits the name.                                                 |
 | **Change color**                       | yes   | yes     | Sets or removes the color.                                      |
@@ -44,12 +47,18 @@ You can also move things by dragging:
 
 Each group and section has a button to collapse it (**Collapse group**, **Collapse section**). A group can show how many sections, tasks and audio files it holds. Groups and sections can also show a progress bar with the percentage of completed tasks (for a group, tasks and subtasks all count). Choose what to show in **Settings > Notes and sections**: **Show progress bar in sections**, **Show progress bar in groups**, **Show number of sections**, **Show number of tasks**, **Show number of audio files**. The option **Lines between groups** draws a thin guide between the columns.
 
+### Resize a group
+
+Drag the right edge of a group to make it wider or narrower. With the keyboard, focus the edge and use `Left` and `Right` (hold `Shift` for bigger steps), `Home` for the narrowest width and `End` for the widest. Double-click the edge to restore the automatic width. The progress bar of a group disappears when the group gets too narrow to show it.
+
 ## Tasks and subtasks
 
 ### Add a task
 
-1. At the bottom of a section click the **+** button (**Add task**).
+1. At the bottom of a section click the **+** button (**Add task**). To add a task to a group without a section, click the dashed **New task** button of the group: it sits right under the tasks of the group, above its sections.
 2. Type the text in **New task…** and confirm with `Enter` or the add button. `Esc` closes the field.
+
+Tasks of a group count in its progress bar and in its task count. Drag one into a section, or the other way round, or use **Move to…** (the group appears in the list as **Group tasks**). **Move up** and **Move down** stay inside the same list.
 
 New tasks go to the end of the section. To put them at the top, choose **At the top** in **Settings > Notes and sections > Position of new tasks**.
 
@@ -94,9 +103,19 @@ Drag a task by its row. Drop it:
 
 **Move up**, **Move down** and **Move to…** in the menu do the same without dragging.
 
+### Select several tasks
+
+Hold **Ctrl** (**Cmd** on macOS) and click to add a task to the selection or remove it. Click a task with **Shift** to select every visible task between the last one you clicked and this one, across sections and groups. **Esc** clears the selection, and so does a plain click.
+
+Right click a selected task (or open its menu) to act on all of them at once: **Delete**, **Archive**, **Color** and **Move to…** (the end of a section, or the tasks directly in a group). A selected task stands for its subtasks too, so they are deleted, archived and moved with it. Each action is a single step in the [undo history](./undo-and-history.md). Dragging still moves one task at a time.
+
+## Search in a note
+
+Press `Ctrl+F` or click the magnifier in the path bar above the groups to open the search field. As you type, the matches are highlighted in the text of tasks and subtasks and in the names of sections and groups (not in task descriptions), ignoring case and accents, and the counter shows which one you are on, like "3 of 12". **Enter** goes to the next match and **Shift+Enter** to the previous one; the current match is stronger, scrolls into view and opens the collapsed group or section that contains it. Completed tasks that are hidden are not searched. **Esc** (or the close button) closes the field and clears the highlights.
+
 ## Hide completed tasks
 
-Press `Ctrl+Shift+H`, use the eye button on the active tab, or choose **View > Hide completed tasks**. Completed tasks and their subtasks disappear, and each section tells you how many are hidden. A completed task that still has an open subtask stays visible, so open work is never lost. Nothing is deleted: press the shortcut again to see them. To start hidden, use **Settings > Notes and sections > Hide completed tasks**.
+Press `Ctrl+Shift+H`, use the eye button in the path bar above the groups, or choose **View > Hide completed tasks**. Completed tasks and their subtasks disappear, and each section tells you how many are hidden. A completed task that still has an open subtask stays visible, so open work is never lost. Nothing is deleted: press the shortcut again to see them. To start hidden, use **Settings > Notes and sections > Hide completed tasks**.
 
 ## The details panel
 

@@ -129,3 +129,21 @@ export const makeSectionTitleOptional: string[] = [`
     COMMIT;
     PRAGMA foreign_keys = ON;
 `]
+
+/**
+ * Migration v8: every group gets one hidden default section (`is_default`, no title) that holds the tasks created
+ * directly in the group; the partial unique index allows at most one per group.
+ * The backfill covers ALL the groups (trashed and archived included) and runs with the workspace insert trigger dropped,
+ * so the migration does not change the edit dates of the workspaces; the trigger is created again right after.
+ * Every step is safe to run again after an interruption (the ADD COLUMN is retried safely by initDb).
+ * @category Database Schema
+ */
+export const addSectionDefaultFlag: string[] = [
+    `ALTER TABLE section ADD COLUMN is_default BOOLEAN NOT NULL DEFAULT FALSE;`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_section_default ON section(groupID) WHERE is_default = 1;`,
+    `DROP TRIGGER IF EXISTS workspace_edit_on_section_insert;`,
+    `INSERT INTO section (groupID, title, position, is_default)
+        SELECT g.id, NULL, 0, 1 FROM section_group g
+        WHERE NOT EXISTS (SELECT 1 FROM section s WHERE s.groupID = g.id AND s.is_default = 1);`,
+    triggersFor("section")[0],
+]

@@ -1,7 +1,7 @@
 import { useEffect } from "react"
-import { act, fireEvent, render, screen } from "@testing-library/react"
+import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { describe, expect, it, vi } from "vitest"
 import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 import { TabsProvider } from "@/contexts/tabs-context"
 import { useTabsActions } from "@/contexts/use-tabs"
@@ -13,8 +13,6 @@ vi.mock("@/hooks/use-inline-rename", () => ({
     useInlineRename: () => ({ editing: false, error: null, start: () => {}, inputProps: {} }),
 }))
 
-const prefs = { hideCompletedTasks: false, setHideCompletedTasks: vi.fn() }
-vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn().mockResolvedValue(false) }))
 vi.mock("@/lib/store/tabs", () => ({ getWorkspaceTabs: vi.fn(), saveWorkspaceTabs: vi.fn() }))
 vi.mock("./ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
@@ -38,50 +36,6 @@ const setup = () => render(
     </ShortcutsProvider>,
 )
 
-describe("NoteHeader hide completed toggle", () => {
-    beforeEach(() => {
-        prefs.hideCompletedTasks = false
-        prefs.setHideCompletedTasks.mockReset()
-    })
-
-    it("shows a single toggle, on the active tab, reflecting the preference with aria-pressed", async () => {
-        const { unmount } = setup()
-        await act(async () => { })
-        const button = screen.getByRole("button", { name: "Nascondi task completati" })
-        expect(button).toHaveAttribute("aria-pressed", "false")
-        expect(screen.getAllByRole("button", { name: "Nascondi task completati" })).toHaveLength(1)
-        unmount()
-
-        prefs.hideCompletedTasks = true
-        setup()
-        await act(async () => { })
-        expect(screen.getByRole("button", { name: "Nascondi task completati" })).toHaveAttribute("aria-pressed", "true")
-    })
-
-    it("toggles the preference on click without activating another tab", async () => {
-        setup()
-        await act(async () => { })
-        await userEvent.click(screen.getByRole("button", { name: "Nascondi task completati" }))
-        expect(prefs.setHideCompletedTasks).toHaveBeenCalledTimes(1)
-        expect(prefs.setHideCompletedTasks).toHaveBeenCalledWith(true)
-    })
-
-    it("toggles the preference once with Ctrl+Shift+H, whatever the number of open notes", async () => {
-        setup()
-        await act(async () => { })
-        fireEvent.keyDown(window, { key: "H", ctrlKey: true, shiftKey: true })
-        expect(prefs.setHideCompletedTasks).toHaveBeenCalledTimes(1)
-        expect(prefs.setHideCompletedTasks).toHaveBeenCalledWith(true)
-    })
-
-    it("does not trigger with Ctrl+H alone (go home)", async () => {
-        setup()
-        await act(async () => { })
-        fireEvent.keyDown(window, { key: "h", ctrlKey: true })
-        expect(prefs.setHideCompletedTasks).not.toHaveBeenCalled()
-    })
-})
-
 describe("NoteHeader active tab", () => {
     // Both tabs reserve the same border, so activating one never moves the others
     // (the box of the tab is the parent of the element with the tab role)
@@ -98,7 +52,7 @@ describe("NoteHeader active tab", () => {
         // no line under the active tab: it opens onto the note
         expect(tab("Due").className).toContain("border-b-transparent")
         expect(screen.getByText("Due").className).toContain("font-medium")
-        // a tab is not a container of buttons: the toggle and the close button are its siblings
+        // a tab is not a container of buttons: the close button is its sibling
         expect(tabButton("Due").querySelector("button")).toBeNull()
 
         expect(tabButton("Uno")).toHaveAttribute("aria-selected", "false")

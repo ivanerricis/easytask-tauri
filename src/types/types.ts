@@ -55,6 +55,10 @@ export type Group = {
     color?: string | null
     /** Set while the item is archived (hidden from the note/sidebar without being trashed); null/undefined = visible. */
     archived_at?: string | null
+    /** Width in pixels set by the user; null/undefined = the default width. */
+    width?: number | null
+    /** Hidden default section that holds the tasks created directly in the group (kept out of `sections`); null/undefined = not loaded. */
+    defaultSection?: Section | null
     sections: Section[]
 }
 
@@ -71,6 +75,8 @@ export type Section = {
     color?: string | null
     /** Set while the item is archived (hidden from the note/sidebar without being trashed); null/undefined = visible. */
     archived_at?: string | null
+    /** The hidden default section of a group (true, or 1 from the database); absent/false = a normal section. */
+    is_default?: boolean | number
     tasks: Task[]
 }
 

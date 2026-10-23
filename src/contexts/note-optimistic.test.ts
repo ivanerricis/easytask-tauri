@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest"
 import type { NoteDataTree } from "@/types/types"
-import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import { createNoteOptimisticActions } from "./note-optimistic"
 
 const initial = (): NoteDataTree => ({
@@ -115,8 +115,10 @@ describe("note optimistic actions", () => {
     it("append* build the new item with the database defaults, at the end of its siblings", () => {
         const actions = createNoteOptimisticActions(store)
 
-        expect(actions.appendGroup(5, 7, "  Nuovo ")).toBeTypeOf("function")
+        expect(actions.appendGroup(5, 7, "  Nuovo ", 50)).toBeTypeOf("function")
         expect(tree!.groups[2]).toMatchObject({ id: 5, noteID: 7, name: "Nuovo", position: 2, sections: [] })
+        // The group comes with its hidden default section (the direct tasks)
+        expect(tree!.groups[2].defaultSection).toMatchObject({ id: 50, groupID: 5, is_default: true, position: 0, tasks: [] })
 
         expect(actions.appendSection(6, 5, "Sez")).toBeTypeOf("function")
         expect(tree!.groups[2].sections[0]).toMatchObject({ id: 6, groupID: 5, title: "Sez", position: 0 })
@@ -145,7 +147,9 @@ describe("note optimistic actions", () => {
         expect(actions.appendSection(6, 999, "x")).toBeNull()
         expect(commits).toBe(0)
         tree = undefined
-        expect(actions.appendGroup(5, 7, "x")).toBeNull()
+        expect(actions.appendGroup(5, 7, "x", 50)).toBeNull()
+        tree = initial()
+        expect(actions.appendGroup(5, 7, "x", undefined as unknown as number)).toBeNull()
     })
 
     it("applySectionMove / applyTaskMove move the item and roll back to its origin", () => {
@@ -168,8 +172,9 @@ describe("note optimistic actions", () => {
         const actions = createNoteOptimisticActions(store)
         const original = tree
 
-        const undo = actions.applySectionMoveToNewGroup(10, 9, 1)!
+        const undo = actions.applySectionMoveToNewGroup(10, 9, 1, 90)!
         expect(tree!.groups.map(g => g.id)).toEqual([1, 9, 2])
+        expect(tree!.groups[1].defaultSection).toMatchObject({ id: 90, groupID: 9, is_default: true })
         expect(tree!.groups[1]).toMatchObject({ noteID: tree!.groups[0].noteID, position: 1, name: null })
         expect(tree!.groups[0].sections).toEqual([])
         expect(tree!.groups[1].sections.map(s => s.id)).toEqual([10])
@@ -179,8 +184,9 @@ describe("note optimistic actions", () => {
 
     it("applySectionMoveToNewGroup returns null when it cannot apply", () => {
         const actions = createNoteOptimisticActions(store)
-        expect(actions.applySectionMoveToNewGroup(10, undefined as unknown as number, 0)).toBeNull()
-        expect(actions.applySectionMoveToNewGroup(999, 9, 0)).toBeNull()
+        expect(actions.applySectionMoveToNewGroup(10, undefined as unknown as number, 0, 90)).toBeNull()
+        expect(actions.applySectionMoveToNewGroup(10, 9, 0, undefined as unknown as number)).toBeNull()
+        expect(actions.applySectionMoveToNewGroup(999, 9, 0, 90)).toBeNull()
         expect(commits).toBe(0)
     })
 
@@ -191,5 +197,42 @@ describe("note optimistic actions", () => {
         expect(tree!.groups[0].sections[0].tasks.map(t => t.id)).toEqual([100, 102, 101])
         undo()
         expect(tree).toEqual(original)
+    })
+})
+
+describe("note optimistic actions on the direct area of a group", () => {
+    beforeEach(() => {
+        tree = initial()
+        tree.groups[1] = makeGroup({ id: 2, position: 1, defaultSection: makeDefaultSection({ id: 91, groupID: 2 }) })
+        commits = 0
+    })
+
+    it("appendTask adds a direct task to the default section and rolls back", () => {
+        const actions = createNoteOptimisticActions(store)
+        const undo = actions.appendTask(300, { sectionId: 91 }, "Direct")!
+        expect(tree!.groups[1].defaultSection!.tasks[0]).toMatchObject({ id: 300, sectionID: 91, taskID: null, text: "Direct", position: 0 })
+        expect(actions.appendTask(301, { parentTaskId: 300 }, "Sub")).toBeTypeOf("function")
+        expect(tree!.groups[1].defaultSection!.tasks[0].subtasks[0]).toMatchObject({ id: 301, sectionID: 91, taskID: 300 })
+        undo()
+        expect(tree!.groups[1].defaultSection!.tasks).toEqual([])
+    })
+
+    it("applyTaskMove moves a task between a section and the direct area, and undoes it", () => {
+        const actions = createNoteOptimisticActions(store)
+        const original = tree
+        const undo = actions.applyTaskMove(102, { sectionId: 91, parentTaskId: null }, 0)
+        expect(tree!.groups[1].defaultSection!.tasks[0]).toMatchObject({ id: 102, sectionID: 91 })
+        expect(tree!.groups[0].sections[0].tasks.map(t => t.id)).toEqual([100])
+        undo()
+        expect(tree).toEqual(original)
+    })
+
+    it("patchSection patches the default section and removeSection refuses it", () => {
+        const actions = createNoteOptimisticActions(store)
+        actions.patchSection(91, { color: "#abc" })
+        expect(tree!.groups[1].defaultSection!.color).toBe("#abc")
+        const before = tree
+        actions.removeSection(91)
+        expect(tree).toBe(before)
     })
 })

@@ -1,11 +1,12 @@
 import type { ReactElement } from "react"
-import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { AddSection } from "./AddSection"
 import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 import { deferred } from "@/test/ui-render"
+import { requestAppCommand } from "@/lib/app-commands"
 
 const render = (ui: ReactElement) => rtlRender(ui, { wrapper: ShortcutsProvider })
 
@@ -38,7 +39,7 @@ const openSectionForm = async (user: ReturnType<typeof userEvent.setup>) => {
 describe("AddSection", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        ctx.createGroup.mockResolvedValue(31)
+        ctx.createGroup.mockResolvedValue({ groupId: 31, defaultSectionId: 32 })
         ctx.createSectionInGroup.mockResolvedValue(41)
         ctx.activeId = 20
     })
@@ -48,7 +49,7 @@ describe("AddSection", () => {
         render(<AddSection />)
         await user.type(await openGroupForm(user), "  Sprint  {Enter}")
 
-        await waitFor(() => expect(ctx.appendGroup).toHaveBeenCalledWith(31, 20, "Sprint"))
+        await waitFor(() => expect(ctx.appendGroup).toHaveBeenCalledWith(31, 20, "Sprint", 32))
         expect(ctx.createGroup).toHaveBeenCalledWith(20, "Sprint")
         expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
         expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
@@ -171,5 +172,69 @@ describe("AddSection", () => {
         render(<AddSection inGroup groupId={1} />)
         fireEvent.keyDown(document, { key: "n", altKey: true })
         expect(screen.queryByPlaceholderText(SECTION_PLACEHOLDER)).not.toBeInTheDocument()
+    })
+
+    it("opens the form and scrolls it into view when asked by the new group command", async () => {
+        const scrollIntoView = vi.fn()
+        Element.prototype.scrollIntoView = scrollIntoView
+        render(<AddSection />)
+        act(() => requestAppCommand("new-group"))
+
+        expect(await screen.findByPlaceholderText(GROUP_PLACEHOLDER)).toBeInTheDocument()
+        expect(scrollIntoView).toHaveBeenCalledWith({ inline: "end", block: "nearest" })
+    })
+
+    it("does not scroll when the form is opened with the button", async () => {
+        const scrollIntoView = vi.fn()
+        Element.prototype.scrollIntoView = scrollIntoView
+        render(<AddSection />)
+        await openGroupForm(userEvent.setup())
+        expect(scrollIntoView).not.toHaveBeenCalled()
+    })
+
+    describe("controlled by the group", () => {
+        it("renders nothing while closed: there is no section button", () => {
+            render(<AddSection inGroup groupId={7} open={false} onClose={vi.fn()} />)
+            expect(screen.queryByRole("button")).not.toBeInTheDocument()
+            expect(screen.queryByPlaceholderText(SECTION_PLACEHOLDER)).not.toBeInTheDocument()
+        })
+
+        it("shows the focused form when open and scrolls it into view", () => {
+            const scrollIntoView = vi.fn()
+            Element.prototype.scrollIntoView = scrollIntoView
+            render(<AddSection inGroup groupId={7} open onClose={vi.fn()} />)
+            expect(screen.getByPlaceholderText(SECTION_PLACEHOLDER)).toHaveFocus()
+            expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" })
+        })
+
+        it("creates the section and asks to close", async () => {
+            const user = userEvent.setup()
+            const onClose = vi.fn()
+            render(<AddSection inGroup groupId={7} open onClose={onClose} />)
+            await user.type(screen.getByPlaceholderText(SECTION_PLACEHOLDER), "Inner{Enter}")
+
+            await waitFor(() => expect(ctx.createSectionInGroup).toHaveBeenCalledWith(7, "Inner"))
+            expect(ctx.appendSection).toHaveBeenCalledWith(41, 7, "Inner")
+            await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+        })
+
+        it("asks to close on Escape and on a click outside, without creating", async () => {
+            const user = userEvent.setup()
+            const onClose = vi.fn()
+            render(<AddSection inGroup groupId={7} open onClose={onClose} />)
+            await user.type(screen.getByPlaceholderText(SECTION_PLACEHOLDER), "x{Escape}")
+            expect(onClose).toHaveBeenCalledTimes(1)
+
+            fireEvent.mouseDown(document.body)
+            expect(onClose).toHaveBeenCalledTimes(2)
+            expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
+        })
+
+        it("ignores a click outside while closed", () => {
+            const onClose = vi.fn()
+            render(<AddSection inGroup groupId={7} open={false} onClose={onClose} />)
+            fireEvent.mouseDown(document.body)
+            expect(onClose).not.toHaveBeenCalled()
+        })
     })
 })

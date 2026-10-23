@@ -85,7 +85,9 @@ export async function deleteDBItem(itemType: DBItemType, itemID: number) {
     const db = await getDB()
 
     try {
-        await db.execute(`UPDATE ${itemType} ${SOFT_DELETE} WHERE id=? AND deleted_at IS NULL`, [itemID])
+        // The default section of a group is hidden and goes away only with its group
+        const notDefault = itemType === "section" ? " AND is_default = 0" : ""
+        await db.execute(`UPDATE ${itemType} ${SOFT_DELETE} WHERE id=? AND deleted_at IS NULL${notDefault}`, [itemID])
     } catch (error: unknown) {
         throw createError(`${itemType.toUpperCase()}_DELETE_FAILED`, i18n.t("errors.item.delete", { message: getErrorMessage(error) }))
     }

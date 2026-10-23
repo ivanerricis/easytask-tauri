@@ -6,6 +6,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { Transaction, TransactionError, type TxRef } from "../transaction";
 import { getDBNoteData, getDBNotesData, type NoteData } from "./note";
+import { isDefaultSection } from "@/lib/group-sections";
 
 const TEMPLATE_UNIQUE_MESSAGE = () => i18n.t("errors.template.unique")
 const TEMPLATE_CHECK_MESSAGE = () => i18n.t("errors.template.check")
@@ -73,8 +74,11 @@ export function createSectionSnapshotter(tasks: Task[]): (section: Pick<Section,
     })
 }
 
-/** The template content of a note, the ids of its source sections and groups (see buildContentWithSectionIds). */
-export type NoteContent = { content: NoteTemplateContent, sectionIds: number[], groupIds: number[] }
+/**
+ * The template content of a note, the ids of its source sections and groups (see buildContentWithSectionIds).
+ * `defaultSectionIds` has the id of the default section of every group (null when it has none), in group order.
+ */
+export type NoteContent = { content: NoteTemplateContent, sectionIds: number[], groupIds: number[], defaultSectionIds: (number | null)[] }
 
 /**
  * Builds the template content out of rows already loaded (see getDBNoteData): an exact copy of the groups, sections and
@@ -90,21 +94,30 @@ export function buildContentFromRows({ groups, sections, tasks }: NoteData): Not
         if (list) list.push(section)
         else sectionsByGroup.set(section.groupID, [section])
     }
-    const sectionsOf = (group: Group) => sectionsByGroup.get(group.id) ?? []
+    // The default section of a group holds its direct tasks: they go in `group.tasks`, and it is not one of the sections
+    const sectionsOf = (group: Group) => (sectionsByGroup.get(group.id) ?? []).filter(section => !isDefaultSection(section))
+    const defaultOf = (group: Group) => (sectionsByGroup.get(group.id) ?? []).find(isDefaultSection)
 
     return {
         content: {
             version: 1,
-            groups: groups.map((group): TemplateGroup => ({
-                name: group.name ?? null,
-                color: group.color ?? null,
-                ...(group.archived_at ? { archived_at: group.archived_at } : {}),
-                position: group.position,
-                sections: sectionsOf(group).map(snapshotSection),
-            })),
+            groups: groups.map((group): TemplateGroup => {
+                const direct = defaultOf(group)
+                const directTasks = direct ? snapshotSection(direct).tasks : []
+                return {
+                    name: group.name ?? null,
+                    color: group.color ?? null,
+                    ...(group.archived_at ? { archived_at: group.archived_at } : {}),
+                    ...(group.width ? { width: group.width } : {}),
+                    ...(directTasks.length > 0 ? { tasks: directTasks } : {}),
+                    position: group.position,
+                    sections: sectionsOf(group).map(snapshotSection),
+                }
+            }),
         },
         sectionIds: groups.flatMap(group => sectionsOf(group).map(section => section.id)),
         groupIds: groups.map(group => group.id),
+        defaultSectionIds: groups.map(group => defaultOf(group)?.id ?? null),
     }
 }
 
@@ -249,26 +262,32 @@ type PendingTask = { sectionRef: TxRef, parentRef: TxRef | null, task: TemplateT
  * sections of the first group, then those of the second...).
  * @category Database Queries
  */
-export function addNoteContent(tx: Transaction, noteRef: number | TxRef, content: NoteTemplateContent): { groups: TxRef[], sections: TxRef[] } {
+export function addNoteContent(tx: Transaction, noteRef: number | TxRef, content: NoteTemplateContent): { groups: TxRef[], sections: TxRef[], defaultSections: TxRef[] } {
     const { groups } = content
-    const groupRefs = tx.insertRows("section_group", ["noteID", "position", "name", "color", "archived_at"],
-        groups.map(group => [noteRef, group.position, group.name ?? null, group.color || null, group.archived_at || null]))
+    const groupRefs = tx.insertRows("section_group", ["noteID", "position", "name", "color", "archived_at", "width"],
+        groups.map(group => [noteRef, group.position, group.name ?? null, group.color || null, group.archived_at || null, group.width || null]))
 
-    const sections = addSections(tx, groups.flatMap((group, i) => group.sections.map(section => ({ groupRef: groupRefs[i], section }))))
-    return { groups: groupRefs, sections }
+    // Every group gets its default section (with the direct tasks of the group), the normal sections follow
+    const defaults = groups.map((group, i) => ({
+        groupRef: groupRefs[i], isDefault: true, section: { title: "", color: null, position: 0, tasks: group.tasks ?? [] },
+    }))
+    const normals = groups.flatMap((group, i) => group.sections.map(section => ({ groupRef: groupRefs[i], section })))
+    const refs = addSections(tx, [...defaults, ...normals])
+    return { groups: groupRefs, sections: refs.slice(groups.length), defaultSections: refs.slice(0, groups.length) }
 }
 
 /**
  * Adds to a transaction the statements that insert sections (with their tasks and subtasks) into existing or
  * to-be-created groups, with one multi-row INSERT per level.
  * @param tx The transaction collecting the statements.
- * @param sources The sections and the group each one goes into (its id or a reference to the statement that creates it).
+ * @param sources The sections and the group each one goes into (its id or a reference to the statement that creates it);
+ * `isDefault` marks the hidden default section of a group (the one with its direct tasks).
  * @returns References to the created sections, in the order of `sources`.
  * @category Database Queries
  */
-export function addSections(tx: Transaction, sources: { groupRef: number | TxRef, section: TemplateSection }[]): TxRef[] {
-    const sectionRefs = tx.insertRows("section", ["groupID", "title", "color", "archived_at", "position"],
-        sources.map(({ groupRef, section }) => [groupRef, section.title || null, section.color ?? null, section.archived_at || null, section.position]))
+export function addSections(tx: Transaction, sources: { groupRef: number | TxRef, section: TemplateSection, isDefault?: boolean }[]): TxRef[] {
+    const sectionRefs = tx.insertRows("section", ["groupID", "title", "color", "archived_at", "position", "is_default"],
+        sources.map(({ groupRef, section, isDefault }) => [groupRef, section.title || null, section.color ?? null, section.archived_at || null, section.position, isDefault ? 1 : 0]))
 
     // Tasks level by level: the subtasks of a level reference the ids of their parents
     let level: PendingTask[] = sources.flatMap(({ section }, i) =>

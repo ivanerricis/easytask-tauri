@@ -50,8 +50,10 @@ async function noteTree(noteId: number) {
         subtasks: tasks.filter(c => c.taskID === t.id).map(taskNode),
     })
     return groups.map(g => ({
-        name: g.name ?? null, color: g.color ?? null, position: g.position,
-        sections: sections.filter(s => s.groupID === g.id).map(s => ({
+        name: g.name ?? null, color: g.color ?? null, position: g.position, width: g.width ?? null,
+        // The direct tasks live in the default section, which is not one of the sections
+        direct: tasks.filter(t => sections.some(s => s.groupID === g.id && s.is_default && s.id === t.sectionID) && t.taskID === null).map(taskNode),
+        sections: sections.filter(s => s.groupID === g.id && !s.is_default).map(s => ({
             title: s.title, color: s.color ?? null, position: s.position,
             tasks: tasks.filter(t => t.sectionID === s.id && t.taskID === null).map(taskNode),
         })),
@@ -76,6 +78,8 @@ beforeEach(() => {
             (3, 2, 'Idee', NULL, 0),
             (4, 3, 'Nel gruppo eliminato', NULL, 0),
             (5, 1, 'Sezione eliminata', NULL, 2);
+        INSERT INTO section (id, groupID, title, position, is_default) VALUES (20, 1, NULL, 0, 1), (21, 2, NULL, 0, 1), (22, 3, NULL, 0, 1);
+        UPDATE section_group SET width = 420 WHERE id = 1;
         INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, color, position) VALUES
             (1, 1, NULL, 'Radice B', 'descrizione', 1, 1, '#0000ff', 1),
             (2, 1, NULL, 'Radice A', NULL, 0, 0, NULL, 0),
@@ -87,7 +91,10 @@ beforeEach(() => {
             (8, 1, 1, 'Figlio eliminato', NULL, 0, 0, NULL, 2),
             (9, 3, NULL, 'Idea', NULL, 0, 0, NULL, 0),
             (10, 4, NULL, 'Nel gruppo eliminato', NULL, 0, 0, NULL, 0),
-            (11, 5, NULL, 'Nella sezione eliminata', NULL, 0, 0, NULL, 0);
+            (11, 5, NULL, 'Nella sezione eliminata', NULL, 0, 0, NULL, 0),
+            (12, 20, NULL, 'Diretto', 'd', 1, 1, '#333333', 0),
+            (13, 20, 12, 'Sotto-diretto', NULL, 0, 0, NULL, 0),
+            (14, 22, NULL, 'Diretto nel gruppo eliminato', NULL, 0, 0, NULL, 0);
         UPDATE task SET deleted_at = datetime('now') WHERE id IN (6, 8);
         UPDATE section SET deleted_at = datetime('now') WHERE id = 5;
         UPDATE section_group SET deleted_at = datetime('now') WHERE id = 3;
@@ -105,7 +112,16 @@ describe("createDBTemplateFromNote", () => {
             version: 1,
             groups: [
                 {
-                    name: "Sprint", color: "#abcdef", position: 0, sections: [
+                    name: "Sprint", color: "#abcdef", position: 0, width: 420,
+                    // The tasks directly in the group (its default section), which is not listed among the sections
+                    tasks: [
+                        {
+                            text: "Diretto", description: "d", completed: true, priority: true, color: "#333333", position: 0, subtasks: [
+                                { text: "Sotto-diretto", description: null, completed: false, priority: false, color: null, position: 0, subtasks: [] },
+                            ],
+                        },
+                    ],
+                    sections: [
                         {
                             title: "Da fare", color: "#00ff00", position: 0, tasks: [
                                 {
@@ -137,7 +153,7 @@ describe("createDBTemplateFromNote", () => {
                 },
             ],
         })
-        expect(countTemplateContent(row.content)).toEqual({ groups: 2, sections: 3, tasks: 6 })
+        expect(countTemplateContent(row.content)).toEqual({ groups: 2, sections: 3, tasks: 8 })
     })
 
     it("excludes soft deleted items (and their subtasks) and the audio files", async () => {
@@ -221,7 +237,11 @@ describe("updateDBTemplateFromNote", () => {
         await updateDBTemplateFromNote(id)
         const [row] = await getDBTemplates(1)
         expect(row).toMatchObject({ name: "T", color: "#abcdef" })
-        expect(row.content).toEqual({ version: 1, groups: await noteTree(1) })
+        // The template keeps `width` and the direct tasks only when there are some
+        const asContent = (await noteTree(1)).map(({ direct, width, ...group }) => ({
+            ...group, ...(width ? { width } : {}), ...(direct.length > 0 ? { tasks: direct } : {}),
+        }))
+        expect(row.content).toEqual({ version: 1, groups: asContent })
         expect(row.content.groups[0].sections[0].tasks[0]).toMatchObject({ text: "Radice A", completed: true })
     })
 
@@ -246,10 +266,17 @@ describe("createDBNoteFromTemplate", () => {
             { name: "Copia", color: "#ff0000", workspaceID: 1, folderID: null, deleted_at: null },
         ])
         // The soft deleted items of the source were not copied
-        expect(rows(`SELECT COUNT(*) AS c FROM task WHERE sectionID IN (SELECT id FROM section WHERE groupID IN (SELECT id FROM section_group WHERE noteID = ${noteId}))`)[0].c).toBe(6)
+        expect(rows(`SELECT COUNT(*) AS c FROM task WHERE sectionID IN (SELECT id FROM section WHERE groupID IN (SELECT id FROM section_group WHERE noteID = ${noteId}))`)[0].c).toBe(8)
         expect(rows(`SELECT COUNT(*) AS c FROM audio_file WHERE section_groupID IN (SELECT id FROM section_group WHERE noteID = ${noteId})`)[0].c).toBe(0)
-        // The source is untouched: 9 non deleted tasks + the 6 of the copy
-        expect(rows("SELECT COUNT(*) AS c FROM task WHERE deleted_at IS NULL")[0].c).toBe(15)
+        // The source is untouched: 12 non deleted tasks + the 8 of the copy
+        expect(rows("SELECT COUNT(*) AS c FROM task WHERE deleted_at IS NULL")[0].c).toBe(20)
+        // Every group of the copy has its default section, with the direct tasks and the width
+        expect(rows(`SELECT g.position, g.width, s.title, s.position AS spos,
+                (SELECT COUNT(*) FROM task t WHERE t.sectionID = s.id) AS tasks
+            FROM section s JOIN section_group g ON g.id = s.groupID WHERE g.noteID = ${noteId} AND s.is_default = 1 ORDER BY g.position`)).toEqual([
+            { position: 0, width: 420, title: null, spos: 0, tasks: 2 },
+            { position: 1, width: null, title: null, spos: 0, tasks: 0 },
+        ])
     })
 
     it("sets the subtasks section and parent so they show up in the note data", async () => {

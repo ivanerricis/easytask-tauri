@@ -21,6 +21,9 @@ import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import { getGroupLabel } from "./group-label"
+import { taskSections } from "@/lib/group-sections"
+import { Highlight } from "@/components/highlight"
+import { useSearchHighlight } from "../note-search-context"
 
 /** Icon + number, named for the screen readers and for the mouse (the icon alone does not say what is counted). */
 const CountBadge = ({ icon: Icon, count, label }: { icon: LucideIcon, count: number, label: string }) => (
@@ -40,12 +43,17 @@ type GroupHeaderProps = {
     dragProps?: HTMLAttributes<HTMLElement>
     /** Number of audio files of the group (the badge is hidden when 0). */
     audioCount?: number
+    /** Narrow group: the completion bar is hidden so the name keeps its space. */
+    compact?: boolean
+    /** Opens the form of a new section in the group (the "Nuova sezione" entry of its menu). */
+    onAddSection?: () => void
 }
 
-export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }: GroupHeaderProps) => {
+export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0, compact = false, onAddSection }: GroupHeaderProps) => {
     const { t } = useTranslation()
     const { showSectionCount, showTaskCount, showAudioFileCount, showGroupProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
     const colorAlpha = useColorAlpha()
+    const search = useSearchHighlight("group", group.id)
     const [isOpen, toggleOpen] = useGroupOpen(group.id)
     const progress = getGroupProgress(group)
     const { renameItem } = useWorkspaceActions()
@@ -53,7 +61,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }
     const recorder = useUndoRecorder()
     const name = group.name?.trim() ?? ""
     const label = getGroupLabel(group, index)
-    const taskCount = group.sections.reduce((sum, section) => sum + section.tasks.length, 0)
+    const taskCount = taskSections(group).reduce((sum, section) => sum + section.tasks.length, 0)
     // An empty text removes the name (a group can have none)
     const { editing: isEditing, error, start: startEditing, inputProps } = useInlineEdit({
         value: name,
@@ -67,7 +75,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }
     })
 
     return (
-        <ButtonMenuGroup group={group} onRename={startEditing}>
+        <ButtonMenuGroup group={group} onRename={startEditing} onAddSection={onAddSection}>
             <div
                 // Everything stays on one row: the name is truncated (full name in the tooltip) and the progress bar shrinks
                 className={`group flex items-center gap-1 border px-1.5 py-1 w-full rounded-xs ${group.color ? "" : "bg-background hover:bg-secondary"} ${dragProps ? "touch-none cursor-grab active:cursor-grabbing" : ""}`}
@@ -92,7 +100,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }
                     // An unnamed group shows no text unless the preference asks for the fallback label
                     aria-label={label}
                     className={`text-sm font-semibold mr-1 min-w-[6ch] max-w-72 flex-1 h-6 truncate text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${renameOnClick ? "cursor-text" : ""} ${!name ? "text-muted-foreground" : ""}`}>
-                    {name || (showUnnamedLabels ? label : "")}
+                    {search.query ? <Highlight text={name} query={search.query} active={search.active} /> : name || (showUnnamedLabels ? label : "")}
                 </button>}
                 {isEditing && <InlineErrorTooltip message={error}>
                     <Input
@@ -104,7 +112,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }
                         className="h-6 min-w-0 flex-1 mr-1 px-1 py-0 text-sm font-semibold md:text-sm border-primary"
                     />
                 </InlineErrorTooltip>}
-                {showGroupProgressBar && progress.total > 0 && <div className="flex items-center gap-2 shrink-0 mr-1">
+                {showGroupProgressBar && !compact && progress.total > 0 && <div className="flex items-center gap-2 shrink-0 mr-1">
                     <Progress className="w-20" value={progress.percent} aria-label={t("groups.progress")} />
                     <span className="text-xs shrink-0 tabular-nums">
                         {Math.round(progress.percent)} %
@@ -115,7 +123,8 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }
                     {showTaskCount && <CountBadge icon={SquareCheckBig} count={taskCount} label={t("common.counts.task", { count: taskCount })} />}
                     {showAudioFileCount && audioCount > 0 && <CountBadge icon={FileAudio} count={audioCount} label={t("groups.audioCount", { count: audioCount })} />}
                 </div>
-                <div className="shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                {/* flex + leading-none: in a block wrapper the line height leaves a gap under the button, which then sits off-center */}
+                <div className="flex items-center leading-none shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                     <ItemMenuButton name={label} />
                 </div>
             </div>

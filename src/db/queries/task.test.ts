@@ -8,6 +8,7 @@ vi.mock("../dbManager", () => ({ getDB: vi.fn(async () => db) }))
 import {
     createDBSubTask,
     createDBTask,
+    ensureDBDefaultSection,
     updateDBTaskCompletion,
     updateDBTaskDescription,
     updateDBTaskPriority,
@@ -133,5 +134,26 @@ describe("task queries errors", () => {
             code: "TASK_UNKNOWN_ERROR",
             message: "Si è verificato un errore sconosciuto: no db",
         })
+    })
+})
+
+describe("ensureDBDefaultSection", () => {
+    it("returns the default section of the group when it exists", async () => {
+        db.select.mockResolvedValueOnce([{ id: 42 }])
+        expect(await ensureDBDefaultSection(5)).toBe(42)
+        expect(db.select).toHaveBeenCalledWith(expect.stringContaining("is_default = 1"), [5])
+        expect(db.execute).not.toHaveBeenCalled()
+    })
+
+    it("creates it (untitled, first position) when the group has none", async () => {
+        db.select.mockResolvedValueOnce([])
+        db.execute.mockResolvedValueOnce({ rowsAffected: 1, lastInsertId: 77 })
+        expect(await ensureDBDefaultSection(5)).toBe(77)
+        expect(db.execute).toHaveBeenCalledWith("INSERT INTO section (groupID, title, position, is_default) VALUES (?, NULL, 0, 1)", [5])
+    })
+
+    it("maps the errors", async () => {
+        db.select.mockRejectedValueOnce(new Error("UNIQUE"))
+        expect(await thrown(ensureDBDefaultSection(5))).toMatchObject({ code: "SECTION_EXISTS" })
     })
 })

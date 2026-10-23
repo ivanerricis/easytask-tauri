@@ -10,7 +10,7 @@ import { TabsProvider } from "@/contexts/tabs-context"
 import { useSelectTask, useTabsActions } from "@/contexts/use-tabs"
 import { UndoContext, type UndoContextType } from "@/contexts/undo/context"
 import { DetailsPanel } from "./DetailsPanel"
-import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 const updateTaskPriority = vi.fn()
@@ -69,6 +69,7 @@ function Selector() {
             <button onClick={() => select(10)}>select 10</button>
             <button onClick={() => select(20)}>select 20</button>
             <button onClick={() => select(30)}>select 30</button>
+            <button onClick={() => select(40)}>select 40</button>
             <button onClick={() => select(999)}>select missing</button>
             <button onClick={() => select(null)}>clear</button>
         </>
@@ -275,5 +276,32 @@ describe("DetailsPanel with a selected task", () => {
             expect(field()).toHaveValue("")
             expect(within(document.body).queryByRole("button", { name: "Salva" })).toBeNull()
         })
+    })
+})
+
+describe("DetailsPanel with tasks directly in a group", () => {
+    const directTree = (): NoteDataTree => ({
+        groups: [
+            makeGroup({
+                id: 1,
+                defaultSection: makeDefaultSection({ id: 9, tasks: [makeTask({ id: 40, text: "Diretto", completed: true })] }),
+                sections: [makeSection({ id: 5, title: "Da fare", tasks: [makeTask({ id: 41, text: "In sezione" })] })],
+            }),
+        ],
+    })
+
+    it("shows the group (and no section) in the path of a direct task", async () => {
+        tree = directTree()
+        renderPanel()
+        await select(40)
+        expect(await screen.findByText("Mia nota › Gruppo 1")).toBeInTheDocument()
+    })
+
+    it("counts the direct tasks in the statistics and the progress of the note, not as sections", async () => {
+        tree = directTree()
+        renderPanel()
+        expect(await screen.findByText("2 task")).toBeInTheDocument()
+        expect(screen.getByText("1 sezione")).toBeInTheDocument()
+        expect(screen.getByText("1 di 2 task completati (50%)")).toBeInTheDocument()
     })
 })
