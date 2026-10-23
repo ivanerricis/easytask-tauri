@@ -191,18 +191,12 @@ describe("Group compact header", () => {
         expect(compact()).toBe("false")
     })
 
-    it("uses the measured width when the width is automatic", () => {
+    it("is never compact when the width is automatic, however narrow the group is measured", () => {
         width = 280
         render(<Group group={makeGroup({ id: 212 })} />)
-        expect(compact()).toBe("true")
-        width = 360
-        act(() => FakeResizeObserver.instances.at(-1)?.fire())
         expect(compact()).toBe("false")
-    })
-
-    it("ignores a width of 0 (not laid out)", () => {
-        width = 0
-        render(<Group group={makeGroup({ id: 213 })} />)
+        width = 200
+        act(() => FakeResizeObserver.instances.at(-1)?.fire())
         expect(compact()).toBe("false")
     })
 })

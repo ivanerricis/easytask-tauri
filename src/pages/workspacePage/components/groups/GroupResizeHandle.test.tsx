@@ -111,3 +111,17 @@ describe("GroupResizeHandle", () => {
         expect(onCommit).toHaveBeenCalledWith(416)
     })
 })
+
+describe("GroupResizeHandle with the automatic width", () => {
+    it("starts the arrows from the width measured when the key is pressed, not from the last render", () => {
+        vi.useFakeTimers()
+        let measured = 250
+        const onResize = vi.fn()
+        render(<GroupResizeHandle getWidth={() => measured} width={null} onResize={onResize} onCommit={vi.fn()} />)
+        const handle = screen.getByRole("separator", { name: "Ridimensiona il gruppo" })
+        // The content widened the group after the last render of the handle
+        measured = 273
+        fireEvent.keyDown(handle, { key: "ArrowRight" })
+        expect(onResize).toHaveBeenLastCalledWith(289)
+    })
+})

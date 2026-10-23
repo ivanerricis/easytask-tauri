@@ -50,9 +50,9 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
     // Width while the user is resizing; kept until the saved one lands, so the group never flickers back
     const [liveWidth, setLiveWidth] = useState<number | null>(null)
     const width = liveWidth ?? group.width ?? null
-    // Measured width below the progress bar threshold (only used when the width is automatic)
-    const [narrow, setNarrow] = useState(false)
-    const compact = width !== null ? width < GROUP_PROGRESS_MIN_WIDTH : narrow
+    // Only a width chosen by the user hides the completion bar: a group of automatic width (about the minimum one)
+    // keeps it, like before the width could be set
+    const compact = width !== null && width < GROUP_PROGRESS_MIN_WIDTH
     const getWidth = useCallback(() => nodeRef.current?.offsetWidth ?? GROUP_MIN_WIDTH, [])
     const commitWidth = useCallback(async (next: number | null) => {
         try {
@@ -78,10 +78,9 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
         if (!node || !isOpen) return
         const record = () => {
             const measured = node.getBoundingClientRect().width
-            // An element that is not laid out (width 0) says nothing; React ignores the state when it does not change
+            // An element that is not laid out (width 0) says nothing
             if (measured <= 0) return
             openWidths.set(group.id, measured)
-            setNarrow(measured < GROUP_PROGRESS_MIN_WIDTH)
         }
         record()
         const observer = new ResizeObserver(record)

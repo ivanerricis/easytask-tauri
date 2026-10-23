@@ -77,10 +77,12 @@ export const GroupResizeHandle = ({ getWidth, width, onResize, onCommit }: Group
     }, [isResizing, onResize])
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        const next = groupWidthForKey(e.key, currentWidth, e.shiftKey)
+        // Measured now, not at the last render: the automatic width follows the content, which can have changed since
+        const base = clampGroupWidth(dragWidth ?? width ?? getWidth())
+        const next = groupWidthForKey(e.key, base, e.shiftKey)
         if (next === null) return
         e.preventDefault()
-        if (next === currentWidth) return
+        if (next === base) return
         onResize(next)
         if (pendingKey.current) clearTimeout(pendingKey.current.timer)
         pendingKey.current = { width: next, timer: setTimeout(flushKey, KEY_COMMIT_DELAY_MS) }
