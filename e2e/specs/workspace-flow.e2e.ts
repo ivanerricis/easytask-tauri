@@ -3,6 +3,7 @@ import {
     byLabel, byText, createFromSidebar, createWorkspace, domClick, openContextMenu, openSubmenu, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
     waitForApp,
     addTaskButton, menuButton, menuButtonPredicate,
+    groupCard, newSectionInGroup,
 } from "../helpers"
 
 const WORKSPACE = "E2E Workspace"
@@ -71,10 +72,7 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
 
         for (const title of [SECTION_A, SECTION_B]) {
-            await byText(await tr("sections.new")).click()
-            await typeInto(byLabel(await tr("sections.titleLabel")), title)
-            await browser.keys("Enter")
-            await sectionCard(title).waitForDisplayed()
+            await newSectionInGroup(groupCard(GROUP), title)
         }
 
         await (await addTaskButton(sectionCard(SECTION_A))).click()

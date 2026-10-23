@@ -2,6 +2,7 @@ import { $, $$, browser } from "@wdio/globals"
 import {
     byLabel, byText, createFromSidebar, createWorkspace, openContextMenu, openSubmenu, openWorkspace, sectionCard, sql, tr, treeRow, typeInto,
     waitForApp, addTaskButton,
+    groupCard, newSectionInGroup,
 } from "../helpers"
 
 const WORKSPACE = "Multi Workspace"
@@ -59,10 +60,7 @@ describe("Multi-selection of tasks", () => {
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
         await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
-        await byText(await tr("sections.new")).click()
-        await typeInto(byLabel(await tr("sections.titleLabel")), SECTION)
-        await browser.keys("Enter")
-        await sectionCard(SECTION).waitForDisplayed()
+        await newSectionInGroup(groupCard(GROUP), SECTION)
 
         for (const text of TASKS) {
             await (await addTaskButton(sectionCard(SECTION))).click()

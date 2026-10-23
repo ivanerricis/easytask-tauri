@@ -27,6 +27,7 @@ vi.mock("@/components/dialogs/dialog-delete", () => ({
         isOpen ? <button onClick={() => optimistic()}>Dialog elimina</button> : null,
 }))
 const onRename = vi.fn()
+const onAddSection = vi.fn()
 
 beforeEach(() => {
     vi.clearAllMocks()
@@ -36,9 +37,9 @@ beforeEach(() => {
     archiveItem.mockResolvedValue(undefined)
 })
 
-const setup = (color?: string | null) => {
+const setup = (color?: string | null, withAddSection = true) => {
     render(
-        <ButtonMenuGroup group={makeGroup({ id: 3, color })} onRename={onRename}>
+        <ButtonMenuGroup group={makeGroup({ id: 3, color })} onRename={onRename} onAddSection={withAddSection ? onAddSection : undefined}>
             <div data-testid="row">Gruppo</div>
         </ButtonMenuGroup>,
     )
@@ -70,6 +71,34 @@ describe("ButtonMenuGroup", () => {
         fireEvent.contextMenu(row)
         await user.click(await screen.findByText("Rinomina"))
         await waitFor(() => expect(onRename).toHaveBeenCalledTimes(1))
+    })
+
+    it("offers 'Nuova sezione' right after the audio file entry", async () => {
+        const row = setup()
+        fireEvent.contextMenu(row)
+        const audio = await screen.findByText("Aggiungi file audio")
+        const entry = screen.getByRole("menuitem", { name: "Nuova sezione" })
+        expect(audio.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it("opens the section form only once the menu is closed, so it keeps the focus", async () => {
+        const user = userEvent.setup()
+        let menuWasOpen: boolean | null = null
+        onAddSection.mockImplementation(() => { menuWasOpen = screen.queryByText("Archivia") !== null })
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByRole("menuitem", { name: "Nuova sezione" }))
+
+        await waitFor(() => expect(onAddSection).toHaveBeenCalledTimes(1))
+        expect(menuWasOpen).toBe(false)
+        expect(onRename).not.toHaveBeenCalled()
+    })
+
+    it("does not show 'Nuova sezione' when nothing can add one", async () => {
+        const row = setup(undefined, false)
+        fireEvent.contextMenu(row)
+        await screen.findByText("Aggiungi file audio")
+        expect(screen.queryByRole("menuitem", { name: "Nuova sezione" })).not.toBeInTheDocument()
     })
 
     it("removes the group through the cached note tree", async () => {

@@ -13,6 +13,7 @@ import { GROUP_MIN_WIDTH, GROUP_PROGRESS_MIN_WIDTH } from "@/lib/group-width"
 import { GroupResizeHandle } from "./GroupResizeHandle"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { GroupAudioFiles } from "./GroupAudioFiles"
+import { GroupTasks } from "./GroupTasks"
 import { useGroupOpen } from "@/contexts/use-tabs"
 import { DropLine } from "../sidebar/DropLine"
 
@@ -42,7 +43,7 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
         setDragRef(node)
     }, [setDropRef, setDragRef])
     const draggingGroup = active?.kind === "group"
-    const [isOpen] = useGroupOpen(group.id)
+    const [isOpen, toggleOpen] = useGroupOpen(group.id)
     const { t } = useTranslation()
     const { setGroupWidth } = useWorkspaceActions()
     const { patchGroup } = useActiveNoteActions()
@@ -62,6 +63,13 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
             setLiveWidth(null)
         }
     }, [group.id, patchGroup, setGroupWidth, t])
+    // The form of a new section: asked from the menu of the group (there is no section button in the group anymore)
+    const [addingSection, setAddingSection] = useState(false)
+    const closeSectionForm = useCallback(() => setAddingSection(false), [])
+    const addSection = useCallback(() => {
+        if (!isOpen) toggleOpen()
+        setAddingSection(true)
+    }, [isOpen, toggleOpen])
 
     // While open, follow the width of the group (its content can grow or shrink); the cleanup runs before the
     // sections are removed from the DOM, so the width of the collapsed group is never recorded
@@ -84,6 +92,7 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
     return (
         <div
             ref={setRef}
+            data-group-card
             // An explicit width (also while collapsed) replaces the content-driven one
             style={width !== null ? { width } : isOpen ? undefined : { minWidth: openWidths.get(group.id) }}
             className={cn(
@@ -102,13 +111,16 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
                 audioCount={audioCount}
                 dragProps={dragProps}
                 compact={compact}
+                onAddSection={addSection}
             />
             {isOpen && <>
                 <GroupAudioFiles groupId={group.id} />
+                {/* Direct tasks, their "New task" button, the sections and the form of a new section scroll together */}
                 <div className="flex flex-col gap-1 overflow-y-auto">
+                    <GroupTasks group={group} />
                     {group.sections.map(section => <Section key={section.id} section={section} />)}
+                    <AddSection inGroup groupId={group.id} open={addingSection} onClose={closeSectionForm} />
                 </div>
-                <AddSection inGroup groupId={group.id} />
             </>}
             <GroupResizeHandle getWidth={getWidth} width={width} onResize={setLiveWidth} onCommit={commitWidth} />
         </div>

@@ -40,6 +40,19 @@ describe("AddTask", () => {
         expect(screen.getByPlaceholderText("Nuovo task…")).toHaveFocus()
     })
 
+    it("in a group starts as a dashed 'Nuovo task' button and creates the task in the given (default) section", async () => {
+        const user = userEvent.setup()
+        render(<AddTask sectionId={12} inGroup />)
+        const button = screen.getByRole("button", { name: "Nuovo task" })
+        expect(button).toHaveTextContent("Nuovo task")
+        await user.click(button)
+
+        await user.type(screen.getByPlaceholderText("Nuovo task…"), "Diretto{Enter}")
+        await waitFor(() => expect(ctx.createTask).toHaveBeenCalledWith(12, "Diretto", "bottom"))
+        expect(ctx.appendTask).toHaveBeenCalledWith(50, { sectionId: 12 }, "Diretto")
+        expect(screen.getByRole("button", { name: "Nuovo task" })).toBeInTheDocument()
+    })
+
     it("creates the trimmed task, appends it to the note without reloading and collapses", async () => {
         const user = userEvent.setup()
         render(<AddTask sectionId={3} />)

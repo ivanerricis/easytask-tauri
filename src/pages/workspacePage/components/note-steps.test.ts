@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { NoteDataTree } from "@/types/types"
-import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import { moveGroupInList } from "./note-dnd"
 import { getGroupStep, getSectionStep, getTaskStep } from "./note-steps"
 
@@ -110,5 +110,27 @@ describe("getGroupStep", () => {
         const tree = buildTree()
         const moved = moveGroupInList(tree.groups, 1, getGroupStep(tree, 1, 1)!)
         expect(moved?.map(group => group.id)).toEqual([2, 1, 3])
+    })
+})
+
+describe("getTaskStep for the direct tasks of a group", () => {
+    // group 1: direct [X, Y], section S1 [A]
+    const directTree = (): NoteDataTree => ({
+        groups: [makeGroup({
+            id: 1,
+            defaultSection: makeDefaultSection({ id: 10, groupID: 1, tasks: [top(1, 10, "X"), top(2, 10, "Y")] }),
+            sections: [makeSection({ id: 11, groupID: 1, tasks: [top(3, 11, "A")] })],
+        })],
+    })
+
+    it("steps among the direct tasks", () => {
+        expect(getTaskStep(directTree(), 1, 1, false)).toEqual({ sectionId: 10, parentTaskId: null, index: 1 })
+        expect(getTaskStep(directTree(), 2, -1, false)).toEqual({ sectionId: 10, parentTaskId: null, index: 0 })
+    })
+
+    it("does not step out of the direct area: the last direct task has no way down, the section's first no way up", () => {
+        expect(getTaskStep(directTree(), 2, 1, false)).toBeNull()
+        expect(getTaskStep(directTree(), 1, -1, false)).toBeNull()
+        expect(getTaskStep(directTree(), 3, -1, false)).toBeNull()
     })
 })

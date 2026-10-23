@@ -22,7 +22,7 @@ The note opens in a tab. Open notes stay in the tab bar.
 
 ## 3. Add a group and a section
 
-A new note is empty. Click **New group** (or press `Alt+N`) to add a group. A group holds sections: add a section with **New section**.
+A new note is empty. Click **New group** (or press `Alt+N`) to add a group. A group holds tasks, added with its **New task** button, and sections, added from the menu of the group with **New section**.
 
 Groups and sections can be left without a name. To name one, click its name and type.
 

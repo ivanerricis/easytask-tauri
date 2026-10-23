@@ -3,6 +3,7 @@ import {
     byLabel, byText, createFromSidebar, createWorkspace, cssColor, domClick, openWorkspace, sectionCard, sql, tr, treeRow, typeInto,
     waitForApp, type Rgba,
     addTaskButton, menuButton, menuButtonPredicate,
+    groupCard, newSectionInGroup,
 } from "../helpers"
 
 const WORKSPACE = "Feat Workspace"
@@ -203,10 +204,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
 
         for (const title of SECTIONS) {
-            await byText(await tr("sections.new")).click()
-            await typeInto(byLabel(await tr("sections.titleLabel")), title)
-            await browser.keys("Enter")
-            await sectionCard(title).waitForDisplayed()
+            await newSectionInGroup(groupCard(GROUP), title)
         }
         for (const text of TASKS) await addTask(SECTIONS[0], text)
         await waitForTasks(SECTIONS[0], TASKS)

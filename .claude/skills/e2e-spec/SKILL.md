@@ -29,6 +29,7 @@ npm run ui-tour                # screenshot tour (e2e/ui-tour), not part of the 
 - `byLabel(label)` / `allByLabel(label)`: element(s) by `aria-label`.
 - `byText(text, scope?)`: button/radio/menuitem/tab whose visible text is exactly `text`.
 - `addTaskButton(scope)`: the "+" add-task button of a section card.
+- `groupCard(label)` / `newSectionInGroup(group, title)` / `directTasks(group)` / `groupAddTaskButton(group)` / `addTaskToGroup(group, text)`: a group card (`[data-group-card]`), a new section from the group menu (there is no section button), and the direct tasks area with its "Nuovo task" button.
 - `menuButtonPredicate()` / `menuButton(scope)`: the "..." menu button ("Apri menu" or "Menu: <name>").
 - `topDialog()`: last open `dialog`/`alertdialog`.
 - `waitForApp()`: waits until `#root` has rendered.

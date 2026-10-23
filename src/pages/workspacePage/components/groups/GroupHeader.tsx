@@ -43,9 +43,11 @@ type GroupHeaderProps = {
     audioCount?: number
     /** Narrow group: the completion bar is hidden so the name keeps its space. */
     compact?: boolean
+    /** Opens the form of a new section in the group (the "Nuova sezione" entry of its menu). */
+    onAddSection?: () => void
 }
 
-export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0, compact = false }: GroupHeaderProps) => {
+export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0, compact = false, onAddSection }: GroupHeaderProps) => {
     const { t } = useTranslation()
     const { showSectionCount, showTaskCount, showAudioFileCount, showGroupProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
     const colorAlpha = useColorAlpha()
@@ -70,7 +72,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0, 
     })
 
     return (
-        <ButtonMenuGroup group={group} onRename={startEditing}>
+        <ButtonMenuGroup group={group} onRename={startEditing} onAddSection={onAddSection}>
             <div
                 // Everything stays on one row: the name is truncated (full name in the tooltip) and the progress bar shrinks
                 className={`group flex items-center gap-1 border px-1.5 py-1 w-full rounded-xs ${group.color ? "" : "bg-background hover:bg-secondary"} ${dragProps ? "touch-none cursor-grab active:cursor-grabbing" : ""}`}
