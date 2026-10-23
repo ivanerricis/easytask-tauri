@@ -7,6 +7,7 @@ import {
     treeRow, typeInto, waitForApp,
     addTaskButton,
     groupCard, newSectionInGroup,
+    closeTaskInput,
 } from "../helpers"
 
 /**
@@ -139,6 +140,8 @@ describe("Settings and data survive an app restart", () => {
         await (await addTaskButton(sectionCard(SECTION))).click()
         await typeInto(sectionCard(SECTION).$("input"), TASK)
         await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
+        // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+        await closeTaskInput()
         await browser.waitUntil(async () => (await taskValues(SECTION)).includes(TASK), { timeoutMsg: "task not created" })
         await domClick(sectionCard(SECTION).$('[role="checkbox"]'))
         await expect(sectionCard(SECTION).$('[role="checkbox"]')).toHaveAttribute("aria-checked", "true")

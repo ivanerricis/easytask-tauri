@@ -1,6 +1,7 @@
-import { $$, browser, expect } from "@wdio/globals"
+import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    byLabel, byText, createFromSidebar, createWorkspace, openWorkspace, sectionCard, tr, treeRow, typeInto, waitForApp, addTaskButton,
+    addTaskButton, byLabel, byText, closeTaskInput, createFromSidebar, createWorkspace, groupCard, newSectionInGroup, openWorkspace,
+    sectionCard, tr, treeRow, typeInto, waitForApp,
 } from "../helpers"
 
 const WORKSPACE = "Search Workspace"
@@ -8,6 +9,10 @@ const NOTE = "Search Note"
 const GROUP = "Search Group"
 const SECTION = "Search S1"
 const TASKS = ["Compra il latte", "Il Latte di soia"]
+
+/** The "N di M" counter of the search field (a plain text, not a button: `byText` only finds the clickable ones). */
+const counter = async (current: number, total: number) =>
+    $(`//*[normalize-space()=${JSON.stringify(await tr("notes.noteSearch.counter", { current, total }))}]`)
 
 /** The text of the marks that are on the screen. */
 const markTexts = (): Promise<string[]> =>
@@ -29,15 +34,14 @@ describe("Search in a note", () => {
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
         await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
-        await byText(await tr("sections.new")).click()
-        await typeInto(byLabel(await tr("sections.titleLabel")), SECTION)
-        await browser.keys("Enter")
-        await sectionCard(SECTION).waitForDisplayed()
+        await newSectionInGroup(groupCard(GROUP), SECTION)
 
         for (const text of TASKS) {
             await (await addTaskButton(sectionCard(SECTION))).click()
             await typeInto(sectionCard(SECTION).$("input"), text)
             await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
+            // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+            await closeTaskInput()
             await browser.waitUntil(async () => (await $$("[data-task-id]").length) >= TASKS.indexOf(text) + 1, { timeoutMsg: `task "${text}" not created` })
         }
     })
@@ -50,13 +54,13 @@ describe("Search in a note", () => {
 
         await browser.waitUntil(async () => (await markTexts()).length === 2, { timeoutMsg: "the matches are not highlighted" })
         expect((await markTexts()).map(text => text.toLowerCase())).toEqual(["latte", "latte"])
-        await expect(byText(await tr("notes.noteSearch.counter", { current: 1, total: 2 }))).toBeDisplayed()
+        await expect(await counter(1, 2)).toBeDisplayed()
         await expect($$("mark[data-active]")).toBeElementsArrayOfSize(1)
 
         await browser.keys("Enter")
-        await expect(byText(await tr("notes.noteSearch.counter", { current: 2, total: 2 }))).toBeDisplayed()
+        await expect(await counter(2, 2)).toBeDisplayed()
         await browser.keys(["Shift", "Enter"])
-        await expect(byText(await tr("notes.noteSearch.counter", { current: 1, total: 2 }))).toBeDisplayed()
+        await expect(await counter(1, 2)).toBeDisplayed()
     })
 
     it("closes with Esc and clears the highlights", async () => {

@@ -1,5 +1,5 @@
 import { $, $$, browser } from "@wdio/globals"
-import { byLabel, byText, currentLang, newSectionInGroup, openSubmenu, sectionCard, tr, treeRow, typeInto } from "../helpers"
+import { byLabel, byText, closeTaskInput, currentLang, newSectionInGroup, openSubmenu, sectionCard, tr, treeRow, typeInto } from "../helpers"
 
 /**
  * Helpers shared by the screenshot tours (ui-tour and docs-shots): they drive the real app through the UI, as a user would.
@@ -179,6 +179,8 @@ export const addTask = async (section: string, text: string) => {
     await typeInto(input, text)
     await browser.keys("Enter")
     await taskExists(text)
+    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+    await closeTaskInput()
 }
 
 export const addSubtask = async (parent: string, text: string) => {

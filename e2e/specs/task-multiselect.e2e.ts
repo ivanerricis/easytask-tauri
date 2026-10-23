@@ -3,6 +3,7 @@ import {
     byLabel, byText, createFromSidebar, createWorkspace, openContextMenu, openSubmenu, openWorkspace, sectionCard, sql, tr, treeRow, typeInto,
     waitForApp, addTaskButton,
     groupCard, newSectionInGroup,
+    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Multi Workspace"
@@ -66,6 +67,8 @@ describe("Multi-selection of tasks", () => {
             await (await addTaskButton(sectionCard(SECTION))).click()
             await typeInto(sectionCard(SECTION).$("input"), text)
             await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
+            // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+            await closeTaskInput()
             await (await rowOf(text)).waitForDisplayed({ timeoutMsg: `task "${text}" not created` })
         }
     })

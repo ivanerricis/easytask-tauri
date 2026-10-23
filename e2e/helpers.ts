@@ -304,9 +304,22 @@ export const directTasks = (group: ChainablePromiseElement | WebdriverIO.Element
 export const groupAddTaskButton = async (group: ChainablePromiseElement | WebdriverIO.Element) =>
     directTasks(group).$(`button[aria-label="${await tr("groups.addTask")}"]`)
 
+/**
+ * Closes the field of a new task. It stays open after saving (preference "keep adding tasks") and takes the focus back
+ * only when the task is saved, so wait for that before pressing Esc.
+ */
+export const closeTaskInput = async () => {
+    await browser.waitUntil(
+        async () => browser.execute(() => { const el = document.activeElement; return el instanceof HTMLInputElement && el.value === "" }),
+        { timeout: 5_000, timeoutMsg: "the new task field did not take the focus back" },
+    )
+    await browser.keys("Escape")
+}
 /** Adds a task directly in a group with its "Nuovo task" button, typing `text` and confirming with the add button. */
 export const addTaskToGroup = async (group: ChainablePromiseElement | WebdriverIO.Element, text: string) => {
     await (await groupAddTaskButton(group)).click()
     await typeInto(directTasks(group).$("input"), text)
     await directTasks(group).$(`[aria-label="${await tr("common.add")}"]`).click()
+    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+    await closeTaskInput()
 }

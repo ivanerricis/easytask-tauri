@@ -4,6 +4,7 @@ import {
     waitForApp, type Rgba,
     addTaskButton, menuButton, menuButtonPredicate,
     groupCard, newSectionInGroup,
+    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Feat Workspace"
@@ -93,6 +94,8 @@ const addTask = async (section: string, text: string) => {
     await (await addTaskButton(sectionCard(section))).click()
     await typeInto(sectionCard(section).$("input"), text)
     await sectionCard(section).$(`[aria-label="${await tr("common.add")}"]`).click()
+    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+    await closeTaskInput()
     await browser.waitUntil(async () => (await taskValues(section)).length === before + 1, { timeoutMsg: `task "${text}" not created` })
 }
 

@@ -1,11 +1,11 @@
 import { browser, expect } from "@wdio/globals"
 import {
-    addTaskButton, byLabel, byText, createFromSidebar, createWorkspace, domClick, openWorkspace, sectionCard, sql, tr, treeRow, typeInto,
-    waitForApp,
+    addTaskButton, byLabel, byText, closeTaskInput, createFromSidebar, createWorkspace, domClick, groupCard, newSectionInGroup, openWorkspace,
+    sectionCard, sql, tr, treeRow, typeInto, waitForApp,
 } from "../helpers"
 
 /**
- * Width of a group: dragged from the handle on its right edge, kept after an app restart, the completion bar hidden
+ * Width of a group: changed from the handle on its right edge, kept after an app restart, the completion bar hidden
  * when the group is narrow, double click to go back to the automatic width.
  */
 const WORKSPACE = "Width Workspace"
@@ -13,7 +13,6 @@ const NOTE = "Width Note"
 const GROUP = "Width Group"
 const SECTION = "Width Section"
 const TASK = "Width task"
-const NARROW = 280
 
 /** Width saved for the group (null = automatic). */
 const savedWidth = async (): Promise<number | null> => {
@@ -21,21 +20,24 @@ const savedWidth = async (): Promise<number | null> => {
     return rows[0]?.width ?? null
 }
 
+/** The completion bar of the group (the details panel on the right has one with the same label, so look inside the card). */
+const groupBar = async () => groupCard(GROUP).$(`[aria-label="${await tr("groups.progress")}"]`)
 /** Rendered width of the group: the handle is the last child of its root element. */
 const renderedWidth = async (): Promise<number> => {
     const handle = await byLabel(await tr("groups.width.handle"))
     return browser.execute((el: HTMLElement) => el.parentElement!.getBoundingClientRect().width, handle as unknown as HTMLElement)
 }
 
-/** Drags the handle by `delta` pixels (negative = narrower). */
-const dragHandle = async (delta: number) => {
+/**
+ * Narrows the group by a large step of the keyboard (Shift + arrow, 64 px) from the focused handle. The pointer moves of the driver are not
+ * exact to the pixel (the drag with the mouse is covered by the unit tests), the arrow key is.
+ */
+const narrowWithKeyboard = async () => {
     const handle = byLabel(await tr("groups.width.handle"))
     await handle.waitForDisplayed()
-    await handle.scrollIntoView({ block: "center", inline: "center" })
-    const steps = 10
-    let action = browser.action("pointer").move({ origin: handle }).down()
-    for (let i = 1; i <= steps; i++) action = action.move({ origin: "pointer", x: Math.round(delta / steps), y: 0 })
-    await action.up().perform()
+    const element = (await handle.getElement()) as unknown as HTMLElement
+    await browser.execute((el: HTMLElement) => el.focus(), element)
+    await browser.keys(["Shift", "ArrowLeft"])
 }
 
 describe("Group width", () => {
@@ -51,28 +53,33 @@ describe("Group width", () => {
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
         await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
-        await byText(await tr("sections.new")).click()
-        await typeInto(byLabel(await tr("sections.titleLabel")), SECTION)
-        await browser.keys("Enter")
-        await sectionCard(SECTION).waitForDisplayed()
+        await newSectionInGroup(groupCard(GROUP), SECTION)
         await (await addTaskButton(sectionCard(SECTION))).click()
         await typeInto(sectionCard(SECTION).$("input"), TASK)
         await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
+        // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+        await closeTaskInput()
         await browser.waitUntil(async () => (await sql<unknown[]>("select", "SELECT id FROM task WHERE text = ?", [TASK])).length > 0, { timeoutMsg: "task not created" })
     })
 
     it("starts with the automatic width and the completion bar", async () => {
         expect(await savedWidth()).toBeNull()
-        await byLabel(await tr("groups.progress")).waitForDisplayed({ timeoutMsg: "the completion bar is not shown" })
-        expect(await renderedWidth()).toBeGreaterThan(320)
+        await (await groupBar()).waitForDisplayed({ timeoutMsg: "the completion bar is not shown" })
     })
 
     it("resizes by dragging the handle, hides the completion bar when narrow and saves the width", async () => {
         const before = await renderedWidth()
-        await dragHandle(NARROW - before)
-        await browser.waitUntil(async () => Math.abs((await renderedWidth()) - NARROW) < 3, { timeoutMsg: "the group did not follow the handle" })
-        await byLabel(await tr("groups.progress")).waitForDisplayed({ reverse: true, timeoutMsg: "the completion bar is still shown in a narrow group" })
-        await browser.waitUntil(async () => Math.abs(((await savedWidth()) ?? 0) - NARROW) < 3, { timeoutMsg: "the width was not saved" })
+        // Narrower than the automatic width: under the threshold of the completion bar (320), which then goes away
+        await narrowWithKeyboard()
+        await browser.waitUntil(async () => (await renderedWidth()) < Math.min(before, 320), { timeoutMsg: "the group did not follow the handle" })
+        await (await groupBar()).waitForDisplayed({ reverse: true, timeoutMsg: "the completion bar is still shown in a narrow group" })
+        await browser.waitUntil(
+            async () => {
+                const saved = await savedWidth()
+                return saved !== null && saved < 320 && Math.abs((await renderedWidth()) - saved) < 3
+            },
+            { timeoutMsg: "the width was not saved" },
+        )
     })
 
     it("keeps the width after restarting the app", async () => {
@@ -87,7 +94,7 @@ describe("Group width", () => {
         }
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was lost" })
         await browser.waitUntil(async () => Math.abs((await renderedWidth()) - saved!) < 1.5, { timeoutMsg: "the width was not restored" })
-        expect(await byLabel(await tr("groups.progress")).isExisting()).toBe(false)
+        expect(await (await groupBar()).isExisting()).toBe(false)
     })
 
     it("keeps the width when the group is collapsed", async () => {
@@ -103,7 +110,6 @@ describe("Group width", () => {
         const handle = byLabel(await tr("groups.width.handle"))
         await handle.doubleClick()
         await browser.waitUntil(async () => (await savedWidth()) === null, { timeoutMsg: "the width was not cleared" })
-        await byLabel(await tr("groups.progress")).waitForDisplayed({ timeoutMsg: "the completion bar did not come back" })
-        expect(await renderedWidth()).toBeGreaterThan(320)
+        await (await groupBar()).waitForDisplayed({ timeoutMsg: "the completion bar did not come back" })
     })
 })

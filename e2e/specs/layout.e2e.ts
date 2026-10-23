@@ -8,6 +8,7 @@ import {
     openWorkspace, sql, tr, treeRow, typeInto, waitForApp, type Rgba,
     addTaskButton,
     groupCard, newSectionInGroup,
+    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Layout Workspace"
@@ -56,6 +57,8 @@ const addTask = async (text: string) => {
     await (await addTaskButton(card)).click()
     await typeInto(card.$("input"), text)
     await card.$(`[aria-label="${await tr("common.add")}"]`).click()
+    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+    await closeTaskInput()
     await browser.waitUntil(
         async () => browser.execute((value: string) => Array.from(document.querySelectorAll("textarea")).some(area => area.value === value), text),
         { timeoutMsg: `task "${text}" not created` },
