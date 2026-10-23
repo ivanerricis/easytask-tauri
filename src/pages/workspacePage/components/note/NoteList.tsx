@@ -42,7 +42,8 @@ const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {
             }}
             {...listeners}
             style={{ transform: CSS.Translate.toString(transform) }}
-            className={cn("relative min-w-28 shrink-0", isDragging && "z-10 opacity-70")}
+            // The bar draws the lines between the tabs (divide-x): the last tab closes itself on the right
+            className={cn("relative min-w-28 shrink-0 last:border-r", isDragging && "z-10 opacity-70")}
         >
             {!isDragging && <DropLine zone={indicator} vertical className="z-20" />}
             <NoteHeader note={note} />

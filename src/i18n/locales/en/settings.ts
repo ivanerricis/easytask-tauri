@@ -331,7 +331,7 @@ export const settings: Translation["settings"] = {
     },
     search: {
         label: "Search settings",
-        placeholder: "Search settings…",
+        placeholder: "Search…",
         clear: "Clear the search",
         noResults: "No setting matches \"{{query}}\".",
     },

@@ -8,6 +8,15 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 - Sito della documentazione in italiano e in inglese: [ivanerricis.github.io/easytask-tauri/it](https://ivanerricis.github.io/easytask-tauri/it/). Si apre da Aiuto > Documentazione, con `F1` (la scorciatoia si cambia in Impostazioni > Scorciatoie) o da Impostazioni > Informazioni. Si apre nella lingua dell'app.
 
+### Modificato
+
+- Il pulsante accanto alla barra di ricerca che torna alla home è una freccia invece di una casa.
+
+### Corretto
+
+- L'ultima scheda delle note aperte ha di nuovo il bordo destro quando non è quella attiva.
+- Il testo segnaposto della ricerca nelle Impostazioni non è più tagliato.
+
 ## [0.11.0] - 2026-10-22
 
 ### Aggiunto
