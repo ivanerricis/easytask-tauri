@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-23
+
 ### Added
 
 - Documentation site in English and Italian: [ivanerricis.github.io/easytask-tauri](https://ivanerricis.github.io/easytask-tauri/). Open it from Help > Documentation, with `F1` (the shortcut can be changed in Settings > Shortcuts) or from Settings > About. It opens in the language of the app.
@@ -347,7 +349,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.1...v0.10.0
