@@ -1,6 +1,6 @@
 import type { Group, NoteDataTree, Section, Task } from "@/types/types"
 import {
-    buildGroup, buildSection, buildTask, findGroup, findSection, findTask,
+    buildGroup, buildSection, buildTask, completionChanges, findGroup, findSection, findTask,
     insertGroup, insertSection, insertTask, moveSection, moveTask,
     patchGroup, patchSection, patchTask, removeGroup, removeSection, removeTask,
     type GroupPatch, type SectionPatch, type TaskParent,
@@ -18,6 +18,8 @@ export type NoteOptimisticActions = {
     patchGroup: (groupId: number, patch: GroupPatch) => Rollback
     patchSection: (sectionId: number, patch: SectionPatch) => Rollback
     patchTask: (taskId: number, patch: Partial<Task>) => Rollback
+    /** Completes or reopens a task with the cascade of the database: its subtasks follow it and its ancestors reflect their subtasks. */
+    setTaskCompletion: (taskId: number, completed: boolean) => Rollback
     /** Inserts a group at `index` (default: the end). */
     insertGroup: (group: Group, index?: number) => Rollback
     insertSection: (groupId: number, section: Section, index?: number) => Rollback
@@ -121,6 +123,17 @@ export function createNoteOptimisticActions(store: NoteTreeStore): BaseNoteOptim
             if (!found) return noop
             const previous = previousValues(found.task, patch)
             return apply(t => patchTask(t, taskId, patch), t => patchTask(t, taskId, previous))
+        },
+
+        setTaskCompletion: (taskId, completed) => {
+            const current = store.active()
+            if (!current) return noop
+            const changes = completionChanges(current.tree, taskId, completed)
+            if (changes.size === 0) return noop
+            const previous = new Map([...changes.keys()].map(id => [id, !!findTask(current.tree, id)?.task.completed]))
+            const write = (values: Map<number, boolean>) => (t: NoteDataTree) =>
+                [...values].reduce((tree, [id, value]) => patchTask(tree, id, { completed: value }), t)
+            return apply(write(changes), write(previous))
         },
 
         insertGroup: (group, index) =>

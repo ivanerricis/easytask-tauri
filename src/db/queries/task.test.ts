@@ -84,9 +84,16 @@ describe("task queries SQL", () => {
 
     it("updateDBTaskCompletion converts booleans to 0/1", async () => {
         await updateDBTaskCompletion(4, true)
-        expect(db.execute).toHaveBeenLastCalledWith("UPDATE task SET completed=? WHERE id=?", [1, 4])
+        expect(db.execute).toHaveBeenLastCalledWith(expect.stringContaining("UPDATE task SET completed = ?"), [4, 1, 1])
         await updateDBTaskCompletion(4, false)
-        expect(db.execute).toHaveBeenLastCalledWith("UPDATE task SET completed=? WHERE id=?", [0, 4])
+        expect(db.execute).toHaveBeenLastCalledWith(expect.stringContaining("UPDATE task SET completed = ?"), [4, 0, 0])
+    })
+
+    it("updateDBTaskCompletion then recomputes every ancestor from its subtasks", async () => {
+        db.select.mockResolvedValueOnce([{ taskID: 2 }]).mockResolvedValueOnce([{ taskID: 1 }]).mockResolvedValueOnce([{ taskID: null }])
+        await updateDBTaskCompletion(3, true)
+        const updates = db.execute.mock.calls.filter(([sql]) => String(sql).includes("NOT EXISTS"))
+        expect(updates.map(([, params]) => params)).toEqual([[2], [1]])
     })
 
     it("updateDBTaskDescription passes null when missing", async () => {

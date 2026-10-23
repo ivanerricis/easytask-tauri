@@ -52,6 +52,21 @@ describe("note optimistic actions", () => {
         expect(tree!.groups[0].sections[0].tasks[0].subtasks[0].completed).toBe(false)
     })
 
+    it("setTaskCompletion cascades to the subtasks and the ancestors, and rolls back all of them", () => {
+        const actions = createNoteOptimisticActions(store)
+        const parent = () => tree!.groups[0].sections[0].tasks[0]
+        const undoParent = actions.setTaskCompletion(100, true)
+        expect([parent().completed, parent().subtasks[0].completed]).toEqual([true, true])
+        undoParent()
+        expect([parent().completed, parent().subtasks[0].completed]).toEqual([false, false])
+
+        // The only subtask completes the parent, and reopening it reopens the parent
+        actions.setTaskCompletion(101, true)
+        expect(parent().completed).toBe(true)
+        actions.setTaskCompletion(101, false)
+        expect(parent().completed).toBe(false)
+    })
+
     it("a rollback keeps the changes made to other fields in the meantime", () => {
         const actions = createNoteOptimisticActions(store)
         const undo = actions.patchTask(100, { text: "new text" })

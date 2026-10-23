@@ -84,7 +84,8 @@ export async function updateDBTaskPriority(taskId: number, priority: boolean) {
 }
 
 /**
- * Edits the completion status of an existing task in the database.
+ * Edits the completion status of an existing task in the database. It cascades: the subtasks take the same status and
+ * every ancestor is completed exactly when all its subtasks are (the archived and trashed ones do not count).
  * @param id The ID of the task to edit.
  * @param isComplited The new completion status of the task.
  * @category Database
@@ -92,7 +93,26 @@ export async function updateDBTaskPriority(taskId: number, priority: boolean) {
 export async function updateDBTaskCompletion(taskId: number, isCompleted: boolean) {
     try {
         const db = await getDB()
-        await db.execute('UPDATE task SET completed=? WHERE id=?', [isCompleted ? 1 : 0, taskId])
+        const value = isCompleted ? 1 : 0
+        await db.execute(
+            `WITH RECURSIVE tree(id) AS (
+                 SELECT ?
+                 UNION ALL
+                 SELECT task.id FROM task JOIN tree ON task.taskID = tree.id
+                 WHERE task.deleted_at IS NULL AND task.archived_at IS NULL)
+             UPDATE task SET completed = ? WHERE id IN (SELECT id FROM tree) AND completed <> ?`,
+            [taskId, value, value])
+        let parents = await db.select<{ taskID: number | null }[]>('SELECT taskID FROM task WHERE id=?', [taskId])
+        while (parents[0]?.taskID != null) {
+            const parentId = parents[0].taskID
+            await db.execute(
+                `UPDATE task SET completed = NOT EXISTS (
+                     SELECT 1 FROM task child
+                     WHERE child.taskID = task.id AND child.completed = 0 AND child.deleted_at IS NULL AND child.archived_at IS NULL)
+                 WHERE id = ?`,
+                [parentId])
+            parents = await db.select<{ taskID: number | null }[]>('SELECT taskID FROM task WHERE id=?', [parentId])
+        }
     } catch (error: unknown) {
         handleDBError(error, "TASK", {
             UNIQUE: i18n.t("errors.task.unique"),
