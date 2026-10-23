@@ -191,4 +191,50 @@ describe("AddSection", () => {
         await openGroupForm(userEvent.setup())
         expect(scrollIntoView).not.toHaveBeenCalled()
     })
+
+    describe("controlled by the group", () => {
+        it("renders nothing while closed: there is no section button", () => {
+            render(<AddSection inGroup groupId={7} open={false} onClose={vi.fn()} />)
+            expect(screen.queryByRole("button")).not.toBeInTheDocument()
+            expect(screen.queryByPlaceholderText(SECTION_PLACEHOLDER)).not.toBeInTheDocument()
+        })
+
+        it("shows the focused form when open and scrolls it into view", () => {
+            const scrollIntoView = vi.fn()
+            Element.prototype.scrollIntoView = scrollIntoView
+            render(<AddSection inGroup groupId={7} open onClose={vi.fn()} />)
+            expect(screen.getByPlaceholderText(SECTION_PLACEHOLDER)).toHaveFocus()
+            expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" })
+        })
+
+        it("creates the section and asks to close", async () => {
+            const user = userEvent.setup()
+            const onClose = vi.fn()
+            render(<AddSection inGroup groupId={7} open onClose={onClose} />)
+            await user.type(screen.getByPlaceholderText(SECTION_PLACEHOLDER), "Inner{Enter}")
+
+            await waitFor(() => expect(ctx.createSectionInGroup).toHaveBeenCalledWith(7, "Inner"))
+            expect(ctx.appendSection).toHaveBeenCalledWith(41, 7, "Inner")
+            await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+        })
+
+        it("asks to close on Escape and on a click outside, without creating", async () => {
+            const user = userEvent.setup()
+            const onClose = vi.fn()
+            render(<AddSection inGroup groupId={7} open onClose={onClose} />)
+            await user.type(screen.getByPlaceholderText(SECTION_PLACEHOLDER), "x{Escape}")
+            expect(onClose).toHaveBeenCalledTimes(1)
+
+            fireEvent.mouseDown(document.body)
+            expect(onClose).toHaveBeenCalledTimes(2)
+            expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
+        })
+
+        it("ignores a click outside while closed", () => {
+            const onClose = vi.fn()
+            render(<AddSection inGroup groupId={7} open={false} onClose={onClose} />)
+            fireEvent.mouseDown(document.body)
+            expect(onClose).not.toHaveBeenCalled()
+        })
+    })
 })

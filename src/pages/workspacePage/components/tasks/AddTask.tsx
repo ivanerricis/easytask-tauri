@@ -25,6 +25,8 @@ type AddTaskProps = {
     parentTaskId?: number
     /** Called when the input is dismissed (only meaningful with parentTaskId). */
     onClose?: () => void
+    /** The task goes directly in a group: the closed state is a dashed "New task" button instead of the "+" of a section. */
+    inGroup?: boolean
 }
 
 /**
@@ -122,7 +124,7 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
     )
 }
 
-const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
+const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inGroup?: boolean }) => {
     const { t } = useTranslation()
     const [isOpen, setOpen] = useState(false)
     const [text, setText] = useState("")
@@ -193,16 +195,30 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
 
     return (
         !isOpen ? (
-            <Button
-                type="button"
-                variant="ghost"
-                onClick={handleOpen}
-                aria-label={t("tasks.add")}
-                title={t("tasks.add")}
-                className="w-full h-9 rounded-none font-normal text-muted-foreground hover:text-foreground"
-            >
-                <Plus />
-            </Button>
+            inGroup ? (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleOpen}
+                    aria-label={t("groups.addTask")}
+                    title={t("groups.addTask")}
+                    className="w-full h-9 rounded-xs border border-dashed border-muted-foreground/45 hover:border-foreground/60 font-normal text-muted-foreground hover:text-foreground"
+                >
+                    <Plus />
+                    <span className="text-nowrap">{t("groups.addTask")}</span>
+                </Button>
+            ) : (
+                <Button
+                    type="button"
+                    variant="ghost"
+                    onClick={handleOpen}
+                    aria-label={t("tasks.add")}
+                    title={t("tasks.add")}
+                    className="w-full h-9 rounded-none font-normal text-muted-foreground hover:text-foreground"
+                >
+                    <Plus />
+                </Button>
+            )
         ) : (
             <form
                 ref={formRef}
@@ -231,7 +247,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
     )
 }
 
-export const AddTask = ({ sectionId, parentTaskId, onClose }: AddTaskProps) =>
+export const AddTask = ({ sectionId, parentTaskId, onClose, inGroup }: AddTaskProps) =>
     parentTaskId !== undefined
         ? <SubtaskInput parentTaskId={parentTaskId} sectionId={sectionId} onClose={onClose} />
-        : <TopLevelAddTask sectionId={sectionId} />
+        : <TopLevelAddTask sectionId={sectionId} inGroup={inGroup} />

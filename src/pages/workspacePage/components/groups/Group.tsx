@@ -1,11 +1,12 @@
 import type { Group as GroupType } from "@/types/types"
-import { memo, useCallback, useLayoutEffect, useRef } from "react"
+import { memo, useCallback, useLayoutEffect, useRef, useState } from "react"
 import { Section } from "../section/Section"
 import { AddSection } from "../section/AddSection"
 import { GroupHeader } from "./GroupHeader"
 import { cn } from "@/lib/utils"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import { GroupAudioFiles } from "./GroupAudioFiles"
+import { GroupTasks } from "./GroupTasks"
 import { useGroupOpen } from "@/contexts/use-tabs"
 import { DropLine } from "../sidebar/DropLine"
 
@@ -35,7 +36,14 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
         setDragRef(node)
     }, [setDropRef, setDragRef])
     const draggingGroup = active?.kind === "group"
-    const [isOpen] = useGroupOpen(group.id)
+    const [isOpen, toggleOpen] = useGroupOpen(group.id)
+    // The form of a new section: asked from the menu of the group (there is no section button in the group anymore)
+    const [addingSection, setAddingSection] = useState(false)
+    const closeSectionForm = useCallback(() => setAddingSection(false), [])
+    const addSection = useCallback(() => {
+        if (!isOpen) toggleOpen()
+        setAddingSection(true)
+    }, [isOpen, toggleOpen])
 
     // While open, follow the width of the group (its content can grow or shrink); the cleanup runs before the
     // sections are removed from the DOM, so the width of the collapsed group is never recorded
@@ -52,6 +60,7 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
     return (
         <div
             ref={setRef}
+            data-group-card
             style={isOpen ? undefined : { minWidth: openWidths.get(group.id) }}
             className={cn(
                 // Same minimum width as a section: an empty group would otherwise shrink to "Nuova sezione" and clip its header.
@@ -67,13 +76,16 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
                 index={index}
                 audioCount={audioCount}
                 dragProps={dragProps}
+                onAddSection={addSection}
             />
             {isOpen && <>
                 <GroupAudioFiles groupId={group.id} />
+                {/* Direct tasks, their "New task" button, the sections and the form of a new section scroll together */}
                 <div className="flex flex-col gap-1 overflow-y-auto">
+                    <GroupTasks group={group} />
                     {group.sections.map(section => <Section key={section.id} section={section} />)}
+                    <AddSection inGroup groupId={group.id} open={addingSection} onClose={closeSectionForm} />
                 </div>
-                <AddSection inGroup groupId={group.id} />
             </>}
         </div>
     )

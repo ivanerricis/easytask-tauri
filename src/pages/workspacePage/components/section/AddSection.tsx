@@ -17,11 +17,24 @@ import { useSubmitOnce } from "@/hooks/use-submit-once"
 type AddSectionFormProps = {
     inGroup?: boolean
     groupId?: number
+    /**
+     * Controlled mode (used by the group, which opens the form from its menu): the form is shown while this is true and
+     * nothing is rendered while it is false (no "new section" button). It is focused and scrolled into view when it opens.
+     */
+    open?: boolean
+    /** Controlled mode: called when the form is dismissed or submitted. */
+    onClose?: () => void
 }
 
-export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
+export const AddSection = ({ inGroup, groupId, open, onClose }: AddSectionFormProps) => {
     const { t } = useTranslation()
-    const [isOpen, setOpen] = useState(false)
+    const controlled = open !== undefined
+    const [innerOpen, setInnerOpen] = useState(false)
+    const isOpen = controlled ? open : innerOpen
+    const setOpen = useCallback((next: boolean) => {
+        if (!controlled) setInnerOpen(next)
+        else if (!next) onClose?.()
+    }, [controlled, onClose])
     const [name, setName] = useState("")
     const { createGroup, createSectionInGroup } = useWorkspaceActions()
     const activeId = useActiveNoteId()
@@ -31,9 +44,9 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     const { saving, run } = useSubmitOnce()
 
     const handleOpen = useCallback(() => {
-        setOpen(prev => !prev)
+        setOpen(!isOpen)
         setName("")
-    }, [])
+    }, [isOpen, setOpen])
 
     useShortcut("new-group", handleOpen, { enabled: !inGroup, allowInInputs: true })
 
@@ -43,10 +56,11 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
     useAppCommand("new-group", () => { revealForm.current = true; setOpen(true); setName("") }, { enabled: !inGroup })
 
     useEffect(() => {
-        if (!isOpen || !revealForm.current) return
+        if (!isOpen || !(revealForm.current || controlled)) return
         revealForm.current = false
-        formRef.current?.scrollIntoView({ inline: "end", block: "nearest" })
-    }, [isOpen])
+        // In a group the list is vertical: only the vertical position matters
+        formRef.current?.scrollIntoView(controlled ? { block: "nearest" } : { inline: "end", block: "nearest" })
+    }, [isOpen, controlled])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -58,7 +72,7 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
 
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
-    }, [])
+    }, [setOpen])
 
     // Escape closes the form and discards the text, like a click outside
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -95,6 +109,8 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
             }
         })
     }
+
+    if (!isOpen && controlled) return null
 
     return !isOpen ? (
         <AddButton onClick={handleOpen} inGroup={inGroup} />
