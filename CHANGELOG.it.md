@@ -4,6 +4,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-10-23
+
 ### Aggiunto
 
 - Sito della documentazione in italiano e in inglese: [ivanerricis.github.io/easytask-tauri/it](https://ivanerricis.github.io/easytask-tauri/it/). Si apre da Aiuto > Documentazione, con `F1` (la scorciatoia si cambia in Impostazioni > Scorciatoie) o da Impostazioni > Informazioni. Si apre nella lingua dell'app.
@@ -345,7 +347,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...HEAD
+[0.12.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.0...v0.10.1
 [0.10.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.9.1...v0.10.0
