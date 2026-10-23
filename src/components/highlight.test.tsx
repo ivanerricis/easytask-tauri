@@ -23,7 +23,7 @@ describe("Highlight", () => {
         const [first, second] = [...container.querySelectorAll("mark")]
         expect(first).not.toHaveAttribute("data-active")
         expect(second).toHaveAttribute("data-active", "true")
-        expect(second.className).toContain("bg-primary ")
-        expect(first.className).toContain("bg-primary/25")
+        expect(second.className).toContain("bg-orange-400")
+        expect(first.className).toContain("bg-yellow-300/70")
     })
 })

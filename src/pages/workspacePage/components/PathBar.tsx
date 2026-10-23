@@ -61,7 +61,7 @@ export const PathBar = () => {
     }, [activeId, workspaceDataTree])
 
     return (
-        <div className="flex h-8 shrink-0 items-center gap-2 border-b px-2">
+        <div className="flex h-8 shrink-0 items-center gap-2 px-2">
             <Breadcrumb aria-label={t("notes.path.label")} className="min-w-0 flex-1">
                 <BreadcrumbList className="flex-nowrap gap-1 text-xs sm:gap-1">
                     {segments.map((segment, index) => (
