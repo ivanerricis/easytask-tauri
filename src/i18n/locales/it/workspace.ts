@@ -83,6 +83,11 @@ export const groups = {
     progress: "Avanzamento del gruppo",
     audioCount_one: "{{count}} file audio",
     audioCount_other: "{{count}} file audio",
+    width: {
+        handle: "Ridimensiona il gruppo",
+        value: "{{width}} pixel",
+        auto: "larghezza automatica",
+    },
 }
 
 export const sidebar = {

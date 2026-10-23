@@ -46,6 +46,10 @@ You can also move things by dragging:
 
 Each group and section has a button to collapse it (**Collapse group**, **Collapse section**). A group can show how many sections, tasks and audio files it holds. Groups and sections can also show a progress bar with the percentage of completed tasks (for a group, tasks and subtasks all count). Choose what to show in **Settings > Notes and sections**: **Show progress bar in sections**, **Show progress bar in groups**, **Show number of sections**, **Show number of tasks**, **Show number of audio files**. The option **Lines between groups** draws a thin guide between the columns.
 
+### Resize a group
+
+Drag the right edge of a group to make it wider or narrower. With the keyboard, focus the edge and use `Left` and `Right` (hold `Shift` for bigger steps), `Home` for the narrowest width and `End` for the widest. Double-click the edge to restore the automatic width. The progress bar of a group disappears when the group gets too narrow to show it.
+
 ## Tasks and subtasks
 
 ### Add a task
