@@ -110,7 +110,7 @@ When you open a workspace, EasyTask reopens the notes that were open and the act
 
 ## Search a note
 
-Press `Ctrl+O`, or click the **Search…** field at the top of the window, then type part of a note name. The list shows each match with the path of its folder. Choose one to open it.
+Press `Ctrl+K`, or click the **Search…** field at the top of the window, then type part of a note name. The list shows each match with the path of its folder. Choose one to open it.
 
 ![Note search](../screenshots/en/note-search-light.png)
 

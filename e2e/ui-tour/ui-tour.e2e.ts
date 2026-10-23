@@ -459,9 +459,9 @@ describe("UI tour", () => {
         await recover()
         await settle(500)
         await attempt("note-search", async () => {
-            await browser.keys(["Control", "o"])
+            await browser.keys(["Control", "k"])
             await dialogEl().waitForDisplayed()
-            await shot(52, "note-search-palette", "Note search palette", "Command palette (Ctrl+O) to search a note.")
+            await shot(52, "note-search-palette", "Note search palette", "Command palette (Ctrl+K) to search a note.")
             await closeDialog()
         })
         await recover()

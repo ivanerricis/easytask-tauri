@@ -23,7 +23,7 @@ Le scorciatoie funzionano quando non stai scrivendo, con alcune eccezioni: quell
 
 | Azione | Scorciatoia | Modificabile |
 | --- | --- | --- |
-| Cerca una nota | `Ctrl+O` | Sì |
+| Cerca una nota | `Ctrl+K` | Sì |
 | Nuova nota | `Ctrl+N` | Sì |
 | Nuova cartella | `Ctrl+M` | Sì |
 | Chiudi la nota attiva | `Ctrl+L` | Sì |

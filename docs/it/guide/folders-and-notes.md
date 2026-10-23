@@ -110,7 +110,7 @@ Quando apri un workspace, EasyTask riapre le note che erano aperte e quella atti
 
 ## Cercare una nota
 
-Premi `Ctrl+O`, oppure fai clic sul campo **Cerca…** in alto nella finestra, poi scrivi parte del nome di una nota. L'elenco mostra ogni risultato con il percorso della sua cartella. Scegline uno per aprirlo.
+Premi `Ctrl+K`, oppure fai clic sul campo **Cerca…** in alto nella finestra, poi scrivi parte del nome di una nota. L'elenco mostra ogni risultato con il percorso della sua cartella. Scegline uno per aprirlo.
 
 ![Ricerca delle note](../../screenshots/it/note-search-light.png)
 

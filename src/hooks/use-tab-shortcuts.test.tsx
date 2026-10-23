@@ -115,7 +115,7 @@ describe("useTabShortcuts", () => {
         const { latest } = setup()
         fireEvent.keyDown(document, { key: "l" })
         fireEvent.keyDown(document, { key: "t" })
-        fireEvent.keyDown(document, { key: "o", ctrlKey: true })
+        fireEvent.keyDown(document, { key: "k", ctrlKey: true })
         expect(latest.current.openIds).toEqual([1, 2, 3])
     })
 })
