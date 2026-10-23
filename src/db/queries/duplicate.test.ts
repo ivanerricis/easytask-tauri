@@ -45,8 +45,10 @@ async function noteTree(noteId: number) {
         subtasks: tasks.filter(c => c.taskID === t.id).map(taskNode),
     })
     return groups.map(g => ({
-        name: g.name ?? null, color: g.color ?? null, position: g.position,
-        sections: sections.filter(s => s.groupID === g.id).map(s => ({
+        name: g.name ?? null, color: g.color ?? null, position: g.position, width: g.width ?? null,
+        // The direct tasks live in the default section, which is not one of the sections
+        direct: tasks.filter(t => sections.some(s => s.groupID === g.id && s.is_default && s.id === t.sectionID) && t.taskID === null).map(taskNode),
+        sections: sections.filter(s => s.groupID === g.id && !s.is_default).map(s => ({
             title: s.title, color: s.color ?? null, position: s.position,
             tasks: tasks.filter(t => t.sectionID === s.id && t.taskID === null).map(taskNode),
         })),
@@ -54,7 +56,7 @@ async function noteTree(noteId: number) {
 }
 
 const order = (table: "note" | "section", where: string) =>
-    rows(`SELECT ${table === "note" ? "name" : "title"} AS label, position FROM ${table} WHERE ${where} AND deleted_at IS NULL ORDER BY position`)
+    rows(`SELECT ${table === "note" ? "name" : "title"} AS label, position FROM ${table} WHERE ${where} AND deleted_at IS NULL${table === "section" ? " AND is_default = 0" : ""} ORDER BY position`)
         .map(r => `${r.label}@${r.position}`)
 
 beforeEach(() => {
@@ -75,6 +77,8 @@ beforeEach(() => {
             (3, 1, 'Ultima', NULL, 2),
             (4, 2, 'Idee', NULL, 0),
             (5, 1, 'Eliminata', NULL, 3);
+        INSERT INTO section (id, groupID, title, position, is_default) VALUES (20, 1, NULL, 0, 1), (21, 2, NULL, 0, 1);
+        UPDATE section_group SET width = 360 WHERE id = 1;
         INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, color, position) VALUES
             (1, 1, NULL, 'Radice B', 'descrizione', 1, 1, '#0000ff', 1),
             (2, 1, NULL, 'Radice A', NULL, 0, 0, NULL, 0),
@@ -82,7 +86,9 @@ beforeEach(() => {
             (4, 1, 3, 'Nipote', NULL, 1, 1, NULL, 0),
             (5, 1, NULL, 'Eliminato', NULL, 0, 0, NULL, 2),
             (6, 1, 5, 'Figlio di eliminato', NULL, 0, 0, NULL, 0),
-            (7, 4, NULL, 'Idea', NULL, 0, 0, NULL, 0);
+            (7, 4, NULL, 'Idea', NULL, 0, 0, NULL, 0),
+            (8, 20, NULL, 'Diretto', NULL, 1, 0, NULL, 0),
+            (9, 20, 8, 'Figlio diretto', NULL, 0, 1, NULL, 0);
         UPDATE task SET deleted_at = datetime('now') WHERE id = 5;
         UPDATE section SET deleted_at = datetime('now') WHERE id = 5;
 
@@ -105,6 +111,11 @@ describe("duplicateDBNote", () => {
             .toEqual({ workspaceID: 1, folderID: null, name: "Prima (copia)", color: "#ff0000" })
         expect(await noteTree(id)).toEqual(await noteTree(1))
         expect((await noteTree(id))[0].sections[0].tasks[1].subtasks[0].subtasks[0].text).toBe("Nipote")
+        // The direct tasks (default section) and the width of the group are copied, in the default section of the new group
+        const copy = (await noteTree(id))[0]
+        expect(copy.width).toBe(360)
+        expect(copy.direct.map(t => [t.text, (t.subtasks as TreeTask[]).map(s => s.text)])).toEqual([["Diretto", ["Figlio diretto"]]])
+        expect(rows(`SELECT COUNT(*) AS n FROM section s JOIN section_group g ON g.id = s.groupID WHERE g.noteID = ${id} AND s.is_default = 1`)[0].n).toBe(2)
         expect(rows(`SELECT COUNT(*) AS n FROM audio_file WHERE section_groupID IN (SELECT id FROM section_group WHERE noteID = ${id})`)[0].n).toBe(0)
         const copied = JSON.stringify(rows(`SELECT text FROM task WHERE sectionID IN (SELECT id FROM section WHERE groupID IN (SELECT id FROM section_group WHERE noteID = ${id}))`))
         expect(copied).not.toContain("Eliminato")
@@ -216,7 +227,7 @@ describe("duplicateDBNote automations", () => {
         const id = await duplicateDBNote(1)
         const data = await getDBNoteData(id)
         // content order: by group, then by position
-        const sections = data.groups.flatMap(g => data.sections.filter(s => s.groupID === g.id))
+        const sections = data.groups.flatMap(g => data.sections.filter(s => s.groupID === g.id && !s.is_default))
         const [a, c, d] = sections.map(s => s.id)
         expect(sections.map(s => s.title)).toEqual(["Da fare", "Ultima", "Idee"])
 
@@ -228,6 +239,22 @@ describe("duplicateDBNote automations", () => {
         // the original rules are untouched
         expect(await getDBAutomations(1)).toHaveLength(4)
         expect((await getDBAutomations(1))[0].trigger).toEqual({ type: "task.movedInto", sectionId: 1 })
+    })
+
+    it("copies the rules that use the direct area of a group, pointing to the default sections of the copy", async () => {
+        rule(1, "Dal gruppo", 0, { type: "task.completed", sectionId: 20 }, [{ type: "moveTo", sectionId: 21, at: "top" }])
+        rule(2, "Dentro", 1, { type: "task.movedInto", sectionId: 21 }, [{ type: "moveTo", sectionId: 4, at: "bottom" }])
+
+        const id = await duplicateDBNote(1)
+        const copy = await getDBNoteData(id)
+        const defaults = copy.groups.map(g => copy.sections.find(s => s.groupID === g.id && s.is_default)!.id)
+        const idee = copy.sections.find(s => s.title === "Idee")!.id
+        expect(defaults).toHaveLength(2)
+        expect((await getDBAutomations(id)).map(r => ({ trigger: r.trigger, actions: r.actions }))).toEqual([
+            { trigger: { type: "task.completed", sectionId: defaults[0] }, actions: [{ type: "moveTo", sectionId: defaults[1], at: "top" }] },
+            { trigger: { type: "task.movedInto", sectionId: defaults[1] }, actions: [{ type: "moveTo", sectionId: idee, at: "bottom" }] },
+        ])
+        expect(defaults).not.toContain(20)
     })
 
     it("copies a group rule pointing to the copied group and drops one on an archived group", async () => {

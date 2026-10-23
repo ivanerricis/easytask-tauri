@@ -90,7 +90,9 @@ L'esportazione salva un workspace in un unico file che puoi conservare, condivid
 - **Esporta**: apri il workspace, poi usa **Impostazioni > Dati > Importa / Esporta > Esporta workspace corrente** (oppure **File > Esporta workspace…**). Scegli dove salvare `<nome>.easytask.json`.
 - **Importa**: usa **Impostazioni > Dati > Importa / Esporta > Importa workspace** e scegli il file. EasyTask crea un nuovo workspace. Quello che hai già non viene modificato.
 
-Il file contiene cartelle, note con il loro contenuto, template e i percorsi dei file audio. Gli elementi nel cestino non vengono esportati.
+Il file contiene cartelle, note con il loro contenuto (gruppi, sezioni e task, compresi i task creati direttamente in un gruppo, e la larghezza di ogni gruppo), template e i percorsi dei file audio. Gli elementi nel cestino non vengono esportati.
+
+Il file di export ha una versione del formato (ora la 2). EasyTask importa solo i file della versione attuale: un file esportato da una versione precedente dell'app, quando i task non potevano stare direttamente in un gruppo, viene rifiutato.
 
 Se un file audio non si trova sul computer dove importi, viene saltato ed EasyTask ti dice quanti.
 
