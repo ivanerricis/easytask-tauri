@@ -4,6 +4,10 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+### Aggiunto
+
+- Sito della documentazione in italiano e in inglese: [ivanerricis.github.io/easytask-tauri/it](https://ivanerricis.github.io/easytask-tauri/it/). Si apre da Aiuto > Documentazione, con `F1` (la scorciatoia si cambia in Impostazioni > Scorciatoie) o da Impostazioni > Informazioni. Si apre nella lingua dell'app.
+
 ## [0.11.0] - 2026-10-22
 
 ### Aggiunto

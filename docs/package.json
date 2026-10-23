@@ -1,0 +1,15 @@
+{
+  "name": "easytask-docs",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "EasyTask documentation site (VitePress, published on GitHub Pages)",
+  "scripts": {
+    "dev": "vitepress dev",
+    "build": "vitepress build",
+    "preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "1.6.4"
+  }
+}

@@ -6,6 +6,7 @@ import { openUrl } from "@tauri-apps/plugin-opener"
 import { Copy } from "lucide-react"
 import { toast } from "sonner"
 import { getErrorMessage } from "@/lib/utils"
+import { docsUrl } from "@/lib/docs"
 import { Button } from "@/components/ui/button"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { SettingsCard, SettingsPanel } from "./SettingsRow"
@@ -77,22 +78,23 @@ const DatabaseRow = ({ path }: { path: string }) => {
     )
 }
 
-const RepositoryRow = () => {
+/** A link that opens in the browser, with a button that copies it. */
+const LinkRow = ({ label, url }: { label: string, url: string }) => {
     const { t } = useTranslation()
     const handleOpen = async () => {
         try {
-            await openUrl(REPO_URL)
+            await openUrl(url)
         } catch (err) {
             toast.error(t("settings.about.openError", { message: getErrorMessage(err) }))
         }
     }
 
     const copy = useCopy("settings.about.copied")
-    const handleCopy = () => copy(REPO_URL)
+    const handleCopy = () => copy(url)
 
     return (
         <div className="flex items-baseline justify-between gap-4 text-sm">
-            <span className="text-muted-foreground shrink-0">{t("settings.about.repository")}</span>
+            <span className="text-muted-foreground shrink-0">{label}</span>
             <span className="flex items-center gap-1.5 text-right">
                 <TooltipCustom text={t("settings.about.openInBrowser")}>
                     <Button
@@ -101,7 +103,7 @@ const RepositoryRow = () => {
                         onClick={handleOpen}
                         className="h-auto whitespace-normal p-0 text-right font-normal break-all text-foreground underline decoration-primary"
                     >
-                        {REPO_URL}
+                        {url}
                     </Button>
                 </TooltipCustom>
                 <TooltipCustom text={t("settings.about.copyLink")}>
@@ -115,7 +117,7 @@ const RepositoryRow = () => {
 }
 
 export const AboutSettings = () => {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const [info, setInfo] = useState<AboutInfo>({ name: EMPTY, version: EMPTY, tauri: EMPTY, dbPath: EMPTY })
 
     useEffect(() => {
@@ -145,7 +147,8 @@ export const AboutSettings = () => {
                 <InfoRow label={t("settings.about.version")} value={info.version} />
                 <InfoRow label={t("settings.about.tauriVersion")} value={info.tauri} />
                 <InfoRow label={t("settings.about.author")} value="Ivan Erricis" />
-                <RepositoryRow />
+                <LinkRow label={t("settings.about.repository")} url={REPO_URL} />
+                <LinkRow label={t("settings.about.docs")} url={docsUrl(i18n.language)} />
                 <DatabaseRow path={info.dbPath} />
             </SettingsCard>
             <UpdateSection />

@@ -36,6 +36,9 @@
         },
         {
           "url": "https://github.com/ivanerricis/easytask-tauri/releases*"
+        },
+        {
+          "url": "https://ivanerricis.github.io/easytask-tauri/*"
         }
       ]
     },

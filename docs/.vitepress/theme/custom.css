@@ -1,0 +1,59 @@
+:root {
+  /* Same system font stack as the app */
+  --vp-font-family-base: ui-sans-serif, system-ui, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+
+  /* EasyTask orange: the app --primary (orange-700, AA on white) on light, the logo accent #FB9551 on dark */
+  --vp-c-brand-1: #c2410c;
+  --vp-c-brand-2: #9a3412;
+  --vp-c-brand-3: #c2410c;
+  --vp-c-brand-soft: rgba(194, 65, 12, 0.14);
+  --vp-button-brand-bg: #c2410c;
+  --vp-button-brand-hover-bg: #9a3412;
+  --vp-button-brand-active-bg: #7c2d12;
+  --vp-button-brand-text: #fff;
+  --vp-home-hero-name-color: var(--vp-c-brand-1);
+}
+
+.dark {
+  --vp-c-brand-1: #fb9551;
+  --vp-c-brand-2: #fdba8c;
+  --vp-c-brand-3: #f97316;
+  --vp-c-brand-soft: rgba(251, 149, 81, 0.16);
+  --vp-button-brand-bg: #fb9551;
+  --vp-button-brand-hover-bg: #fdba8c;
+  --vp-button-brand-active-bg: #f97316;
+  --vp-button-brand-text: #16181d;
+}
+
+.vp-doc img {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 8px;
+}
+
+/* Screenshots with a light and a dark version: ![...](x-light.png){.light-only} ![...](x-dark.png){.dark-only} */
+.dark .vp-doc img.light-only,
+.dark .home-shot img.light-only,
+html:not(.dark) .vp-doc img.dark-only,
+html:not(.dark) .home-shot img.dark-only {
+  display: none;
+}
+
+.VPHero .VPImage.image-src {
+  max-width: 200px;
+  max-height: 200px;
+}
+
+.VPHero .image-bg {
+  display: none;
+}
+
+.home-shot {
+  margin: 0 auto;
+  max-width: 1152px;
+  padding: 32px 24px 64px;
+}
+
+.home-shot img {
+  border: 1px solid var(--vp-c-divider);
+  border-radius: 12px;
+}

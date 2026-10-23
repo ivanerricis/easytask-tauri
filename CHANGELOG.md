@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Documentation site in English and Italian: [ivanerricis.github.io/easytask-tauri](https://ivanerricis.github.io/easytask-tauri/). Open it from Help > Documentation, with `F1` (the shortcut can be changed in Settings > Shortcuts) or from Settings > About. It opens in the language of the app.
+
 ## [0.11.0] - 2026-10-22
 
 ### Added

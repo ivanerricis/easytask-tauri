@@ -76,6 +76,7 @@ export const settings = {
         description: "EasyTask è una todo list avanzata basata su workspace, ispirata a sistemi come Notion, Obsidian e Trello. Organizza cartelle, note, sezioni e task annidati, con colori personalizzabili e drag & drop.",
         application: "Applicazione",
         repository: "Repository",
+        docs: "Documentazione",
         version: "Versione",
         tauriVersion: "Versione Tauri",
         author: "Autore",

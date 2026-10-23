@@ -35,6 +35,7 @@ export const appMenu = {
     previousNote: "Nota precedente",
     theme: "Tema",
     shortcuts: "Scorciatoie da tastiera…",
+    docs: "Documentazione",
     releaseNotes: "Note di rilascio",
     about: "Informazioni e aggiornamenti…",
 }

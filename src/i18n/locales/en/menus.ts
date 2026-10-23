@@ -37,6 +37,7 @@ export const appMenu: Translation["appMenu"] = {
     previousNote: "Previous note",
     theme: "Theme",
     shortcuts: "Keyboard shortcuts…",
+    docs: "Documentation",
     releaseNotes: "Release notes",
     about: "About and updates…",
 }
