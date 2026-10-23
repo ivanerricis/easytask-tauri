@@ -7,7 +7,9 @@ import { Task } from "./Task"
 import { TabsProvider } from "@/contexts/tabs-context"
 import { useSelectedTask, useTabsActions } from "@/contexts/use-tabs"
 import { RightPanelContext, type RightPanelContextType } from "../rightbar/right-panel-context-object"
-import { makeNote, makeTask } from "@/test/ui-fixtures"
+import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
+import { searchingStore } from "@/test/search-store"
+import { NoteSearchContext } from "../note-search-context"
 import { COLOR_ALPHA_BASE } from "@/lib/color-intensity"
 import { PreferencesContext } from "@/contexts/preferences-context-object"
 import { useNoteDrop } from "../note-dnd-state"
@@ -452,5 +454,30 @@ describe("Task priority flag", () => {
     it("shows the flag for a priority read from the database as 1", () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Primo", priority: 1 as unknown as boolean })} />)
         expect(screen.getByRole("img", { name: "Priorità alta" })).toBeInTheDocument()
+    })
+})
+
+describe("Task search", () => {
+    const task = makeTask({ id: 10, text: "Compra il Latte" })
+    const group = makeGroup({ sections: [makeSection({ tasks: [task] })] })
+
+    it("keeps the textarea when the text does not match", () => {
+        renderTasks(
+            <NoteSearchContext.Provider value={searchingStore([group], "zzz")}><Task task={task} /></NoteSearchContext.Provider>,
+        )
+        expect(screen.getByRole("textbox", { name: "Modifica il testo del task" })).toHaveValue("Compra il Latte")
+        expect(document.querySelector("mark")).toBeNull()
+    })
+
+    it("shows the text with the matches marked, and a click still starts the rename", async () => {
+        renderTasks(
+            <NoteSearchContext.Provider value={searchingStore([group], "latte")}><Task task={task} /></NoteSearchContext.Provider>,
+        )
+        const mark = document.querySelector("mark") as HTMLElement
+        expect(mark).toHaveTextContent("Latte")
+        expect(mark).toHaveAttribute("data-active", "true")
+        await userEvent.click(screen.getByRole("textbox", { name: "Modifica il testo del task" }))
+        expect(screen.getByRole("textbox")).toHaveValue("Compra il Latte")
+        expect(document.querySelector("mark")).toBeNull()
     })
 })

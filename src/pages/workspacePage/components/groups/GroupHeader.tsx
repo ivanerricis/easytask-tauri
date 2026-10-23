@@ -22,6 +22,8 @@ import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import { getGroupLabel } from "./group-label"
 import { taskSections } from "@/lib/group-sections"
+import { Highlight } from "@/components/highlight"
+import { useSearchHighlight } from "../note-search-context"
 
 /** Icon + number, named for the screen readers and for the mouse (the icon alone does not say what is counted). */
 const CountBadge = ({ icon: Icon, count, label }: { icon: LucideIcon, count: number, label: string }) => (
@@ -47,6 +49,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }
     const { t } = useTranslation()
     const { showSectionCount, showTaskCount, showAudioFileCount, showGroupProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
     const colorAlpha = useColorAlpha()
+    const search = useSearchHighlight("group", group.id)
     const [isOpen, toggleOpen] = useGroupOpen(group.id)
     const progress = getGroupProgress(group)
     const { renameItem } = useWorkspaceActions()
@@ -93,7 +96,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }
                     // An unnamed group shows no text unless the preference asks for the fallback label
                     aria-label={label}
                     className={`text-sm font-semibold mr-1 min-w-[6ch] max-w-72 flex-1 h-6 truncate text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${renameOnClick ? "cursor-text" : ""} ${!name ? "text-muted-foreground" : ""}`}>
-                    {name || (showUnnamedLabels ? label : "")}
+                    {search.query ? <Highlight text={name} query={search.query} active={search.active} /> : name || (showUnnamedLabels ? label : "")}
                 </button>}
                 {isEditing && <InlineErrorTooltip message={error}>
                     <Input
