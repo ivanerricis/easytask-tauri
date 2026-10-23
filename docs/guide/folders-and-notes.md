@@ -104,6 +104,10 @@ Click a note in the sidebar to open it. Open notes appear as tabs above the note
 
 You can change every editable shortcut in **Settings > Shortcuts**. See [Keyboard shortcuts](./shortcuts).
 
+### The path bar
+
+Under the tabs, a thin bar shows the path of the open note, for example `Work > Projects > Plan`. Click a folder or the note in the path to show it in the sidebar: the sidebar opens if it was closed, the folders above it expand and the item is selected. A long path keeps the first folder and the last two items. The **Hide completed tasks** button is on the right of the same bar.
+
 ### What is reopened at startup
 
 When you open a workspace, EasyTask reopens the notes that were open and the active one. This is saved for each workspace. To turn it off, go to **Settings > Notes and sections** and switch off **Reopen notes at startup**. The same page has **Reopen the last workspace at startup**.
