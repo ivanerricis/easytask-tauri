@@ -128,10 +128,11 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
     const [text, setText] = useState("")
     const { createTask } = useWorkspaceActions()
     const { appendTask, applyTaskMove } = useActiveNoteActions()
-    const { newTaskPosition } = usePreferences()
+    const { newTaskPosition, keepAddingTasks } = usePreferences()
     const recorder = useUndoRecorder()
     const { dispatch } = useAutomations()
     const formRef = useRef<HTMLFormElement>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
     const { saving, run } = useSubmitOnce()
 
     useEffect(() => {
@@ -151,8 +152,15 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
         setText("")
     }
 
-    // Escape closes the row and discards the text, like the X button
+    // Escape closes the row and discards the text, like the X button.
+    // With keepAddingTasks, Enter on an empty field closes it too (the disabled submit button blocks the form submit there).
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === "Enter" && keepAddingTasks && !text.trim() && !saving && !e.nativeEvent.isComposing) {
+            e.preventDefault()
+            setOpen(false)
+            setText("")
+            return
+        }
         if (e.key !== "Escape") return
         e.preventDefault()
         e.stopPropagation()
@@ -167,7 +175,8 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                 try {
                     const value = text.trim()
                     const id = await createTask(sectionId, value, newTaskPosition)
-                    handleOpen()
+                    if (keepAddingTasks) setText("")
+                    else handleOpen()
                     appendTask(id, { sectionId }, value)
                     // The cache appends it: at the top it moves before its siblings, as the database ordered it
                     if (newTaskPosition === "top") applyTaskMove(id, { sectionId, parentTaskId: null }, 0)
@@ -175,6 +184,8 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
                     void dispatch({ type: "task.created", taskId: id })
                 } catch (error: unknown) {
                     reportError(error, getErrorMessage(error) || t("tasks.errors.createTask"))
+                } finally {
+                    if (keepAddingTasks) inputRef.current?.focus()
                 }
             })
         }
@@ -200,6 +211,7 @@ const TopLevelAddTask = ({ sectionId }: { sectionId: number | null }) => {
             >
                 <div className="flex items-center justify-center w-full bg-background">
                     <Input
+                        ref={inputRef}
                         value={text}
                         onChange={(e) => setText(e.target.value)}
                         onKeyDown={handleKeyDown}

@@ -47,6 +47,7 @@ Se il colore d'accento ha poco contrasto con lo sfondo, EasyTask ti avvisa e sug
 | Nascondi task completati | Sì / No | No |
 | Densità dei task | Compatta, Normale, Ampia | Normale |
 | **Comportamento**: Rinomina cliccando sul nome | Sì / No | Sì |
+| Continua ad aggiungere task (il campo resta aperto dopo aver creato un task) | Sì / No | Sì |
 | Posizione dei nuovi task | In cima, In fondo | In fondo |
 | Controllo ortografico | Sì / No | Sì |
 | **All'avvio**: Riapri l'ultimo workspace all'avvio | Sì / No | No |

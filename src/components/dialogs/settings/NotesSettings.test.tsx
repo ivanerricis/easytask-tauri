@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { NotesSettings } from "./NotesSettings"
 
-const setters = { setTaskDensity: vi.fn(), setNewTaskPosition: vi.fn(), setSpellcheck: vi.fn() }
+const setters = { setTaskDensity: vi.fn(), setNewTaskPosition: vi.fn(), setSpellcheck: vi.fn(), setKeepAddingTasks: vi.fn() }
 let prefs: Record<string, unknown>
 
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ ...prefs, ...setters }) }))
@@ -24,6 +24,15 @@ describe("NotesSettings", () => {
         render(<NotesSettings />)
         await userEvent.click(screen.getByRole("radio", { name: "In cima" }))
         expect(setters.setNewTaskPosition).toHaveBeenCalledWith("top")
+    })
+
+    it("toggles keep adding tasks", async () => {
+        prefs.keepAddingTasks = true
+        render(<NotesSettings />)
+        const toggle = screen.getByRole("switch", { name: "Continua ad aggiungere task" })
+        expect(toggle).toBeChecked()
+        await userEvent.click(toggle)
+        expect(setters.setKeepAddingTasks).toHaveBeenCalledWith(false)
     })
 
     it("toggles the spell check", async () => {

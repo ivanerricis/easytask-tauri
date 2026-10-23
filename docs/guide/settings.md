@@ -47,6 +47,7 @@ If the accent color has little contrast with the background, EasyTask warns you 
 | Hide completed tasks | On / Off | Off |
 | Task density | Compact, Normal, Roomy | Normal |
 | **Behavior**: Rename by clicking the name | On / Off | On |
+| Keep adding tasks (the field stays open after creating a task) | On / Off | On |
 | Position of new tasks | At the top, At the bottom | At the bottom |
 | Spell check | On / Off | On |
 | **On startup**: Reopen the last workspace at startup | On / Off | Off |
