@@ -62,6 +62,15 @@ export const notes: Translation["notes"] = {
         suggestions: "Suggestions",
         short: "Search…",
     },
+    noteSearch: {
+        inNote: "Search in the note",
+        placeholder: "Search in the note…",
+        counter: "{{current}} of {{total}}",
+        noResults: "No results",
+        next: "Next result",
+        previous: "Previous result",
+        close: "Close the search",
+    },
     hideCompleted: "Hide completed tasks",
     showCompleted: "Show completed tasks",
     path: {
