@@ -155,6 +155,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         const resetAudioSettings = () => {
             setters.setAudioVolume(DEFAULT_AUDIO_VOLUME)
             setters.setAudioPlayerVisible(true)
+            setters.setAudioPlayerPinned(false)
             setAudioPlayerScale(DEFAULT_AUDIO_PLAYER_SCALE)
             setters.setAudioPlayerOpacity(DEFAULT_AUDIO_PLAYER_OPACITY)
         }
