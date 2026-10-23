@@ -63,6 +63,10 @@ export const notes: Translation["notes"] = {
         short: "Search…",
     },
     hideCompleted: "Hide completed tasks",
+    path: {
+        label: "Note path",
+        reveal: "Show {{name}} in the sidebar",
+    },
     closeCurrent: "Close current note",
     close: "Close note",
     openTabs: "Open notes",

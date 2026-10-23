@@ -3,13 +3,10 @@ import { TooltipCustom } from "@/components/tooltip-custom"
 import { useActiveNoteId, useTabsActions } from "@/contexts/use-tabs"
 import type { Note } from "@/types/types"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
-import { usePreferences } from "@/contexts/use-preferences"
-import { useShortcut } from "@/hooks/use-shortcut"
-import { Eye, EyeOff, X } from "lucide-react"
+import { X } from "lucide-react"
 import React from "react"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import { Button } from "@/components/ui/button"
-import { Toggle } from "@/components/ui/toggle"
 import { focusRing } from "@/lib/a11y"
 import { cn } from "@/lib/utils"
 import { useInlineRename } from "@/hooks/use-inline-rename"
@@ -20,8 +17,8 @@ type NoteHeaderProps = {
 }
 
 /**
- * One tab of the bar of the open notes. The tab itself (role "tab") is the name; the toggle of the completed tasks and
- * the close button are its siblings inside the same box, never nested in it (a tab must not contain buttons).
+ * One tab of the bar of the open notes. The tab itself (role "tab") is the name; the close button is its sibling inside the same box,
+ * never nested in it (a tab must not contain buttons).
  */
 export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
     const { t } = useTranslation()
@@ -30,12 +27,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
     const { closeNote, activateNote } = useTabsActions()
     const isActive = activeId === note.id
     const closeLabel = useShortcutLabel("close-note")
-    const hideLabel = useShortcutLabel("toggle-hide-completed")
-    const { hideCompletedTasks, setHideCompletedTasks } = usePreferences()
     const { editing, error, start: startRename, inputProps } = useInlineRename({ itemType: "note", id: note.id, name: note.name })
-
-    // Only the active tab registers the shortcut (a single handler, whatever the number of open notes)
-    useShortcut("toggle-hide-completed", () => setHideCompletedTasks(!hideCompletedTasks), { enabled: isActive, allowInInputs: true })
 
     const handleCloseHeader = (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -76,18 +68,6 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                     </span>
                 </button>}
                 <div className="flex shrink-0 items-center gap-1 py-1 pr-1">
-                    {isActive &&
-                        <TooltipCustom text={t("notes.hideCompleted")} shortcut={hideLabel}>
-                            <Toggle
-                                aria-label={t("notes.hideCompleted")}
-                                pressed={hideCompletedTasks}
-                                onPressedChange={setHideCompletedTasks}
-                                className="size-6 min-w-6 p-0"
-                            >
-                                {hideCompletedTasks ? <EyeOff /> : <Eye />}
-                            </Toggle>
-                        </TooltipCustom>
-                    }
                     <TooltipCustom text={isActive ? t("notes.closeCurrent") : t("notes.close")} shortcut={isActive ? closeLabel : undefined}>
                         <Button
                             type="button"

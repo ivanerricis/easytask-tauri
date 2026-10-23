@@ -10,7 +10,6 @@ import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn().mockResolvedValue(false) }))
 vi.mock("@/pages/workspacePage/components/note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
-vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ hideCompletedTasks: false, setHideCompletedTasks: vi.fn() }) }))
 vi.mock("@/hooks/use-inline-rename", () => ({ useInlineRename: () => ({ editing: false, error: null, start: () => {}, inputProps: {} }) }))
 vi.mock("@/lib/store/tabs", () => ({ getWorkspaceTabs: vi.fn(), saveWorkspaceTabs: vi.fn() }))
 

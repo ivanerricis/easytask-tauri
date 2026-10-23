@@ -28,10 +28,13 @@ import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { useAppCommand } from "@/lib/app-commands"
 import { useCompactLayout } from "@/lib/sidebar-layout"
+import { useTreeRevealRequest } from "@/lib/tree-reveal"
+import { treeRowKey } from "./tree-row"
+import { getAncestorFolderIds } from "./note-path"
 
 export const SideBarLeft = () => {
     const { currentWorkspace } = useWorkspace()
-    const { folders, getWorkspaceData } = useWorkspaceData()
+    const { folders, workspaceDataTree, getWorkspaceData } = useWorkspaceData()
     const { sidebarLeftOpen, setSideBarLeftOpen, sidebarLeftWidth, setSidebarLeftWidth } = usePreferences()
     // Compact window: the sidebar is an overlay, closed by default, whose state is not persisted
     const compact = useCompactLayout()
@@ -76,6 +79,16 @@ export const SideBarLeft = () => {
         })
     }, [])
 
+    // A request to show an item: the sidebar opens and the folders above the item expand, then the tree selects and scrolls to its row
+    const [reveal, setReveal] = useState<{ key: string, seq: number } | null>(null)
+    useTreeRevealRequest(ref => {
+        setOpen(true)
+        const tree = { rootFolders: workspaceDataTree?.rootFolders ?? [], rootNotes: workspaceDataTree?.rootNotes ?? [] }
+        getAncestorFolderIds(tree, ref).forEach(expandFolder)
+        setReveal(prev => ({ key: treeRowKey(ref.type, ref.id), seq: (prev?.seq ?? 0) + 1 }))
+    })
+    const handleRevealed = useCallback(() => setReveal(null), [])
+
     const allCollapsed = folders.length > 0 && folders.every(folder => collapsedIds.has(folder.id))
     const toggleAll = useCallback(() => {
         setCollapsedIds(allCollapsed ? new Set() : new Set(folders.map(folder => folder.id)))
@@ -119,7 +132,7 @@ export const SideBarLeft = () => {
                             <ComboboxWorkspace />
                         </div>}
                     >
-                        <FileTree collapsedIds={collapsedIds} onToggleFolder={toggleFolder} onExpandFolder={expandFolder} onToggleAll={toggleAll} allCollapsed={allCollapsed} />
+                        <FileTree collapsedIds={collapsedIds} onToggleFolder={toggleFolder} onExpandFolder={expandFolder} onToggleAll={toggleAll} allCollapsed={allCollapsed} reveal={reveal} onRevealed={handleRevealed} />
                     </SideBarContainer>
                 </SideBar>
                 <SidebarDialogs />

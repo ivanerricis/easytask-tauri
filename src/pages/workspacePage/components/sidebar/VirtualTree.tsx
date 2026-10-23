@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react"
+import { useCallback, useImperativeHandle, useMemo, type Ref } from "react"
 import { defaultRangeExtractor, useVirtualizer, type Range } from "@tanstack/react-virtual"
 import { ItemNote } from "../note/Note"
 import { ItemFolder } from "../folder/Folder"
@@ -9,6 +9,12 @@ import { useItemSize } from "./item-size"
 const ROW_GAP = 4
 const OVERSCAN = 10
 
+/** What the tree can be asked to do from outside. */
+export type VirtualTreeHandle = {
+    /** Scrolls the row with this key into view (false when there is no such row). */
+    scrollToKey: (key: string) => boolean
+}
+
 type VirtualTreeProps = {
     rows: FlatRow[]
     collapsedIds: Set<number>
@@ -16,10 +22,11 @@ type VirtualTreeProps = {
     /** Key of the row being dragged: it stays mounted even when scrolled out of the range. */
     activeKey: string | null
     getScrollElement: () => HTMLElement | null
+    handleRef?: Ref<VirtualTreeHandle>
 }
 
 /** Flat, virtualized rendering of the tree; only the rows near the viewport are in the DOM. */
-export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, activeKey, getScrollElement }: VirtualTreeProps) => {
+export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, activeKey, getScrollElement, handleRef }: VirtualTreeProps) => {
     const size = useItemSize()
     const rowSize = size.rowPx + ROW_GAP
 
@@ -43,6 +50,15 @@ export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, activeKey, get
         rangeExtractor,
         getItemKey: (index) => rows[index]?.key ?? index,
     })
+
+    useImperativeHandle(handleRef, () => ({
+        scrollToKey: (key) => {
+            const index = rows.findIndex(row => row.key === key)
+            if (index < 0) return false
+            virtualizer.scrollToIndex(index, { align: "auto" })
+            return true
+        },
+    }), [rows, virtualizer])
 
     return (
         <div className="relative w-full" style={{ height: virtualizer.getTotalSize() }}>
