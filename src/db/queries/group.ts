@@ -1,25 +1,29 @@
 import i18n from "@/i18n"
 import type { Group } from "@/types/types";
-import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
 import { addPositions } from "./ordering";
+import { DEFAULT_SECTION_SQL } from "./sql";
 import { createError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 
 /**
- * Creates an empty group at the end of a note.
+ * Creates an empty group at the end of a note, together with its hidden default section
+ * (the one that holds the tasks created directly in the group), in one transaction.
  * @param noteId The ID of the note that will contain the group.
  * @param name The name of the group; an empty or blank name leaves the group unnamed.
+ * @returns The ids of the new group and of its default section.
  * @category Database Queries
  */
 export async function createDBGroup(noteId: number, name: string) {
     try {
-        const db = await getDB()
-        const result = await db.execute(
+        const tx = new Transaction()
+        const group = tx.add(
             `INSERT INTO section_group (noteID, name, position)
              SELECT ?, ?, COALESCE(MAX(position) + 1, 0) FROM section_group WHERE noteID = ? AND deleted_at IS NULL`,
             [noteId, name.trim() || null, noteId])
-        return result.lastInsertId as number
+        const section = tx.add(DEFAULT_SECTION_SQL, [tx.idOf(group)])
+        const results = await tx.run()
+        return { groupId: results[group].lastInsertId, defaultSectionId: results[section].lastInsertId }
     } catch (error: unknown) {
         throw createError('GROUP_CREATE_ERROR', i18n.t("errors.group.create", { message: getErrorMessage(error) }))
     }
