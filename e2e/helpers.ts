@@ -279,3 +279,34 @@ export const sql = async <T = unknown>(kind: "select" | "execute", query: string
         },
         await dbUrl(), kind, query, values,
     ) as Promise<T>
+
+/** The card of a group, found through the label of its header (its name, or "Gruppo N" when it has none). */
+export const groupCard = (label: string) =>
+    $(`//div[@data-group-card][.//button[@aria-label=${xpathString(label)}]]`)
+
+/**
+ * Creates a section from the menu of a group (there is no section button in the group): right click on its header,
+ * "Nuova sezione", then the name in the inline field. Resolves once the section card is shown.
+ */
+export const newSectionInGroup = async (group: ChainablePromiseElement | WebdriverIO.Element, title: string) => {
+    // The first button with aria-expanded of the card is the chevron of the group header
+    const menu = await openContextMenu(group.$("button[aria-expanded]"))
+    await byText(await tr("sections.new"), menu).click()
+    await typeInto(byLabel(await tr("sections.titleLabel")), title)
+    await browser.keys("Enter")
+    await sectionCard(title).waitForDisplayed({ timeoutMsg: `section ${title} not created` })
+}
+
+/** The area of the tasks created directly in a group (above its sections). */
+export const directTasks = (group: ChainablePromiseElement | WebdriverIO.Element) => group.$("[data-direct-tasks]")
+
+/** The dashed "Nuovo task" button of a group: it adds a task to the direct area. */
+export const groupAddTaskButton = async (group: ChainablePromiseElement | WebdriverIO.Element) =>
+    directTasks(group).$(`button[aria-label="${await tr("groups.addTask")}"]`)
+
+/** Adds a task directly in a group with its "Nuovo task" button, typing `text` and confirming with the add button. */
+export const addTaskToGroup = async (group: ChainablePromiseElement | WebdriverIO.Element, text: string) => {
+    await (await groupAddTaskButton(group)).click()
+    await typeInto(directTasks(group).$("input"), text)
+    await directTasks(group).$(`[aria-label="${await tr("common.add")}"]`).click()
+}

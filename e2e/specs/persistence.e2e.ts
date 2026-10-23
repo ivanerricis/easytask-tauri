@@ -6,6 +6,7 @@ import {
     byLabel, byText, createFromSidebar, createWorkspace, currentLang, dataDir, domClick, openWorkspace, sectionCard, topDialog, tr, trIn,
     treeRow, typeInto, waitForApp,
     addTaskButton,
+    groupCard, newSectionInGroup,
 } from "../helpers"
 
 /**
@@ -134,10 +135,7 @@ describe("Settings and data survive an app restart", () => {
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
         await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
-        await byText(await tr("sections.new")).click()
-        await typeInto(byLabel(await tr("sections.titleLabel")), SECTION)
-        await browser.keys("Enter")
-        await sectionCard(SECTION).waitForDisplayed()
+        await newSectionInGroup(groupCard(GROUP), SECTION)
         await (await addTaskButton(sectionCard(SECTION))).click()
         await typeInto(sectionCard(SECTION).$("input"), TASK)
         await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
