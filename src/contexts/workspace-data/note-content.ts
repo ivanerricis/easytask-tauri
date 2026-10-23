@@ -1,13 +1,13 @@
 import { useCallback, useMemo } from "react"
 import type { Group } from "@/types/types"
 import { createDBSection, createDBSectionInGroup } from "@/db/queries/section"
-import { createDBGroup, updateDBGroupPositions } from "@/db/queries/group"
+import { createDBGroup, updateDBGroupPositions, updateDBGroupWidth } from "@/db/queries/group"
 import { moveDBSection, moveDBSectionToNewGroup } from "@/db/queries/move"
 import { duplicateDBSection } from "@/db/queries/duplicate"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type NoteContentActions = Pick<WorkspaceActionsType,
-    "createGroup" | "createSection" | "createSectionInGroup" | "updateGroupsPositions" | "moveSection" | "moveSectionToNewGroup" | "duplicateSection">
+    "createGroup" | "createSection" | "createSectionInGroup" | "updateGroupsPositions" | "setGroupWidth" | "moveSection" | "moveSectionToNewGroup" | "duplicateSection">
 
 /**
  * Groups and sections of the open note. The creations resolve with the ids of the new rows (the callers build
@@ -32,6 +32,17 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
      */
     const updateGroupsPositions = useCallback((newGroups: Group[]) =>
         withLoading(() => updateDBGroupPositions(newGroups)), [withLoading])
+
+    /**
+     * Saves the width of a group (not an undo step, like the sidebar width). The caller applies it to the open note
+     * first: `withRollback(patchGroup(id, { width }), () => setGroupWidth(id, width))`.
+     * @param groupID - The ID of the group.
+     * @param width - The width in pixels, or null for the automatic width.
+     * @throws Will throw an error if the width cannot be saved (or is not greater than zero).
+     * @category Workspace Data Context
+     */
+    const setGroupWidth = useCallback((groupID: number, width: number | null) =>
+        withLoading(() => updateDBGroupWidth(groupID, width)), [withLoading])
 
     /**
      * Moves a section to a group of the open note at the given index among its sections. The section keeps all
@@ -67,5 +78,5 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
     const duplicateSection = useCallback((sectionID: number) =>
         withLoading(() => duplicateDBSection(sectionID)), [withLoading])
 
-    return useMemo(() => ({ createGroup, createSection, createSectionInGroup, updateGroupsPositions, moveSection, moveSectionToNewGroup, duplicateSection }), [ createGroup, createSection, createSectionInGroup, updateGroupsPositions, moveSection, moveSectionToNewGroup, duplicateSection ])
+    return useMemo(() => ({ createGroup, createSection, createSectionInGroup, updateGroupsPositions, setGroupWidth, moveSection, moveSectionToNewGroup, duplicateSection }), [ createGroup, createSection, createSectionInGroup, updateGroupsPositions, setGroupWidth, moveSection, moveSectionToNewGroup, duplicateSection ])
 }

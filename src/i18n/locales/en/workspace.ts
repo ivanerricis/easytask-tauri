@@ -85,6 +85,11 @@ export const groups: Translation["groups"] = {
     progress: "Group progress",
     audioCount_one: "{{count}} audio file",
     audioCount_other: "{{count}} audio files",
+    width: {
+        handle: "Resize the group",
+        value: "{{width}} pixels",
+        auto: "automatic width",
+    },
 }
 
 export const sidebar: Translation["sidebar"] = {

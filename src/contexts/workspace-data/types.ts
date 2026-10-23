@@ -73,6 +73,8 @@ export type WorkspaceActionsType = {
     renameItem: (itemType: DBItemType, itemId: number, name: string) => Promise<void>
     updateItemColor: (itemType: DBItemType, itemId: number, color?: string) => Promise<void>
     updateGroupsPositions: (groups: Group[]) => Promise<void>
+    /** Saves the width of a group in pixels (null = automatic). Not an undo step; the caller patches the open note first. */
+    setGroupWidth: (groupId: number, width: number | null) => Promise<void>
     /** Resolves with the previous color of every folder and note it touched (the folder itself first), to undo it. */
     updateFolderColorContent: (folderID: number, color?: string) => Promise<PreviousColor[]>
 

@@ -44,3 +44,18 @@ export async function updateDBGroupPositions(groups: Group[]) {
         throw createError('GROUP_UPDATE_ERROR', i18n.t("errors.group.updatePositions", { message: getErrorMessage(error) }))
     }
 }
+
+/**
+ * Sets the width of a group, or clears it (null = back to the width driven by the content).
+ * @param groupId The ID of the group.
+ * @param width The width in pixels (greater than zero), or null.
+ * @category Database Queries
+ */
+export async function updateDBGroupWidth(groupId: number, width: number | null) {
+    try {
+        const db = await getDB()
+        await db.execute("UPDATE section_group SET width = ? WHERE id = ?", [width, groupId])
+    } catch (error: unknown) {
+        throw createError('GROUP_UPDATE_ERROR', i18n.t("errors.group.updateWidth", { message: getErrorMessage(error) }))
+    }
+}

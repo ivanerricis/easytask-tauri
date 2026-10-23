@@ -46,6 +46,10 @@ Puoi spostare gli elementi anche trascinandoli:
 
 Ogni gruppo e ogni sezione ha un pulsante per comprimerlo (**Comprimi gruppo**, **Comprimi sezione**). Un gruppo può mostrare quante sezioni, task e file audio contiene. Gruppi e sezioni possono mostrare anche una barra d'avanzamento con la percentuale di task completati (per un gruppo contano tutti i task e i sottotask). Scegli cosa mostrare in **Impostazioni > Note e sezioni**: **Mostra barra d'avanzamento nelle sezioni**, **Mostra barra d'avanzamento nei gruppi**, **Mostra numero di sezioni**, **Mostra numero di task**, **Mostra numero di file audio**. L'opzione **Linee tra i gruppi** disegna una sottile linea guida tra le colonne.
 
+### Ridimensionare un gruppo
+
+Trascina il bordo destro di un gruppo per allargarlo o restringerlo. Da tastiera, porta il focus sul bordo e usa `Sinistra` e `Destra` (con `Maiusc` i passi sono più grandi), `Home` per la larghezza minima e `Fine` per quella massima. Con un doppio clic sul bordo torni alla larghezza automatica. La barra di avanzamento del gruppo sparisce quando il gruppo è troppo stretto per mostrarla.
+
 ## Task e sottotask
 
 ### Aggiungere un task
