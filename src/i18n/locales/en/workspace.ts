@@ -77,6 +77,7 @@ export const notes: Translation["notes"] = {
 
 export const groups: Translation["groups"] = {
     defaultLabel: "Group {{index}}",
+    directTasks: "Group tasks",
     collapse: "Collapse group",
     expand: "Expand group",
     nameLabel: "Group name",

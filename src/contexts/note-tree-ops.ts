@@ -1,4 +1,5 @@
 import type { Group, NoteDataTree, Section, Task } from "@/types/types"
+import { isDefaultSection, taskSections } from "@/lib/group-sections"
 
 /**
  * Pure immutable operations on a note tree, used for the optimistic updates of the active note.
@@ -44,9 +45,11 @@ export function localTimestamp(now = new Date()) {
 /* ------------------------------------------------------------------------------------ */
 // Builders (defaults of the database columns)
 
-/** A new empty group appended after `siblings`. */
-export function buildGroup(id: number, noteId: number, name: string | null, siblings: readonly Group[]): Group {
-    return { id, noteID: noteId, position: nextPosition(siblings), name: name?.trim() || null, sections: [] }
+/** A new empty group appended after `siblings`, with its hidden default section when the database just created it. */
+export function buildGroup(id: number, noteId: number, name: string | null, siblings: readonly Group[], defaultSectionId?: number): Group {
+    const group: Group = { id, noteID: noteId, position: nextPosition(siblings), name: name?.trim() || null, sections: [] }
+    if (defaultSectionId !== undefined) group.defaultSection = buildDefaultSection(defaultSectionId, id)
+    return group
 }
 
 /** A new empty section appended after `siblings`. */
@@ -57,6 +60,12 @@ export function buildSection(id: number, groupId: number, title: string, sibling
         creation_date: date, creation_time: time, edit_date: date, edit_time: time,
         deleted_at: null, color: null, tasks: [],
     }
+}
+
+/** The hidden default section of a new group (no title, first position): it holds the tasks created directly in the group. */
+export function buildDefaultSection(id: number, groupId: number): Section {
+    // Untitled, like a section loaded with a NULL title
+    return { ...buildSection(id, groupId, "", [], 0), is_default: true }
 }
 
 /** A new task appended after `siblings` (`sectionId` is the section of the task, also for subtasks). */
@@ -79,9 +88,13 @@ export function findGroup(tree: NoteDataTree, groupId: number): { group: Group, 
     return index < 0 ? undefined : { group: tree.groups[index], index }
 }
 
-/** Finds a section with its group and index among the sections of the group. */
+/**
+ * Finds a section with its group and index among the sections of the group.
+ * The default section of a group is found too, with index -1 (it is not in `group.sections`).
+ */
 export function findSection(tree: NoteDataTree, sectionId: number): { section: Section, groupId: number, index: number } | undefined {
     for (const group of tree.groups) {
+        if (group.defaultSection?.id === sectionId) return { section: group.defaultSection, groupId: group.id, index: -1 }
         const index = group.sections.findIndex(section => section.id === sectionId)
         if (index >= 0) return { section: group.sections[index], groupId: group.id, index }
     }
@@ -100,7 +113,7 @@ export function findTask(tree: NoteDataTree, taskId: number): TaskLocation | und
         return undefined
     }
     for (const group of tree.groups)
-        for (const section of group.sections) {
+        for (const section of taskSections(group)) {
             const found = visit(section.tasks, { sectionId: section.id })
             if (found) return found
         }
@@ -134,18 +147,18 @@ function mapTaskList(tree: NoteDataTree, parent: TaskParent, change: (tasks: Tas
 
     const groups = tree.groups.map(group => {
         let groupChanged = false
-        const sections = group.sections.map(section => {
-            let tasks: Task[]
-            if ("sectionId" in parent && section.id === parent.sectionId) {
-                tasks = change(section.tasks)
-            } else {
-                tasks = visit(section.tasks)
-            }
+        const mapTasks = (section: Section): Section => {
+            const tasks = "sectionId" in parent && section.id === parent.sectionId
+                ? change(section.tasks)
+                : visit(section.tasks)
             if (tasks === section.tasks) return section
             groupChanged = true
             return { ...section, tasks }
-        })
-        return groupChanged ? { ...group, sections } : group
+        }
+        const defaultSection = group.defaultSection ? mapTasks(group.defaultSection) : group.defaultSection
+        const sections = group.sections.map(mapTasks)
+        if (!groupChanged) return group
+        return defaultSection === undefined || defaultSection === null ? { ...group, sections } : { ...group, defaultSection, sections }
     })
     return groups.some((group, i) => group !== tree.groups[i]) ? { groups } : tree
 }
@@ -154,6 +167,10 @@ function mapTaskList(tree: NoteDataTree, parent: TaskParent, change: (tasks: Tas
 function mapSection(tree: NoteDataTree, sectionId: number, change: (section: Section) => Section): NoteDataTree {
     let found = false
     const groups = tree.groups.map(group => {
+        if (group.defaultSection?.id === sectionId) {
+            found = true
+            return { ...group, defaultSection: change(group.defaultSection) }
+        }
         const index = group.sections.findIndex(section => section.id === sectionId)
         if (index < 0) return group
         found = true
@@ -222,8 +239,9 @@ export function removeGroup(tree: NoteDataTree, groupId: number): NoteDataTree {
     return { groups: tree.groups.filter(group => group.id !== groupId) }
 }
 
-/** Removes a section (with its tasks). */
+/** Removes a section (with its tasks). The default section of a group cannot be removed on its own. */
 export function removeSection(tree: NoteDataTree, sectionId: number): NoteDataTree {
+    if (isDefaultSection(findSection(tree, sectionId)?.section) ) return tree
     return mapSectionGroup(tree, sectionId, sections => sections.filter(section => section.id !== sectionId))
 }
 
@@ -259,7 +277,7 @@ export function moveGroupInList(groups: Group[], groupId: number, index: number)
  */
 export function moveSection(tree: NoteDataTree, sectionId: number, targetGroupId: number, index: number): NoteDataTree {
     const found = findSection(tree, sectionId)
-    if (!found || !tree.groups.some(group => group.id === targetGroupId)) return tree
+    if (!found || found.index < 0 || !tree.groups.some(group => group.id === targetGroupId)) return tree
     const moved: Section = { ...found.section, groupID: targetGroupId }
     return insertSection(removeSection(tree, sectionId), targetGroupId, moved, index)
 }

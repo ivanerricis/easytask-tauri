@@ -61,8 +61,8 @@ export type WorkspaceActionsType = {
     createSubFolder: (workspaceID: number, folderID: number, name: string) => Promise<number | null>
     createNoteInFolder: (workspaceID: number, folderID: number, name: string) => Promise<number | null>
     /** The creations of the open note resolve with the ids of the new rows, so the caller can update the UI without reloading. */
-    createGroup: (noteID: number, name: string) => Promise<number>
-    createSection: (noteID: number, title: string, position: number) => Promise<{ groupId: number, sectionId: number }>
+    createGroup: (noteID: number, name: string) => Promise<{ groupId: number, defaultSectionId: number }>
+    createSection: (noteID: number, title: string, position: number) => Promise<{ groupId: number, defaultSectionId: number, sectionId: number }>
     createSectionInGroup: (groupId: number, title: string) => Promise<number>
     createTask: (sectionID: number, text: string, position?: NewTaskPosition) => Promise<number>
     createSubTask: (taskID: number, text: string, position?: NewTaskPosition) => Promise<number>
@@ -82,7 +82,7 @@ export type WorkspaceActionsType = {
 
     moveSection: (sectionID: number, targetGroupID: number, targetIndex: number) => Promise<void>
     /** Resolves with the id of the new group, so the caller can update the note without reloading. */
-    moveSectionToNewGroup: (sectionID: number, groupPosition: number) => Promise<number>
+    moveSectionToNewGroup: (sectionID: number, groupPosition: number) => Promise<{ groupId: number, defaultSectionId: number }>
     moveTask: (taskID: number, target: TaskMoveTarget, targetIndex: number) => Promise<void>
 
     deleteItem: (itemType: DBItemType, itemID: number) => Promise<void>

@@ -8,6 +8,7 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useOptionalUndo, useUndoRecorder } from "@/contexts/undo/use-undo"
 import type { UndoCommand } from "@/contexts/undo/stack"
 import { findSection } from "@/contexts/note-tree-ops"
+import { isDefaultSection, taskSections } from "@/lib/group-sections"
 import { fetchNoteTree } from "@/contexts/tree-builders"
 import { applyDBAutomationChanges, getDBAutomations } from "@/db/queries/automation"
 import { runAutomations, syncStateRules } from "@/lib/automations/engine"
@@ -15,7 +16,7 @@ import {
     diffGroupStatements, diffSectionStatements, diffTaskStatements, groupChanges, restoreGroups, restoreTasks, taskChanges, withGroups,
     type GroupChange, type TaskChange,
 } from "@/lib/automations/diff"
-import { automationName } from "@/lib/automations/describe"
+import { automationName, type SectionName } from "@/lib/automations/describe"
 import { isStateTrigger, type Automation, type AutomationEvent } from "@/lib/automations/types"
 import { reportError } from "@/lib/report-error"
 import { getErrorMessage } from "@/lib/utils"
@@ -54,7 +55,7 @@ function structureSignature(tree: NoteDataTree): string {
     const parts: string[] = []
     for (const group of tree.groups) {
         parts.push(`g${group.id}`)
-        for (const section of group.sections) {
+        for (const section of taskSections(group)) {
             parts.push(`s${section.id}`)
             for (const task of section.tasks) taskSignature(task, parts)
         }
@@ -153,8 +154,14 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         const groups = groupChanges(before, after, touchedGroups)
         if (groups.some(change => change.archived)) notifyArchiveChanged()
 
-        const titleOf = (id: number) => findSection(after, id)?.section.title
-        const names = applied.map(rule => automationName(rule, titleOf, groupLabelIn(after, before)))
+        const groupLabelOf = groupLabelIn(after, before)
+        const titleOf = (id: number): SectionName | undefined => {
+            const found = findSection(after, id)
+            if (!found) return undefined
+            // The direct area of a group is named after the group
+            return isDefaultSection(found.section) ? { group: groupLabelOf(found.groupId) ?? "" } : found.section.title
+        }
+        const names = applied.map(rule => automationName(rule, titleOf, groupLabelOf))
         const command: UndoCommand = {
             label: i18n.t("automations.undoLabel", { name: names.join(", ") }),
             undo: () => restore(noteId, { tree: before, full: before }, { tree: after, full: fullAfter }, tasks, groups),

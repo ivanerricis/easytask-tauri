@@ -29,8 +29,10 @@ export async function archiveDBItem(itemType: ArchiveItemType, itemID: number) {
     const db = await getDB()
 
     try {
+        // The default section of a group is hidden and is archived only with its group
+        const notDefault = itemType === "section" ? " AND is_default = 0" : ""
         await db.execute(
-            `UPDATE ${itemType} SET archived_at = datetime('now','localtime') WHERE id=? AND archived_at IS NULL AND deleted_at IS NULL`,
+            `UPDATE ${itemType} SET archived_at = datetime('now','localtime') WHERE id=? AND archived_at IS NULL AND deleted_at IS NULL${notDefault}`,
             [itemID])
     } catch (error: unknown) {
         throw createError(`${itemType.toUpperCase()}_ARCHIVE_FAILED`, i18n.t("errors.archive.archive", { message: getErrorMessage(error) }))
@@ -74,7 +76,7 @@ type ArchiveRow = { type: ArchiveItemType, id: number, name: string, context: st
  * Retrieves the archived items that belong to a workspace and are not in the trash (neither them nor any ancestor).
  * An item archived inside an archived parent is listed too (unarchiving it brings its archived ancestors back as well).
  * Folders and notes have the parent folder name as context, groups the note name ("Gruppo di N sezioni" as name when
- * unnamed, like in the trash), sections "Nota X". Every item also has a `summary` of what it contains
+ * unnamed, like in the trash), sections "Nota X", tasks "Nota X › Sezione Y" ("Nota X › Gruppo Y" when directly in a group). Every item also has a `summary` of what it contains
  * (see formatTrashSummary).
  * @param workspaceId The ID of the workspace.
  * @returns The archived items, most recently archived first.
@@ -86,6 +88,7 @@ export async function getDBArchive(workspaceId: number): Promise<ArchiveItem[]> 
         const db = await getDB()
         const notePrefix = i18n.t("trash.context.note")
         const sectionPrefix = i18n.t("trash.context.section")
+        const groupPrefix = i18n.t("trash.context.group")
 
         const rows = await db.select<ArchiveRow[]>(
             `WITH RECURSIVE ${LIVE_CTE}
@@ -98,7 +101,7 @@ export async function getDBArchive(workspaceId: number): Promise<ArchiveItem[]> 
              FROM note n WHERE n.id IN (SELECT id FROM live_note) AND n.archived_at IS NOT NULL
              UNION ALL
              SELECT 'section_group', 2, g.id, COALESCE(NULLIF(TRIM(g.name), ''), ''), ln.name, g.archived_at,
-                    (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id AND s.deleted_at IS NULL)
+                    (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id AND s.deleted_at IS NULL AND s.is_default = 0)
              FROM section_group g INNER JOIN live_note ln ON ln.id = g.noteID
              WHERE g.deleted_at IS NULL AND g.archived_at IS NOT NULL
              UNION ALL
@@ -108,13 +111,13 @@ export async function getDBArchive(workspaceId: number): Promise<ArchiveItem[]> 
              INNER JOIN live_note ln ON ln.id = g.noteID
              WHERE g.deleted_at IS NULL AND s.deleted_at IS NULL AND s.archived_at IS NOT NULL
              UNION ALL
-             SELECT 'task', 4, t.id, t.text, ? || ln.name || ' › ' || ? || COALESCE(s.title, ''), t.archived_at, 0
+             SELECT 'task', 4, t.id, t.text, ? || ln.name || ' › ' || CASE WHEN s.is_default = 1 THEN ? || COALESCE(NULLIF(TRIM(g.name), ''), g.position + 1) ELSE ? || COALESCE(s.title, '') END, t.archived_at, 0
              FROM task t
              INNER JOIN section s ON s.id = t.sectionID
              INNER JOIN section_group g ON g.id = s.groupID
              INNER JOIN live_note ln ON ln.id = g.noteID
              WHERE g.deleted_at IS NULL AND s.deleted_at IS NULL AND t.deleted_at IS NULL AND t.archived_at IS NOT NULL
-             ORDER BY archived_at DESC, kind, id`, [workspaceId, workspaceId, notePrefix, notePrefix, sectionPrefix])
+             ORDER BY archived_at DESC, kind, id`, [workspaceId, workspaceId, notePrefix, notePrefix, groupPrefix, sectionPrefix])
 
         const counts = await loadTrashCounts(db, workspaceId, new Set<DBItemType>(rows.map(row => row.type)), "archived_at")
 

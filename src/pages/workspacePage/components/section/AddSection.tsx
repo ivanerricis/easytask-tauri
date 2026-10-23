@@ -84,8 +84,8 @@ export const AddSection = ({ inGroup, groupId }: AddSectionFormProps) => {
                     appendSection(id, groupId, name.trim())
                     recorder.create("section", id, name.trim())
                 } else {
-                    const id = await createGroup(activeId, name.trim())
-                    appendGroup(id, activeId, name.trim())
+                    const { groupId: id, defaultSectionId } = await createGroup(activeId, name.trim())
+                    appendGroup(id, activeId, name.trim(), defaultSectionId)
                     recorder.create("section_group", id, name.trim())
                 }
 

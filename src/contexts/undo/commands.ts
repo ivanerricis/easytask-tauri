@@ -50,7 +50,7 @@ export type TaskMoveStep = { id: number, name: string, from: TaskPlace, to: Task
 export type TreeMoveStep = { itemType: TreeItemType, id: number, name: string, from: TreePlace, to: TreePlace }
 /** Where a section sits in the open note. */
 export type SectionPlace = { groupId: number, index: number }
-/** Where a task sits in the open note: a section (top level, parentTaskId null) or under another task. */
+/** Where a task sits in the open note: a section (top level, parentTaskId null; also the default section of a group) or under another task. */
 export type TaskPlace = { sectionId: number, parentTaskId: number | null, index: number }
 
 const NAME_MAX = 40
@@ -83,10 +83,10 @@ export function captureTreePlace(tree: WorkspaceDataTree | null | undefined, ite
     return found ? { folderId: found.parentId, index: found.index, name: found.item.name } : null
 }
 
-/** Where a section currently sits in the note. */
+/** Where a section currently sits in the note (null for the hidden default section of a group, which never moves). */
 export function captureSectionPlace(tree: NoteDataTree | null | undefined, sectionId: number): (SectionPlace & { name: string }) | null {
     const found = tree ? findSection(tree, sectionId) : undefined
-    return found ? { groupId: found.groupId, index: found.index, name: found.section.title } : null
+    return found && found.index >= 0 ? { groupId: found.groupId, index: found.index, name: found.section.title } : null
 }
 
 /** Where a task currently sits in the note. */

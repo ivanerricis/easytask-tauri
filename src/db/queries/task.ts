@@ -2,6 +2,7 @@ import i18n from "@/i18n"
 import { createError, handleDBError } from "@/types/error"
 import { getDB } from "../dbManager"
 import { getErrorMessage } from "@/lib/utils"
+import { DEFAULT_SECTION_SQL } from "./sql"
 import type { NewTaskPosition } from "@/lib/store/preferences"
 
 /**
@@ -33,6 +34,27 @@ export async function createDBTask(sectionId: number, text: string, position: Ne
         handleDBError(error, "TASK", {
             UNIQUE: i18n.t("errors.task.unique"),
             CHECK: i18n.t("errors.task.check"),
+        })
+    }
+}
+
+/**
+ * Returns the id of the hidden default section of a group (the one that holds its direct tasks), creating it when the
+ * group has none (every group gets one when it is created, so this is only a safety net).
+ * @param groupId The ID of the group.
+ * @category Database
+ */
+export async function ensureDBDefaultSection(groupId: number): Promise<number> {
+    try {
+        const db = await getDB()
+        const existing = await db.select<{ id: number }[]>('SELECT id FROM section WHERE groupID = ? AND is_default = 1', [groupId])
+        if (existing[0]) return existing[0].id
+        const result = await db.execute(DEFAULT_SECTION_SQL, [groupId])
+        return result.lastInsertId as number
+    } catch (error: unknown) {
+        handleDBError(error, "SECTION", {
+            UNIQUE: i18n.t("errors.section.unique"),
+            CHECK: i18n.t("errors.section.check"),
         })
     }
 }

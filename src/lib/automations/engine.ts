@@ -1,4 +1,5 @@
 import type { Group, NoteDataTree, Task } from "@/types/types"
+import { isDefaultSection, taskSections } from "@/lib/group-sections"
 import { findGroup, findSection, findTask, mapTask, moveGroupInList, moveTask, patchGroup, patchSection, patchTask, removeGroup } from "@/contexts/note-tree-ops"
 import { isStateTrigger, isValidRule, referencedGroups, referencedSections, type Automation, type AutomationAction, type AutomationEvent, type AutomationTrigger } from "./types"
 
@@ -36,12 +37,12 @@ export function allSubtasksCompleted(task: Task): boolean {
 }
 
 /**
- * Whether a group has at least one task and every task of its sections, at any depth, is completed.
+ * Whether a group has at least one task and every task of its sections (the direct tasks of the group included), at any depth, is completed.
  * @category Automations
  */
 export function allTasksCompleted(group: Group): boolean {
     const visit = (tasks: Task[]): boolean => tasks.every(task => !!task.completed && visit(task.subtasks))
-    const tasks = group.sections.flatMap(section => section.tasks)
+    const tasks = taskSections(group).flatMap(section => section.tasks)
     return tasks.length > 0 && visit(tasks)
 }
 
@@ -269,11 +270,12 @@ export function syncStateRules(tree: NoteDataTree, rules: readonly Automation[])
         const holds = (tasks: Task[]) => tasks.every(isTaskDone) === wantsNoOpen
         if (trigger.type === "section.noOpenTasks" || trigger.type === "section.hasOpenTasks") {
             for (const group of tree.groups)
-                for (const section of group.sections)
-                    if ((trigger.sectionId === null || trigger.sectionId === section.id) && holds(section.tasks)) record(sectionColors, section.id, actions)
+                // "Any section" means the visible sections: the direct area of a group is colored only when a rule names it
+                for (const section of taskSections(group))
+                    if ((trigger.sectionId === section.id || (trigger.sectionId === null && !isDefaultSection(section))) && holds(section.tasks)) record(sectionColors, section.id, actions)
         } else if (trigger.type === "group.noOpenTasks" || trigger.type === "group.hasOpenTasks") {
             for (const group of tree.groups)
-                if ((trigger.groupId === null || trigger.groupId === group.id) && holds(group.sections.flatMap(section => section.tasks))) record(groupColors, group.id, actions)
+                if ((trigger.groupId === null || trigger.groupId === group.id) && holds(taskSections(group).flatMap(section => section.tasks))) record(groupColors, group.id, actions)
         }
     }
 

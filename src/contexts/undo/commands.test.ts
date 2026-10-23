@@ -4,7 +4,7 @@ import {
     getItemName, isUndoableType, makeLabel, type UndoDeps,
 } from "./commands"
 import type { UndoCommand } from "./stack"
-import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { Folder } from "@/types/types"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
@@ -610,5 +610,29 @@ describe("place capture", () => {
         expect(captureTaskPlace(tree, 31)).toEqual({ sectionId: 20, parentTaskId: 30, index: 0, name: "sub" })
         expect(captureTaskPlace(tree, 99)).toBeNull()
         expect(captureTaskPlace(undefined, 1)).toBeNull()
+    })
+})
+
+describe("places in the direct area of a group (default section)", () => {
+    const tree = {
+        groups: [makeGroup({
+            id: 1,
+            defaultSection: makeDefaultSection({ id: 90, groupID: 1, tasks: [
+                makeTask({ id: 300, sectionID: 90, text: "direct", subtasks: [makeTask({ id: 301, sectionID: 90, taskID: 300, text: "direct sub" })] }),
+                makeTask({ id: 302, sectionID: 90, text: "second" }),
+            ] }),
+            sections: [makeSection({ id: 20, groupID: 1, title: "S" })],
+        })],
+    }
+
+    it("captureTaskPlace gives the real id of the default section", () => {
+        expect(captureTaskPlace(tree, 300)).toEqual({ sectionId: 90, parentTaskId: null, index: 0, name: "direct" })
+        expect(captureTaskPlace(tree, 302)).toEqual({ sectionId: 90, parentTaskId: null, index: 1, name: "second" })
+        expect(captureTaskPlace(tree, 301)).toEqual({ sectionId: 90, parentTaskId: 300, index: 0, name: "direct sub" })
+    })
+
+    it("captureSectionPlace does not capture the default section (it never moves), but sections keep their index", () => {
+        expect(captureSectionPlace(tree, 90)).toBeNull()
+        expect(captureSectionPlace(tree, 20)).toEqual({ groupId: 1, index: 0, name: "S" })
     })
 })

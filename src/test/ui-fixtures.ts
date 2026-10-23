@@ -43,6 +43,10 @@ export const makeSection = (over: Partial<Section> = {}): Section => ({
     ...over,
 })
 
+/** The hidden default section of a group (the one that holds its direct tasks). */
+export const makeDefaultSection = (over: Partial<Section> = {}): Section =>
+    makeSection({ title: "", is_default: true, ...over })
+
 export const makeTask = (over: Partial<Task> = {}): Task => ({
     id: 1,
     sectionID: 1,

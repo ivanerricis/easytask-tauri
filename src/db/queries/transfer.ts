@@ -47,8 +47,8 @@ async function buildNotesExport(db: Database, entries: ExportEntry[]): Promise<E
     }
 
     return entries.map(({ note, folderRef }): ExportNote => {
-        const { content, sectionIds, groupIds } = contents.get(note.id)!
-        const automations = toPortableAutomations(rules.get(note.id) ?? [], content, sectionIds, groupIds)
+        const { content, sectionIds, groupIds, defaultSectionIds } = contents.get(note.id)!
+        const automations = toPortableAutomations(rules.get(note.id) ?? [], content, sectionIds, groupIds, defaultSectionIds)
         // Index of every group in the content (groupIds is in content order)
         const groupIndex = new Map(groupIds.map((id, index) => [id, index]))
         return {
@@ -293,6 +293,11 @@ function checkContent(content: unknown, counter: Counter): NoteTemplateContent {
         bump(counter)
         if (!isObject(group) || !isNumber(group.position) || !Array.isArray(group.sections) || !isNullableString(group.name)
             || !isNullableString(group.color) || !isNullableString(group.archived_at)) malformed()
+        if (!(group.width === undefined || group.width === null || (Number.isInteger(group.width) && (group.width as number) > 0))) malformed()
+        if (group.tasks !== undefined) {
+            if (!Array.isArray(group.tasks)) malformed()
+            for (const task of group.tasks as unknown[]) checkTask(task, counter)
+        }
         for (const section of group.sections as unknown[]) {
             bump(counter)
             if (!isObject(section) || !isString(section.title) || !isNumber(section.position) || !Array.isArray(section.tasks)
@@ -331,6 +336,7 @@ function normalizeTask(task: ContentTask) {
 function normalizeContent(content: NoteTemplateContent) {
     for (const group of content.groups) {
         group.color = cleanColor(group.color)
+        for (const task of group.tasks ?? []) normalizeTask(task)
         const titles = new Set<string>()
         for (const section of group.sections) {
             // A blank title stays blank (a section may have no title); only the others must differ
@@ -521,8 +527,8 @@ async function insertItems(
             ]))
 
         for (const [i, note] of data.notes.entries()) {
-            const { groups: groupRefs, sections: sectionRefs } = addNoteContent(tx, noteRefs[i], note.content)
-            if (note.automations?.length) addNoteAutomations(tx, noteRefs[i], note.automations, note.content, sectionRefs, groupRefs)
+            const { groups: groupRefs, sections: sectionRefs, defaultSections } = addNoteContent(tx, noteRefs[i], note.content)
+            if (note.automations?.length) addNoteAutomations(tx, noteRefs[i], note.automations, note.content, sectionRefs, groupRefs, defaultSections)
             const rows: unknown[][] = []
             const taken = new Set<string>()
             for (const file of note.audio) {

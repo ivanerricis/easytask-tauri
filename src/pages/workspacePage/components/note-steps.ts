@@ -44,6 +44,7 @@ export function getSectionStep(tree: NoteDataTree, sectionId: number, step: Step
     const info = sections.get(sectionId)
     if (!info) return null
     const group = tree.groups.find(candidate => candidate.id === info.groupId)
+    // Only the visible sections: the default section of the group is not part of the section order
     const index = stepIndex(group?.sections ?? [], sectionId, step, () => true)
     return index === null ? null : { type: "group", groupId: info.groupId, index }
 }

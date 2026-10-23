@@ -133,8 +133,8 @@ export function useNoteMoves() {
                 if (from) recorder.sectionMove(sectionId, from.name, from, { groupId: target.groupId, index: target.index })
             } else {
                 // The new group only exists once the write is done; without its id the note is reloaded in background
-                const groupId = await moveSectionToNewGroup(sectionId, target.index)
-                applySectionMoveToNewGroup(sectionId, groupId, target.index)
+                const { groupId, defaultSectionId } = await moveSectionToNewGroup(sectionId, target.index)
+                applySectionMoveToNewGroup(sectionId, groupId, target.index, defaultSectionId)
                 if (from && Number.isInteger(groupId)) recorder.sectionMoveToNewGroup(sectionId, from.name, groupId, from)
             }
         } catch (err) {
