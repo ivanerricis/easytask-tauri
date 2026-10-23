@@ -37,6 +37,10 @@ export type TemplateGroup = {
     color?: string | null
     /** Archive date: only in the export files (a template never contains archived items). */
     archived_at?: string | null
+    /** Width in pixels; absent in templates and export files created before groups had a width. */
+    width?: number | null
+    /** Tasks directly in the group (its default section); absent in templates and export files created before. */
+    tasks?: TemplateTask[]
     position: number
     sections: TemplateSection[]
 }
