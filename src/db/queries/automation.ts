@@ -2,7 +2,7 @@ import i18n from "@/i18n"
 import { createError } from "@/types/error"
 import { getErrorMessage } from "@/lib/utils"
 import { isAutomationAction, isAutomationTrigger, isValidRule, type Automation, type AutomationDraft } from "@/lib/automations/types"
-import { buildGroupIndex, buildSectionIndex, sectionOffsets, toPortable, type PortableAutomation } from "@/lib/automations/portable"
+import { buildGroupIndex, buildSectionIndex, sectionOffsets, toPortable, type PortableAutomation, type PortableSectionRef } from "@/lib/automations/portable"
 import type { NoteTemplateContent } from "@/types/template"
 import { getDB } from "../dbManager"
 import { chunked, placeholders } from "./sql"
@@ -64,12 +64,14 @@ export async function getDBAutomations(noteId: number): Promise<Automation[]> {
  * @param content The content that will be copied or exported.
  * @param sectionIds The ids of the sections of `content`, in content order (see buildContentWithSectionIds).
  * @param groupIds The ids of the groups of `content`, in content order (see buildContentWithSectionIds).
+ * @param defaultSectionIds The ids of the default sections (the direct area) of the groups, in group order.
  * @category Database Queries
  */
 export async function getDBPortableAutomations(
     noteId: number, content: NoteTemplateContent, sectionIds: readonly number[], groupIds: readonly number[],
+    defaultSectionIds: readonly (number | null)[],
 ): Promise<PortableAutomation[]> {
-    return toPortableAutomations(await getDBAutomations(noteId), content, sectionIds, groupIds)
+    return toPortableAutomations(await getDBAutomations(noteId), content, sectionIds, groupIds, defaultSectionIds)
 }
 
 /**
@@ -103,8 +105,9 @@ export async function getDBAutomationsByNote(noteIds: readonly number[]): Promis
  */
 export function toPortableAutomations(
     rules: readonly Automation[], content: NoteTemplateContent, sectionIds: readonly number[], groupIds: readonly number[],
+    defaultSectionIds: readonly (number | null)[],
 ): PortableAutomation[] {
-    const index = buildSectionIndex(content, sectionIds)
+    const index = buildSectionIndex(content, sectionIds, defaultSectionIds)
     const groupIndex = buildGroupIndex(content, groupIds)
     return rules
         .map(rule => toPortable(rule, index, groupIndex))
@@ -121,14 +124,15 @@ export function toPortableAutomations(
  * @param content The content inserted in the note.
  * @param sectionRefs References to the created sections in content order (see addNoteContent).
  * @param groupRefs References to the created groups in content order (see addNoteContent).
+ * @param defaultSectionRefs References to the default sections (the direct area) of the created groups, in group order.
  * @category Database Queries
  */
 export function addNoteAutomations(
     tx: Transaction, noteRef: number | TxRef, rules: readonly PortableAutomation[],
-    content: NoteTemplateContent, sectionRefs: readonly TxRef[], groupRefs: readonly TxRef[],
+    content: NoteTemplateContent, sectionRefs: readonly TxRef[], groupRefs: readonly TxRef[], defaultSectionRefs: readonly TxRef[],
 ) {
     const offsets = sectionOffsets(content)
-    const refOf = ({ group, section }: { group: number, section: number }) => sectionRefs[offsets[group] + section]
+    const refOf = (ref: PortableSectionRef) => "direct" in ref ? defaultSectionRefs[ref.group] : sectionRefs[offsets[ref.group] + ref.section]
     // Placeholder written in the JSON until json_set replaces it with the id of the new section
     const PLACEHOLDER = 0
 

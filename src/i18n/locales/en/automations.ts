@@ -46,6 +46,7 @@ export const automations: Translation["automations"] = {
     anySection: "Any section",
     group: "Group",
     anyGroup: "Any group",
+    directTasks: "{{group}}, direct tasks",
     deleteConfirm: {
         title: "Delete the automation?",
     },
@@ -87,6 +88,10 @@ export const automations: Translation["automations"] = {
     describe: {
         rule: "When {{trigger}}, {{actions}}",
         inSection: "{{trigger}} in \"{{section}}\"",
+        inDirect: "{{trigger}} in the direct tasks of \"{{group}}\"",
+        movedIntoDirect: "a task arrives in the direct tasks of \"{{group}}\"",
+        moveTopDirect: "move to the top of the direct tasks of \"{{group}}\"",
+        moveBottomDirect: "move to the bottom of the direct tasks of \"{{group}}\"",
         missingSection: "(deleted section)",
         missingGroup: "(deleted group)",
         groupCompleted: "all the tasks of the group \"{{group}}\" are completed",

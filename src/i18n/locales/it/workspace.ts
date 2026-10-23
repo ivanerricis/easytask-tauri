@@ -75,6 +75,7 @@ export const notes = {
 
 export const groups = {
     defaultLabel: "Gruppo {{index}}",
+    directTasks: "Task del gruppo",
     collapse: "Comprimi gruppo",
     expand: "Espandi gruppo",
     nameLabel: "Nome del gruppo",

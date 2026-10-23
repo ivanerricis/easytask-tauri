@@ -74,3 +74,30 @@ describe("automationName", () => {
         expect(automationName({ ...rule, name: null }, titleOf, groupLabelOf)).toBe(describeAutomation(rule, titleOf, groupLabelOf))
     })
 })
+
+describe("direct area of a group", () => {
+    const named = (id: number) => id === 1 ? { group: "Sprint 3" } : id === 2 ? "Done" : undefined
+
+    it("describes a move into the direct tasks of a group", () => {
+        expect(describeAutomation({
+            trigger: { type: "task.completed", sectionId: 2 },
+            actions: [{ type: "moveTo", sectionId: 1, at: "bottom" }, { type: "moveTo", sectionId: 1, at: "top" }],
+        }, named)).toBe("Quando un task viene completato in \"Done\", sposta in fondo ai task diretti di \"Sprint 3\" e sposta in cima ai task diretti di \"Sprint 3\"")
+    })
+
+    it("describes a trigger on the direct tasks of a group", () => {
+        expect(describeAutomation({ trigger: { type: "task.created", sectionId: 1 }, actions: [{ type: "setPriority", value: true }] }, named))
+            .toBe("Quando un task viene creato nei task diretti di \"Sprint 3\", aggiungi la priorità")
+        expect(describeAutomation({ trigger: { type: "task.movedInto", sectionId: 1 }, actions: [{ type: "setCompleted", value: true }] }, named))
+            .toBe("Quando un task arriva nei task diretti di \"Sprint 3\", segna come completato")
+    })
+
+    it("names the direct area like the pickers do where there is no special sentence", () => {
+        expect(describeAutomation({ trigger: { type: "section.noOpenTasks", sectionId: 1 }, actions: [{ type: "setColor", color: null }] }, named))
+            .toContain("\"Sprint 3, task diretti\"")
+    })
+
+    it("still reports a deleted section", () => {
+        expect(describeAutomation({ trigger: { type: "task.movedInto", sectionId: 9 }, actions: [] }, named)).toContain("(sezione eliminata)")
+    })
+})

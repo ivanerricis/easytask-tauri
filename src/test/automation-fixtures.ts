@@ -1,5 +1,6 @@
 import type { Group, NoteDataTree, Section, Task } from "@/types/types"
-import { buildGroup, buildSection, buildTask } from "@/contexts/note-tree-ops"
+import { buildDefaultSection, buildGroup, buildSection, buildTask } from "@/contexts/note-tree-ops"
+import { taskSections } from "@/lib/group-sections"
 import type { Automation, AutomationAction, AutomationTrigger } from "@/lib/automations/types"
 
 /** Compact description of a task: `{ id, subs }`; flags are optional. */
@@ -40,6 +41,23 @@ export function makeTree(sections: Record<number, TaskSpec[]>): NoteDataTree {
     return { groups: [group] }
 }
 
+/**
+ * Gives a group of a tree its default section (the direct area, id `sectionId`) with the given top level tasks.
+ * @category Test helpers
+ */
+export function withDirectArea(tree: NoteDataTree, groupId: number, sectionId: number, specs: TaskSpec[] = []): NoteDataTree {
+    const area = buildDefaultSection(sectionId, groupId)
+    const build = (list: TaskSpec[], parentId: number | null): Task[] => {
+        const out: Task[] = []
+        for (const spec of list) {
+            const task = buildTask(spec.id, sectionId, parentId, `task ${spec.id}`, out)
+            out.push({ ...task, completed: !!spec.completed, priority: !!spec.priority, color: spec.color ?? null, subtasks: build(spec.subs ?? [], spec.id) })
+        }
+        return out
+    }
+    return { groups: tree.groups.map(group => group.id === groupId ? { ...group, defaultSection: { ...area, tasks: build(specs, null) } } : group) }
+}
+
 /** A rule with sensible defaults (enabled, position = id). */
 export function makeRule(
     id: number,
@@ -53,7 +71,7 @@ export function makeRule(
 /** The ids of the top level tasks of each section. */
 export function layout(tree: NoteDataTree): Record<number, number[]> {
     const out: Record<number, number[]> = {}
-    for (const group of tree.groups) for (const section of group.sections) out[section.id] = section.tasks.map(task => task.id)
+    for (const group of tree.groups) for (const section of taskSections(group)) out[section.id] = section.tasks.map(task => task.id)
     return out
 }
 
@@ -67,7 +85,7 @@ export function taskOf(tree: NoteDataTree, id: number): Task {
         }
         return undefined
     }
-    for (const group of tree.groups) for (const section of group.sections) {
+    for (const group of tree.groups) for (const section of taskSections(group)) {
         const found = visit(section.tasks)
         if (found) return found
     }
