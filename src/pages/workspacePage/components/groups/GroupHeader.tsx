@@ -21,6 +21,7 @@ import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
 import { getGroupLabel } from "./group-label"
+import { taskSections } from "@/lib/group-sections"
 
 /** Icon + number, named for the screen readers and for the mouse (the icon alone does not say what is counted). */
 const CountBadge = ({ icon: Icon, count, label }: { icon: LucideIcon, count: number, label: string }) => (
@@ -53,7 +54,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0 }
     const recorder = useUndoRecorder()
     const name = group.name?.trim() ?? ""
     const label = getGroupLabel(group, index)
-    const taskCount = group.sections.reduce((sum, section) => sum + section.tasks.length, 0)
+    const taskCount = taskSections(group).reduce((sum, section) => sum + section.tasks.length, 0)
     // An empty text removes the name (a group can have none)
     const { editing: isEditing, error, start: startEditing, inputProps } = useInlineEdit({
         value: name,

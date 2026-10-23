@@ -39,7 +39,7 @@ const openSectionForm = async (user: ReturnType<typeof userEvent.setup>) => {
 describe("AddSection", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        ctx.createGroup.mockResolvedValue(31)
+        ctx.createGroup.mockResolvedValue({ groupId: 31, defaultSectionId: 32 })
         ctx.createSectionInGroup.mockResolvedValue(41)
         ctx.activeId = 20
     })
@@ -49,7 +49,7 @@ describe("AddSection", () => {
         render(<AddSection />)
         await user.type(await openGroupForm(user), "  Sprint  {Enter}")
 
-        await waitFor(() => expect(ctx.appendGroup).toHaveBeenCalledWith(31, 20, "Sprint"))
+        await waitFor(() => expect(ctx.appendGroup).toHaveBeenCalledWith(31, 20, "Sprint", 32))
         expect(ctx.createGroup).toHaveBeenCalledWith(20, "Sprint")
         expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
         expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()

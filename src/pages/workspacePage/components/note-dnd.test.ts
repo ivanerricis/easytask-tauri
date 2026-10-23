@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest"
 import type { NoteDataTree } from "@/types/types"
-import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import {
     computeDropZone, computeGroupDropZone, computeGroupTarget, computeSectionTarget, moveGroupInList, computeTaskTarget, findSection, findTask,
-    getSectionMoveDestinations, getTaskMoveDestinations, indexTree,
+    ACCEPTS, getSectionMoveDestinations, getTaskMoveDestinations, indexTree,
 } from "./note-dnd"
 
 /*
@@ -288,5 +288,80 @@ describe("computeTaskTarget with hidden completed tasks", () => {
 
     it("appends to the end of the full list when dropped on the section", () => {
         expect(computeTaskTarget(hiddenTree(), 1, { kind: "section", id: 1 }, "inside")).toEqual({ sectionId: 1, parentTaskId: null, index: 4 })
+    })
+})
+
+describe("direct area of a group (default section)", () => {
+    // group 1: direct [T5], S1 [T1, T2]; group 2 (named "Fatto"): direct [], S3 []
+    function directTree(): NoteDataTree {
+        return {
+            groups: [
+                makeGroup({
+                    id: 1, position: 0,
+                    defaultSection: makeDefaultSection({ id: 50, groupID: 1, tasks: [task(5, 50)] }),
+                    sections: [makeSection({ id: 1, groupID: 1, title: "S1", tasks: [task(1, 1), task(2, 1)] })],
+                }),
+                makeGroup({
+                    id: 2, position: 1, name: "Fatto",
+                    defaultSection: makeDefaultSection({ id: 51, groupID: 2 }),
+                    sections: [makeSection({ id: 3, groupID: 2, title: "S3" })],
+                }),
+            ],
+        }
+    }
+
+    it("indexes the tasks of the default section", () => {
+        const { tasks, sections } = indexTree(directTree())
+        expect(tasks.get(5)).toMatchObject({ sectionId: 50, parentId: null })
+        expect(sections.get(50)).toMatchObject({ groupId: 1 })
+        expect(findTask(directTree(), 5)?.text).toBe("T5")
+    })
+
+    it("moves a task between a section and the direct area", () => {
+        const tree = directTree()
+        // Over the direct area (a section droppable): last direct task
+        expect(computeTaskTarget(tree, 1, { kind: "section", id: 50 }, "inside")).toEqual({ sectionId: 50, parentTaskId: null, index: 1 })
+        // Over a direct task: before it
+        expect(computeTaskTarget(tree, 1, { kind: "task", id: 5 }, "before")).toEqual({ sectionId: 50, parentTaskId: null, index: 0 })
+        // From the direct area to a section
+        expect(computeTaskTarget(tree, 5, { kind: "section", id: 3 }, "inside")).toEqual({ sectionId: 3, parentTaskId: null, index: 0 })
+    })
+
+    it("a task dropped on the empty area of a group becomes its last direct task", () => {
+        const tree = directTree()
+        expect(computeTaskTarget(tree, 1, { kind: "group", id: 2 }, "inside")).toEqual({ sectionId: 51, parentTaskId: null, index: 0 })
+        // Already the only direct task: nothing to do
+        expect(computeTaskTarget(tree, 5, { kind: "group", id: 1 }, "inside")).toBeNull()
+        expect(computeTaskTarget(tree, 1, { kind: "group", id: 99 }, "inside")).toBeNull()
+        expect(computeTaskTarget({ groups: [makeGroup({ id: 7 })] }, 1, { kind: "group", id: 7 }, "inside")).toBeNull()
+    })
+
+    it("the group droppable accepts tasks", () => {
+        expect(ACCEPTS.group).toContain("task")
+    })
+
+    it("a section dropped on the direct area is a drop on its group", () => {
+        const tree = directTree()
+        // S3 over the direct area of group 1: appended to the sections of group 1
+        expect(computeSectionTarget(tree, 3, { kind: "section", id: 50 }, "before")).toEqual({ type: "group", groupId: 1, index: 1 })
+        expect(computeSectionTarget(tree, 3, { kind: "group", id: 1 }, "inside")).toEqual({ type: "group", groupId: 1, index: 1 })
+        // Over the direct area of its own group: it is already last
+        expect(computeSectionTarget(tree, 3, { kind: "section", id: 51 }, "after")).toBeNull()
+    })
+
+    it("lists one destination per group, labelled with the group, ahead of its sections", () => {
+        const list = getTaskMoveDestinations(directTree(), 1)
+        expect(list.map(d => d.key)).toEqual(["section-50", "task-5", "task-2", "section-51", "section-3"])
+        expect(list[0]).toMatchObject({ sectionId: 50, parentTaskId: null, label: "Gruppo 1", hint: "Task del gruppo", direct: true, depth: 0 })
+        expect(list.find(d => d.key === "section-51")).toMatchObject({ label: "Fatto", direct: true })
+        // The direct area where the task already is, is not offered
+        expect(getTaskMoveDestinations(directTree(), 5).map(d => d.key)).not.toContain("section-50")
+    })
+
+    it("does not offer the default section as a section to move", () => {
+        const destinations = getSectionMoveDestinations(directTree(), 3)
+        expect(destinations.groups.map(g => g.id)).toEqual([1])
+        expect(destinations.groups[0].hint).toBe("S1")
+        expect(computeSectionTarget(directTree(), 50, { kind: "group", id: 2 }, "inside")).toBeNull()
     })
 })

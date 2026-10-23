@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { GroupHeader } from "./GroupHeader"
 import { PreferencesContext, type PreferencesContextType } from "@/contexts/preferences-context-object"
-import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 
 // Radix tooltips measure their arrow with a ResizeObserver, which jsdom lacks
 vi.stubGlobal("ResizeObserver", class { observe() { } unobserve() { } disconnect() { } })
@@ -262,5 +262,19 @@ describe("GroupHeader audio file count", () => {
         prefs.showAudioFileCount = false
         const { container } = render(<GroupHeader group={makeGroup({ name: "G" })} audioCount={3} />)
         expect(badge(container)).not.toBeInTheDocument()
+    })
+})
+
+describe("GroupHeader task count with direct tasks", () => {
+    it("counts the tasks directly in the group together with those of its sections, but only the visible sections", () => {
+        const group = makeGroup({
+            name: "G",
+            defaultSection: makeDefaultSection({ id: 9, tasks: [makeTask({ id: 1 }), makeTask({ id: 2 })] }),
+            sections: [makeSection({ id: 3, tasks: [makeTask({ id: 4 })] })],
+        })
+        const { container } = render(<GroupHeader group={group} />)
+        expect(container.querySelector("svg.lucide-square-check-big")?.parentElement).toHaveTextContent("3")
+        // The hidden default section is not a section
+        expect(container.querySelector("svg.lucide-layout-list")?.parentElement).toHaveTextContent("1")
     })
 })

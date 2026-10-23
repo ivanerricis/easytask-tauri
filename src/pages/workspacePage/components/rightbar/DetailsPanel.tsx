@@ -24,6 +24,7 @@ import { RightPanelContext } from "./right-panel-context-object"
 import { getSectionLabel } from "../section/section-label"
 import { getGroupLabel } from "../groups/group-label"
 import { countTasks } from "../groups/group-progress"
+import { isDefaultSection, taskSections } from "@/lib/group-sections"
 
 const sectionTitle = "text-xs font-semibold uppercase tracking-wide text-muted-foreground"
 
@@ -87,12 +88,12 @@ const ColorField = ({ item, itemType, addColorItem, getItemId }: ColorFieldProps
 const containsTask = (tasks: Task[], taskId: number): boolean =>
     tasks.some(task => task.id === taskId || containsTask(task.subtasks, taskId))
 
-/** "Group › Section" of a task, found in the tree of its note. */
+/** "Group › Section" of a task, found in the tree of its note ("Group" only for a task directly in the group). */
 const findTaskPlace = (tree: NoteDataTree, taskId: number): { group: string, section: string } | null => {
     for (const [groupIndex, group] of tree.groups.entries())
-        for (const section of group.sections)
+        for (const section of taskSections(group))
             if (containsTask(section.tasks, taskId))
-                return { group: getGroupLabel(group, groupIndex), section: getSectionLabel(section) }
+                return { group: getGroupLabel(group, groupIndex), section: isDefaultSection(section) ? "" : getSectionLabel(section) }
     return null
 }
 
@@ -238,7 +239,8 @@ function NoteOrTaskDetails() {
     }
 
     const sections = noteDataTree.groups.flatMap(group => group.sections)
-    const counts = countTasks(sections.flatMap(section => section.tasks))
+    // The tasks directly in the groups count too (they live in the hidden default sections, which are not counted as sections)
+    const counts = countTasks(noteDataTree.groups.flatMap(taskSections).flatMap(section => section.tasks))
     return (
         <div className="flex flex-col gap-4 p-3">
             <h2 className="text-base font-semibold break-words"><span className="sr-only">{t("details.noteTitle")} </span>{currentNote.name}</h2>

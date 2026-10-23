@@ -50,7 +50,7 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
      * It does NOT reload the data: the caller updates the active note with the returned group id.
      * @param sectionID - The ID of the section to move.
      * @param groupPosition - The index of the new group among the current groups (clamped).
-     * @returns The ID of the new group.
+     * @returns The IDs of the new group and of its default section.
      * @category Workspace Data Context
      */
     const moveSectionToNewGroup = useCallback((sectionID: number, groupPosition: number) =>

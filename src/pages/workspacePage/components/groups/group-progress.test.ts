@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { getGroupProgress } from "./group-progress"
-import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 
 describe("getGroupProgress", () => {
     it("is empty without tasks", () => {
@@ -33,5 +33,16 @@ describe("getGroupProgress", () => {
             sections: [makeSection({ tasks: [makeTask({ completed: true, subtasks: [makeTask({ id: 2, completed: true })] })] })],
         })
         expect(getGroupProgress(group)).toEqual({ done: 2, total: 2, percent: 100 })
+    })
+})
+
+describe("getGroupProgress with direct tasks", () => {
+    it("counts the tasks directly in the group together with those of its sections", () => {
+        const group = makeGroup({
+            defaultSection: makeDefaultSection({ id: 9, tasks: [makeTask({ id: 1, completed: true }), makeTask({ id: 2 })] }),
+            sections: [makeSection({ id: 2, tasks: [makeTask({ id: 3, completed: true })] })],
+        })
+        expect(getGroupProgress(group)).toEqual({ done: 2, total: 3, percent: (2 / 3) * 100 })
+        expect(getGroupProgress(makeGroup({ defaultSection: makeDefaultSection({ tasks: [makeTask()] }) })).total).toBe(1)
     })
 })
