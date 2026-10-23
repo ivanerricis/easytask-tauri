@@ -1,5 +1,6 @@
 import i18n from "@/i18n"
 import type { Group } from "@/types/types";
+import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
 import { addPositions } from "./ordering";
 import { DEFAULT_SECTION_SQL } from "./sql";
