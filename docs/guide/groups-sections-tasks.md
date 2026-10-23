@@ -1,6 +1,6 @@
 # Groups, sections and tasks
 
-The content of a note is organized in three levels. A note holds **groups**, shown side by side as columns. A group holds **sections**, stacked in the column. A section holds **tasks**, and a task can have **subtasks**, as deep as you need.
+The content of a note is organized in three levels. A note holds **groups**, shown side by side as columns. A group holds **sections**, stacked in the column. A section holds **tasks**, and a task can have **subtasks**, as deep as you need. A group can also hold tasks of its own, directly under its header, without any section.
 
 ![Task details](../screenshots/en/task-details-light.png){.light-only}
 ![Task details](../screenshots/en/task-details-dark.png){.dark-only}
@@ -10,7 +10,7 @@ The content of a note is organized in three levels. A note holds **groups**, sho
 ### Add them
 
 - Click **New group**, or press `Alt+N`, type a name and press `Enter`. `Esc` closes the field.
-- Inside a group, click **New section**, type a title and press `Enter`.
+- Inside a group, open its menu (the menu button of the group, or a right-click on its header), choose **New section**, type a title and press `Enter`. The field opens at the end of the group.
 
 The name is optional: press `Enter` on an empty field and the group or section is created without a name. EasyTask then shows **Group 1**, **Group 2**… or **Untitled section** in muted text. You can hide those labels with **Settings > Notes and sections > Show names of unnamed groups and sections**.
 
@@ -25,6 +25,7 @@ A right-click on the empty area of the note (outside any group, section or task)
 | Entry                                  | Group | Section | What it does                                                    |
 | -------------------------------------- | :---: | :-----: | --------------------------------------------------------------- |
 | **Add audio files**                    | yes   |         | Adds audio files to the group. See [Audio files](./audio).      |
+| **New section**                        | yes   |         | Opens the field for the title of a new section in the group.    |
 | **Duplicate**                          |       | yes     | Copies the section, with its tasks, right after the original.   |
 | **Rename**                             | yes   | yes     | Edits the name.                                                 |
 | **Change color**                       | yes   | yes     | Sets or removes the color.                                      |
@@ -54,8 +55,10 @@ Drag the right edge of a group to make it wider or narrower. With the keyboard, 
 
 ### Add a task
 
-1. At the bottom of a section click the **+** button (**Add task**).
+1. At the bottom of a section click the **+** button (**Add task**). To add a task to a group without a section, click the dashed **New task** button of the group: it sits right under the tasks of the group, above its sections.
 2. Type the text in **New task…** and confirm with `Enter` or the add button. `Esc` closes the field.
+
+Tasks of a group count in its progress bar and in its task count. Drag one into a section, or the other way round, or use **Move to…** (the group appears in the list as **Group tasks**). **Move up** and **Move down** stay inside the same list.
 
 New tasks go to the end of the section. To put them at the top, choose **At the top** in **Settings > Notes and sections > Position of new tasks**.
 

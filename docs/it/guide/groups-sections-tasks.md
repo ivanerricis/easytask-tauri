@@ -1,6 +1,6 @@
 # Gruppi, sezioni e task
 
-Il contenuto di una nota è organizzato su tre livelli. Una nota contiene dei **gruppi**, affiancati come colonne. Un gruppo contiene delle **sezioni**, impilate nella colonna. Una sezione contiene dei **task**, e un task può avere dei **sottotask**, annidati quanto serve.
+Il contenuto di una nota è organizzato su tre livelli. Una nota contiene dei **gruppi**, affiancati come colonne. Un gruppo contiene delle **sezioni**, impilate nella colonna. Una sezione contiene dei **task**, e un task può avere dei **sottotask**, annidati quanto serve. Un gruppo può anche contenere task propri, subito sotto l'intestazione, senza alcuna sezione.
 
 ![Dettagli del task](../../screenshots/it/task-details-light.png){.light-only}
 ![Dettagli del task](../../screenshots/it/task-details-dark.png){.dark-only}
@@ -10,7 +10,7 @@ Il contenuto di una nota è organizzato su tre livelli. Una nota contiene dei **
 ### Aggiungerli
 
 - Fai clic su **Nuovo gruppo**, oppure premi `Alt+N`, scrivi un nome e premi `Invio`. `Esc` chiude il campo.
-- Dentro un gruppo fai clic su **Nuova sezione**, scrivi un titolo e premi `Invio`.
+- Dentro un gruppo apri il suo menu (il pulsante del menu del gruppo, o il clic destro sull'intestazione), scegli **Nuova sezione**, scrivi un titolo e premi `Invio`. Il campo si apre in fondo al gruppo.
 
 Il nome è facoltativo: premi `Invio` su un campo vuoto e il gruppo o la sezione viene creato senza nome. EasyTask mostra allora **Gruppo 1**, **Gruppo 2**… o **Sezione senza titolo** in grigio. Puoi nascondere queste etichette con **Impostazioni > Note e sezioni > Mostra il nome dei gruppi e delle sezioni senza nome**.
 
@@ -25,6 +25,7 @@ Il clic destro sull'area vuota della nota (fuori da gruppi, sezioni e task) apre
 | Voce                                   | Gruppo | Sezione | Cosa fa                                                          |
 | -------------------------------------- | :----: | :-----: | ---------------------------------------------------------------- |
 | **Aggiungi file audio**                | sì     |         | Aggiunge file audio al gruppo. Vedi [File audio](./audio).       |
+| **Nuova sezione**                      | sì     |         | Apre il campo per il titolo di una nuova sezione nel gruppo.     |
 | **Duplica**                            |        | sì      | Copia la sezione, con i suoi task, subito dopo l'originale.      |
 | **Rinomina**                           | sì     | sì      | Modifica il nome.                                                |
 | **Cambia colore**                      | sì     | sì      | Imposta o toglie il colore.                                      |
@@ -54,8 +55,10 @@ Trascina il bordo destro di un gruppo per allargarlo o restringerlo. Da tastiera
 
 ### Aggiungere un task
 
-1. In fondo a una sezione fai clic sul pulsante **+** (**Aggiungi task**).
+1. In fondo a una sezione fai clic sul pulsante **+** (**Aggiungi task**). Per aggiungere un task a un gruppo senza sezione, fai clic sul pulsante tratteggiato **Nuovo task** del gruppo: si trova subito sotto i task del gruppo, sopra le sue sezioni.
 2. Scrivi il testo in **Nuovo task…** e conferma con `Invio` o con il pulsante di aggiunta. `Esc` chiude il campo.
+
+I task di un gruppo contano nella barra di avanzamento e nel numero di task del gruppo. Trascinane uno in una sezione, o il contrario, oppure usa **Sposta in…** (il gruppo compare nell'elenco come **Task del gruppo**). **Sposta su** e **Sposta giù** restano dentro la stessa lista.
 
 I nuovi task vanno in fondo alla sezione. Per metterli in cima scegli **In cima** in **Impostazioni > Note e sezioni > Posizione dei nuovi task**.
 
