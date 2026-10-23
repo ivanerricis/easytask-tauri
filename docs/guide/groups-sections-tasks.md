@@ -109,6 +109,10 @@ Hold **Ctrl** (**Cmd** on macOS) and click to add a task to the selection or rem
 
 Right click a selected task (or open its menu) to act on all of them at once: **Delete**, **Archive**, **Color** and **Move to…** (the end of a section, or the tasks directly in a group). A selected task stands for its subtasks too, so they are deleted, archived and moved with it. Each action is a single step in the [undo history](./undo-and-history.md). Dragging still moves one task at a time.
 
+## Search in a note
+
+Press `Ctrl+F` or click the magnifier in the path bar above the groups to open the search field. As you type, the matches are highlighted in the text of tasks and subtasks and in the names of sections and groups (not in task descriptions), ignoring case and accents, and the counter shows which one you are on, like "3 of 12". **Enter** goes to the next match and **Shift+Enter** to the previous one; the current match is stronger, scrolls into view and opens the collapsed group or section that contains it. Completed tasks that are hidden are not searched. **Esc** (or the close button) closes the field and clears the highlights.
+
 ## Hide completed tasks
 
 Press `Ctrl+Shift+H`, use the eye button in the path bar above the groups, or choose **View > Hide completed tasks**. Completed tasks and their subtasks disappear, and each section tells you how many are hidden. A completed task that still has an open subtask stays visible, so open work is never lost. Nothing is deleted: press the shortcut again to see them. To start hidden, use **Settings > Notes and sections > Hide completed tasks**.

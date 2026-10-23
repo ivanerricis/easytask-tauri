@@ -10,6 +10,9 @@ import type { Folder, Note } from "@/types/types"
 import { makeNote } from "@/test/ui-fixtures"
 import type { TreeData } from "./sidebar/tree-dnd"
 import { PathBar } from "./PathBar"
+import { NoteSearchContext } from "./note-search-context"
+import { createNoteSearchStore } from "./note-search-store"
+import type { SearchMatch } from "./note-search"
 
 const dates = { creation_date: "", creation_time: "", edit_date: "", edit_time: "" }
 const folder = (id: number, name: string, folderID: number | null, subfolders: Folder[] = [], notes: Note[] = []): Folder => ({
@@ -131,5 +134,89 @@ describe("PathBar hide completed toggle", () => {
         await setup([1])
         fireEvent.keyDown(window, { key: "h", ctrlKey: true })
         expect(prefs.setHideCompletedTasks).not.toHaveBeenCalled()
+    })
+})
+
+describe("PathBar search", () => {
+    const match = (id: number): SearchMatch => ({ id: `task-${id}#0`, key: `task-${id}`, kind: "task", itemId: id, groupId: 1, taskPath: [], occurrence: 0 })
+
+    const setupSearch = async () => {
+        const store = createNoteSearchStore()
+        const view = render(
+            <ShortcutsProvider>
+                <TabsProvider notes={notes} workspaceId={null}>
+                    <Opener ids={[1]} />
+                    <NoteSearchContext.Provider value={store}><PathBar /></NoteSearchContext.Provider>
+                </TabsProvider>
+            </ShortcutsProvider>,
+        )
+        await act(async () => { })
+        return { store, ...view }
+    }
+
+    it("has no search button outside a search provider", async () => {
+        await setup([1])
+        expect(screen.queryByRole("button", { name: "Cerca nella nota" })).not.toBeInTheDocument()
+    })
+
+    it("the button opens the field with the focus, and the close button closes it", async () => {
+        const { store } = await setupSearch()
+        await userEvent.click(screen.getByRole("button", { name: "Cerca nella nota" }))
+        const field = screen.getByRole("textbox", { name: "Cerca nella nota" })
+        expect(field).toHaveFocus()
+        expect(store.getState().open).toBe(true)
+        await userEvent.click(screen.getByRole("button", { name: "Chiudi la ricerca" }))
+        expect(screen.queryByRole("textbox", { name: "Cerca nella nota" })).not.toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "Cerca nella nota" })).toBeInTheDocument()
+    })
+
+    it("typing sets the query and the counter follows the matches", async () => {
+        const { store } = await setupSearch()
+        await userEvent.click(screen.getByRole("button", { name: "Cerca nella nota" }))
+        await userEvent.type(screen.getByRole("textbox", { name: "Cerca nella nota" }), "ab")
+        expect(store.getState().query).toBe("ab")
+        expect(screen.getByText("Nessun risultato")).toBeInTheDocument()
+        act(() => store.setMatches([match(1), match(2), match(3)], true))
+        expect(screen.getByText("1 di 3")).toBeInTheDocument()
+    })
+
+    it("Enter goes to the next match, Shift+Enter to the previous one", async () => {
+        const { store } = await setupSearch()
+        await userEvent.click(screen.getByRole("button", { name: "Cerca nella nota" }))
+        await userEvent.type(screen.getByRole("textbox", { name: "Cerca nella nota" }), "a")
+        act(() => store.setMatches([match(1), match(2), match(3)], true))
+        await userEvent.keyboard("{Enter}")
+        expect(screen.getByText("2 di 3")).toBeInTheDocument()
+        await userEvent.keyboard("{Shift>}{Enter}{/Shift}{Shift>}{Enter}{/Shift}")
+        expect(screen.getByText("3 di 3")).toBeInTheDocument()
+        await userEvent.click(screen.getByRole("button", { name: "Risultato successivo" }))
+        expect(screen.getByText("1 di 3")).toBeInTheDocument()
+        await userEvent.click(screen.getByRole("button", { name: "Risultato precedente" }))
+        expect(screen.getByText("3 di 3")).toBeInTheDocument()
+    })
+
+    it("Esc closes the search and clears the query without reaching other Esc handlers", async () => {
+        const { store } = await setupSearch()
+        const outside = vi.fn()
+        window.addEventListener("keydown", outside)
+        await userEvent.click(screen.getByRole("button", { name: "Cerca nella nota" }))
+        await userEvent.type(screen.getByRole("textbox", { name: "Cerca nella nota" }), "a{Escape}")
+        window.removeEventListener("keydown", outside)
+        expect(store.getState()).toMatchObject({ open: false, query: "" })
+        expect(outside.mock.calls.some(([event]) => (event as KeyboardEvent).key === "Escape")).toBe(false)
+    })
+
+    it("Ctrl+F opens the field, and focuses and selects the query when it is already open", async () => {
+        const { store } = await setupSearch()
+        fireEvent.keyDown(window, { key: "f", ctrlKey: true })
+        const field = await screen.findByRole("textbox", { name: "Cerca nella nota" })
+        expect(field).toHaveFocus()
+        await userEvent.type(field, "xyz")
+        screen.getByRole("button", { name: "Chiudi la ricerca" }).focus()
+        fireEvent.keyDown(window, { key: "f", ctrlKey: true })
+        expect(field).toHaveFocus()
+        expect((field as HTMLInputElement).selectionEnd).toBe(3)
+        expect((field as HTMLInputElement).selectionStart).toBe(0)
+        expect(store.getState().query).toBe("xyz")
     })
 })

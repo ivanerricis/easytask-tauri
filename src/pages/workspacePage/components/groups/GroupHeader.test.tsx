@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { GroupHeader } from "./GroupHeader"
 import { PreferencesContext, type PreferencesContextType } from "@/contexts/preferences-context-object"
 import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { searchingStore } from "@/test/search-store"
+import { NoteSearchContext } from "../note-search-context"
 
 // Radix tooltips measure their arrow with a ResizeObserver, which jsdom lacks
 vi.stubGlobal("ResizeObserver", class { observe() { } unobserve() { } disconnect() { } })
@@ -287,5 +289,31 @@ describe("GroupHeader compact", () => {
         expect(screen.getByRole("progressbar")).toBeInTheDocument()
         rerender(<GroupHeader group={group()} compact />)
         expect(screen.queryByRole("progressbar")).not.toBeInTheDocument()
+    })
+})
+
+describe("GroupHeader search", () => {
+    const group = makeGroup({ id: 5, name: "Spesa della settimana" })
+
+    it("renders the plain name when nothing is searched", () => {
+        const { container } = render(<GroupHeader group={group} />)
+        expect(container.querySelector("mark")).toBeNull()
+    })
+
+    it("marks the matches of the name and strengthens the current one", () => {
+        const { container } = render(
+            <NoteSearchContext.Provider value={searchingStore([group], "spesa")}><GroupHeader group={group} /></NoteSearchContext.Provider>,
+        )
+        const marks = container.querySelectorAll("mark")
+        expect(marks).toHaveLength(1)
+        expect(marks[0]).toHaveTextContent("Spesa")
+        expect(marks[0]).toHaveAttribute("data-active", "true")
+    })
+
+    it("marks nothing when the name does not match", () => {
+        const { container } = render(
+            <NoteSearchContext.Provider value={searchingStore([group], "zzz")}><GroupHeader group={group} /></NoteSearchContext.Provider>,
+        )
+        expect(container.querySelector("mark")).toBeNull()
     })
 })

@@ -60,6 +60,15 @@ export const notes = {
         suggestions: "Suggerimenti",
         short: "Cerca…",
     },
+    noteSearch: {
+        inNote: "Cerca nella nota",
+        placeholder: "Cerca nella nota…",
+        counter: "{{current}} di {{total}}",
+        noResults: "Nessun risultato",
+        next: "Risultato successivo",
+        previous: "Risultato precedente",
+        close: "Chiudi la ricerca",
+    },
     hideCompleted: "Nascondi task completati",
     showCompleted: "Mostra task completati",
     path: {

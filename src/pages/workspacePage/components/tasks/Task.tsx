@@ -32,6 +32,8 @@ import { SelectionMark } from "../sidebar/SelectionMark"
 import { handleSelectionClick } from "../sidebar/selection"
 import { useIsTaskMultiSelected, useTaskSelectionStore } from "./task-selection-context"
 import { taskKey } from "./task-selection"
+import { useSearchHighlight } from "../note-search-context"
+import { SearchedTaskText } from "./SearchedTaskText"
 
 // Clicks on these keep their own action (checkbox, buttons) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
@@ -99,6 +101,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
         },
     })
     const selected = useIsTaskSelected(task.id)
+    const search = useSearchHighlight("task", task.id)
     const selectTask = useSelectTask()
     const selectionStore = useTaskSelectionStore()
     const multiSelected = useIsTaskMultiSelected(task.id)
@@ -203,7 +206,20 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                     aria-label={t("tasks.toggleCompleted", { text: task.text })}
                                     className={isSubtask ? cn("size-3.5", sizes.subtaskCheckbox) : sizes.checkbox}
                                 />
-                                {!isTextAreaOpen && <AutoTextarea
+                                {!isTextAreaOpen && search.query && <SearchedTaskText
+                                    text={task.text}
+                                    query={search.query}
+                                    active={search.active}
+                                    label={t("tasks.editText")}
+                                    onClick={renameOnClick ? startEdit : undefined}
+                                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); startEdit() } }}
+                                    className={cn(
+                                        "w-full min-w-0 text-wrap break-words [overflow-wrap:anywhere]", sizes.text,
+                                        !renameOnClick && "cursor-default",
+                                        task.completed && "line-through text-muted-foreground"
+                                    )}
+                                />}
+                                {!isTextAreaOpen && !search.query && <AutoTextarea
                                     onClick={renameOnClick ? startEdit : undefined}
                                     onKeyDown={e => {
                                         // Enter always renames (the way for the keyboard when the click does not)

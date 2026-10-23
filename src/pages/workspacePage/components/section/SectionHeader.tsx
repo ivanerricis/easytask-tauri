@@ -16,6 +16,8 @@ import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { withRollback } from "@/contexts/with-rollback"
 import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { getSectionLabel } from "./section-label"
+import { Highlight } from "@/components/highlight"
+import { useSearchHighlight } from "../note-search-context"
 import { usePreferences } from "@/contexts/use-preferences"
 import type { HTMLAttributes } from "react"
 
@@ -47,6 +49,7 @@ export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }:
     const recorder = useUndoRecorder()
     const { showProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
     const colorAlpha = useColorAlpha()
+    const search = useSearchHighlight("section", section.id)
     // An empty text removes the title (a section can have none)
     const { editing: isTextAreaOpen, error, start: startEdit, inputProps } = useInlineEdit({
         value: section.title,
@@ -95,7 +98,7 @@ export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }:
                             // An untitled section shows no text unless the preference asks for the fallback label
                             aria-label={getSectionLabel(section)}
                             className={`text-sm ml-1 min-w-0 flex-1 h-6 truncate text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${renameOnClick ? "cursor-text" : ""} ${!section.title ? "text-muted-foreground" : ""}`}>
-                            {section.title || (showUnnamedLabels ? getSectionLabel(section) : "")}
+                            {search.query ? <Highlight text={section.title} query={search.query} active={search.active} /> : section.title || (showUnnamedLabels ? getSectionLabel(section) : "")}
                         </button>}
                         {isTextAreaOpen && <InlineErrorTooltip message={error}>
                             <Input

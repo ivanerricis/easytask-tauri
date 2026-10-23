@@ -2,7 +2,9 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { SectionHeader } from "./SectionHeader"
-import { makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { searchingStore } from "@/test/search-store"
+import { NoteSearchContext } from "../note-search-context"
 
 vi.mock("./ButtonMenuSection", () => ({ ButtonMenuSection: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 const renameItem = vi.fn()
@@ -92,5 +94,26 @@ describe("SectionHeader keyboard", () => {
         await user.type(screen.getByRole("textbox"), "X{Enter}")
 
         expect(renameItem).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe("SectionHeader search", () => {
+    const section = makeSection({ id: 7, title: "Da comprare" })
+    const group = makeGroup({ id: 1, sections: [section] })
+
+    it("renders no marks when nothing is searched", () => {
+        const { container } = render(<SectionHeader isOpen onOpenChange={vi.fn()} section={section} />)
+        expect(container.querySelector("mark")).toBeNull()
+    })
+
+    it("marks the matches of the title, ignoring case", () => {
+        const { container } = render(
+            <NoteSearchContext.Provider value={searchingStore([group], "a")}><SectionHeader isOpen onOpenChange={vi.fn()} section={section} /></NoteSearchContext.Provider>,
+        )
+        const marks = [...container.querySelectorAll("mark")]
+        expect(marks.map(mark => mark.textContent)).toEqual(["a", "a"])
+        expect(marks[0]).toHaveAttribute("data-active", "true")
+        expect(marks[1]).not.toHaveAttribute("data-active")
+        expect(screen.getByRole("button", { name: "Da comprare" })).toHaveTextContent("Da comprare")
     })
 })

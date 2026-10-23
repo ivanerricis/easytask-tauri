@@ -15,6 +15,7 @@ export const shortcuts: Translation["shortcuts"] = {
         "redo": "Redo the undone action",
         "redo-alt": "Redo the undone action (alternative)",
         "search-notes": "Search a note",
+        "search-in-note": "Search in the note",
         "new-note": "New note",
         "new-folder": "New folder",
         "close-note": "Close the active note",
