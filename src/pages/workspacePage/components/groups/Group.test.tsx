@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { Group } from "./Group"
 import { makeGroup } from "@/test/ui-fixtures"
@@ -9,7 +9,14 @@ vi.mock("../note-dnd-state", () => ({
     useNoteDrop: () => ({ setNodeRef: vi.fn(), zone: null, active: null }),
     useNoteDrag: () => ({ setNodeRef: vi.fn(), setActivatorNodeRef: vi.fn(), attributes: {}, listeners: {}, isDragging: false }),
 }))
-vi.mock("./GroupHeader", () => ({ GroupHeader: () => <div>header</div> }))
+vi.mock("./GroupHeader", () => ({ GroupHeader: ({ compact }: { compact?: boolean }) => <div data-compact={String(!!compact)}>header</div> }))
+const setGroupWidth = vi.fn()
+const patchGroup = vi.fn()
+const rollback = vi.fn()
+const reportError = vi.fn()
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ setGroupWidth }) }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchGroup }) }))
+vi.mock("@/lib/report-error", async importOriginal => ({ ...await importOriginal<object>(), reportError: (...args: unknown[]) => reportError(...args) }))
 vi.mock("./GroupAudioFiles", () => ({ GroupAudioFiles: () => null }))
 vi.mock("../section/Section", () => ({ Section: () => <div>section</div> }))
 vi.mock("../section/AddSection", () => ({ AddSection: () => <div>add section</div> }))
@@ -31,6 +38,10 @@ let width = 0
 
 beforeEach(() => {
     groupOpen.value = true
+    setGroupWidth.mockReset().mockResolvedValue(undefined)
+    patchGroup.mockReset().mockReturnValue(rollback)
+    rollback.mockReset()
+    reportError.mockReset()
     FakeResizeObserver.instances = []
     vi.stubGlobal("ResizeObserver", FakeResizeObserver)
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockImplementation(() => ({ width }) as DOMRect)
@@ -95,3 +106,94 @@ describe("Group width when collapsed", () => {
     })
 })
 
+
+describe("Group explicit width", () => {
+    const handle = () => screen.getByRole("separator")
+    const drag = (by: number) => {
+        fireEvent.mouseDown(handle(), { clientX: 100 })
+        fireEvent.mouseMove(window, { clientX: 100 + by })
+    }
+
+    it("applies the saved width and drops the cap of the content-driven one", () => {
+        render(<Group group={makeGroup({ id: 201, width: 480 })} />)
+        expect(root().style.width).toBe("480px")
+        expect(root()).not.toHaveClass("max-w-[32rem]")
+    })
+
+    it("keeps the old behaviour when the width is null", () => {
+        render(<Group group={makeGroup({ id: 202, width: null })} />)
+        expect(root().style.width).toBe("")
+        expect(root()).toHaveClass("max-w-[32rem]")
+    })
+
+    it("keeps the explicit width when the group is collapsed", () => {
+        groupOpen.value = false
+        render(<Group group={makeGroup({ id: 203, width: 400 })} />)
+        expect(root().style.width).toBe("400px")
+        expect(root().style.minWidth).toBe("")
+    })
+
+    it("follows the drag live and saves the width once, on mouse up", async () => {
+        render(<Group group={makeGroup({ id: 204 })} />)
+        drag(60)
+        expect(root().style.width).toBe("310px")
+        expect(patchGroup).not.toHaveBeenCalled()
+
+        fireEvent.mouseUp(window)
+        await waitFor(() => expect(setGroupWidth).toHaveBeenCalledTimes(1))
+        expect(patchGroup).toHaveBeenCalledWith(204, { width: 310 })
+        expect(setGroupWidth).toHaveBeenCalledWith(204, 310)
+    })
+
+    it("restores the previous width and reports the error when saving fails", async () => {
+        setGroupWidth.mockRejectedValue(new Error("boom"))
+        render(<Group group={makeGroup({ id: 205, width: 400 })} />)
+        drag(50)
+        fireEvent.mouseUp(window)
+
+        await waitFor(() => expect(reportError).toHaveBeenCalled())
+        expect(rollback).toHaveBeenCalled()
+        expect(String(reportError.mock.calls[0][1])).toContain("boom")
+        expect(root().style.width).toBe("400px")
+    })
+
+    it("goes back to the automatic width on double click", async () => {
+        render(<Group group={makeGroup({ id: 206, width: 400 })} />)
+        fireEvent.doubleClick(handle())
+        await waitFor(() => expect(setGroupWidth).toHaveBeenCalledWith(206, null))
+        expect(patchGroup).toHaveBeenCalledWith(206, { width: null })
+    })
+
+    it("does not start the drag of the group from the handle", () => {
+        const onPointerDown = vi.fn()
+        render(<div onPointerDown={onPointerDown}><Group group={makeGroup({ id: 207 })} /></div>)
+        fireEvent.pointerDown(handle())
+        expect(onPointerDown).not.toHaveBeenCalled()
+    })
+})
+
+describe("Group compact header", () => {
+    const compact = () => screen.getByText("header").getAttribute("data-compact")
+
+    it("is compact below the progress threshold and not above, for an explicit width", () => {
+        const { rerender } = render(<Group group={makeGroup({ id: 211, width: 300 })} />)
+        expect(compact()).toBe("true")
+        rerender(<Group group={makeGroup({ id: 211, width: 400 })} />)
+        expect(compact()).toBe("false")
+    })
+
+    it("uses the measured width when the width is automatic", () => {
+        width = 280
+        render(<Group group={makeGroup({ id: 212 })} />)
+        expect(compact()).toBe("true")
+        width = 360
+        act(() => FakeResizeObserver.instances.at(-1)?.fire())
+        expect(compact()).toBe("false")
+    })
+
+    it("ignores a width of 0 (not laid out)", () => {
+        width = 0
+        render(<Group group={makeGroup({ id: 213 })} />)
+        expect(compact()).toBe("false")
+    })
+})

@@ -71,7 +71,7 @@ export const GroupContainer = () => {
                 [...groups]
                     .sort((a, b) => a.position - b.position)
                     .map((group, index) => (
-                        <div key={group.id} className="relative h-full w-fit max-w-full">
+                        <div key={group.id} className={cn("relative h-full w-fit", group.width ? "shrink-0" : "max-w-full")}>
                             {/* Vertical guide line centered in the gap (space-x-2) before every group but the first */}
                             {showGroupSeparators && index > 0 &&
                                 <div data-testid="group-separator" aria-hidden className="pointer-events-none absolute -left-1 top-0 h-full w-px -translate-x-1/2 bg-border" />}
