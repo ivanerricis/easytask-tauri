@@ -43,6 +43,8 @@ export function createSelectionStore() {
             }
             return refs
         },
+        /** The selected keys in the order of the rows in view (keys that are not in view are left out). */
+        getOrderedKeys: (): string[] => visible.filter(key => selected.has(key)),
         /** Ctrl+click: adds or removes one item; it becomes the anchor of the next range. */
         toggle: (key: string) => {
             const next = new Set(selected)

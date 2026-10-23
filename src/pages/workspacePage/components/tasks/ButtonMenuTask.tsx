@@ -21,6 +21,8 @@ import { TaskMoveSubmenu } from "../NoteMoveSubmenus"
 import { TaskStepMoves } from "../NoteStepMoves"
 import { useShowTaskDetails } from "../rightbar/use-right-panel"
 import { useActiveNoteId, useSelectTask } from "@/contexts/use-tabs"
+import { useIsInTaskMultiSelection } from "./task-selection-context"
+import { TaskSelectionMenuItems } from "./TaskSelectionMenu"
 
 type ButtonMenuFolderProps = {
     task: Task
@@ -44,6 +46,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: Butto
     const recorder = useUndoRecorder()
     const selectTask = useSelectTask()
     const showTaskDetails = useShowTaskDetails()
+    const multi = useIsInTaskMultiSelection(task.id)
 
     const handleEditPriority = async () => {
         // Optimistic: the cached tree is updated at once and restored if the write fails
@@ -104,7 +107,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: Butto
     const noReload = async () => { }
 
     // Groups, apart by a separator: add, edit, move, the rest, delete (the same order in the menus of sections and groups)
-    const items = (
+    const singleItems = (
         <MenuGroup className="flex flex-col gap-1">
             <ButtonInPopover
                 text={t("tasks.addSubtask")}
@@ -161,6 +164,9 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: Butto
             />
         </MenuGroup>
     )
+
+    // A selected task of a multi-selection acts on the whole selection
+    const items = multi ? <TaskSelectionMenuItems menu={menu} /> : singleItems
 
     const dialogs = (
         <>

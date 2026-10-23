@@ -96,6 +96,12 @@ Trascina un task dalla sua riga. Rilascialo:
 
 **Sposta su**, **Sposta giù** e **Sposta in…** nel menu fanno lo stesso senza trascinare.
 
+### Selezionare più task
+
+Tieni premuto **Ctrl** (**Cmd** su macOS) e clicca per aggiungere un task alla selezione o toglierlo. Clicca un task con **Maiusc** per selezionare tutti i task visibili tra l'ultimo cliccato e questo, anche tra sezioni e gruppi. **Esc** annulla la selezione, come un normale clic.
+
+Fai clic destro su un task selezionato (o apri il suo menu) per agire su tutti insieme: **Elimina**, **Archivia**, **Colora** e **Sposta in…** (in fondo a una sezione, o tra i task diretti di un gruppo). Un task selezionato vale anche per i suoi sottotask, che vengono eliminati, archiviati e spostati con lui. Ogni azione è un solo passo nella [cronologia di annullamento](./undo-and-history.md). Il trascinamento sposta sempre un task alla volta.
+
 ## Nascondere i task completati
 
 Premi `Ctrl+Maiusc+H`, usa il pulsante a forma di occhio nella barra del percorso sopra i gruppi, oppure scegli **Visualizza > Nascondi task completati**. I task completati e i loro sottotask spariscono, e ogni sezione indica quanti sono nascosti. Un task completato che ha ancora un sottotask aperto resta visibile, così il lavoro aperto non si perde. Non viene eliminato nulla: premi di nuovo la scorciatoia per rivederli. Per partire con i task nascosti usa **Impostazioni > Note e sezioni > Nascondi task completati**.
