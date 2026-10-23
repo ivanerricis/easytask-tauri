@@ -3,6 +3,7 @@ import { Search, X } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { cn } from "@/lib/utils"
 
 type SettingsSearchFieldProps = {
     value: string
@@ -24,7 +25,8 @@ export const SettingsSearchField = forwardRef<HTMLInputElement, SettingsSearchFi
                 placeholder={t("settings.search.placeholder")}
                 autoComplete="off"
                 spellCheck={false}
-                className="h-8 pl-8 pr-8 text-sm"
+                // The clear button takes the right padding only while it is shown
+                className={cn("h-8 pl-8 text-sm", value ? "pr-8" : "pr-2")}
             />
             {value && (
                 <Button

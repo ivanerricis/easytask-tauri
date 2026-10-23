@@ -329,7 +329,7 @@ export const settings = {
     },
     search: {
         label: "Cerca nelle impostazioni",
-        placeholder: "Cerca nelle impostazioni…",
+        placeholder: "Cerca…",
         clear: "Cancella la ricerca",
         noResults: "Nessuna impostazione corrisponde a \"{{query}}\".",
     },

@@ -3,7 +3,7 @@ import { Navbar } from "@/components/navbar"
 import { AppMenu } from "@/components/app-menu"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
-import { House } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 import React, { useCallback } from "react"
 import { useNavigate } from "react-router-dom"
 import { CommandMenu } from "./components/CommandMenu"
@@ -46,7 +46,7 @@ export const WorkSpaceLayout = ({ children }: WorkSpaceLayoutProps) => {
                             textTooltip={t("workspace.backHome")}
                             textTooltipShortcut={homeLabel}
                         >
-                            <House className="w-5 h-5" />
+                            <ArrowLeft className="w-5 h-5" />
                         </ButtonNavbar>
                         <CommandMenu />
                     </div>

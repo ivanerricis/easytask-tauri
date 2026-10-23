@@ -10,6 +10,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 - Documentation site in English and Italian: [ivanerricis.github.io/easytask-tauri](https://ivanerricis.github.io/easytask-tauri/). Open it from Help > Documentation, with `F1` (the shortcut can be changed in Settings > Shortcuts) or from Settings > About. It opens in the language of the app.
 
+### Changed
+
+- The button next to the search bar that goes back to the home page is an arrow instead of a house.
+
+### Fixed
+
+- The last tab of the open notes has its right border again when it is not the active one.
+- The placeholder of the search box in Settings is no longer cut off.
+
 ## [0.11.0] - 2026-10-22
 
 ### Added
