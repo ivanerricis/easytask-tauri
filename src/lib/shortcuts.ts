@@ -51,7 +51,7 @@ export const SHORTCUTS: Shortcut[] = [
     { id: "undo", defaultBinding: { key: "z", ctrl: true }, editable: true, scope: "workspace", category: "general" },
     { id: "redo", defaultBinding: { key: "y", ctrl: true }, editable: true, scope: "workspace", category: "general" },
     { id: "redo-alt", defaultBinding: { key: "z", ctrl: true, shift: true }, editable: false, scope: "workspace", category: "general" },
-    { id: "search-notes", defaultBinding: { key: "o", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    { id: "search-notes", defaultBinding: { key: "k", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "new-note", defaultBinding: { key: "n", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "new-folder", defaultBinding: { key: "m", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "close-note", defaultBinding: { key: "l", ctrl: true }, editable: true, scope: "workspace", category: "notes" },

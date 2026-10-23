@@ -82,6 +82,7 @@ const NoteRow = React.memo(({ note, className, dropZone = null, level = 1, dndRe
                         ref={dndRef}
                         role="treeitem"
                         aria-label={note.name}
+                        data-row-key={treeRowKey("note", note.id)}
                         aria-level={level}
                         aria-pressed={undefined}
                         onClick={handleOpenFile}

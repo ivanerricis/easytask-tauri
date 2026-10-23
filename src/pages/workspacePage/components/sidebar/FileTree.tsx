@@ -25,11 +25,11 @@ import { useItemSize } from "./item-size"
 import { useGrabbingCursor } from "@/hooks/use-grabbing-cursor"
 import { NO_TREE_HOVER, TreeHoverStoreContext, createTreeHoverStore, markTreeDragEnd, treeRowKey, useTreeRootActive, type TreeHover } from "./tree-row"
 import { VIRTUALIZE_THRESHOLD, flattenTree } from "./flat-tree"
-import { rowKeys, selectionKey } from "./selection"
+import { parseSelectionKey, rowKeys, selectionKey } from "./selection"
 import { useSelectionStore } from "./selection-context"
 import { useSelectionActions } from "./selection-actions"
 import type { PlannedMove } from "./tree-multi-move"
-import { VirtualTree } from "./VirtualTree"
+import { VirtualTree, type VirtualTreeHandle } from "./VirtualTree"
 import { TreeBackgroundMenu } from "./TreeBackgroundMenu"
 import { AddNoteDialog } from "../AddNoteDialog"
 import { AddFolderDialog } from "../AddFolderDialog"
@@ -175,7 +175,14 @@ type FileTreeProps = {
     /** Collapses or expands every folder (an entry of the menu of the empty space of the tree). */
     onToggleAll?: () => void
     allCollapsed?: boolean
+    /** An item to show: its row is selected, scrolled into view and focused once it is in the tree. */
+    reveal?: { key: string, seq: number } | null
+    /** Called when the reveal is done (or cannot be done), so the request can be dropped. */
+    onRevealed?: () => void
 }
+
+/** Frames to wait for a row to mount (folders animate open, a virtualized row mounts after the scroll). */
+const REVEAL_MAX_FRAMES = 20
 
 
 /**
@@ -187,7 +194,7 @@ type FileTreeProps = {
  * Folders are always listed above notes, so a note dropped next to a folder becomes the first note
  * of that parent and a folder dropped next to a note becomes its last folder.
  */
-export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggleAll, allCollapsed = false }: FileTreeProps) => {
+export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggleAll, allCollapsed = false, reveal = null, onRevealed }: FileTreeProps) => {
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { workspaceDataTree, getWorkspaceData, moveTreeItem } = useWorkspaceData()
@@ -348,6 +355,39 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
     // The selection follows the rows in view: what disappears from the tree (or gets hidden) is deselected
     useEffect(() => { store?.sync(rowKeys(flatRows)) }, [store, flatRows])
     const virtualized = flatRows.length > VIRTUALIZE_THRESHOLD
+    const virtualRef = useRef<VirtualTreeHandle>(null)
+    // After the sync above: the key has to be in the rows in view (the folders above it expanded) before it can be selected
+    useEffect(() => {
+        if (!reveal) return
+        const target = parseSelectionKey(reveal.key)
+        if (!target || !findTreeItem(tree, target)) {
+            onRevealed?.()
+            return
+        }
+        if (!flatRows.some(row => row.key === reveal.key)) return
+        store?.reset()
+        store?.toggle(reveal.key)
+        if (virtualized) virtualRef.current?.scrollToKey(reveal.key)
+        let frame = 0
+        let tries = 0
+        // The row may mount a frame or more later; the focus waits one more frame (the overlay sidebar sets its own focus first)
+        const step = () => {
+            const row = rootElRef.current?.querySelector<HTMLElement>(`[data-row-key="${reveal.key}"]`)
+            if (row) {
+                row.scrollIntoView({ block: "nearest" })
+                frame = requestAnimationFrame(() => {
+                    row.focus({ preventScroll: true })
+                    onRevealed?.()
+                })
+            } else if (++tries < REVEAL_MAX_FRAMES) {
+                frame = requestAnimationFrame(step)
+            } else {
+                onRevealed?.()
+            }
+        }
+        frame = requestAnimationFrame(step)
+        return () => cancelAnimationFrame(frame)
+    }, [reveal, flatRows, virtualized, tree, store, onRevealed])
     const getScrollElement = useCallback(
         () => rootElRef.current?.closest<HTMLElement>("[data-tree-scroll]") ?? rootElRef.current?.parentElement ?? null,
         [],
@@ -377,6 +417,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
                         onToggleFolder={onToggleFolder}
                         activeKey={activeRef ? treeRowKey(activeRef.type, activeRef.id) : null}
                         getScrollElement={getScrollElement}
+                        handleRef={virtualRef}
                     />
                 ) : (
                     <>

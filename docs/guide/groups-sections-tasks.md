@@ -98,7 +98,7 @@ Drag a task by its row. Drop it:
 
 ## Hide completed tasks
 
-Press `Ctrl+Shift+H`, use the eye button on the active tab, or choose **View > Hide completed tasks**. Completed tasks and their subtasks disappear, and each section tells you how many are hidden. A completed task that still has an open subtask stays visible, so open work is never lost. Nothing is deleted: press the shortcut again to see them. To start hidden, use **Settings > Notes and sections > Hide completed tasks**.
+Press `Ctrl+Shift+H`, use the eye button in the path bar above the groups, or choose **View > Hide completed tasks**. Completed tasks and their subtasks disappear, and each section tells you how many are hidden. A completed task that still has an open subtask stays visible, so open work is never lost. Nothing is deleted: press the shortcut again to see them. To start hidden, use **Settings > Notes and sections > Hide completed tasks**.
 
 ## The details panel
 

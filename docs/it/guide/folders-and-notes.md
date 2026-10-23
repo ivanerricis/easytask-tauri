@@ -104,13 +104,17 @@ Fai clic su una nota nella barra laterale per aprirla. Le note aperte compaiono 
 
 Puoi cambiare ogni scorciatoia modificabile in **Impostazioni > Scorciatoie**. Vedi [Scorciatoie da tastiera](./shortcuts).
 
+### La barra del percorso
+
+Sotto le schede, una barra sottile mostra il percorso della nota aperta, ad esempio `Lavoro > Progetti > Piano`. Fai clic su una cartella o sulla nota nel percorso per mostrarla nella barra laterale: la barra si apre se era chiusa, le cartelle sopra si espandono e l'elemento viene selezionato. Un percorso lungo mantiene la prima cartella e gli ultimi due elementi. Il pulsante **Nascondi task completati** è a destra della stessa barra.
+
 ### Cosa si riapre all'avvio
 
 Quando apri un workspace, EasyTask riapre le note che erano aperte e quella attiva. Il salvataggio è per ogni workspace. Per disattivarlo vai in **Impostazioni > Note e sezioni** e spegni **Riapri le note all'avvio**. Nella stessa pagina c'è **Riapri l'ultimo workspace all'avvio**.
 
 ## Cercare una nota
 
-Premi `Ctrl+O`, oppure fai clic sul campo **Cerca…** in alto nella finestra, poi scrivi parte del nome di una nota. L'elenco mostra ogni risultato con il percorso della sua cartella. Scegline uno per aprirlo.
+Premi `Ctrl+K`, oppure fai clic sul campo **Cerca…** in alto nella finestra, poi scrivi parte del nome di una nota. L'elenco mostra ogni risultato con il percorso della sua cartella. Scegline uno per aprirlo.
 
 ![Ricerca delle note](../../screenshots/it/note-search-light.png)
 
