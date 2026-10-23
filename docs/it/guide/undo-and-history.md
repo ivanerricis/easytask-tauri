@@ -50,6 +50,8 @@ Apri il pannello a destra e scegli la scheda **Cronologia**. Mostra o nascondi i
 - Clicca una voce per tornare a quel punto. EasyTask annulla tutte le azioni che stanno sopra, in un solo passaggio.
 - Sotto la linea ci sono le azioni annullate, segnate come **Annullata**. Cliccane una per ripetere tutto fino a quel punto.
 
+Un'azione su più elementi selezionati (cartelle, note o task) è una sola voce, qualunque sia il numero di elementi coinvolti.
+
 Se fai una nuova azione, l'elenco delle azioni annullate si svuota: non puoi più ripetere quello che avevi annullato.
 
 ## Limiti
