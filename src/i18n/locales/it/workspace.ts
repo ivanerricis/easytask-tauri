@@ -61,6 +61,7 @@ export const notes = {
         short: "Cerca…",
     },
     hideCompleted: "Nascondi task completati",
+    showCompleted: "Mostra task completati",
     closeCurrent: "Chiudi nota corrente",
     close: "Chiudi nota",
     openTabs: "Note aperte",

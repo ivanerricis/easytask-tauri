@@ -1,11 +1,12 @@
 import type { ReactElement } from "react"
-import { fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { AddSection } from "./AddSection"
 import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 import { deferred } from "@/test/ui-render"
+import { requestAppCommand } from "@/lib/app-commands"
 
 const render = (ui: ReactElement) => rtlRender(ui, { wrapper: ShortcutsProvider })
 
@@ -171,5 +172,23 @@ describe("AddSection", () => {
         render(<AddSection inGroup groupId={1} />)
         fireEvent.keyDown(document, { key: "n", altKey: true })
         expect(screen.queryByPlaceholderText(SECTION_PLACEHOLDER)).not.toBeInTheDocument()
+    })
+
+    it("opens the form and scrolls it into view when asked by the new group command", async () => {
+        const scrollIntoView = vi.fn()
+        Element.prototype.scrollIntoView = scrollIntoView
+        render(<AddSection />)
+        act(() => requestAppCommand("new-group"))
+
+        expect(await screen.findByPlaceholderText(GROUP_PLACEHOLDER)).toBeInTheDocument()
+        expect(scrollIntoView).toHaveBeenCalledWith({ inline: "end", block: "nearest" })
+    })
+
+    it("does not scroll when the form is opened with the button", async () => {
+        const scrollIntoView = vi.fn()
+        Element.prototype.scrollIntoView = scrollIntoView
+        render(<AddSection />)
+        await openGroupForm(userEvent.setup())
+        expect(scrollIntoView).not.toHaveBeenCalled()
     })
 })

@@ -1,5 +1,5 @@
-import { MenuItem } from "@/components/menu-kind"
-import { Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, Info, Link2, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2, Upload, Zap, ListCollapse, ListChevronsUpDown } from "lucide-react"
+import { MenuItem, MenuShortcut } from "@/components/menu-kind"
+import { Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, Info, Link2, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2, Upload, Zap, ListCollapse, ListChevronsUpDown, Eye, EyeOff, Columns3 } from "lucide-react"
 import React from "react"
 
 type ButtonInPopoverProps = {
@@ -11,6 +11,8 @@ type ButtonInPopoverProps = {
     destructive?: boolean
     /** Greyed out and not clickable (e.g. "Move up" on the first item). */
     disabled?: boolean
+    /** Keys of the shortcut, shown right-aligned. */
+    shortcut?: string[]
     onClick?: () => void | Promise<void>
 }
 
@@ -43,11 +45,14 @@ const iconMap = {
     collapseAll: ListCollapse,
     expandAll: ListChevronsUpDown,
     delete: Trash2,
+    addGroup: Columns3,
+    hideCompleted: EyeOff,
+    showCompleted: Eye,
 } satisfies Record<string, React.ElementType>
 
 export type ButtonInPopoverIcon = keyof typeof iconMap
 
-export const ButtonInPopover = React.memo(({ text, type, children, className, destructive, disabled, onClick }: ButtonInPopoverProps) => {
+export const ButtonInPopover = React.memo(({ text, type, children, className, destructive, disabled, shortcut, onClick }:ButtonInPopoverProps) => {
     const IconComponent = iconMap[type]
 
     return (
@@ -60,6 +65,7 @@ export const ButtonInPopover = React.memo(({ text, type, children, className, de
             <IconComponent />
             {text}
             {children}
+            {shortcut && shortcut.length > 0 && <MenuShortcut>{shortcut.join(" + ")}</MenuShortcut>}
         </MenuItem>
     )
 })

@@ -18,6 +18,8 @@ Il nome è facoltativo: premi `Invio` su un campo vuoto e il gruppo o la sezione
 
 Fai clic sul nome per rinominarlo sul posto (`Invio` salva, `Esc` annulla), oppure apri il menu del gruppo o della sezione con il suo pulsante o con il clic destro.
 
+Il clic destro sull'area vuota della nota (fuori da gruppi, sezioni e task) apre un piccolo menu con **Nuovo gruppo** e **Nascondi / Mostra task completati**.
+
 ![Menu del gruppo](../../screenshots/it/group-menu-light.png)
 
 | Voce                                   | Gruppo | Sezione | Cosa fa                                                          |
