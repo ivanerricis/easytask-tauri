@@ -143,7 +143,7 @@ export const UI_PREFS = {
     animationSpeed: def<AnimationSpeed>({ key: "animationSpeed", default: DEFAULT_ANIMATION_SPEED, normalize: value => ANIMATION_SPEEDS.includes(value as AnimationSpeed) ? value as AnimationSpeed : DEFAULT_ANIMATION_SPEED }),
     taskBackground: def({ key: "taskBackground", default: true, normalize: value => value !== false }),
     renameOnClick: def({ key: "renameOnClick", default: true, normalize: value => value !== false }),
-    keepAddingTasks: def({ key: "keepAddingTasks", default: true, normalize: value => value !== false }),
+    keepAddingTasks: def({ key: "keepAddingTasks", default: false, normalize: value => value === true }),
     undoLimit: def<number>({ key: "undoLimit", default: UNDO_LIMIT, normalize: value => isValidUndoLimit(value) ? value : UNDO_LIMIT }),
     sidebarLeftOpen: def({ key: "sidebarLeftOpen", default: true }),
     sidebarRightOpen: def({ key: "sidebarRightOpen", default: true }),
