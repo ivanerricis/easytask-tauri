@@ -115,7 +115,7 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
             {isOpen && <>
                 <GroupAudioFiles groupId={group.id} />
                 {/* Direct tasks, their "New task" button, the sections and the form of a new section scroll together */}
-                <div className="flex flex-col gap-1 overflow-y-auto">
+                <div className="flex flex-col gap-1">
                     <GroupTasks group={group} />
                     {group.sections.map(section => <Section key={section.id} section={section} />)}
                     <AddSection inGroup groupId={group.id} open={addingSection} onClose={closeSectionForm} />
