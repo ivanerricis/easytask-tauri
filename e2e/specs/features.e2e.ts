@@ -76,7 +76,22 @@ const openTaskMenu = async (text: string) => {
     if (!target) throw new Error(`task "${text}" not found`)
     const row = await target.$(`./ancestor::div[.//button[${await menuButtonPredicate()}]][1]`)
     await row.moveTo()
-    await (await menuButton(row)).click()
+    const trigger = await menuButton(row)
+    await trigger.click()
+    await browser.pause(800)
+    const probe = async (label: string) => console.log("PROBE", label, JSON.stringify(await browser.execute(() => ({
+        menus: [...document.querySelectorAll('[role="menu"]')].map(el => { const r = (el as HTMLElement).getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height), t: Math.round(r.top), l: Math.round(r.left), text: (el.textContent ?? "").slice(0, 30) } }),
+        expanded: [...document.querySelectorAll('button[aria-haspopup="menu"]')].map(el => el.getAttribute("aria-expanded")).join(","),
+        active: (document.activeElement?.tagName ?? "") + ":" + (document.activeElement?.getAttribute("aria-label") ?? ""),
+        win: [window.innerWidth, window.innerHeight],
+        bodyPointer: getComputedStyle(document.body).pointerEvents,
+    }))))
+    await probe("after-click")
+    if (!(await $('[role="menu"]').isDisplayed())) {
+        await browser.execute((el: HTMLElement) => el.click(), trigger as unknown as HTMLElement)
+        await browser.pause(800)
+        await probe("after-dom-click")
+    }
     const menu = $('[role="menu"]')
     await menu.waitForDisplayed()
     return menu
