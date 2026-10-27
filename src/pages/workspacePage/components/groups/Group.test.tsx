@@ -22,7 +22,7 @@ const reportError = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ setGroupWidth }) }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchGroup }) }))
 vi.mock("@/lib/report-error", async importOriginal => ({ ...await importOriginal<object>(), reportError: (...args: unknown[]) => reportError(...args) }))
-vi.mock("./GroupAudioFiles", () => ({ GroupAudioFiles: () => null }))
+vi.mock("./GroupAudioFiles", () => ({ GroupAudioFiles: () => <div data-testid="audio-files" /> }))
 vi.mock("../section/Section", () => ({ Section: ({ section }: { section: { id: number } }) => <div data-mock={`s${section.id}`}>section</div> }))
 vi.mock("./GroupTasks", () => ({ GroupTasks: () => <div data-mock="list">direct tasks</div> }))
 vi.mock("../section/AddSection", () => ({
@@ -122,6 +122,12 @@ describe("Group scrolling area", () => {
         const area = screen.getByText("section").parentElement as HTMLElement
         const classes = area.className.split(/\s+/)
         for (const token of ["overflow-y-auto", "-mx-1.5", "px-1.5", "-my-1", "py-1"]) expect(classes).toContain(token)
+    })
+
+    it("leaves the audio files out of it, so they stay put while the sections scroll", () => {
+        render(<Group group={makeGroup({ id: 302, sections: [makeSection({ id: 1 })] })} />)
+        const area = screen.getByText("section").parentElement as HTMLElement
+        expect(area.contains(screen.getByTestId("audio-files"))).toBe(false)
     })
 })
 

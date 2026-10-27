@@ -115,6 +115,7 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
                 onAddSection={addSection}
             />
             {isOpen && <>
+                {/* The audio files stay put above the scrolling area: the list neither scrolls by itself nor with the sections */}
                 <GroupAudioFiles groupId={group.id} />
                 {/* The list of the direct tasks (with its "New task" button) sits among the sections where the user put it;
                     it, the sections and the form of a new section scroll together */}
