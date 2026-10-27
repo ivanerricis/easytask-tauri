@@ -1,10 +1,11 @@
-import { render as rtlRender, screen } from "@testing-library/react"
+import { render as rtlRender, renderHook, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { NoteDataTree } from "@/types/types"
 import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import { DropdownMenu, DropdownMenuContent } from "@/components/ui/dropdown-menu"
 import { DirectStepMoves, GroupStepMoves, SectionStepMoves, TaskStepMoves } from "./NoteStepMoves"
+import { useTaskStepMove } from "./use-task-step-move"
 
 const noteData: { tree: NoteDataTree | null } = { tree: null }
 const prefs = { hideCompletedTasks: false }
@@ -13,7 +14,7 @@ const moveSectionTo = vi.fn()
 const moveDirectSectionTo = vi.fn()
 const moveGroupTo = vi.fn()
 
-vi.mock("@/contexts/use-active-note", () => ({ useActiveNote: () => ({ noteDataTree: noteData.tree }) }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNote: () => ({ noteDataTree: noteData.tree }), useActiveNoteActions: () => ({ getNoteTree: () => noteData.tree }) }))
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("./note-dnd-state", () => ({
     useNoteMoves: () => ({ moveTaskTo, moveSectionTo, moveDirectSectionTo }),
@@ -194,5 +195,26 @@ describe("GroupStepMoves", () => {
         expect(screen.getByRole("menuitem", { name: "Sposta a destra" })).toHaveAttribute("aria-disabled", "true")
         await userEvent.click(screen.getByRole("menuitem", { name: "Sposta a sinistra" }))
         expect(moveGroupTo).toHaveBeenCalledWith(2, 0)
+    })
+})
+
+describe("useTaskStepMove", () => {
+    it("moves the task one step and resolves true", async () => {
+        const { result } = renderHook(() => useTaskStepMove(1))
+        expect(await result.current(1)).toBe(true)
+        expect(moveTaskTo).toHaveBeenCalledWith(1, { sectionId: 1, parentTaskId: null, index: 1 })
+    })
+
+    it("resolves false and moves nothing at the edge of the list", async () => {
+        const { result } = renderHook(() => useTaskStepMove(1))
+        expect(await result.current(-1)).toBe(false)
+        expect(moveTaskTo).not.toHaveBeenCalled()
+    })
+
+    it("reads the tree when called, not when rendered", async () => {
+        const { result } = renderHook(() => useTaskStepMove(3))
+        noteData.tree = null
+        expect(await result.current(-1)).toBe(false)
+        expect(moveTaskTo).not.toHaveBeenCalled()
     })
 })

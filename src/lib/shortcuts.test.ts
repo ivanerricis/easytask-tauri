@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import {
-    SHORTCUTS, bindingEquals, bindingFromEvent, findConflicts, findConflictsFor, formatBinding, getDefaultBindings, isValidBinding, matchBinding,
+    SHORTCUTS, SHORTCUT_CATEGORIES, bindingEquals, categoryLabel, keyLabel, bindingFromEvent, findConflicts, findConflictsFor, formatBinding, getDefaultBindings, isValidBinding, matchBinding,
 } from "./shortcuts"
 
 const key = (init: KeyboardEventInit) => new KeyboardEvent("keydown", init)
@@ -98,5 +98,35 @@ describe("recording helpers", () => {
         expect(isValidBinding({ key: "k", shift: true })).toBe(false)
         expect(isValidBinding({ key: "k", alt: true })).toBe(true)
         expect(isValidBinding({ key: "F2" })).toBe(true)
+    })
+})
+
+describe("task keyboard entries", () => {
+    const ids = ["task-navigate", "task-expand", "task-move", "task-toggle", "task-rename", "task-menu"]
+
+    it("are documentation-only entries of the tasks category", () => {
+        for (const id of ids) {
+            const s = SHORTCUTS.find(x => x.id === id)
+            expect(s, id).toMatchObject({ category: "tasks", scope: "workspace", editable: false })
+            expect(s?.defaultBinding).toBeUndefined()
+            expect(s?.keys?.length).toBeGreaterThan(0)
+        }
+        expect(SHORTCUT_CATEGORIES).toContain("tasks")
+    })
+
+    it("have a name, a category and key labels in both languages", async () => {
+        const { it: itLocale } = await import("@/i18n/locales/it")
+        const { en } = await import("@/i18n/locales/en")
+        for (const locale of [itLocale, en]) {
+            const sh = locale.shortcuts as unknown as { categories: Record<string, string>, items: Record<string, string>, keys: Record<string, string> }
+            expect(sh.categories.tasks).toBeTruthy()
+            for (const id of ids) {
+                expect(sh.items[id], id).toBeTruthy()
+                for (const k of SHORTCUTS.find(x => x.id === id)?.keys ?? []) expect(sh.keys[k], id + ":" + k).toBeTruthy()
+            }
+        }
+        expect(keyLabel("arrowup")).toBe("↑")
+        expect(keyLabel("f10")).toBe("F10")
+        expect(categoryLabel("tasks")).toBe("Task da tastiera")
     })
 })

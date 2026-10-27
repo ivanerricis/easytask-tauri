@@ -5,6 +5,7 @@ import { useActiveNote } from "@/contexts/use-active-note"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useGroupMoves, useNoteMoves } from "./note-dnd-state"
 import { getDirectStep, getGroupStep, getSectionStep, getTaskStep, type Step } from "./note-steps"
+import { useTaskStepMove } from "./use-task-step-move"
 
 type StepButtonsProps = {
     /** Vertical lists (tasks, sections) or the horizontal row of the groups. */
@@ -40,7 +41,7 @@ type StepMovesProps = {
 export const TaskStepMoves = ({ taskId, onDone }: StepMovesProps & { taskId: number }) => {
     const { noteDataTree } = useActiveNote()
     const { hideCompletedTasks } = usePreferences()
-    const { moveTaskTo } = useNoteMoves()
+    const move = useTaskStepMove(taskId)
 
     const steps = useMemo(() => noteDataTree
         ? { up: getTaskStep(noteDataTree, taskId, -1, hideCompletedTasks), down: getTaskStep(noteDataTree, taskId, 1, hideCompletedTasks) }
@@ -51,10 +52,9 @@ export const TaskStepMoves = ({ taskId, onDone }: StepMovesProps & { taskId: num
             canMoveUp={steps.up !== null}
             canMoveDown={steps.down !== null}
             onMove={step => {
-                const target = step < 0 ? steps.up : steps.down
-                if (!target) return
+                if (!(step < 0 ? steps.up : steps.down)) return
                 onDone?.()
-                void moveTaskTo(taskId, target)
+                void move(step)
             }}
         />
     )
