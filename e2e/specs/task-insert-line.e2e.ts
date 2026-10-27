@@ -50,7 +50,7 @@ const openFieldAbove = async (before: string) => {
     await hoverInsertZone(zone)
     await zone.$("button").click()
     await browser.waitUntil(async () => (await insertFields()).length === 1, { timeoutMsg: `the field above "${before}" did not open` })
-    return byLabel(await tr("tasks.insertLine.label"))
+    return $(`input[aria-label=${JSON.stringify(await tr("tasks.insertLine.label"))}]`)
 }
 
 /** Whether the field of a new task sits in the DOM between the two tasks. */
@@ -59,7 +59,7 @@ const fieldBetween = async (first: string, second: string) => {
     const field = await tr("tasks.insertLine.label")
     return browser.execute((aria: string, fieldLabel: string, a: string, b: string) => {
         const area = (value: string) => Array.from(document.querySelectorAll<HTMLTextAreaElement>(`[aria-label="${aria}"]`)).find(el => el.value === value)
-        const input = document.querySelector(`[aria-label="${fieldLabel}"]`)
+        const input = document.querySelector(`input[aria-label="${fieldLabel}"]`)
         const one = area(a)
         const two = area(b)
         if (!input || !one || !two) return false

@@ -392,8 +392,8 @@ export const hoverInsertZone = async (zone: ChainablePromiseElement) => {
     await browser.waitUntil(async () => (await insertPlusOpacity(zone)) > 0.9, { timeoutMsg: "the + of the insert line did not show on hover" })
 }
 
-/** The field of a new task opened by an insert line (there can be only one). */
-export const insertFields = async () => Array.from(await $$(`[aria-label=${cssString(await tr("tasks.insertLine.label"))}]`))
+/** The field of a new task opened by an insert line (there can be only one). An input: the "New task" button of a group has the same label. */
+export const insertFields = async () => Array.from(await $$(`input[aria-label=${cssString(await tr("tasks.insertLine.label"))}]`))
 
 /** Opens the Settings dialog on a category and returns the dialog. */
 export const openSettingsOn = async (category: "appearance" | "notes") => {
