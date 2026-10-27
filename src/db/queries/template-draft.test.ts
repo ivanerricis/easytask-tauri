@@ -4,9 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { DatabaseSync } from "node:sqlite"
 import { sqliteRows } from "@/test/db-mock"
 import { latestSchema } from "../schema/initial"
-import { addNoteTemplateDraft } from "../schema/note"
 
-// These tests run the real query SQL against a real SQLite database (the schema plus the draft column)
+// These tests run the real query SQL against a real SQLite database (schema migrated to v11)
 let sqlite: DatabaseSync
 
 vi.mock("../dbManager", async () => {
@@ -24,6 +23,7 @@ import {
     createDBTemplateDraft, deleteDBTemplateDraft, getDBTemplateDrafts, saveDBTemplateDraft, setDBTemplateDraftColor,
 } from "./template-draft"
 import { duplicateDBNote, duplicateDBTemplate } from "./duplicate"
+import { deleteDBItem } from "./shared_queries"
 import type { NoteTemplateContent } from "@/types/template"
 
 const rows = sqliteRows(() => sqlite)
@@ -44,7 +44,6 @@ beforeEach(() => {
     sqlite = new DatabaseSync(":memory:")
     sqlite.exec("PRAGMA foreign_keys=ON")
     for (const sql of latestSchema) sqlite.exec(sql)
-    for (const sql of addNoteTemplateDraft) sqlite.exec(sql)
     sqlite.exec(`
         INSERT INTO workspace (id, name) VALUES (1, 'WS'), (2, 'Other');
         INSERT INTO note (id, workspaceID, name, color) VALUES (1, 1, 'Sorgente', '#ff0000'), (2, 1, 'Altra', NULL), (3, 2, 'Altro workspace', NULL);
@@ -210,6 +209,16 @@ describe("the drafts and the other queries", () => {
         expect(await thrown(createDBTemplateFromNote(noteId, "Da bozza"))).toMatchObject({ code: "TEMPLATE_SOURCE_MISSING" })
         expect(await thrown(duplicateDBNote(noteId))).toMatchObject({ code: "DUPLICATE_SOURCE_MISSING" })
         expect(await thrown(updateDBTemplateFromNote(templateId, noteId))).toMatchObject({ code: "TEMPLATE_SOURCE_MISSING" })
+    })
+
+    it("a draft cannot be sent to the trash like a note", async () => {
+        const templateId = await createDBTemplateFromNote(1, "T")
+        const noteId = await createDBTemplateDraft(templateId)
+
+        await deleteDBItem("note", noteId)
+        expect(rows(`SELECT deleted_at FROM note WHERE id = ${noteId}`)).toEqual([{ deleted_at: null }])
+        await deleteDBItem("note", 2)
+        expect(rows("SELECT deleted_at FROM note WHERE id = 2")[0].deleted_at).not.toBeNull()
     })
 
     it("a note created from the template does not contain the draft", async () => {
