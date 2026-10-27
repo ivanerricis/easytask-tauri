@@ -39,6 +39,8 @@ export const tasks: Translation["tasks"] = {
     selection: {
         delete: "Delete {{count}} tasks",
         archive: "Archive {{count}} tasks",
+        count_one: "{{count}} selected",
+        count_other: "{{count}} selected",
         color: "Color",
         move: "Move to…",
         directTasks: "Direct tasks",

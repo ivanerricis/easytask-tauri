@@ -37,6 +37,8 @@ export const tasks = {
     selection: {
         delete: "Elimina {{count}} task",
         archive: "Archivia {{count}} task",
+        count_one: "{{count}} selezionato",
+        count_other: "{{count}} selezionati",
         color: "Colora",
         move: "Sposta in…",
         directTasks: "Task diretti",

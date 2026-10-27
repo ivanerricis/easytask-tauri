@@ -119,6 +119,15 @@ describe("gestures", () => {
         expect(multi()).toEqual([12])
     })
 
+    it("a selected row says so to the screen readers, the others do not", () => {
+        setup()
+        expect(screen.queryByText("selezionato")).not.toBeInTheDocument()
+        select(10, 12)
+        expect(screen.getAllByText("selezionato")).toHaveLength(2)
+        expect(rowOf(10)).toHaveTextContent("selezionato")
+        expect(rowOf(11)).not.toHaveTextContent("selezionato")
+    })
+
     it("a click on the text with Ctrl does not start the rename", async () => {
         setup()
         fireEvent.click(screen.getAllByLabelText("Modifica il testo del task")[0], { ctrlKey: true })
