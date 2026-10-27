@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-27
+
 ### Added
 
 - The list of the tasks created directly in a group can sit anywhere among its sections, not only on top. Move it with "Move task list up" and "Move task list down" in the menu of the group; a section can step over it with "Move up" and "Move down" or by dragging, and a line shows whether it lands above or below the list. The "New task" button of the group adds to the list where it is. Undo and redo work, and after the update everything stays as it was (list on top).
@@ -399,7 +401,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...v0.11.0
