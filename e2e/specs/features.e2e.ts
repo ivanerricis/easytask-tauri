@@ -297,8 +297,11 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         await byText(await tr("trash.empty"), trash).click()
         const dialog = await expectConfirmDialog("trash.emptyTitle", true)
         await confirmAndClose(dialog, await tr("trash.confirmEmpty"))
-        await expect(trash.$(`p=${await tr("trash.isEmpty")}`)).toBeDisplayed()
-        await closeTrash(trash)
+        // Emptying closes the trash (nothing left to show): wait for it, then reopen it to check that it is empty
+        await trash.waitForExist({ reverse: true, timeoutMsg: "the trash did not close after being emptied" })
+        const reopened = await openTrash()
+        await expect(reopened.$(`p=${await tr("trash.isEmpty")}`)).toBeDisplayed()
+        await closeTrash(reopened)
     })
 
     it("creates a template from a note chosen in the search and a note from that template", async () => {
