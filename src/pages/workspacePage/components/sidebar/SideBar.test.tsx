@@ -47,6 +47,11 @@ describe("SideBar", () => {
         expect(handle).toHaveAttribute("tabindex", "0")
     })
 
+    it("draws its focus ring inside the handle, where the overflow of the panel does not clip it", () => {
+        render(<Host />)
+        expect(separator()).toHaveClass("focus-visible:ring-[3px]", "focus-visible:ring-inset")
+    })
+
     it("resizes with the arrow keys, Home and End, and resets with a double click", async () => {
         window.innerWidth = 1400
         const onWidthChange = vi.fn()

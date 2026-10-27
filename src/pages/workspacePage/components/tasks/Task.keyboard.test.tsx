@@ -108,6 +108,11 @@ beforeEach(() => {
 })
 
 describe("keys", () => {
+    it("the focus ring of a row is 3px and drawn inside the row, where the card of the section does not clip it", () => {
+        setup()
+        expect(row(10)).toHaveClass("focus-visible:outline-3", "focus-visible:outline-offset-[-2px]")
+    })
+
     it("Down / Up move to the next / previous visible row of the list, subtasks included, and stop at the edges", () => {
         setup()
         press(10, "ArrowDown")

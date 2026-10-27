@@ -221,7 +221,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                         if (!gesture) selectTask(task.id)
                     }}
                     className={cn(
-                        "peer/row relative flex flex-col items-center w-full touch-none cursor-grab active:cursor-grabbing focus-visible:outline-offset-[-2px]",
+                        "peer/row relative flex flex-col items-center w-full touch-none cursor-grab active:cursor-grabbing focus-visible:outline-3 focus-visible:outline-offset-[-2px]",
                         // Selected: a 2px bar in the primary colour on the left and a tint stronger than the hover one
                         selected && "bg-accent shadow-[inset_2px_0_0_0_var(--primary)]",
                         isDragging && "opacity-40",
