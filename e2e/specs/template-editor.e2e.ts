@@ -112,7 +112,7 @@ describe("Template editor", () => {
     })
 
     it("saves by itself what is written in the template", async () => {
-        await byText(await tr("menu.newGroup")).click()
+        await byLabel(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
         await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
