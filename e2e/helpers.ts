@@ -147,6 +147,25 @@ export const openContextMenu = async (target: ChainablePromiseElement) => {
 }
 
 /**
+ * Opens the menu of an item with its "..." button and returns it. WebKitWebDriver sometimes focuses the button without
+ * delivering the pointer press the menu opens on (the Linux CI), so when the button is not expanded after the click it is
+ * opened with the keyboard instead, which works on every backend.
+ */
+export const openMenuWithButton = async (button: ChainablePromiseElement) => {
+    await button.click()
+    const expanded = await browser
+        .waitUntil(async () => (await button.getAttribute("aria-expanded")) === "true", { timeout: 2_000 })
+        .then(() => true, () => false)
+    if (!expanded) {
+        await browser.execute((el: HTMLElement) => el.focus(), (await button.getElement()) as unknown as HTMLElement)
+        await browser.keys("Enter")
+    }
+    const menu = $('[role="menu"]')
+    await menu.waitForDisplayed({ timeoutMsg: "the item menu did not open" })
+    return menu
+}
+
+/**
  * Opens a Radix submenu in a way that works on every WebDriver backend: the hover that normally opens it is not
  * reliably dispatched by WebKitGTK, so click the trigger and, if the item is still not there, focus it and press
  * ArrowRight. Resolves when `item` is displayed.

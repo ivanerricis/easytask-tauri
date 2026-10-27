@@ -1,7 +1,7 @@
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
     addTaskButton, addTaskToGroup, byLabel, byText, createFromSidebar, createWorkspace, directTasks, groupAddTaskButton, groupCard,
-    menuButton, menuButtonPredicate, newSectionInGroup, openSubmenu, openWorkspace, sectionCard, tr, treeRow, typeInto, waitForApp,
+    menuButton, menuButtonPredicate, newSectionInGroup, openMenuWithButton, openSubmenu, openWorkspace, sectionCard, tr, treeRow, typeInto, waitForApp,
     closeTaskInput,
 } from "../helpers"
 
@@ -34,10 +34,7 @@ const openTaskMenu = async (text: string) => {
     if (!target) throw new Error(`task "${text}" not found`)
     const row = await target.$(`./ancestor::div[.//button[${await menuButtonPredicate()}]][1]`)
     await row.moveTo()
-    await (await menuButton(row)).click()
-    const menu = $('[role="menu"]')
-    await menu.waitForDisplayed()
-    return menu
+    return openMenuWithButton(await menuButton(row))
 }
 
 describe("Tasks directly in a group", () => {
@@ -66,6 +63,23 @@ describe("Tasks directly in a group", () => {
     it("creates a task directly in the group with its button", async () => {
         await addTaskToGroup(groupCard(GROUP), DIRECT_TASK)
         await browser.waitUntil(async () => (await valuesIn(directTasks(groupCard(GROUP)))).includes(DIRECT_TASK), { timeoutMsg: "the direct task was not created" })
+    })
+
+    it("opens the new task field without a horizontal scrollbar, the add and cancel buttons sharing the width of the form", async () => {
+        await (await groupAddTaskButton(groupCard(GROUP))).click()
+        await directTasks(groupCard(GROUP)).$("input").waitForDisplayed()
+        const size = await browser.execute((group: HTMLElement) => {
+            const direct = group.querySelector<HTMLElement>("[data-direct-tasks]")!
+            // The area that scrolls with the direct tasks and the sections
+            const scroller = direct.parentElement!
+            const form = direct.querySelector("form")!
+            const buttons = Array.from(form.querySelectorAll("button")).map(button => button.getBoundingClientRect().width)
+            return { scrollWidth: scroller.scrollWidth, clientWidth: scroller.clientWidth, form: form.getBoundingClientRect().width, buttons }
+        }, (await groupCard(GROUP).getElement()) as unknown as HTMLElement)
+        expect(size.scrollWidth).toBeLessThanOrEqual(size.clientWidth + 1)
+        expect(size.buttons.reduce((sum, width) => sum + width, 0)).toBeLessThanOrEqual(size.form + 1)
+        await browser.keys("Escape")
+        await expect(await groupAddTaskButton(groupCard(GROUP))).toBeDisplayed()
     })
 
     it("creates a section from the menu of the group, below the direct tasks", async () => {

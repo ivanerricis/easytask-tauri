@@ -2,7 +2,7 @@ import { $, $$, browser, expect } from "@wdio/globals"
 import {
     byLabel, byText, createFromSidebar, createWorkspace, cssColor, domClick, openWorkspace, sectionCard, sql, tr, treeRow, typeInto,
     waitForApp, type Rgba,
-    addTaskButton, menuButton, menuButtonPredicate,
+    addTaskButton, menuButton, menuButtonPredicate, openMenuWithButton,
     groupCard, newSectionInGroup,
     closeTaskInput,
 } from "../helpers"
@@ -76,18 +76,10 @@ const openTaskMenu = async (text: string) => {
     if (!target) throw new Error(`task "${text}" not found`)
     const row = await target.$(`./ancestor::div[.//button[${await menuButtonPredicate()}]][1]`)
     await row.moveTo()
-    await (await menuButton(row)).click()
-    const menu = $('[role="menu"]')
-    await menu.waitForDisplayed()
-    return menu
+    return openMenuWithButton(await menuButton(row))
 }
 
-const openSectionMenu = async (title: string) => {
-    await (await menuButton(sectionCard(title))).click()
-    const menu = $('[role="menu"]')
-    await menu.waitForDisplayed()
-    return menu
-}
+const openSectionMenu = async (title: string) => openMenuWithButton(await menuButton(sectionCard(title)))
 
 const addTask = async (section: string, text: string) => {
     const before = (await taskValues(section)).length
