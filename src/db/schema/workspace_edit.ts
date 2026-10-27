@@ -17,18 +17,26 @@ const bump = (ws: string, extra = "") => `
         UPDATE workspace SET${NOW_SET}
         WHERE id = ${ws}${extra};`
 
-function trigger(table: string, event: "INSERT" | "UPDATE" | "DELETE", body: string): string {
+function trigger(table: string, event: "INSERT" | "UPDATE" | "DELETE", body: string, columns?: readonly string[]): string {
     return `
     CREATE TRIGGER IF NOT EXISTS workspace_edit_on_${table}_${event.toLowerCase()}
-    AFTER ${event} ON ${table}
+    AFTER ${event}${columns ? ` OF ${columns.join(", ")}` : ""} ON ${table}
     FOR EACH ROW
     BEGIN${body}
     END;
 `
 }
 
+/**
+ * The update trigger of a table that fires only when one of the given columns is in the SET of the UPDATE (the others,
+ * like the open/closed state of the view, leave the edit date of the workspace alone). Used by migration v10.
+ */
+export function updateTriggerOf(table: string, columns: readonly string[]): string {
+    return triggersFor(table, columns)[1]
+}
+
 /** The three triggers (insert, update, delete) of a table; used again when a table is rebuilt by a migration. */
-export function triggersFor(table: string): string[] {
+export function triggersFor(table: string, updateColumns?: readonly string[]): string[] {
     const of = workspaceOf[table]
     // folder/note can move to another workspace: the old one changed too
     const moved = table === "folder" || table === "note"
@@ -36,7 +44,7 @@ export function triggersFor(table: string): string[] {
         : ""
     return [
         trigger(table, "INSERT", bump(of("NEW"))),
-        trigger(table, "UPDATE", bump(of("NEW")) + moved),
+        trigger(table, "UPDATE", bump(of("NEW")) + moved, updateColumns),
         trigger(table, "DELETE", bump(of("OLD"))),
     ]
 }
@@ -47,4 +55,4 @@ export function triggersFor(table: string): string[] {
  * No recursion: the workspace trigger fires only on name/color and recursive_triggers is off.
  * @category Database Schema
  */
-export const createWorkspaceEditTriggers: string[] = Object.keys(workspaceOf).flatMap(triggersFor)
+export const createWorkspaceEditTriggers: string[] = Object.keys(workspaceOf).flatMap(table => triggersFor(table))

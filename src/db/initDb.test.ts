@@ -6,10 +6,11 @@ import { DatabaseSync, type SQLInputValue } from "node:sqlite"
 import type Database from "@tauri-apps/plugin-sql"
 import { createMockDb, type MockDb } from "@/test/db-mock"
 import { initDB, legacyDbMessage, newerDbMessage } from "./initDb"
-import { APPLICATION_ID, archiveSchema, groupStructureSchema, initialSchema, latestSchema, sectionOrderSchema, taskArchiveSchema } from "./schema/initial"
+import { APPLICATION_ID, archiveSchema, collapsedSchema, groupStructureSchema, initialSchema, latestSchema, sectionOrderSchema, taskArchiveSchema } from "./schema/initial"
 import { automationSchema } from "./schema/automation"
 import { addGroupColorColumn } from "./schema/section_group"
 import { createWorkspaceEditTriggers } from "./schema/workspace_edit"
+import { WORKSPACE_EDIT_COLUMNS } from "./schema/collapsed"
 
 // Runs initDB against a real SQLite database through a minimal adapter of the plugin API
 let sqlite: DatabaseSync
@@ -44,8 +45,8 @@ describe("initDB final schema", () => {
         await initDB(adapter())
     })
 
-    it("sets user_version to 9 and the application id", () => {
-        expect(pragma("user_version")).toBe(9)
+    it("sets user_version to 10 and the application id", () => {
+        expect(pragma("user_version")).toBe(10)
         expect(pragma("application_id")).toBe(APPLICATION_ID)
     })
 
@@ -113,12 +114,12 @@ describe("initDB behaviour", () => {
         await initDB(adapter())
         expect(sqlite.prepare("SELECT type, name, sql FROM sqlite_master ORDER BY name").all()).toEqual(snapshot)
         expect(sqlite.prepare("SELECT name FROM workspace").all()).toEqual([{ name: "WS" }])
-        expect(pragma("user_version")).toBe(9)
+        expect(pragma("user_version")).toBe(10)
     })
 
     it("does not execute anything when already at the latest version", async () => {
         const db: MockDb = createMockDb()
-        db.select.mockResolvedValueOnce([{ user_version: 9 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
+        db.select.mockResolvedValueOnce([{ user_version: 10 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
         await initDB(db as unknown as Database)
         expect(db.execute).not.toHaveBeenCalled()
     })
@@ -127,14 +128,14 @@ describe("initDB behaviour", () => {
         const db: MockDb = createMockDb()
         db.select.mockResolvedValueOnce([{ user_version: 0 }])
         await initDB(db as unknown as Database)
-        expect(db.execute.mock.calls.map(c => c[0])).toEqual([...initialSchema, "PRAGMA user_version = 1", addGroupColorColumn, "PRAGMA user_version = 2", ...createWorkspaceEditTriggers, "PRAGMA user_version = 3", ...archiveSchema, "PRAGMA user_version = 4", ...automationSchema, "PRAGMA user_version = 5", ...taskArchiveSchema, "PRAGMA user_version = 6", ...sectionTitleSchema, "PRAGMA user_version = 7", ...groupStructureSchema, "PRAGMA user_version = 8", ...sectionOrderSchema, "PRAGMA user_version = 9"])
+        expect(db.execute.mock.calls.map(c => c[0])).toEqual([...initialSchema, "PRAGMA user_version = 1", addGroupColorColumn, "PRAGMA user_version = 2", ...createWorkspaceEditTriggers, "PRAGMA user_version = 3", ...archiveSchema, "PRAGMA user_version = 4", ...automationSchema, "PRAGMA user_version = 5", ...taskArchiveSchema, "PRAGMA user_version = 6", ...sectionTitleSchema, "PRAGMA user_version = 7", ...groupStructureSchema, "PRAGMA user_version = 8", ...sectionOrderSchema, "PRAGMA user_version = 9", ...collapsedSchema, "PRAGMA user_version = 10"])
     })
 
     it("treats an empty PRAGMA result as a fresh database", async () => {
         const db: MockDb = createMockDb()
         db.select.mockResolvedValueOnce([])
         await initDB(db as unknown as Database)
-        expect(db.execute.mock.calls.at(-1)?.[0]).toBe("PRAGMA user_version = 9")
+        expect(db.execute.mock.calls.at(-1)?.[0]).toBe("PRAGMA user_version = 10")
     })
 
     it("refuses a legacy database (user_version > 0 without the application id) and leaves it untouched", async () => {
@@ -155,7 +156,7 @@ describe("initDB behaviour", () => {
 
     it("refuses a database of a newer version", async () => {
         const db: MockDb = createMockDb()
-        db.select.mockResolvedValueOnce([{ user_version: 10 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
+        db.select.mockResolvedValueOnce([{ user_version: 11 }]).mockResolvedValueOnce([{ application_id: APPLICATION_ID }])
         await expect(initDB(db as unknown as Database)).rejects.toThrow(newerDbMessage())
         expect(db.execute).not.toHaveBeenCalled()
     })
@@ -206,7 +207,7 @@ describe("initDB v2 (group color)", () => {
     it("migrates a real v1 database to v2 preserving its data and application id", async () => {
         makeV1()
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(9)
+        expect(pragma("user_version")).toBe(10)
         expect(pragma("application_id")).toBe(APPLICATION_ID)
         expect(sqlite.prepare("SELECT id, name, color FROM section_group").all()).toEqual([{ id: 1, name: "Idee", color: null }])
         expect(sqlite.prepare("SELECT name FROM note").all()).toEqual([{ name: "N" }])
@@ -216,14 +217,14 @@ describe("initDB v2 (group color)", () => {
     it("a v1 and a fresh database end up with the same columns", async () => {
         makeV1()
         await initDB(adapter())
-        expect(columns("section_group")).toEqual(["id", "noteID", "position", "deleted_at", "name", "color", "archived_at", "width"])
+        expect(columns("section_group")).toEqual(["id", "noteID", "position", "deleted_at", "name", "color", "archived_at", "width", "collapsed"])
     })
 
     it("retries safely when the column exists but the version was not bumped", async () => {
         makeV1()
         sqlite.exec("ALTER TABLE section_group ADD COLUMN color TEXT CHECK (LENGTH(color) > 0) DEFAULT NULL")
         await expect(initDB(adapter())).resolves.toBeUndefined()
-        expect(pragma("user_version")).toBe(9)
+        expect(pragma("user_version")).toBe(10)
     })
 
     it("still fails on other ALTER errors", async () => {
@@ -314,13 +315,13 @@ describe("initDB v3 (workspace edit triggers)", () => {
         for (const q of [...initialSchema, addGroupColorColumn]) sqlite.exec(q)
         sqlite.exec("PRAGMA user_version = 2")
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(9)
+        expect(pragma("user_version")).toBe(10)
         expect(names("trigger").filter(n => n.startsWith("workspace_edit_on_"))).toHaveLength(21)
     })
 })
 
 describe("initDB beforeMigrate", () => {
-    const latest = 9
+    const latest = 10
 
     it("is not called for a new database", async () => {
         const beforeMigrate = vi.fn()
@@ -378,7 +379,7 @@ describe("initDB v4 (archive)", () => {
     it("adds archived_at to folder, note, section_group and section, and drops the old archived flags", async () => {
         makeV3()
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(9)
+        expect(pragma("user_version")).toBe(10)
         for (const t of ["folder", "note", "section_group", "section"]) expect(columns(t)).toContain("archived_at")
         // The old `archived` flag is gone; v6 adds the archive date to the tasks
         expect(columns("task")).not.toContain("archived")
@@ -469,7 +470,7 @@ describe("initDB v4 (archive)", () => {
         sqlite.exec("ALTER TABLE section DROP COLUMN archived")
         sqlite.exec("ALTER TABLE task DROP COLUMN archived")
         await expect(initDB(adapter())).resolves.toBeUndefined()
-        expect(pragma("user_version")).toBe(9)
+        expect(pragma("user_version")).toBe(10)
         expect(names("trigger")).toContain("update_task_edit_timestamp")
         expect(names("trigger")).toContain("update_section_edit_timestamp")
         expect(columns("folder")).toContain("archived_at")
@@ -497,7 +498,7 @@ describe("initDB v7 (optional section title)", () => {
     it("keeps the sections and their tasks, and the foreign keys keep working", async () => {
         makeV6()
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(9)
+        expect(pragma("user_version")).toBe(10)
         expect(sqlite.prepare("SELECT id, title, color FROM section WHERE is_default = 0 ORDER BY id").all()).toEqual([
             { id: 1, title: "S1", color: "#ff0000" }, { id: 2, title: "S2", color: null },
         ])
@@ -566,7 +567,7 @@ describe("initDB v8 (default section, group width)", () => {
     it("creates exactly one default section per group, trashed and archived groups included", async () => {
         makeV7()
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(9)
+        expect(pragma("user_version")).toBe(10)
         expect(defaults()).toEqual([1, 2, 3].map(groupID => ({ groupID, title: null, position: 0, is_default: 1 })))
         expect(sqlite.prepare("SELECT COUNT(*) AS c FROM section").get()).toEqual({ c: 5 })
         expect(sqlite.prepare("SELECT title FROM section WHERE is_default = 0 ORDER BY id").all()).toEqual([{ title: "S1" }, { title: null }])
@@ -673,7 +674,7 @@ describe("initDB v9 (shared order of the default section and the sections)", () 
     it("puts the default section at 0 and the sections after it in their old order, trash and archive included", async () => {
         makeV8()
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(9)
+        expect(pragma("user_version")).toBe(10)
         expect(order(1)).toEqual([
             { id: 10, position: 0 }, { id: 11, position: 1 }, { id: 12, position: 2 }, { id: 13, position: 3 }, { id: 14, position: 4 }, { id: 15, position: 5 },
         ])
@@ -717,7 +718,7 @@ describe("initDB v9 (shared order of the default section and the sections)", () 
         expect(pragma("foreign_keys")).toBe(1)
         sqlite.exec("DROP TRIGGER boom")
         await initDB(adapter())
-        expect(pragma("user_version")).toBe(9)
+        expect(pragma("user_version")).toBe(10)
         expect(order(1).map(r => (r as { id: number }).id)).toEqual([10, 11, 12, 13, 14, 15])
         expect((order(1) as { position: number }[]).map(r => r.position)).toEqual([0, 1, 2, 3, 4, 5])
     })
@@ -740,5 +741,166 @@ describe("initDB v9 (shared order of the default section and the sections)", () 
         for (const q of latestSchema) sqlite.exec(q)
         expect(master()).toEqual(fresh)
         expect(latestSchema).toEqual(expect.arrayContaining(sectionOrderSchema))
+    })
+})
+
+describe("initDB v10 (saved open/closed state)", () => {
+    // A real v9 database with a group, a section and tasks in the three tables the migration touches
+    const makeV9 = () => {
+        sqlite = new DatabaseSync(":memory:")
+        sqlite.exec("PRAGMA foreign_keys=ON")
+        for (const q of [...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema, ...groupStructureSchema, ...sectionOrderSchema])
+            sqlite.exec(q)
+        sqlite.exec("PRAGMA user_version = 9")
+        sqlite.exec(`
+            INSERT INTO workspace (id, name) VALUES (1, 'WS');
+            INSERT INTO note (id, workspaceID, name, position) VALUES (1, 1, 'N', 0);
+            INSERT INTO section_group (id, noteID, name, position) VALUES (1, 1, 'G', 0);
+            INSERT INTO section (id, groupID, title, position) VALUES (11, 1, 'S', 1);
+            INSERT INTO task (id, sectionID, text) VALUES (1, 11, 'T');
+            INSERT INTO task (id, sectionID, taskID, text) VALUES (2, 11, 1, 'Sub');
+            UPDATE task SET edit_date = '2000-01-01', edit_time = '00:00';
+            UPDATE section SET edit_date = '2000-01-01', edit_time = '00:00';
+            UPDATE workspace SET edit_date = '2000-01-01', edit_time = '00:00';
+        `)
+    }
+    const dates = () => sqlite.prepare(`
+        SELECT 'w' AS t, id, edit_date, edit_time FROM workspace UNION ALL
+        SELECT 's', id, edit_date, edit_time FROM section UNION ALL
+        SELECT 't', id, edit_date, edit_time FROM task ORDER BY 1, 2`).all()
+    const master = () => sqlite.prepare("SELECT type, name, sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type, name").all()
+    const FROZEN = { edit_date: "2000-01-01", edit_time: "00:00" }
+    const wsEdit = () => sqlite.prepare("SELECT edit_date, edit_time FROM workspace WHERE id = 1").get()
+    const freezeAll = () => sqlite.exec(`
+        UPDATE task SET edit_date = '2000-01-01', edit_time = '00:00';
+        UPDATE section SET edit_date = '2000-01-01', edit_time = '00:00';
+        UPDATE workspace SET edit_date = '2000-01-01', edit_time = '00:00'`)
+    const count = (table: string, where = "1") => (sqlite.prepare(`SELECT COUNT(*) AS c FROM ${table} WHERE ${where}`).get() as { c: number }).c
+
+    it("adds collapsed (false by default) to groups, sections and tasks and keeps the data and the edit dates", async () => {
+        makeV9()
+        const before = dates()
+        await initDB(adapter())
+        expect(pragma("user_version")).toBe(10)
+        for (const table of ["section_group", "section", "task"]) {
+            expect(columns(table)).toContain("collapsed")
+            expect(count(table, "collapsed = 0")).toBe(count(table))
+        }
+        expect(dates()).toEqual(before)
+        expect(count("task")).toBe(2)
+        expect(sqlite.prepare("PRAGMA foreign_key_check").all()).toEqual([])
+    })
+
+    it("the column is not nullable", async () => {
+        makeV9()
+        await initDB(adapter())
+        expect(() => sqlite.exec("UPDATE task SET collapsed = NULL WHERE id = 1")).toThrow(/NOT NULL/)
+    })
+
+    it("an update of only collapsed changes no edit date, an update of the content still does", async () => {
+        makeV9()
+        await initDB(adapter())
+        const rows = [
+            ["section_group", 1, "name", "'Renamed'"],
+            ["section", 11, "title", "'Renamed'"],
+            ["task", 1, "text", "'Renamed'"],
+        ] as const
+        for (const [table, id, column, value] of rows) {
+            freezeAll()
+            const before = dates()
+            sqlite.exec(`UPDATE ${table} SET collapsed = 1 WHERE id = ${id}`)
+            sqlite.exec(`UPDATE ${table} SET collapsed = 0 WHERE id = ${id}`)
+            expect(dates()).toEqual(before)
+            expect(wsEdit()).toEqual(FROZEN)
+            sqlite.exec(`UPDATE ${table} SET ${column} = ${value} WHERE id = ${id}`)
+            expect(wsEdit(), table).not.toEqual(FROZEN)
+            if (table !== "section_group") expect(sqlite.prepare(`SELECT edit_date FROM ${table} WHERE id = ${id}`).get(), table).not.toEqual({ edit_date: "2000-01-01" })
+        }
+    })
+
+    it("the width of a group no longer refreshes the edit date, the other columns do (position, trash, archive)", async () => {
+        makeV9()
+        await initDB(adapter())
+        freezeAll()
+        sqlite.exec("UPDATE section_group SET width = 300 WHERE id = 1")
+        expect(wsEdit()).toEqual(FROZEN)
+        for (const sql of [
+            "UPDATE section_group SET position = 3 WHERE id = 1",
+            "UPDATE section_group SET archived_at = '2024-01-01' WHERE id = 1",
+            "UPDATE section SET position = 5 WHERE id = 11",
+            "UPDATE section SET deleted_at = '2024-01-01' WHERE id = 11",
+            "UPDATE task SET position = 4 WHERE id = 1",
+            "UPDATE task SET completed = 1 WHERE id = 2",
+            "UPDATE task SET archived_at = '2024-01-01' WHERE id = 2",
+        ]) {
+            freezeAll()
+            sqlite.exec(sql)
+            expect(wsEdit(), sql).not.toEqual(FROZEN)
+        }
+    })
+
+    it("the update triggers list exactly the columns of the tables but the view state ones", async () => {
+        await initDB(adapter())
+        const viewState: Record<string, string[]> = { section_group: ["collapsed", "width"], section: ["collapsed"], task: ["collapsed"] }
+        for (const [table, listed] of Object.entries(WORKSPACE_EDIT_COLUMNS))
+            expect([...listed, ...viewState[table]].sort(), table).toEqual(columns(table).sort())
+    })
+
+    it("insert and delete still refresh the edit date of the workspace", async () => {
+        makeV9()
+        await initDB(adapter())
+        freezeAll()
+        sqlite.exec("INSERT INTO task (id, sectionID, text) VALUES (3, 11, 'New')")
+        expect(wsEdit()).not.toEqual(FROZEN)
+        freezeAll()
+        sqlite.exec("DELETE FROM task WHERE id = 3")
+        expect(wsEdit()).not.toEqual(FROZEN)
+    })
+
+    it("a failure halfway rolls the triggers back and the second run is correct", async () => {
+        makeV9()
+        const failing = adapter()
+        const execute = failing.execute.bind(failing)
+        let fail = true
+        failing.execute = (async (sql: string) => {
+            if (fail && sql.includes("COMMIT;")) return execute(sql.replace("COMMIT;", "SELECT * FROM missing_table;"))
+            return execute(sql)
+        }) as typeof failing.execute
+        await expect(initDB(failing)).rejects.toThrow(/missing_table/)
+        expect(pragma("user_version")).toBe(9)
+        // the old triggers are back and still fire on any update
+        for (const table of ["section_group", "section", "task"]) expect(names("trigger")).toContain(`workspace_edit_on_${table}_update`)
+        freezeAll()
+        sqlite.exec("UPDATE section_group SET width = 300 WHERE id = 1")
+        expect(wsEdit()).not.toEqual(FROZEN)
+        expect(pragma("foreign_keys")).toBe(1)
+        fail = false
+        await initDB(failing)
+        expect(pragma("user_version")).toBe(10)
+        freezeAll()
+        sqlite.exec("UPDATE task SET collapsed = 1 WHERE id = 1")
+        expect(wsEdit()).toEqual(FROZEN)
+    })
+
+    it("running it again changes nothing", async () => {
+        makeV9()
+        await initDB(adapter())
+        const first = master()
+        sqlite.exec("PRAGMA user_version = 9")
+        await initDB(adapter())
+        expect(master()).toEqual(first)
+        expect(pragma("user_version")).toBe(10)
+    })
+
+    it("a migrated and a fresh database have the same schema, and latestSchema builds it too", async () => {
+        await initDB(adapter())
+        const fresh = master()
+        makeV9()
+        await initDB(adapter())
+        expect(master()).toEqual(fresh)
+        sqlite = new DatabaseSync(":memory:")
+        for (const q of latestSchema) sqlite.exec(q)
+        expect(master()).toEqual(fresh)
+        expect(latestSchema).toEqual(expect.arrayContaining(collapsedSchema))
     })
 })
