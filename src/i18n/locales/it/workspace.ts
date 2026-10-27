@@ -37,6 +37,7 @@ export const workspace = {
         select: "Seleziona workspace…",
         search: "Cerca un workspace…",
         empty: "Nessun workspace trovato.",
+        label: "Workspace: {{name}}",
     },
     backHome: "Torna alla home",
 }
@@ -121,6 +122,7 @@ export const sidebar = {
     emptyTree: "Nessuna cartella o nota",
     emptyTreeHint: "Crea una nota o una cartella per iniziare.",
     treeLabel: "Cartelle e note",
+    holdsOpenNote: "Contiene la nota aperta",
 }
 
 export const templates = {

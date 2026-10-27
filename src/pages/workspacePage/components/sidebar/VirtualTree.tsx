@@ -21,12 +21,14 @@ type VirtualTreeProps = {
     onToggleFolder: (folderId: number) => void
     /** Key of the row being dragged: it stays mounted even when scrolled out of the range. */
     activeKey: string | null
+    /** Key of the row in the tab order: it stays mounted too, so the keyboard can always get into the tree. */
+    tabStopKey?: string | null
     getScrollElement: () => HTMLElement | null
     handleRef?: Ref<VirtualTreeHandle>
 }
 
 /** Flat, virtualized rendering of the tree; only the rows near the viewport are in the DOM. */
-export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, activeKey, getScrollElement, handleRef }: VirtualTreeProps) => {
+export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, activeKey, tabStopKey = null, getScrollElement, handleRef }: VirtualTreeProps) => {
     const size = useItemSize()
     const rowSize = size.rowPx + ROW_GAP
 
@@ -35,11 +37,17 @@ export const VirtualTree = ({ rows, collapsedIds, onToggleFolder, activeKey, get
         [rows, activeKey],
     )
 
+    const tabStopIndex = useMemo(
+        () => tabStopKey ? rows.findIndex(row => row.key === tabStopKey) : -1,
+        [rows, tabStopKey],
+    )
+
     const rangeExtractor = useCallback((range: Range) => {
         const indexes = defaultRangeExtractor(range)
-        if (activeIndex < 0 || activeIndex >= range.count || indexes.includes(activeIndex)) return indexes
-        return [...indexes, activeIndex].sort((a, b) => a - b)
-    }, [activeIndex])
+        const missing = [activeIndex, tabStopIndex].filter(index => index >= 0 && index < range.count && !indexes.includes(index))
+        if (missing.length === 0) return indexes
+        return [...new Set([...indexes, ...missing])].sort((a, b) => a - b)
+    }, [activeIndex, tabStopIndex])
 
     // eslint-disable-next-line react-hooks/incompatible-library
     const virtualizer = useVirtualizer({

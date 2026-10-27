@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent } from "react"
 import {
     DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useDroppable, useSensor, useSensors,
     type CollisionDetection, type DragEndEvent, type DragMoveEvent, type DragStartEvent,
@@ -12,6 +12,7 @@ import type { Folder, Note } from "@/types/types"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
+import { useStoreSelector } from "@/lib/external-store"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { captureTreePlace } from "@/contexts/undo/commands"
@@ -23,7 +24,8 @@ import {
 } from "./tree-dnd"
 import { useItemSize } from "./item-size"
 import { useGrabbingCursor } from "@/hooks/use-grabbing-cursor"
-import { NO_TREE_HOVER, TreeHoverStoreContext, createTreeHoverStore, markTreeDragEnd, treeRowKey, useTreeRootActive, type TreeHover } from "./tree-row"
+import { NO_TREE_HOVER, TreeHoverStoreContext, TreeTabStopContext, createTreeHoverStore, createTreeTabStopStore, markTreeDragEnd, treeRowKey, useTreeRootActive, type TreeHover } from "./tree-row"
+import { treeKeyAction } from "./tree-keyboard"
 import { VIRTUALIZE_THRESHOLD, flattenTree } from "./flat-tree"
 import { parseSelectionKey, rowKeys, selectionKey } from "./selection"
 import { useSelectionStore } from "./selection-context"
@@ -129,6 +131,8 @@ const EmptyTree = () => {
 
 type RootDropAreaProps = React.ComponentProps<"div"> & { rootRef?: React.RefObject<HTMLDivElement | null>, treeLabel?: string }
 
+const ROW_SELECTOR = "[data-row-key]"
+
 // The rest of the props and the ref are the ones the right click menu (its trigger) gives to the area
 const RootDropArea = ({ children, rootRef, treeLabel, ref: triggerRef, ...triggerProps }: RootDropAreaProps) => {
     const { setNodeRef } = useDroppable({ id: ROOT_ID })
@@ -201,6 +205,9 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
     const recorder = useUndoRecorder()
     // What is hovered lives in a store: each row reads only its own drop zone (see TreeHover)
     const [hoverStore] = useState(createTreeHoverStore)
+    // The row in the tab order (roving tabindex): the last one focused, or the first one
+    const [tabStopStore] = useState(createTreeTabStopStore)
+    const focusedKeyRef = useRef<string | null>(null)
     const [activeRef, setActiveRef] = useState<TreeRef | null>(null)
     useGrabbingCursor(activeRef !== null)
     const targetRef = useRef<DropTarget | null>(null)
@@ -356,6 +363,12 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
     useEffect(() => { store?.sync(rowKeys(flatRows)) }, [store, flatRows])
     const virtualized = flatRows.length > VIRTUALIZE_THRESHOLD
     const virtualRef = useRef<VirtualTreeHandle>(null)
+    // A row that disappears (or gets hidden) takes the tab stop with it: it goes back to the first row
+    useLayoutEffect(() => {
+        const focused = focusedKeyRef.current
+        tabStopStore.set(focused && flatRows.some(row => row.key === focused) ? focused : flatRows[0]?.key ?? null)
+    }, [tabStopStore, flatRows])
+    const tabStopKey = useStoreSelector(tabStopStore, key => key)
     // After the sync above: the key has to be in the rows in view (the folders above it expanded) before it can be selected
     useEffect(() => {
         if (!reveal) return
@@ -394,8 +407,45 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
     )
     const isEmpty = tree.rootFolders.length === 0 && tree.rootNotes.length === 0
 
+    const handleTreeFocus = (event: FocusEvent<HTMLElement>) => {
+        const key = (event.target as HTMLElement).closest?.(ROW_SELECTOR)?.getAttribute("data-row-key")
+        if (!key) return
+        focusedKeyRef.current = key
+        tabStopStore.set(key)
+    }
+
+    /** Moves the focus to a row; a virtualized row that is not mounted yet is scrolled to and focused when it appears. */
+    const focusRow = (key: string) => {
+        focusedKeyRef.current = key
+        tabStopStore.set(key)
+        if (virtualized) virtualRef.current?.scrollToKey(key)
+        let tries = 0
+        const step = () => {
+            const row = rootElRef.current?.querySelector<HTMLElement>(`[data-row-key="${key}"]`)
+            if (row) row.focus()
+            else if (++tries < REVEAL_MAX_FRAMES) requestAnimationFrame(step)
+        }
+        step()
+    }
+
+    // Arrows, Home and End move between the rows, Left / Right close / open the folders (Space and Enter are the row's own)
+    const handleTreeKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+        // A keyboard drag has its own keys; the field of a rename and the buttons of a row are not rows
+        if (activeRef || event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return
+        const target = event.target as HTMLElement
+        const current = target.matches?.(ROW_SELECTOR) ? target.dataset.rowKey : undefined
+        if (!current) return
+        const action = treeKeyAction(flatRows, current, event.key, collapsedIds)
+        if (!action) return
+        event.preventDefault()
+        if (action.type === "focus") focusRow(action.key)
+        else if (action.type === "expand") onExpandFolder(action.folderId)
+        else onToggleFolder(action.folderId)
+    }
+
     return (
         <TreeHoverStoreContext.Provider value={hoverStore}>
+        <TreeTabStopContext.Provider value={tabStopStore}>
         <DndContext
             sensors={sensors}
             accessibility={accessibility}
@@ -407,7 +457,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
             autoScroll
         >
             <TreeBackgroundMenu allCollapsed={allCollapsed} onToggleAll={onToggleAll} hasFolders={tree.rootFolders.length > 0}>
-            <RootDropArea rootRef={rootElRef} treeLabel={isEmpty ? undefined : t("sidebar.treeLabel")}>
+            <RootDropArea rootRef={rootElRef} treeLabel={isEmpty ? undefined : t("sidebar.treeLabel")} onFocus={handleTreeFocus} onKeyDown={handleTreeKeyDown}>
                 {isEmpty ? (
                     <EmptyTree />
                 ) : virtualized ? (
@@ -416,6 +466,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
                         collapsedIds={collapsedIds}
                         onToggleFolder={onToggleFolder}
                         activeKey={activeRef ? treeRowKey(activeRef.type, activeRef.id) : null}
+                        tabStopKey={tabStopKey}
                         getScrollElement={getScrollElement}
                         handleRef={virtualRef}
                     />
@@ -445,6 +496,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
                 {activeItem && activeRef ? <div className="rotate-2"><DragPreview item={activeItem} count={multiCount} /></div> : null}
             </DragOverlay>
         </DndContext>
+        </TreeTabStopContext.Provider>
         </TreeHoverStoreContext.Provider>
     )
 }

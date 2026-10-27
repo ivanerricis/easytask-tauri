@@ -76,10 +76,12 @@ type ItemMenuButtonProps = {
     label?: string
     /** Name of the item: the button is called "Menu: <name>", so the buttons of a list can be told apart. */
     name?: string
+    /** -1 takes the button out of the tab order (the rows of the sidebar tree have a single tab stop). */
+    tabIndex?: number
 }
 
 /** The "…" button of an item (inside an {@link ItemMenu}): opens the item menu below the button. */
-export const ItemMenuButton = ({ className, iconClassName = "size-4", label, name }: ItemMenuButtonProps) => {
+export const ItemMenuButton = ({ className, iconClassName = "size-4", label, name, tabIndex }: ItemMenuButtonProps) => {
     const { t } = useTranslation()
     const menu = React.useContext(ItemMenuContext)
     if (!menu) return null
@@ -90,7 +92,7 @@ export const ItemMenuButton = ({ className, iconClassName = "size-4", label, nam
     return (
         <DropdownMenu open={state.dropdownOpen} onOpenChange={state.setDropdownOpen}>
             <DropdownMenuTrigger asChild>
-                <Button type="button" variant="ghost" size="icon" aria-label={accessibleName} onClick={(e) => e.stopPropagation()} className={cn("size-6", className)}>{icon}</Button>
+                <Button type="button" variant="ghost" size="icon" aria-label={accessibleName} onClick={(e) => e.stopPropagation()} tabIndex={tabIndex} className={cn("relative size-6 after:absolute after:-inset-1 after:content-['']", className)}>{icon}</Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent
                 onClick={(e) => e.stopPropagation()}

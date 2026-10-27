@@ -7,7 +7,7 @@ import { TooltipCustom } from "@/components/tooltip-custom"
 import { useStoreSelector } from "@/lib/external-store"
 import type { NoteSearchStore } from "./note-search-store"
 
-const ICON_BUTTON = "size-6 [&_svg]:!size-4"
+const ICON_BUTTON = "relative size-7 after:absolute after:-inset-0.5 after:content-[''] [&_svg]:!size-4"
 
 type NoteSearchFieldProps = {
     store: NoteSearchStore
@@ -47,7 +47,7 @@ export const NoteSearchField = ({ store, inputRef }: NoteSearchFieldProps) => {
                 }}
                 placeholder={t("notes.noteSearch.placeholder")}
                 aria-label={t("notes.noteSearch.inNote")}
-                className="h-6 w-44 px-2 py-0 text-xs md:text-xs"
+                className="h-7 w-44 px-2 py-0 text-xs md:text-xs"
             />
             <span aria-live="polite" className="min-w-14 whitespace-nowrap text-center text-xs tabular-nums text-muted-foreground">{counter}</span>
             <TooltipCustom text={t("notes.noteSearch.previous")}>

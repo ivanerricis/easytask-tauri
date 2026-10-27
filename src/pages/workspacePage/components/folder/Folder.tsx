@@ -1,9 +1,9 @@
 import { useActiveNoteSelector } from "@/contexts/use-tabs"
 import { ChevronDown } from "lucide-react"
-import React, { useState } from "react"
+import React, { useId, useState } from "react"
 import { DropLine } from "../sidebar/DropLine"
 import { useItemSize } from "../sidebar/item-size"
-import { isInsideZone, openOnKeyboardFocus, stopDragActivation, treeRowKey, treeRowKeyDown, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { isInsideZone, openOnKeyboardFocus, stopDragActivation, treeRowKey, treeRowKeyDown, useIsTreeTabStop, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
 import { SelectionMark } from "../sidebar/SelectionMark"
 import { handleSelectionClick } from "../sidebar/selection"
 import { useIsSelected, useSelectionStore } from "../sidebar/selection-context"
@@ -63,6 +63,9 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
     // A collapsed folder hides the open note: it gets a discreet mark so that the note can be found again
     // (selector: a tab switch re-renders only the collapsed folders whose answer changes)
     const holdsActiveNote = useActiveNoteSelector(activeId => !isOpen && activeId !== null && holdsNote(folder, activeId))
+    const holdsNoteId = useId()
+    // Roving tabindex: one row of the tree is in the tab order, the others are reached with the arrows
+    const tabStop = useIsTreeTabStop("folder", folder.id)
 
     // Ctrl/Cmd+click and Shift+click only select; a plain click toggles the folder and clears the selection
     const handleClick = (e: React.MouseEvent) => {
@@ -94,11 +97,13 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
                             aria-label={folder.name}
                             data-row-key={treeRowKey("folder", folder.id)}
                             aria-level={level}
+                            tabIndex={tabStop ? 0 : -1}
                             aria-expanded={isOpen}
                             aria-pressed={undefined}
                             onClick={handleClick}
                             aria-selected={selected}
                             data-holds-active={holdsActiveNote || undefined}
+                            aria-describedby={holdsActiveNote ? holdsNoteId : undefined}
                             onKeyDown={treeRowKeyDown(listeners, handleActivate)}
                             onMouseEnter={() => setIsHovered(true)}
                             onMouseLeave={() => setIsHovered(false)}
@@ -116,9 +121,14 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
                                     : <span className={`w-full ${size.text} min-w-0 truncate whitespace-nowrap overflow-hidden max-w-[calc(100%-1rem)]`}>
                                         {folder.name}
                                     </span>}
+                                {/* Not by the colour of the border alone: a dot, and a text for the screen readers */}
+                                {holdsActiveNote && <>
+                                    <span aria-hidden="true" data-testid="holds-open-note" className="size-1.5 shrink-0 rounded-full bg-primary" />
+                                    <span id={holdsNoteId} className="sr-only">{t("sidebar.holdsOpenNote")}</span>
+                                </>}
                             </div>
                             <div className={`flex items-center leading-none shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
-                                <ItemMenuButton name={folder.name} />
+                                <ItemMenuButton name={folder.name} tabIndex={tabStop ? undefined : -1} />
                             </div>
                         </div>
                     </TooltipTrigger>
