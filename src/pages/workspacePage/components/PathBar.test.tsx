@@ -6,6 +6,7 @@ import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 import { TabsProvider } from "@/contexts/tabs-context"
 import { useTabsActions } from "@/contexts/use-tabs"
 import { TREE_REVEAL_EVENT } from "@/lib/tree-reveal"
+import { APP_COMMAND_EVENT } from "@/lib/app-commands"
 import type { Folder, Note } from "@/types/types"
 import { makeNote } from "@/test/ui-fixtures"
 import { TemplateDraftsActionsContext, TemplateDraftsContext, type TemplateDraftsActionsType } from "@/contexts/template-drafts-context-object"
@@ -98,6 +99,29 @@ describe("PathBar path", () => {
             { type: "folder", id: 11 },
             { type: "note", id: 2 },
         ])
+    })
+})
+
+describe("PathBar new group button", () => {
+    it("is a button named New group in the bar, also while the search field is open", async () => {
+        await setup([1])
+        expect(screen.getByRole("button", { name: "Nuovo gruppo" })).toBeInTheDocument()
+    })
+
+    it("is the leftmost of the note buttons, before the search and the completed toggle", async () => {
+        await setup([1])
+        const names = screen.getAllByRole("button").map(b => b.getAttribute("aria-label")).filter(Boolean)
+        expect(names.indexOf("Nuovo gruppo")).toBeLessThan(names.indexOf("Nascondi task completati"))
+    })
+
+    it("asks for the new group form on click", async () => {
+        await setup([1])
+        const commands: string[] = []
+        const onCommand = (event: Event) => commands.push((event as CustomEvent<string>).detail)
+        window.addEventListener(APP_COMMAND_EVENT, onCommand)
+        await userEvent.click(screen.getByRole("button", { name: "Nuovo gruppo" }))
+        window.removeEventListener(APP_COMMAND_EVENT, onCommand)
+        expect(commands).toEqual(["new-group"])
     })
 })
 

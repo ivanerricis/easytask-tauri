@@ -9,7 +9,7 @@ The content of a note is organized in three levels. A note holds **groups**, sho
 
 ### Add them
 
-- Click **New group**, or press `Alt+N`, type a name and press `Enter`. `Esc` closes the field.
+- Click the **+** button (**New group**) at the left of the buttons in the bar above the note, or press `Alt+N`: a field opens at the end of the groups. Type a name and press `Enter`. `Esc` closes the field.
 - Inside a group, open its menu (the menu button of the group, or a right-click on its header), choose **New section**, type a title and press `Enter`. The field opens at the end of the group.
 
 The name is optional: press `Enter` on an empty field and the group or section is created without a name. EasyTask then shows **Group 1**, **Group 2**… or **Untitled section** in muted text. You can hide those labels with **Settings > Notes and sections > Show names of unnamed groups and sections**.

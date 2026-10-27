@@ -9,7 +9,7 @@ Il contenuto di una nota è organizzato su tre livelli. Una nota contiene dei **
 
 ### Aggiungerli
 
-- Fai clic su **Nuovo gruppo**, oppure premi `Alt+N`, scrivi un nome e premi `Invio`. `Esc` chiude il campo.
+- Fai clic sul pulsante **+** (**Nuovo gruppo**), il primo a sinistra dei pulsanti nella barra sopra la nota, oppure premi `Alt+N`: si apre un campo in fondo ai gruppi. Scrivi un nome e premi `Invio`. `Esc` chiude il campo.
 - Dentro un gruppo apri il suo menu (il pulsante del menu del gruppo, o il clic destro sull'intestazione), scegli **Nuova sezione**, scrivi un titolo e premi `Invio`. Il campo si apre in fondo al gruppo.
 
 Il nome è facoltativo: premi `Invio` su un campo vuoto e il gruppo o la sezione viene creato senza nome. EasyTask mostra allora **Gruppo 1**, **Gruppo 2**… o **Sezione senza titolo** in grigio. Puoi nascondere queste etichette con **Impostazioni > Note e sezioni > Mostra il nome dei gruppi e delle sezioni senza nome**.

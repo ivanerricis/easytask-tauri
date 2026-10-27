@@ -126,7 +126,7 @@ describe("Feedback of the drag at the edges of a group", () => {
         await treeRow(NOTE).click()
         await byLabel(await tr("notes.closeCurrent")).waitForDisplayed()
 
-        await byText(await tr("menu.newGroup")).click()
+        await byLabel(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
         await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })

@@ -26,9 +26,10 @@ vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }
 const GROUP_PLACEHOLDER = "Nome del gruppo…"
 const SECTION_PLACEHOLDER = "Titolo della sezione…"
 
-const openGroupForm = async (user: ReturnType<typeof userEvent.setup>) => {
-    await user.click(screen.getByRole("button", { name: /Nuovo gruppo/ }))
-    return screen.getByPlaceholderText(GROUP_PLACEHOLDER)
+// The form of the group is opened by the "new group" command (path bar button, empty note, background menu, Alt+N)
+const openGroupForm = async () => {
+    act(() => requestAppCommand("new-group"))
+    return await screen.findByPlaceholderText(GROUP_PLACEHOLDER)
 }
 
 const openSectionForm = async (user: ReturnType<typeof userEvent.setup>) => {
@@ -47,7 +48,7 @@ describe("AddSection", () => {
     it("outside a group creates a named group, not a section", async () => {
         const user = userEvent.setup()
         render(<AddSection />)
-        await user.type(await openGroupForm(user), "  Sprint  {Enter}")
+        await user.type(await openGroupForm(), "  Sprint  {Enter}")
 
         await waitFor(() => expect(ctx.appendGroup).toHaveBeenCalledWith(31, 20, "Sprint", 32))
         expect(ctx.createGroup).toHaveBeenCalledWith(20, "Sprint")
@@ -60,7 +61,7 @@ describe("AddSection", () => {
         const pending = deferred<number>()
         ctx.createGroup.mockReturnValue(pending.promise)
         render(<AddSection />)
-        await user.type(await openGroupForm(user), "Sprint{Enter}{Enter}")
+        await user.type(await openGroupForm(), "Sprint{Enter}{Enter}")
 
         expect(ctx.createGroup).toHaveBeenCalledTimes(1)
         pending.resolve(31)
@@ -70,7 +71,7 @@ describe("AddSection", () => {
     it("creates an unnamed group when the name is empty", async () => {
         const user = userEvent.setup()
         render(<AddSection />)
-        await user.type(await openGroupForm(user), "   {Enter}")
+        await user.type(await openGroupForm(), "   {Enter}")
 
         await waitFor(() => expect(ctx.createGroup).toHaveBeenCalledWith(20, ""))
     })
@@ -117,7 +118,7 @@ describe("AddSection", () => {
         const user = userEvent.setup()
         ctx.activeId = null
         render(<AddSection />)
-        await user.type(await openGroupForm(user), "X{Enter}")
+        await user.type(await openGroupForm(), "X{Enter}")
 
         expect(ctx.createGroup).not.toHaveBeenCalled()
         expect(screen.getByPlaceholderText(GROUP_PLACEHOLDER)).toBeInTheDocument()
@@ -127,7 +128,7 @@ describe("AddSection", () => {
         const user = userEvent.setup()
         ctx.createGroup.mockRejectedValue(new Error("insert failed"))
         render(<AddSection />)
-        await user.type(await openGroupForm(user), "X{Enter}")
+        await user.type(await openGroupForm(), "X{Enter}")
 
         await waitFor(() => expect(toast.error).toHaveBeenCalledWith("insert failed"))
         expect(ctx.appendGroup).not.toHaveBeenCalled()
@@ -137,30 +138,29 @@ describe("AddSection", () => {
     it("keeps the typed name on an outside click", async () => {
         const user = userEvent.setup()
         render(<AddSection />)
-        await user.type(await openGroupForm(user), "draft")
+        await user.type(await openGroupForm(), "draft")
 
         fireEvent.mouseDown(document.body)
         expect(screen.getByPlaceholderText(GROUP_PLACEHOLDER)).toHaveValue("draft")
     })
 
     it("closes on outside click when the name is empty", async () => {
-        const user = userEvent.setup()
         render(<AddSection />)
-        await openGroupForm(user)
+        await openGroupForm()
 
         fireEvent.mouseDown(document.body)
         expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
-        expect(await openGroupForm(user)).toHaveValue("")
+        expect(await openGroupForm()).toHaveValue("")
     })
 
     it("closes the group form on Escape, discarding the name, without creating", async () => {
         const user = userEvent.setup()
         render(<AddSection />)
-        await user.type(await openGroupForm(user), "draft{Escape}")
+        await user.type(await openGroupForm(), "draft{Escape}")
 
         expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
         expect(ctx.createGroup).not.toHaveBeenCalled()
-        expect(await openGroupForm(user)).toHaveValue("")
+        expect(await openGroupForm()).toHaveValue("")
     })
 
     it("closes the section form on Escape, discarding the title, without creating", async () => {
@@ -183,6 +183,15 @@ describe("AddSection", () => {
         expect(screen.queryByPlaceholderText(SECTION_PLACEHOLDER)).not.toBeInTheDocument()
     })
 
+    it("Alt+N still creates a group: it opens the form, the name is submitted", async () => {
+        const user = userEvent.setup()
+        render(<AddSection />)
+        fireEvent.keyDown(document, { key: "n", altKey: true })
+        await user.type(await screen.findByPlaceholderText(GROUP_PLACEHOLDER), "Via tastiera{Enter}")
+        await waitFor(() => expect(ctx.createGroup).toHaveBeenCalledWith(20, "Via tastiera"))
+        expect(ctx.appendGroup).toHaveBeenCalledWith(31, 20, "Via tastiera", 32)
+    })
+
     it("opens the form and scrolls it into view when asked by the new group command", async () => {
         const scrollIntoView = vi.fn()
         Element.prototype.scrollIntoView = scrollIntoView
@@ -193,12 +202,10 @@ describe("AddSection", () => {
         expect(scrollIntoView).toHaveBeenCalledWith({ inline: "end", block: "nearest" })
     })
 
-    it("does not scroll when the form is opened with the button", async () => {
-        const scrollIntoView = vi.fn()
-        Element.prototype.scrollIntoView = scrollIntoView
+    it("has no button at the end of the groups: nothing is rendered until the form is asked for", () => {
         render(<AddSection />)
-        await openGroupForm(userEvent.setup())
-        expect(scrollIntoView).not.toHaveBeenCalled()
+        expect(screen.queryByRole("button", { name: /Nuovo gruppo/ })).not.toBeInTheDocument()
+        expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
     })
 
     describe("controlled by the group", () => {
