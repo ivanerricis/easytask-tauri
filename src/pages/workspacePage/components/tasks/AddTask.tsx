@@ -124,6 +124,12 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
     )
 }
 
+/** The focus is on nothing, or still on the form: nothing else claimed it. */
+const focusIsFree = (form: HTMLElement | null) => {
+    const active = document.activeElement
+    return !active || active === document.body || !!form?.contains(active)
+}
+
 const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inGroup?: boolean }) => {
     const { t } = useTranslation()
     const [isOpen, setOpen] = useState(false)
@@ -187,7 +193,8 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
                 } catch (error: unknown) {
                     reportError(error, getErrorMessage(error) || t("tasks.errors.createTask"))
                 } finally {
-                    if (keepAddingTasks) inputRef.current?.focus()
+                    // The task is created a moment later: if the focus went elsewhere meanwhile (a menu just opened) it is not taken back
+                    if (keepAddingTasks && focusIsFree(formRef.current)) inputRef.current?.focus()
                 }
             })
         }

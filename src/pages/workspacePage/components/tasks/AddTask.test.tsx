@@ -83,6 +83,25 @@ describe("AddTask", () => {
         await waitFor(() => expect(ctx.createTask).toHaveBeenCalledTimes(2))
     })
 
+    it("with keepAddingTasks on, the input does not take the focus back from something that got it while the task was being created", async () => {
+        prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: true }
+        const creation = deferred<number>()
+        ctx.createTask.mockReturnValue(creation.promise)
+        const user = userEvent.setup()
+        render(<AddTask sectionId={3} />)
+        const input = await open(user)
+        const other = document.body.appendChild(document.createElement("button"))
+
+        await user.type(input, "Buy milk{Enter}")
+        // A menu (or anything else) takes the focus before the creation ends
+        other.focus()
+        creation.resolve(50)
+
+        await waitFor(() => expect(ctx.appendTask).toHaveBeenCalled())
+        expect(other).toHaveFocus()
+        other.remove()
+    })
+
     it("with keepAddingTasks on, Enter on an empty field closes the input", async () => {
         prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: true }
         const user = userEvent.setup()
