@@ -7,6 +7,7 @@ import { useTabs, useTabsActions } from "./use-tabs"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
 import { getDBNoteData } from "@/db/queries/note"
 import { updateDBGroupPositions, updateDBGroupWidth } from "@/db/queries/group"
+import { setDBCollapsed } from "@/db/queries/collapsed"
 import { createDBTask } from "@/db/queries/task"
 import { deleteDBItem, renameDBItem, updateDBColor } from "@/db/queries/shared_queries"
 import { createDBSection } from "@/db/queries/section"
@@ -46,6 +47,7 @@ vi.mock("@/db/queries/task", () => ({
     updateDBTaskPriority: vi.fn(),
 }))
 vi.mock("@/db/queries/group", () => ({ updateDBGroupPositions: vi.fn(), updateDBGroupWidth: vi.fn() }))
+vi.mock("@/db/queries/collapsed", () => ({ setDBCollapsed: vi.fn() }))
 vi.mock("@/db/queries/tree", () => ({ moveDBTreeItem: vi.fn() }))
 vi.mock("@/db/queries/move", () => ({ moveDBSection: vi.fn(), moveDBSectionToNewGroup: vi.fn(), moveDBTask: vi.fn() }))
 vi.mock("@/db/queries/trash", () => ({
@@ -898,6 +900,28 @@ describe("WorkspaceDataContext", () => {
 
             await act(async () => {
                 await expect(result.current.setGroupWidth(1, 300)).rejects.toThrow("fail")
+            })
+            expect(result.current.isLoading).toBe(false)
+        })
+    })
+
+    describe("setCollapsed", () => {
+        it("persists the open/closed state of a group, a section or a task", async () => {
+            const { result } = renderHook(() => useAll(), { wrapper })
+
+            await act(() => result.current.setCollapsed("group", 3, true))
+            await act(() => result.current.setCollapsed("task", 8, false))
+
+            expect(setDBCollapsed).toHaveBeenNthCalledWith(1, "group", 3, true)
+            expect(setDBCollapsed).toHaveBeenNthCalledWith(2, "task", 8, false)
+        })
+
+        it("rejects when the db update fails", async () => {
+            vi.mocked(setDBCollapsed).mockRejectedValue(new Error("fail"))
+            const { result } = renderHook(() => useAll(), { wrapper })
+
+            await act(async () => {
+                await expect(result.current.setCollapsed("section", 1, true)).rejects.toThrow("fail")
             })
             expect(result.current.isLoading).toBe(false)
         })

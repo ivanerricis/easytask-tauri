@@ -37,16 +37,21 @@ export type SelectedItem = { type: "task", id: number }
 
 export type ScrollPosition = { left: number, top: number }
 
+/** The elements that can be closed (their state is saved in the database). */
+export type RevealKind = "group" | "section" | "task"
+
 /**
- * Per-note UI state that must survive tab switches (collapsed sections, scroll position).
+ * Per-note UI state that must survive tab switches (selection, scroll position, elements the search has opened).
  * It is a plain external store: it never triggers a re-render of the whole tabs tree.
+ * The saved open/closed state of groups, sections and tasks is NOT here: it is the `collapsed` column of the note data.
  * @category Tabs
  */
 export type TabUiStore = {
-    isSectionCollapsed: (noteId: number, sectionId: number) => boolean
-    setSectionCollapsed: (noteId: number, sectionId: number, collapsed: boolean) => void
-    isGroupCollapsed: (noteId: number, groupId: number) => boolean
-    setGroupCollapsed: (noteId: number, groupId: number, collapsed: boolean) => void
+    /** Whether the search has opened a closed element just to show a match (temporary: nothing is saved). */
+    isRevealed: (noteId: number, kind: RevealKind, id: number) => boolean
+    setRevealed: (noteId: number, kind: RevealKind, id: number, revealed: boolean) => void
+    /** Closes again everything the search had opened in a note. */
+    clearRevealed: (noteId: number) => void
     getSelectedItem: (noteId: number) => SelectedItem | null
     setSelectedItem: (noteId: number, item: SelectedItem | null) => void
     getScroll: (noteId: number) => ScrollPosition | undefined

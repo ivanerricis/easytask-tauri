@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, useSyncExternalStore, t
 import { useActiveNote } from "@/contexts/use-active-note"
 import { useActiveNoteId, useTabUiStore } from "@/contexts/use-tabs"
 import { usePreferences } from "@/contexts/use-preferences"
+import { collapsedIds } from "@/lib/collapsed"
 import { createSelectionStore, type SelectionStore } from "../sidebar/selection"
 import { flattenVisibleTasks, taskKey } from "./task-selection"
 
@@ -15,7 +16,7 @@ const escapeIsTaken = (target: EventTarget | null) =>
 
 /**
  * Tells the store which tasks are in view (in drawing order), so a range selection follows the screen and a task that is
- * deleted, archived, hidden (completed) or inside a closed group/section leaves the selection.
+ * deleted, archived, hidden (completed) or inside a closed group/section/task leaves the selection.
  */
 function TaskSelectionSync({ store }: { store: SelectionStore }) {
     const { noteDataTree } = useActiveNote()
@@ -26,10 +27,13 @@ function TaskSelectionSync({ store }: { store: SelectionStore }) {
     useEffect(() => {
         const sync = () => {
             if (!noteDataTree || noteId === null) return store.sync([])
+            // Open = not saved as closed, or opened by the search just to show a match
+            const closed = collapsedIds(noteDataTree)
             const tasks = flattenVisibleTasks(noteDataTree, {
                 hideCompleted: hideCompletedTasks,
-                isGroupOpen: groupId => !uiStore.isGroupCollapsed(noteId, groupId),
-                isSectionOpen: sectionId => !uiStore.isSectionCollapsed(noteId, sectionId),
+                isGroupOpen: groupId => !closed.groups.has(groupId) || uiStore.isRevealed(noteId, "group", groupId),
+                isSectionOpen: sectionId => !closed.sections.has(sectionId) || uiStore.isRevealed(noteId, "section", sectionId),
+                isTaskOpen: taskId => !closed.tasks.has(taskId) || uiStore.isRevealed(noteId, "task", taskId),
             })
             store.sync(tasks.map(task => taskKey(task.id)))
         }

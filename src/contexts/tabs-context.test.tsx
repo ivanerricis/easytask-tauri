@@ -2,7 +2,7 @@ import { act, render, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { TabsProvider } from "./tabs-context"
-import { useActiveNoteId, useActiveNoteSelector, useGroupOpen, useIsTaskSelected, useSelectTask, useSelectedTask, useSectionOpen, useTabs, useTabsActions } from "./use-tabs"
+import { useActiveNoteId, useActiveNoteSelector, useIsTaskSelected, useSelectTask, useSelectedTask, useTabs, useTabsActions } from "./use-tabs"
 import { getReopenNotes } from "@/lib/store/preferences"
 import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
 import { makeNote } from "@/test/ui-fixtures"
@@ -177,56 +177,6 @@ describe("TabsProvider", () => {
             await waitFor(() => expect(console.error).toHaveBeenCalled())
             act(() => latest.current.openNote(1))
             expect(latest.current.openIds).toEqual([1])
-        })
-    })
-
-    describe("useSectionOpen", () => {
-        it("keeps the collapsed state per note across tab switches and drops it when the tab is closed", () => {
-            const wrapper = ({ children }: { children: ReactNode }) =>
-                <TabsProvider notes={notesOf(1, 2)} workspaceId={null}>{children}</TabsProvider>
-            const { result } = renderHook(() => ({ section: useSectionOpen(5), other: useSectionOpen(6), ...useTabsActions() }), { wrapper })
-
-            act(() => { result.current.openNote(1) })
-            expect(result.current.section[0]).toBe(true)
-
-            act(() => result.current.section[1]())
-            expect(result.current.section[0]).toBe(false)
-            expect(result.current.other[0]).toBe(true)
-
-            act(() => result.current.openNote(2))
-            expect(result.current.section[0]).toBe(true) // same section id, other note
-
-            act(() => result.current.activateNote(1))
-            expect(result.current.section[0]).toBe(false) // restored
-
-            act(() => result.current.closeNote(1))
-            act(() => result.current.openNote(1))
-            expect(result.current.section[0]).toBe(true) // state of a closed tab is dropped
-        })
-    })
-
-    describe("useGroupOpen", () => {
-        it("keeps the collapsed state per note and drops it when the tab is closed", () => {
-            const wrapper = ({ children }: { children: ReactNode }) =>
-                <TabsProvider notes={notesOf(1, 2)} workspaceId={null}>{children}</TabsProvider>
-            const { result } = renderHook(() => ({ group: useGroupOpen(5), section: useSectionOpen(5), ...useTabsActions() }), { wrapper })
-
-            act(() => { result.current.openNote(1) })
-            expect(result.current.group[0]).toBe(true)
-
-            act(() => result.current.group[1]())
-            expect(result.current.group[0]).toBe(false)
-            expect(result.current.section[0]).toBe(true) // independent from sections
-
-            act(() => result.current.openNote(2))
-            expect(result.current.group[0]).toBe(true)
-
-            act(() => result.current.activateNote(1))
-            expect(result.current.group[0]).toBe(false)
-
-            act(() => result.current.closeNote(1))
-            act(() => result.current.openNote(1))
-            expect(result.current.group[0]).toBe(true)
         })
     })
 

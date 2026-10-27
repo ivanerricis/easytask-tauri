@@ -1,5 +1,6 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from "react"
 import type { ArchiveItem, ArchiveItemType, Folder, Group, Note, TrashItem, WorkspaceDataTree } from "@/types/types"
+import type { CollapsibleKind } from "@/db/queries/collapsed"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import type { TaskMoveTarget } from "@/db/queries/move"
 import type { NoteTemplate } from "@/types/template"
@@ -75,6 +76,8 @@ export type WorkspaceActionsType = {
     updateGroupsPositions: (groups: Group[]) => Promise<void>
     /** Saves the width of a group in pixels (null = automatic). Not an undo step; the caller patches the open note first. */
     setGroupWidth: (groupId: number, width: number | null) => Promise<void>
+    /** Saves whether a group, a section or a task is closed (a state of the view: not an undo step; the caller patches the open note first). */
+    setCollapsed: (kind: CollapsibleKind, id: number, collapsed: boolean) => Promise<void>
     /** Resolves with the previous color of every folder and note it touched (the folder itself first), to undo it. */
     updateFolderColorContent: (folderID: number, color?: string) => Promise<PreviousColor[]>
 

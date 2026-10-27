@@ -123,6 +123,9 @@ export const errors: Translation["errors"] = {
         updatePositions: "An error occurred while updating group positions: {{message}}",
         updateWidth: "Could not save the group width: {{message}}",
     },
+    collapsed: {
+        save: "Could not save the open or closed state: {{message}}",
+    },
     unsupportedItemType: "Unsupported item type: {{type}}",
     db: {
         legacy: "Database from an older, incompatible version: delete the file Documents/EasyTask/easytask.db and restart the app.",

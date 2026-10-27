@@ -18,22 +18,25 @@ export type FlattenOptions = {
     hideCompleted: boolean
     isGroupOpen: (groupId: number) => boolean
     isSectionOpen: (sectionId: number) => boolean
+    /** Whether the subtasks of a task are shown (default: always). */
+    isTaskOpen?: (taskId: number) => boolean
 }
 
 const sortedGroups = (tree: NoteDataTree) => [...tree.groups].sort((a, b) => a.position - b.position)
 
 /**
  * The tasks of the note in the order they are drawn: groups by position (closed groups leave out their tasks), in each
- * group its sections in their order, the list of the tasks put directly in the group being one of them (wherever it was placed), the closed sections leaving out their tasks; every task is followed by its subtasks (depth first).
+ * group its sections in their order, the list of the tasks put directly in the group being one of them (wherever it was placed), the closed sections leaving out their tasks; every task is followed by its subtasks (depth first), unless the task is closed.
  * Completed tasks are left out when they are hidden (see visibleTasks). It is the order of the range selection.
  * @category Note
  */
-export function flattenVisibleTasks(tree: NoteDataTree, { hideCompleted, isGroupOpen, isSectionOpen }: FlattenOptions): Task[] {
+export function flattenVisibleTasks(tree: NoteDataTree, { hideCompleted, isGroupOpen, isSectionOpen, isTaskOpen }: FlattenOptions): Task[] {
     const result: Task[] = []
     const visit = (list: Task[]) => {
         for (const task of visibleTasks(list, hideCompleted)) {
             result.push(task)
-            visit(task.subtasks ?? [])
+            // The subtasks of a closed task are hidden: they cannot be part of a range selection
+            if (!isTaskOpen || isTaskOpen(task.id)) visit(task.subtasks ?? [])
         }
     }
     for (const group of sortedGroups(tree)) {
