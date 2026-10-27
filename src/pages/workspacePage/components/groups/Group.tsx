@@ -117,12 +117,8 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
                 onAddSection={addSection}
             />
             {isOpen && <>
-<<<<<<< HEAD
                 {/* The audio files stay put above the scrolling area: the list neither scrolls by itself nor with the sections */}
-                <GroupAudioFiles groupId={group.id} />
-=======
                 {!isDraft && <GroupAudioFiles groupId={group.id} />}
->>>>>>> feat/0.15-template-editor
                 {/* The list of the direct tasks (with its "New task" button) sits among the sections where the user put it;
                     it, the sections and the form of a new section scroll together */}
                 {/* The scrolling area is wider (6px) and taller (4px) than the group, with the same padding inside: the drop rings (2px) and
