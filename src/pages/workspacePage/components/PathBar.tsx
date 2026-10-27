@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useRef, useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
-import { Eye, EyeOff, Search } from "lucide-react"
+import { CirclePlus, Eye, EyeOff, Search } from "lucide-react"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import { Toggle } from "@/components/ui/toggle"
@@ -14,6 +14,7 @@ import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useDraftOfNote, useDraftSaveStatus, useTemplateDraftActions } from "@/contexts/use-template-drafts"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { focusRing } from "@/lib/a11y"
+import { requestAppCommand } from "@/lib/app-commands"
 import { requestTreeReveal } from "@/lib/tree-reveal"
 import { cn } from "@/lib/utils"
 import { getNotePath, type NotePathSegment } from "./sidebar/note-path"
@@ -39,6 +40,7 @@ export const PathBar = () => {
     const { workspaceDataTree } = useWorkspaceData()
     const { hideCompletedTasks, setHideCompletedTasks } = usePreferences()
     const hideLabel = useShortcutLabel("toggle-hide-completed")
+    const newGroupLabel = useShortcutLabel("new-group")
     const searchLabel = useShortcutLabel("search-in-note")
     const draft = useDraftOfNote(activeId)
     const draftStatus = useDraftSaveStatus(activeId)
@@ -106,6 +108,12 @@ export const PathBar = () => {
             {/* More buttons can be added here */}
             <div className="ml-auto flex shrink-0 items-center gap-1">
                 {draft && activeId !== null && <DraftSaveStatus status={draftStatus} onRetry={() => { void retrySave(activeId) }} />}
+                <TooltipCustom text={t("menu.newGroup")} shortcut={newGroupLabel}>
+                    <Button type="button" variant="ghost" size="icon" className="relative size-7 after:absolute after:-inset-0.5 after:content-[''] [&_svg]:!size-4"
+                        aria-label={t("menu.newGroup")} onClick={() => requestAppCommand("new-group")}>
+                        <CirclePlus />
+                    </Button>
+                </TooltipCustom>
                 {search && (searchOpen
                     ? <NoteSearchField store={search} inputRef={searchInputRef} />
                     : <TooltipCustom text={t("notes.noteSearch.inNote")} shortcut={searchLabel}>

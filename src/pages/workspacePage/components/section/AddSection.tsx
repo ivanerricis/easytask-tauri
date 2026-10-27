@@ -50,7 +50,7 @@ export const AddSection = ({ inGroup, groupId, open, onClose }: AddSectionFormPr
 
     useShortcut("new-group", handleOpen, { enabled: !inGroup, allowInInputs: true })
 
-    // The "New group" button of the empty note asks for the same form (it only opens it)
+    // The "New group" buttons (path bar, empty note) and the background menu ask for the same form (it only opens it)
     // The form sits at the end of a possibly long horizontal list: when asked from elsewhere it is scrolled into view
     const revealForm = useRef(false)
     useAppCommand("new-group", () => { revealForm.current = true; setOpen(true); setName("") }, { enabled: !inGroup })
@@ -113,8 +113,11 @@ export const AddSection = ({ inGroup, groupId, open, onClose }: AddSectionFormPr
 
     if (!isOpen && controlled) return null
 
+    // The group form has no button: it is asked for by the "new group" command (path bar button, shortcut, menus)
+    if (!isOpen && !inGroup) return null
+
     return !isOpen ? (
-        <AddButton onClick={handleOpen} inGroup={inGroup} />
+        <AddButton onClick={handleOpen} />
     ) : (
         <form
             ref={formRef}

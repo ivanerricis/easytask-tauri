@@ -4,12 +4,11 @@ import { Button } from "@/components/ui/button"
 
 type AddButtonProps = {
     onClick?: () => void
-    inGroup?: boolean
 }
 
-export const AddButton = ({ onClick, inGroup }: AddButtonProps) => {
+export const AddButton = ({ onClick }: AddButtonProps) => {
     const { t } = useTranslation()
-    const label = inGroup ? t("sections.new") : t("menu.newGroup")
+    const label = t("sections.new")
     return (
         <Button
             type="button"
@@ -17,7 +16,7 @@ export const AddButton = ({ onClick, inGroup }: AddButtonProps) => {
             onClick={onClick}
             aria-label={label}
             title={label}
-            className={`${inGroup ? 'w-full' : 'w-fit px-4'} h-9 rounded-xs border border-dashed border-muted-foreground/45 hover:border-foreground/60 font-normal text-muted-foreground hover:text-foreground`}
+            className="w-full h-9 rounded-xs border border-dashed border-muted-foreground/45 hover:border-foreground/60 font-normal text-muted-foreground hover:text-foreground"
         >
             <Plus />
             <span className="text-nowrap">{label}</span>
