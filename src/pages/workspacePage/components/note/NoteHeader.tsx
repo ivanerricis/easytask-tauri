@@ -11,6 +11,9 @@ import { focusRing } from "@/lib/a11y"
 import { cn } from "@/lib/utils"
 import { useInlineRename } from "@/hooks/use-inline-rename"
 import { InlineNameInput } from "@/components/inline-name-input"
+import { useDraftOfNote } from "@/contexts/use-template-drafts"
+import { TemplateTabLabel } from "../template-draft/TemplateTabLabel"
+import { DraftTabMenu } from "../template-draft/DraftTabMenu"
 
 type NoteHeaderProps = {
     note: Note
@@ -26,6 +29,9 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
     const activeId = useActiveNoteId()
     const { closeNote, activateNote } = useTabsActions()
     const isActive = activeId === note.id
+    // A template editor: its tab shows the template (badge, name, color) and has its own menu
+    const draft = useDraftOfNote(note.id)
+    const color = draft ? draft.color : note.color
     const closeLabel = useShortcutLabel("close-note")
     const { editing, error, start: startRename, inputProps } = useInlineRename({ itemType: "note", id: note.id, name: note.name })
 
@@ -34,54 +40,57 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
         closeNote(note.id)
     }
 
-    return (
-        <ButtonMenuNote note={note} onRename={startRename}>
-            <div
-                className={cn(
-                    "group/tab relative flex items-stretch min-h-[42px] border-x border-b",
-                    isActive ? "bg-background border-x-primary border-b-transparent" : "bg-secondary border-x-transparent border-b-primary hover:bg-background/40",
-                )}
+    const tab = (
+        <div
+            className={cn(
+                "group/tab relative flex items-stretch min-h-[42px] border-x border-b",
+                isActive ? "bg-background border-x-primary border-b-transparent" : "bg-secondary border-x-transparent border-b-primary hover:bg-background/40",
+            )}
+        >
+            {/* Color container */}
+            {color && <div
+                className="w-full h-1 absolute top-0"
+                style={{ backgroundColor: color }}
             >
-                {/* Color container */}
-                {note.color && <div
-                    className="w-full h-1 absolute top-0"
-                    style={{ backgroundColor: note.color }}
-                >
-                </div>}
+            </div>}
 
-                {/* Same height as the sidebar header (32px buttons + padding + border), the content centered in it */}
-                {editing && <div className="flex min-w-0 flex-1 items-center py-1 pl-2 pr-1">
-                    <InlineNameInput {...inputProps} error={error} aria-label={t("common.name")} className="max-w-56 text-sm" />
-                </div>}
-                {!editing && <button
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    tabIndex={isActive ? 0 : -1}
-                    data-note-id={note.id}
-                    title={note.name}
-                    onClick={() => activateNote(note.id)}
-                    className={cn(focusRing, "flex min-w-0 flex-1 cursor-pointer items-center py-1 pl-2 pr-1 text-left text-sm")}
-                >
-                    <span className={cn("block max-w-44 truncate", isActive ? "font-medium text-foreground" : "text-muted-foreground")}>
+            {/* Same height as the sidebar header (32px buttons + padding + border), the content centered in it */}
+            {editing && !draft && <div className="flex min-w-0 flex-1 items-center py-1 pl-2 pr-1">
+                <InlineNameInput {...inputProps} error={error} aria-label={t("common.name")} className="max-w-56 text-sm" />
+            </div>}
+            {(!editing || draft) && <button
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                tabIndex={isActive ? 0 : -1}
+                data-note-id={note.id}
+                title={draft ? t("templateEditor.tab", { name: draft.templateName }) : note.name}
+                onClick={() => activateNote(note.id)}
+                className={cn(focusRing, "flex min-w-0 flex-1 cursor-pointer items-center py-1 pl-2 pr-1 text-left text-sm")}
+            >
+                {draft
+                    ? <TemplateTabLabel name={draft.templateName} className={cn("max-w-52", isActive ? "font-medium text-foreground" : "text-muted-foreground")} />
+                    : <span className={cn("block max-w-44 truncate", isActive ? "font-medium text-foreground" : "text-muted-foreground")}>
                         {note.name}
-                    </span>
-                </button>}
-                <div className="flex shrink-0 items-center gap-1 py-1 pr-1">
-                    <TooltipCustom text={isActive ? t("notes.closeCurrent") : t("notes.close")} shortcut={isActive ? closeLabel : undefined}>
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            aria-label={isActive ? t("notes.closeCurrent") : t("notes.close")}
-                            onClick={handleCloseHeader}
-                            className={cn("relative size-7 after:absolute after:-inset-0.5 after:content-['']", isActive ? "text-foreground" : "text-muted-foreground opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100")}
-                        >
-                            <X />
-                        </Button>
-                    </TooltipCustom>
-                </div>
+                    </span>}
+            </button>}
+            <div className="flex shrink-0 items-center gap-1 py-1 pr-1">
+                <TooltipCustom text={isActive ? t("notes.closeCurrent") : t("notes.close")} shortcut={isActive ? closeLabel : undefined}>
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        aria-label={isActive ? t("notes.closeCurrent") : t("notes.close")}
+                        onClick={handleCloseHeader}
+                        className={cn("relative size-7 after:absolute after:-inset-0.5 after:content-['']", isActive ? "text-foreground" : "text-muted-foreground opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100")}
+                    >
+                        <X />
+                    </Button>
+                </TooltipCustom>
             </div>
-        </ButtonMenuNote>
+        </div>
     )
+
+    if (draft) return <DraftTabMenu draft={draft}>{tab}</DraftTabMenu>
+    return <ButtonMenuNote note={note} onRename={startRename}>{tab}</ButtonMenuNote>
 })

@@ -25,4 +25,9 @@ export const templateEditor: Translation["templateEditor"] = {
         placeholder: "Search the note to refresh the template from…",
     },
     refreshOtherDescription: "The content of the template \"{{name}}\" will be replaced with the current content of the note \"{{note}}\", which becomes its source note. Notes already created from the template do not change.",
+    tabMenu: {
+        rename: "Rename template",
+        createNote: "Create note from this template",
+        closeEditor: "Close editor",
+    },
 }

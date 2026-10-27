@@ -8,6 +8,8 @@ import { useTabsActions } from "@/contexts/use-tabs"
 import { TREE_REVEAL_EVENT } from "@/lib/tree-reveal"
 import type { Folder, Note } from "@/types/types"
 import { makeNote } from "@/test/ui-fixtures"
+import { TemplateDraftsActionsContext, TemplateDraftsContext, type TemplateDraftsActionsType } from "@/contexts/template-drafts-context-object"
+import type { DraftSaveStatus } from "@/lib/template-draft"
 import type { TreeData } from "./sidebar/tree-dnd"
 import { PathBar } from "./PathBar"
 import { NoteSearchContext } from "./note-search-context"
@@ -218,5 +220,47 @@ describe("PathBar search", () => {
         expect((field as HTMLInputElement).selectionEnd).toBe(3)
         expect((field as HTMLInputElement).selectionStart).toBe(0)
         expect(store.getState().query).toBe("xyz")
+    })
+})
+
+describe("PathBar of a template editor", () => {
+    const draftNote = makeNote({ id: 7, name: "Bozza" })
+    const retrySave = vi.fn().mockResolvedValue(true)
+
+    const setupDraft = async (status: DraftSaveStatus) => {
+        const actions: TemplateDraftsActionsType = {
+            openTemplateEditor: async () => {}, flushTemplate: async () => true, flushAll: async () => true,
+            retrySave, refreshDrafts: async () => {},
+            statusStore: { subscribe: () => () => {}, getStatus: () => status },
+        }
+        render(
+            <ShortcutsProvider>
+                <TabsProvider notes={[draftNote]} workspaceId={null}>
+                    <TemplateDraftsContext.Provider value={{ drafts: [{ noteId: 7, templateId: 3, templateName: "Sprint", color: null, trashed: false }] }}>
+                        <TemplateDraftsActionsContext.Provider value={actions}>
+                            <Opener ids={[7]} />
+                            <PathBar />
+                        </TemplateDraftsActionsContext.Provider>
+                    </TemplateDraftsContext.Provider>
+                </TabsProvider>
+            </ShortcutsProvider>,
+        )
+        await act(async () => { })
+    }
+
+    it("shows Template and the name of the template instead of the folders, with the save state", async () => {
+        await setupDraft("saved")
+        const nav = screen.getByRole("navigation", { name: "Percorso della nota" })
+        expect(nav).toHaveTextContent("Template")
+        expect(nav).toHaveTextContent("Sprint")
+        expect(screen.queryByRole("button", { name: /nella barra laterale/ })).not.toBeInTheDocument()
+        expect(screen.getByRole("status")).toHaveTextContent("Salvato")
+    })
+
+    it("retries the save of the draft from the Retry button", async () => {
+        retrySave.mockClear()
+        await setupDraft("error")
+        await userEvent.click(screen.getByRole("button", { name: "Riprova" }))
+        expect(retrySave).toHaveBeenCalledWith(7)
     })
 })

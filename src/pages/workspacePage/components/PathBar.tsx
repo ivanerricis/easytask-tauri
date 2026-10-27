@@ -11,11 +11,13 @@ import { useActiveNoteId } from "@/contexts/use-tabs"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { useWorkspaceData } from "@/contexts/workspace-data"
+import { useDraftOfNote, useDraftSaveStatus, useTemplateDraftActions } from "@/contexts/use-template-drafts"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { focusRing } from "@/lib/a11y"
 import { requestTreeReveal } from "@/lib/tree-reveal"
 import { cn } from "@/lib/utils"
 import { getNotePath, type NotePathSegment } from "./sidebar/note-path"
+import { DraftSaveStatus } from "./template-draft/DraftSaveStatus"
 import { NoteSearchField } from "./NoteSearchField"
 import { useNoteSearchStore } from "./note-search-context"
 
@@ -38,6 +40,9 @@ export const PathBar = () => {
     const { hideCompletedTasks, setHideCompletedTasks } = usePreferences()
     const hideLabel = useShortcutLabel("toggle-hide-completed")
     const searchLabel = useShortcutLabel("search-in-note")
+    const draft = useDraftOfNote(activeId)
+    const draftStatus = useDraftSaveStatus(activeId)
+    const { retrySave } = useTemplateDraftActions()
     const search = useNoteSearchStore()
     const searchOpen = useSyncExternalStore(search?.subscribe ?? NEVER, () => search?.getState().open ?? false)
     const searchInputRef = useRef<HTMLInputElement>(null)
@@ -64,7 +69,16 @@ export const PathBar = () => {
         <div className="flex h-8 shrink-0 items-center gap-2 px-2">
             <Breadcrumb aria-label={t("notes.path.label")} className="min-w-0 flex-1">
                 <BreadcrumbList className="flex-nowrap gap-1 text-xs sm:gap-1">
-                    {segments.map((segment, index) => (
+                    {draft && (
+                        <>
+                            <BreadcrumbItem className="shrink-0">{t("templateEditor.pathRoot")}</BreadcrumbItem>
+                            <BreadcrumbSeparator className="shrink-0" />
+                            <BreadcrumbItem className="min-w-0">
+                                <span title={draft.templateName} aria-current="page" className="min-w-0 truncate px-1 font-medium text-foreground">{draft.templateName}</span>
+                            </BreadcrumbItem>
+                        </>
+                    )}
+                    {!draft && segments.map((segment, index) => (
                         <Fragment key={segment ? `${segment.type}-${segment.id}` : "ellipsis"}>
                             {index > 0 && <BreadcrumbSeparator className="shrink-0" />}
                             {segment ? (
@@ -91,6 +105,7 @@ export const PathBar = () => {
             </Breadcrumb>
             {/* More buttons can be added here */}
             <div className="ml-auto flex shrink-0 items-center gap-1">
+                {draft && activeId !== null && <DraftSaveStatus status={draftStatus} onRetry={() => { void retrySave(activeId) }} />}
                 {search && (searchOpen
                     ? <NoteSearchField store={search} inputRef={searchInputRef} />
                     : <TooltipCustom text={t("notes.noteSearch.inNote")} shortcut={searchLabel}>
