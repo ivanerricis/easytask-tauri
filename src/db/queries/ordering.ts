@@ -73,16 +73,18 @@ export async function siblingIds(
 }
 
 /** A live row of the shared order of a group: a section with a header or the default section (the list of the direct tasks). */
-export type OrderRow = { id: number, isDefault: boolean }
+export type OrderRow = { id: number, isDefault: boolean, archived?: boolean }
 
 /**
  * The live rows of a group (the default section included), in their shared order, without `excludeId`.
+ * Archived sections are part of the order (they keep their place) but are flagged: the note does not show them, so the indexes
+ * of the app do not count them.
  * @category Database Queries
  */
 export async function groupOrderRows(db: Database, groupId: number, excludeId: number): Promise<OrderRow[]> {
-    const rows = await db.select<{ id: number, is_default: number | boolean }[]>(
-        'SELECT id, is_default FROM section WHERE groupID = ? AND deleted_at IS NULL AND id <> ? ORDER BY position, id', [groupId, excludeId])
-    return rows.map(row => ({ id: row.id, isDefault: row.is_default === true || row.is_default === 1 }))
+    const rows = await db.select<{ id: number, is_default: number | boolean, archived_at: string | null }[]>(
+        'SELECT id, is_default, archived_at FROM section WHERE groupID = ? AND deleted_at IS NULL AND id <> ? ORDER BY position, id', [groupId, excludeId])
+    return rows.map(row => ({ id: row.id, isDefault: row.is_default === true || row.is_default === 1, archived: row.archived_at !== null }))
 }
 
 /**
@@ -94,7 +96,8 @@ export async function groupOrderRows(db: Database, groupId: number, excludeId: n
  */
 export function insertAmongSections(rows: readonly OrderRow[], index: number, id: number, beforeList = false): number[] {
     const ids = rows.map(row => row.id)
-    const headed = rows.filter(row => !row.isDefault)
+    // Only the sections the note shows: an archived one is not counted by the index
+    const headed = rows.filter(row => !row.isDefault && !row.archived)
     const at = clampIndex(index, headed.length)
     let before = at < headed.length ? ids.indexOf(headed[at].id) : ids.length
     if (beforeList && before > 0 && rows[before - 1].isDefault) before -= 1

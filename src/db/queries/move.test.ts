@@ -515,6 +515,32 @@ describe("the list of the direct tasks among the sections", () => {
         expect(sectionsOf(1)).toEqual(["S1", "S2", "S3"])
     })
 
+    describe("with an archived section in the group (not in the note tree, so not counted by the indexes of the app)", () => {
+        // What the note shows: the live rows without the archived ones
+        const shown = (groupId: number) =>
+            rows(`SELECT title, is_default FROM section WHERE groupID = ${groupId} AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, id`)
+                .map(r => r.is_default ? "(list)" : r.title)
+
+        it("moves the list among the sections that are shown", async () => {
+            await seedSections()
+            sqlite.exec("UPDATE section SET archived_at = '2026-01-01' WHERE title = 'S1'")
+            expect(shown(1)).toEqual(["(list)", "S2", "S3"])
+            await moveDBDirectSection(1, 1)
+            expect(shown(1)).toEqual(["S2", "(list)", "S3"])
+            await moveDBDirectSection(1, 2)
+            expect(shown(1)).toEqual(["S2", "S3", "(list)"])
+        })
+
+        it("moves a section to the index it has among the sections that are shown", async () => {
+            await seedSections()
+            sqlite.exec("UPDATE section SET archived_at = '2026-01-01' WHERE title = 'S1'")
+            await moveDBSection(sectionId("S3"), 1, 0)
+            expect(shown(1)).toEqual(["(list)", "S3", "S2"])
+            await moveDBSection(sectionId("S3"), 1, 1)
+            expect(shown(1)).toEqual(["(list)", "S2", "S3"])
+        })
+    })
+
     it("refuses a group that does not exist, is trashed or archived", async () => {
         await seedSections()
         await expect(moveDBDirectSection(999, 0)).rejects.toMatchObject({ code: "SECTION_MOVE_INVALID" })
