@@ -183,15 +183,25 @@ describe("AddTask", () => {
         await waitFor(() => expect(ctx.appendTask).toHaveBeenCalledTimes(1))
     })
 
-    it("closes and clears the text on outside mousedown", async () => {
+    it("keeps the typed text on an outside mousedown", async () => {
         const user = userEvent.setup()
         render(<AddTask sectionId={3} />)
         await user.type(await open(user), "draft")
 
         fireEvent.mouseDown(document.body)
-        expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
+        expect(screen.getByPlaceholderText("Nuovo task…")).toHaveValue("draft")
+        expect(ctx.createTask).not.toHaveBeenCalled()
+    })
 
-        // Reopening shows an empty input
+    it("closes on an outside mousedown when the field is empty, and again with the text erased", async () => {
+        const user = userEvent.setup()
+        render(<AddTask sectionId={3} />)
+        const input = await open(user)
+        await user.type(input, "x")
+        await user.clear(input)
+
+        fireEvent.mouseDown(document.body)
+        expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
         expect(await open(user)).toHaveValue("")
     })
 

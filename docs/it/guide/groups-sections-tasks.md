@@ -31,7 +31,7 @@ Il clic destro sull'area vuota della nota (fuori da gruppi, sezioni e task) apre
 | **Cambia colore**                      | sì     | sì      | Imposta o toglie il colore.                                      |
 | **Sposta a sinistra**, **Sposta a destra** | sì |         | Sposta il gruppo di un passo nella riga.                         |
 | **Sposta su**, **Sposta giù**          |        | sì      | Sposta la sezione di un passo nel suo gruppo, anche oltre la lista dei task del gruppo. |
-| **Sposta task del gruppo su**, **Sposta task del gruppo giù** | sì |  | Sposta la lista dei task del gruppo di un passo tra le sue sezioni. |
+| **Sposta lista task su**, **Sposta lista task giù** | sì |  | Sposta la lista dei task del gruppo di un passo tra le sue sezioni. |
 | **Sposta in…**                         |        | sì      | Sposta la sezione in fondo a un altro gruppo, o in un **Nuovo gruppo**. |
 | **Automazioni…**                       | sì     | sì      | Apre le automazioni della nota. Vedi [Automazioni](./automations). |
 | **Archivia**                           | sì     | sì      | Lo nasconde senza eliminarlo. Vedi [Cestino e archivio](./trash-and-archive). |
@@ -44,7 +44,7 @@ Puoi spostare gli elementi anche trascinandoli:
 - Trascina un gruppo dalla sua intestazione per riordinare i gruppi.
 - Trascina una sezione su un altro gruppo, o tra due sezioni, per spostarla. Una linea mostra dove cade, anche sopra o sotto la lista dei task del gruppo. Rilasciala sull'area **Nuovo gruppo** al bordo per farne un gruppo a sé.
 
-La lista dei task del gruppo segue lo stesso ordine delle sezioni: di default è in cima, e la sposti con **Sposta task del gruppo su** e **Sposta task del gruppo giù** (anche nel menu del clic destro del gruppo), che sono disattivate quando la lista è già a un'estremità. [Annulla](./undo-and-history.md) la riporta com'era.
+La lista dei task del gruppo segue lo stesso ordine delle sezioni: di default è in cima, e la sposti con **Sposta lista task su** e **Sposta lista task giù** (anche nel menu del clic destro del gruppo), che sono disattivate quando la lista è già a un'estremità. [Annulla](./undo-and-history.md) la riporta com'era.
 
 ### Comprimere, contatori e barre d'avanzamento
 

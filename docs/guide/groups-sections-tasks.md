@@ -31,7 +31,7 @@ A right-click on the empty area of the note (outside any group, section or task)
 | **Change color**                       | yes   | yes     | Sets or removes the color.                                      |
 | **Move left**, **Move right**          | yes   |         | Moves the group one step in the row.                            |
 | **Move up**, **Move down**             |       | yes     | Moves the section one step in its group, also past the list of the group tasks. |
-| **Move group tasks up**, **Move group tasks down** | yes |   | Moves the list of the tasks of the group one step among its sections. |
+| **Move task list up**, **Move task list down** | yes |   | Moves the list of the tasks of the group one step among its sections. |
 | **Move to…**                           |       | yes     | Moves the section to the end of another group, or to a **New group**. |
 | **Automations…**                       | yes   | yes     | Opens the automations of the note. See [Automations](./automations). |
 | **Archive**                            | yes   | yes     | Hides it without deleting. See [Trash and archive](./trash-and-archive). |
@@ -44,7 +44,7 @@ You can also move things by dragging:
 - Drag a group by its header to reorder the groups.
 - Drag a section onto another group, or between sections, to move it. A line shows where it lands, also above or below the list of the group tasks. Drop it on the **New group** area at the edge to make it a group of its own.
 
-The list of the group tasks follows the same order as the sections: by default it is at the top, and you can move it with **Move group tasks up** and **Move group tasks down** (also in the right-click menu of the group), which are disabled when the list is already at the end. [Undo](./undo-and-history.md) brings it back.
+The list of the group tasks follows the same order as the sections: by default it is at the top, and you can move it with **Move task list up** and **Move task list down** (also in the right-click menu of the group), which are disabled when the list is already at the end. [Undo](./undo-and-history.md) brings it back.
 
 ### Collapse, counters and progress bars
 

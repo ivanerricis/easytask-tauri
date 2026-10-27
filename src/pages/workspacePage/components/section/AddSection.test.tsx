@@ -134,10 +134,19 @@ describe("AddSection", () => {
         expect(screen.getByPlaceholderText(GROUP_PLACEHOLDER)).toBeInTheDocument()
     })
 
-    it("closes on outside click and clears the typed name", async () => {
+    it("keeps the typed name on an outside click", async () => {
         const user = userEvent.setup()
         render(<AddSection />)
         await user.type(await openGroupForm(user), "draft")
+
+        fireEvent.mouseDown(document.body)
+        expect(screen.getByPlaceholderText(GROUP_PLACEHOLDER)).toHaveValue("draft")
+    })
+
+    it("closes on outside click when the name is empty", async () => {
+        const user = userEvent.setup()
+        render(<AddSection />)
+        await openGroupForm(user)
 
         fireEvent.mouseDown(document.body)
         expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
@@ -218,13 +227,18 @@ describe("AddSection", () => {
             await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
         })
 
-        it("asks to close on Escape and on a click outside, without creating", async () => {
+        it("asks to close on Escape, and on a click outside only when the field is empty", async () => {
             const user = userEvent.setup()
             const onClose = vi.fn()
             render(<AddSection inGroup groupId={7} open onClose={onClose} />)
-            await user.type(screen.getByPlaceholderText(SECTION_PLACEHOLDER), "x{Escape}")
+            await user.type(screen.getByPlaceholderText(SECTION_PLACEHOLDER), "x")
+            fireEvent.mouseDown(document.body)
+            expect(onClose).not.toHaveBeenCalled()
+
+            await user.type(screen.getByPlaceholderText(SECTION_PLACEHOLDER), "{Escape}")
             expect(onClose).toHaveBeenCalledTimes(1)
 
+            await user.clear(screen.getByPlaceholderText(SECTION_PLACEHOLDER))
             fireEvent.mouseDown(document.body)
             expect(onClose).toHaveBeenCalledTimes(2)
             expect(ctx.createSectionInGroup).not.toHaveBeenCalled()

@@ -94,7 +94,8 @@ export const ButtonMenuGroup = ({ group, onRename, onAddSection, children }: Pro
                     menu.close()
                 }}
             />}
-            <DirectStepMoves groupId={group.id} onDone={menu.close} />
+            {/* Without sections the list has nowhere to go: the entries would be disabled for ever */}
+            {group.sections.length > 0 && <DirectStepMoves groupId={group.id} onDone={menu.close} />}
             <Separator />
             <ButtonInPopover
                 text={t("common.rename")}

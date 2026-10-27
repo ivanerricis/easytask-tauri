@@ -85,7 +85,7 @@ export const SectionStepMoves = ({ sectionId, onDone }: StepMovesProps & { secti
 }
 
 /**
- * "Sposta task del gruppo su / giù": one step of the list of the direct tasks of a group among its sections (the list is not
+ * "Sposta lista task su / giù": one step of the list of the direct tasks of a group among its sections (the list is not
  * draggable, it moves from the menu of the group). Disabled while it is first / last.
  */
 export const DirectStepMoves = ({ groupId, onDone }: StepMovesProps & { groupId: number }) => {
