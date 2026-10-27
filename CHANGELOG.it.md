@@ -4,6 +4,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.14.0] - 2026-10-27
+
 ### Aggiunto
 
 - La lista dei task creati direttamente in un gruppo può stare in qualsiasi punto tra le sue sezioni, non solo in cima. Spostala con "Sposta lista task su" e "Sposta lista task giù" nel menu del gruppo; una sezione può scavalcarla con "Sposta su" e "Sposta giù" o trascinandola, e una linea mostra se cade sopra o sotto la lista. Il pulsante "Nuovo task" del gruppo aggiunge alla lista dove si trova. Annulla e ripeti funzionano, e dopo l'aggiornamento tutto resta com'era (lista in cima).
@@ -397,7 +399,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...HEAD
+[0.14.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...v0.11.0
