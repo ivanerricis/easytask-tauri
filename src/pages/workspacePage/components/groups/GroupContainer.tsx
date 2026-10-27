@@ -11,6 +11,7 @@ import { EmptyNoteHints } from "../EmptyNoteHints"
 import { NoteSkeleton } from "./NoteSkeleton"
 import { NoteBackgroundMenu } from "./NoteBackgroundMenu"
 import { TaskSelectionProvider } from "../tasks/task-selection-context"
+import { TaskInsertProvider } from "../tasks/task-insert-state"
 import { TaskSelectionActionsProvider } from "../tasks/task-selection-actions"
 import { cn } from "@/lib/utils"
 
@@ -51,6 +52,7 @@ export const GroupContainer = () => {
     return (
         <NoteDndProvider>
         <TaskSelectionProvider>
+        <TaskInsertProvider>
         <TaskSelectionActionsProvider>
         {/* flex-1 + min-h-0: a tall note must scroll here instead of squeezing the tab bar above */}
         <NoteBackgroundMenu>
@@ -86,6 +88,7 @@ export const GroupContainer = () => {
         </div>
         </NoteBackgroundMenu>
         </TaskSelectionActionsProvider>
+        </TaskInsertProvider>
         </TaskSelectionProvider>
         </NoteDndProvider>
     )

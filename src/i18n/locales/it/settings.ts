@@ -267,6 +267,10 @@ export const settings = {
             label: "Continua ad aggiungere task",
             description: "Dopo aver creato un task resta aperto il campo per scrivere il successivo. Esc o un campo vuoto lo chiudono.",
         },
+        showTaskInsertLine: {
+            label: "Linea per inserire un task",
+            description: "Passando tra due task compare una linea con un + per inserire un nuovo task in quel punto.",
+        },
         subtaskCount: {
             label: "Mostra sottotask completati",
             description: "Un task con sottotask mostra quanti ne sono completati (es. 1/3).",

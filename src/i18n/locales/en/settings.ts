@@ -269,6 +269,10 @@ export const settings: Translation["settings"] = {
             label: "Keep adding tasks",
             description: "After creating a task the field stays open for the next one. Esc or an empty field closes it.",
         },
+        showTaskInsertLine: {
+            label: "Line to insert a task",
+            description: "Hovering between two tasks shows a line with a + to insert a new task at that point.",
+        },
         subtaskCount: {
             label: "Show completed subtasks",
             description: "A task with subtasks shows how many of them are completed (e.g. 1/3).",

@@ -10,7 +10,7 @@ type SectionBodyProps = {
 
 export const SectionBody = memo(({ isOpen, section }: SectionBodyProps) => (
     <div className={`flex flex-col w-full overflow-hidden dark:bg-secondary bg-background ${isOpen ? 'h-full' : 'hidden'}`}>
-        <TaskList tasks={section.tasks} />
+        <TaskList tasks={section.tasks} listKey={`s-${section.id}`} sectionId={section.id} clipped />
         <AddTask sectionId={section.id} />
     </div>
 ))

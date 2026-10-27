@@ -1,11 +1,11 @@
 import { useCallback, useMemo } from "react"
-import { createDBSubTask, createDBTask, updateDBTaskCompletion, updateDBTaskDescription, updateDBTaskPriority } from "@/db/queries/task"
+import { createDBSubTask, createDBTask, insertDBTaskAfter, updateDBTaskCompletion, updateDBTaskDescription, updateDBTaskPriority } from "@/db/queries/task"
 import { moveDBTask, type TaskMoveTarget } from "@/db/queries/move"
 import type { NewTaskPosition } from "@/lib/store/preferences"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type TaskActions = Pick<WorkspaceActionsType,
-    "createTask" | "createSubTask" | "updateTaskPriority" | "updateTaskCompletion" | "updateTaskDescription" | "moveTask">
+    "createTask" | "createSubTask" | "insertTaskAfter" | "updateTaskPriority" | "updateTaskCompletion" | "updateTaskDescription" | "moveTask">
 
 /**
  * Tasks and subtasks of the open note.
@@ -17,6 +17,9 @@ export function useTaskActions({ withLoading, withTrashChange }: Runtime): TaskA
 
     const createSubTask = useCallback((taskID: number, text: string, position?: NewTaskPosition) =>
         withLoading(() => createDBSubTask(taskID, text, position)), [withLoading])
+
+    const insertTaskAfter = useCallback((parent: { sectionId: number } | { parentTaskId: number }, afterTaskId: number | null, text: string) =>
+        withLoading(() => insertDBTaskAfter(parent, afterTaskId, text)), [withLoading])
 
     /**
      * Edit the priority of a task.
@@ -53,5 +56,5 @@ export function useTaskActions({ withLoading, withTrashChange }: Runtime): TaskA
     const moveTask = useCallback((taskID: number, target: TaskMoveTarget, targetIndex: number) =>
         withTrashChange(() => moveDBTask(taskID, target, targetIndex)), [withTrashChange])
 
-    return useMemo(() => ({ createTask, createSubTask, updateTaskPriority, updateTaskCompletion, updateTaskDescription, moveTask }), [ createTask, createSubTask, updateTaskPriority, updateTaskCompletion, updateTaskDescription, moveTask ])
+    return useMemo(() => ({ createTask, createSubTask, insertTaskAfter, updateTaskPriority, updateTaskCompletion, updateTaskDescription, moveTask }), [ createTask, createSubTask, insertTaskAfter, updateTaskPriority, updateTaskCompletion, updateTaskDescription, moveTask ])
 }

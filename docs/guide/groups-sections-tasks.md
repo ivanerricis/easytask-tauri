@@ -65,6 +65,17 @@ Tasks of a group count in its progress bar and in its task count. Drag one into 
 
 New tasks go to the end of the section. To put them at the top, choose **At the top** in **Settings > Notes and sections > Position of new tasks**.
 
+### Insert a task between two others
+
+Move the mouse between two tasks (of a section, of a group, or two subtasks): a thin line with a **+** in the middle appears. Click the **+** and a field opens right there. Type the text and press `Enter` to insert the task at that point; `Esc` closes the field and discards the text. The line also sits above the first task, to insert before it.
+
+- Only one field is open at a time: clicking another **+** moves it.
+- With **Keep adding tasks** on, the field moves under the new task so you can keep inserting in order; with it off, it closes after each task.
+- When completed tasks are hidden, the line above the first visible task inserts before it, and the hidden ones stay where they are.
+- The line is mouse only, and is not shown while you drag or with several tasks selected.
+- Each insert is a single step in the [undo history](./undo-and-history.md).
+- You can turn the lines off with **Settings > Notes and sections > Line to insert a task**.
+
 ### Add a subtask
 
 Point at a task and click **Add subtask**, or choose it from the task menu. Type the text and press `Enter`: the field stays open for the next subtask. `Esc` closes it. Subtasks can have their own subtasks, with no limit. The task shows how many of its subtasks are done (for example `1/3`) if **Show completed subtasks** is on.

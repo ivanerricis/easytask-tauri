@@ -19,6 +19,8 @@ import { AlignLeft, Flag, ListTree, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { AddTask } from "./AddTask"
+import { taskRowsWithInsert } from "./task-insert-rows"
+import { useTaskInsertStore } from "./task-insert-state"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import type { DropZone } from "../note-dnd"
@@ -103,6 +105,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
     const search = useSearchHighlight("task", task.id)
     const selectTask = useSelectTask()
     const selectionStore = useTaskSelectionStore()
+    const insertStore = useTaskInsertStore()
     const multiSelected = useIsTaskMultiSelected(task.id)
     // The press that is going to focus the row carried Ctrl/Cmd/Shift: it is a selection gesture, not a single selection
     const gestureDown = useRef(false)
@@ -123,6 +126,8 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
 
     // A new subtask of a closed task opens it first, so that the new subtask is seen
     const startAddSubtask = () => {
+        // The field at the bottom of the subtasks is the one open: a field of a "+" line elsewhere closes
+        insertStore.claimEnd(`t-${task.id}`)
         if (!subtasksOpen) toggleSubtasks()
         setAddingSubtask(true)
     }
@@ -332,8 +337,14 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
             {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute h-px bg-muted-foreground/45", sizes.tickTop, lineLeft, nestedSubtask ? "w-[13px]" : "w-[14px]")} />}
             {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
             {((hasSubtasks && subtasksOpen) || isAddingSubtask) && <div className={cn("flex flex-col self-stretch", sizes.subtasks, isSubtask ? "ml-[22px]" : "ml-6")}>
-                {visibleTasks(task.subtasks, hideCompleted).map(subtask =>
-                    <Task key={subtask.id} task={subtask} depth={depth + 1} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} density={density} />)}
+                {taskRowsWithInsert({
+                    all: task.subtasks,
+                    visible: visibleTasks(task.subtasks, hideCompleted),
+                    listKey: `t-${task.id}`,
+                    parent: { parentTaskId: task.id },
+                    depth: depth + 1,
+                    renderTask: subtask => <Task key={subtask.id} task={subtask} depth={depth + 1} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} density={density} />,
+                })}
                 {isAddingSubtask &&
                     <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}
             </div>}

@@ -99,3 +99,9 @@ export function useSelectedTaskKeys(): ReadonlySet<string> {
     const store = useTaskSelectionStore()
     return useSyncExternalStore(store?.subscribe ?? NEVER, () => store?.getSelected() ?? EMPTY)
 }
+
+/** Whether any task is selected (a boolean, so the subscriber re-renders only when the selection starts or ends). */
+export function useHasTaskSelection(): boolean {
+    const store = useTaskSelectionStore()
+    return useSyncExternalStore(store?.subscribe ?? NEVER, () => (store?.getSelected().size ?? 0) > 0)
+}

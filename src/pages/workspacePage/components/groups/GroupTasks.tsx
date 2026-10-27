@@ -35,7 +35,7 @@ const DirectTasks = memo(({ section }: DirectTasksProps) => {
             {/* Without tasks only the button is left: the empty box would just be a double border */}
             {section.tasks.length > 0 &&
                 <div className="flex flex-col w-full overflow-hidden border dark:bg-secondary bg-background">
-                    <TaskList tasks={section.tasks} />
+                    <TaskList tasks={section.tasks} listKey={`s-${section.id}`} sectionId={section.id} clipped />
                 </div>}
             <AddTask sectionId={section.id} inGroup />
         </div>

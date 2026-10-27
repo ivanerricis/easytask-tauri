@@ -67,6 +67,7 @@ export type WorkspaceActionsType = {
     createSectionInGroup: (groupId: number, title: string) => Promise<number>
     createTask: (sectionID: number, text: string, position?: NewTaskPosition) => Promise<number>
     createSubTask: (taskID: number, text: string, position?: NewTaskPosition) => Promise<number>
+    insertTaskAfter: (parent: { sectionId: number } | { parentTaskId: number }, afterTaskId: number | null, text: string) => Promise<{ id: number, index: number }>
 
     updateTaskPriority: (taskID: number, priority: boolean) => Promise<void>
     updateTaskCompletion: (taskID: number, isCompleted: boolean) => Promise<void>
