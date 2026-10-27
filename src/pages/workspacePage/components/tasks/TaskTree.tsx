@@ -29,24 +29,31 @@ function TaskTreeBody({ label, children }: { label: string, children: ReactNode 
     // The tasks on screen after the last render, to find the neighbour of one that has gone
     const snapshot = useRef<number[]>([])
 
-    // After every render of the list: if the task that was the tab stop is gone (deleted, archived, moved elsewhere) the tab
-    // stop passes to its neighbour (the next one, else the previous), which takes the focus when the focus was lost with it
+    // The tab stop is always a task on screen: if the task that was the tab stop is gone (deleted, archived, moved elsewhere,
+    // hidden because its parent was closed) the tab stop passes to its neighbour (the next one, else the previous), which
+    // takes the focus when the focus was lost with it. Checked after every render of the list and after any change of its
+    // rows (a parent closed from its own menu changes the rows without a new render of the list).
     useEffect(() => {
         const tree = ref.current
         if (!tree || !store) return
-        const ids = Array.from(tree.querySelectorAll<HTMLElement>(ROWS), item => Number(item.dataset.taskId))
-        const stop = store.getState()
-        if (stop !== null && !ids.includes(stop)) {
-            const before = snapshot.current
-            const at = before.indexOf(stop)
-            const candidates = at < 0 ? [] : [...before.slice(at + 1), ...before.slice(0, at).reverse()]
-            const next = candidates.find(id => ids.includes(id)) ?? null
-            store.set(next)
-            if (next !== null) focusIfLost(tree, next)
+        const reconcile = () => {
+            const ids = Array.from(tree.querySelectorAll<HTMLElement>(ROWS), item => Number(item.dataset.taskId))
+            const stop = store.getState()
+            if (stop !== null && !ids.includes(stop)) {
+                const before = snapshot.current
+                const at = before.indexOf(stop)
+                const candidates = at < 0 ? [] : [...before.slice(at + 1), ...before.slice(0, at).reverse()]
+                const next = candidates.find(id => ids.includes(id)) ?? null
+                store.set(next)
+                if (next !== null) focusIfLost(tree, next)
+            }
+            snapshot.current = ids
         }
-        snapshot.current = ids
-    })
-
+        reconcile()
+        const observer = new MutationObserver(reconcile)
+        observer.observe(tree, { childList: true, subtree: true })
+        return () => observer.disconnect()
+    }, [store])
     return (
         <TaskTreeContext.Provider value={value}>
             <div ref={ref} role="tree" aria-label={label} aria-multiselectable="true" className="flex flex-col w-full">

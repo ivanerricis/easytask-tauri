@@ -232,3 +232,26 @@ describe("focus recovery", () => {
         outside.remove()
     })
 })
+
+describe("tab stop of a closed task", () => {
+    it("when the task that was the tab stop is hidden by closing its parent, the tree keeps a tab stop (the parent, which takes the focus)", async () => {
+        setup()
+        act(() => row(13).focus())
+        expect(row(13)).toHaveAttribute("tabindex", "0")
+        // Closed from somewhere else (the menu of the parent, the note menu...): the subtask is no longer drawn
+        act(() => applyPatch(12, { collapsed: true }))
+        await waitFor(() => expect(row(13)).toBeNull())
+        const stops = Array.from(document.querySelectorAll("[role=treeitem][tabindex='0']"))
+        expect(stops).toHaveLength(1)
+        expect(stops[0]).toBe(row(12))
+        await waitFor(() => expect(focused()).toBe(12))
+    })
+
+    it("a tab stop that is hidden without any new render of the list is replaced too", async () => {
+        setup()
+        act(() => row(13).focus())
+        act(() => applyPatch(12, { collapsed: true }))
+        await act(async () => { await new Promise(resolve => setTimeout(resolve, 30)) })
+        expect(document.querySelectorAll("[role=treeitem][tabindex='0']")).toHaveLength(1)
+    })
+})
