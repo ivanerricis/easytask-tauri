@@ -15,7 +15,7 @@ import { cn, getErrorMessage, hexToRgba } from "@/lib/utils"
 import React, { useCallback, useRef, useState, type HTMLAttributes } from "react"
 import { AutoTextarea } from "@/components/auto-textarea"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
-import { AlignLeft, Flag, Info, ListTree, Plus } from "lucide-react"
+import { AlignLeft, Flag, ListTree, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { AddTask } from "./AddTask"
@@ -23,7 +23,6 @@ import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import type { DropZone } from "../note-dnd"
 import { useIsTaskSelected, useSelectTask } from "@/contexts/use-tabs"
-import { useShowTaskDetails } from "../rightbar/use-right-panel"
 import { visibleTasks } from "../section/hide-completed"
 import { DropLine } from "../sidebar/DropLine"
 import type { TaskDensity } from "@/lib/store/preferences"
@@ -107,7 +106,6 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
     const multiSelected = useIsTaskMultiSelected(task.id)
     // The press that is going to focus the row carried Ctrl/Cmd/Shift: it is a selection gesture, not a single selection
     const gestureDown = useRef(false)
-    const showTaskDetails = useShowTaskDetails()
     const isSubtask = depth > 0
     const sizes = TASK_DENSITIES[density]
     // The line of a subtask runs under the checkbox of its parent: the checkbox of a subtask is 2px narrower than the one
@@ -300,17 +298,6 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                             <AlignLeft />
                                         </Button>
                                     </TooltipCustom>}
-                                <TooltipCustom text={t("details.showTask")}>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label={t("details.showTask")}
-                                        onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id) }}
-                                        className="size-6">
-                                        <Info />
-                                    </Button>
-                                </TooltipCustom>
                                 <TooltipCustom text={t("tasks.addSubtask")}>
                                     <Button
                                         type="button"

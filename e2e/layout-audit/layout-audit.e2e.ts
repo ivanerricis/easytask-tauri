@@ -405,8 +405,8 @@ describe("Layout audit", () => {
             await attempt("ws-panel-task-details", async () => {
                 await base(!compact, true)
                 await $(`//*[@role='tab'][normalize-space()=${xp(await tr("rightPanel.details"))}]`).click()
-                const row = await taskEllipsis("Task with a long text")
-                await row.$(`button[aria-label="${await tr("details.showTask")}"]`).click().catch(async () => { await domClickEl(row.$(`button[aria-label="${await tr("details.showTask")}"]`)) })
+                const menu = await openTaskMenu("Task with a long text")
+                await byText(await tr("details.showTask"), menu).click()
                 await settle(600)
                 await capture("ws-panel-task-details")
                 await $(`//*[@role='tab'][normalize-space()=${xp(await tr("rightPanel.history"))}]`).click()

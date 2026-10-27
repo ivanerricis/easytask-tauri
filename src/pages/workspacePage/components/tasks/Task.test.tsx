@@ -153,19 +153,9 @@ describe("Task selection", () => {
         expect(screen.getByTestId("selected-1")).toHaveTextContent("null")
     })
 
-    it("the Details button selects the task and opens the panel on its details", async () => {
-        const user = userEvent.setup()
+    it("has no Details button on the row (the entry is in the menu of the task)", () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />)
-        await user.click(screen.getByRole("button", { name: "Mostra dettagli" }))
-        expect(showTaskDetails).toHaveBeenCalledWith(10)
-    })
-
-    it("the Details button only selects the task where there is no panel", async () => {
-        const user = userEvent.setup()
-        renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />, false)
-        await user.click(screen.getByRole("button", { name: "Mostra dettagli" }))
-        expect(showTaskDetails).not.toHaveBeenCalled()
-        expect(screen.getByTestId("selected-1")).toHaveTextContent("10")
+        expect(screen.queryByRole("button", { name: "Mostra dettagli" })).not.toBeInTheDocument()
     })
 
     it("keeps the selection per note", async () => {
@@ -183,8 +173,7 @@ describe("Task selection", () => {
     it("the context menu entry shows the details of the right clicked task", async () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />)
         fireEvent.contextMenu(rowOf(10))
-        const entries = await screen.findAllByRole("button", { name: "Mostra dettagli", hidden: true })
-        fireEvent.click(entries[entries.length - 1])
+        fireEvent.click(await screen.findByRole("menuitem", { name: "Mostra dettagli" }))
         expect(showTaskDetails).toHaveBeenCalledWith(10)
     })
 
@@ -194,8 +183,7 @@ describe("Task selection", () => {
         // Read only until the editing opens: the menu of the text fields (cut, copy, paste) does not apply to it
         expect(text).toHaveAttribute("readonly")
         fireEvent.contextMenu(text)
-        const entries = await screen.findAllByRole("button", { name: "Mostra dettagli", hidden: true })
-        expect(entries.length).toBeGreaterThan(0)
+        expect(await screen.findByRole("menuitem", { name: "Mostra dettagli" })).toBeInTheDocument()
     })
 
     it("does not break the toggle of the completion", async () => {
@@ -366,7 +354,7 @@ describe("Task description icon", () => {
         // The indicator is aria-hidden: only the button of the toolbar is exposed
         expect(buttons).toHaveLength(1)
         expect(buttons[0]).not.toBe(indicator())
-        expect(buttons[0].parentElement).toContainElement(screen.getByRole("button", { name: "Mostra dettagli" }))
+        expect(buttons[0].parentElement).toContainElement(screen.getByRole("button", { name: "Aggiungi sottotask" }))
         expect(indicator()).toHaveAttribute("aria-hidden", "true")
         expect(indicator()).toHaveAttribute("tabindex", "-1")
     })

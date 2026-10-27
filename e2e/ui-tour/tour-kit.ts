@@ -173,6 +173,12 @@ export const openTaskMenu = async (text: string) => {
     return menu
 }
 
+/** Shows the details of a task: "Show details" of its menu (the row has no button for it). */
+export const showTaskDetails = async (text: string) => {
+    const menu = await openTaskMenu(text)
+    await byText(await tr("details.showTask"), menu).click()
+}
+
 export const addTask = async (section: string, text: string) => {
     await sectionCard(section).$(`[aria-label="${await tr("tasks.add")}"]`).click()
     const input = sectionCard(section).$("input")

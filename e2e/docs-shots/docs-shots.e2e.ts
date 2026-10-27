@@ -6,7 +6,7 @@ import { byLabel, byText, domClick, openContextMenu, sectionCard, topDialog, tr,
 import {
     addGroup, addSection, addSubtask, addTask, applyAppearance, closeDialog, dialogEl, fillDialogName, goCategory, goHome,
     openNote, openSettings, openTaskMenu, openWs, pickColor, recover, setPanel, setSidebar, setTab, settle, submitDialog,
-    taskRowAction, waitDialogGone, waitHome, type Lang, type Theme,
+    showTaskDetails, taskRowAction, waitDialogGone, waitHome, type Lang, type Theme,
 } from "../ui-tour/tour-kit"
 
 /**
@@ -122,7 +122,7 @@ const captureWorkspace = async (n: (typeof NAMES)[Lang]) => {
         await setTab("details")
         await blur()
         await shot("workspace")
-        await taskRowAction(n.tLogin, `button[aria-label="${await tr("details.showTask")}"]`)
+        await showTaskDetails(n.tLogin)
         await settle(600)
         await shot("task-details")
         await goHome()
