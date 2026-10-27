@@ -101,13 +101,13 @@ afterEach(async () => { await i18n.changeLanguage("it") })
 describe("DetailsPanel without selection", () => {
     it("asks to open a note when there is none", () => {
         renderPanel(null)
-        expect(screen.getByText("Apri una nota per vederne i dettagli.")).toBeInTheDocument()
+        expect(screen.getByText("Apri una nota per vederne i dettagli.")).toHaveAttribute("role", "status")
     })
 
     it("waits for the data of the note", () => {
         tree = null
         renderPanel()
-        expect(screen.getByText("Caricamento dei dettagli…")).toBeInTheDocument()
+        expect(screen.getByText("Caricamento dei dettagli…")).toHaveAttribute("role", "status")
     })
 
     it("shows the note: name, statistics, progress, color and dates", async () => {
@@ -198,7 +198,7 @@ describe("DetailsPanel with a selected task", () => {
         const user = userEvent.setup()
         renderPanel()
         await select(10)
-        await user.click(await screen.findByRole("button", { name: "Cambia colore" }))
+        await user.click(await screen.findByRole("button", { name: "Cambia colore: #00ff00" }))
         await user.click(await screen.findByText("pick color"))
         expect(patchTask).toHaveBeenCalledWith(10, { color: "#ff0000" })
         await waitFor(() => expect(updateItemColor).toHaveBeenCalledWith("task", 10, "#ff0000"))

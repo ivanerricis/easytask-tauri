@@ -67,7 +67,7 @@ const ColorField = ({ item, itemType, addColorItem, getItemId }: ColorFieldProps
             <h3 className={sectionTitle}>{t("details.color")}</h3>
             <Popover>
                 <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" aria-label={t("menu.changeColor")}>
+                    <Button variant="outline" size="sm" aria-label={`${t("menu.changeColor")}: ${item.color ?? t("details.noColor")}`}>
                         {item.color ? <ColorSwatch color={item.color} /> : <span className="text-xs">{t("details.noColor")}</span>}
                     </Button>
                 </PopoverTrigger>
@@ -226,8 +226,8 @@ function NoteOrTaskDetails() {
     const { updateItemColor } = useWorkspaceActions()
     const [selectedId] = useSelectedTask(currentNote?.id ?? null)
 
-    if (!currentNote) return <p className="p-3 text-sm text-muted-foreground">{t("details.emptyNote")}</p>
-    if (!noteDataTree) return <p className="p-3 text-sm text-muted-foreground">{t("details.loading")}</p>
+    if (!currentNote) return <p role="status" className="p-3 text-sm text-muted-foreground">{t("details.emptyNote")}</p>
+    if (!noteDataTree) return <p role="status" className="p-3 text-sm text-muted-foreground">{t("details.loading")}</p>
 
     const task = selectedId !== null ? findTask(noteDataTree, selectedId)?.task : undefined
     if (task) {
@@ -350,8 +350,8 @@ const AudioDetails = () => {
     }, [path])
 
     let content: React.ReactNode
-    if (!file || !path) content = <p className="text-sm text-muted-foreground">{t("details.audio.empty")}</p>
-    else if (state?.path !== path) content = <p className="text-sm text-muted-foreground">{t("details.audio.loading")}</p>
+    if (!file || !path) content = <p role="status" className="text-sm text-muted-foreground">{t("details.audio.empty")}</p>
+    else if (state?.path !== path) content = <p role="status" className="text-sm text-muted-foreground">{t("details.audio.loading")}</p>
     else if (state.failed || !state.metadata) content = <p role="alert" className="text-sm text-destructive">{t("details.audio.error")}</p>
     else content = <AudioFields name={file.name} path={path} metadata={state.metadata} />
 

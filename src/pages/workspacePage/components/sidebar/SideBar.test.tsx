@@ -80,16 +80,25 @@ describe("SideBar", () => {
         render(<Host onWidthChange={onWidthChange} />)
         vi.spyOn(screen.getByTestId("sidebar-panel"), "getBoundingClientRect").mockReturnValue({ left: 44, right: 304, top: 0, bottom: 0, width: 260, height: 0, x: 44, y: 0, toJSON: () => ({}) })
 
-        fireEvent.mouseDown(separator())
-        fireEvent.mouseMove(window, { clientX: 344 })
+        const handle = separator()
+        handle.setPointerCapture = vi.fn()
+        fireEvent.pointerDown(handle, { button: 0, pointerId: 1 })
+        expect(handle.setPointerCapture).toHaveBeenCalledWith(1)
+        fireEvent.pointerMove(handle, { clientX: 344, pointerId: 1 })
         expect(separator()).toHaveAttribute("aria-valuenow", "300")
         expect(onWidthChange).not.toHaveBeenCalled()
 
-        fireEvent.mouseMove(window, { clientX: 5000 })
+        fireEvent.pointerMove(handle, { clientX: 5000, pointerId: 1 })
         expect(separator()).toHaveAttribute("aria-valuenow", "480")
 
-        fireEvent.mouseUp(window)
+        fireEvent.pointerUp(handle, { pointerId: 1 })
         expect(onWidthChange).toHaveBeenCalledExactlyOnceWith(480)
+    })
+
+    it("animates the width with a class, so the duration follows the animation speed", () => {
+        render(<Host />)
+        expect(screen.getByTestId("sidebar-panel")).toHaveClass("transition-[width]")
+        expect(screen.getByTestId("sidebar-panel").style.transition).toBe("")
     })
 
     it("lays the content out at the full width of the panel, so it does not reflow while the panel opens", () => {
