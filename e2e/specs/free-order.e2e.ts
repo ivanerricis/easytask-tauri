@@ -68,6 +68,55 @@ const moveSection = async (title: string, key: "menu.moveUp" | "menu.moveDown") 
     await item.click()
 }
 
+/**
+ * Drags the section by its header over the top or bottom half of the list of the direct tasks of the group, reads the insertion
+ * line the list draws while the pointer is still down (is it there, and is it inside the visible area of every scrolling ancestor?)
+ * and then drops the section.
+ */
+const dragSectionOverList = async (title: string, half: "top" | "bottom") => {
+    const handle = sectionCard(title).$("button[title]")
+    const start = await browser.execute((el: HTMLElement) => {
+        const r = el.getBoundingClientRect()
+        return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) }
+    }, (await handle.getElement()) as unknown as HTMLElement)
+    const end = await browser.execute((group: HTMLElement, where: string) => {
+        const r = group.querySelector<HTMLElement>("[data-direct-tasks]")!.getBoundingClientRect()
+        return { x: Math.round(r.left + r.width / 2), y: Math.round(where === "top" ? r.top + 3 : r.bottom - 3) }
+    }, (await groupCard(GROUP).getElement()) as unknown as HTMLElement, half)
+
+    const pointer = browser.action("pointer", { parameters: { pointerType: "mouse" } })
+    pointer.move({ x: start.x, y: start.y, origin: "viewport" }).down()
+    const steps = 20
+    for (let step = 1; step <= steps; step++) {
+        pointer.move({
+            x: Math.round(start.x + ((end.x - start.x) * step) / steps),
+            y: Math.round(start.y + ((end.y - start.y) * step) / steps),
+            origin: "viewport",
+            duration: 20,
+        })
+    }
+    await pointer.perform(true)
+    await browser.pause(300)
+
+    const sample = await browser.execute((group: HTMLElement) => {
+        const line = group.querySelector<HTMLElement>("[data-direct-tasks] > div.bg-primary")
+        if (!line) return { found: false, visible: false }
+        const box = line.getBoundingClientRect()
+        let visible = box.width > 0 && box.height > 0
+        // The line sits half outside the list: it must not be cut by a scrolling or clipping ancestor
+        for (let parent = line.parentElement; parent; parent = parent.parentElement) {
+            const style = getComputedStyle(parent)
+            if (style.overflowX === "visible" && style.overflowY === "visible") continue
+            const area = parent.getBoundingClientRect()
+            if (box.bottom <= area.top || box.top >= area.bottom || box.right <= area.left || box.left >= area.right) visible = false
+        }
+        return { found: true, visible }
+    }, (await groupCard(GROUP).getElement()) as unknown as HTMLElement)
+
+    await browser.releaseActions()
+    return sample
+}
+
 describe("Free order of the tasks and the sections in a group", () => {
     before(async () => {
         await waitForApp()
@@ -138,6 +187,28 @@ describe("Free order of the tasks and the sections in a group", () => {
             )
             return rows.length === 1 && rows[0].is_default === 1
         }, { timeoutMsg: "the task was not saved in the list of the group" })
+        await waitForOrder([SECOND, "tasks", FIRST])
+    })
+
+    it("shows the insertion line on the list of the direct tasks when a section is dragged over it, and drops the section there", async () => {
+        // [SECOND, tasks, FIRST]: FIRST goes right above the list (top half), then SECOND right below it (bottom half)
+        const sample = await dragSectionOverList(FIRST, "top")
+        expect(sample.found).toBe(true)
+        expect(sample.visible).toBe(true)
+        await waitForOrder([SECOND, FIRST, "tasks"])
+
+        const below = await dragSectionOverList(SECOND, "bottom")
+        expect(below.found).toBe(true)
+        expect(below.visible).toBe(true)
+        await waitForOrder([FIRST, "tasks", SECOND])
+    })
+
+    it("shows the insertion line too when the list is the first item of the group", async () => {
+        expect(await moveList("menu.moveDirectUp")).toBe(true)
+        await waitForOrder(["tasks", FIRST, SECOND])
+        const sample = await dragSectionOverList(SECOND, "top")
+        expect(sample).toEqual({ found: true, visible: true })
+        // Dropped on the top half of the list: the section goes right above it, at the top of the group
         await waitForOrder([SECOND, "tasks", FIRST])
     })
 })

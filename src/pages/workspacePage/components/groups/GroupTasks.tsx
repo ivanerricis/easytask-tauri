@@ -30,7 +30,8 @@ const DirectTasks = memo(({ section }: DirectTasksProps) => {
             data-direct-tasks
             className={cn("relative flex flex-col gap-1 w-full rounded-xs", !draggingSection && (zone || taskDestination) && "ring-2 ring-primary")}
         >
-            {draggingSection && <DropLine zone={zone} className={zone === "before" ? "-top-[3px]" : "-bottom-[3px]"} />}
+            {/* Drawn inside the box: the list can be the first or the last item of the group, where a line outside would be cut by the scrolling area */}
+            {draggingSection && <DropLine zone={zone} />}
             {/* Without tasks only the button is left: the empty box would just be a double border */}
             {section.tasks.length > 0 &&
                 <div className="flex flex-col w-full overflow-hidden border dark:bg-secondary bg-background">

@@ -85,11 +85,15 @@ describe("GroupTasks", () => {
         const area = container.querySelector("[data-direct-tasks]") as HTMLElement
         expect(area).not.toHaveClass("ring-2")
         const line = area.querySelector(".bg-primary") as HTMLElement
-        expect(line.className.split(/\s+/)).toContain("-top-[3px]")
+        // Drawn inside the box, never outside: the list can be the first or last item of the scrolling area
+        expect(line.className.split(/\s+/)).toContain("top-0")
+        expect(line.className.split(/\s+/)).not.toContain("-top-[3px]")
 
         drop.zone = "after"
         rerender(<GroupTasks group={{ ...withTasks("Uno") }} />)
-        expect((area.querySelector(".bg-primary") as HTMLElement).className.split(/\s+/)).toContain("-bottom-[3px]")
+        const after = (area.querySelector(".bg-primary") as HTMLElement).className.split(/\s+/)
+        expect(after).toContain("bottom-0")
+        expect(after).not.toContain("-bottom-[3px]")
     })
 
     it("positions the area so the insertion line is drawn inside it, with the classes kept apart", () => {
