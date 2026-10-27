@@ -116,6 +116,8 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
     // Roving tabindex of the list: one task is in the tab order, the others are reached with the arrows
     const tabStop = useIsTaskTabStop(treeKey, task.id, isFirst)
     const tabStopStore = useTaskTabStopStore()
+    // Only the tab stop of the list has its controls in the tab order: the other rows are reached with the arrows
+    const inner = tabStop ? undefined : -1
     // Enter / Escape in the rename field give the focus back to the row (the field is removed, the focus would be lost)
     const rowElement = useRef<HTMLElement | null>(null)
     const refocusRow = useRef(false)
@@ -248,6 +250,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                 <Checkbox
                                     checked={!!task.completed}
                                     onCheckedChange={handleCheckedChange}
+                                    tabIndex={inner}
                                     aria-label={t("tasks.toggleCompleted", { text: task.text })}
                                     className={isSubtask ? cn("size-3.5", sizes.subtaskCheckbox) : sizes.checkbox}
                                 />
@@ -256,6 +259,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                     query={search.query}
                                     active={search.active}
                                     label={t("tasks.editText")}
+                                    tabIndex={inner ?? 0}
                                     onClick={renameOnClick ? startEdit : undefined}
                                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); startEdit() } }}
                                     className={cn(
@@ -274,6 +278,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                         }
                                     }}
                                     aria-label={t("tasks.editText")}
+                                    tabIndex={inner}
                                     value={task.text}
                                     // Read only until the click opens the editing: a right click here opens the menu of the task, not the one of a text field
                                     readOnly
@@ -347,6 +352,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                             variant="ghost"
                                             size="icon"
                                             aria-label={t("tasks.showDescription")}
+                                            tabIndex={inner}
                                             onClick={() => { onOpenChange(true) }}
                                             className="size-6">
                                             <AlignLeft />
@@ -358,12 +364,13 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                         variant="ghost"
                                         size="icon"
                                         aria-label={t("tasks.addSubtask")}
+                                        tabIndex={inner}
                                         onClick={startAddSubtask}
                                         className="size-6">
                                         <Plus />
                                     </Button>
                                 </TooltipCustom>
-                                <ItemMenuButton name={task.text} />
+                                <ItemMenuButton name={task.text} tabIndex={inner} />
                             </div>
                         </div>
                     </div>

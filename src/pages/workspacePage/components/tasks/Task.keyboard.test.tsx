@@ -255,3 +255,15 @@ describe("tab stop of a closed task", () => {
         expect(document.querySelectorAll("[role=treeitem][tabindex='0']")).toHaveLength(1)
     })
 })
+
+describe("controls inside the rows", () => {
+    it("only the tab stop row has its checkbox, text and buttons in the tab order", () => {
+        setup()
+        const tabbable = (id: number) => Array.from(row(id).querySelectorAll<HTMLElement>("button, [role=checkbox], textarea")).filter(el => el.getAttribute("tabindex") !== "-1")
+        expect(tabbable(10).length).toBeGreaterThan(0)
+        expect(tabbable(11)).toHaveLength(0)
+        act(() => row(11).focus())
+        expect(tabbable(10)).toHaveLength(0)
+        expect(tabbable(11).length).toBeGreaterThan(0)
+    })
+})
