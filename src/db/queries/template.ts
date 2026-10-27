@@ -166,7 +166,7 @@ export async function createDBTemplateFromNote(noteId: number, name: string): Pr
     try {
         const db = await getDB()
         const notes = await db.select<{ workspaceID: number, color: string | null }[]>(
-            'SELECT workspaceID, color FROM note WHERE id = ? AND deleted_at IS NULL', [noteId])
+            'SELECT workspaceID, color FROM note WHERE id = ? AND workspaceID IS NOT NULL AND deleted_at IS NULL', [noteId])
         if (notes.length === 0)
             throw createError("TEMPLATE_SOURCE_MISSING", SOURCE_MISSING_MESSAGE())
 
@@ -182,6 +182,23 @@ export async function createDBTemplateFromNote(noteId: number, name: string): Pr
 
 const TEMPLATE_SELECT = `SELECT t.*, n.name AS sourceNoteName FROM note_template t
     LEFT JOIN note n ON n.id = t.sourceNoteID AND n.deleted_at IS NULL`
+
+/**
+ * Retrieves one template (not deleted).
+ * @param templateId The ID of the template.
+ * @returns The template, null when it does not exist (or is in the trash).
+ * @throws A createError('TEMPLATE_LOAD_FAILED') error when the query fails.
+ * @category Database Queries
+ */
+export async function getDBTemplate(templateId: number): Promise<NoteTemplate | null> {
+    try {
+        const db = await getDB()
+        const rows = await db.select<TemplateRow[]>(`${TEMPLATE_SELECT} WHERE t.id = ? AND t.deleted_at IS NULL`, [templateId])
+        return rows.length > 0 ? toTemplate(rows[0]) : null
+    } catch (error: unknown) {
+        throw createError("TEMPLATE_LOAD_FAILED", i18n.t("errors.template.load", { message: getErrorMessage(error) }))
+    }
+}
 
 /**
  * Retrieves the templates of a workspace (not deleted), ordered by name.
@@ -234,24 +251,27 @@ export async function renameDBTemplate(templateId: number, name: string) {
 }
 
 /**
- * Overwrites the snapshot of a template with the current content (and color) of its source note.
+ * Overwrites the snapshot of a template with the current content (and color) of a note: its source note, or another
+ * note of the same workspace (which then becomes the source of the template, so a later refresh follows it).
  * @param templateId The ID of the template.
- * @throws A "TEMPLATE_SOURCE_MISSING" error when the source note no longer exists or is in the trash.
+ * @param noteId The note to copy; the source note of the template when omitted.
+ * @throws A "TEMPLATE_SOURCE_MISSING" error when the note does not exist, is in the trash or is in another workspace.
  * @category Database Queries
  */
-export async function updateDBTemplateFromNote(templateId: number) {
+export async function updateDBTemplateFromNote(templateId: number, noteId?: number) {
     try {
         const db = await getDB()
         const rows = await db.select<{ noteID: number, color: string | null }[]>(
             `SELECT n.id AS noteID, n.color FROM note_template t
-             INNER JOIN note n ON n.id = t.sourceNoteID AND n.deleted_at IS NULL
-             WHERE t.id = ? AND t.deleted_at IS NULL`, [templateId])
+             INNER JOIN note n ON n.id = ${noteId === undefined ? 't.sourceNoteID' : '?'} AND n.deleted_at IS NULL
+                AND n.workspaceID = t.workspaceID
+             WHERE t.id = ? AND t.deleted_at IS NULL`, noteId === undefined ? [templateId] : [noteId, templateId])
         if (rows.length === 0)
             throw createError("TEMPLATE_SOURCE_MISSING", SOURCE_MISSING_MESSAGE())
 
         const { content } = await buildContentWithSectionIds(rows[0].noteID)
-        await db.execute('UPDATE note_template SET color = ?, content = ? WHERE id = ?',
-            [rows[0].color ?? null, JSON.stringify(content), templateId])
+        await db.execute('UPDATE note_template SET sourceNoteID = ?, color = ?, content = ? WHERE id = ?',
+            [rows[0].noteID, rows[0].color ?? null, JSON.stringify(content), templateId])
     } catch (error: unknown) {
         throw toAppError(error, e => createError("TEMPLATE_UPDATE_FAILED", i18n.t("errors.template.update", { message: getErrorMessage(e) })))
     }

@@ -61,3 +61,14 @@ export const addNoteArchivedAt: string[] = [
     `DROP INDEX IF EXISTS idx_note_name;`,
     `CREATE UNIQUE INDEX IF NOT EXISTS idx_note_name ON note(workspaceID, IFNULL(folderID, 0), name) WHERE deleted_at IS NULL AND archived_at IS NULL;`,
 ]
+
+/**
+ * Migration for the template editor: a draft note is the working copy of a template while it is edited
+ * (`workspaceID` NULL, so no list of the workspace shows it; `templateID` is the template it belongs to).
+ * One draft per template; purging the template removes the draft with all its content.
+ * @category Database Schema
+ */
+export const addNoteTemplateDraft: string[] = [
+    `ALTER TABLE note ADD COLUMN templateID INTEGER DEFAULT NULL REFERENCES note_template(id) ON DELETE CASCADE;`,
+    `CREATE UNIQUE INDEX IF NOT EXISTS idx_note_template_draft ON note(templateID) WHERE templateID IS NOT NULL;`,
+]
