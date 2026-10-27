@@ -6,6 +6,7 @@ import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 import { MenuGroup, MenuItem, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { Separator } from "@/components/ui/separator"
 import { useActiveNote } from "@/contexts/use-active-note"
+import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import type { ItemMenuState } from "@/hooks/use-item-menu-state"
 import { useSelectedTaskKeys } from "./task-selection-context"
 import { useTaskSelectionActions } from "./task-selection-actions"
@@ -20,6 +21,7 @@ export const TaskSelectionMenuItems = ({ menu }: { menu: ItemMenuState }) => {
     const actions = useTaskSelectionActions()
     const { noteDataTree } = useActiveNote()
     const selected = useSelectedTaskKeys()
+    const isDraft = useIsActiveDraft()
 
     const destinations = useMemo(() => noteDataTree ? getTaskDestinations(noteDataTree) : [], [noteDataTree])
     // A selected task stands for its subtasks: the count is of the tasks the actions really apply to
@@ -61,11 +63,11 @@ export const TaskSelectionMenuItems = ({ menu }: { menu: ItemMenuState }) => {
                     <DialogAddColor onPick={color => actions.applyColor(color)} setDropDownOpen={menu.close} />
                 </MenuSubContent>
             </MenuSub>
-            <ButtonInPopover
+            {!isDraft && <ButtonInPopover
                 text={t("tasks.selection.archive", { count })}
                 type="archive"
                 onClick={() => { menu.close(); void actions.archiveSelection() }}
-            />
+            />}
             <Separator />
             <ButtonInPopover
                 text={t("tasks.selection.delete", { count })}

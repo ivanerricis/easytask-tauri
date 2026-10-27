@@ -34,7 +34,7 @@ const data = {
 }
 const tabs = { openNote: vi.fn() }
 const editor = { drafts: [] as { noteId: number, templateId: number }[], openTemplateEditor: vi.fn(), flushTemplate: vi.fn(), refreshDrafts: vi.fn() }
-vi.mock("@/contexts/use-template-drafts", () => ({ useTemplateDrafts: () => editor.drafts, useTemplateDraftActions: () => editor }))
+vi.mock("@/contexts/use-template-drafts", () => ({ useTemplateDrafts: () => editor.drafts, useTemplateDraftActions: () => editor, useIsActiveDraft: () => false }))
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => data,
     useWorkspaceState: () => data,

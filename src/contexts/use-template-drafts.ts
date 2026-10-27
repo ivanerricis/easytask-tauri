@@ -1,4 +1,5 @@
 import { useContext, useSyncExternalStore } from "react"
+import { useActiveNoteId } from "./use-tabs"
 import { TemplateDraftsActionsContext, TemplateDraftsContext } from "./template-drafts-context-object"
 
 /** The drafts of the loaded workspace whose template is not deleted. */
@@ -24,3 +25,6 @@ export function useDraftSaveStatus(noteId: number | null) {
     const { statusStore } = useTemplateDraftActions()
     return useSyncExternalStore(statusStore.subscribe, () => noteId === null ? "idle" as const : statusStore.getStatus(noteId))
 }
+
+/** True when the active note is the working copy of a template: archive, audio and automations make no sense there. */
+export const useIsActiveDraft = () => useIsDraftNote(useActiveNoteId())

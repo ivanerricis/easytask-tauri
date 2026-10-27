@@ -23,6 +23,8 @@ export const templateEditor = {
         placeholder: "Cerca la nota da cui aggiornare il template…",
     },
     refreshOtherDescription: "Il contenuto del template \"{{name}}\" verrà sostituito con quello attuale della nota \"{{note}}\", che diventa la sua nota di origine. Le note già create dal template non cambiano.",
+    deleted: "Eliminato",
+    undoBlocked: "Apri l'editor del template per annullare questa modifica",
     tabMenu: {
         rename: "Rinomina template",
         createNote: "Crea nota da questo template",

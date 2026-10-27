@@ -22,6 +22,8 @@ vi.mock("@/contexts/workspace-data", () => ({
 vi.mock("@/contexts/undo/use-undo", () => ({
     useUndoRecorder: () => new Proxy({ archive }, { get: (target, key) => (target as Record<string | symbol, unknown>)[key] ?? (() => undefined) }),
 }))
+let draftActive = false
+vi.mock("@/contexts/use-template-drafts", () => ({ useIsActiveDraft: () => draftActive }))
 const selectTask = vi.fn()
 vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => 9, useSelectTask: () => selectTask }))
 const showTaskDetails = vi.fn()
@@ -47,12 +49,23 @@ vi.mock("./DialogTaskDescription", () => ({ DialogTaskDescription: () => null })
 beforeEach(() => {
     vi.clearAllMocks()
     panelAvailable = true
+    draftActive = false
     updateTaskPriority.mockResolvedValue(undefined)
     updateTaskDescription.mockResolvedValue(undefined)
     updateItemColor.mockResolvedValue(undefined)
     patchTask.mockReturnValue(rollback)
     archiveItem.mockResolvedValue(undefined)
     removeTask.mockReturnValue(rollback)
+})
+
+describe("ButtonMenuTask in a template draft", () => {
+    it("has no archive entry", async () => {
+        draftActive = true
+        render(<ButtonMenuTask task={makeTask({ id: 5 })}><div data-testid="row">Task</div></ButtonMenuTask>)
+        fireEvent.contextMenu(screen.getByTestId("row"))
+        expect(await screen.findByText("Elimina")).toBeInTheDocument()
+        expect(screen.queryByText("Archivia")).not.toBeInTheDocument()
+    })
 })
 
 describe("ButtonMenuTask optimistic updates", () => {

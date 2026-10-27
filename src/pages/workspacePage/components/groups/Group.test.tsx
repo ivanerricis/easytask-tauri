@@ -5,7 +5,7 @@ import { makeDefaultSection, makeGroup, makeSection } from "@/test/ui-fixtures"
 
 const groupOpen = { value: true }
 const toggleOpen = vi.fn()
-vi.mock("@/contexts/use-tabs", () => ({ useGroupOpen: () => [groupOpen.value, toggleOpen] }))
+vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => null, useGroupOpen: () => [groupOpen.value, toggleOpen] }))
 vi.mock("../note-dnd-state", () => ({
     useNoteDrop: () => ({ setNodeRef: vi.fn(), zone: null, active: null }),
     useNoteDrag: () => ({ setNodeRef: vi.fn(), setActivatorNodeRef: vi.fn(), attributes: {}, listeners: {}, isDragging: false }),

@@ -417,3 +417,44 @@ describe("createUndoHistory", () => {
         expect(history.isLatest(first)).toBe(true)
     })
 })
+
+describe("createUndoHistory scope", () => {
+    it("does not run a command that is blocked, and runs it once it is not", async () => {
+        let blocked = true
+        const history = createUndoHistory(50, () => blocked)
+        const command = makeCommand("draft change", { scopeNoteId: 5 })
+        history.record(command)
+
+        expect(await history.undo()).toEqual({ status: "blocked", label: "draft change" })
+        expect(command.undo).not.toHaveBeenCalled()
+        expect(history.getSnapshot().canUndo).toBe(true)
+
+        blocked = false
+        expect(await history.undo()).toEqual({ status: "done", label: "draft change" })
+    })
+
+    it("undoTo stops at a blocked command and reports the ones applied", async () => {
+        const history = createUndoHistory(50, command => command.scopeNoteId === 5)
+        const first = makeCommand("draft", { scopeNoteId: 5 })
+        const second = makeCommand("normal")
+        history.record(first)
+        history.record(second)
+
+        expect(await history.undoTo(1)).toEqual({ status: "done", executed: 1, label: "normal" })
+        expect(await history.undoTo(0)).toEqual({ status: "blocked", executed: 0, label: "draft" })
+        expect(first.undo).not.toHaveBeenCalled()
+    })
+
+    it("dropScope removes the commands of that draft from the undo and the redo stack only", async () => {
+        const history = createUndoHistory()
+        const keep = makeCommand("normal")
+        history.record(keep)
+        history.record(makeCommand("a", { scopeNoteId: 5 }))
+        history.record(makeCommand("b", { scopeNoteId: 5 }))
+        await history.undo()
+
+        history.dropScope(5)
+        expect(history.getEntries()).toEqual({ undo: ["normal"], redo: [] })
+        expect(history.getSnapshot()).toMatchObject({ canUndo: true, canRedo: false })
+    })
+})

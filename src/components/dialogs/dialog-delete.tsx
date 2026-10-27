@@ -8,6 +8,7 @@ import { getItemName, isUndoableType } from "@/contexts/undo/commands"
 import { useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
+import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import { toastTrashed } from "@/lib/toast-trashed"
 
 type DialogDeleteProps<T> = {
@@ -31,6 +32,7 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
     const { deleteItem } = useWorkspaceActions()
     const recorder = useUndoRecorder()
     const undo = useOptionalUndo()?.undo
+    const isDraft = useIsActiveDraft()
 
     const [error, setError] = useState<string | null>(null)
 
@@ -43,7 +45,7 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             await getItemData?.(getItemId ?? item.id)
             const undoable = isUndoableType(itemType)
             if (undoable) recorder.remove(itemType, item.id, getItemName(item))
-            toastTrashed(1, undoable ? undo : undefined)
+            toastTrashed(1, undoable ? undo : undefined, isDraft)
             onOpenChange(false)
         } catch (error) {
             rollback?.()

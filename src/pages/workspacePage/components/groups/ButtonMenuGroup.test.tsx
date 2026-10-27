@@ -18,6 +18,8 @@ const archiveItem = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor, archiveItem }) }))
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ color: recordColor, archive }) }))
 vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => 7 }))
+let draftActive = false
+vi.mock("@/contexts/use-template-drafts", () => ({ useIsActiveDraft: () => draftActive }))
 vi.mock("@/components/dialogs/dialog-automations", () => ({
     DialogAutomations: ({ isOpen, noteId, groupId }: { isOpen: boolean, noteId: number, groupId?: number }) =>
         isOpen ? <div>Dialog automazioni {noteId}/{groupId}</div> : null,
@@ -31,6 +33,7 @@ const onAddSection = vi.fn()
 
 beforeEach(() => {
     vi.clearAllMocks()
+    draftActive = false
     updateItemColor.mockResolvedValue(undefined)
     patchGroup.mockReturnValue(vi.fn())
     removeGroup.mockReturnValue(vi.fn())
@@ -47,6 +50,19 @@ const setup = (color?: string | null, withAddSection = true, withSections = true
 }
 
 describe("ButtonMenuGroup", () => {
+    it("has no archive, automations and audio entries in a template draft", async () => {
+        draftActive = true
+        const user = userEvent.setup()
+        const row = setup()
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Rinomina"))
+        fireEvent.contextMenu(row)
+        expect(await screen.findByText("Elimina")).toBeInTheDocument()
+        expect(screen.queryByText("Archivia")).not.toBeInTheDocument()
+        expect(screen.queryByText("Automazioni…")).not.toBeInTheDocument()
+        expect(screen.queryByText("Aggiungi file audio")).not.toBeInTheDocument()
+    })
+
     it("archives the group, removing it from the note, and records the undo step", async () => {
         const user = userEvent.setup()
         const row = setup()

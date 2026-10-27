@@ -37,7 +37,7 @@ vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ updateItemColor, duplicateNote: vi.fn(), deleteItem }),
 }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
-vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn(), reorderTabs: vi.fn() }), useTabs: () => ({ tabs: [] }) }))
+vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => null, useTabsActions: () => ({ openNote: vi.fn(), reorderTabs: vi.fn() }), useTabs: () => ({ tabs: [] }) }))
 const recorder = { removeMany: vi.fn(), archiveMany: vi.fn(), colorMany: vi.fn(), treeMoveMany: vi.fn(), create: vi.fn() }
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder, useOptionalUndo: () => null }))
 const exportItem = vi.fn()

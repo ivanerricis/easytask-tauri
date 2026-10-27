@@ -6,6 +6,9 @@ import type { UndoHistory, UndoManyOutcome, UndoOutcome } from "./stack"
 
 const TOAST_ID = "undo-redo"
 
+/** Tells that the next action was done in a template draft and can only be undone/redone from its editor. */
+const toastBlocked = () => toast.info(i18n.t("templateEditor.undoBlocked"), { id: TOAST_ID })
+
 /**
  * Undoes (or redoes) every action from the next one up to the entry `index` (0 = the next one) and tells the outcome with
  * one summary toast, with the button to go back (the same number of actions the other way). A failure is reported like
@@ -17,6 +20,10 @@ export async function runHistoryTo(history: UndoHistory, direction: "undo" | "re
     const opposite = direction === "undo" ? "redo" : "undo"
     if (outcome.status === "empty") {
         toast.info(i18n.t(direction === "undo" ? "undo.nothingToUndo" : "undo.nothingToRedo"), { id: TOAST_ID })
+        return
+    }
+    if (outcome.status === "blocked") {
+        toastBlocked()
         return
     }
     if (outcome.status === "failed") {
@@ -42,6 +49,8 @@ export async function runHistory(history: UndoHistory, direction: "undo" | "redo
     const opposite = direction === "undo" ? "redo" : "undo"
     if (outcome.status === "empty") {
         toast.info(i18n.t(direction === "undo" ? "undo.nothingToUndo" : "undo.nothingToRedo"), { id: TOAST_ID })
+    } else if (outcome.status === "blocked") {
+        toastBlocked()
     } else if (outcome.status === "failed") {
         reportError(outcome.error, i18n.t(direction === "undo" ? "undo.undoFailed" : "undo.redoFailed", { label: outcome.label }))
     } else {
