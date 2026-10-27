@@ -108,6 +108,8 @@ Puoi cambiare ogni scorciatoia modificabile in **Impostazioni > Scorciatoie**. V
 
 Sotto le schede, una barra sottile mostra il percorso della nota aperta, ad esempio `Lavoro > Progetti > Piano`. Fai clic su una cartella o sulla nota nel percorso per mostrarla nella barra laterale: la barra si apre se era chiusa, le cartelle sopra si espandono e l'elemento viene selezionato. Un percorso lungo mantiene la prima cartella e gli ultimi due elementi. Il pulsante **Nascondi task completati** è a destra della stessa barra.
 
+![La barra del percorso](../../screenshots/it/path-bar-light.png)
+
 ### Cosa si riapre all'avvio
 
 Quando apri un workspace, EasyTask riapre le note che erano aperte e quella attiva. Il salvataggio è per ogni workspace. Per disattivarlo vai in **Impostazioni > Note e sezioni** e spegni **Riapri le note all'avvio**. Nella stessa pagina c'è **Riapri l'ultimo workspace all'avvio**.

@@ -69,6 +69,8 @@ I nuovi task vanno in fondo alla sezione. Per metterli in cima scegli **In cima*
 
 Passa il mouse tra due task (di una sezione, di un gruppo, o due sottotask): compare una linea sottile con un **+** al centro. Fai clic sul **+** e proprio lì si apre un campo. Scrivi il testo e premi `Invio` per inserire il task in quel punto; `Esc` chiude il campo e scarta il testo. La linea c'è anche sopra il primo task, per inserire prima di lui.
 
+![La linea per inserire un task](../../screenshots/it/task-insert-field-light.png)
+
 - È aperto un solo campo alla volta: facendo clic su un altro **+** il campo si sposta.
 - Con **Continua ad aggiungere task** attivo il campo si sposta sotto il nuovo task, così puoi continuare a inserire in ordine; se è disattivato si chiude dopo ogni task.
 - Quando i task completati sono nascosti, la linea sopra il primo task visibile inserisce prima di lui e i nascosti restano dove sono.
@@ -121,6 +123,8 @@ Trascina un task dalla sua riga. Rilascialo:
 
 Ogni lista di task è un albero per la tastiera e per gli screen reader: `Tab` entra nella lista su un solo task (l'ultimo che ha avuto il focus, o il primo) e il `Tab` successivo ne esce, così non devi attraversare ogni task. Dentro la lista:
 
+![L'anello di focus su un task](../../screenshots/it/task-keyboard-light.png)
+
 - `↑` e `↓` vanno al task visibile precedente e successivo, `Home` e `End` al primo e all'ultimo. Le frecce non escono dalla sezione.
 - `→` apre i sottotask di un task (se sono chiusi) e poi va al primo; `←` li chiude e poi va al task padre.
 - `Spazio` completa o riapre il task, `Invio` ne modifica il testo, `Shift+F10` (o il tasto menu) apre il suo menu.
@@ -134,6 +138,8 @@ Tieni premuto **Ctrl** (**Cmd** su macOS) e clicca per aggiungere un task alla s
 Fai clic destro su un task selezionato (o apri il suo menu) per agire su tutti insieme: **Elimina**, **Archivia**, **Colora** e **Sposta in…** (in fondo a una sezione, o tra i task diretti di un gruppo). Un task selezionato vale anche per i suoi sottotask, che vengono eliminati, archiviati e spostati con lui. Ogni azione è un solo passo nella [cronologia di annullamento](./undo-and-history.md). Il trascinamento sposta sempre un task alla volta.
 
 I task selezionati hanno un contorno tratteggiato (oltre alla tinta) e gli screen reader li annunciano come "selezionato"; con due o più task selezionati, in basso nella nota compare un contatore, ad esempio "3 selezionati".
+
+![Task selezionati con il contorno tratteggiato e il contatore](../../screenshots/it/task-selection-light.png)
 
 ## Cercare in una nota
 

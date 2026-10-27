@@ -57,6 +57,8 @@ Usa la casella di ricerca per trovare un template. Ogni template mostra la nota 
 
 Fai clic su **Modifica** su un template: si apre in una scheda tra le note aperte, con il badge **Template** così non lo scambi mai per una nota. Lo modifichi come una nota qualsiasi: aggiungi gruppi, sezioni e task, cambi i colori, trascini per riordinare, annulli e ripeti.
 
+![Un template aperto nel suo editor](../../screenshots/it/template-editor-light.png)
+
 - **Salvataggio automatico.** Non c'è un pulsante di salvataggio. Un piccolo stato accanto al percorso mostra **Salvataggio...** e poi **Salvato**; se il salvataggio non riesce compare un errore con **Riprova**. Le note già create dal template non cambiano.
 - **Duplica.** Nel menu **...** del template, **Duplica** crea una copia che puoi modificare separatamente.
 - **Aggiorna da un'altra nota.** Nello stesso menu, **Aggiorna da un'altra nota...** sostituisce il contenuto con quello di una nota che scegli, che diventa la nota di origine.

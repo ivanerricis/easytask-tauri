@@ -41,7 +41,7 @@ const languageRadio = (label: string) => $(`//*[@role='radiogroup']//*[@role='ra
 export const applyAppearance = async (nextTheme: Theme, nextLang: Lang) => {
     await openSettings()
     await goCategory("appearance")
-    await $(`//button[@aria-label='${await tr("settings.appearance.theme.toggle")}']`).click()
+    await $(`//button[starts-with(@aria-label, '${await tr("settings.appearance.theme.toggle")}:')]`).click()
     const item = $(`//*[@role='menuitemradio'][normalize-space()='${await tr(`settings.appearance.theme.${nextTheme}`)}']`)
     await item.waitForDisplayed()
     await item.click()

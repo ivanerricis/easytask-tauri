@@ -69,6 +69,8 @@ New tasks go to the end of the section. To put them at the top, choose **At the 
 
 Move the mouse between two tasks (of a section, of a group, or two subtasks): a thin line with a **+** in the middle appears. Click the **+** and a field opens right there. Type the text and press `Enter` to insert the task at that point; `Esc` closes the field and discards the text. The line also sits above the first task, to insert before it.
 
+![The line to insert a task](../screenshots/en/task-insert-field-light.png)
+
 - Only one field is open at a time: clicking another **+** moves it.
 - With **Keep adding tasks** on, the field moves under the new task so you can keep inserting in order; with it off, it closes after each task.
 - When completed tasks are hidden, the line above the first visible task inserts before it, and the hidden ones stay where they are.
@@ -121,6 +123,8 @@ Drag a task by its row. Drop it:
 
 Every list of tasks is a tree for the keyboard and for screen readers: `Tab` enters the list on a single task (the last one that had the focus, or the first) and the next `Tab` leaves it, so you do not have to cross every task. Inside the list:
 
+![The focus ring on a task](../screenshots/en/task-keyboard-light.png)
+
 - `↑` and `↓` go to the previous and next visible task, `Home` and `End` to the first and last one. The arrows do not leave the section.
 - `→` opens the subtasks of a task (if they are closed) and then goes to the first one; `←` closes them and then goes to the parent task.
 - `Space` completes or reopens the task, `Enter` edits its text, `Shift+F10` (or the menu key) opens its menu.
@@ -134,6 +138,8 @@ Hold **Ctrl** (**Cmd** on macOS) and click to add a task to the selection or rem
 Right click a selected task (or open its menu) to act on all of them at once: **Delete**, **Archive**, **Color** and **Move to…** (the end of a section, or the tasks directly in a group). A selected task stands for its subtasks too, so they are deleted, archived and moved with it. Each action is a single step in the [undo history](./undo-and-history.md). Dragging still moves one task at a time.
 
 Selected tasks get a dashed outline (not only a tint) and are announced as "selected" by screen readers; with two or more selected, a counter such as "3 selected" appears at the bottom of the note.
+
+![Selected tasks with the dashed outline and the counter](../screenshots/en/task-selection-light.png)
 
 ## Search in a note
 

@@ -57,6 +57,8 @@ Use the search box to find a template. Each template shows the note it was made 
 
 Click **Edit** on a template: it opens in a tab of the open notes, marked with the **Template** badge so you never mistake it for a note. You edit it like any other note: add groups, sections and tasks, change colors, drag to reorder, undo and redo.
 
+![A template open in its editor](../screenshots/en/template-editor-light.png)
+
 - **Saved automatically.** There is no save button. A short status next to the path shows **Saving...** and then **Saved**; if saving fails it shows an error with **Retry**. Notes already created from the template do not change.
 - **Duplicate.** In the **...** menu of the template, **Duplicate** creates a copy you can edit separately.
 - **Refresh from another note.** In the same menu, **Refresh from another note...** replaces the content with that of a note you choose, which becomes the source note.
