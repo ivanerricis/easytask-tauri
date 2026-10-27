@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+﻿import { useEffect, useState } from "react"
 
 /** Sidebar widths in pixels. */
 export const SIDEBAR_DEFAULT_WIDTH = 260
@@ -12,7 +12,9 @@ export const COMPACT_BREAKPOINT = 900
 /** Minimum height of the strip at the top of the panels (sidebar header, right panel tabs, note tabs): they all line up. */
 export const CHROME_HEIGHT_CLASS = "min-h-[42px]"
 /** Room always left to the note next to the sidebar (rail included). */
-const MIN_CONTENT_WIDTH = 420
+export const MIN_CONTENT_WIDTH = 420
+/** Width of the little sidebar (rail) that stays visible next to each panel. */
+export const SIDEBAR_RAIL_WIDTH = 45
 
 /** The largest width allowed at the given window width (never below the minimum). */
 export const maxSidebarWidth = (windowWidth: number): number =>
@@ -38,6 +40,32 @@ export const widthForKey = (key: string, width: number, windowWidth: number, shi
     }
 }
 
+type SidebarState = { open: boolean, width: number }
+
+/** Width left to the note with the given sidebars (both rails are always there). */
+export const noteWidthFor = (windowWidth: number, left: SidebarState, right: SidebarState): number =>
+    windowWidth - 2 * SIDEBAR_RAIL_WIDTH
+    - (left.open ? clampSidebarWidth(left.width) : 0)
+    - (right.open ? clampSidebarWidth(right.width) : 0)
+
+/**
+ * Which open sidebars must close for the note to keep at least MIN_CONTENT_WIDTH: the right one first, then the left one,
+ * until the note fits (or nothing is left open).
+ */
+export const sidebarsToClose = (windowWidth: number, left: SidebarState, right: SidebarState): { left: boolean, right: boolean } => {
+    const l = left
+    let r = right
+    const closed = { left: false, right: false }
+    if (noteWidthFor(windowWidth, l, r) < MIN_CONTENT_WIDTH && r.open) {
+        r = { ...r, open: false }
+        closed.right = true
+    }
+    if (noteWidthFor(windowWidth, l, r) < MIN_CONTENT_WIDTH && l.open) {
+        closed.left = true
+    }
+    return closed
+}
+
 /** True while the window is narrower than the compact breakpoint. */
 export function useCompactLayout(): boolean {
     const [compact, setCompact] = useState(() => window.innerWidth < COMPACT_BREAKPOINT)
@@ -49,3 +77,5 @@ export function useCompactLayout(): boolean {
     }, [])
     return compact
 }
+
+

@@ -1,8 +1,8 @@
-import { act, renderHook } from "@testing-library/react"
+﻿import { act, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it } from "vitest"
 import {
     COMPACT_BREAKPOINT, SIDEBAR_DEFAULT_WIDTH, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH,
-    clampSidebarWidth, maxSidebarWidth, useCompactLayout, widthForKey,
+    MIN_CONTENT_WIDTH, SIDEBAR_RAIL_WIDTH, clampSidebarWidth, maxSidebarWidth, noteWidthFor, sidebarsToClose, useCompactLayout, widthForKey,
 } from "./sidebar-layout"
 
 describe("sidebar width helpers", () => {
@@ -32,6 +32,34 @@ describe("sidebar width helpers", () => {
     })
 })
 
+describe("sidebarsToClose", () => {
+    const bar = (open: boolean, width = SIDEBAR_DEFAULT_WIDTH) => ({ open, width })
+
+    it("leaves two wide sidebars alone when the note fits", () => {
+        expect(sidebarsToClose(1600, bar(true, 480), bar(true, 480))).toEqual({ left: false, right: false })
+    })
+
+    it("closes the right sidebar first, then the left one, until the note has its minimum width", () => {
+        // 1000 px, two 480 px sidebars: the note would be about -50 px
+        const both = sidebarsToClose(1000, bar(true, 480), bar(true, 480))
+        expect(both.right).toBe(true)
+        // with the right one closed the note is 1000 - 90 - 480 = 430: the left one stays
+        expect(both.left).toBe(false)
+        // narrower: both have to go
+        expect(sidebarsToClose(900, bar(true, 480), bar(true, 480))).toEqual({ left: true, right: true })
+        // default widths at 901 px: the note would be about 290 px, so the right one closes
+        expect(noteWidthFor(901, bar(true), bar(true))).toBeLessThan(MIN_CONTENT_WIDTH)
+        expect(sidebarsToClose(901, bar(true), bar(true))).toEqual({ left: false, right: true })
+    })
+
+    it("applies the same rule with a single open sidebar and ignores closed ones", () => {
+        expect(sidebarsToClose(700, bar(true, 480), bar(false, 480))).toEqual({ left: true, right: false })
+        expect(sidebarsToClose(700, bar(false), bar(true, 480))).toEqual({ left: false, right: true })
+        expect(sidebarsToClose(300, bar(false), bar(false))).toEqual({ left: false, right: false })
+        expect(noteWidthFor(1000, bar(false), bar(false))).toBe(1000 - 2 * SIDEBAR_RAIL_WIDTH)
+    })
+})
+
 describe("useCompactLayout", () => {
     const original = window.innerWidth
     afterEach(() => { window.innerWidth = original })
@@ -48,3 +76,4 @@ describe("useCompactLayout", () => {
         expect(result.current).toBe(false)
     })
 })
+
