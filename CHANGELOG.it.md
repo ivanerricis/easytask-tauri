@@ -4,6 +4,15 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+### Aggiunto
+
+- La lista dei task creati direttamente in un gruppo può stare in qualsiasi punto tra le sue sezioni, non solo in cima. Spostala con "Sposta task del gruppo su" e "Sposta task del gruppo giù" nel menu del gruppo; una sezione può scavalcarla con "Sposta su" e "Sposta giù" o trascinandola, e una linea mostra se cade sopra o sotto la lista. Il pulsante "Nuovo task" del gruppo aggiunge alla lista dove si trova. Annulla e ripeti funzionano, e dopo l'aggiornamento tutto resta com'era (lista in cima).
+- Template ed export salvano la posizione della lista dei task del gruppo.
+
+### Modificato
+
+- Il database viene aggiornato alla versione 9 all'avvio dell'app (prima si fa una copia di sicurezza, in automatico): la lista e le sezioni di un gruppo condividono un solo ordine. Le date di modifica non cambiano; una versione più vecchia dell'app non può aprire il database aggiornato.
+
 ## [0.13.0] - 2026-10-27
 
 ### Aggiunto

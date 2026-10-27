@@ -20,7 +20,7 @@ Il template è un'istantanea indipendente della nota in quel momento. Le modific
 
 | Copiato | Non copiato |
 | --- | --- |
-| Gruppi, sezioni, task e sottotask, nel loro ordine | File audio |
+| Gruppi, sezioni, task e sottotask, nel loro ordine (anche il posto della lista dei task del gruppo) | File audio |
 | Descrizioni dei task, stato di completamento e priorità | Gruppi, sezioni e task archiviati |
 | I colori della nota, dei gruppi, delle sezioni e dei task | Elementi nel cestino |
 | | [Automazioni](./automations) |
