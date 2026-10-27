@@ -299,4 +299,13 @@ describe("Layout and appearance", () => {
             expect(failures).toEqual([])
         })
     })
+
+    it("does not scroll the whole page sideways: nothing pokes out of the window, not even the hit areas of the buttons at its edges", async () => {
+        const overflow = await browser.execute(() => ({
+            html: [document.documentElement.scrollWidth, document.documentElement.clientWidth],
+            body: [document.body.scrollWidth, document.body.clientWidth],
+        }))
+        expect(overflow.html[0]).toBeLessThanOrEqual(overflow.html[1])
+        expect(overflow.body[0]).toBeLessThanOrEqual(overflow.body[1])
+    })
 })

@@ -1,6 +1,7 @@
-import { useRef, type KeyboardEvent, type MouseEvent, type ReactNode } from "react"
+import { useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import type { LucideIcon } from "lucide-react"
+import { Loader2, type LucideIcon } from "lucide-react"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
@@ -52,12 +53,20 @@ export const ConfirmDialog = ({
 }: ConfirmDialogProps) => {
     const { t } = useTranslation()
     const confirmRef = useRef<HTMLButtonElement>(null)
+    // A second Enter/click while the action is still running does nothing (a delete must not be sent twice)
+    const { saving, run: runOnce } = useSubmitOnce()
+    const [pending, setPending] = useState<ConfirmAction | null>(null)
 
     // The dialog is in a portal but React events still bubble to the parents (a row, a menu): keep them out
     const run = (action: ConfirmAction) => (e?: MouseEvent | KeyboardEvent) => {
         e?.stopPropagation()
-        if (autoClose) onOpenChange(false)
-        void action.onClick()
+        void runOnce(async () => {
+            setPending(action)
+            try {
+                if (autoClose) onOpenChange(false)
+                await action.onClick()
+            } finally { setPending(null) }
+        })
     }
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -91,13 +100,13 @@ export const ConfirmDialog = ({
                         {t("common.cancel")}
                     </Button>
                     {secondary && (
-                        <Button variant={secondaryDestructive ? "destructive" : "outline"} onClick={run(secondary)}>
-                            {SecondaryIcon && <SecondaryIcon />}
+                        <Button variant={secondaryDestructive ? "destructive" : "outline"} onClick={run(secondary)} disabled={saving}>
+                            {pending === secondary ? <Loader2 className="animate-spin" /> : SecondaryIcon && <SecondaryIcon />}
                             {secondary.label}
                         </Button>
                     )}
-                    <Button ref={confirmRef} variant={destructive ? (irreversible ? "destructiveSolid" : "destructive") : "default"} onClick={run(confirm)}>
-                        {ConfirmIcon && <ConfirmIcon />}
+                    <Button ref={confirmRef} variant={destructive ? (irreversible ? "destructiveSolid" : "destructive") : "default"} onClick={run(confirm)} disabled={saving}>
+                        {pending === confirm ? <Loader2 className="animate-spin" /> : ConfirmIcon && <ConfirmIcon />}
                         {confirm.label}
                     </Button>
                 </DialogFooter>

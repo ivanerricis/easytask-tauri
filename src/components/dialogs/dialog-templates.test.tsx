@@ -106,7 +106,7 @@ describe("DialogTemplates", () => {
         render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
         await screen.findByText("Retro")
         expect(screen.getByRole("button", { name: "Aggiorna Retro dalla nota" })).toBeEnabled()
-        expect(screen.getByRole("button", { name: "Aggiorna Onboarding dalla nota" })).toBeDisabled()
+        expect(screen.getByRole("button", { name: "Aggiorna Onboarding dalla nota" })).toHaveAttribute("aria-disabled", "true")
     })
 
     it("creates a note from a template in the chosen folder (the context updates the tree) and opens the note", async () => {
@@ -223,7 +223,7 @@ describe("DialogTemplates", () => {
             render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
             await screen.findByText("Retro")
             const button = screen.getByRole("button", { name: "Nuovo template" })
-            expect(button).toBeDisabled()
+            // aria-disabled (not disabled): it stays focusable and the reason is also read aloud\n            expect(button).toHaveAttribute("aria-disabled", "true")
             // The reason is in a tooltip (a disabled button gets no pointer events: it hangs on the span around it)
             await userEvent.hover(button.parentElement as HTMLElement)
             expect(await screen.findByRole("tooltip")).toHaveTextContent("Non ci sono note da cui creare un template.")

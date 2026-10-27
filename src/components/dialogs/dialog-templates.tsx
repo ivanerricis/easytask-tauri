@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useId, useRef, useState } from "react"
 import { FilePlus, LayoutTemplate, Pencil, Plus, FileInput, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -38,6 +38,7 @@ type DialogTemplatesProps = {
  */
 export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) => {
     const { t } = useTranslation()
+    const reasonId = useId()
     const { currentWorkspace } = useWorkspace()
     const { getTemplates, updateTemplateFromNote } = useWorkspaceActions()
     const workspaceID = currentWorkspace?.id
@@ -173,11 +174,16 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                                                     variant="outline"
                                                     size="icon"
                                                     aria-label={t("dialogs.templates.refreshAria", { name: template.name })}
-                                                    disabled={busy || template.sourceNoteName === null}
-                                                    onClick={() => setRefreshing(template)}
+                                                    aria-describedby={template.sourceNoteName === null ? `${reasonId}-source-${template.id}` : undefined}
+                                                    aria-disabled={template.sourceNoteName === null || undefined}
+                                                    disabled={busy}
+                                                    className="aria-disabled:opacity-50 aria-disabled:pointer-events-none"
+                                                    onClick={() => { if (template.sourceNoteName !== null) setRefreshing(template) }}
                                                 >
                                                     <FileInput />
                                                 </Button>
+                                                {/* aria-disabled, not disabled: the button stays focusable and the reason is read aloud */}
+                                                {template.sourceNoteName === null && <span id={`${reasonId}-source-${template.id}`} className="sr-only">{t("dialogs.templates.sourceMissing")}</span>}
                                             </span>
                                         </TooltipCustom>
                                         <span aria-hidden className="mx-0.5 w-px self-stretch bg-border" />
@@ -209,13 +215,16 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                             {/* A disabled button gets no pointer events: the span keeps the tooltip working */}
                             <span className="inline-flex">
                                 <Button
-                                    className="max-sm:w-full"
-                                    disabled={busy || allNotes.length === 0}
-                                    onClick={() => setPicking(true)}
+                                    className="max-sm:w-full aria-disabled:opacity-50 aria-disabled:pointer-events-none"
+                                    disabled={busy}
+                                    aria-disabled={allNotes.length === 0 || undefined}
+                                    aria-describedby={allNotes.length === 0 ? `${reasonId}-no-notes` : undefined}
+                                    onClick={() => { if (allNotes.length > 0) setPicking(true) }}
                                 >
                                     <Plus />
                                     {t("dialogs.templates.new")}
                                 </Button>
+                                {allNotes.length === 0 && <span id={`${reasonId}-no-notes`} className="sr-only">{t("dialogs.templates.noNotes")}</span>}
                             </span>
                         </TooltipCustom>
                     </DialogFooter>

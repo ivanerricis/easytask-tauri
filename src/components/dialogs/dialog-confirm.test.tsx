@@ -64,6 +64,21 @@ describe("ConfirmDialog", () => {
         expect(onConfirm).toHaveBeenCalledTimes(1)
     })
 
+    it("runs a slow action once on two quick clicks and disables the button with a spinner meanwhile", async () => {
+        let finish: () => void = () => undefined
+        onConfirm.mockImplementation(() => new Promise<void>(resolve => { finish = resolve }))
+        setup({ autoClose: false })
+        const button = screen.getByRole("button", { name: "Sposta nel cestino" })
+        fireEvent.click(button)
+        fireEvent.click(button)
+        expect(onConfirm).toHaveBeenCalledTimes(1)
+        await waitFor(() => expect(button).toBeDisabled())
+        expect(button.querySelector("svg.animate-spin")).not.toBeNull()
+        finish()
+        await waitFor(() => expect(button).not.toBeDisabled())
+        expect(button.querySelector("svg.animate-spin")).toBeNull()
+    })
+
     it("leaves the closing to the action when autoClose is off", async () => {
         const user = userEvent.setup()
         setup({ autoClose: false })

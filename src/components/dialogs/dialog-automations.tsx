@@ -196,7 +196,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
         }
     })
 
-    const remove = async (rule: Automation) => {
+    const remove = (rule: Automation) => run(async () => {
         try {
             await deleteDBAutomation(rule.id)
             toast.success(t("automations.deletedToast"))
@@ -205,7 +205,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
         } catch (err) {
             setError(getErrorMessage(err))
         }
-    }
+    })
 
     const handleOpenChange = (open: boolean) => {
         if (!open && dirty) {

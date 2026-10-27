@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, type ReactNode } from "react"
 import { toast } from "sonner"
+import { ACTION_TOAST_DURATION } from "@/lib/toast-trashed"
 import i18n from "@/i18n"
 import type { NoteDataTree, Task } from "@/types/types"
 import { useActiveNote, useActiveNoteActions } from "@/contexts/use-active-note"
@@ -178,6 +179,7 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         toast.success(
             i18n.t(names.length === 1 ? "automations.ranTitle" : "automations.ranManyTitle"),
             {
+                duration: undo ? ACTION_TOAST_DURATION : undefined,
                 description: names.join("\n"),
                 classNames: { description: "whitespace-pre-line" },
                 ...(undo ? { action: { label: i18n.t("undo.undo"), onClick: undoAutomation } } : {}),

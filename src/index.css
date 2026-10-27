@@ -154,6 +154,11 @@ body,
   scroll-behavior: auto !important;
 }
 
+/* The decorative pulse (skeletons) stops with "none"; only the spinners keep turning, they are the sign that something is running. */
+:root[data-motion="none"] .animate-pulse {
+  animation: none !important;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
