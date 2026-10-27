@@ -72,6 +72,33 @@ export async function siblingIds(
     return rows.map(row => row.id)
 }
 
+/** A live row of the shared order of a group: a section with a header or the default section (the list of the direct tasks). */
+export type OrderRow = { id: number, isDefault: boolean }
+
+/**
+ * The live rows of a group (the default section included), in their shared order, without `excludeId`.
+ * @category Database Queries
+ */
+export async function groupOrderRows(db: Database, groupId: number, excludeId: number): Promise<OrderRow[]> {
+    const rows = await db.select<{ id: number, is_default: number | boolean }[]>(
+        'SELECT id, is_default FROM section WHERE groupID = ? AND deleted_at IS NULL AND id <> ? ORDER BY position, id', [groupId, excludeId])
+    return rows.map(row => ({ id: row.id, isDefault: row.is_default === true || row.is_default === 1 }))
+}
+
+/**
+ * Inserts `id` in the rows of a group before the `index`-th section with a header (the default section is not counted), or
+ * at the very end when `index` is not less than the number of those sections. The index is clamped. Returns the new order.
+ * @category Database Queries
+ */
+export function insertAmongSections(rows: readonly OrderRow[], index: number, id: number): number[] {
+    const ids = rows.map(row => row.id)
+    const headed = rows.filter(row => !row.isDefault)
+    const at = clampIndex(index, headed.length)
+    const before = at < headed.length ? ids.indexOf(headed[at].id) : ids.length
+    ids.splice(before, 0, id)
+    return ids
+}
+
 /**
  * Tells whether `ancestorId` is `startId` itself or one of its ancestors: walks up from `startId` through the primary key.
  * Used to refuse moving a folder/task into its own subtree.

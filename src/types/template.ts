@@ -41,6 +41,8 @@ export type TemplateGroup = {
     width?: number | null
     /** Tasks directly in the group (its hidden default section); absent when there are none. */
     tasks?: TemplateTask[]
+    /** How many of the sections come before the list of the direct tasks (0..sections.length); absent = 0, the list is on top. */
+    directIndex?: number
     position: number
     sections: TemplateSection[]
 }

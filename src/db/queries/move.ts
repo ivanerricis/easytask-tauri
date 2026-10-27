@@ -2,14 +2,16 @@ import i18n from "@/i18n"
 import { createError, handleDBError, toAppError } from "@/types/error"
 import { getDB } from "../dbManager"
 import { Transaction, type TxRef } from "../transaction"
-import { addPositions, clampIndex, isSelfOrAncestor, siblingIds } from "./ordering"
+import { addPositions, clampIndex, groupOrderRows, insertAmongSections, isSelfOrAncestor, siblingIds } from "./ordering"
 import { DEFAULT_SECTION_SQL } from "./sql"
 
 const SECTION_UNIQUE_MESSAGE = () => i18n.t("errors.move.sectionUnique")
 
 
 /**
- * Moves a section to a group of the same note, at a given index among the sections of that group.
+ * Moves a section to a group of the same note, at a given index among the sections of that group (the sections with a header:
+ * the default section, the list of the direct tasks, is not counted and keeps its place among them). The section goes before the
+ * `targetIndex`-th other section, or after every row of the group when the index is not less than their number.
  * The section keeps everything it owns (tasks, subtasks and trashed tasks reference it by id, so they follow it).
  * Destination siblings are renumbered with one UPDATE, and so are the source siblings when the group changes
  * (all the writes run in one transaction).
@@ -39,15 +41,14 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
         if (!targets[0] || targets[0].noteID !== section.noteID)
             throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.groupInvalid"))
 
-        const order = await siblingIds(db, "section", "groupID = ? AND is_default = 0", [targetGroupId], sectionId)
-        order.splice(clampIndex(targetIndex, order.length), 0, sectionId)
+        const order = insertAmongSections(await groupOrderRows(db, targetGroupId, sectionId), targetIndex, sectionId)
 
         const tx = new Transaction()
         addPositions(tx, "section", order, { column: "groupID", value: targetGroupId })
 
         if (section.groupID !== targetGroupId) {
-            // The moved section is excluded: it is already in the destination
-            addPositions(tx, "section", await siblingIds(db, "section", "groupID = ? AND is_default = 0", [section.groupID], sectionId))
+            // The moved section is excluded: it is already in the destination (the default section stays in the order)
+            addPositions(tx, "section", (await groupOrderRows(db, section.groupID, sectionId)).map(row => row.id))
         }
         await tx.run()
     } catch (error: unknown) {
@@ -83,8 +84,8 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
         const order = groups.map(row => row.id)
         const index = clampIndex(groupPosition, order.length)
 
-        // The source group is renumbered without the moved section (it is about to leave)
-        const remaining = await siblingIds(db, "section", "groupID = ? AND is_default = 0", [section.groupID], sectionId)
+        // The source group is renumbered without the moved section (it is about to leave); its default section stays in the order
+        const remaining = (await groupOrderRows(db, section.groupID, sectionId)).map(row => row.id)
 
         const tx = new Transaction()
         const created = tx.add('INSERT INTO section_group (noteID, position) VALUES (?, ?)', [section.noteID, index])
@@ -93,11 +94,40 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
         const groupOrder: (number | TxRef)[] = [...order]
         groupOrder.splice(index, 0, newGroup)
 
-        tx.add('UPDATE section SET groupID = ?, position = 0 WHERE id = ?', [newGroup, sectionId])
+        // The new group has its default section at position 0, the moved section follows
+        tx.add('UPDATE section SET groupID = ?, position = 1 WHERE id = ?', [newGroup, sectionId])
         addPositions(tx, "section", remaining)
         addPositions(tx, "section_group", groupOrder)
         const results = await tx.run()
         return { groupId: results[created].lastInsertId, defaultSectionId: results[createdDefault].lastInsertId }
+    } catch (error: unknown) {
+        throw toAppError(error, e => handleDBError(e, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE() }))
+    }
+}
+
+/**
+ * Moves the default section of a group (the list of its direct tasks) among the sections with a header: it goes before the
+ * `index`-th section, or after all of them when `index` is not less than their number (0 = on top, the default).
+ * The rows of the group are renumbered with one UPDATE in one transaction. The caller is responsible for reloading the note data.
+ * @param groupId ID of the group (neither deleted nor archived).
+ * @param index Number of sections that stay before the list (0 based, clamped).
+ * @throws SECTION_MOVE_INVALID when the group or its default section does not exist.
+ * @category Database Queries
+ */
+export async function moveDBDirectSection(groupId: number, index: number) {
+    const db = await getDB()
+
+    try {
+        const rows = await db.select<{ id: number }[]>(
+            `SELECT s.id FROM section s INNER JOIN section_group g ON g.id = s.groupID
+             WHERE s.groupID = ? AND s.is_default = 1 AND s.deleted_at IS NULL AND g.deleted_at IS NULL AND g.archived_at IS NULL`, [groupId])
+        if (!rows[0])
+            throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.groupInvalid"))
+
+        const order = insertAmongSections(await groupOrderRows(db, groupId, rows[0].id), index, rows[0].id)
+        const tx = new Transaction()
+        addPositions(tx, "section", order)
+        await tx.run()
     } catch (error: unknown) {
         throw toAppError(error, e => handleDBError(e, "SECTION", { UNIQUE: SECTION_UNIQUE_MESSAGE() }))
     }

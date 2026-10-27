@@ -110,7 +110,7 @@ export async function duplicateDBSection(sectionId: number): Promise<number> {
     }
 
     const tx = new Transaction()
-    tx.add('UPDATE section SET position = position + 1 WHERE groupID = ? AND position > ? AND deleted_at IS NULL AND is_default = 0',
+    tx.add('UPDATE section SET position = position + 1 WHERE groupID = ? AND position > ? AND deleted_at IS NULL',
         [source.groupID, source.position])
     const [sectionRef] = addSections(tx, [{ groupRef: source.groupID, section: { ...snapshot, title, position: source.position + 1 } }])
     const sectionStatement = sectionRef.$ref

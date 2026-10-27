@@ -62,7 +62,7 @@ export const TaskStepMoves = ({ taskId, onDone }: StepMovesProps & { taskId: num
 /** "Sposta su / giù" of a section: one step among the sections of its group. */
 export const SectionStepMoves = ({ sectionId, onDone }: StepMovesProps & { sectionId: number }) => {
     const { noteDataTree } = useActiveNote()
-    const { moveSectionTo } = useNoteMoves()
+    const { moveSectionTo, moveDirectSectionTo } = useNoteMoves()
 
     const steps = useMemo(() => noteDataTree
         ? { up: getSectionStep(noteDataTree, sectionId, -1), down: getSectionStep(noteDataTree, sectionId, 1) }
@@ -76,7 +76,12 @@ export const SectionStepMoves = ({ sectionId, onDone }: StepMovesProps & { secti
                 const target = step < 0 ? steps.up : steps.down
                 if (!target) return
                 onDone?.()
-                void moveSectionTo(sectionId, target)
+                if (target.type === "direct") void moveDirectSectionTo(target.groupId, target.index)
+                else void (async () => {
+                    await moveSectionTo(sectionId, target)
+                    // The section reached the end of the group, after the list: the list goes back to the end
+                    if (target.thenListIndex !== undefined) await moveDirectSectionTo(target.groupId, target.thenListIndex)
+                })()
             }}
         />
     )

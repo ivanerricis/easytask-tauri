@@ -147,3 +147,26 @@ export const addSectionDefaultFlag: string[] = [
         WHERE NOT EXISTS (SELECT 1 FROM section s WHERE s.groupID = g.id AND s.is_default = 1);`,
     triggersFor("section")[0],
 ]
+
+/**
+ * Migration v9: the default section (the list of the direct tasks of a group) shares the order of the sections of its
+ * group, so the list can sit anywhere among them. Every section row of a group (trashed and archived included) gets a
+ * sequential `position` starting from 0, the default section first and then the sections in their old order (position, id):
+ * the list stays on top and the layout does not change.
+ * ONE transactional script (a failure rolls back and the migration is simply run again). Only `position` changes, so no
+ * edit date of the sections or of the tasks moves; the workspace trigger of the section updates would refresh the edit date
+ * of the workspaces, so it is dropped for the renumbering and created again right after. The new numbers go through a
+ * temporary table (no correlated subquery on the table being updated).
+ * @category Database Schema
+ */
+export const addSectionSharedOrder: string[] = [`
+    BEGIN IMMEDIATE;
+    DROP TRIGGER IF EXISTS workspace_edit_on_section_update;
+    DROP TABLE IF EXISTS temp._pos;
+    CREATE TEMP TABLE _pos AS
+        SELECT id, ROW_NUMBER() OVER (PARTITION BY groupID ORDER BY is_default DESC, position, id) - 1 AS p FROM section;
+    UPDATE section SET position = (SELECT p FROM _pos WHERE _pos.id = section.id);
+    DROP TABLE _pos;
+    ${triggersFor("section")[1]}
+    COMMIT;
+`]

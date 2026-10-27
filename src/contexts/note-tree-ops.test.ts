@@ -3,7 +3,7 @@ import type { NoteDataTree } from "@/types/types"
 import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import {
     buildDefaultSection, buildGroup, buildSection, buildTask, findGroup, findSection, findTask,
-    insertGroup, insertSection, insertTask, localTimestamp, moveSection, moveTask,
+    insertGroup, insertSection, insertTask, localTimestamp, moveDirectSection, moveSection, moveTask,
     nextPosition, patchGroup, patchSection, patchTask, removeGroup, removeSection, removeTask,
 } from "./note-tree-ops"
 
@@ -277,5 +277,76 @@ describe("default section (direct tasks of a group)", () => {
         const tree = withDirect()
         expect(removeSection(tree, 90)).toBe(tree)
         expect(moveSection(tree, 90, 2, 0)).toBe(tree)
+    })
+})
+
+describe("the list of the direct tasks among the sections", () => {
+    // [S10, S11, (list 90), S12]
+    const tree = (): NoteDataTree => ({
+        groups: [
+            makeGroup({
+                id: 1, defaultIndex: 2, defaultSection: makeDefaultSection({ id: 90, groupID: 1 }),
+                sections: [10, 11, 12].map(id => makeSection({ id, groupID: 1 })),
+            }),
+            makeGroup({ id: 2, position: 1, defaultIndex: 0, defaultSection: makeDefaultSection({ id: 91, groupID: 2 }) }),
+        ],
+    })
+    const listIndex = (t: NoteDataTree, group = 0) => t.groups[group].defaultIndex
+
+    it("a new group has defaultIndex 0 together with its default section", () => {
+        expect(buildGroup(5, 1, null, [], 50).defaultIndex).toBe(0)
+        expect(buildGroup(6, 1, null, []).defaultIndex).toBeUndefined()
+    })
+
+    it("insertSection pushes the list down only when the section goes before it", () => {
+        const section = (id: number) => makeSection({ id, groupID: 1 })
+        expect(listIndex(insertSection(tree(), 1, section(20), 0))).toBe(3)
+        expect(listIndex(insertSection(tree(), 1, section(20), 1))).toBe(3)
+        // exactly where the list is, and at the end (default): after the list
+        expect(listIndex(insertSection(tree(), 1, section(20), 2))).toBe(2)
+        expect(listIndex(insertSection(tree(), 1, section(20)))).toBe(2)
+        // a group without list has no index
+        expect(insertSection(tree(), 2, makeSection({ id: 21, groupID: 2 }), 0).groups[1].defaultIndex).toBe(0)
+    })
+
+    it("removeSection counts out only the sections that were before the list", () => {
+        expect(listIndex(removeSection(tree(), 10))).toBe(1)
+        expect(listIndex(removeSection(tree(), 11))).toBe(1)
+        expect(listIndex(removeSection(tree(), 12))).toBe(2)
+    })
+
+    it("moveSection inside the group follows the order of the rows", () => {
+        // S10 to the end: after every row
+        const toEnd = moveSection(tree(), 10, 1, 2)
+        expect(toEnd.groups[0].sections.map(s => s.id)).toEqual([11, 12, 10])
+        expect(listIndex(toEnd)).toBe(1)
+        // S12 to the front: before the list
+        const toFront = moveSection(tree(), 12, 1, 0)
+        expect(toFront.groups[0].sections.map(s => s.id)).toEqual([12, 10, 11])
+        expect(listIndex(toFront)).toBe(3)
+        // S11 to index 1 (the index of S12 once S11 is out, where the list is): it lands after the list
+        const afterList = moveSection(tree(), 11, 1, 1)
+        expect(afterList.groups[0].sections.map(s => s.id)).toEqual([10, 11, 12])
+        expect(listIndex(afterList)).toBe(1)
+    })
+
+    it("moveSection between groups changes the index of both lists", () => {
+        const next = moveSection(tree(), 10, 2, 0)
+        expect(next.groups.map(g => g.defaultIndex)).toEqual([1, 0])
+        expect(next.groups[1].sections.map(s => s.id)).toEqual([10])
+    })
+
+    it("moveDirectSection moves the list, clamps and gives the same tree when nothing changes", () => {
+        const t = tree()
+        expect(listIndex(moveDirectSection(t, 1, 0))).toBe(0)
+        expect(listIndex(moveDirectSection(t, 1, 3))).toBe(3)
+        expect(listIndex(moveDirectSection(t, 1, 99))).toBe(3)
+        expect(listIndex(moveDirectSection(t, 1, -4))).toBe(0)
+        expect(moveDirectSection(t, 1, 2)).toBe(t)
+        expect(moveDirectSection(t, 99, 0)).toBe(t)
+        const noList: NoteDataTree = { groups: [makeGroup({ id: 3, sections: [makeSection({ id: 30, groupID: 3 })] })] }
+        expect(moveDirectSection(noList, 3, 1)).toBe(noList)
+        // a list with no index yet is on top: moving it there is not a change, but the index gets written
+        expect(listIndex(moveDirectSection({ groups: [makeGroup({ id: 3, defaultSection: makeDefaultSection({ id: 93, groupID: 3 }) })] }, 3, 0))).toBe(0)
     })
 })

@@ -294,6 +294,7 @@ function checkContent(content: unknown, counter: Counter): NoteTemplateContent {
         if (!isObject(group) || !isNumber(group.position) || !Array.isArray(group.sections) || !isNullableString(group.name)
             || !isNullableString(group.color) || !isNullableString(group.archived_at)) malformed()
         if (!(group.width === undefined || group.width === null || (Number.isInteger(group.width) && (group.width as number) > 0))) malformed()
+        if (!(group.directIndex === undefined || (Number.isInteger(group.directIndex) && (group.directIndex as number) >= 0 && (group.directIndex as number) <= (group.sections as unknown[]).length))) malformed()
         if (group.tasks !== undefined) {
             if (!Array.isArray(group.tasks)) malformed()
             for (const task of group.tasks as unknown[]) checkTask(task, counter)

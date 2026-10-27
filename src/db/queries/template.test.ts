@@ -73,11 +73,11 @@ beforeEach(() => {
 
         INSERT INTO section_group (id, noteID, position, name, color) VALUES (1, 1, 0, 'Sprint', '#abcdef'), (2, 1, 1, NULL, NULL), (3, 1, 2, 'Eliminato', NULL);
         INSERT INTO section (id, groupID, title, color, position) VALUES
-            (1, 1, 'Da fare', '#00ff00', 0),
-            (2, 1, 'Archivio', NULL, 1),
-            (3, 2, 'Idee', NULL, 0),
-            (4, 3, 'Nel gruppo eliminato', NULL, 0),
-            (5, 1, 'Sezione eliminata', NULL, 2);
+            (1, 1, 'Da fare', '#00ff00', 1),
+            (2, 1, 'Archivio', NULL, 2),
+            (3, 2, 'Idee', NULL, 1),
+            (4, 3, 'Nel gruppo eliminato', NULL, 1),
+            (5, 1, 'Sezione eliminata', NULL, 3);
         INSERT INTO section (id, groupID, title, position, is_default) VALUES (20, 1, NULL, 0, 1), (21, 2, NULL, 0, 1), (22, 3, NULL, 0, 1);
         UPDATE section_group SET width = 420 WHERE id = 1;
         INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, color, position) VALUES
@@ -123,7 +123,7 @@ describe("createDBTemplateFromNote", () => {
                     ],
                     sections: [
                         {
-                            title: "Da fare", color: "#00ff00", position: 0, tasks: [
+                            title: "Da fare", color: "#00ff00", position: 1, tasks: [
                                 {
                                     text: "Radice A", description: null, completed: false, priority: false, color: null, position: 0, subtasks: [],
                                 },
@@ -139,13 +139,13 @@ describe("createDBTemplateFromNote", () => {
                                 },
                             ],
                         },
-                        { title: "Archivio", color: null, position: 1, tasks: [] },
+                        { title: "Archivio", color: null, position: 2, tasks: [] },
                     ],
                 },
                 {
                     name: null, color: null, position: 1, sections: [
                         {
-                            title: "Idee", color: null, position: 0, tasks: [
+                            title: "Idee", color: null, position: 1, tasks: [
                                 { text: "Idea", description: null, completed: false, priority: false, color: null, position: 0, subtasks: [] },
                             ],
                         },
@@ -373,7 +373,7 @@ describe("createDBNoteFromTemplate", () => {
     })
 
     it("inserts big templates in chunks with correct parent links", async () => {
-        sqlite.exec("INSERT INTO note (id, workspaceID, name) VALUES (6, 1, 'Grande'); INSERT INTO section_group (id, noteID, position) VALUES (10, 6, 0); INSERT INTO section (id, groupID, title, position) VALUES (10, 10, 'S', 0);")
+        sqlite.exec("INSERT INTO note (id, workspaceID, name) VALUES (6, 1, 'Grande'); INSERT INTO section_group (id, noteID, position) VALUES (10, 6, 0); INSERT INTO section (id, groupID, title, position) VALUES (10, 10, 'S', 1); INSERT INTO section (groupID, title, position, is_default) VALUES (10, NULL, 0, 1);")
         const insert = sqlite.prepare("INSERT INTO task (sectionID, taskID, text, position) VALUES (10, ?, ?, ?)")
         for (let i = 0; i < 1200; i++) insert.run(null, `T${i}`, i)
         const top = rows("SELECT id, text FROM task WHERE sectionID = 10 AND text IN ('T0', 'T600', 'T1199')")
@@ -467,5 +467,46 @@ describe("parseTemplateContent", () => {
         expect(parseTemplateContent("not json")).toEqual({ version: 1, groups: [] })
         expect(parseTemplateContent('{"groups":3}')).toEqual({ version: 1, groups: [] })
         expect(parseTemplateContent("null")).toEqual({ version: 1, groups: [] })
+    })
+})
+
+describe("the place of the list of the direct tasks among the sections", () => {
+    // Group 1 of the fixture as [Da fare, (list), Archivio]
+    const listInTheMiddle = () => sqlite.exec("UPDATE section SET position = 3 WHERE id = 2; UPDATE section SET position = 2 WHERE id = 20")
+    // The live rows of the first group of a note in order, the list shown as "(list)"
+    const rowsOf = (noteId: number) => rows(`SELECT s.title, s.is_default FROM section s JOIN section_group g ON g.id = s.groupID
+        WHERE g.noteID = ${noteId} AND g.position = 0 AND s.deleted_at IS NULL ORDER BY s.position, s.id`).map(r => r.is_default ? "(list)" : r.title)
+
+    it("is stored as directIndex (the sections before the list), and omitted when the list is on top", async () => {
+        const top = await createDBTemplateFromNote(1, "Top")
+        expect((await getDBTemplates(1)).find(t => t.id === top)!.content.groups[0]).not.toHaveProperty("directIndex")
+        listInTheMiddle()
+        const id = await createDBTemplateFromNote(1, "Middle")
+        expect((await getDBTemplates(1)).find(t => t.id === id)!.content.groups[0]).toMatchObject({ directIndex: 1 })
+        expect((await getDBTemplates(1)).find(t => t.id === id)!.content.groups[1]).not.toHaveProperty("directIndex")
+    })
+
+    it("is rebuilt in a note created from the template, with the rows numbered without gaps", async () => {
+        listInTheMiddle()
+        const id = await createDBTemplateFromNote(1, "Middle")
+        const noteId = await createDBNoteFromTemplate(id, 1, null, "Copia")
+        expect(rowsOf(noteId)).toEqual(["Da fare", "(list)", "Archivio"])
+        expect(rows(`SELECT s.position FROM section s JOIN section_group g ON g.id = s.groupID WHERE g.noteID = ${noteId} AND g.position = 0 ORDER BY s.position`).map(r => r.position)).toEqual([0, 1, 2])
+        // the direct tasks went with the list
+        expect(rows(`SELECT t.text FROM task t JOIN section s ON s.id = t.sectionID JOIN section_group g ON g.id = s.groupID
+            WHERE g.noteID = ${noteId} AND s.is_default = 1 AND t.taskID IS NULL AND g.position = 0`).map(r => r.text)).toEqual(["Diretto"])
+    })
+
+    it("is clamped when it is out of range and a template without it keeps the list on top", async () => {
+        const content = (directIndex?: number) => JSON.stringify({ version: 1, groups: [{
+            name: null, position: 0, ...(directIndex === undefined ? {} : { directIndex }),
+            sections: [{ title: "A", position: 0, tasks: [] }, { title: "B", position: 1, tasks: [] }],
+        }] })
+        for (const [directIndex, expected] of [[undefined, ["(list)", "A", "B"]], [1, ["A", "(list)", "B"]], [2, ["A", "B", "(list)"]], [99, ["A", "B", "(list)"]], [-3, ["(list)", "A", "B"]]] as const) {
+            sqlite.prepare("INSERT INTO note_template (workspaceID, name, content) VALUES (1, ?, ?)").run(`T${directIndex}`, content(directIndex))
+            const templateId = rows("SELECT MAX(id) AS id FROM note_template")[0].id as number
+            const noteId = await createDBNoteFromTemplate(templateId, 1, null, `N${directIndex}`)
+            expect(rowsOf(noteId)).toEqual(expected)
+        }
     })
 })

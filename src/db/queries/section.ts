@@ -5,7 +5,7 @@ import { Transaction } from "../transaction";
 import { DEFAULT_SECTION_SQL } from "./sql";
 
 /**
- * Creates a new section in a specific group, appended after its siblings.
+ * Creates a new section in a specific group, appended after every other row of the group (the default section included: it shares their order).
  * @param groupId The ID of the group where the section will be created.
  * @param title The title of the section (blank = no title, stored as NULL).
  * @category Database Queries
@@ -16,7 +16,7 @@ export async function createDBSectionInGroup(groupId: number, title: string) {
         const result = await db.execute(
             `INSERT INTO section (groupID, title, position)
              SELECT ?, ?, COALESCE(MAX(position) + 1, 0) FROM section
-             WHERE groupID = ? AND deleted_at IS NULL AND is_default = 0`,
+             WHERE groupID = ? AND deleted_at IS NULL`,
             [groupId, title.trim() || null, groupId]);
         return result.lastInsertId as number
     } catch (error: unknown) {
@@ -41,7 +41,7 @@ export async function createDBSection(noteId: number, title: string, position: n
         const tx = new Transaction()
         const group = tx.add('INSERT INTO section_group (noteID, position) VALUES (?, ?)', [noteId, position])
         const defaultSection = tx.add(DEFAULT_SECTION_SQL, [tx.idOf(group)])
-        const section = tx.add('INSERT INTO section (groupID, title, position) VALUES (?, ?, 0)', [tx.idOf(group), title.trim() || null])
+        const section = tx.add('INSERT INTO section (groupID, title, position) VALUES (?, ?, 1)', [tx.idOf(group), title.trim() || null])
         const results = await tx.run()
         return {
             groupId: results[group].lastInsertId,

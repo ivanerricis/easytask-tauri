@@ -44,6 +44,27 @@ describe("buildNoteTree", () => {
         expect(second.defaultSection).toMatchObject({ id: 91, tasks: [] })
     })
 
+    it("sets defaultIndex to the number of sections that come before the default section in the order of the rows", () => {
+        const tree = buildNoteTree(
+            [makeGroup({ id: 1 }), makeGroup({ id: 2, position: 1 }), makeGroup({ id: 3, position: 2 })],
+            [
+                makeSection({ id: 10, groupID: 1, position: 0 }), makeSection({ id: 11, groupID: 1, position: 1 }), makeDefaultSection({ id: 90, groupID: 1, position: 2 }),
+                makeSection({ id: 12, groupID: 1, position: 3 }),
+                makeDefaultSection({ id: 91, groupID: 2, position: 0 }), makeSection({ id: 13, groupID: 2, position: 1 }),
+                makeSection({ id: 14, groupID: 3, position: 0 }), makeDefaultSection({ id: 92, groupID: 3, position: 1 }),
+            ],
+            [],
+        )
+        expect(tree.groups.map(g => g.defaultIndex)).toEqual([2, 0, 1])
+        expect(tree.groups[0].sections.map(s => s.id)).toEqual([10, 11, 12])
+        expect(tree.groups[2].sections.map(s => s.id)).toEqual([14])
+    })
+
+    it("has no defaultIndex for a group without default section", () => {
+        const tree = buildNoteTree([makeGroup({ id: 1 })], [makeSection({ id: 10, groupID: 1 })], [])
+        expect(tree.groups[0].defaultIndex).toBeUndefined()
+    })
+
     it("keeps the width of the group", () => {
         const tree = buildNoteTree([makeGroup({ id: 1, width: 420 })], [], [])
         expect(tree.groups[0].width).toBe(420)

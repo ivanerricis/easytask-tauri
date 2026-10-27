@@ -95,6 +95,12 @@ export function buildContentFromRows({ groups, sections, tasks }: NoteData): Not
         else sectionsByGroup.set(section.groupID, [section])
     }
     // The default section of a group holds its direct tasks: they go in `group.tasks`, and it is not one of the sections
+    // (its place among them is `directIndex`: the sections that come before it in the shared order)
+    const directIndexOf = (group: Group) => {
+        const rows = sectionsByGroup.get(group.id) ?? []
+        const at = rows.findIndex(isDefaultSection)
+        return Math.max(at, 0)
+    }
     const sectionsOf = (group: Group) => (sectionsByGroup.get(group.id) ?? []).filter(section => !isDefaultSection(section))
     const defaultOf = (group: Group) => (sectionsByGroup.get(group.id) ?? []).find(isDefaultSection)
 
@@ -110,6 +116,7 @@ export function buildContentFromRows({ groups, sections, tasks }: NoteData): Not
                     ...(group.archived_at ? { archived_at: group.archived_at } : {}),
                     ...(group.width ? { width: group.width } : {}),
                     ...(directTasks.length > 0 ? { tasks: directTasks } : {}),
+                    ...(directIndexOf(group) > 0 ? { directIndex: directIndexOf(group) } : {}),
                     position: group.position,
                     sections: sectionsOf(group).map(snapshotSection),
                 }
@@ -267,11 +274,14 @@ export function addNoteContent(tx: Transaction, noteRef: number | TxRef, content
     const groupRefs = tx.insertRows("section_group", ["noteID", "position", "name", "color", "archived_at", "width"],
         groups.map(group => [noteRef, group.position, group.name ?? null, group.color || null, group.archived_at || null, group.width || null]))
 
-    // Every group gets its default section (with the direct tasks of the group), the normal sections follow
+    // Every group gets its default section (with the direct tasks of the group), the normal sections follow. They all share
+    // one order: the list is at `directIndex` (clamped, 0 = on top) and the sections take the other numbers, in their order
+    const directAt = (group: TemplateGroup) => Math.max(0, Math.min(Math.trunc(group.directIndex ?? 0) || 0, group.sections.length))
     const defaults = groups.map((group, i) => ({
-        groupRef: groupRefs[i], isDefault: true, section: { title: "", color: null, position: 0, tasks: group.tasks ?? [] },
+        groupRef: groupRefs[i], isDefault: true, section: { title: "", color: null, position: directAt(group), tasks: group.tasks ?? [] },
     }))
-    const normals = groups.flatMap((group, i) => group.sections.map(section => ({ groupRef: groupRefs[i], section })))
+    const normals = groups.flatMap((group, i) => group.sections.map((section, s) => (
+        { groupRef: groupRefs[i], section: { ...section, position: s < directAt(group) ? s : s + 1 } })))
     const refs = addSections(tx, [...defaults, ...normals])
     return { groups: groupRefs, sections: refs.slice(groups.length), defaultSections: refs.slice(0, groups.length) }
 }

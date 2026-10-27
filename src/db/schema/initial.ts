@@ -3,7 +3,7 @@ import { automationSchema } from "./automation";
 import { addFolderArchivedAt, createFolderIndexes, createFolderTable, createFolderTrigger } from "./folder";
 import { addNoteArchivedAt, createNoteIndexes, createNoteTable, createNoteTrigger } from "./note";
 import { createNoteTemplateIndexes, createNoteTemplateTable, createNoteTemplateTrigger } from "./note_template";
-import { addSectionArchivedAt, addSectionDefaultFlag, makeSectionTitleOptional, createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
+import { addSectionArchivedAt, addSectionDefaultFlag, addSectionSharedOrder, makeSectionTitleOptional, createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
 import { addGroupArchivedAt, addGroupColorColumn, addGroupWidthColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
 import { createTaskIndexes, createTaskTable, addTaskArchivedAt, createTaskTrigger, dropTaskArchivedColumn } from "./task";
 import { createWorkspaceEditTriggers } from "./workspace_edit";
@@ -77,10 +77,16 @@ export const sectionTitleSchema: string[] = [...makeSectionTitleOptional]
 export const groupStructureSchema: string[] = [...addSectionDefaultFlag, ...addGroupWidthColumn]
 
 /**
+ * Migration v9: the default section takes part in the order of the sections of its group.
+ * @category Database Schema
+ */
+export const sectionOrderSchema: string[] = [...addSectionSharedOrder]
+
+/**
  * The whole schema at the latest version (initial schema plus every additive migration), as statements.
  * Used by the tests to build a database in one go: the app itself goes through the migrations in initDb.
  * @category Database Schema
  */
 export const latestSchema: string[] = [
-    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema, ...groupStructureSchema,
+    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema, ...groupStructureSchema, ...sectionOrderSchema,
 ]

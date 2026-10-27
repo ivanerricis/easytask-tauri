@@ -57,11 +57,11 @@ beforeEach(() => {
 
         INSERT INTO section_group (id, noteID, position, name, color) VALUES (1, 1, 0, 'Sprint', '#abcdef'), (2, 1, 1, NULL, NULL), (3, 1, 2, 'Eliminato', NULL);
         INSERT INTO section (id, groupID, title, color, position) VALUES
-            (1, 1, 'Da fare', '#00ff00', 0),
-            (2, 1, 'Archivio', NULL, 1),
-            (3, 2, 'Idee', NULL, 0),
-            (4, 3, 'Nel gruppo eliminato', NULL, 0),
-            (5, 1, 'Sezione eliminata', NULL, 2);
+            (1, 1, 'Da fare', '#00ff00', 1),
+            (2, 1, 'Archivio', NULL, 2),
+            (3, 2, 'Idee', NULL, 1),
+            (4, 3, 'Nel gruppo eliminato', NULL, 1),
+            (5, 1, 'Sezione eliminata', NULL, 3);
         INSERT INTO section (id, groupID, title, position, is_default) VALUES (20, 1, NULL, 0, 1), (21, 2, NULL, 0, 1), (22, 3, NULL, 0, 1);
         UPDATE section_group SET width = 400 WHERE id = 1;
         INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, color, position) VALUES
@@ -226,6 +226,37 @@ describe("direct tasks and width of a group in the export", () => {
     })
 })
 
+describe("the place of the list of the direct tasks in the export", () => {
+    const withGroup = (good: { notes: { name: string, content: { groups: object[] } }[] }, patch: object) => ({
+        ...good,
+        notes: good.notes.map(n => n.name === "Sorgente"
+            ? { ...n, content: { ...n.content, groups: [{ ...n.content.groups[0], ...patch }, ...n.content.groups.slice(1)] } } : n),
+    })
+
+    it("round trips the directIndex of a group and leaves the groups with the list on top without it", async () => {
+        // [Da fare, (list), Archivio]
+        sqlite.exec("UPDATE section SET position = 3 WHERE id = 2; UPDATE section SET position = 2 WHERE id = 20")
+        const data = JSON.parse(JSON.stringify(await exportOf()))
+        const note = data.notes.find((n: { name: string }) => n.name === "Sorgente")
+        expect(note.content.groups[0]).toMatchObject({ directIndex: 1 })
+        expect(note.content.groups[1]).not.toHaveProperty("directIndex")
+
+        const { workspaceId } = await importDBWorkspace(validateWorkspaceExport(data))
+        const noteId = rows(`SELECT id FROM note WHERE workspaceID = ${workspaceId} AND name = 'Sorgente'`)[0].id as number
+        const order = rows(`SELECT s.title, s.is_default FROM section s JOIN section_group g ON g.id = s.groupID
+            WHERE g.noteID = ${noteId} AND g.position = 0 AND s.deleted_at IS NULL ORDER BY s.position, s.id`).map(r => r.is_default ? "(list)" : r.title)
+        expect(order).toEqual(["Da fare", "(list)", "Archivio"])
+    })
+
+    it("accepts a directIndex from 0 to the number of sections and rejects anything else", async () => {
+        const good = JSON.parse(JSON.stringify(await exportOf()))
+        const sections = good.notes.find((n: { name: string }) => n.name === "Sorgente").content.groups[0].sections.length
+        for (const directIndex of [0, 1, sections])
+            expect(() => validateWorkspaceExport(withGroup(good, { directIndex }))).not.toThrow()
+        for (const directIndex of [-1, sections + 1, 1.5, "1", null, Number.NaN])
+            expect(() => validateWorkspaceExport(withGroup(good, { directIndex }))).toThrow(expect.objectContaining({ code: "TRANSFER_INVALID_FILE" }))
+    })
+})
 describe("importDBWorkspace", () => {
     it("round trips a workspace into a new one with a unique name", async () => {
         sqlite.exec(`

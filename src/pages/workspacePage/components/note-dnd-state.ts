@@ -119,8 +119,8 @@ export function useNoteDrag(kind: NoteDragKind, id: number) {
  * @category Note DnD
  */
 export function useNoteMoves() {
-    const { moveSection, moveSectionToNewGroup, moveTask } = useWorkspaceActions()
-    const { applySectionMove, applySectionMoveToNewGroup, applyTaskMove, getNoteTree } = useActiveNoteActions()
+    const { moveSection, moveDirectSection, moveSectionToNewGroup, moveTask } = useWorkspaceActions()
+    const { applySectionMove, applyDirectSectionMove, applySectionMoveToNewGroup, applyTaskMove, getNoteTree } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const { dispatch } = useAutomations()
 
@@ -143,6 +143,20 @@ export function useNoteMoves() {
         }
     })()), [moveSection, moveSectionToNewGroup, applySectionMove, applySectionMoveToNewGroup, getNoteTree, recorder])
 
+    /** Moves the list of the direct tasks of a group before the `index`-th section of the group (after all of them when `index` is not less than their number). */
+    const moveDirectSectionTo = useCallback((groupId: number, index: number) => recorder.track((async () => {
+        const from = getNoteTree()?.groups.find(group => group.id === groupId)?.defaultIndex ?? 0
+        const rollback = applyDirectSectionMove(groupId, index)
+        try {
+            await moveDirectSection(groupId, index)
+            const to = getNoteTree()?.groups.find(group => group.id === groupId)?.defaultIndex ?? index
+            if (to !== from) recorder.directMove(groupId, "", from, to)
+        } catch (err) {
+            rollback()
+            reportError(err, getErrorMessage(err))
+        }
+    })()), [moveDirectSection, applyDirectSectionMove, getNoteTree, recorder])
+
     const moveTaskTo = useCallback((taskId: number, target: TaskTarget) => recorder.track((async () => {
         const destination = { sectionId: target.sectionId, parentTaskId: target.parentTaskId }
         const from = captureTaskPlace(getNoteTree(), taskId)
@@ -157,7 +171,7 @@ export function useNoteMoves() {
         }
     })()), [moveTask, applyTaskMove, getNoteTree, recorder, dispatch])
 
-    return { moveSectionTo, moveTaskTo }
+    return { moveSectionTo, moveDirectSectionTo, moveTaskTo }
 }
 
 /**

@@ -82,6 +82,7 @@ export type WorkspaceActionsType = {
 
     moveSection: (sectionID: number, targetGroupID: number, targetIndex: number) => Promise<void>
     /** Resolves with the id of the new group, so the caller can update the note without reloading. */
+    moveDirectSection: (groupID: number, index: number) => Promise<void>
     moveSectionToNewGroup: (sectionID: number, groupPosition: number) => Promise<{ groupId: number, defaultSectionId: number }>
     moveTask: (taskID: number, target: TaskMoveTarget, targetIndex: number) => Promise<void>
 

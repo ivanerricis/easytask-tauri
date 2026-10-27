@@ -89,12 +89,13 @@ export function buildNoteTree(groups: Group[], sections: Section[], tasks: Task[
 
     return {
         groups: groups.map(group => {
-            // The default section (direct tasks of the group) stays out of `sections`
+            // The default section (direct tasks of the group) stays out of `sections`; `defaultIndex` is its place among them
+            // (the rows share one order, so it is the number of sections that come before it)
             const all = sectionsByGroup.get(group.id) ?? []
             const defaultSection = all.find(isDefaultSection)
             return {
                 ...group,
-                ...(defaultSection ? { defaultSection: withTasks(defaultSection) } : {}),
+                ...(defaultSection ? { defaultSection: withTasks(defaultSection), defaultIndex: all.indexOf(defaultSection) } : {}),
                 sections: all.filter(section => !isDefaultSection(section)).map(withTasks),
             }
         }),
