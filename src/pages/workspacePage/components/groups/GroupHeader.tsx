@@ -112,20 +112,23 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0, 
                         className="h-6 min-w-0 flex-1 mr-1 px-1 py-0 text-sm font-semibold md:text-sm border-primary"
                     />
                 </InlineErrorTooltip>}
-                {showGroupProgressBar && !compact && progress.total > 0 && <div className="flex items-center gap-2 shrink-0 mr-1">
-                    <Progress className="w-20" value={progress.percent} aria-label={t("groups.progress")} />
-                    <span className="text-xs shrink-0 tabular-nums">
-                        {Math.round(progress.percent)} %
-                    </span>
-                </div>}
-                <div className="flex shrink-0 gap-2">
-                    {showSectionCount && <CountBadge icon={LayoutList} count={group.sections.length} label={t("common.counts.section", { count: group.sections.length })} />}
-                    {showTaskCount && <CountBadge icon={SquareCheckBig} count={taskCount} label={t("common.counts.task", { count: taskCount })} />}
-                    {showAudioFileCount && audioCount > 0 && <CountBadge icon={FileAudio} count={audioCount} label={t("groups.audioCount", { count: audioCount })} />}
-                </div>
-                {/* flex + leading-none: in a block wrapper the line height leaves a gap under the button, which then sits off-center */}
-                <div className="flex items-center leading-none shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
-                    <ItemMenuButton name={label} />
+                {/* ml-auto: when the group is wider than the name needs, the bar, the counters and the menu stay on the right edge */}
+                <div className="flex items-center gap-1 shrink-0 ml-auto">
+                    {showGroupProgressBar && !compact && progress.total > 0 && <div className="flex items-center gap-2 shrink-0 mr-1">
+                        <Progress className="w-20" value={progress.percent} aria-label={t("groups.progress")} />
+                        <span className="text-xs shrink-0 tabular-nums">
+                            {Math.round(progress.percent)} %
+                        </span>
+                    </div>}
+                    <div className="flex shrink-0 gap-2">
+                        {showSectionCount && <CountBadge icon={LayoutList} count={group.sections.length} label={t("common.counts.section", { count: group.sections.length })} />}
+                        {showTaskCount && <CountBadge icon={SquareCheckBig} count={taskCount} label={t("common.counts.task", { count: taskCount })} />}
+                        {showAudioFileCount && audioCount > 0 && <CountBadge icon={FileAudio} count={audioCount} label={t("groups.audioCount", { count: audioCount })} />}
+                    </div>
+                    {/* flex + leading-none: in a block wrapper the line height leaves a gap under the button, which then sits off-center */}
+                    <div className="flex items-center leading-none shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                        <ItemMenuButton name={label} />
+                    </div>
                 </div>
             </div>
         </ButtonMenuGroup>
