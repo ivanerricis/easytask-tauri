@@ -87,10 +87,10 @@ describe("Open and closed state of groups, sections and subtasks", () => {
         // No subtasks yet: no entry to collapse them
         await expect(byText(await tr("tasks.menu.collapseSubtasks"), menu)).not.toBeDisplayed()
         await byText(await tr("tasks.addSubtask"), menu).click()
-        await typeInto(sectionCard(SECTION).$("input"), CHILD)
-        await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
-        await closeTaskInput()
+        await typeInto(byLabel(await tr("tasks.newSubtask")), CHILD)
+        await browser.keys("Enter")
         await browser.waitUntil(async () => (await valuesIn(sectionCard(SECTION))).includes(CHILD), { timeoutMsg: "subtask not created" })
+        await browser.keys("Escape")
     })
 
     it("closes the subtasks with the menu of the task: they are hidden, the count stays and the state is saved", async () => {
@@ -176,10 +176,10 @@ describe("Open and closed state of groups, sections and subtasks", () => {
 
         menu = await openTaskMenu(PARENT)
         await byText(await tr("tasks.addSubtask"), menu).click()
-        await typeInto(sectionCard(SECTION).$("input"), "Second child")
-        await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
-        await closeTaskInput()
+        await typeInto(byLabel(await tr("tasks.newSubtask")), "Second child")
+        await browser.keys("Enter")
         await browser.waitUntil(async () => (await valuesIn(sectionCard(SECTION))).includes("Second child"), { timeoutMsg: "the new subtask is not shown" })
+        await browser.keys("Escape")
         expect(await valuesIn(sectionCard(SECTION))).toContain(CHILD)
         expect(await collapsedOf("task", "text", PARENT)).toBe(0)
     })
