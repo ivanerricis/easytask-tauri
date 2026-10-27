@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useRef, type ReactNode } from "react"
+import { useTranslation } from "react-i18next"
+import { announce } from "./note-announcer-store"
 import { useTaskStepMover } from "../use-task-step-move"
 import { TaskTabStopProvider, useTaskTabStopStore } from "./task-tab-stop"
 import { TaskTreeContext } from "./task-tree-context"
@@ -25,7 +27,12 @@ function TaskTreeBody({ label, children }: { label: string, children: ReactNode 
     const ref = useRef<HTMLDivElement>(null)
     const store = useTaskTabStopStore()
     const move = useTaskStepMover()
-    const value = useMemo(() => ({ move }), [move])
+    const { t } = useTranslation()
+    const value = useMemo(() => ({
+        move,
+        announceMoved: (position: number, total: number) => announce(t("tasks.keyboard.moved", { position, total })),
+        announceCannotMove: () => announce(t("tasks.keyboard.cannotMove")),
+    }), [move, t])
     // The tasks on screen after the last render, to find the neighbour of one that has gone
     const snapshot = useRef<number[]>([])
 

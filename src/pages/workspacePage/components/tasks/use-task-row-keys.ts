@@ -1,7 +1,5 @@
 import { useCallback, type KeyboardEvent } from "react"
-import { useTranslation } from "react-i18next"
 import type { Step } from "../note-steps"
-import { announce } from "./note-announcer-store"
 import { readTaskRows, siblingPosition } from "./task-key-rows"
 import { taskKeyAction } from "./task-keyboard"
 import { useTaskTree } from "./task-tree-context"
@@ -19,17 +17,17 @@ type RowKeysOptions = {
 const rowOf = (id: number | string) => document.querySelector<HTMLElement>(`[role='treeitem'][data-task-id="${id}"]`)
 
 /** Focuses a row that may not be drawn yet (a moved task is drawn again in its new place) and tells where it ended up. */
-function focusMoved(taskId: number, message: (position: number, total: number) => string, triesLeft = 20) {
+function focusMoved(taskId: number, announceMoved: (position: number, total: number) => void, triesLeft = 20) {
     const row = rowOf(taskId)
     const tree = row?.closest("[role='tree']")
     if (!row || !tree) {
-        if (triesLeft > 0) requestAnimationFrame(() => focusMoved(taskId, message, triesLeft - 1))
+        if (triesLeft > 0) requestAnimationFrame(() => focusMoved(taskId, announceMoved, triesLeft - 1))
         return
     }
     // Moving a node in the DOM can drop its focus
     row.focus()
     const place = siblingPosition(readTaskRows(tree), String(taskId))
-    if (place) announce(message(place.position, place.total))
+    if (place) announceMoved(place.position, place.total)
 }
 
 /**
@@ -38,7 +36,6 @@ function focusMoved(taskId: number, message: (position: number, total: number) =
  * the menu key open the menu and Alt+Up / Alt+Down move the task one step.
  */
 export function useTaskRowKeys({ taskId, subtasksOpen, onToggleSubtasks, onToggleCompleted, onRename }: RowKeysOptions) {
-    const { t } = useTranslation()
     const tree = useTaskTree()
 
     return useCallback((event: KeyboardEvent<HTMLElement>) => {
@@ -80,11 +77,11 @@ export function useTaskRowKeys({ taskId, subtasksOpen, onToggleSubtasks, onToggl
                     // A failed write is reported (and rolled back) by the move itself
                     const moved = tree ? await tree.move(taskId, step).catch(() => null) : false
                     if (moved === null) return
-                    if (moved) focusMoved(taskId, (position, total) => t("tasks.keyboard.moved", { position, total }))
-                    else announce(t("tasks.keyboard.cannotMove"))
+                    if (moved && tree) focusMoved(taskId, tree.announceMoved)
+                    else tree?.announceCannotMove()
                 })()
                 break
             }
         }
-    }, [taskId, subtasksOpen, onToggleSubtasks, onToggleCompleted, onRename, tree, t])
+    }, [taskId, subtasksOpen, onToggleSubtasks, onToggleCompleted, onRename, tree])
 }
