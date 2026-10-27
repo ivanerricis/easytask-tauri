@@ -1,4 +1,5 @@
 import { memo, useEffect, useRef } from "react"
+import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
 import type { Group, Section } from "@/types/types"
 import { cn } from "@/lib/utils"
@@ -20,6 +21,7 @@ type DirectTasksProps = {
  * or after (bottom half) the whole area, like on a section card (the list itself cannot be dragged: it moves from the menu of the group).
  */
 const DirectTasks = memo(({ section }: DirectTasksProps) => {
+    const { t } = useTranslation()
     const { setNodeRef, zone, active } = useNoteDrop("section", section.id)
     const draggingSection = active?.kind === "section"
     const taskDestination = useNoteDndSelector(state => state.active?.kind === "task" && state.hover.targetSectionId === section.id)
@@ -35,7 +37,7 @@ const DirectTasks = memo(({ section }: DirectTasksProps) => {
             {/* Without tasks only the button is left: the empty box would just be a double border */}
             {section.tasks.length > 0 &&
                 <div className="flex flex-col w-full overflow-hidden border dark:bg-secondary bg-background">
-                    <TaskList tasks={section.tasks} listKey={`s-${section.id}`} sectionId={section.id} clipped />
+                    <TaskList tasks={section.tasks} listKey={`s-${section.id}`} sectionId={section.id} clipped label={t("tasks.selection.directTasks")} />
                 </div>}
             <AddTask sectionId={section.id} inGroup />
         </div>

@@ -13,6 +13,7 @@ import { NoteBackgroundMenu } from "./NoteBackgroundMenu"
 import { TaskSelectionProvider } from "../tasks/task-selection-context"
 import { TaskInsertProvider } from "../tasks/task-insert-state"
 import { TaskSelectionBar } from "../tasks/TaskSelectionBar"
+import { NoteAnnouncer } from "../tasks/NoteAnnouncer"
 import { TaskSelectionActionsProvider } from "../tasks/task-selection-actions"
 import { cn } from "@/lib/utils"
 
@@ -87,6 +88,7 @@ export const GroupContainer = () => {
             </NewGroupEnd>
         </div>
         <TaskSelectionBar />
+        <NoteAnnouncer />
         </div>
         </NoteBackgroundMenu>
         </TaskSelectionActionsProvider>

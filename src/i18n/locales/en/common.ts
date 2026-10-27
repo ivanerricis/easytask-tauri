@@ -64,7 +64,7 @@ export const dnd: Translation["dnd"] = {
     unknownItem: "item",
     instructions: {
         keyboard: "To move the item press Space, then use the arrow keys to pick the position and press Space again to drop it. Press Esc to cancel.",
-        pointer: "Drag the item with the mouse, or use the \"Move to…\" menu to move it with the keyboard.",
+        pointer: "Drag the item with the mouse, or use the \"Move to…\" menu to move it with the keyboard (for a task also Alt+Up or Alt+Down).",
     },
     start: "Picked up {{name}}.",
     over: "{{name}} is over {{target}}.",

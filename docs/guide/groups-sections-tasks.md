@@ -117,6 +117,16 @@ Drag a task by its row. Drop it:
 
 **Move up**, **Move down** and **Move to…** in the menu do the same without dragging.
 
+### Use the keyboard
+
+Every list of tasks is a tree for the keyboard and for screen readers: `Tab` enters the list on a single task (the last one that had the focus, or the first) and the next `Tab` leaves it, so you do not have to cross every task. Inside the list:
+
+- `↑` and `↓` go to the previous and next visible task, `Home` and `End` to the first and last one. The arrows do not leave the section.
+- `→` opens the subtasks of a task (if they are closed) and then goes to the first one; `←` closes them and then goes to the parent task.
+- `Space` completes or reopens the task, `Enter` edits its text, `Shift+F10` (or the menu key) opens its menu.
+- `Alt+↑` and `Alt+↓` move the task one step among its siblings, like **Move up** and **Move down** in the menu. The focus stays on the task and a screen reader announces "Moved to position N of M" (or that it cannot move any further).
+
+The task that takes the focus becomes the selected one, as when you click it. When you delete, archive or move the focused task away, the focus passes to the next task (or the previous one) so you can go on. The selection with the keyboard is not available yet. All the keys are listed in [Keyboard shortcuts](./shortcuts.md#tasks-with-the-keyboard).
 ### Select several tasks
 
 Hold **Ctrl** (**Cmd** on macOS) and click to add a task to the selection or remove it. Click a task with **Shift** to select every visible task between the last one you clicked and this one, across sections and groups. **Esc** clears the selection, and so does a plain click.
