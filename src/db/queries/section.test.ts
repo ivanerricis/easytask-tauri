@@ -39,7 +39,7 @@ describe("createDBSection", () => {
         expect(calls).toEqual([[
             { sql: "INSERT INTO section_group (noteID, position) VALUES (?, ?)", params: [3, 2] },
             { sql: "INSERT INTO section (groupID, title, position, is_default) VALUES (?, NULL, 0, 1)", params: [{ $ref: 0, offset: 0 }] },
-            { sql: "INSERT INTO section (groupID, title, position) VALUES (?, ?, 0)", params: [{ $ref: 0, offset: 0 }, "Title"] },
+            { sql: "INSERT INTO section (groupID, title, position) VALUES (?, ?, 1)", params: [{ $ref: 0, offset: 0 }, "Title"] },
         ]])
         expect(db.execute).not.toHaveBeenCalled()
     })
@@ -76,8 +76,8 @@ describe("createDBSectionInGroup", () => {
     it("inserts the section", async () => {
         await createDBSectionInGroup(5, "S")
         expect(db.execute).toHaveBeenCalledWith(expect.stringContaining("INSERT INTO section (groupID, title, position)"), [5, "S", 5])
-        // The position follows the visible sections: the default section of the group does not count
-        expect(vi.mocked(db.execute).mock.calls[0][0]).toContain("is_default = 0")
+        // The position follows every row of the group: the default section shares the order of the sections
+        expect(vi.mocked(db.execute).mock.calls[0][0]).not.toContain("is_default")
     })
 
     it("maps errors", async () => {

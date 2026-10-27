@@ -7,7 +7,7 @@ import { makeGroup } from "@/test/ui-fixtures"
 
 const patchGroup = vi.fn()
 const removeGroup = vi.fn()
-vi.mock("../NoteStepMoves", () => ({ GroupStepMoves: () => null }))
+vi.mock("../NoteStepMoves", () => ({ GroupStepMoves: () => null, DirectStepMoves: ({ groupId }: { groupId: number }) => <div role="menuitem">mosse lista {groupId}</div> }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchGroup, removeGroup }) }))
 vi.mock("@/contexts/use-audio", () => ({ useAudioActions: () => ({ addFiles: vi.fn() }) }))
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
@@ -79,6 +79,16 @@ describe("ButtonMenuGroup", () => {
         const audio = await screen.findByText("Aggiungi file audio")
         const entry = screen.getByRole("menuitem", { name: "Nuova sezione" })
         expect(audio.compareDocumentPosition(entry) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it("offers the moves of the list of the group next to 'Nuova sezione'", async () => {
+        const row = setup()
+        fireEvent.contextMenu(row)
+        const section = await screen.findByRole("menuitem", { name: "Nuova sezione" })
+        const moves = screen.getByRole("menuitem", { name: "mosse lista 3" })
+        expect(section.compareDocumentPosition(moves) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        const rename = screen.getByRole("menuitem", { name: "Rinomina" })
+        expect(moves.compareDocumentPosition(rename) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it("opens the section form only once the menu is closed, so it keeps the focus", async () => {

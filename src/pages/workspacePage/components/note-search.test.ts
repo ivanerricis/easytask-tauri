@@ -112,3 +112,20 @@ describe("collectMatches", () => {
         expect(summary("   ".trim())).toEqual([])
     })
 })
+
+describe("collectMatches with the list of the direct tasks placed among the sections", () => {
+    it("lists the matches in the order they are drawn: the list between the sections", () => {
+        const placed: NoteDataTree = {
+            groups: [makeGroup({
+                id: 1, position: 0, name: "Spesa", defaultIndex: 1,
+                defaultSection: makeSection({ id: 99, groupID: 1, title: "", is_default: true, tasks: [makeTask({ id: 1, sectionID: 99, text: "latte diretto" })] }),
+                sections: [
+                    makeSection({ id: 10, groupID: 1, title: "Prima", tasks: [makeTask({ id: 3, sectionID: 10, text: "latte uno" })] }),
+                    makeSection({ id: 11, groupID: 1, title: "Dopo", tasks: [makeTask({ id: 5, sectionID: 11, text: "latte due" })] }),
+                ],
+            })],
+        }
+        expect(collectMatches(placed, "latte", { hideCompleted: false }).map(m => m.id)).toEqual(["task-3#0", "task-1#0", "task-5#0"])
+        expect(collectMatches(placed, "dopo", { hideCompleted: false }).map(m => m.id)).toEqual(["section-11#0"])
+    })
+})

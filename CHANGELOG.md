@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- The list of the tasks created directly in a group can sit anywhere among its sections, not only on top. Move it with "Move group tasks up" and "Move group tasks down" in the menu of the group; a section can step over it with "Move up" and "Move down" or by dragging, and a line shows whether it lands above or below the list. The "New task" button of the group adds to the list where it is. Undo and redo work, and after the update everything stays as it was (list on top).
+- Templates and export files save the position of the list of the group tasks.
+
+### Changed
+
+- The database is upgraded to version 9 when the app starts (a backup is made first, and it is automatic): the list and the sections of a group share one order. Modification dates do not change; an older version of the app cannot open the upgraded database.
+
 ## [0.13.0] - 2026-10-27
 
 ### Added

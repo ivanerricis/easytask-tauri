@@ -20,7 +20,7 @@ The template is an independent snapshot of the note at that moment. Later change
 
 | Copied | Not copied |
 | --- | --- |
-| Groups, sections, tasks and subtasks, in their order | Audio files |
+| Groups, sections, tasks and subtasks, in their order (also the place of the group tasks list) | Audio files |
 | Task descriptions, completed state and priority | Archived groups, sections and tasks |
 | The colors of the note, groups, sections and tasks | Items in the trash |
 | | [Automations](./automations) |

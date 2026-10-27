@@ -1,7 +1,8 @@
 import type { Group, NoteDataTree, Section, Task } from "@/types/types"
+import { orderedItems } from "@/lib/group-sections"
 import {
     buildGroup, buildSection, buildTask, findGroup, findSection, findTask,
-    insertGroup, insertSection, insertTask, moveSection, moveTask,
+    insertGroup, insertSection, insertTask, moveDirectSection, moveSection, moveTask,
     patchGroup, patchSection, patchTask, removeGroup, removeSection, removeTask,
     type GroupPatch, type SectionPatch, type TaskParent,
 } from "./note-tree-ops"
@@ -34,7 +35,9 @@ export type NoteOptimisticActions = {
     appendSection: (id: number, groupId: number, title: string) => Rollback
     appendTask: (id: number, parent: TaskParent, text: string) => Rollback
     /** Same semantics as the database move: `index` counts the destination siblings without the moved item. */
-    applySectionMove: (sectionId: number, targetGroupId: number, index: number) => Rollback
+    applySectionMove: (sectionId: number, targetGroupId: number, index: number, beforeList?: boolean) => Rollback
+    /** Moves the list of the direct tasks of a group before the `index`-th section with a header (after all of them when `index` is not less than their number). */
+    applyDirectSectionMove: (groupId: number, index: number) => Rollback
     /**
      * Moves a section into the new group the database just created (`groupId`, with its default section `defaultSectionId`)
      * at `index` among the groups.
@@ -67,6 +70,18 @@ export type NoteTreeStore = {
 }
 
 const noop: Rollback = () => {}
+
+/** Puts back the `defaultIndex` that the groups had (the place of the list among the sections cannot be rebuilt from a section index alone). */
+function restoreDefaultIndexes(tree: NoteDataTree, indexes: ReadonlyMap<number, number | undefined>): NoteDataTree {
+    return { groups: tree.groups.map(group => indexes.has(group.id) && group.defaultIndex !== indexes.get(group.id)
+        ? { ...group, defaultIndex: indexes.get(group.id) }
+        : group) }
+}
+
+/** The `defaultIndex` of the given groups of a tree (see restoreDefaultIndexes). */
+function defaultIndexesOf(tree: NoteDataTree | undefined, ...groupIds: number[]): Map<number, number | undefined> {
+    return new Map(groupIds.map(id => [id, tree?.groups.find(group => group.id === id)?.defaultIndex]))
+}
 
 /** Picks the keys of `patch` from `source` (the values a rollback has to restore). */
 function previousValues<T extends object>(source: T, patch: object): Partial<T> {
@@ -139,7 +154,8 @@ export function createNoteOptimisticActions(store: NoteTreeStore): BaseNoteOptim
         removeSection: sectionId => {
             const found = lookup(t => findSection(t, sectionId))
             if (!found) return noop
-            return apply(t => removeSection(t, sectionId), t => insertSection(t, found.groupId, found.section, found.index))
+            const before = new Map([[found.groupId, lookup(t => findGroup(t, found.groupId))?.group.defaultIndex]])
+            return apply(t => removeSection(t, sectionId), t => restoreDefaultIndexes(insertSection(t, found.groupId, found.section, found.index), before))
         },
         removeTask: taskId => {
             const found = lookup(t => findTask(t, taskId))
@@ -153,7 +169,8 @@ export function createNoteOptimisticActions(store: NoteTreeStore): BaseNoteOptim
         appendSection: (id, groupId, title) => Number.isInteger(id) ? tryApply(
             t => {
                 const group = findGroup(t, groupId)
-                return group ? insertSection(t, groupId, buildSection(id, groupId, title, group.group.sections)) : t
+                // The new section is numbered after every row of the group, the list of the direct tasks included
+                return group ? insertSection(t, groupId, buildSection(id, groupId, title, orderedItems(group.group))) : t
             },
             t => removeSection(t, id)) : null,
         appendTask: (id, parent, text) => Number.isInteger(id) ? tryApply(
@@ -167,16 +184,22 @@ export function createNoteOptimisticActions(store: NoteTreeStore): BaseNoteOptim
             },
             t => removeTask(t, id)) : null,
 
-        applySectionMove: (sectionId, targetGroupId, index) => {
+        applySectionMove: (sectionId, targetGroupId, index, beforeList) => {
             const found = lookup(t => findSection(t, sectionId))
             if (!found) return noop
+            const before = defaultIndexesOf(lookup(t => t), found.groupId, targetGroupId)
             return apply(
-                t => moveSection(t, sectionId, targetGroupId, index),
-                t => moveSection(t, sectionId, found.groupId, found.index))
+                t => moveSection(t, sectionId, targetGroupId, index, beforeList),
+                t => restoreDefaultIndexes(moveSection(t, sectionId, found.groupId, found.index), before))
+        },
+        applyDirectSectionMove: (groupId, index) => {
+            const before = defaultIndexesOf(lookup(t => t), groupId)
+            return apply(t => moveDirectSection(t, groupId, index), t => restoreDefaultIndexes(t, before))
         },
         applySectionMoveToNewGroup: (sectionId, groupId, index, defaultSectionId) => {
             const found = lookup(t => findSection(t, sectionId))
             if (!found || found.index < 0 || !Number.isInteger(groupId) || !Number.isInteger(defaultSectionId)) return null
+            const before = defaultIndexesOf(lookup(t => t), found.groupId)
             return tryApply(
                 t => {
                     const origin = findGroup(t, found.groupId)
@@ -184,7 +207,7 @@ export function createNoteOptimisticActions(store: NoteTreeStore): BaseNoteOptim
                     const group: Group = { ...buildGroup(groupId, origin.group.noteID, null, [], defaultSectionId), position: index }
                     return moveSection(insertGroup(t, group, index), sectionId, groupId, 0)
                 },
-                t => removeGroup(moveSection(t, sectionId, found.groupId, found.index), groupId))
+                t => removeGroup(restoreDefaultIndexes(moveSection(t, sectionId, found.groupId, found.index), before), groupId))
         },
         applyTaskMove: (taskId, target, index) => {
             const found = lookup(t => findTask(t, taskId))

@@ -5,7 +5,7 @@ import {
 } from "./commands"
 import type { UndoCommand } from "./stack"
 import { makeDefaultSection, makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
-import type { Folder } from "@/types/types"
+import type { Folder, NoteDataTree } from "@/types/types"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 
@@ -17,13 +17,14 @@ function makeDeps() {
         getWorkspaceId: vi.fn(() => 7 as number | null),
         workspace: {
             renameItem: fn(), updateItemColor: fn(), deleteItem: fn(), restoreItem: fn(), archiveItem: fn(), unarchiveItem: fn(), moveTreeItem: fn(),
-            moveSection: fn(), moveTask: fn(), updateTaskCompletion: fn(), updateTaskPriority: fn(),
+            moveSection: fn(), moveDirectSection: fn(), moveTask: fn(), updateTaskCompletion: fn(), updateTaskPriority: fn(),
             updateTaskDescription: fn(), updateFolderColorContent: fn(), getWorkspaceData: fn(),
         },
         note: {
             patchTask: vi.fn(() => rollbacks.patch), patchSection: vi.fn(() => rollbacks.patch), patchGroup: vi.fn(() => rollbacks.patch),
             removeGroup: vi.fn(() => rollbacks.remove), removeSection: vi.fn(() => rollbacks.remove), removeTask: vi.fn(() => rollbacks.remove),
-            applySectionMove: vi.fn(() => rollbacks.section), applyTaskMove: vi.fn(() => rollbacks.task),
+            applySectionMove: vi.fn(() => rollbacks.section), applyDirectSectionMove: vi.fn(() => rollbacks.section), applyTaskMove: vi.fn(() => rollbacks.task),
+            getNoteTree: vi.fn((): NoteDataTree | undefined => undefined),
             refreshActiveNote: fn(),
         },
     }
@@ -315,6 +316,65 @@ describe("moves", () => {
 
         ctx.deps.workspace.moveSection.mockRejectedValueOnce(new Error("dup title"))
         await expect(command.undo()).rejects.toThrow("dup title")
+        expect(ctx.rollbacks.section).toHaveBeenCalledTimes(1)
+    })
+
+    it("sectionMove keeps beforeList on redo, so the section lands above the list again", async () => {
+        const command = commands.sectionMove(8, "S", { groupId: 1, index: 0 }, { groupId: 1, index: 1, beforeList: true })
+        await command.redo()
+        expect(ctx.deps.note.applySectionMove).toHaveBeenLastCalledWith(8, 1, 1, true)
+        expect(ctx.deps.workspace.moveSection).toHaveBeenLastCalledWith(8, 1, 1, true)
+    })
+
+    it("directMove has its own label, with the name of the group", () => {
+        const label = commands.directMove(1, "Spesa", 0, 2).label
+        expect(label).toContain("Sposta task del gruppo")
+        expect(label).toContain("Spesa")
+        expect(commands.directMove(1, "", 0, 2).label).toBe("Sposta task del gruppo")
+    })
+
+    it("sectionMove: undoing puts the list of the direct tasks back where it was, when it moved", async () => {
+        const place = { groupId: 1, index: 0, listIndex: 0 }
+        const command = commands.sectionMove(8, "S", place, { groupId: 1, index: 1 })
+        // [S8, (list), S9] -> [(list), S9, S8]: the list is now first
+        ctx.deps.note.getNoteTree.mockReturnValue({ groups: [makeGroup({ id: 1, defaultIndex: 1 })] })
+        await command.undo()
+        expect(ctx.deps.workspace.moveSection).toHaveBeenLastCalledWith(8, 1, 0)
+        expect(ctx.deps.note.applyDirectSectionMove).toHaveBeenLastCalledWith(1, 0)
+        expect(ctx.deps.workspace.moveDirectSection).toHaveBeenLastCalledWith(1, 0)
+        // redo repeats the move only
+        ctx.deps.workspace.moveDirectSection.mockClear()
+        await command.redo()
+        expect(ctx.deps.workspace.moveDirectSection).not.toHaveBeenCalled()
+    })
+
+    it("sectionMove: nothing is written for the list when it already is where it was", async () => {
+        ctx.deps.note.getNoteTree.mockReturnValue({ groups: [makeGroup({ id: 1, defaultIndex: 2 })] })
+        await commands.sectionMove(8, "S", { groupId: 1, index: 0, listIndex: 2 }, { groupId: 1, index: 1 }).undo()
+        expect(ctx.deps.workspace.moveDirectSection).not.toHaveBeenCalled()
+        // an old place without listIndex never touches the list
+        await commands.sectionMove(8, "S", { groupId: 1, index: 0 }, { groupId: 1, index: 1 }).undo()
+        expect(ctx.deps.workspace.moveDirectSection).not.toHaveBeenCalled()
+    })
+
+    it("sectionMoveToNewGroup: undo puts the list of the source group back too", async () => {
+        ctx.deps.note.getNoteTree.mockReturnValue({ groups: [makeGroup({ id: 1, defaultIndex: 0 })] })
+        await commands.sectionMoveToNewGroup(8, "S", 40, { groupId: 1, index: 1, listIndex: 2 }).undo()
+        expect(ctx.deps.workspace.moveSection).toHaveBeenCalledWith(8, 1, 1)
+        expect(ctx.deps.workspace.moveDirectSection).toHaveBeenCalledWith(1, 2)
+        expect(ctx.deps.workspace.deleteItem).toHaveBeenCalledWith("section_group", 40)
+    })
+
+    it("directMove moves the list both ways, optimistic, with a rollback on failure", async () => {
+        const command = commands.directMove(1, "", 0, 2)
+        await command.redo()
+        expect(ctx.deps.note.applyDirectSectionMove).toHaveBeenLastCalledWith(1, 2)
+        expect(ctx.deps.workspace.moveDirectSection).toHaveBeenLastCalledWith(1, 2)
+        await command.undo()
+        expect(ctx.deps.workspace.moveDirectSection).toHaveBeenLastCalledWith(1, 0)
+
+        ctx.deps.workspace.moveDirectSection.mockRejectedValueOnce(new Error("boom"))
+        await expect(command.redo()).rejects.toThrow("boom")
         expect(ctx.rollbacks.section).toHaveBeenCalledTimes(1)
     })
 
@@ -634,5 +694,10 @@ describe("places in the direct area of a group (default section)", () => {
     it("captureSectionPlace does not capture the default section (it never moves), but sections keep their index", () => {
         expect(captureSectionPlace(tree, 90)).toBeNull()
         expect(captureSectionPlace(tree, 20)).toEqual({ groupId: 1, index: 0, name: "S" })
+    })
+
+    it("captureSectionPlace records the place of the list of the group", () => {
+        const withList = { groups: [{ ...tree.groups[0], defaultIndex: 1 }] }
+        expect(captureSectionPlace(withList, 20)).toEqual({ groupId: 1, index: 0, listIndex: 1, name: "S" })
     })
 })

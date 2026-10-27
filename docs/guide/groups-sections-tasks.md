@@ -1,6 +1,6 @@
 # Groups, sections and tasks
 
-The content of a note is organized in three levels. A note holds **groups**, shown side by side as columns. A group holds **sections**, stacked in the column. A section holds **tasks**, and a task can have **subtasks**, as deep as you need. A group can also hold tasks of its own, directly under its header, without any section.
+The content of a note is organized in three levels. A note holds **groups**, shown side by side as columns. A group holds **sections**, stacked in the column. A section holds **tasks**, and a task can have **subtasks**, as deep as you need. A group can also hold tasks of its own, directly under its header, without any section. That list of tasks can sit anywhere among the sections of the group.
 
 ![Task details](../screenshots/en/task-details-light.png){.light-only}
 ![Task details](../screenshots/en/task-details-dark.png){.dark-only}
@@ -30,7 +30,8 @@ A right-click on the empty area of the note (outside any group, section or task)
 | **Rename**                             | yes   | yes     | Edits the name.                                                 |
 | **Change color**                       | yes   | yes     | Sets or removes the color.                                      |
 | **Move left**, **Move right**          | yes   |         | Moves the group one step in the row.                            |
-| **Move up**, **Move down**             |       | yes     | Moves the section one step in its group.                        |
+| **Move up**, **Move down**             |       | yes     | Moves the section one step in its group, also past the list of the group tasks. |
+| **Move group tasks up**, **Move group tasks down** | yes |   | Moves the list of the tasks of the group one step among its sections. |
 | **Move to…**                           |       | yes     | Moves the section to the end of another group, or to a **New group**. |
 | **Automations…**                       | yes   | yes     | Opens the automations of the note. See [Automations](./automations). |
 | **Archive**                            | yes   | yes     | Hides it without deleting. See [Trash and archive](./trash-and-archive). |
@@ -41,7 +42,9 @@ A right-click on the empty area of the note (outside any group, section or task)
 You can also move things by dragging:
 
 - Drag a group by its header to reorder the groups.
-- Drag a section onto another group, or between sections, to move it. Drop it on the **New group** area at the edge to make it a group of its own.
+- Drag a section onto another group, or between sections, to move it. A line shows where it lands, also above or below the list of the group tasks. Drop it on the **New group** area at the edge to make it a group of its own.
+
+The list of the group tasks follows the same order as the sections: by default it is at the top, and you can move it with **Move group tasks up** and **Move group tasks down** (also in the right-click menu of the group), which are disabled when the list is already at the end. [Undo](./undo-and-history.md) brings it back.
 
 ### Collapse, counters and progress bars
 
@@ -55,10 +58,10 @@ Drag the right edge of a group to make it wider or narrower. With the keyboard, 
 
 ### Add a task
 
-1. At the bottom of a section click the **+** button (**Add task**). To add a task to a group without a section, click the dashed **New task** button of the group: it sits right under the tasks of the group, above its sections.
+1. At the bottom of a section click the **+** button (**Add task**). To add a task to a group without a section, click the dashed **New task** button of the group: it sits right under the tasks of the group, wherever that list is among the sections, and the new task is created in that list.
 2. Type the text in **New task…** and confirm with `Enter` or the add button. `Esc` closes the field.
 
-Tasks of a group count in its progress bar and in its task count. Drag one into a section, or the other way round, or use **Move to…** (the group appears in the list as **Group tasks**). **Move up** and **Move down** stay inside the same list.
+Tasks of a group count in its progress bar and in its task count. Drag one into a section, or the other way round, or use **Move to…** (the group appears in the list as **Group tasks**). **Move up** and **Move down** of a task stay inside the same list.
 
 New tasks go to the end of the section. To put them at the top, choose **At the top** in **Settings > Notes and sections > Position of new tasks**.
 

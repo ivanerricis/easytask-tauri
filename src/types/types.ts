@@ -59,6 +59,11 @@ export type Group = {
     width?: number | null
     /** Hidden default section that holds the tasks created directly in the group (kept out of `sections`); null/undefined = not loaded. */
     defaultSection?: Section | null
+    /**
+     * How many of the sections come before the default section (the list of the direct tasks) in the order of the group:
+     * 0 = on top (the default), sections.length = after all of them. Absent = 0. Always kept in sync with the database order.
+     */
+    defaultIndex?: number
     sections: Section[]
 }
 

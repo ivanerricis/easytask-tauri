@@ -1,5 +1,5 @@
 import type { Group, NoteDataTree, Section, Task } from "@/types/types"
-import { isDefaultSection, taskSections } from "@/lib/group-sections"
+import { defaultIndexAfterInsert, directIndexOf, isDefaultSection, taskSections } from "@/lib/group-sections"
 
 /**
  * Pure immutable operations on a note tree, used for the optimistic updates of the active note.
@@ -48,7 +48,10 @@ export function localTimestamp(now = new Date()) {
 /** A new empty group appended after `siblings`, with its hidden default section when the database just created it. */
 export function buildGroup(id: number, noteId: number, name: string | null, siblings: readonly Group[], defaultSectionId?: number): Group {
     const group: Group = { id, noteID: noteId, position: nextPosition(siblings), name: name?.trim() || null, sections: [] }
-    if (defaultSectionId !== undefined) group.defaultSection = buildDefaultSection(defaultSectionId, id)
+    if (defaultSectionId !== undefined) {
+        group.defaultSection = buildDefaultSection(defaultSectionId, id)
+        group.defaultIndex = 0
+    }
     return group
 }
 
@@ -62,7 +65,7 @@ export function buildSection(id: number, groupId: number, title: string, sibling
     }
 }
 
-/** The hidden default section of a new group (no title, first position): it holds the tasks created directly in the group. */
+/** The hidden default section of a new group (no title, position 0: the sections that follow take the next numbers): it holds the tasks created directly in the group. */
 export function buildDefaultSection(id: number, groupId: number): Section {
     // Untitled, like a section loaded with a NULL title
     return { ...buildSection(id, groupId, "", [], 0), is_default: true }
@@ -216,11 +219,20 @@ export function insertGroup(tree: NoteDataTree, group: Group, index?: number): N
     return { groups: insertAt(tree.groups, group, index) }
 }
 
-/** Inserts a section in a group at `index` (default: the end). Same tree when the group does not exist. */
-export function insertSection(tree: NoteDataTree, groupId: number, section: Section, index?: number): NoteDataTree {
+/**
+ * Inserts a section in a group at `index` among the sections (default: the end). Same tree when the group does not exist.
+ * Like the database, a section inserted exactly where the list of the direct tasks is goes after the list; one inserted
+ * before it pushes the list down by one place. With `beforeList` a section inserted exactly where the list is goes right
+ * before it instead (the list is pushed down too).
+ */
+export function insertSection(tree: NoteDataTree, groupId: number, section: Section, index?: number, beforeList = false): NoteDataTree {
     if (findSection(tree, section.id) || !tree.groups.some(group => group.id === groupId)) return tree
     return { groups: tree.groups.map(group => group.id === groupId
-        ? { ...group, sections: insertAt(group.sections, section, index) }
+        ? {
+            ...group,
+            sections: insertAt(group.sections, section, index),
+            ...(group.defaultSection ? { defaultIndex: defaultIndexAfterInsert(directIndexOf(group), Math.min(index ?? group.sections.length, group.sections.length), beforeList) } : {}),
+        }
         : group) }
 }
 
@@ -255,7 +267,13 @@ export function removeTask(tree: NoteDataTree, taskId: number): NoteDataTree {
 function mapSectionGroup(tree: NoteDataTree, sectionId: number, change: (sections: Section[]) => Section[]): NoteDataTree {
     const found = findSection(tree, sectionId)
     if (!found) return tree
-    return { groups: tree.groups.map(group => group.id === found.groupId ? { ...group, sections: change(group.sections) } : group) }
+    return { groups: tree.groups.map(group => {
+        if (group.id !== found.groupId) return group
+        const sections = change(group.sections)
+        // The list keeps its place among the rest: the sections that were before it and are gone no longer count
+        const removedBefore = group.sections.slice(0, directIndexOf(group)).filter(section => !sections.includes(section)).length
+        return { ...group, sections, ...(group.defaultSection ? { defaultIndex: directIndexOf(group) - removedBefore } : {}) }
+    }) }
 }
 
 /* ------------------------------------------------------------------------------------ */
@@ -273,13 +291,24 @@ export function moveGroupInList(groups: Group[], groupId: number, index: number)
 
 /**
  * Moves a section to a group at `index` among the destination sections (counted without the section itself,
- * like the database move). Same tree when the section or the group does not exist.
+ * like the database move). `beforeList`: see {@link insertSection}. Same tree when the section or the group does not exist.
  */
-export function moveSection(tree: NoteDataTree, sectionId: number, targetGroupId: number, index: number): NoteDataTree {
+export function moveSection(tree: NoteDataTree, sectionId: number, targetGroupId: number, index: number, beforeList = false): NoteDataTree {
     const found = findSection(tree, sectionId)
     if (!found || found.index < 0 || !tree.groups.some(group => group.id === targetGroupId)) return tree
     const moved: Section = { ...found.section, groupID: targetGroupId }
-    return insertSection(removeSection(tree, sectionId), targetGroupId, moved, index)
+    return insertSection(removeSection(tree, sectionId), targetGroupId, moved, index, beforeList)
+}
+
+/**
+ * Moves the list of the direct tasks of a group (its default section) before the `index`-th section with a header, or after
+ * all of them (`index` is clamped to 0..sections.length). Same tree when the group has no list or it is already there.
+ */
+export function moveDirectSection(tree: NoteDataTree, groupId: number, index: number): NoteDataTree {
+    const found = findGroup(tree, groupId)
+    if (!found || !found.group.defaultSection) return tree
+    const defaultIndex = Math.max(0, Math.min(Math.trunc(index) || 0, found.group.sections.length))
+    return defaultIndex === directIndexOf(found.group) && found.group.defaultIndex === defaultIndex ? tree : patchGroup(tree, groupId, { defaultIndex })
 }
 
 /**

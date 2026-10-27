@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import type { NoteDataTree } from "@/types/types"
 import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import { moveGroupInList } from "./note-dnd"
-import { getGroupStep, getSectionStep, getTaskStep } from "./note-steps"
+import { getDirectStep, getGroupStep, getSectionStep, getTaskStep } from "./note-steps"
 
 /*
  * group 1 (position 0): S1 [A, B(done), C [C1, C2]], S2 [D]
@@ -132,5 +132,56 @@ describe("getTaskStep for the direct tasks of a group", () => {
         expect(getTaskStep(directTree(), 2, 1, false)).toBeNull()
         expect(getTaskStep(directTree(), 1, -1, false)).toBeNull()
         expect(getTaskStep(directTree(), 3, -1, false)).toBeNull()
+    })
+})
+
+describe("steps with the list of the direct tasks among the sections", () => {
+    // group 1: sections S1 (id 1), S2 (id 2), S3 (id 3) with the list (id 9) before the `defaultIndex`-th section
+    const tree = (defaultIndex: number): NoteDataTree => ({
+        groups: [makeGroup({
+            id: 1, position: 0, defaultIndex, defaultSection: makeDefaultSection({ id: 9, groupID: 1 }),
+            sections: [1, 2, 3].map(id => makeSection({ id, groupID: 1 })),
+        })],
+    })
+
+    it("a section that would jump over the list moves the list the other way", () => {
+        // [L, S1, S2, S3]: S1 up jumps over L = the list goes after S1
+        expect(getSectionStep(tree(0), 1, -1)).toEqual({ type: "direct", groupId: 1, index: 1 })
+        // [S1, L, S2, S3]: S1 down jumps over L = the list goes before S1; S2 up the same, with the list after S1
+        expect(getSectionStep(tree(1), 1, 1)).toEqual({ type: "direct", groupId: 1, index: 0 })
+        expect(getSectionStep(tree(1), 2, -1)).toEqual({ type: "direct", groupId: 1, index: 2 })
+    })
+
+    it("other steps stay plain section moves", () => {
+        expect(getSectionStep(tree(1), 2, 1)).toEqual({ type: "group", groupId: 1, index: 2 })
+        expect(getSectionStep(tree(1), 3, -1)).toEqual({ type: "group", groupId: 1, index: 1 })
+        expect(getSectionStep(tree(0), 2, -1)).toEqual({ type: "group", groupId: 1, index: 0 })
+        expect(getSectionStep(tree(0), 3, 1)).toBeNull()
+        expect(getSectionStep(tree(1), 1, -1)).toBeNull()
+    })
+
+    it("a section stepping down onto the place of the list stays above it (one move, beforeList)", () => {
+        // [S1, S2, S3, L]: S2 down lands on the last place among the sections, where the move would also pass the list
+        expect(getSectionStep(tree(3), 2, 1)).toEqual({ type: "group", groupId: 1, index: 2, beforeList: true })
+        // [S1, S2, L, S3]: S1 down = after S2, above the list
+        expect(getSectionStep(tree(2), 1, 1)).toEqual({ type: "group", groupId: 1, index: 1, beforeList: true })
+        // going up never needs it: the section lands above the section it jumps over, wherever the list is
+        expect(getSectionStep(tree(3), 3, -1)).toEqual({ type: "group", groupId: 1, index: 1 })
+        // ...but with the list elsewhere (or before the end) nothing more is needed
+        expect(getSectionStep(tree(2), 2, 1)).toEqual({ type: "direct", groupId: 1, index: 1 })
+        expect(getSectionStep(tree(1), 1, 1)).toEqual({ type: "direct", groupId: 1, index: 0 })
+        expect(getSectionStep(tree(0), 2, 1)).toEqual({ type: "group", groupId: 1, index: 2 })
+        // S3 is already the last section but the list is below it: it jumps over the list
+        expect(getSectionStep(tree(3), 3, 1)).toEqual({ type: "direct", groupId: 1, index: 2 })
+    })
+
+    it("getDirectStep moves the list one section up or down, null at the ends or without list", () => {
+        expect(getDirectStep(tree(0), 1, 1)).toBe(1)
+        expect(getDirectStep(tree(0), 1, -1)).toBeNull()
+        expect(getDirectStep(tree(2), 1, -1)).toBe(1)
+        expect(getDirectStep(tree(3), 1, 1)).toBeNull()
+        expect(getDirectStep(tree(3), 1, -1)).toBe(2)
+        expect(getDirectStep(tree(0), 99, 1)).toBeNull()
+        expect(getDirectStep(buildTree(), 1, 1)).toBeNull()
     })
 })

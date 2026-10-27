@@ -72,6 +72,39 @@ export async function siblingIds(
     return rows.map(row => row.id)
 }
 
+/** A live row of the shared order of a group: a section with a header or the default section (the list of the direct tasks). */
+export type OrderRow = { id: number, isDefault: boolean, archived?: boolean }
+
+/**
+ * The live rows of a group (the default section included), in their shared order, without `excludeId`.
+ * Archived sections are part of the order (they keep their place) but are flagged: the note does not show them, so the indexes
+ * of the app do not count them.
+ * @category Database Queries
+ */
+export async function groupOrderRows(db: Database, groupId: number, excludeId: number): Promise<OrderRow[]> {
+    const rows = await db.select<{ id: number, is_default: number | boolean, archived_at: string | null }[]>(
+        'SELECT id, is_default, archived_at FROM section WHERE groupID = ? AND deleted_at IS NULL AND id <> ? ORDER BY position, id', [groupId, excludeId])
+    return rows.map(row => ({ id: row.id, isDefault: row.is_default === true || row.is_default === 1, archived: row.archived_at !== null }))
+}
+
+/**
+ * Inserts `id` in the rows of a group before the `index`-th section with a header (the default section is not counted), or
+ * at the very end when `index` is not less than the number of those sections. The index is clamped. Returns the new order.
+ * When the default section sits exactly at the insertion point (right before that section, or last) the id normally goes after it;
+ * with `beforeList` it goes right before it instead (the place between the section above the list and the list).
+ * @category Database Queries
+ */
+export function insertAmongSections(rows: readonly OrderRow[], index: number, id: number, beforeList = false): number[] {
+    const ids = rows.map(row => row.id)
+    // Only the sections the note shows: an archived one is not counted by the index
+    const headed = rows.filter(row => !row.isDefault && !row.archived)
+    const at = clampIndex(index, headed.length)
+    let before = at < headed.length ? ids.indexOf(headed[at].id) : ids.length
+    if (beforeList && before > 0 && rows[before - 1].isDefault) before -= 1
+    ids.splice(before, 0, id)
+    return ids
+}
+
 /**
  * Tells whether `ancestorId` is `startId` itself or one of its ancestors: walks up from `startId` through the primary key.
  * Used to refuse moving a folder/task into its own subtree.

@@ -21,8 +21,8 @@ vi.mock("@tauri-apps/api/core", async () => {
     return { invoke: createSqliteInvoke(() => sqlite, { shouldFail: sql => failOn !== null && sql.includes(failOn) }) }
 })
 
-import { moveDBSection, moveDBSectionToNewGroup, moveDBTask } from "./move"
-import { createDBSectionInGroup } from "./section"
+import { moveDBDirectSection, moveDBSection, moveDBSectionToNewGroup, moveDBTask } from "./move"
+import { createDBSection, createDBSectionInGroup } from "./section"
 import { createDBSubTask, createDBTask } from "./task"
 import { getDBNoteData } from "./note"
 import { deleteDBItem } from "./shared_queries"
@@ -98,7 +98,7 @@ describe("createDBGroup", () => {
 describe("creation appends after the siblings", () => {
     it("sections, tasks and subtasks get increasing positions", async () => {
         await seedSections()
-        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY id")).toEqual([0, 1, 2])
+        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY id")).toEqual([1, 2, 3])
         const s1 = sectionId("S1")
         await createDBTask(s1, "a")
         await createDBTask(s1, "b")
@@ -125,11 +125,11 @@ describe("moveDBSection", () => {
         const [direct] = defaultSectionOf(1)
         await moveDBSection(sectionId("S3"), 1, 0)
         expect(sectionsOf(1)).toEqual(["S3", "S1", "S2"])
-        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY position")).toEqual([0, 1, 2])
+        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY position")).toEqual([1, 2, 3])
         // To another group, at index 1 among ITS visible sections
         await moveDBSection(sectionId("S1"), 2, 1)
         expect(sectionsOf(2)).toEqual(["S4", "S1"])
-        expect(positions("SELECT position FROM section WHERE groupID = 2 AND is_default = 0 ORDER BY position")).toEqual([0, 1])
+        expect(positions("SELECT position FROM section WHERE groupID = 2 AND is_default = 0 ORDER BY position")).toEqual([1, 2])
         expect(defaultSectionOf(1)).toEqual([direct])
     })
 
@@ -147,7 +147,7 @@ describe("moveDBSection", () => {
         expect(sectionsOf(1)).toEqual(["S3", "S1", "S2"])
         await moveDBSection(sectionId("S3"), 1, 99)
         expect(sectionsOf(1)).toEqual(["S1", "S2", "S3"])
-        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY position")).toEqual([0, 1, 2])
+        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY position")).toEqual([1, 2, 3])
     })
 
     it("moves to another group at the given index and renumbers both groups", async () => {
@@ -155,8 +155,8 @@ describe("moveDBSection", () => {
         await moveDBSection(sectionId("S2"), 2, 0)
         expect(sectionsOf(1)).toEqual(["S1", "S3"])
         expect(sectionsOf(2)).toEqual(["S2", "S4"])
-        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY position")).toEqual([0, 1])
-        expect(positions("SELECT position FROM section WHERE groupID = 2 AND is_default = 0 ORDER BY position")).toEqual([0, 1])
+        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY position")).toEqual([1, 2])
+        expect(positions("SELECT position FROM section WHERE groupID = 2 AND is_default = 0 ORDER BY position")).toEqual([1, 2])
     })
 
     it("keeps the source group, empty, when its last section is moved away", async () => {
@@ -410,7 +410,7 @@ describe("atomicity of the moves", () => {
     it("moveDBSectionToNewGroup leaves no orphan group when a later statement fails", async () => {
         await seedSections()
         const before = snapshot()
-        failOn = "UPDATE section SET groupID = ?, position = 0"
+        failOn = "UPDATE section SET groupID = ?, position = 1"
         await expect(moveDBSectionToNewGroup(sectionId("S2"), 1)).rejects.toMatchObject({ code: "SECTION_UNKNOWN_ERROR" })
         failOn = null
         expect(snapshot()).toEqual(before)
@@ -448,5 +448,211 @@ describe("atomicity of the moves", () => {
             .rejects.toMatchObject({ code: "TASK_UNKNOWN_ERROR" })
         failOn = null
         expect(snapshot()).toEqual(before)
+    })
+})
+
+
+// The default section (the list of the direct tasks) shares the order of the sections of its group
+describe("the list of the direct tasks among the sections", () => {
+    // The titles of all the live rows of a group in order, the list shown as "(list)"
+    const order = (groupId: number) =>
+        rows(`SELECT title, is_default FROM section WHERE groupID = ${groupId} AND deleted_at IS NULL ORDER BY position, id`).map(r => r.is_default ? "(list)" : r.title)
+    const listId = (groupId: number) => defaultSectionOf(groupId)[0].id
+    const allPositions = (groupId: number) => positions(`SELECT position FROM section WHERE groupID = ${groupId} AND deleted_at IS NULL ORDER BY position, id`)
+
+    it("a new section goes after every row of the group, the list included", async () => {
+        await seedSections()
+        expect(order(1)).toEqual(["(list)", "S1", "S2", "S3"])
+        expect(allPositions(1)).toEqual([0, 1, 2, 3])
+        await moveDBDirectSection(1, 3)
+        await createDBSectionInGroup(1, "S4")
+        expect(order(1)).toEqual(["S1", "S2", "S3", "(list)", "S4"])
+        expect(allPositions(1)).toEqual([0, 1, 2, 3, 4])
+    })
+
+    it("a section created with its group takes the position after the list", async () => {
+        const { groupId, defaultSectionId, sectionId: created } = await createDBSection(1, "First", 3)
+        expect(rows(`SELECT id, position FROM section WHERE groupID = ${groupId} ORDER BY position`))
+            .toEqual([{ id: defaultSectionId, position: 0 }, { id: created, position: 1 }])
+    })
+
+    it("moves the list up, down, to the end and clamps the index", async () => {
+        await seedSections()
+        await moveDBDirectSection(1, 1)
+        expect(order(1)).toEqual(["S1", "(list)", "S2", "S3"])
+        await moveDBDirectSection(1, 2)
+        expect(order(1)).toEqual(["S1", "S2", "(list)", "S3"])
+        await moveDBDirectSection(1, 0)
+        expect(order(1)).toEqual(["(list)", "S1", "S2", "S3"])
+        await moveDBDirectSection(1, 3)
+        expect(order(1)).toEqual(["S1", "S2", "S3", "(list)"])
+        await moveDBDirectSection(1, 99)
+        expect(order(1)).toEqual(["S1", "S2", "S3", "(list)"])
+        await moveDBDirectSection(1, -5)
+        expect(order(1)).toEqual(["(list)", "S1", "S2", "S3"])
+        expect(allPositions(1)).toEqual([0, 1, 2, 3])
+    })
+
+    it("moves the list of a group without sections and leaves the other groups alone", async () => {
+        await seedSections()
+        sqlite.exec("INSERT INTO section_group (id, noteID, position) VALUES (5, 1, 3); INSERT INTO section (groupID, title, position, is_default) VALUES (5, NULL, 0, 1)")
+        await moveDBDirectSection(5, 4)
+        expect(order(5)).toEqual(["(list)"])
+        await moveDBDirectSection(1, 2)
+        expect(order(2)).toEqual(["(list)", "S4"])
+        expect(allPositions(2)).toEqual([0, 1])
+    })
+
+    it("keeps the tasks of the list and counts the trashed sections out of the order", async () => {
+        await seedSections()
+        await createDBTask(listId(1), "direct")
+        await deleteDBItem("section", sectionId("S2"))
+        await moveDBDirectSection(1, 1)
+        expect(order(1)).toEqual(["S1", "(list)", "S3"])
+        expect(topTasks(listId(1))).toEqual(["direct"])
+        // a restored section keeps its old place in the shared order
+        await restoreDBItem("section", sectionId("S2"))
+        expect(sectionsOf(1)).toEqual(["S1", "S2", "S3"])
+    })
+
+    describe("with an archived section in the group (not in the note tree, so not counted by the indexes of the app)", () => {
+        // What the note shows: the live rows without the archived ones
+        const shown = (groupId: number) =>
+            rows(`SELECT title, is_default FROM section WHERE groupID = ${groupId} AND deleted_at IS NULL AND archived_at IS NULL ORDER BY position, id`)
+                .map(r => r.is_default ? "(list)" : r.title)
+
+        it("moves the list among the sections that are shown", async () => {
+            await seedSections()
+            sqlite.exec("UPDATE section SET archived_at = '2026-01-01' WHERE title = 'S1'")
+            expect(shown(1)).toEqual(["(list)", "S2", "S3"])
+            await moveDBDirectSection(1, 1)
+            expect(shown(1)).toEqual(["S2", "(list)", "S3"])
+            await moveDBDirectSection(1, 2)
+            expect(shown(1)).toEqual(["S2", "S3", "(list)"])
+        })
+
+        it("moves a section to the index it has among the sections that are shown", async () => {
+            await seedSections()
+            sqlite.exec("UPDATE section SET archived_at = '2026-01-01' WHERE title = 'S1'")
+            await moveDBSection(sectionId("S3"), 1, 0)
+            expect(shown(1)).toEqual(["(list)", "S3", "S2"])
+            await moveDBSection(sectionId("S3"), 1, 1)
+            expect(shown(1)).toEqual(["(list)", "S2", "S3"])
+        })
+    })
+
+    it("refuses a group that does not exist, is trashed or archived", async () => {
+        await seedSections()
+        await expect(moveDBDirectSection(999, 0)).rejects.toMatchObject({ code: "SECTION_MOVE_INVALID" })
+        sqlite.exec("UPDATE section_group SET archived_at = '2026-01-01' WHERE id = 2")
+        await expect(moveDBDirectSection(2, 0)).rejects.toMatchObject({ code: "SECTION_MOVE_INVALID" })
+        sqlite.exec("UPDATE section_group SET deleted_at = '2026-01-01' WHERE id = 3")
+        await expect(moveDBDirectSection(3, 0)).rejects.toMatchObject({ code: "SECTION_MOVE_INVALID" })
+    })
+
+    it("a failing write rolls the whole renumbering back", async () => {
+        await seedSections()
+        failOn = "UPDATE section SET position"
+        await expect(moveDBDirectSection(1, 2)).rejects.toBeTruthy()
+        failOn = null
+        expect(order(1)).toEqual(["(list)", "S1", "S2", "S3"])
+    })
+
+    it("a section moved inside the group goes before the index-th other section, or at the very end", async () => {
+        await seedSections()
+        await moveDBDirectSection(1, 1)
+        // [S1, (list), S2, S3]: S3 to index 1 goes before S2 (after the list)
+        await moveDBSection(sectionId("S3"), 1, 1)
+        expect(order(1)).toEqual(["S1", "(list)", "S3", "S2"])
+        // index 0: before S1, so before the list too
+        await moveDBSection(sectionId("S2"), 1, 0)
+        expect(order(1)).toEqual(["S2", "S1", "(list)", "S3"])
+        // an index equal to the number of the others: after every row, the list included
+        await moveDBSection(sectionId("S2"), 1, 99)
+        expect(order(1)).toEqual(["S1", "(list)", "S3", "S2"])
+        await moveDBDirectSection(1, 3)
+        await moveDBSection(sectionId("S1"), 1, 2)
+        expect(order(1)).toEqual(["S3", "S2", "(list)", "S1"])
+        expect(allPositions(1)).toEqual([0, 1, 2, 3])
+    })
+
+    it("beforeList puts the section right above the list, where the plain index would put it below", async () => {
+        await seedSections()
+        await moveDBDirectSection(1, 2)
+        // [S1, S2, (list), S3]: S1 down one place = after S2, above the list (the plain index 1 means before S3: after the list)
+        await moveDBSection(sectionId("S1"), 1, 1, { beforeList: true })
+        expect(order(1)).toEqual(["S2", "S1", "(list)", "S3"])
+        await moveDBSection(sectionId("S1"), 1, 0)
+        expect(order(1)).toEqual(["S1", "S2", "(list)", "S3"])
+        await moveDBSection(sectionId("S1"), 1, 1)
+        expect(order(1)).toEqual(["S2", "(list)", "S1", "S3"])
+        expect(allPositions(1)).toEqual([0, 1, 2, 3])
+    })
+
+    it("beforeList at the end of a group whose list is last keeps the list last: one write, no second move", async () => {
+        await seedSections()
+        await moveDBDirectSection(1, 3)
+        // [S1, S2, S3, (list)]: S2 down one place = the last place among the sections
+        await moveDBSection(sectionId("S2"), 1, 2, { beforeList: true })
+        expect(order(1)).toEqual(["S1", "S3", "S2", "(list)"])
+        // without the flag the section would pass the list as well
+        await moveDBSection(sectionId("S1"), 1, 2)
+        expect(order(1)).toEqual(["S3", "S2", "(list)", "S1"])
+    })
+
+    it("beforeList changes nothing when the list is not at the insertion point", async () => {
+        await seedSections()
+        await moveDBSection(sectionId("S3"), 1, 1, { beforeList: true })
+        expect(order(1)).toEqual(["(list)", "S1", "S3", "S2"])
+        // [(list), S1, S3, S2]: S2 to index 1 sits before S3, after S1: the list is not at that point
+        await moveDBSection(sectionId("S2"), 1, 2, { beforeList: true })
+        expect(order(1)).toEqual(["(list)", "S1", "S3", "S2"])
+        // at the front the list IS at the insertion point: the section goes above it
+        await moveDBSection(sectionId("S1"), 1, 0, { beforeList: true })
+        expect(order(1)).toEqual(["S1", "(list)", "S3", "S2"])
+    })
+
+    it("a section stepping over the list is the same as the list stepping over the section", async () => {
+        await seedSections()
+        // [(list), S1, S2, S3]: the list down by one place is S1 up by one place
+        await moveDBDirectSection(1, 1)
+        expect(order(1)).toEqual(["S1", "(list)", "S2", "S3"])
+        // and the other way round
+        await moveDBDirectSection(1, 0)
+        expect(order(1)).toEqual(["(list)", "S1", "S2", "S3"])
+        expect(sectionsOf(1)).toEqual(["S1", "S2", "S3"])
+    })
+
+    it("moves between groups keeping both lists where they are", async () => {
+        await seedSections()
+        await moveDBDirectSection(1, 2)
+        await moveDBDirectSection(2, 1)
+        // [S1, S2, (list), S3] and [S4, (list)]
+        await moveDBSection(sectionId("S1"), 2, 0)
+        expect(order(1)).toEqual(["S2", "(list)", "S3"])
+        expect(order(2)).toEqual(["S1", "S4", "(list)"])
+        // into the other group at its end: after the list
+        await moveDBSection(sectionId("S2"), 2, 2)
+        expect(order(1)).toEqual(["(list)", "S3"])
+        expect(order(2)).toEqual(["S1", "S4", "(list)", "S2"])
+        expect(allPositions(1)).toEqual([0, 1])
+        expect(allPositions(2)).toEqual([0, 1, 2, 3])
+    })
+
+    it("a section moved to a new group goes after the list of that group, and the source keeps its list", async () => {
+        await seedSections()
+        await moveDBDirectSection(1, 2)
+        const { groupId, defaultSectionId } = await moveDBSectionToNewGroup(sectionId("S1"), 1)
+        expect(order(1)).toEqual(["S2", "(list)", "S3"])
+        expect(allPositions(1)).toEqual([0, 1, 2])
+        expect(rows(`SELECT id, position FROM section WHERE groupID = ${groupId} ORDER BY position`))
+            .toEqual([{ id: defaultSectionId, position: 0 }, { id: sectionId("S1"), position: 1 }])
+    })
+
+    it("the loaded note shows the order of the rows", async () => {
+        await seedSections()
+        await moveDBDirectSection(1, 2)
+        const data = await getDBNoteData(1)
+        expect(data.sections.filter(s => s.groupID === 1).map(s => s.is_default ? "(list)" : s.title)).toEqual(["S1", "S2", "(list)", "S3"])
     })
 })

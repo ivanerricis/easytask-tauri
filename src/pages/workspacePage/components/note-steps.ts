@@ -1,5 +1,6 @@
 import type { NoteDataTree } from "@/types/types"
-import { findGroup, indexTree, type SectionTarget, type TaskTarget } from "./note-dnd"
+import { findGroup, indexTree, type TaskTarget } from "./note-dnd"
+import { directIndexOf } from "@/lib/group-sections"
 import { isHiddenTask } from "./section/hide-completed"
 
 /** One step of the "Sposta su / giù" menu items: towards the start (-1) or the end (+1) of the siblings. */
@@ -40,17 +41,53 @@ export function getTaskStep(tree: NoteDataTree, taskId: number, step: Step, hide
     return index === null ? null : { sectionId: info.sectionId, parentTaskId: info.parentId, index }
 }
 
-/** Destination of a section moved one step among the sections of its group, null when it is already first/last. */
-export function getSectionStep(tree: NoteDataTree, sectionId: number, step: Step): SectionTarget | null {
+/**
+ * One step of a section among the rows of its group, where the list of the direct tasks is one of the rows:
+ * - "group": the section moves to `index` among the sections (`moveSectionTo`); `beforeList` is set when the list sits exactly
+ *   there (right after the section it jumps over): the move would land after the list too, so it asks to stay before it;
+ * - "direct": the section jumps over the list, which is the same as moving the list the other way (`moveDirectSectionTo`).
+ * @category Note DnD
+ */
+export type SectionStepTarget =
+    | { type: "group", groupId: number, index: number, beforeList?: true }
+    | { type: "direct", groupId: number, index: number }
+
+/**
+ * Destination of a section moved one step among the rows of its group (the sections and the list of the direct tasks),
+ * null when it is already first/last.
+ * @category Note DnD
+ */
+export function getSectionStep(tree: NoteDataTree, sectionId: number, step: Step): SectionStepTarget | null {
     const { sections } = indexTree(tree)
     const info = sections.get(sectionId)
     if (!info) return null
     const group = tree.groups.find(candidate => candidate.id === info.groupId)
-    // Only the visible sections: the default section of the group is not part of the section order
-    const index = stepIndex(group?.sections ?? [], sectionId, step, () => true)
-    return index === null ? null : { type: "group", groupId: info.groupId, index }
+    const siblings = group?.sections ?? []
+    const from = siblings.findIndex(section => section.id === sectionId)
+    if (group?.defaultSection && from >= 0) {
+        const list = directIndexOf(group)
+        // The list is the nearest row in that direction: the section jumps over it, i.e. the list goes the other way
+        if (step < 0 && list === from) return { type: "direct", groupId: group.id, index: from + 1 }
+        if (step > 0 && list === from + 1) return { type: "direct", groupId: group.id, index: from }
+    }
+    const index = stepIndex(siblings, sectionId, step, () => true)
+    if (index === null) return null
+    // The place after the section it jumps over is also after the list when the list follows that section: stay before the list
+    const beforeList = step > 0 && !!group?.defaultSection && directIndexOf(group) === index + 1
+    return { type: "group", groupId: info.groupId, index, ...(beforeList ? { beforeList: true as const } : {}) }
 }
 
+/**
+ * Index the list of the direct tasks of a group is moved to for one step (before / after the nearest section), null when it
+ * already is first/last. The index counts the sections before the list (`moveDirectSectionTo`).
+ * @category Note DnD
+ */
+export function getDirectStep(tree: NoteDataTree, groupId: number, step: Step): number | null {
+    const group = findGroup(tree, groupId)?.group
+    if (!group?.defaultSection) return null
+    const next = directIndexOf(group) + step
+    return next < 0 || next > group.sections.length ? null : next
+}
 /** Index a group is moved to for one step among the groups (sorted by position), null when it is already first/last. */
 export function getGroupStep(tree: NoteDataTree, groupId: number, step: Step): number | null {
     if (!findGroup(tree, groupId)) return null

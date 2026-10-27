@@ -2,7 +2,7 @@ import { getSectionLabel } from "./section/section-label"
 import { getGroupLabel } from "./groups/group-label"
 import type { Group, NoteDataTree, Section, Task } from "@/types/types"
 import i18n from "@/i18n"
-import { isDefaultSection, taskSections } from "@/lib/group-sections"
+import { directIndexOf, isDefaultSection, orderedItems, taskSections } from "@/lib/group-sections"
 
 // Lives with the other tree operations (the automations use it too); re-exported for the drag & drop callers
 export { moveGroupInList } from "@/contexts/note-tree-ops"
@@ -42,7 +42,7 @@ export const ACCEPTS: Record<NoteOverKind, NoteDragKind[]> = {
 }
 
 export type SectionTarget =
-    | { type: "group", groupId: number, index: number }
+    | { type: "group", groupId: number, index: number, beforeList?: true }
     | { type: "new-group", index: number }
 
 export type TaskTarget = { sectionId: number, parentTaskId: number | null, index: number }
@@ -135,9 +135,39 @@ function getTaskSubtreeIds(task: Task): Set<number> {
 }
 
 /**
+ * Where the list of the direct tasks of a group sits among the other sections once `activeId` is taken out: the number of
+ * sections with a header before it (the `index` of the database moves counts the same way). Null when the group has no list.
+ */
+function listIndexWithout(group: Group, activeId: number): number | null {
+    if (!group.defaultSection) return null
+    const list = directIndexOf(group)
+    const activeIndex = group.sections.findIndex(section => section.id === activeId)
+    return activeIndex >= 0 && activeIndex < list ? list - 1 : list
+}
+
+/**
+ * True when moving `activeId` to `index` (`beforeList`: see {@link SectionTarget}) leaves the rows of its group (the sections and
+ * the list of the direct tasks) as they are. Mirrors the order the database gives the move.
+ */
+function isSameOrder(group: Group, activeId: number, index: number, beforeList: boolean): boolean {
+    const LIST = -1
+    const current = orderedItems(group).map(section => isDefaultSection(section) ? LIST : section.id)
+    const rows = current.filter(id => id !== activeId)
+    const headed = rows.filter(id => id !== LIST)
+    const at = Math.max(0, Math.min(index, headed.length))
+    let before = at < headed.length ? rows.indexOf(headed[at]) : rows.length
+    if (beforeList && before > 0 && rows[before - 1] === LIST) before -= 1
+    rows.splice(before, 0, activeId)
+    return rows.every((id, position) => id === current[position])
+}
+
+/**
  * Computes the destination of a dragged section. The returned index is the final index among the sections
  * of the destination group once the section has been moved (the semantics of `moveSection`), or the index
  * among the current groups for a new group (the semantics of `moveSectionToNewGroup`).
+ * The list of the direct tasks of the group is one of the rows: that index counts only the sections with a header, so a
+ * section dropped right above the list is a move before the list (`beforeList`), one dropped right below it a plain index.
+ * The list itself is a drop target (top half = before it, bottom half = after it) but cannot be dragged.
  * Returns null when the drop is invalid or would not change anything.
  * @category Note DnD
  */
@@ -150,11 +180,13 @@ export function computeSectionTarget(
     const { sections } = indexTree(tree)
     const active = sections.get(activeId)
     if (!active || isDefaultSection(active.section)) return null
-    // A section dropped on the direct area of a group is a drop on the group (the area is not part of the section order)
-    const overSection = over.kind === "section" ? sections.get(over.id) : undefined
-    if (overSection && isDefaultSection(overSection.section)) over = { kind: "group", id: overSection.groupId }
     const sourceGroup = tree.groups.find(group => group.id === active.groupId)
     if (!sourceGroup) return null
+
+    // The list of a group is a row among the sections: before / after it by the half of the area, or the whole group as a drop on the group
+    const overSection = over.kind === "section" ? sections.get(over.id) : undefined
+    const overList = !!overSection && isDefaultSection(overSection.section)
+    if (overSection && overList && zone !== "before" && zone !== "after") over = { kind: "group", id: overSection.groupId }
 
     if (over.kind === "new-group") {
         const sourceIndex = tree.groups.findIndex(group => group.id === active.groupId)
@@ -163,31 +195,38 @@ export function computeSectionTarget(
         return { type: "new-group", index: over.id }
     }
 
-    let groupId: number
+    let group: Group | undefined
     let index: number
+    let beforeList = false
     if (over.kind === "group") {
-        const group = tree.groups.find(g => g.id === over.id)
+        group = tree.groups.find(g => g.id === over.id)
         if (!group) return null
-        groupId = group.id
         index = group.sections.filter(section => section.id !== activeId).length
     } else if (over.kind === "section") {
         if (over.id === activeId) return null
         const target = sections.get(over.id)
         if (!target) return null
-        const group = tree.groups.find(g => g.id === target.groupId)
+        group = tree.groups.find(g => g.id === target.groupId)
         if (!group) return null
-        const without = group.sections.filter(section => section.id !== activeId)
-        const overIndex = without.findIndex(section => section.id === over.id)
-        if (overIndex < 0) return null
-        groupId = group.id
-        index = zone === "after" ? overIndex + 1 : overIndex
+        const listIndex = listIndexWithout(group, activeId)
+        if (overList) {
+            // Above the list: before it (the index of the next section would be after it); below it: the plain index
+            index = listIndex ?? 0
+            beforeList = zone === "before"
+        } else {
+            const without = group.sections.filter(section => section.id !== activeId)
+            const overIndex = without.findIndex(section => section.id === over.id)
+            if (overIndex < 0) return null
+            index = zone === "after" ? overIndex + 1 : overIndex
+            // Right under a section the list follows: stay above the list, whose place the plain index would take
+            beforeList = zone === "after" && listIndex === index
+        }
     } else {
         return null
     }
 
-    if (groupId === active.groupId && sourceGroup.sections.findIndex(section => section.id === activeId) === index)
-        return null
-    return { type: "group", groupId, index }
+    if (group.id === active.groupId && isSameOrder(group, activeId, index, beforeList)) return null
+    return { type: "group", groupId: group.id, index, ...(beforeList ? { beforeList: true as const } : {}) }
 }
 
 /**

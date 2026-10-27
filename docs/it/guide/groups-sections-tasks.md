@@ -1,6 +1,6 @@
 # Gruppi, sezioni e task
 
-Il contenuto di una nota è organizzato su tre livelli. Una nota contiene dei **gruppi**, affiancati come colonne. Un gruppo contiene delle **sezioni**, impilate nella colonna. Una sezione contiene dei **task**, e un task può avere dei **sottotask**, annidati quanto serve. Un gruppo può anche contenere task propri, subito sotto l'intestazione, senza alcuna sezione.
+Il contenuto di una nota è organizzato su tre livelli. Una nota contiene dei **gruppi**, affiancati come colonne. Un gruppo contiene delle **sezioni**, impilate nella colonna. Una sezione contiene dei **task**, e un task può avere dei **sottotask**, annidati quanto serve. Un gruppo può anche contenere task propri, subito sotto l'intestazione, senza alcuna sezione. Questa lista di task può stare in qualsiasi punto tra le sezioni del gruppo.
 
 ![Dettagli del task](../../screenshots/it/task-details-light.png){.light-only}
 ![Dettagli del task](../../screenshots/it/task-details-dark.png){.dark-only}
@@ -30,7 +30,8 @@ Il clic destro sull'area vuota della nota (fuori da gruppi, sezioni e task) apre
 | **Rinomina**                           | sì     | sì      | Modifica il nome.                                                |
 | **Cambia colore**                      | sì     | sì      | Imposta o toglie il colore.                                      |
 | **Sposta a sinistra**, **Sposta a destra** | sì |         | Sposta il gruppo di un passo nella riga.                         |
-| **Sposta su**, **Sposta giù**          |        | sì      | Sposta la sezione di un passo nel suo gruppo.                    |
+| **Sposta su**, **Sposta giù**          |        | sì      | Sposta la sezione di un passo nel suo gruppo, anche oltre la lista dei task del gruppo. |
+| **Sposta task del gruppo su**, **Sposta task del gruppo giù** | sì |  | Sposta la lista dei task del gruppo di un passo tra le sue sezioni. |
 | **Sposta in…**                         |        | sì      | Sposta la sezione in fondo a un altro gruppo, o in un **Nuovo gruppo**. |
 | **Automazioni…**                       | sì     | sì      | Apre le automazioni della nota. Vedi [Automazioni](./automations). |
 | **Archivia**                           | sì     | sì      | Lo nasconde senza eliminarlo. Vedi [Cestino e archivio](./trash-and-archive). |
@@ -41,7 +42,9 @@ Il clic destro sull'area vuota della nota (fuori da gruppi, sezioni e task) apre
 Puoi spostare gli elementi anche trascinandoli:
 
 - Trascina un gruppo dalla sua intestazione per riordinare i gruppi.
-- Trascina una sezione su un altro gruppo, o tra due sezioni, per spostarla. Rilasciala sull'area **Nuovo gruppo** al bordo per farne un gruppo a sé.
+- Trascina una sezione su un altro gruppo, o tra due sezioni, per spostarla. Una linea mostra dove cade, anche sopra o sotto la lista dei task del gruppo. Rilasciala sull'area **Nuovo gruppo** al bordo per farne un gruppo a sé.
+
+La lista dei task del gruppo segue lo stesso ordine delle sezioni: di default è in cima, e la sposti con **Sposta task del gruppo su** e **Sposta task del gruppo giù** (anche nel menu del clic destro del gruppo), che sono disattivate quando la lista è già a un'estremità. [Annulla](./undo-and-history.md) la riporta com'era.
 
 ### Comprimere, contatori e barre d'avanzamento
 
@@ -55,10 +58,10 @@ Trascina il bordo destro di un gruppo per allargarlo o restringerlo. Da tastiera
 
 ### Aggiungere un task
 
-1. In fondo a una sezione fai clic sul pulsante **+** (**Aggiungi task**). Per aggiungere un task a un gruppo senza sezione, fai clic sul pulsante tratteggiato **Nuovo task** del gruppo: si trova subito sotto i task del gruppo, sopra le sue sezioni.
+1. In fondo a una sezione fai clic sul pulsante **+** (**Aggiungi task**). Per aggiungere un task a un gruppo senza sezione, fai clic sul pulsante tratteggiato **Nuovo task** del gruppo: si trova subito sotto i task del gruppo, ovunque sia quella lista tra le sezioni, e il nuovo task viene creato in quella lista.
 2. Scrivi il testo in **Nuovo task…** e conferma con `Invio` o con il pulsante di aggiunta. `Esc` chiude il campo.
 
-I task di un gruppo contano nella barra di avanzamento e nel numero di task del gruppo. Trascinane uno in una sezione, o il contrario, oppure usa **Sposta in…** (il gruppo compare nell'elenco come **Task del gruppo**). **Sposta su** e **Sposta giù** restano dentro la stessa lista.
+I task di un gruppo contano nella barra di avanzamento e nel numero di task del gruppo. Trascinane uno in una sezione, o il contrario, oppure usa **Sposta in…** (il gruppo compare nell'elenco come **Task del gruppo**). **Sposta su** e **Sposta giù** di un task restano dentro la stessa lista.
 
 I nuovi task vanno in fondo alla sezione. Per metterli in cima scegli **In cima** in **Impostazioni > Note e sezioni > Posizione dei nuovi task**.
 

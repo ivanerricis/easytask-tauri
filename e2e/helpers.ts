@@ -316,7 +316,7 @@ export const newSectionInGroup = async (group: ChainablePromiseElement | Webdriv
     await sectionCard(title).waitForDisplayed({ timeoutMsg: `section ${title} not created` })
 }
 
-/** The area of the tasks created directly in a group (above its sections). */
+/** The area of the tasks created directly in a group (the list sits among its sections where the user placed it, on top by default). */
 export const directTasks = (group: ChainablePromiseElement | WebdriverIO.Element) => group.$("[data-direct-tasks]")
 
 /** The dashed "Nuovo task" button of a group: it adds a task to the direct area. */

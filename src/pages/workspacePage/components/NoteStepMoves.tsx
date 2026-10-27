@@ -4,11 +4,11 @@ import { ButtonInPopover } from "@/components/button-in-popover"
 import { useActiveNote } from "@/contexts/use-active-note"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useGroupMoves, useNoteMoves } from "./note-dnd-state"
-import { getGroupStep, getSectionStep, getTaskStep, type Step } from "./note-steps"
+import { getDirectStep, getGroupStep, getSectionStep, getTaskStep, type Step } from "./note-steps"
 
 type StepButtonsProps = {
     /** Vertical lists (tasks, sections) or the horizontal row of the groups. */
-    direction?: "vertical" | "horizontal"
+    direction?: "vertical" | "horizontal" | "direct"
     canMoveUp: boolean
     canMoveDown: boolean
     onMove: (step: Step) => void
@@ -18,10 +18,11 @@ type StepButtonsProps = {
 const StepButtons = ({ direction = "vertical", canMoveUp, canMoveDown, onMove }: StepButtonsProps) => {
     const { t } = useTranslation()
     const horizontal = direction === "horizontal"
+    const direct = direction === "direct"
     return (
         <>
-            <ButtonInPopover text={t(horizontal ? "menu.moveLeft" : "menu.moveUp")} type={horizontal ? "moveLeft" : "moveUp"} disabled={!canMoveUp} onClick={() => onMove(-1)} />
-            <ButtonInPopover text={t(horizontal ? "menu.moveRight" : "menu.moveDown")} type={horizontal ? "moveRight" : "moveDown"} disabled={!canMoveDown} onClick={() => onMove(1)} />
+            <ButtonInPopover text={t(horizontal ? "menu.moveLeft" : direct ? "menu.moveDirectUp" : "menu.moveUp")} type={horizontal ? "moveLeft" : "moveUp"} disabled={!canMoveUp} onClick={() => onMove(-1)} />
+            <ButtonInPopover text={t(horizontal ? "menu.moveRight" : direct ? "menu.moveDirectDown" : "menu.moveDown")} type={horizontal ? "moveRight" : "moveDown"} disabled={!canMoveDown} onClick={() => onMove(1)} />
         </>
     )
 }
@@ -59,10 +60,10 @@ export const TaskStepMoves = ({ taskId, onDone }: StepMovesProps & { taskId: num
     )
 }
 
-/** "Sposta su / giù" of a section: one step among the sections of its group. */
+/** "Sposta su / giù" of a section: one step among the rows of its group (the list of the direct tasks is one of them). */
 export const SectionStepMoves = ({ sectionId, onDone }: StepMovesProps & { sectionId: number }) => {
     const { noteDataTree } = useActiveNote()
-    const { moveSectionTo } = useNoteMoves()
+    const { moveSectionTo, moveDirectSectionTo } = useNoteMoves()
 
     const steps = useMemo(() => noteDataTree
         ? { up: getSectionStep(noteDataTree, sectionId, -1), down: getSectionStep(noteDataTree, sectionId, 1) }
@@ -76,7 +77,35 @@ export const SectionStepMoves = ({ sectionId, onDone }: StepMovesProps & { secti
                 const target = step < 0 ? steps.up : steps.down
                 if (!target) return
                 onDone?.()
-                void moveSectionTo(sectionId, target)
+                if (target.type === "direct") void moveDirectSectionTo(target.groupId, target.index)
+                else void moveSectionTo(sectionId, target)
+            }}
+        />
+    )
+}
+
+/**
+ * "Sposta task del gruppo su / giù": one step of the list of the direct tasks of a group among its sections (the list is not
+ * draggable, it moves from the menu of the group). Disabled while it is first / last.
+ */
+export const DirectStepMoves = ({ groupId, onDone }: StepMovesProps & { groupId: number }) => {
+    const { noteDataTree } = useActiveNote()
+    const { moveDirectSectionTo } = useNoteMoves()
+
+    const steps = useMemo(() => noteDataTree
+        ? { up: getDirectStep(noteDataTree, groupId, -1), down: getDirectStep(noteDataTree, groupId, 1) }
+        : { up: null, down: null }, [noteDataTree, groupId])
+
+    return (
+        <StepButtons
+            direction="direct"
+            canMoveUp={steps.up !== null}
+            canMoveDown={steps.down !== null}
+            onMove={step => {
+                const index = step < 0 ? steps.up : steps.down
+                if (index === null) return
+                onDone?.()
+                void moveDirectSectionTo(groupId, index)
             }}
         />
     )

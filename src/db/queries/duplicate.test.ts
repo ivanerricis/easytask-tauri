@@ -72,11 +72,11 @@ beforeEach(() => {
 
         INSERT INTO section_group (id, noteID, position, name, color) VALUES (1, 1, 0, 'Sprint', '#abcdef'), (2, 1, 1, NULL, NULL);
         INSERT INTO section (id, groupID, title, color, position) VALUES
-            (1, 1, 'Da fare', '#00ff00', 0),
-            (2, 1, 'Archivio', NULL, 1),
-            (3, 1, 'Ultima', NULL, 2),
-            (4, 2, 'Idee', NULL, 0),
-            (5, 1, 'Eliminata', NULL, 3);
+            (1, 1, 'Da fare', '#00ff00', 1),
+            (2, 1, 'Archivio', NULL, 2),
+            (3, 1, 'Ultima', NULL, 3),
+            (4, 2, 'Idee', NULL, 1),
+            (5, 1, 'Eliminata', NULL, 4);
         INSERT INTO section (id, groupID, title, position, is_default) VALUES (20, 1, NULL, 0, 1), (21, 2, NULL, 0, 1);
         UPDATE section_group SET width = 360 WHERE id = 1;
         INSERT INTO task (id, sectionID, taskID, text, description, completed, priority, color, position) VALUES
@@ -176,7 +176,7 @@ describe("duplicateDBSection", () => {
             .toEqual({ groupID: 1, title: "Da fare (copia)", color: "#00ff00" })
         const tree = await noteTree(1)
         const [original, copy] = [tree[0].sections[0], tree[0].sections[1]]
-        expect(copy).toEqual({ ...original, title: "Da fare (copia)", position: 1 })
+        expect(copy).toEqual({ ...original, title: "Da fare (copia)", position: 2 })
         expect(copy.tasks).toHaveLength(2)
         expect(JSON.stringify(copy)).not.toContain("Eliminato")
         // the original is untouched
@@ -190,16 +190,35 @@ describe("duplicateDBSection", () => {
 
     it("places the copy right after the original and shifts the following sections of the group only", async () => {
         await duplicateDBSection(1)
-        expect(order("section", "groupID = 1")).toEqual(["Da fare@0", "Da fare (copia)@1", "Archivio@2", "Ultima@3"])
-        expect(order("section", "groupID = 2")).toEqual(["Idee@0"])
+        expect(order("section", "groupID = 1")).toEqual(["Da fare@1", "Da fare (copia)@2", "Archivio@3", "Ultima@4"])
+        expect(order("section", "groupID = 2")).toEqual(["Idee@1"])
     })
 
     it("numbers the copies of the same section", async () => {
         await duplicateDBSection(4)
         await duplicateDBSection(4)
-        expect(order("section", "groupID = 2")).toEqual(["Idee@0", "Idee (copia 2)@1", "Idee (copia)@2"])
+        expect(order("section", "groupID = 2")).toEqual(["Idee@1", "Idee (copia 2)@2", "Idee (copia)@3"])
     })
 
+    it("with the list of the direct tasks among the sections the copy goes right after the original and the list keeps its place", async () => {
+        // group 1 as [Da fare, (list), Archivio, Ultima]
+        sqlite.exec("UPDATE section SET position = 4 WHERE id = 3; UPDATE section SET position = 3 WHERE id = 2; UPDATE section SET position = 2 WHERE id = 20")
+        const all = () => rows("SELECT title, is_default FROM section WHERE groupID = 1 AND deleted_at IS NULL ORDER BY position, id").map(r => r.is_default ? "(list)" : r.title)
+        await duplicateDBSection(1)
+        expect(all()).toEqual(["Da fare", "Da fare (copia)", "(list)", "Archivio", "Ultima"])
+        await duplicateDBSection(2)
+        expect(all()).toEqual(["Da fare", "Da fare (copia)", "(list)", "Archivio", "Archivio (copia)", "Ultima"])
+        expect(rows("SELECT position FROM section WHERE groupID = 1 AND deleted_at IS NULL ORDER BY position, id").map(r => r.position)).toEqual([1, 2, 3, 4, 5, 6])
+    })
+
+    it("a duplicated note keeps the place of the list in every group", async () => {
+        sqlite.exec("UPDATE section SET position = 3 WHERE id = 3; UPDATE section SET position = 2 WHERE id = 2; UPDATE section SET position = 1 WHERE id = 20; UPDATE section SET position = 0 WHERE id = 1")
+        const copy = await duplicateDBNote(1)
+        const all = (noteId: number) => rows(`SELECT s.title, s.is_default FROM section s JOIN section_group g ON g.id = s.groupID
+            WHERE g.noteID = ${noteId} AND g.position = 0 AND s.deleted_at IS NULL ORDER BY s.position, s.id`).map(r => r.is_default ? "(list)" : r.title)
+        expect(all(1)).toEqual(["Da fare", "(list)", "Archivio", "Ultima"])
+        expect(all(copy)).toEqual(all(1))
+    })
     it("fails with a source-missing error for a missing or deleted section", async () => {
         expect(await thrown(duplicateDBSection(999))).toMatchObject({ code: "DUPLICATE_SOURCE_MISSING" })
         expect(await thrown(duplicateDBSection(5))).toMatchObject({ code: "DUPLICATE_SOURCE_MISSING" })
@@ -208,7 +227,7 @@ describe("duplicateDBSection", () => {
     it("writes nothing when the tasks fail to be inserted", async () => {
         failOn = "INSERT INTO task"
         expect(await thrown(duplicateDBSection(1))).toMatchObject({ code: "DUPLICATE_FAILED" })
-        expect(order("section", "groupID = 1")).toEqual(["Da fare@0", "Archivio@1", "Ultima@2"])
+        expect(order("section", "groupID = 1")).toEqual(["Da fare@1", "Archivio@2", "Ultima@3"])
     })
 })
 

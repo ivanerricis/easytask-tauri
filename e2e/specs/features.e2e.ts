@@ -233,7 +233,8 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
 
     it("moves a section down from its menu, then undoes and redoes", async () => {
         let menu = await openSectionMenu(SECTIONS[0])
-        await expect(byText(await tr("menu.moveUp"), menu)).toHaveAttribute("aria-disabled", "true")
+        // The first section can still go up: the list of the direct tasks of the group sits above it
+        await expect(byText(await tr("menu.moveUp"), menu)).not.toHaveAttribute("aria-disabled", "true")
         await byText(await tr("menu.moveDown"), menu).click()
         await waitForSections([SECTIONS[1], SECTIONS[0], SECTIONS[2]])
 

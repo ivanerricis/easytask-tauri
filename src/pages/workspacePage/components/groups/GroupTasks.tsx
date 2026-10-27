@@ -7,6 +7,7 @@ import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { ensureDBDefaultSection } from "@/db/queries/task"
 import { useNoteDndSelector, useNoteDrop } from "../note-dnd-state"
 import { AddTask } from "../tasks/AddTask"
+import { DropLine } from "../sidebar/DropLine"
 import { TaskList } from "../tasks/TaskList"
 
 type DirectTasksProps = {
@@ -15,18 +16,22 @@ type DirectTasksProps = {
 
 /**
  * The tasks created directly in a group (the ones of its hidden default section) and the "New task" button right under them.
- * The area is a droppable of the default section: a task dropped on it goes at the end, a section dropped on it is a drop on the group.
+ * The area is a droppable of the default section: a task dropped on it goes at the end; a dragged section is dropped before (top half)
+ * or after (bottom half) the whole area, like on a section card (the list itself cannot be dragged: it moves from the menu of the group).
  */
 const DirectTasks = memo(({ section }: DirectTasksProps) => {
-    const { setNodeRef, zone } = useNoteDrop("section", section.id)
+    const { setNodeRef, zone, active } = useNoteDrop("section", section.id)
+    const draggingSection = active?.kind === "section"
     const taskDestination = useNoteDndSelector(state => state.active?.kind === "task" && state.hover.targetSectionId === section.id)
 
     return (
         <div
             ref={setNodeRef}
             data-direct-tasks
-            className={cn("flex flex-col gap-1 w-full rounded-xs", (zone || taskDestination) && "ring-2 ring-primary")}
+            className={cn("relative flex flex-col gap-1 w-full rounded-xs", !draggingSection && (zone || taskDestination) && "ring-2 ring-primary")}
         >
+            {/* Drawn inside the box: the list can be the first or the last item of the group, where a line outside would be cut by the scrolling area */}
+            {draggingSection && <DropLine zone={zone} />}
             {/* Without tasks only the button is left: the empty box would just be a double border */}
             {section.tasks.length > 0 &&
                 <div className="flex flex-col w-full overflow-hidden border dark:bg-secondary bg-background">

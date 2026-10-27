@@ -23,8 +23,8 @@ vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ setG
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchGroup }) }))
 vi.mock("@/lib/report-error", async importOriginal => ({ ...await importOriginal<object>(), reportError: (...args: unknown[]) => reportError(...args) }))
 vi.mock("./GroupAudioFiles", () => ({ GroupAudioFiles: () => null }))
-vi.mock("../section/Section", () => ({ Section: () => <div>section</div> }))
-vi.mock("./GroupTasks", () => ({ GroupTasks: () => <div>direct tasks</div> }))
+vi.mock("../section/Section", () => ({ Section: ({ section }: { section: { id: number } }) => <div data-mock={`s${section.id}`}>section</div> }))
+vi.mock("./GroupTasks", () => ({ GroupTasks: () => <div data-mock="list">direct tasks</div> }))
 vi.mock("../section/AddSection", () => ({
     AddSection: ({ open, onClose }: { open?: boolean, onClose?: () => void }) => open ? <button onClick={onClose}>form sezione</button> : null,
 }))
@@ -216,6 +216,30 @@ describe("Group content", () => {
         render(<Group group={makeGroup({ id: 111, defaultSection: makeDefaultSection({ id: 5 }) })} />)
         expect(screen.getByText("direct tasks")).toBeInTheDocument()
         expect(screen.queryByText("section")).not.toBeInTheDocument()
+    })
+
+    describe("order of the list of the direct tasks among the sections", () => {
+        const order = (defaultIndex?: number) => {
+            const { container, unmount } = render(<Group group={makeGroup({
+                id: 120, defaultIndex, defaultSection: makeDefaultSection({ id: 5 }),
+                sections: [1, 2, 3].map(id => makeSection({ id })),
+            })} />)
+            const result = Array.from(container.querySelectorAll("[data-mock]")).map(node => node.getAttribute("data-mock"))
+            unmount()
+            return result
+        }
+
+        it("puts the list on top by default, in the middle or at the end where defaultIndex says", () => {
+            expect(order()).toEqual(["list", "s1", "s2", "s3"])
+            expect(order(0)).toEqual(["list", "s1", "s2", "s3"])
+            expect(order(1)).toEqual(["s1", "list", "s2", "s3"])
+            expect(order(2)).toEqual(["s1", "s2", "list", "s3"])
+            expect(order(3)).toEqual(["s1", "s2", "s3", "list"])
+        })
+
+        it("clamps an index past the last section to the end", () => {
+            expect(order(99)).toEqual(["s1", "s2", "s3", "list"])
+        })
     })
 
     it("opens the form of a new section from the menu of the group and closes it again", () => {

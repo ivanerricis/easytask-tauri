@@ -340,13 +340,17 @@ describe("direct area of a group (default section)", () => {
         expect(ACCEPTS.group).toContain("task")
     })
 
-    it("a section dropped on the direct area is a drop on its group", () => {
+    it("a section dropped on the direct area goes before it (top half) or after it (bottom half)", () => {
         const tree = directTree()
-        // S3 over the direct area of group 1: appended to the sections of group 1
-        expect(computeSectionTarget(tree, 3, { kind: "section", id: 50 }, "before")).toEqual({ type: "group", groupId: 1, index: 1 })
+        // group 1 is [(list), S1]: S3 above the list takes the first place, below it the place of S1's index 0 (after the list)
+        expect(computeSectionTarget(tree, 3, { kind: "section", id: 50 }, "before")).toEqual({ type: "group", groupId: 1, index: 0, beforeList: true })
+        expect(computeSectionTarget(tree, 3, { kind: "section", id: 50 }, "after")).toEqual({ type: "group", groupId: 1, index: 0 })
+        // a plain "inside" over the area is still a drop on the group: appended
+        expect(computeSectionTarget(tree, 3, { kind: "section", id: 50 }, "inside")).toEqual({ type: "group", groupId: 1, index: 1 })
         expect(computeSectionTarget(tree, 3, { kind: "group", id: 1 }, "inside")).toEqual({ type: "group", groupId: 1, index: 1 })
-        // Over the direct area of its own group: it is already last
+        // Over the direct area of its own group: [(list), S3] already is last
         expect(computeSectionTarget(tree, 3, { kind: "section", id: 51 }, "after")).toBeNull()
+        expect(computeSectionTarget(tree, 3, { kind: "section", id: 51 }, "before")).toEqual({ type: "group", groupId: 2, index: 0, beforeList: true })
     })
 
     it("lists one destination per group, labelled with the group, ahead of its sections", () => {
@@ -363,5 +367,76 @@ describe("direct area of a group (default section)", () => {
         expect(destinations.groups.map(g => g.id)).toEqual([1])
         expect(destinations.groups[0].hint).toBe("S1")
         expect(computeSectionTarget(directTree(), 50, { kind: "group", id: 2 }, "inside")).toBeNull()
+    })
+})
+
+describe("sections dragged around the list of the direct tasks", () => {
+    // group 1: [S1, S2, (list 50), S3, S4]
+    const placed = (defaultIndex: number): NoteDataTree => ({
+        groups: [makeGroup({
+            id: 1, position: 0, defaultIndex,
+            defaultSection: makeDefaultSection({ id: 50, groupID: 1, tasks: [task(5, 50)] }),
+            sections: [1, 2, 3, 4].map(id => makeSection({ id, groupID: 1, title: `S${id}` })),
+        })],
+    })
+
+    it("right under the section above the list means above the list (beforeList)", () => {
+        // [S1, S2, L, S3, S4]: S4 after S2 = [S1, S2, S4, L, S3]
+        expect(computeSectionTarget(placed(2), 4, { kind: "section", id: 2 }, "after")).toEqual({ type: "group", groupId: 1, index: 2, beforeList: true })
+        // S3 after S2 is above the list, not where it is now (below it)
+        expect(computeSectionTarget(placed(2), 3, { kind: "section", id: 2 }, "after")).toEqual({ type: "group", groupId: 1, index: 2, beforeList: true })
+    })
+
+    it("right above the section below the list means below the list", () => {
+        // S1 before S3: [S2, L, S1, S3, S4]
+        expect(computeSectionTarget(placed(2), 1, { kind: "section", id: 3 }, "before")).toEqual({ type: "group", groupId: 1, index: 1 })
+        // S4 before S3: [S1, S2, L, S4, S3]
+        expect(computeSectionTarget(placed(2), 4, { kind: "section", id: 3 }, "before")).toEqual({ type: "group", groupId: 1, index: 2 })
+        // S3 before S3 itself, or S4 after S3 / S3 before S4: nothing changes
+        expect(computeSectionTarget(placed(2), 4, { kind: "section", id: 3 }, "after")).toBeNull()
+    })
+
+    it("over the list itself: top half = just above it, bottom half = just below it", () => {
+        expect(computeSectionTarget(placed(2), 4, { kind: "section", id: 50 }, "before")).toEqual({ type: "group", groupId: 1, index: 2, beforeList: true })
+        expect(computeSectionTarget(placed(2), 4, { kind: "section", id: 50 }, "after")).toEqual({ type: "group", groupId: 1, index: 2 })
+        // S2 is right above the list, S3 right below it: dropping them next to it again is a no-op
+        expect(computeSectionTarget(placed(2), 2, { kind: "section", id: 50 }, "before")).toBeNull()
+        expect(computeSectionTarget(placed(2), 3, { kind: "section", id: 50 }, "after")).toBeNull()
+        // ...while S2 below the list jumps over it
+        expect(computeSectionTarget(placed(2), 2, { kind: "section", id: 50 }, "after")).toEqual({ type: "group", groupId: 1, index: 1 })
+    })
+
+    it("counts the dragged section out when it was above the list", () => {
+        // [S1, S2, L, S3, S4]: S1 dragged below the list: the list sits after one other section once S1 is out
+        expect(computeSectionTarget(placed(2), 1, { kind: "section", id: 50 }, "after")).toEqual({ type: "group", groupId: 1, index: 1 })
+        expect(computeSectionTarget(placed(2), 1, { kind: "section", id: 50 }, "before")).toEqual({ type: "group", groupId: 1, index: 1, beforeList: true })
+    })
+
+    it("a list on top or at the end: above the first section, or at the end with the list last", () => {
+        // [L, S1, S2, S3, S4]: S2 above S1 goes below the list; over the list, above it
+        expect(computeSectionTarget(placed(0), 2, { kind: "section", id: 1 }, "before")).toEqual({ type: "group", groupId: 1, index: 0 })
+        expect(computeSectionTarget(placed(0), 2, { kind: "section", id: 50 }, "before")).toEqual({ type: "group", groupId: 1, index: 0, beforeList: true })
+        // [S1, S2, S3, S4, L]: S1 after S4 stays above the list; dropped on the empty area of the group it goes after the list
+        expect(computeSectionTarget(placed(4), 1, { kind: "section", id: 4 }, "after")).toEqual({ type: "group", groupId: 1, index: 3, beforeList: true })
+        expect(computeSectionTarget(placed(4), 1, { kind: "group", id: 1 }, "inside")).toEqual({ type: "group", groupId: 1, index: 3 })
+        // S4 is above the list: dropped on the empty area it jumps over the list
+        expect(computeSectionTarget(placed(4), 4, { kind: "group", id: 1 }, "inside")).toEqual({ type: "group", groupId: 1, index: 3 })
+    })
+
+    it("a section from another group lands where the list is by the same rule", () => {
+        const tree: NoteDataTree = { groups: [...placed(2).groups, makeGroup({ id: 2, position: 1, sections: [makeSection({ id: 9, groupID: 2, title: "S9" })] })] }
+        expect(computeSectionTarget(tree, 9, { kind: "section", id: 2 }, "after")).toEqual({ type: "group", groupId: 1, index: 2, beforeList: true })
+        expect(computeSectionTarget(tree, 9, { kind: "section", id: 3 }, "before")).toEqual({ type: "group", groupId: 1, index: 2 })
+    })
+
+    it("the move-to menu of a task shows the area of the group where the list is", () => {
+        const tree: NoteDataTree = { groups: [makeGroup({
+            id: 1, position: 0, defaultIndex: 1,
+            defaultSection: makeDefaultSection({ id: 50, groupID: 1 }),
+            sections: [makeSection({ id: 1, groupID: 1, title: "S1", tasks: [task(1, 1)] }), makeSection({ id: 2, groupID: 1, title: "S2" })],
+        })] }
+        expect(getTaskMoveDestinations(tree, 1).map(d => d.key)).toEqual(["section-50", "section-2"])
+        const other: NoteDataTree = { groups: [{ ...tree.groups[0], defaultSection: makeDefaultSection({ id: 50, groupID: 1, tasks: [task(5, 50)] }) }] }
+        expect(getTaskMoveDestinations(other, 5).map(d => d.key)).toEqual(["section-1", "task-1", "section-2"])
     })
 })

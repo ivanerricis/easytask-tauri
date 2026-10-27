@@ -1,5 +1,5 @@
 import i18n from "@/i18n"
-import { taskSections } from "@/lib/group-sections"
+import { isDefaultSection, taskSections } from "@/lib/group-sections"
 import type { NoteDataTree, Section, Task } from "@/types/types"
 import { getGroupLabel } from "../groups/group-label"
 import { getSectionLabel } from "../section/section-label"
@@ -24,7 +24,7 @@ const sortedGroups = (tree: NoteDataTree) => [...tree.groups].sort((a, b) => a.p
 
 /**
  * The tasks of the note in the order they are drawn: groups by position (closed groups leave out their tasks), in each
- * group the tasks put directly in it first, then the open sections; every task is followed by its subtasks (depth first).
+ * group its sections in their order, the list of the tasks put directly in the group being one of them (wherever it was placed), the closed sections leaving out their tasks; every task is followed by its subtasks (depth first).
  * Completed tasks are left out when they are hidden (see visibleTasks). It is the order of the range selection.
  * @category Note
  */
@@ -100,7 +100,7 @@ export type TaskDestination = {
 
 /**
  * Where the "Sposta in…" menu of a multi-selection can put the tasks (as last top level tasks): every section of the
- * note and, for each group that has one, the area of the tasks put directly in the group.
+ * note and, for each group that has one, the area of the tasks put directly in the group, in the order of the group.
  * @category Note
  */
 export function getTaskDestinations(tree: NoteDataTree): TaskDestination[] {
@@ -114,8 +114,8 @@ export function getTaskDestinations(tree: NoteDataTree): TaskDestination[] {
             label: direct ? i18n.t("tasks.selection.directTasks") : getSectionLabel(section),
             groupLabel,
         })
-        if (group.defaultSection) add(group.defaultSection, true)
-        for (const section of group.sections) add(section, false)
+        // The list of the direct tasks sits where the user placed it among the sections
+        for (const section of taskSections(group)) add(section, isDefaultSection(section))
     })
     return result
 }

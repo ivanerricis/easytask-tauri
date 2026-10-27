@@ -121,7 +121,8 @@ describe("note optimistic actions", () => {
         expect(tree!.groups[2].defaultSection).toMatchObject({ id: 50, groupID: 5, is_default: true, position: 0, tasks: [] })
 
         expect(actions.appendSection(6, 5, "Sez")).toBeTypeOf("function")
-        expect(tree!.groups[2].sections[0]).toMatchObject({ id: 6, groupID: 5, title: "Sez", position: 0 })
+        // numbered after the default section (position 0), which shares the order of the sections
+        expect(tree!.groups[2].sections[0]).toMatchObject({ id: 6, groupID: 5, title: "Sez", position: 1 })
 
         expect(actions.appendTask(8, { sectionId: 10 }, "Nuovo task")).toBeTypeOf("function")
         expect(tree!.groups[0].sections[0].tasks[2]).toMatchObject({ id: 8, sectionID: 10, taskID: null, text: "Nuovo task", position: 2 })
@@ -234,5 +235,116 @@ describe("note optimistic actions on the direct area of a group", () => {
         const before = tree
         actions.removeSection(91)
         expect(tree).toBe(before)
+    })
+})
+
+describe("note optimistic actions with the list of the direct tasks among the sections", () => {
+    // group 1: [S10, (list 90), S11, S12] (defaultIndex 1); group 2: [(list 91), S20] (defaultIndex 0)
+    const withList = (): NoteDataTree => ({
+        groups: [
+            makeGroup({
+                id: 1, defaultIndex: 1, defaultSection: makeDefaultSection({ id: 90, groupID: 1 }),
+                sections: [10, 11, 12].map(id => makeSection({ id, groupID: 1 })),
+            }),
+            makeGroup({
+                id: 2, position: 1, defaultIndex: 0, defaultSection: makeDefaultSection({ id: 91, groupID: 2 }),
+                sections: [makeSection({ id: 20, groupID: 2 })],
+            }),
+        ],
+    })
+    const listIndexes = () => tree!.groups.map(g => g.defaultIndex)
+    const ids = (g: number) => tree!.groups[g].sections.map(s => s.id)
+
+    beforeEach(() => {
+        tree = withList()
+        commits = 0
+    })
+
+    it("applyDirectSectionMove moves the list and rolls back", () => {
+        const actions = createNoteOptimisticActions(store)
+        const original = tree
+        const undo = actions.applyDirectSectionMove(1, 3)
+        expect(listIndexes()).toEqual([3, 0])
+        expect(ids(0)).toEqual([10, 11, 12])
+        undo()
+        expect(tree).toEqual(original)
+        // clamped, and nothing happens when it already is there or the group has no list
+        actions.applyDirectSectionMove(1, 99)
+        expect(listIndexes()).toEqual([3, 0])
+        const before = commits
+        actions.applyDirectSectionMove(1, 3)
+        actions.applyDirectSectionMove(99, 0)
+        expect(commits).toBe(before)
+    })
+
+    it("a section moved inside the group keeps the list between the same neighbours, or is dropped after it", () => {
+        const actions = createNoteOptimisticActions(store)
+        const original = tree
+        // S10 (before the list) to the end: the list now has no section before it... [(list), S11, S12, S10] -> after all the rows
+        const undo = actions.applySectionMove(10, 1, 2)
+        expect(ids(0)).toEqual([11, 12, 10])
+        expect(listIndexes()[0]).toBe(0)
+        undo()
+        expect(tree).toEqual(original)
+
+        // S12 (after the list) to the front: it goes before the list
+        const undo2 = actions.applySectionMove(12, 1, 0)
+        expect(ids(0)).toEqual([12, 10, 11])
+        expect(listIndexes()[0]).toBe(2)
+        undo2()
+        expect(tree).toEqual(original)
+
+        // S12 to index 1: exactly where the list is (after S10): it goes after the list
+        actions.applySectionMove(12, 1, 1)
+        expect(ids(0)).toEqual([10, 12, 11])
+        expect(listIndexes()[0]).toBe(1)
+    })
+
+    it("a section moved to another group changes the indexes of both lists, and the rollback restores them", () => {
+        const actions = createNoteOptimisticActions(store)
+        const original = tree
+        // S10 (before the list of group 1) into group 2, exactly where its list is: it goes after that list
+        const undo = actions.applySectionMove(10, 2, 0)
+        expect(ids(0)).toEqual([11, 12])
+        expect(ids(1)).toEqual([10, 20])
+        expect(listIndexes()).toEqual([0, 0])
+        undo()
+        expect(tree).toEqual(original)
+
+        // with the list of group 2 after S20, S12 (after the list of group 1) goes before it
+        actions.applyDirectSectionMove(2, 1)
+        const undo2 = actions.applySectionMove(12, 2, 0)
+        expect(ids(1)).toEqual([12, 20])
+        expect(listIndexes()).toEqual([1, 2])
+        undo2()
+        expect(listIndexes()).toEqual([1, 1])
+    })
+
+    it("the rollback of a removed section restores the list index even when the section stood just before it", () => {
+        const actions = createNoteOptimisticActions(store)
+        const original = tree
+        const undo = actions.removeSection(10)
+        expect(listIndexes()[0]).toBe(0)
+        undo()
+        expect(tree).toEqual(original)
+    })
+
+    it("applySectionMoveToNewGroup leaves the list of the source where it was among the rest and gives the new group defaultIndex 0", () => {
+        const actions = createNoteOptimisticActions(store)
+        const original = tree
+        const undo = actions.applySectionMoveToNewGroup(10, 9, 1, 95)!
+        expect(listIndexes()).toEqual([0, 0, 0])
+        expect(ids(1)).toEqual([10])
+        undo()
+        expect(tree).toEqual(original)
+    })
+
+    it("appendSection numbers the new section after every row, the list included, and the list keeps its index", () => {
+        const actions = createNoteOptimisticActions(store)
+        tree!.groups[0].sections.forEach((s, i) => { s.position = i < 1 ? i : i + 1 })
+        tree!.groups[0].defaultSection!.position = 1
+        actions.appendSection(30, 1, "New")
+        expect(tree!.groups[0].sections.at(-1)).toMatchObject({ id: 30, position: 4 })
+        expect(listIndexes()[0]).toBe(1)
     })
 })

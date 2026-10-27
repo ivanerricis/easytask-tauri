@@ -2,12 +2,12 @@ import { useCallback, useMemo } from "react"
 import type { Group } from "@/types/types"
 import { createDBSection, createDBSectionInGroup } from "@/db/queries/section"
 import { createDBGroup, updateDBGroupPositions, updateDBGroupWidth } from "@/db/queries/group"
-import { moveDBSection, moveDBSectionToNewGroup } from "@/db/queries/move"
+import { moveDBDirectSection, moveDBSection, moveDBSectionToNewGroup } from "@/db/queries/move"
 import { duplicateDBSection } from "@/db/queries/duplicate"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type NoteContentActions = Pick<WorkspaceActionsType,
-    "createGroup" | "createSection" | "createSectionInGroup" | "updateGroupsPositions" | "setGroupWidth" | "moveSection" | "moveSectionToNewGroup" | "duplicateSection">
+    "createGroup" | "createSection" | "createSectionInGroup" | "updateGroupsPositions" | "setGroupWidth" | "moveSection" | "moveDirectSection" | "moveSectionToNewGroup" | "duplicateSection">
 
 /**
  * Groups and sections of the open note. The creations resolve with the ids of the new rows (the callers build
@@ -50,11 +50,22 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
      * @param sectionID - The ID of the section to move.
      * @param targetGroupID - The destination group ID (same note).
      * @param targetIndex - The index among the destination sections (clamped).
+     * @param beforeList - A section moved exactly where the list of the direct tasks is goes right before it.
      * @throws Will throw an error if the move is invalid or the destination already has a section with the same title.
      * @category Workspace Data Context
      */
-    const moveSection = useCallback((sectionID: number, targetGroupID: number, targetIndex: number) =>
-        withTrashChange(() => moveDBSection(sectionID, targetGroupID, targetIndex)), [withTrashChange])
+    const moveSection = useCallback((sectionID: number, targetGroupID: number, targetIndex: number, beforeList?: boolean) =>
+        withTrashChange(() => moveDBSection(sectionID, targetGroupID, targetIndex, ...(beforeList ? [{ beforeList }] as const : [] as const))), [withTrashChange])
+
+    /**
+     * Moves the list of the direct tasks of a group among the sections of the group. It does NOT reload the data: the caller
+     * updates the active note.
+     * @param groupID - The ID of the group.
+     * @param index - The number of sections that stay before the list (clamped; the number of sections or more = at the end).
+     * @category Workspace Data Context
+     */
+    const moveDirectSection = useCallback((groupID: number, index: number) =>
+        withTrashChange(() => moveDBDirectSection(groupID, index)), [withTrashChange])
 
     /**
      * Moves a section into a new group created at the given index among the groups of the open note.
@@ -78,5 +89,5 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
     const duplicateSection = useCallback((sectionID: number) =>
         withLoading(() => duplicateDBSection(sectionID)), [withLoading])
 
-    return useMemo(() => ({ createGroup, createSection, createSectionInGroup, updateGroupsPositions, setGroupWidth, moveSection, moveSectionToNewGroup, duplicateSection }), [ createGroup, createSection, createSectionInGroup, updateGroupsPositions, setGroupWidth, moveSection, moveSectionToNewGroup, duplicateSection ])
+    return useMemo(() => ({ createGroup, createSection, createSectionInGroup, updateGroupsPositions, setGroupWidth, moveSection, moveDirectSection, moveSectionToNewGroup, duplicateSection }), [ createGroup, createSection, createSectionInGroup, updateGroupsPositions, setGroupWidth, moveSection, moveDirectSection, moveSectionToNewGroup, duplicateSection ])
 }

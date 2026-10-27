@@ -1,5 +1,5 @@
 import type { Group as GroupType } from "@/types/types"
-import { memo, useCallback, useLayoutEffect, useRef, useState } from "react"
+import { Fragment, memo, useCallback, useLayoutEffect, useRef, useState } from "react"
 import { Section } from "../section/Section"
 import { AddSection } from "../section/AddSection"
 import { GroupHeader } from "./GroupHeader"
@@ -16,6 +16,7 @@ import { GroupAudioFiles } from "./GroupAudioFiles"
 import { GroupTasks } from "./GroupTasks"
 import { useGroupOpen } from "@/contexts/use-tabs"
 import { DropLine } from "../sidebar/DropLine"
+import { directIndexOf } from "@/lib/group-sections"
 
 type GroupProps = {
     group: GroupType
@@ -44,6 +45,7 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
     }, [setDropRef, setDragRef])
     const draggingGroup = active?.kind === "group"
     const [isOpen, toggleOpen] = useGroupOpen(group.id)
+    const directIndex = directIndexOf(group)
     const { t } = useTranslation()
     const { setGroupWidth } = useWorkspaceActions()
     const { patchGroup } = useActiveNoteActions()
@@ -114,10 +116,16 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
             />
             {isOpen && <>
                 <GroupAudioFiles groupId={group.id} />
-                {/* Direct tasks, their "New task" button, the sections and the form of a new section scroll together */}
+                {/* The list of the direct tasks (with its "New task" button) sits among the sections where the user put it;
+                    it, the sections and the form of a new section scroll together */}
                 <div className="flex flex-col gap-1 overflow-y-auto">
-                    <GroupTasks group={group} />
-                    {group.sections.map(section => <Section key={section.id} section={section} />)}
+                    {group.sections.map((section, position) => (
+                        <Fragment key={section.id}>
+                            {position === directIndex && <GroupTasks group={group} />}
+                            <Section section={section} />
+                        </Fragment>
+                    ))}
+                    {directIndex >= group.sections.length && <GroupTasks group={group} />}
                     <AddSection inGroup groupId={group.id} open={addingSection} onClose={closeSectionForm} />
                 </div>
             </>}

@@ -2,20 +2,21 @@ import { render as rtlRender, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { NoteDataTree } from "@/types/types"
-import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import { DropdownMenu, DropdownMenuContent } from "@/components/ui/dropdown-menu"
-import { GroupStepMoves, SectionStepMoves, TaskStepMoves } from "./NoteStepMoves"
+import { DirectStepMoves, GroupStepMoves, SectionStepMoves, TaskStepMoves } from "./NoteStepMoves"
 
 const noteData: { tree: NoteDataTree | null } = { tree: null }
 const prefs = { hideCompletedTasks: false }
 const moveTaskTo = vi.fn()
 const moveSectionTo = vi.fn()
+const moveDirectSectionTo = vi.fn()
 const moveGroupTo = vi.fn()
 
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNote: () => ({ noteDataTree: noteData.tree }) }))
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 vi.mock("./note-dnd-state", () => ({
-    useNoteMoves: () => ({ moveTaskTo, moveSectionTo }),
+    useNoteMoves: () => ({ moveTaskTo, moveSectionTo, moveDirectSectionTo }),
     useGroupMoves: () => ({ moveGroupTo }),
 }))
 
@@ -101,6 +102,79 @@ describe("SectionStepMoves", () => {
         render(<SectionStepMoves sectionId={3} />)
         expect(screen.getByRole("menuitem", { name: "Sposta su" })).toHaveAttribute("aria-disabled", "true")
         expect(screen.getByRole("menuitem", { name: "Sposta giù" })).toHaveAttribute("aria-disabled", "true")
+    })
+})
+
+describe("SectionStepMoves with the list of the direct tasks", () => {
+    // [S1, (list), S2, S3]
+    const withList = (defaultIndex: number) => {
+        noteData.tree = { groups: [makeGroup({
+            id: 1, defaultIndex, defaultSection: makeDefaultSection({ id: 9, groupID: 1 }),
+            sections: [1, 2, 3].map(id => makeSection({ id, groupID: 1 })),
+        })] }
+    }
+    const menu = (name: string) => screen.getByRole("menuitem", { name: new RegExp(`^${name}`) })
+
+    it("a section that would jump over the list moves the list the other way", async () => {
+        withList(1)
+        render(<SectionStepMoves sectionId={1} />)
+        await userEvent.click(menu("Sposta gi"))
+        expect(moveDirectSectionTo).toHaveBeenCalledWith(1, 0)
+        expect(moveSectionTo).not.toHaveBeenCalled()
+    })
+
+    it("up from just after the list moves the list below the section", async () => {
+        withList(1)
+        render(<SectionStepMoves sectionId={2} />)
+        await userEvent.click(menu("Sposta su"))
+        expect(moveDirectSectionTo).toHaveBeenCalledWith(1, 2)
+    })
+
+    it("a section reaching the end of a group whose list is last stays above it, in one move", async () => {
+        withList(3)
+        render(<SectionStepMoves sectionId={2} />)
+        await userEvent.click(menu("Sposta gi"))
+        expect(moveSectionTo).toHaveBeenCalledWith(2, { type: "group", groupId: 1, index: 2, beforeList: true })
+        expect(moveDirectSectionTo).not.toHaveBeenCalled()
+    })
+})
+
+describe("DirectStepMoves", () => {
+    // [S1, (list), S2, S3]
+    const withList = (defaultIndex: number, sections = [1, 2, 3]) => {
+        noteData.tree = { groups: [makeGroup({
+            id: 1, defaultIndex, defaultSection: makeDefaultSection({ id: 9, groupID: 1 }),
+            sections: sections.map(id => makeSection({ id, groupID: 1 })),
+        })] }
+    }
+
+    it("moves the list one section down or up, with its own labels", async () => {
+        withList(1)
+        const onDone = vi.fn()
+        render(<DirectStepMoves groupId={1} onDone={onDone} />)
+        await userEvent.click(screen.getByRole("menuitem", { name: "Sposta task del gruppo giù" }))
+        expect(moveDirectSectionTo).toHaveBeenLastCalledWith(1, 2)
+        await userEvent.click(screen.getByRole("menuitem", { name: "Sposta task del gruppo su" }))
+        expect(moveDirectSectionTo).toHaveBeenLastCalledWith(1, 0)
+        expect(onDone).toHaveBeenCalledTimes(2)
+    })
+
+    it("disables up on top and down at the bottom", () => {
+        withList(0)
+        const { unmount } = render(<DirectStepMoves groupId={1} />)
+        expect(screen.getByRole("menuitem", { name: "Sposta task del gruppo su" })).toHaveAttribute("aria-disabled", "true")
+        expect(screen.getByRole("menuitem", { name: "Sposta task del gruppo giù" })).not.toHaveAttribute("aria-disabled", "true")
+        unmount()
+        withList(3)
+        render(<DirectStepMoves groupId={1} />)
+        expect(screen.getByRole("menuitem", { name: "Sposta task del gruppo giù" })).toHaveAttribute("aria-disabled", "true")
+    })
+
+    it("has nowhere to go in a group without sections", () => {
+        withList(0, [])
+        render(<DirectStepMoves groupId={1} />)
+        expect(screen.getByRole("menuitem", { name: "Sposta task del gruppo su" })).toHaveAttribute("aria-disabled", "true")
+        expect(screen.getByRole("menuitem", { name: "Sposta task del gruppo giù" })).toHaveAttribute("aria-disabled", "true")
     })
 })
 

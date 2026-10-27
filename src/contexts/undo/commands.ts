@@ -19,11 +19,11 @@ export type UndoDeps = {
     /** The workspace the history belongs to (null outside a workspace). */
     getWorkspaceId: () => number | null
     workspace: Pick<WorkspaceActionsType,
-        "renameItem" | "updateItemColor" | "deleteItem" | "restoreItem" | "archiveItem" | "unarchiveItem" | "moveTreeItem" | "moveSection" | "moveTask" |
+        "renameItem" | "updateItemColor" | "deleteItem" | "restoreItem" | "archiveItem" | "unarchiveItem" | "moveTreeItem" | "moveSection" | "moveDirectSection" | "moveTask" |
         "updateTaskCompletion" | "updateTaskPriority" | "updateTaskDescription" | "updateFolderColorContent" | "getWorkspaceData">
     note: Pick<ActiveNoteActionsType,
         "patchTask" | "patchSection" | "patchGroup" | "removeGroup" | "removeSection" | "removeTask" |
-        "applySectionMove" | "applyTaskMove" | "refreshActiveNote">
+        "applySectionMove" | "applyDirectSectionMove" | "applyTaskMove" | "refreshActiveNote" | "getNoteTree">
 }
 
 /** The types of item whose actions are undoable (folders and notes live in the sidebar tree, the others in the open note). */
@@ -48,8 +48,12 @@ export type ColorChange = ManyItemRef & { before: string | null | undefined, aft
 export type TaskMoveStep = { id: number, name: string, from: TaskPlace, to: TaskPlace }
 /** One step of a multi move: the item and where it is before / after the step. */
 export type TreeMoveStep = { itemType: TreeItemType, id: number, name: string, from: TreePlace, to: TreePlace }
-/** Where a section sits in the open note. */
-export type SectionPlace = { groupId: number, index: number }
+/**
+ * Where a section sits in the open note. `listIndex` is the place of the list of the direct tasks of that group when the place was
+ * captured (how many sections come before it): a section index alone cannot tell on which side of the list the section was,
+ * so undoing a move puts the list back too.
+ */
+export type SectionPlace = { groupId: number, index: number, listIndex?: number, beforeList?: boolean }
 /** Where a task sits in the open note: a section (top level, parentTaskId null; also the default section of a group) or under another task. */
 export type TaskPlace = { sectionId: number, parentTaskId: number | null, index: number }
 
@@ -62,7 +66,7 @@ const shorten = (name: string | null | undefined) => {
 
 const typeName = (itemType: DBItemType) => i18n.t(`undo.itemTypes.${itemType}`)
 
-type LabelKey = "rename" | "color" | "complete" | "reopen" | "addPriority" | "removePriority" | "description" | "delete" | "create" | "move" | "colorContent" | "archive" | "unarchive"
+type LabelKey = "rename" | "color" | "complete" | "reopen" | "addPriority" | "removePriority" | "description" | "delete" | "create" | "move" | "moveDirect" | "colorContent" | "archive" | "unarchive"
 
 /** The translated description of an action on an item, with the (shortened) name of the item when it has one. */
 export function makeLabel(key: LabelKey, itemType: DBItemType, name: string | null | undefined): string {
@@ -86,7 +90,9 @@ export function captureTreePlace(tree: WorkspaceDataTree | null | undefined, ite
 /** Where a section currently sits in the note (null for the hidden default section of a group, which never moves). */
 export function captureSectionPlace(tree: NoteDataTree | null | undefined, sectionId: number): (SectionPlace & { name: string }) | null {
     const found = tree ? findSection(tree, sectionId) : undefined
-    return found && found.index >= 0 ? { groupId: found.groupId, index: found.index, name: found.section.title } : null
+    if (!found || found.index < 0) return null
+    const listIndex = tree?.groups.find(group => group.id === found.groupId)?.defaultIndex
+    return { groupId: found.groupId, index: found.index, ...(listIndex === undefined ? {} : { listIndex }), name: found.section.title }
 }
 
 /** Where a task currently sits in the note. */
@@ -188,8 +194,23 @@ export function createUndoCommands(deps: UndoDeps) {
         await reloadTree()
     }
 
-    const moveSectionTo = async (sectionId: number, groupId: number, index: number) => {
-        await withRollback(note.applySectionMove(sectionId, groupId, index), () => workspace.moveSection(sectionId, groupId, index))
+    const moveSectionTo = async (sectionId: number, groupId: number, index: number, beforeList?: boolean) => {
+        // The flag is only passed when set, so the calls without it stay what they were
+        const flag = beforeList ? [true] as const : [] as const
+        await withRollback(note.applySectionMove(sectionId, groupId, index, ...flag), () => workspace.moveSection(sectionId, groupId, index, ...flag))
+    }
+
+    /** Moves the list of the direct tasks of a group; nothing is written when it already is there. */
+    const moveListTo = async (groupId: number, index: number) => {
+        const group = note.getNoteTree()?.groups.find(candidate => candidate.id === groupId)
+        if (group && (group.defaultIndex ?? 0) === index) return
+        await withRollback(note.applyDirectSectionMove(groupId, index), () => workspace.moveDirectSection(groupId, index))
+    }
+
+    /** Moves a section back to the place it had, and the list of its group next to it where it was. */
+    const putSectionBack = async (sectionId: number, from: SectionPlace) => {
+        await moveSectionTo(sectionId, from.groupId, from.index)
+        if (from.listIndex !== undefined) await moveListTo(from.groupId, from.listIndex)
     }
 
     const moveTaskTo = async (taskId: number, target: TaskMoveTarget, index: number) => {
@@ -374,8 +395,15 @@ export function createUndoCommands(deps: UndoDeps) {
         /** Move of a section into another group (or elsewhere in its group). */
         sectionMove: (sectionId: number, name: string, from: SectionPlace, to: SectionPlace): UndoCommand => ({
             label: makeLabel("move", "section", name),
-            undo: () => moveSectionTo(sectionId, from.groupId, from.index),
-            redo: () => moveSectionTo(sectionId, to.groupId, to.index),
+            undo: () => putSectionBack(sectionId, from),
+            redo: () => moveSectionTo(sectionId, to.groupId, to.index, to.beforeList),
+        }),
+
+        /** Move of the list of the direct tasks of a group among its sections (`from` and `to` count the sections before the list). */
+        directMove: (groupId: number, name: string, from: number, to: number): UndoCommand => ({
+            label: makeLabel("moveDirect", "section_group", name),
+            undo: () => moveListTo(groupId, from),
+            redo: () => moveListTo(groupId, to),
         }),
 
         /**
@@ -385,7 +413,7 @@ export function createUndoCommands(deps: UndoDeps) {
         sectionMoveToNewGroup: (sectionId: number, name: string, newGroupId: number, from: SectionPlace): UndoCommand => ({
             label: makeLabel("move", "section", name),
             undo: async () => {
-                await moveSectionTo(sectionId, from.groupId, from.index)
+                await putSectionBack(sectionId, from)
                 await removeItem("section_group", newGroupId)
             },
             redo: async () => {
@@ -449,5 +477,5 @@ export function createUndoRecorder(commands: UndoCommands, record: (command: Und
 const noop = () => {}
 export const NOOP_RECORDER: UndoRecorder = {
     rename: noop, color: noop, taskCompletion: noop, taskPriority: noop, taskDescription: noop, remove: noop, create: noop,
-    archive: noop, unarchive: noop, archiveMany: noop, treeMove: noop, removeMany: noop, colorMany: noop, colorContent: noop, treeMoveMany: noop, sectionMove: noop, sectionMoveToNewGroup: noop, taskMove: noop, taskMoveMany: noop, record: noop, track: write => write,
+    archive: noop, unarchive: noop, archiveMany: noop, treeMove: noop, removeMany: noop, colorMany: noop, colorContent: noop, treeMoveMany: noop, sectionMove: noop, directMove: noop, sectionMoveToNewGroup: noop, taskMove: noop, taskMoveMany: noop, record: noop, track: write => write,
 }

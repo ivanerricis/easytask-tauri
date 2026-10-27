@@ -119,18 +119,19 @@ export function useNoteDrag(kind: NoteDragKind, id: number) {
  * @category Note DnD
  */
 export function useNoteMoves() {
-    const { moveSection, moveSectionToNewGroup, moveTask } = useWorkspaceActions()
-    const { applySectionMove, applySectionMoveToNewGroup, applyTaskMove, getNoteTree } = useActiveNoteActions()
+    const { moveSection, moveDirectSection, moveSectionToNewGroup, moveTask } = useWorkspaceActions()
+    const { applySectionMove, applyDirectSectionMove, applySectionMoveToNewGroup, applyTaskMove, getNoteTree } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const { dispatch } = useAutomations()
 
     const moveSectionTo = useCallback((sectionId: number, target: SectionTarget) => recorder.track((async () => {
         const from = captureSectionPlace(getNoteTree(), sectionId)
-        const rollback = target.type === "group" ? applySectionMove(sectionId, target.groupId, target.index) : null
+        const flag = target.type === "group" && target.beforeList ? [true] as const : [] as const
+        const rollback = target.type === "group" ? applySectionMove(sectionId, target.groupId, target.index, ...flag) : null
         try {
             if (target.type === "group") {
-                await moveSection(sectionId, target.groupId, target.index)
-                if (from) recorder.sectionMove(sectionId, from.name, from, { groupId: target.groupId, index: target.index })
+                await moveSection(sectionId, target.groupId, target.index, ...flag)
+                if (from) recorder.sectionMove(sectionId, from.name, from, { groupId: target.groupId, index: target.index, ...(target.beforeList ? { beforeList: true } : {}) })
             } else {
                 // The new group only exists once the write is done; without its id the note is reloaded in background
                 const { groupId, defaultSectionId } = await moveSectionToNewGroup(sectionId, target.index)
@@ -142,6 +143,21 @@ export function useNoteMoves() {
             reportError(err, getErrorMessage(err))
         }
     })()), [moveSection, moveSectionToNewGroup, applySectionMove, applySectionMoveToNewGroup, getNoteTree, recorder])
+
+    /** Moves the list of the direct tasks of a group before the `index`-th section of the group (after all of them when `index` is not less than their number). */
+    const moveDirectSectionTo = useCallback((groupId: number, index: number) => recorder.track((async () => {
+        const group = getNoteTree()?.groups.find(candidate => candidate.id === groupId)
+        const from = group?.defaultIndex ?? 0
+        const rollback = applyDirectSectionMove(groupId, index)
+        try {
+            await moveDirectSection(groupId, index)
+            const to = getNoteTree()?.groups.find(group => group.id === groupId)?.defaultIndex ?? index
+            if (to !== from) recorder.directMove(groupId, group?.name ?? "", from, to)
+        } catch (err) {
+            rollback()
+            reportError(err, getErrorMessage(err))
+        }
+    })()), [moveDirectSection, applyDirectSectionMove, getNoteTree, recorder])
 
     const moveTaskTo = useCallback((taskId: number, target: TaskTarget) => recorder.track((async () => {
         const destination = { sectionId: target.sectionId, parentTaskId: target.parentTaskId }
@@ -157,7 +173,7 @@ export function useNoteMoves() {
         }
     })()), [moveTask, applyTaskMove, getNoteTree, recorder, dispatch])
 
-    return { moveSectionTo, moveTaskTo }
+    return { moveSectionTo, moveDirectSectionTo, moveTaskTo }
 }
 
 /**
