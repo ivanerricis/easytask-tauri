@@ -76,8 +76,8 @@ function Selector() {
     )
 }
 
-const renderPanel = (noteId: number | null = 1) => render(
-    <TabsProvider notes={[makeNote({ id: 1, name: "Mia nota", color: "#ff0000", creation_date: "2026-01-02", creation_time: "08:00:00", edit_date: "2026-02-03", edit_time: "12:00:00" })]} workspaceId={null}>
+const renderPanel = (noteId: number | null = 1, over: Partial<ReturnType<typeof makeNote>> = {}) => render(
+    <TabsProvider notes={[makeNote({ id: 1, name: "Mia nota", color: "#ff0000", creation_date: "2026-01-02", creation_time: "08:00:00", edit_date: "2026-02-03", edit_time: "12:00:00", ...over })]} workspaceId={null}>
         <UndoContext.Provider value={undoValue}>
             <Setup noteId={noteId}><Selector /><DetailsPanel /></Setup>
         </UndoContext.Provider>
@@ -121,6 +121,13 @@ describe("DetailsPanel without selection", () => {
         expect(screen.getByRole("progressbar", { name: "3 di 6 task completati" })).toBeInTheDocument()
         expect(screen.getByText("Creato il 02-01-2026 alle 08:00:00")).toBeInTheDocument()
         expect(screen.getByText("Modificato il 03-02-2026 alle 12:00:00")).toBeInTheDocument()
+    })
+
+    it("shows no dates for a note without them (the draft of a template)", async () => {
+        renderPanel(1, { creation_date: "", creation_time: "", edit_date: "", edit_time: "" })
+        await screen.findByRole("heading", { name: /^Dettagli della nota/ })
+        expect(screen.queryByText("Date")).toBeNull()
+        expect(screen.queryByText(/Creato il/)).toBeNull()
     })
 
     it("shows the empty state of the progress for a note without tasks", () => {

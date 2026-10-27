@@ -259,7 +259,10 @@ function NoteOrTaskDetails() {
             </Field>
             {/* The cached sidebar tree is patched by updateItemColor, and the open note reads its color from it */}
             <ColorField item={currentNote} itemType="note" addColorItem={updateItemColor} getItemId={currentNote.id} />
-            <Dates creationDate={currentNote.creation_date} creationTime={currentNote.creation_time} editDate={currentNote.edit_date} editTime={currentNote.edit_time} />
+            {/* The draft of a template has no dates (empty strings): "Created on at" would be shown */}
+            {currentNote.creation_date !== "" && (
+                <Dates creationDate={currentNote.creation_date} creationTime={currentNote.creation_time} editDate={currentNote.edit_date} editTime={currentNote.edit_time} />
+            )}
         </div>
     )
 }
