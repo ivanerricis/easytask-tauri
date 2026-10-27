@@ -42,6 +42,7 @@ describe("PreferencesContext", () => {
             showUnnamedLabels: true,
             renameOnClick: false,
             keepAddingTasks: false,
+            showTaskInsertLine: false,
             undoLimit: 200,
             sidebarLeftOpen: false,
             sidebarRightOpen: true,
@@ -99,6 +100,7 @@ describe("PreferencesContext", () => {
             result.current.setShowUnnamedLabels(false)
             result.current.setRenameOnClick(true)
             result.current.setKeepAddingTasks(true)
+            result.current.setShowTaskInsertLine(false)
         })
         expect(result.current.showAudioFileCount).toBe(true)
         expect(result.current.showGroupSeparators).toBe(false)
@@ -110,6 +112,7 @@ describe("PreferencesContext", () => {
         expect(prefs.savePref).toHaveBeenCalledWith("renameOnClick", true)
         expect(result.current.keepAddingTasks).toBe(true)
         expect(prefs.savePref).toHaveBeenCalledWith("keepAddingTasks", true)
+        expect(prefs.savePref).toHaveBeenCalledWith("showTaskInsertLine", false)
     })
 
     it("sets the spellcheck of the document from the preference", async () => {
@@ -160,6 +163,7 @@ describe("PreferencesContext", () => {
         expect(result.current.showUnnamedLabels).toBe(true)
         expect(result.current.renameOnClick).toBe(false)
         expect(result.current.keepAddingTasks).toBe(false)
+        expect(result.current.showTaskInsertLine).toBe(false)
         expect(result.current.undoLimit).toBe(200)
         expect(result.current.sidebarLeftOpen).toBe(false)
         expect(result.current.workspaceView).toBe("list")

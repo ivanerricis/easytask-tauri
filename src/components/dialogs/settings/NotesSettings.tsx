@@ -20,6 +20,7 @@ export const NotesSettings = () => {
         taskBackground, setTaskBackground,
         renameOnClick, setRenameOnClick,
         keepAddingTasks, setKeepAddingTasks,
+        showTaskInsertLine, setShowTaskInsertLine,
         taskDensity, setTaskDensity,
         newTaskPosition, setNewTaskPosition,
         spellcheck, setSpellcheck,
@@ -56,6 +57,7 @@ export const NotesSettings = () => {
             <SettingsSubsection title={t("settings.notes.sections.behavior")}>
                 <SettingsSwitchRow label={t("settings.notes.renameOnClick.label")} description={t("settings.notes.renameOnClick.description")} checked={renameOnClick} onCheckedChange={setRenameOnClick} />
                 <SettingsSwitchRow label={t("settings.notes.keepAddingTasks.label")} description={t("settings.notes.keepAddingTasks.description")} checked={keepAddingTasks} onCheckedChange={setKeepAddingTasks} />
+                <SettingsSwitchRow label={t("settings.notes.showTaskInsertLine.label")} description={t("settings.notes.showTaskInsertLine.description")} checked={showTaskInsertLine} onCheckedChange={setShowTaskInsertLine} />
                 <SegmentedSetting
                     label={t("settings.notes.newTaskPosition.label")}
                     description={t("settings.notes.newTaskPosition.description")}

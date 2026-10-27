@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { createMockDb, type MockDb } from "@/test/db-mock"
+import { createMockDb, createRecordingInvoke, type MockDb } from "@/test/db-mock"
+
+const { invokeMock } = vi.hoisted(() => ({ invokeMock: vi.fn() }))
+vi.mock("@tauri-apps/api/core", () => ({ invoke: invokeMock }))
 
 let db: MockDb
 
@@ -9,6 +12,7 @@ import {
     createDBSubTask,
     createDBTask,
     ensureDBDefaultSection,
+    insertDBTaskAfter,
     updateDBTaskCompletion,
     updateDBTaskDescription,
     updateDBTaskPriority,
@@ -155,5 +159,62 @@ describe("ensureDBDefaultSection", () => {
     it("maps the errors", async () => {
         db.select.mockRejectedValueOnce(new Error("UNIQUE"))
         expect(await thrown(ensureDBDefaultSection(5))).toMatchObject({ code: "SECTION_EXISTS" })
+    })
+})
+
+describe("insertDBTaskAfter", () => {
+    let calls: { sql: string, params?: unknown[] }[][]
+    beforeEach(() => {
+        const recording = createRecordingInvoke({ results: [{ rowsAffected: 1, lastInsertId: 50 }, { rowsAffected: 3, lastInsertId: 0 }] })
+        calls = recording.calls
+        invokeMock.mockReset()
+        invokeMock.mockImplementation(recording.invoke)
+    })
+
+    /** The ids of the position update, in final order (the new row is a reference to the insert): its params end with the IN list. */
+    const order = () => {
+        const params = calls[0][1].params as unknown[]
+        return params.slice(params.length - params.length / 3)
+    }
+
+    it("inserts between two siblings and renumbers them with the new row in place", async () => {
+        db.select.mockResolvedValueOnce([{ id: 10 }, { id: 11 }, { id: 12 }])
+        expect(await insertDBTaskAfter({ sectionId: 1 }, 10, "x")).toEqual({ id: 50, index: 1 })
+        expect(db.select.mock.calls[0][1]).toEqual([1, -1])
+        expect(db.select.mock.calls[0][0]).toContain("sectionID = ? AND taskID IS NULL")
+        expect(calls[0][0].sql).toContain("INSERT INTO task")
+        expect(calls[0][0].params).toEqual([1, null, "x"])
+        expect(order()[0]).toBe(10)
+        expect(order()[1]).toMatchObject({ $ref: 0 })
+        expect(order().slice(2)).toEqual([11, 12])
+    })
+
+    it("puts the task first when the anchor is null", async () => {
+        db.select.mockResolvedValueOnce([{ id: 10 }])
+        expect(await insertDBTaskAfter({ sectionId: 1 }, null, "x")).toEqual({ id: 50, index: 0 })
+        expect(order()[0]).toMatchObject({ $ref: 0 })
+        expect(order()[1]).toBe(10)
+    })
+
+    it("puts the task at the end when the anchor is gone", async () => {
+        db.select.mockResolvedValueOnce([{ id: 10 }, { id: 11 }])
+        expect(await insertDBTaskAfter({ sectionId: 1 }, 99, "x")).toEqual({ id: 50, index: 2 })
+        expect(order()[2]).toMatchObject({ $ref: 0 })
+    })
+
+    it("inserts a subtask in the section of its parent", async () => {
+        db.select.mockResolvedValueOnce([{ sectionID: 7 }]).mockResolvedValueOnce([{ id: 20 }])
+        expect(await insertDBTaskAfter({ parentTaskId: 5 }, 20, "s")).toEqual({ id: 50, index: 1 })
+        expect(db.select.mock.calls[0][1]).toEqual([5])
+        expect(db.select.mock.calls[1][0]).toContain("taskID = ?")
+        expect(db.select.mock.calls[1][1]).toEqual([5, -1])
+        expect(calls[0][0].params).toEqual([7, 5, "s"])
+    })
+
+    it("throws TASK_PARENT_MISSING without writing when the parent is missing or trashed", async () => {
+        db.select.mockResolvedValueOnce([])
+        expect(await thrown(insertDBTaskAfter({ parentTaskId: 5 }, null, "s"))).toMatchObject({ code: "TASK_PARENT_MISSING" })
+        expect(invokeMock).not.toHaveBeenCalled()
+        expect(db.execute).not.toHaveBeenCalled()
     })
 })
