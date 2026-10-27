@@ -31,20 +31,20 @@ export const ErrorPage = ({ error, onRetry }: ErrorPageProps) => {
         <div className="flex flex-col items-center justify-center h-full gap-4 p-4">
             <Alert variant="destructive" className="max-w-md w-full break-words">
                 <AlertCircle />
-                <AlertTitle className="line-clamp-none">{t("errorPage.title")}</AlertTitle>
+                <AlertTitle className="line-clamp-none"><h1>{t("errorPage.title")}</h1></AlertTitle>
                 <AlertDescription>
                     <p>{t("errorPage.description")}</p>
-                    <p className="text-destructive">{error}</p>
+                    <code className="text-xs">{error}</code>
                 </AlertDescription>
             </Alert>
             <div className="flex gap-2">
                 {onRetry && (
-                    <Button variant="outline" onClick={onRetry}>
+                    <Button variant="outline" onClick={onRetry} autoFocus>
                         <RotateCcw />
                         {t("errorPage.retry")}
                     </Button>
                 )}
-                <Button variant="outline" onClick={handleClick}>
+                <Button variant="outline" onClick={handleClick} autoFocus={!onRetry}>
                     <ArrowLeft />
                     {t("errorPage.home")}
                 </Button>
@@ -75,14 +75,14 @@ export const CrashScreen = ({ error }: CrashScreenProps) => {
         <div className="flex flex-col items-center justify-center h-full w-full gap-4 p-4">
             <Alert variant="destructive" className="max-w-md w-full break-words">
                 <AlertCircle />
-                <AlertTitle className="line-clamp-none">{t("errorPage.title")}</AlertTitle>
+                <AlertTitle className="line-clamp-none"><h1>{t("errorPage.title")}</h1></AlertTitle>
                 <AlertDescription>
                     <p>{t("errorPage.description")}</p>
-                    <p className="text-destructive">{error.message}</p>
+                    <code className="text-xs">{error.message}</code>
                 </AlertDescription>
             </Alert>
             <div className="flex gap-2">
-                <Button variant="outline" onClick={() => window.location.reload()}>
+                <Button variant="outline" onClick={() => window.location.reload()} autoFocus>
                     <RotateCcw />
                     {t("crash.reload")}
                 </Button>

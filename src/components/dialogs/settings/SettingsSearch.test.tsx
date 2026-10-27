@@ -105,6 +105,13 @@ describe("settings search", () => {
         expect(screen.getByText("Rinomina cliccando sul nome")).toBeInTheDocument()
     })
 
+    it("shows no category as current while searching", async () => {
+        const user = await open()
+        expect(screen.getAllByRole("tab").some(tab => tab.getAttribute("aria-selected") === "true")).toBe(true)
+        await search(user, "task")
+        expect(screen.getAllByRole("tab").every(tab => tab.getAttribute("aria-selected") === "false")).toBe(true)
+    })
+
     it("shows all the rows of a panel when its title matches", async () => {
         const user = await open()
         await search(user, "Note e sezioni")

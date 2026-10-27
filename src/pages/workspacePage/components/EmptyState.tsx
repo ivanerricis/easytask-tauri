@@ -27,7 +27,7 @@ type EmptyStateProps = {
 export const EmptyState = ({ icon: Icon, title, hints, className, children }: EmptyStateProps) => (
     <div className={cn("flex flex-col items-center justify-center w-full h-full", className)}>
         <Icon aria-hidden className="text-foreground w-20 h-20" />
-        <p className="text-2xl">{title}</p>
+        <h1 className="text-2xl">{title}</h1>
         {hints.map(hint => <Hint key={hint.id} {...hint} />)}
         {children}
     </div>

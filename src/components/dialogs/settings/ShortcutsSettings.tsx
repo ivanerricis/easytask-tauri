@@ -81,7 +81,7 @@ export const ShortcutsSettings = () => {
                                 <div className="flex flex-col items-end gap-1">
                                     <div className="flex items-center gap-2">
                                         {isRecording
-                                            ? <span className="text-xs text-muted-foreground">{t("settings.shortcuts.pressKeys")}</span>
+                                            ? <span role="status" className="text-xs text-muted-foreground">{t("settings.pressKeysEsc")}</span>
                                             : <KbdKeys keys={formatBinding(bindings[s.id])} />}
                                         <TooltipCustom text={isRecording ? t("common.cancel") : t("settings.shortcuts.edit")}>
                                             <Button

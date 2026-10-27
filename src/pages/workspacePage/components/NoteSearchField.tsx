@@ -47,20 +47,26 @@ export const NoteSearchField = ({ store, inputRef }: NoteSearchFieldProps) => {
                 }}
                 placeholder={t("notes.noteSearch.placeholder")}
                 aria-label={t("notes.noteSearch.inNote")}
-                className="h-7 w-44 px-2 py-0 text-xs md:text-xs"
+                className="h-7 w-44 px-2 py-0 text-sm md:text-sm"
             />
             <span aria-live="polite" className="min-w-14 whitespace-nowrap text-center text-xs tabular-nums text-muted-foreground">{counter}</span>
             <TooltipCustom text={t("notes.noteSearch.previous")}>
-                <Button type="button" variant="ghost" size="icon" className={ICON_BUTTON} disabled={total === 0}
-                    aria-label={t("notes.noteSearch.previous")} onClick={() => store.step(-1)}>
-                    <ChevronUp />
-                </Button>
+                {/* The span keeps the tooltip when the button is disabled (a disabled button gets no pointer events) */}
+                <span className="inline-flex">
+                    <Button type="button" variant="ghost" size="icon" className={ICON_BUTTON} disabled={total === 0}
+                        aria-label={t("notes.noteSearch.previous")} onClick={() => store.step(-1)}>
+                        <ChevronUp />
+                    </Button>
+                </span>
             </TooltipCustom>
             <TooltipCustom text={t("notes.noteSearch.next")}>
-                <Button type="button" variant="ghost" size="icon" className={ICON_BUTTON} disabled={total === 0}
-                    aria-label={t("notes.noteSearch.next")} onClick={() => store.step(1)}>
-                    <ChevronDown />
-                </Button>
+                {/* The span keeps the tooltip when the button is disabled (a disabled button gets no pointer events) */}
+                <span className="inline-flex">
+                    <Button type="button" variant="ghost" size="icon" className={ICON_BUTTON} disabled={total === 0}
+                        aria-label={t("notes.noteSearch.next")} onClick={() => store.step(1)}>
+                        <ChevronDown />
+                    </Button>
+                </span>
             </TooltipCustom>
             <TooltipCustom text={t("notes.noteSearch.close")}>
                 <Button type="button" variant="ghost" size="icon" className={ICON_BUTTON}

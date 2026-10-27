@@ -31,6 +31,8 @@ export const DialogSettingsContent = ({ isOpen, onOpenChange, requestedCategory 
     const [hasResults, setHasResults] = useState(true)
     const query = normalizeSearch(search)
     const searching = query !== ""
+    // While searching the results span every category, so no category tab is shown as current
+    const tabValue = searching ? "" : active.id
 
     // The rows are the only content kept while searching: tell when none is left (panels can fill in later)
     useEffect(() => {
@@ -59,15 +61,15 @@ export const DialogSettingsContent = ({ isOpen, onOpenChange, requestedCategory 
                     {t("settings.description")}
                 </DialogDescription>
                 {/* Two columns: title + categories on the left, whose right border is the separator and runs the whole height of the dialog */}
-                <Tabs orientation="vertical" value={active.id} onValueChange={setActiveId} className="grid h-full min-h-0 gap-0 max-sm:grid-rows-[auto_minmax(0,1fr)] sm:grid-cols-[14rem_minmax(0,1fr)]">
-                    <div className="flex flex-col gap-4 p-6 max-sm:border-b max-sm:pb-3 sm:overflow-y-auto sm:border-r sm:bg-muted/30">
+                <Tabs orientation="vertical" value={tabValue} onValueChange={setActiveId} className="grid h-full min-h-0 gap-0 grid-cols-[14rem_minmax(0,1fr)]">
+                    <div className="flex flex-col gap-4 p-6 overflow-y-auto border-r bg-muted/30">
                         <DialogHeader>
                             <DialogTitle>{t("settings.title")}</DialogTitle>
                         </DialogHeader>
                         <SettingsSearchField ref={searchRef} value={search} onChange={setSearch} />
                         <SettingsNav categories={SETTINGS_CATEGORIES} onSelect={() => setSearch("")} />
                     </div>
-                    <TabsContent value={active.id} className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-6 sm:px-10">
+                    <TabsContent value={tabValue} className="min-h-0 min-w-0 overflow-y-auto overflow-x-hidden p-6 sm:px-10">
                         {searching ? (
                             <SettingsSearchContext.Provider value={{ query, scopeMatches: false }}>
                                 <div ref={resultsRef} className="flex flex-col gap-8">
