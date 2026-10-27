@@ -2,6 +2,7 @@ import type { Group, NoteDataTree, Task } from "@/types/types"
 import type { TxStatement } from "@/db/transaction"
 import { buildPositionUpdate } from "@/db/queries/ordering"
 import { findGroup, findSection, findTask, moveGroupInList, moveTask, patchGroup, patchTask, removeGroup } from "@/contexts/note-tree-ops"
+import { taskSections } from "@/lib/group-sections"
 
 /** The persisted state of a task: where it is (`s<id>` = top level of a section, `t<id>` = under a task) and its flags. */
 type TaskState = {
@@ -29,7 +30,7 @@ function flatten(tree: NoteDataTree): Flat {
         })
     }
     for (const group of tree.groups)
-        for (const section of group.sections) visit(section.tasks, `s${section.id}`, section.id)
+        for (const section of taskSections(group)) visit(section.tasks, `s${section.id}`, section.id)
     return { tasks, containers }
 }
 
@@ -189,9 +190,9 @@ export function diffGroupStatements(before: NoteDataTree, after: NoteDataTree): 
  * @category Automations
  */
 export function diffSectionStatements(before: NoteDataTree, after: NoteDataTree): TxStatement[] {
-    const previous = new Map(before.groups.flatMap(group => group.sections).map(section => [section.id, section]))
+    const previous = new Map(before.groups.flatMap(taskSections).map(section => [section.id, section]))
     const statements: TxStatement[] = []
-    for (const section of after.groups.flatMap(group => group.sections)) {
+    for (const section of after.groups.flatMap(taskSections)) {
         const old = previous.get(section.id)
         if (old && (old.color ?? null) !== (section.color ?? null))
             statements.push({ sql: "UPDATE section SET color = ? WHERE id = ?", params: [section.color ?? null, section.id] })

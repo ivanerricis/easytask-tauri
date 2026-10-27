@@ -4,7 +4,7 @@ import {
     getItemName, isUndoableType, makeLabel, type UndoDeps,
 } from "./commands"
 import type { UndoCommand } from "./stack"
-import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { Folder } from "@/types/types"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
@@ -522,6 +522,68 @@ describe("multi-selection commands (one undo step)", () => {
     })
 })
 
+describe("multi-selection commands on tasks (one undo step, the note is reloaded)", () => {
+    const tasks = [{ itemType: "task", id: 1, name: "a" }, { itemType: "task", id: 2, name: "b" }] as const
+
+    it("removeMany restores the tasks in reverse and reloads the note, not the tree", async () => {
+        const command = commands.removeMany([...tasks])
+        await command.undo()
+        expect(ctx.deps.workspace.restoreItem.mock.calls).toEqual([["task", 2], ["task", 1]])
+        expect(ctx.deps.note.refreshActiveNote).toHaveBeenCalledTimes(1)
+        expect(ctx.deps.workspace.getWorkspaceData).not.toHaveBeenCalled()
+        await command.redo()
+        expect(ctx.deps.workspace.deleteItem.mock.calls).toEqual([["task", 1], ["task", 2]])
+        expect(ctx.deps.note.removeTask.mock.calls).toEqual([[1], [2]])
+    })
+
+    it("a mix of notes and tasks reloads both", async () => {
+        await commands.removeMany([{ itemType: "note", id: 9, name: "n" }, tasks[0]]).undo()
+        expect(ctx.deps.workspace.getWorkspaceData).toHaveBeenCalledTimes(1)
+        expect(ctx.deps.note.refreshActiveNote).toHaveBeenCalledTimes(1)
+    })
+
+    it("archiveMany unarchives the tasks in reverse and archives them again in order", async () => {
+        const command = commands.archiveMany([...tasks])
+        expect(command.label).toBe("Archivia 2 elementi")
+        await command.undo()
+        expect(ctx.deps.workspace.unarchiveItem.mock.calls).toEqual([["task", 2], ["task", 1]])
+        expect(ctx.deps.note.refreshActiveNote).toHaveBeenCalledTimes(1)
+        await command.redo()
+        expect(ctx.deps.workspace.archiveItem.mock.calls).toEqual([["task", 1], ["task", 2]])
+    })
+
+    it("colorMany patches the note and restores the previous colors in reverse", async () => {
+        const command = commands.colorMany([
+            { itemType: "task", id: 1, name: "a", before: null, after: "#f00" },
+            { itemType: "task", id: 2, name: "b", before: "#0f0", after: "#f00" },
+        ])
+        await command.undo()
+        expect(ctx.deps.note.patchTask.mock.calls).toEqual([[2, { color: "#0f0" }], [1, { color: null }]])
+        await command.redo()
+        expect(ctx.deps.workspace.updateItemColor).toHaveBeenLastCalledWith("task", 2, "#f00")
+    })
+
+    it("taskMoveMany replays the steps backwards to the old places and forwards to the new ones, reloading once each time", async () => {
+        const command = commands.taskMoveMany([
+            { id: 1, name: "a", from: { sectionId: 1, parentTaskId: null, index: 0 }, to: { sectionId: 5, parentTaskId: null, index: 1_000_000 } },
+            { id: 2, name: "b", from: { sectionId: 1, parentTaskId: null, index: 0 }, to: { sectionId: 5, parentTaskId: null, index: 1_000_000 } },
+        ])
+        expect(command.label).toBe("Sposta 2 elementi")
+        await command.undo()
+        expect(ctx.deps.workspace.moveTask.mock.calls).toEqual([[2, { sectionId: 1, parentTaskId: null }, 0], [1, { sectionId: 1, parentTaskId: null }, 0]])
+        expect(ctx.deps.note.refreshActiveNote).toHaveBeenCalledTimes(1)
+        ctx.deps.workspace.moveTask.mockClear()
+        await command.redo()
+        expect(ctx.deps.workspace.moveTask.mock.calls.map(call => call[0])).toEqual([1, 2])
+        expect(ctx.deps.note.refreshActiveNote).toHaveBeenCalledTimes(2)
+
+        const record = vi.fn()
+        createUndoRecorder(commands, record).taskMoveMany([])
+        expect(record).toHaveBeenCalledTimes(1)
+        expect(() => NOOP_RECORDER.taskMoveMany([])).not.toThrow()
+    })
+})
+
 describe("place capture", () => {
     it("finds the parent and index of a folder or a note in the sidebar tree", () => {
         const tree = {
@@ -548,5 +610,29 @@ describe("place capture", () => {
         expect(captureTaskPlace(tree, 31)).toEqual({ sectionId: 20, parentTaskId: 30, index: 0, name: "sub" })
         expect(captureTaskPlace(tree, 99)).toBeNull()
         expect(captureTaskPlace(undefined, 1)).toBeNull()
+    })
+})
+
+describe("places in the direct area of a group (default section)", () => {
+    const tree = {
+        groups: [makeGroup({
+            id: 1,
+            defaultSection: makeDefaultSection({ id: 90, groupID: 1, tasks: [
+                makeTask({ id: 300, sectionID: 90, text: "direct", subtasks: [makeTask({ id: 301, sectionID: 90, taskID: 300, text: "direct sub" })] }),
+                makeTask({ id: 302, sectionID: 90, text: "second" }),
+            ] }),
+            sections: [makeSection({ id: 20, groupID: 1, title: "S" })],
+        })],
+    }
+
+    it("captureTaskPlace gives the real id of the default section", () => {
+        expect(captureTaskPlace(tree, 300)).toEqual({ sectionId: 90, parentTaskId: null, index: 0, name: "direct" })
+        expect(captureTaskPlace(tree, 302)).toEqual({ sectionId: 90, parentTaskId: null, index: 1, name: "second" })
+        expect(captureTaskPlace(tree, 301)).toEqual({ sectionId: 90, parentTaskId: 300, index: 0, name: "direct sub" })
+    })
+
+    it("captureSectionPlace does not capture the default section (it never moves), but sections keep their index", () => {
+        expect(captureSectionPlace(tree, 90)).toBeNull()
+        expect(captureSectionPlace(tree, 20)).toEqual({ groupId: 1, index: 0, name: "S" })
     })
 })

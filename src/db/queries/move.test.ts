@@ -30,8 +30,11 @@ import { restoreDBItem } from "./trash"
 import { createDBGroup } from "./group"
 
 const rows = sqliteRows(() => sqlite)
+// The titles of the (visible) sections of a group: its hidden default section is not one of them
 const sectionsOf = (groupId: number) =>
-    rows(`SELECT title FROM section WHERE groupID = ${groupId} AND deleted_at IS NULL ORDER BY position, id`).map(r => r.title)
+    rows(`SELECT title FROM section WHERE groupID = ${groupId} AND deleted_at IS NULL AND is_default = 0 ORDER BY position, id`).map(r => r.title)
+const defaultSectionOf = (groupId: number) =>
+    rows(`SELECT id, position FROM section WHERE groupID = ${groupId} AND is_default = 1`).map(r => ({ id: r.id as number, position: r.position as number }))
 const topTasks = (sectionId: number) =>
     rows(`SELECT text FROM task WHERE sectionID = ${sectionId} AND taskID IS NULL AND deleted_at IS NULL ORDER BY position, id`).map(r => r.text)
 const subTasks = (taskId: number) =>
@@ -50,6 +53,7 @@ beforeEach(() => {
         INSERT INTO workspace (id, name) VALUES (1, 'WS');
         INSERT INTO note (id, workspaceID, name) VALUES (1, 1, 'N'), (2, 1, 'Other');
         INSERT INTO section_group (id, noteID, position) VALUES (1, 1, 0), (2, 1, 1), (3, 1, 2), (4, 2, 0);
+        INSERT INTO section (groupID, title, position, is_default) VALUES (1, NULL, 0, 1), (2, NULL, 0, 1), (3, NULL, 0, 1), (4, NULL, 0, 1);
     `)
 })
 
@@ -70,7 +74,18 @@ describe("createDBGroup", () => {
         await createDBGroup(1, "  Sprint  ")
         const created = rows("SELECT name, position FROM section_group WHERE noteID = 1 AND deleted_at IS NULL ORDER BY position")
         expect(created.at(-1)).toEqual({ name: "Sprint", position: 2 })
-        expect(rows("SELECT COUNT(*) AS c FROM section WHERE groupID = (SELECT MAX(id) FROM section_group)")[0].c).toBe(0)
+        // No visible section, only the hidden default one
+        expect(rows("SELECT COUNT(*) AS c FROM section WHERE groupID = (SELECT MAX(id) FROM section_group) AND is_default = 0")[0].c).toBe(0)
+    })
+
+    it("creates the default section with the group, in one transaction, and returns both ids", async () => {
+        const { groupId, defaultSectionId } = await createDBGroup(1, "Sprint")
+        expect(rows(`SELECT id, groupID, title, position, is_default FROM section WHERE groupID = ${groupId}`))
+            .toEqual([{ id: defaultSectionId, groupID: groupId, title: null, position: 0, is_default: 1 }])
+        // A failing default section leaves no group behind
+        failOn = "INSERT INTO section"
+        await expect(createDBGroup(1, "Broken")).rejects.toMatchObject({ code: "GROUP_CREATE_ERROR" })
+        expect(rows("SELECT COUNT(*) AS c FROM section_group WHERE name = 'Broken'")[0].c).toBe(0)
     })
 
     it("stores a blank name as NULL and starts at 0 in an empty note", async () => {
@@ -83,7 +98,7 @@ describe("createDBGroup", () => {
 describe("creation appends after the siblings", () => {
     it("sections, tasks and subtasks get increasing positions", async () => {
         await seedSections()
-        expect(positions("SELECT position FROM section WHERE groupID = 1 ORDER BY id")).toEqual([0, 1, 2])
+        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY id")).toEqual([0, 1, 2])
         const s1 = sectionId("S1")
         await createDBTask(s1, "a")
         await createDBTask(s1, "b")
@@ -100,18 +115,39 @@ describe("creation appends after the siblings", () => {
         await seedSections()
         sqlite.exec("UPDATE section SET position = 5 WHERE title = 'S1'")
         const data = await getDBNoteData(1)
-        expect(data.sections.filter(s => s.groupID === 1).map(s => s.title)).toEqual(["S2", "S3", "S1"])
+        expect(data.sections.filter(s => s.groupID === 1 && !s.is_default).map(s => s.title)).toEqual(["S2", "S3", "S1"])
     })
 })
 
 describe("moveDBSection", () => {
+    it("ignores the default section: the indices count only the visible sections", async () => {
+        await seedSections()
+        const [direct] = defaultSectionOf(1)
+        await moveDBSection(sectionId("S3"), 1, 0)
+        expect(sectionsOf(1)).toEqual(["S3", "S1", "S2"])
+        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY position")).toEqual([0, 1, 2])
+        // To another group, at index 1 among ITS visible sections
+        await moveDBSection(sectionId("S1"), 2, 1)
+        expect(sectionsOf(2)).toEqual(["S4", "S1"])
+        expect(positions("SELECT position FROM section WHERE groupID = 2 AND is_default = 0 ORDER BY position")).toEqual([0, 1])
+        expect(defaultSectionOf(1)).toEqual([direct])
+    })
+
+    it("never moves the default section of a group", async () => {
+        await seedSections()
+        const [direct] = defaultSectionOf(1)
+        await expect(moveDBSection(direct.id, 2, 0)).rejects.toMatchObject({ code: "SECTION_MOVE_INVALID" })
+        await expect(moveDBSectionToNewGroup(direct.id, 0)).rejects.toMatchObject({ code: "SECTION_MOVE_INVALID" })
+        expect(defaultSectionOf(1)).toEqual([direct])
+    })
+
     it("reorders inside the same group", async () => {
         await seedSections()
         await moveDBSection(sectionId("S3"), 1, 0)
         expect(sectionsOf(1)).toEqual(["S3", "S1", "S2"])
         await moveDBSection(sectionId("S3"), 1, 99)
         expect(sectionsOf(1)).toEqual(["S1", "S2", "S3"])
-        expect(positions("SELECT position FROM section WHERE groupID = 1 ORDER BY position")).toEqual([0, 1, 2])
+        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY position")).toEqual([0, 1, 2])
     })
 
     it("moves to another group at the given index and renumbers both groups", async () => {
@@ -119,8 +155,8 @@ describe("moveDBSection", () => {
         await moveDBSection(sectionId("S2"), 2, 0)
         expect(sectionsOf(1)).toEqual(["S1", "S3"])
         expect(sectionsOf(2)).toEqual(["S2", "S4"])
-        expect(positions("SELECT position FROM section WHERE groupID = 1 ORDER BY position")).toEqual([0, 1])
-        expect(positions("SELECT position FROM section WHERE groupID = 2 ORDER BY position")).toEqual([0, 1])
+        expect(positions("SELECT position FROM section WHERE groupID = 1 AND is_default = 0 ORDER BY position")).toEqual([0, 1])
+        expect(positions("SELECT position FROM section WHERE groupID = 2 AND is_default = 0 ORDER BY position")).toEqual([0, 1])
     })
 
     it("keeps the source group, empty, when its last section is moved away", async () => {
@@ -194,7 +230,9 @@ describe("moveDBSection", () => {
 describe("moveDBSectionToNewGroup", () => {
     it("creates a new group at the given position, shifting the others", async () => {
         await seedSections()
-        const newGroupId = await moveDBSectionToNewGroup(sectionId("S2"), 1)
+        const { groupId: newGroupId, defaultSectionId } = await moveDBSectionToNewGroup(sectionId("S2"), 1)
+        // The new group gets its default section too
+        expect(defaultSectionOf(newGroupId)).toEqual([{ id: defaultSectionId, position: 0 }])
         const ids = groupIds()
         expect(ids).toHaveLength(4)
         expect(ids[1]).toBe(newGroupId)
@@ -253,6 +291,24 @@ describe("moveDBTask", () => {
         await createDBSubTask(id("A"), "A1")
         await createDBSubTask(id("A"), "A2")
         await createDBSubTask(id("A1"), "A1x")
+    })
+
+    it("moves a task between a section and the direct area of a group, subtree included", async () => {
+        const direct = defaultSectionOf(2)[0].id
+        await createDBTask(direct, "D1")
+        await moveDBTask(id("A"), { sectionId: direct, parentTaskId: null }, 0)
+        expect(topTasks(direct)).toEqual(["A", "D1"])
+        expect(topTasks(s1)).toEqual(["B", "C"])
+        // The whole subtree follows its root into the direct area
+        expect(rows(`SELECT sectionID FROM task WHERE text IN ('A1', 'A2', 'A1x')`).map(r => r.sectionID)).toEqual([direct, direct, direct])
+        // ... and back to a section
+        await moveDBTask(id("D1"), { sectionId: s1, parentTaskId: null }, 0)
+        expect(topTasks(s1)).toEqual(["D1", "B", "C"])
+        expect(positions(`SELECT position FROM task WHERE sectionID = ${direct} AND taskID IS NULL ORDER BY position`)).toEqual([0])
+        // The direct tasks are loaded with the default section
+        const data = await getDBNoteData(1)
+        expect(data.sections.find(s => s.id === direct)?.is_default).toBeTruthy()
+        expect(data.tasks.filter(t => t.sectionID === direct && t.taskID === null).map(t => t.text)).toEqual(["A"])
     })
 
     it("reorders top level tasks inside the section", async () => {

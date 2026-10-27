@@ -18,7 +18,7 @@ export const CloseButton = ({onClick}: CloseButtonProps) => {
                 size="icon"
                 aria-label={t("common.cancel")}
                 onClick={onClick}
-                className="h-8 w-full rounded-none text-muted-foreground hover:text-foreground"
+                className="h-8 flex-1 min-w-0 rounded-none text-muted-foreground hover:text-foreground"
             >
                 <X />
             </Button>

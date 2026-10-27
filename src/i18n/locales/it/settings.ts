@@ -263,6 +263,10 @@ export const settings = {
             label: "Rinomina cliccando sul nome",
             description: "Il click sul nome di un task, una sezione o un gruppo avvia la rinomina. Se disattivato, usa Rinomina nel menu contestuale o premi Invio sul nome.",
         },
+        keepAddingTasks: {
+            label: "Continua ad aggiungere task",
+            description: "Dopo aver creato un task resta aperto il campo per scrivere il successivo. Esc o un campo vuoto lo chiudono.",
+        },
         subtaskCount: {
             label: "Mostra sottotask completati",
             description: "Un task con sottotask mostra quanti ne sono completati (es. 1/3).",

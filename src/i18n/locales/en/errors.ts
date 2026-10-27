@@ -121,6 +121,7 @@ export const errors: Translation["errors"] = {
     group: {
         create: "Could not create the group: {{message}}",
         updatePositions: "An error occurred while updating group positions: {{message}}",
+        updateWidth: "Could not save the group width: {{message}}",
     },
     unsupportedItemType: "Unsupported item type: {{type}}",
     db: {

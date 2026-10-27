@@ -2,7 +2,9 @@ import { $, $$, browser, expect } from "@wdio/globals"
 import {
     byLabel, byText, createFromSidebar, createWorkspace, domClick, openContextMenu, openSubmenu, openWorkspace, sectionCard, topDialog, tr, treeRow, typeInto,
     waitForApp,
-    addTaskButton, menuButton, menuButtonPredicate,
+    addTaskButton, menuButton, menuButtonPredicate, openMenuWithButton,
+    groupCard, newSectionInGroup,
+    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "E2E Workspace"
@@ -38,10 +40,7 @@ const openTaskMenu = async (text: string) => {
     if (!target) throw new Error(`task "${text}" not found`)
     const row = await target.$(`./ancestor::div[.//button[${await menuButtonPredicate()}]][1]`)
     await row.moveTo()
-    await (await menuButton(row)).click()
-    const menu = $('[role="menu"]')
-    await menu.waitForDisplayed()
-    return menu
+    return openMenuWithButton(await menuButton(row))
 }
 
 describe("Workspace, folders, notes, groups, sections and tasks", () => {
@@ -71,15 +70,14 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
 
         for (const title of [SECTION_A, SECTION_B]) {
-            await byText(await tr("sections.new")).click()
-            await typeInto(byLabel(await tr("sections.titleLabel")), title)
-            await browser.keys("Enter")
-            await sectionCard(title).waitForDisplayed()
+            await newSectionInGroup(groupCard(GROUP), title)
         }
 
         await (await addTaskButton(sectionCard(SECTION_A))).click()
         await typeInto(sectionCard(SECTION_A).$("input"), TASK)
         await sectionCard(SECTION_A).$(`[aria-label="${await tr("common.add")}"]`).click()
+        // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+        await closeTaskInput()
         await browser.waitUntil(async () => (await taskValues(SECTION_A)).includes(TASK), { timeoutMsg: "task not created" })
     })
 
@@ -166,9 +164,7 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
 
     it("duplicates a section with its tasks", async () => {
         const copy = `${SECTION_B} (${await tr("duplicate.suffix")})`
-        await (await menuButton(sectionCard(SECTION_B))).click()
-        const menu = $('[role="menu"]')
-        await menu.waitForDisplayed()
+        const menu = await openMenuWithButton(await menuButton(sectionCard(SECTION_B)))
         await byText(await tr("menu.duplicate"), menu).click()
 
         await sectionCard(copy).waitForDisplayed({ timeoutMsg: "the section copy was not created" })

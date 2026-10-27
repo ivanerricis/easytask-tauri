@@ -92,6 +92,7 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
                             ref={dndRef}
                             role="treeitem"
                             aria-label={folder.name}
+                            data-row-key={treeRowKey("folder", folder.id)}
                             aria-level={level}
                             aria-expanded={isOpen}
                             aria-pressed={undefined}

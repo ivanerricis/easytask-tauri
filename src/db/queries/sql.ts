@@ -16,3 +16,9 @@ export function chunked<T>(items: readonly T[], size = IN_CHUNK): T[][] {
  * @category Database Queries
  */
 export const placeholders = (count: number) => Array.from({ length: count }, () => "?").join(", ")
+
+/**
+ * Inserts the hidden default section of a group (no title, first position): one `?` for the group id.
+ * @category Database Queries
+ */
+export const DEFAULT_SECTION_SQL = 'INSERT INTO section (groupID, title, position, is_default) VALUES (?, NULL, 0, 1)'

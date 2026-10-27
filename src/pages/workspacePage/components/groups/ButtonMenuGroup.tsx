@@ -30,16 +30,24 @@ type Props = {
     /** The group header: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
     /** Starts the inline edit of the name (once the menu has given the focus back). */
     onRename?: () => void
+    /** Opens the form of a new section (once the menu has given the focus back). Without it the entry is not shown. */
+    onAddSection?: () => void
     children: ReactElement
 }
 
-export const ButtonMenuGroup = ({ group, onRename, children }: Props) => {
+export const ButtonMenuGroup = ({ group, onRename, onAddSection, children }: Props) => {
     const { t } = useTranslation()
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const [isAutomationsOpen, setAutomationsOpen] = useState(false)
     const noteId = useActiveNoteId()
     const menu = useItemMenuState()
-    const { requestRename, onCloseAutoFocus } = useRenameAfterClose(onRename)
+    // Both actions take the focus (an input), so each waits for the menu to give it back, or Radix would steal it again
+    const { requestRename, onCloseAutoFocus: renameAfterClose } = useRenameAfterClose(onRename)
+    const { requestRename: requestAddSection, onCloseAutoFocus: addSectionAfterClose } = useRenameAfterClose(onAddSection)
+    const onCloseAutoFocus = (e: Event) => {
+        renameAfterClose(e)
+        addSectionAfterClose(e)
+    }
     const { patchGroup, removeGroup } = useActiveNoteActions()
     const { addFiles } = useAudioActions()
     const { updateItemColor, archiveItem } = useWorkspaceActions()
@@ -78,6 +86,14 @@ export const ButtonMenuGroup = ({ group, onRename, children }: Props) => {
                     void addFiles(group.id)
                 }}
             />
+            {onAddSection && <ButtonInPopover
+                text={t("sections.new")}
+                type="addSection"
+                onClick={() => {
+                    requestAddSection()
+                    menu.close()
+                }}
+            />}
             <Separator />
             <ButtonInPopover
                 text={t("common.rename")}

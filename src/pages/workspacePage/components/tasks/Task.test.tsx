@@ -7,7 +7,9 @@ import { Task } from "./Task"
 import { TabsProvider } from "@/contexts/tabs-context"
 import { useSelectedTask, useTabsActions } from "@/contexts/use-tabs"
 import { RightPanelContext, type RightPanelContextType } from "../rightbar/right-panel-context-object"
-import { makeNote, makeTask } from "@/test/ui-fixtures"
+import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
+import { searchingStore } from "@/test/search-store"
+import { NoteSearchContext } from "../note-search-context"
 import { COLOR_ALPHA_BASE } from "@/lib/color-intensity"
 import { PreferencesContext } from "@/contexts/preferences-context-object"
 import { useNoteDrop } from "../note-dnd-state"
@@ -151,19 +153,9 @@ describe("Task selection", () => {
         expect(screen.getByTestId("selected-1")).toHaveTextContent("null")
     })
 
-    it("the Details button selects the task and opens the panel on its details", async () => {
-        const user = userEvent.setup()
+    it("has no Details button on the row (the entry is in the menu of the task)", () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />)
-        await user.click(screen.getByRole("button", { name: "Mostra dettagli" }))
-        expect(showTaskDetails).toHaveBeenCalledWith(10)
-    })
-
-    it("the Details button only selects the task where there is no panel", async () => {
-        const user = userEvent.setup()
-        renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />, false)
-        await user.click(screen.getByRole("button", { name: "Mostra dettagli" }))
-        expect(showTaskDetails).not.toHaveBeenCalled()
-        expect(screen.getByTestId("selected-1")).toHaveTextContent("10")
+        expect(screen.queryByRole("button", { name: "Mostra dettagli" })).not.toBeInTheDocument()
     })
 
     it("keeps the selection per note", async () => {
@@ -181,8 +173,7 @@ describe("Task selection", () => {
     it("the context menu entry shows the details of the right clicked task", async () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Primo" })} />)
         fireEvent.contextMenu(rowOf(10))
-        const entries = await screen.findAllByRole("button", { name: "Mostra dettagli", hidden: true })
-        fireEvent.click(entries[entries.length - 1])
+        fireEvent.click(await screen.findByRole("menuitem", { name: "Mostra dettagli" }))
         expect(showTaskDetails).toHaveBeenCalledWith(10)
     })
 
@@ -192,8 +183,7 @@ describe("Task selection", () => {
         // Read only until the editing opens: the menu of the text fields (cut, copy, paste) does not apply to it
         expect(text).toHaveAttribute("readonly")
         fireEvent.contextMenu(text)
-        const entries = await screen.findAllByRole("button", { name: "Mostra dettagli", hidden: true })
-        expect(entries.length).toBeGreaterThan(0)
+        expect(await screen.findByRole("menuitem", { name: "Mostra dettagli" })).toBeInTheDocument()
     })
 
     it("does not break the toggle of the completion", async () => {
@@ -364,7 +354,7 @@ describe("Task description icon", () => {
         // The indicator is aria-hidden: only the button of the toolbar is exposed
         expect(buttons).toHaveLength(1)
         expect(buttons[0]).not.toBe(indicator())
-        expect(buttons[0].parentElement).toContainElement(screen.getByRole("button", { name: "Mostra dettagli" }))
+        expect(buttons[0].parentElement).toContainElement(screen.getByRole("button", { name: "Aggiungi sottotask" }))
         expect(indicator()).toHaveAttribute("aria-hidden", "true")
         expect(indicator()).toHaveAttribute("tabindex", "-1")
     })
@@ -452,5 +442,30 @@ describe("Task priority flag", () => {
     it("shows the flag for a priority read from the database as 1", () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Primo", priority: 1 as unknown as boolean })} />)
         expect(screen.getByRole("img", { name: "Priorità alta" })).toBeInTheDocument()
+    })
+})
+
+describe("Task search", () => {
+    const task = makeTask({ id: 10, text: "Compra il Latte" })
+    const group = makeGroup({ sections: [makeSection({ tasks: [task] })] })
+
+    it("keeps the textarea when the text does not match", () => {
+        renderTasks(
+            <NoteSearchContext.Provider value={searchingStore([group], "zzz")}><Task task={task} /></NoteSearchContext.Provider>,
+        )
+        expect(screen.getByRole("textbox", { name: "Modifica il testo del task" })).toHaveValue("Compra il Latte")
+        expect(document.querySelector("mark")).toBeNull()
+    })
+
+    it("shows the text with the matches marked, and a click still starts the rename", async () => {
+        renderTasks(
+            <NoteSearchContext.Provider value={searchingStore([group], "latte")}><Task task={task} /></NoteSearchContext.Provider>,
+        )
+        const mark = document.querySelector("mark") as HTMLElement
+        expect(mark).toHaveTextContent("Latte")
+        expect(mark).toHaveAttribute("data-active", "true")
+        await userEvent.click(screen.getByRole("textbox", { name: "Modifica il testo del task" }))
+        expect(screen.getByRole("textbox")).toHaveValue("Compra il Latte")
+        expect(document.querySelector("mark")).toBeNull()
     })
 })

@@ -1,5 +1,5 @@
 import { $, $$, browser } from "@wdio/globals"
-import { byLabel, byText, currentLang, openSubmenu, sectionCard, tr, treeRow, typeInto } from "../helpers"
+import { byLabel, byText, closeTaskInput, currentLang, newSectionInGroup, openSubmenu, sectionCard, tr, treeRow, typeInto } from "../helpers"
 
 /**
  * Helpers shared by the screenshot tours (ui-tour and docs-shots): they drive the real app through the UI, as a user would.
@@ -173,12 +173,20 @@ export const openTaskMenu = async (text: string) => {
     return menu
 }
 
+/** Shows the details of a task: "Show details" of its menu (the row has no button for it). */
+export const showTaskDetails = async (text: string) => {
+    const menu = await openTaskMenu(text)
+    await byText(await tr("details.showTask"), menu).click()
+}
+
 export const addTask = async (section: string, text: string) => {
     await sectionCard(section).$(`[aria-label="${await tr("tasks.add")}"]`).click()
     const input = sectionCard(section).$("input")
     await typeInto(input, text)
     await browser.keys("Enter")
     await taskExists(text)
+    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+    await closeTaskInput()
 }
 
 export const addSubtask = async (parent: string, text: string) => {
@@ -204,9 +212,9 @@ export const addGroup = async (name: string) => {
     await byText(name).waitForDisplayed({ timeoutMsg: `group ${name} not created` })
 }
 
+/** Adds a section to the last group of the note (the one just created), from the menu of the group. */
 export const addSection = async (title: string) => {
-    await (await lastByText(await tr("sections.new"))).click()
-    await typeInto(byLabel(await tr("sections.titleLabel")), title)
-    await browser.keys("Enter")
-    await sectionCard(title).waitForDisplayed({ timeoutMsg: `section ${title} not created` })
+    const groups = Array.from(await $$("[data-group-card]"))
+    if (groups.length === 0) throw new Error("no group to add a section to")
+    await newSectionInGroup(groups[groups.length - 1], title)
 }

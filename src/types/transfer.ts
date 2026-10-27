@@ -65,7 +65,7 @@ export type ExportTemplate = {
  */
 export type WorkspaceExport = {
     format: "easytask-workspace"
-    version: 1
+    version: 2
     /**
      * "items": a single note, or a folder with its whole subtree (`workspace` then carries the name and color of that
      * item, `templates` is empty); importable only inside an open workspace. Absent or "workspace": a whole workspace.
@@ -85,7 +85,7 @@ export type WorkspaceExport = {
 export type ExportScope = "workspace" | "items"
 
 export const WORKSPACE_EXPORT_FORMAT = "easytask-workspace"
-export const WORKSPACE_EXPORT_VERSION = 1
+export const WORKSPACE_EXPORT_VERSION = 2
 
 /**
  * Largest export file accepted by the import, in bytes (checked before reading it).

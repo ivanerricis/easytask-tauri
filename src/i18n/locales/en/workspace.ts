@@ -62,7 +62,21 @@ export const notes: Translation["notes"] = {
         suggestions: "Suggestions",
         short: "Search…",
     },
+    noteSearch: {
+        inNote: "Search in the note",
+        placeholder: "Search in the note…",
+        counter: "{{current}} of {{total}}",
+        noResults: "No results",
+        next: "Next result",
+        previous: "Previous result",
+        close: "Close the search",
+    },
     hideCompleted: "Hide completed tasks",
+    showCompleted: "Show completed tasks",
+    path: {
+        label: "Note path",
+        reveal: "Show {{name}} in the sidebar",
+    },
     closeCurrent: "Close current note",
     close: "Close note",
     openTabs: "Open notes",
@@ -72,6 +86,8 @@ export const notes: Translation["notes"] = {
 
 export const groups: Translation["groups"] = {
     defaultLabel: "Group {{index}}",
+    directTasks: "Group tasks",
+    addTask: "New task",
     collapse: "Collapse group",
     expand: "Expand group",
     nameLabel: "Group name",
@@ -80,6 +96,11 @@ export const groups: Translation["groups"] = {
     progress: "Group progress",
     audioCount_one: "{{count}} audio file",
     audioCount_other: "{{count}} audio files",
+    width: {
+        handle: "Resize the group",
+        value: "{{width}} pixels",
+        auto: "automatic width",
+    },
 }
 
 export const sidebar: Translation["sidebar"] = {

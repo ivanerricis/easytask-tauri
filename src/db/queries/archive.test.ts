@@ -195,7 +195,7 @@ describe("destinations", () => {
         await archiveDBItem("section", 2)
         expect(await thrown(moveDBTask(1, { sectionId: 2, parentTaskId: null }, 0))).toMatchObject({ code: "TASK_MOVE_INVALID" })
         // a section can still go to a new group
-        expect(await moveDBSectionToNewGroup(1, 0)).toBeGreaterThan(0)
+        expect((await moveDBSectionToNewGroup(1, 0)).groupId).toBeGreaterThan(0)
     })
 })
 
@@ -220,7 +220,7 @@ describe("templates and duplicates copy only what is visible", () => {
             { text: "T", description: null, completed: false, priority: false, archived: true, color: null, position: 0, subtasks: [] }] }] }] }
         sqlite.prepare("INSERT INTO note_template (id, workspaceID, name, content) VALUES (9, 1, 'Old', ?)").run(JSON.stringify(content))
         const noteId = await createDBNoteFromTemplate(9, 1, null, "Old applied")
-        expect(rows(`SELECT s.title, s.archived_at FROM section s JOIN section_group g ON g.id = s.groupID WHERE g.noteID = ${noteId}`))
+        expect(rows(`SELECT s.title, s.archived_at FROM section s JOIN section_group g ON g.id = s.groupID WHERE g.noteID = ${noteId} AND s.is_default = 0`))
             .toEqual([{ title: "S", archived_at: null }])
     })
 
@@ -228,7 +228,7 @@ describe("templates and duplicates copy only what is visible", () => {
         const copy = await duplicateDBNote(1)
         const data = await getDBNoteData(copy, true)
         expect(data.groups).toHaveLength(1)
-        expect(data.sections.map(s => s.title)).toEqual(["A"])
+        expect(data.sections.filter(s => !s.is_default).map(s => s.title)).toEqual(["A"])
     })
 })
 
@@ -422,5 +422,73 @@ describe("archived tasks", () => {
         expect(data.notes[0].content.groups[0].sections[0].tasks.map(t => !!t.archived_at)).toEqual([true])
         const { workspaceId } = await importDBWorkspace(validateWorkspaceExport(JSON.parse(JSON.stringify(data))))
         expect((await getDBArchive(workspaceId)).map(i => [i.type, i.name])).toEqual([["task", "T1"]])
+    })
+})
+
+describe("default section of a group", () => {
+    // Every group has its hidden default section (ids 101..103); two direct tasks: 20 in group 1, 21 in group 2 (unnamed)
+    beforeEach(() => {
+        sqlite.exec(`
+            INSERT INTO section (id, groupID, title, position, is_default) VALUES (101, 1, NULL, 0, 1), (102, 2, NULL, 0, 1), (103, 3, NULL, 0, 1);
+            INSERT INTO task (id, sectionID, taskID, text, position) VALUES (20, 101, NULL, 'Direct 1', 0), (21, 102, NULL, 'Direct 2', 0), (22, 102, 21, 'Direct child', 0);
+        `)
+    })
+
+    it("an archived task directly in a group shows 'Nota › Gruppo X', without a section part", async () => {
+        await archiveDBItem("task", 20)
+        await archiveDBItem("task", 21)
+        await archiveDBItem("task", 1)
+        const byId = Object.fromEntries((await getDBArchive(1)).map(i => [i.id, i]))
+        expect(byId[20].context).toBe("Nota Root › Gruppo Sprint")
+        // An unnamed group is "Gruppo N" (N = its position + 1)
+        expect(byId[21].context).toBe("Nota Root › Gruppo 2")
+        expect(byId[21].summary).toBe("1 sottotask")
+        expect(byId[1].context).toBe("Nota Root › Sezione A")
+    })
+
+    it("the sections of an archived group or note do not count the default section", async () => {
+        await archiveDBItem("section_group", 1)
+        await archiveDBItem("section_group", 2)
+        await archiveDBItem("note", 2)
+        const items = await getDBArchive(1)
+        const group1 = items.find(i => i.type === "section_group" && i.id === 1)!
+        expect(group1.summary).toBe("2 sezioni · 4 task · 1 audio")
+        // The unnamed group counts one visible section (not two) and its direct tasks
+        const group2 = items.find(i => i.type === "section_group" && i.id === 2)!
+        expect(group2.name).toBe("Gruppo di 1 sezione")
+        expect(group2.summary).toBe("1 sezione · 3 task · 1 audio")
+        const note = items.find(i => i.type === "note")!
+        expect(note.summary).toBe("1 gruppo · 1 sezione · 1 task")
+    })
+
+    it("a trashed task directly in a group, a trashed group and a trashed note count the same way", async () => {
+        await deleteDBItem("task", 20)
+        await deleteDBItem("section_group", 1)
+        await deleteDBItem("note", 2)
+        const trash = await getDBTrash(1)
+        expect(trash.find(i => i.type === "task" && i.id === 20)?.context).toBe("Nota Root › Gruppo Sprint")
+        expect(trash.find(i => i.type === "section_group")).toMatchObject({ summary: "2 sezioni · 3 task · 1 audio" })
+        expect(trash.find(i => i.type === "note")?.summary).toBe("1 gruppo · 1 sezione · 1 task")
+        // A task of a normal section keeps the section in its context
+        await deleteDBItem("task", 1)
+        expect((await getDBTrash(1)).find(i => i.type === "task" && i.id === 1)?.context).toBe("Nota Root › Sezione A")
+    })
+
+    it("a trashed or archived group keeps its default section, and restoring brings the direct tasks back", async () => {
+        await deleteDBItem("section_group", 1)
+        await archiveDBItem("section_group", 2)
+        expect(rows("SELECT COUNT(*) AS n FROM section WHERE is_default = 1 AND deleted_at IS NOT NULL")[0].n).toBe(0)
+        await restoreDBItem("section_group", 1)
+        await unarchiveDBItem("section_group", 2)
+        const data = await getDBNoteData(1)
+        expect(data.sections.filter(s => s.is_default).map(s => s.id)).toEqual([101, 102])
+        expect(data.tasks.filter(t => t.sectionID === 101).map(t => t.id)).toEqual([20])
+    })
+
+    it("the default section cannot be trashed or archived on its own", async () => {
+        await deleteDBItem("section", 101)
+        await archiveDBItem("section", 102)
+        expect(rows("SELECT COUNT(*) AS n FROM section WHERE is_default = 1 AND (deleted_at IS NOT NULL OR archived_at IS NOT NULL)")[0].n).toBe(0)
+        expect(await getDBArchiveCount(1)).toBe(0)
     })
 })

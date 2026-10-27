@@ -43,10 +43,17 @@ describe("bindingEquals and conflicts", () => {
     })
 
     it("detects a clash inside a scope and with global shortcuts", () => {
-        const bindings = { ...getDefaultBindings(), "go-home": { key: "o", ctrl: true } }
+        const bindings = { ...getDefaultBindings(), "go-home": { key: "k", ctrl: true } }
         expect(findConflicts(bindings)).toEqual([["go-home", "search-notes"]])
         expect(findConflictsFor("new-workspace", { key: "?" }, getDefaultBindings())).toEqual(["show-shortcuts"])
         expect(findConflictsFor("new-workspace", { key: "m", ctrl: true }, getDefaultBindings())).toEqual([])
+    })
+
+    it("search in the note is Ctrl+F, editable, and clashes with nothing by default", () => {
+        const shortcut = SHORTCUTS.find(s => s.id === "search-in-note")
+        expect(shortcut).toMatchObject({ defaultBinding: { key: "f", ctrl: true }, editable: true, scope: "workspace", category: "notes" })
+        expect(findConflictsFor("search-in-note", { key: "f", ctrl: true }, getDefaultBindings())).toEqual([])
+        expect(findConflictsFor("search-in-note", { key: "k", ctrl: true }, getDefaultBindings())).toEqual(["search-notes"])
     })
 })
 

@@ -12,10 +12,10 @@ import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { useAutomations } from "@/hooks/use-automations"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { cn, getErrorMessage, hexToRgba } from "@/lib/utils"
-import React, { useCallback, useState, type HTMLAttributes } from "react"
+import React, { useCallback, useRef, useState, type HTMLAttributes } from "react"
 import { AutoTextarea } from "@/components/auto-textarea"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
-import { AlignLeft, Flag, Info, ListTree, Plus } from "lucide-react"
+import { AlignLeft, Flag, ListTree, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { AddTask } from "./AddTask"
@@ -23,11 +23,16 @@ import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import type { DropZone } from "../note-dnd"
 import { useIsTaskSelected, useSelectTask } from "@/contexts/use-tabs"
-import { useShowTaskDetails } from "../rightbar/use-right-panel"
 import { visibleTasks } from "../section/hide-completed"
 import { DropLine } from "../sidebar/DropLine"
 import type { TaskDensity } from "@/lib/store/preferences"
 import { TASK_DENSITIES } from "./task-density"
+import { SelectionMark } from "../sidebar/SelectionMark"
+import { handleSelectionClick } from "../sidebar/selection"
+import { useIsTaskMultiSelected, useTaskSelectionStore } from "./task-selection-context"
+import { taskKey } from "./task-selection"
+import { useSearchHighlight } from "../note-search-context"
+import { SearchedTaskText } from "./SearchedTaskText"
 
 // Clicks on these keep their own action (checkbox, buttons) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
@@ -95,8 +100,12 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
         },
     })
     const selected = useIsTaskSelected(task.id)
+    const search = useSearchHighlight("task", task.id)
     const selectTask = useSelectTask()
-    const showTaskDetails = useShowTaskDetails()
+    const selectionStore = useTaskSelectionStore()
+    const multiSelected = useIsTaskMultiSelected(task.id)
+    // The press that is going to focus the row carried Ctrl/Cmd/Shift: it is a selection gesture, not a single selection
+    const gestureDown = useRef(false)
     const isSubtask = depth > 0
     const sizes = TASK_DENSITIES[density]
     // The line of a subtask runs under the checkbox of its parent: the checkbox of a subtask is 2px narrower than the one
@@ -139,10 +148,29 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     data-task-id={task.id}
                     data-selected={selected ? "true" : undefined}
                     aria-current={selected ? "true" : undefined}
+                    data-multi-selected={multiSelected ? "true" : undefined}
+                    // Capture phase: a selection gesture must not reach the text (rename) or the other handlers of the row
+                    onClickCapture={e => {
+                        gestureDown.current = false
+                        if ((e.target as HTMLElement).closest(SELECTION_IGNORED)) return
+                        if (handleSelectionClick(selectionStore, taskKey(task.id), e)) {
+                            e.preventDefault()
+                            e.stopPropagation()
+                        }
+                    }}
+                    onMouseDown={e => {
+                        gestureDown.current = !!selectionStore && (e.shiftKey || e.ctrlKey || e.metaKey)
+                        // No text selection while extending a range with Shift
+                        if (selectionStore && e.shiftKey) e.preventDefault()
+                    }}
                     onClick={e => {
                         if (!(e.target as HTMLElement).closest(SELECTION_IGNORED)) selectTask(task.id)
                     }}
-                    onFocus={() => selectTask(task.id)}
+                    onFocus={() => {
+                        const gesture = gestureDown.current
+                        gestureDown.current = false
+                        if (!gesture) selectTask(task.id)
+                    }}
                     className={cn(
                         "peer/row relative flex flex-col items-center w-full touch-none cursor-grab active:cursor-grabbing",
                         // Selected: a 2px bar in the primary colour on the left and a tint stronger than the hover one
@@ -152,6 +180,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     )}
                 >
                     <DropLine zone={dropZone} outside />
+                    <SelectionMark selected={multiSelected} />
                     {/* The line of the subtasks starts under the checkbox: with a long text the row is tall, so it runs down to the bottom of the row where the line of the first subtask goes on */}
                     {(task.subtasks.length > 0 || isAddingSubtask) &&
                         <span aria-hidden className={cn(
@@ -175,7 +204,20 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                     aria-label={t("tasks.toggleCompleted", { text: task.text })}
                                     className={isSubtask ? cn("size-3.5", sizes.subtaskCheckbox) : sizes.checkbox}
                                 />
-                                {!isTextAreaOpen && <AutoTextarea
+                                {!isTextAreaOpen && search.query && <SearchedTaskText
+                                    text={task.text}
+                                    query={search.query}
+                                    active={search.active}
+                                    label={t("tasks.editText")}
+                                    onClick={renameOnClick ? startEdit : undefined}
+                                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); startEdit() } }}
+                                    className={cn(
+                                        "w-full min-w-0 text-wrap break-words [overflow-wrap:anywhere]", sizes.text,
+                                        !renameOnClick && "cursor-default",
+                                        task.completed && "line-through text-muted-foreground"
+                                    )}
+                                />}
+                                {!isTextAreaOpen && !search.query && <AutoTextarea
                                     onClick={renameOnClick ? startEdit : undefined}
                                     onKeyDown={e => {
                                         // Enter always renames (the way for the keyboard when the click does not)
@@ -256,17 +298,6 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                             <AlignLeft />
                                         </Button>
                                     </TooltipCustom>}
-                                <TooltipCustom text={t("details.showTask")}>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label={t("details.showTask")}
-                                        onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id) }}
-                                        className="size-6">
-                                        <Info />
-                                    </Button>
-                                </TooltipCustom>
                                 <TooltipCustom text={t("tasks.addSubtask")}>
                                     <Button
                                         type="button"

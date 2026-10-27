@@ -119,6 +119,7 @@ export const errors = {
     group: {
         create: "Impossibile creare il gruppo: {{message}}",
         updatePositions: "Impossibile aggiornare la posizione dei gruppi: {{message}}",
+        updateWidth: "Impossibile salvare la larghezza del gruppo: {{message}}",
     },
     unsupportedItemType: "Tipo di elemento non supportato: {{type}}",
     db: {

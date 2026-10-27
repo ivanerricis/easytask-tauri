@@ -93,6 +93,8 @@ const seed = async () => {
     await group(pad("Archived group with a long name"), 4, null, "archived_at=" + NOW)
     await group(pad("Deleted group with a long name"), 5, null, "deleted_at=" + NOW)
     void g3
+    // Every live group has its hidden default section (the app creates it with the group)
+    for (const g of [g1, g2, g3, g4]) await ex("INSERT INTO section (groupID, title, position, is_default) VALUES (?, NULL, 0, 1)", [g])
     const section = (g: number, title: string, pos: number, color: string | null = null, extra = "") =>
         ex(`INSERT INTO section (groupID, title, color, position${extra ? ", " + extra.split("=")[0] : ""}) VALUES (?, ?, ?, ?${extra ? ", ?" : ""})`, extra ? [g, title, color, pos, extra.split("=")[1]] : [g, title, color, pos])
     const s1 = await section(g1, SEC_LONG, 0, COLORS[3])
@@ -403,8 +405,8 @@ describe("Layout audit", () => {
             await attempt("ws-panel-task-details", async () => {
                 await base(!compact, true)
                 await $(`//*[@role='tab'][normalize-space()=${xp(await tr("rightPanel.details"))}]`).click()
-                const row = await taskEllipsis("Task with a long text")
-                await row.$(`button[aria-label="${await tr("details.showTask")}"]`).click().catch(async () => { await domClickEl(row.$(`button[aria-label="${await tr("details.showTask")}"]`)) })
+                const menu = await openTaskMenu("Task with a long text")
+                await byText(await tr("details.showTask"), menu).click()
                 await settle(600)
                 await capture("ws-panel-task-details")
                 await $(`//*[@role='tab'][normalize-space()=${xp(await tr("rightPanel.history"))}]`).click()
@@ -747,8 +749,9 @@ describe("Layout audit", () => {
             })
             await state("note-add-section-input", async () => {
                 await noteBase()
-                const all = Array.from(await $$(`//button[normalize-space()=${xp(await tr("sections.new"))}]`))
-                await all[0].click()
+                // There is no section button in a group: the form is opened from the menu of the first group
+                const menu = await openContextMenu($("[data-group-card] button[aria-expanded]"))
+                await menu.$(`.//*[@role='menuitem'][normalize-space()=${xp(await tr("sections.new"))}]`).click()
                 await settle(300)
             })
             await attempt("note-audio-menu", async () => {

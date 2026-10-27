@@ -147,6 +147,25 @@ export const openContextMenu = async (target: ChainablePromiseElement) => {
 }
 
 /**
+ * Opens the menu of an item with its "..." button and returns it. WebKitWebDriver sometimes focuses the button without
+ * delivering the pointer press the menu opens on (the Linux CI), so when the button is not expanded after the click it is
+ * opened with the keyboard instead, which works on every backend.
+ */
+export const openMenuWithButton = async (button: ChainablePromiseElement) => {
+    await button.click()
+    const expanded = await browser
+        .waitUntil(async () => (await button.getAttribute("aria-expanded")) === "true", { timeout: 2_000 })
+        .then(() => true, () => false)
+    if (!expanded) {
+        await browser.execute((el: HTMLElement) => el.focus(), (await button.getElement()) as unknown as HTMLElement)
+        await browser.keys("Enter")
+    }
+    const menu = $('[role="menu"]')
+    await menu.waitForDisplayed({ timeoutMsg: "the item menu did not open" })
+    return menu
+}
+
+/**
  * Opens a Radix submenu in a way that works on every WebDriver backend: the hover that normally opens it is not
  * reliably dispatched by WebKitGTK, so click the trigger and, if the item is still not there, focus it and press
  * ArrowRight. Resolves when `item` is displayed.
@@ -279,3 +298,47 @@ export const sql = async <T = unknown>(kind: "select" | "execute", query: string
         },
         await dbUrl(), kind, query, values,
     ) as Promise<T>
+
+/** The card of a group, found through the label of its header (its name, or "Gruppo N" when it has none). */
+export const groupCard = (label: string) =>
+    $(`//div[@data-group-card][.//button[@aria-label=${xpathString(label)}]]`)
+
+/**
+ * Creates a section from the menu of a group (there is no section button in the group): right click on its header,
+ * "Nuova sezione", then the name in the inline field. Resolves once the section card is shown.
+ */
+export const newSectionInGroup = async (group: ChainablePromiseElement | WebdriverIO.Element, title: string) => {
+    // The first button with aria-expanded of the card is the chevron of the group header
+    const menu = await openContextMenu(group.$("button[aria-expanded]"))
+    await byText(await tr("sections.new"), menu).click()
+    await typeInto(byLabel(await tr("sections.titleLabel")), title)
+    await browser.keys("Enter")
+    await sectionCard(title).waitForDisplayed({ timeoutMsg: `section ${title} not created` })
+}
+
+/** The area of the tasks created directly in a group (above its sections). */
+export const directTasks = (group: ChainablePromiseElement | WebdriverIO.Element) => group.$("[data-direct-tasks]")
+
+/** The dashed "Nuovo task" button of a group: it adds a task to the direct area. */
+export const groupAddTaskButton = async (group: ChainablePromiseElement | WebdriverIO.Element) =>
+    directTasks(group).$(`button[aria-label="${await tr("groups.addTask")}"]`)
+
+/**
+ * Closes the field of a new task. It stays open after saving (preference "keep adding tasks") and takes the focus back
+ * only when the task is saved, so wait for that before pressing Esc.
+ */
+export const closeTaskInput = async () => {
+    await browser.waitUntil(
+        async () => browser.execute(() => { const el = document.activeElement; return el instanceof HTMLInputElement && el.value === "" }),
+        { timeout: 5_000, timeoutMsg: "the new task field did not take the focus back" },
+    )
+    await browser.keys("Escape")
+}
+/** Adds a task directly in a group with its "Nuovo task" button, typing `text` and confirming with the add button. */
+export const addTaskToGroup = async (group: ChainablePromiseElement | WebdriverIO.Element, text: string) => {
+    await (await groupAddTaskButton(group)).click()
+    await typeInto(directTasks(group).$("input"), text)
+    await directTasks(group).$(`[aria-label="${await tr("common.add")}"]`).click()
+    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+    await closeTaskInput()
+}

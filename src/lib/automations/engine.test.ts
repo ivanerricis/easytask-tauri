@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { groupIds, layout, makeGroups, makeRule, makeTree, taskOf, type TaskSpec } from "@/test/automation-fixtures"
+import { groupIds, layout, makeGroups, makeRule, makeTree, taskOf, withDirectArea, type TaskSpec } from "@/test/automation-fixtures"
 import { allSubtasksCompleted, allTasksCompleted, MAX_AUTOMATION_STEPS, runAutomations, syncStateRules } from "./engine"
 import type { AutomationEvent } from "./types"
 
@@ -710,5 +710,86 @@ describe("syncStateRules", () => {
         const outcome = runAutomations(tree, rules, completed(10))
         expect(outcome.tree).toBe(tree)
         expect(outcome.applied).toEqual([])
+    })
+})
+
+describe("direct area of a group (default section)", () => {
+    // group 1: direct area 90 [D1, D2], sections 1 [T10, T11], 2 [T20]
+    const base = () => withDirectArea(makeTree({ 1: [{ id: 10 }, { id: 11, completed: true }], 2: [{ id: 20 }] }), 1, 90, [{ id: 91 }, { id: 92 }])
+
+    it("moves a completed task into the direct area, at the top or the bottom", () => {
+        const bottom = makeRule(1, { type: "task.completed", sectionId: 1 }, [{ type: "moveTo", sectionId: 90, at: "bottom" }])
+        const { tree } = runAutomations(base(), [bottom], completed(11))
+        expect(layout(tree)).toEqual({ 90: [91, 92, 11], 1: [10], 2: [20] })
+        expect(taskOf(tree, 11).sectionID).toBe(90)
+        const top = makeRule(1, { type: "task.completed", sectionId: 1 }, [{ type: "moveTo", sectionId: 90, at: "top" }])
+        expect(layout(runAutomations(base(), [top], completed(11)).tree)[90]).toEqual([11, 91, 92])
+    })
+
+    it("fires for a task of the direct area when the rule names it, and moves it to a section", () => {
+        const input = withDirectArea(makeTree({ 1: [{ id: 10 }], 2: [] }), 1, 90, [{ id: 91, completed: true }, { id: 92 }])
+        const rule = makeRule(1, { type: "task.completed", sectionId: 90 }, [{ type: "moveTo", sectionId: 2, at: "bottom" }])
+        const { tree, applied } = runAutomations(input, [rule], completed(91))
+        expect(applied).toEqual([rule])
+        expect(layout(tree)).toEqual({ 90: [92], 1: [10], 2: [91] })
+        // The same rule does not fire for a task of a normal section
+        const other = withDirectArea(makeTree({ 1: [{ id: 10, completed: true }], 2: [] }), 1, 90, [])
+        expect(runAutomations(other, [rule], completed(10)).tree).toBe(other)
+    })
+
+    it("a rule on any section also sees the direct area", () => {
+        const input = withDirectArea(makeTree({ 1: [] }), 1, 90, [{ id: 91, completed: true }])
+        const rule = makeRule(1, { type: "task.completed", sectionId: null }, [{ type: "setPriority", value: true }])
+        expect(taskOf(runAutomations(input, [rule], completed(91)).tree, 91).priority).toBe(true)
+    })
+
+    it("task.movedInto fires when a task arrives in the direct area, and not for a move inside it", () => {
+        const rule = makeRule(1, { type: "task.movedInto", sectionId: 90 }, [{ type: "setPriority", value: true }])
+        const moveRule = makeRule(2, { type: "task.completed", sectionId: 1 }, [{ type: "moveTo", sectionId: 90, at: "bottom" }])
+        const { tree, applied } = runAutomations(base(), [moveRule, rule], completed(11))
+        expect(applied).toEqual([moveRule, rule])
+        expect(taskOf(tree, 11).priority).toBe(true)
+        // Reordering inside the direct area is not an arrival
+        const inside = withDirectArea(makeTree({ 1: [] }), 1, 90, [{ id: 91, completed: true }, { id: 92 }])
+        const reorder = makeRule(1, { type: "task.completed", sectionId: 90 }, [{ type: "moveTo", sectionId: 90, at: "bottom" }])
+        const out = runAutomations(inside, [reorder, makeRule(2, { type: "task.movedInto", sectionId: 90 }, [{ type: "setPriority", value: true }])], completed(91))
+        expect(layout(out.tree)[90]).toEqual([92, 91])
+        expect(out.applied).toEqual([reorder])
+    })
+
+    it("a rule that points to a direct area that no longer exists does nothing", () => {
+        const input = base()
+        const rule = makeRule(1, { type: "task.completed", sectionId: 1 }, [{ type: "moveTo", sectionId: 777, at: "top" }])
+        expect(runAutomations(input, [rule], completed(11)).tree).toBe(input)
+    })
+
+    it("group.completed counts the tasks directly in the group", () => {
+        const rule = makeRule(1, { type: "group.completed", groupId: 1 }, [{ type: "setColor", color: "#112233" }])
+        // Every task of the sections is done but a direct one is open: the group is not completed
+        const open = withDirectArea(makeTree({ 1: [{ id: 10, completed: true }] }), 1, 90, [{ id: 91 }])
+        expect(allTasksCompleted(open.groups[0])).toBe(false)
+        expect(runAutomations(open, [rule], completed(10)).tree).toBe(open)
+        const done = withDirectArea(makeTree({ 1: [{ id: 10, completed: true }] }), 1, 90, [{ id: 91, completed: true }])
+        expect(allTasksCompleted(done.groups[0])).toBe(true)
+        expect(runAutomations(done, [rule], completed(91)).tree.groups[0].color).toBe("#112233")
+        // A group whose only tasks are direct counts them too
+        expect(allTasksCompleted(withDirectArea(makeTree({ 1: [] }), 1, 90, [{ id: 91, completed: true }]).groups[0])).toBe(true)
+    })
+
+    it("state rules: the group sees its direct tasks, 'any section' colors only the visible sections", () => {
+        const input = withDirectArea(makeTree({ 1: [{ id: 10, completed: true }] }), 1, 90, [{ id: 91 }])
+        const group = makeRule(1, { type: "group.hasOpenTasks", groupId: 1 }, [{ type: "setColor", color: "#aa0000" }])
+        const sync = syncStateRules(input, [group])
+        expect(sync.touchedGroups).toEqual([1])
+        expect(sync.tree.groups[0].color).toBe("#aa0000")
+
+        // The direct area has an open task but no rule names it: it is never colored by an "any section" rule
+        const any = makeRule(2, { type: "section.hasOpenTasks", sectionId: null }, [{ type: "setColor", color: "#00aa00" }])
+        const synced = syncStateRules(input, [any])
+        expect(synced.touchedSections).toEqual([])
+        expect(synced.tree.groups[0].defaultSection?.color ?? null).toBeNull()
+        // ... but a rule that names it does
+        const named = makeRule(3, { type: "section.hasOpenTasks", sectionId: 90 }, [{ type: "setColor", color: "#0000aa" }])
+        expect(syncStateRules(input, [named]).tree.groups[0].defaultSection?.color).toBe("#0000aa")
     })
 })

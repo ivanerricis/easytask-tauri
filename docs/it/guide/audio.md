@@ -20,7 +20,7 @@ Ogni file ha un menu con **Rinomina**, **Mostra dettagli**, **Aggiorna percorso*
 
 ## Il player flottante
 
-Quando riproduci un file, sopra la nota si apre un piccolo player. Trascina la barra in alto per spostarlo. Ricorda dove l'hai lasciato.
+Quando riproduci un file, sopra la nota si apre un piccolo player. Trascina la barra in alto per spostarlo. Ricorda dove l'hai lasciato. Il pulsante con la puntina a sinistra della barra blocca il player dov'è finché non lo sblocchi.
 
 | Comando | Cosa fa |
 | --- | --- |

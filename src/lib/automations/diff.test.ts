@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest"
 import { buildPositionUpdate } from "@/db/queries/ordering"
 import type { NoteDataTree } from "@/types/types"
 import { moveGroupInList, moveTask, patchGroup, patchSection, patchTask, removeGroup, removeSection, removeTask } from "@/contexts/note-tree-ops"
-import { groupIds, layout, makeGroups, makeRule, makeTree, taskOf } from "@/test/automation-fixtures"
+import { groupIds, layout, makeGroups, makeRule, makeTree, taskOf, withDirectArea } from "@/test/automation-fixtures"
 import { diffGroupStatements, diffSectionStatements, diffTaskStatements, groupChanges, restoreGroups, restoreTasks, taskChanges, withGroups } from "./diff"
 import { runAutomations } from "./engine"
 
@@ -409,5 +409,46 @@ describe("diffSectionStatements", () => {
         const before = patchSection(base(), 1, { color: "#f00" })
         expect(diffSectionStatements(before, removeSection(before, 1))).toEqual([])
         expect(diffSectionStatements(removeSection(before, 1), before)).toEqual([])
+    })
+})
+
+describe("direct area of a group", () => {
+    const direct = () => withDirectArea(makeTree({ 1: [{ id: 10 }, { id: 11 }], 2: [] }), 1, 90, [{ id: 91 }, { id: 92 }])
+
+    it("does not treat the direct tasks as deleted: an unchanged tree has no statements", () => {
+        const tree = direct()
+        expect(diffTaskStatements(tree, tree)).toEqual([])
+        expect(diffTaskStatements(tree, direct())).toEqual([])
+    })
+
+    it("writes the flags of a direct task", () => {
+        const before = direct()
+        expect(diffTaskStatements(before, patchTask(before, 91, { completed: true }))).toEqual([
+            { sql: "UPDATE task SET completed = ? WHERE id = ?", params: [1, 91] },
+        ])
+    })
+
+    it("moves a task into the direct area and renumbers both lists", () => {
+        const before = direct()
+        const after = moveTask(before, 10, { sectionId: 90, parentTaskId: null }, 1)
+        expect(diffTaskStatements(before, after)).toEqual([
+            { sql: expect.stringContaining("sectionID = ?"), params: expect.arrayContaining([90, 10]) },
+            buildPositionUpdate("task", [91, 10, 92]),
+            buildPositionUpdate("task", [11]),
+        ])
+    })
+
+    it("reports a task moved by an automation as touched, and reverts it", () => {
+        const before = direct()
+        const rule = makeRule(1, { type: "task.completed", sectionId: 1 }, [{ type: "moveTo", sectionId: 90, at: "top" }])
+        const { tree } = runAutomations(patchTask(before, 10, { completed: true }), [rule], { type: "task.completed", taskId: 10 })
+        expect(layout(tree)[90]).toEqual([10, 91, 92])
+        expect(taskChanges(before, tree, [10])).toEqual([expect.objectContaining({ id: 10 })])
+    })
+
+    it("writes the color of a section that changed, the default one included", () => {
+        const before = direct()
+        const after = patchSection(before, 90, { color: "#123456" })
+        expect(diffSectionStatements(before, after)).toEqual([{ sql: "UPDATE section SET color = ? WHERE id = ?", params: ["#123456", 90] }])
     })
 })

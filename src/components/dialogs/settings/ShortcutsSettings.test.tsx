@@ -12,10 +12,10 @@ describe("ShortcutsSettings", () => {
     it("records a new binding, saves it and lets the user reset it", async () => {
         setup()
         edit("Cerca una nota")
-        press({ key: "k", ctrlKey: true })
+        press({ key: "j", ctrlKey: true })
 
         await waitFor(() => expect(screen.getByRole("button", { name: "Reimposta: Cerca una nota" })).toBeTruthy())
-        expect(await getShortcutOverrides()).toEqual({ "search-notes": { key: "k", ctrl: true } })
+        expect(await getShortcutOverrides()).toEqual({ "search-notes": { key: "j", ctrl: true } })
 
         fireEvent.click(screen.getByRole("button", { name: "Reimposta: Cerca una nota" }))
         await waitFor(() => expect(screen.queryByRole("button", { name: "Reimposta: Cerca una nota" })).toBeNull())

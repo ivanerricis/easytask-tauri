@@ -419,6 +419,19 @@ describe("audio file count and section separators preferences", () => {
         expect(await getPref("showUnnamedLabels")).toBe(true)
     })
 
+    it("keeps adding tasks by default and leaves the player unpinned", async () => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getPref("keepAddingTasks")).toBe(true)
+        expect(await getPref("audioPlayerPinned")).toBe(false)
+        vi.mocked(store.get).mockResolvedValue("no")
+        expect(await getPref("keepAddingTasks")).toBe(true)
+        expect(await getPref("audioPlayerPinned")).toBe(false)
+        vi.mocked(store.get).mockResolvedValue(false)
+        expect(await getPref("keepAddingTasks")).toBe(false)
+        vi.mocked(store.get).mockResolvedValue(true)
+        expect(await getPref("audioPlayerPinned")).toBe(true)
+    })
+
     it("saves the separators", async () => {
         const p = savePref("showGroupSeparators", true)
         await vi.runAllTimersAsync()
@@ -474,8 +487,8 @@ describe("preference table", () => {
 
     it("keeps the keys saved on disk", () => {
         expect(Object.values(all).map(definition => definition.key).sort()).toEqual([
-            "animationSpeed", "audioPlayerOpacity", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupFolder",
-            "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "hideCompletedTasks", "language",
+            "animationSpeed", "audioPlayerOpacity", "audioPlayerPinned", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupFolder",
+            "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "hideCompletedTasks", "keepAddingTasks", "language",
             "lastWorkspaceId", "newTaskPosition", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
             "showGroupProgressBar", "showGroupSeparators", "showProgressBar", "showSectionCount", "showSubtaskCount", "showTaskCount",
             "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth", "sidebarRightOpen", "sidebarRightWidth",

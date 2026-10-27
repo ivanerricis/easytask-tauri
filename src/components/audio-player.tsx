@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { useRef, useState, useEffect } from "react"
-import { Play, Pause, RotateCcw, RotateCw, SkipBack, Volume2, VolumeX, X } from "lucide-react"
+import { Play, Pause, RotateCcw, Pin, PinOff, RotateCw, SkipBack, Volume2, VolumeX, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
@@ -41,6 +41,10 @@ type Props = {
     volume?: number
     /** Called when the user moves the volume slider. */
     onVolumeChange?: (volume: number) => void
+    /** Pinned: the header is no longer a drag handle (default: not pinned). */
+    pinned?: boolean
+    /** Called when the user toggles the pin button. */
+    onPinnedChange?: (pinned: boolean) => void
 }
 
 /** "3:05", or "1:05:09" from one hour on. */
@@ -131,7 +135,7 @@ const MediaSessionSync = ({ audioRef, title, playing, actions }: MediaSessionSyn
 
 export const AudioPlayer = ({
     src, fileName, listenersHandle, attributesHandle, open = true, onClose, autoPlayKey, toggleKey, onStateChange, onError,
-    volume: volumeProp = 1, onVolumeChange,
+    volume: volumeProp = 1, onVolumeChange, pinned = false, onPinnedChange,
 }: Props) => {
     const { t } = useTranslation()
     const audioRef = useRef<HTMLAudioElement>(null)
@@ -275,12 +279,23 @@ export const AudioPlayer = ({
 
     return (
         <div className={`w-[350px] p-2 rounded-xs bg-background border shadow-lg flex flex-col gap-2 text-muted-foreground ${open ? '' : 'hidden'}`}>
-            {/* The header is the drag handle and only holds the close button */}
+            {/* The header is the drag handle (unless pinned) and holds the pin toggle and the close button */}
             <div
-                className="-mx-2 -mt-2 -mb-2 p-0.5 flex items-center justify-end touch-none cursor-grab active:cursor-grabbing"
-                {...listenersHandle} {...attributesHandle}
+                className={cn("-mx-2 -mt-2 -mb-2 p-0.5 flex items-center justify-between touch-none", pinned ? "cursor-default" : "cursor-grab active:cursor-grabbing")}
+                {...(pinned ? undefined : listenersHandle)} {...attributesHandle}
                 aria-label={t("audio.player.move")}
             >
+                <TooltipCustom text={pinned ? t("audio.player.unpin") : t("audio.player.pin")}>
+                    <Toggle
+                        pressed={pinned}
+                        onPressedChange={onPinnedChange}
+                        aria-label={pinned ? t("audio.player.unpin") : t("audio.player.pin")}
+                        onPointerDown={event => event.stopPropagation()}
+                        className="size-5 min-w-5 shrink-0 p-0 cursor-pointer"
+                    >
+                        {pinned ? <Pin className="!size-4" /> : <PinOff className="!size-4" />}
+                    </Toggle>
+                </TooltipCustom>
                 <TooltipCustom text={t("audio.player.close")}>
                     <Button
                         type="button" variant="ghost" size="icon" onClick={handleClose} aria-label={t("audio.player.close")}

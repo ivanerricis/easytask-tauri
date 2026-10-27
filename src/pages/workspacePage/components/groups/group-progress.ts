@@ -1,4 +1,5 @@
 import type { Group, Task } from "@/types/types"
+import { taskSections } from "@/lib/group-sections"
 
 /** Completion of a list of tasks: every task and every nested subtask counts as one unit. */
 export const countTasks = (tasks: Task[]): { done: number, total: number } => {
@@ -14,11 +15,11 @@ export const countTasks = (tasks: Task[]): { done: number, total: number } => {
     return { done, total }
 }
 
-/** Completion of a group: every task and every subtask counts as one unit. */
+/** Completion of a group: every task and every subtask counts as one unit (the tasks directly in the group included). */
 export const getGroupProgress = (group: Group): { done: number, total: number, percent: number } => {
     let done = 0
     let total = 0
-    for (const section of group.sections) {
+    for (const section of taskSections(group)) {
         const counts = countTasks(section.tasks)
         done += counts.done
         total += counts.total

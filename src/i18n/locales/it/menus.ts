@@ -26,6 +26,7 @@ export const appMenu = {
     undo: "Annulla",
     redo: "Ripeti",
     searchNotes: "Cerca note…",
+    searchInNote: "Cerca nella nota…",
     archive: "Archivio…",
     trash: "Cestino…",
     leftSidebar: "Barra laterale",

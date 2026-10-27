@@ -3,6 +3,8 @@ import {
     byLabel, byText, createFromSidebar, createWorkspace, cssColor, currentLang, domClick, openContextMenu, openWorkspace, sectionCard, tr, treeRow,
     sql, typeInto, waitForApp,
     addTaskButton, topDialog,
+    groupCard, newSectionInGroup,
+    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Auto Workspace"
@@ -73,6 +75,8 @@ const addTask = async (section: string, text: string) => {
     await (await addTaskButton(sectionCard(section))).click()
     await typeInto(sectionCard(section).$("input"), text)
     await sectionCard(section).$(`[aria-label="${await tr("common.add")}"]`).click()
+    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+    await closeTaskInput()
     await browser.waitUntil(async () => (await taskValues(section)).length === before + 1, { timeoutMsg: `task "${text}" not created` })
 }
 
@@ -210,10 +214,7 @@ describe("Automations", () => {
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
 
         for (const title of [TODO, DONE]) {
-            await byText(await tr("sections.new")).click()
-            await typeInto(byLabel(await tr("sections.titleLabel")), title)
-            await browser.keys("Enter")
-            await sectionCard(title).waitForDisplayed()
+            await newSectionInGroup(groupCard(GROUP), title)
         }
         await addTask(TODO, TASK_1)
     })
@@ -491,10 +492,7 @@ describe("Automations", () => {
             await typeInto(byLabel(await tr("groups.nameLabel")), "Auto Layout Group")
             await browser.keys("Enter")
             for (const title of [LONG_A, LONG_B]) {
-                await byText(await tr("sections.new")).click()
-                await typeInto(byLabel(await tr("sections.titleLabel")), title)
-                await browser.keys("Enter")
-                await sectionCard(title).waitForDisplayed()
+                await newSectionInGroup(groupCard("Auto Layout Group"), title)
             }
         })
 
@@ -561,10 +559,7 @@ describe("Automations", () => {
         await browser.keys("Enter")
         await byText(STATE_GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
         for (const title of [WITH_TASK, EMPTY]) {
-            await byText(await tr("sections.new")).click()
-            await typeInto(byLabel(await tr("sections.titleLabel")), title)
-            await browser.keys("Enter")
-            await sectionCard(title).waitForDisplayed()
+            await newSectionInGroup(groupCard(STATE_GROUP), title)
         }
         await addTask(WITH_TASK, STATE_TASK)
 

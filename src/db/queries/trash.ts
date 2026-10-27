@@ -100,7 +100,7 @@ export async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, wor
          SELECT n.id,
                 (SELECT COUNT(*) FROM section_group g WHERE g.noteID = n.id AND g.deleted_at IS NULL) AS groups,
                 (SELECT COUNT(*) FROM section s INNER JOIN section_group g ON g.id = s.groupID
-                  WHERE g.noteID = n.id AND g.deleted_at IS NULL AND s.deleted_at IS NULL) AS sections,
+                  WHERE g.noteID = n.id AND g.deleted_at IS NULL AND s.deleted_at IS NULL AND s.is_default = 0) AS sections,
                 (SELECT COUNT(*) FROM tt INNER JOIN section s ON s.id = tt.sec INNER JOIN section_group g ON g.id = s.groupID
                   WHERE g.noteID = n.id) AS tasks
          FROM note n WHERE n.workspaceID = ? AND ${root("n")}`, [workspaceId, workspaceId])
@@ -111,7 +111,7 @@ export async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, wor
                 INNER JOIN note n ON n.id = g.noteID
                 WHERE ${root("g")} AND n.workspaceID = ? AND s.deleted_at IS NULL`)}
          SELECT g.id,
-                (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id AND s.deleted_at IS NULL) AS sections,
+                (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id AND s.deleted_at IS NULL AND s.is_default = 0) AS sections,
                 (SELECT COUNT(*) FROM tt INNER JOIN section s ON s.id = tt.sec WHERE s.groupID = g.id) AS tasks,
                 (SELECT COUNT(*) FROM audio_file a WHERE a.section_groupID = g.id AND a.deleted_at IS NULL) AS audio
          FROM section_group g INNER JOIN note n ON n.id = g.noteID
@@ -139,7 +139,7 @@ const countTemplateJson = (content: string): TrashCounts => countTemplateContent
  * Retrieves the items moved to the trash that belong to a workspace.
  * Only the items deleted directly are listed (their children are removed with them).
  * Groups have their name (or "Gruppo di N sezioni" when unnamed) and the note name as context;
- * sections and tasks have "Nota X" / "Nota X › Sezione Y" as context,
+ * sections and tasks have "Nota X" / "Nota X › Sezione Y" as context (a task directly in a group: "Nota X › Gruppo Y"),
  * audio files "Nota X › <group name>" ("Gruppo N", N = position of the group in the note, when unnamed),
  * templates "Da: <source note>" (empty when the source note no longer exists).
  * Every item also has a `summary` of what it contained (see formatTrashSummary).
@@ -169,7 +169,7 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
              FROM note n WHERE n.workspaceID = ? AND n.deleted_at IS NOT NULL
              UNION ALL
              SELECT 'section_group', 2, g.id, COALESCE(NULLIF(TRIM(g.name), ''), ''), n.name, g.deleted_at,
-                    (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id)
+                    (SELECT COUNT(*) FROM section s WHERE s.groupID = g.id AND s.is_default = 0)
              FROM section_group g INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND g.deleted_at IS NOT NULL
              UNION ALL
@@ -179,7 +179,7 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
              INNER JOIN note n ON n.id = g.noteID
              WHERE n.workspaceID = ? AND s.deleted_at IS NOT NULL
              UNION ALL
-             SELECT 'task', 4, t.id, t.text, ? || n.name || ' › ' || ? || COALESCE(s.title, ''), t.deleted_at, 0
+             SELECT 'task', 4, t.id, t.text, ? || n.name || ' › ' || CASE WHEN s.is_default = 1 THEN ? || COALESCE(NULLIF(TRIM(g.name), ''), g.position + 1) ELSE ? || COALESCE(s.title, '') END, t.deleted_at, 0
              FROM task t
              INNER JOIN section s ON s.id = t.sectionID
              INNER JOIN section_group g ON g.id = s.groupID
@@ -195,7 +195,7 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
              SELECT 'note_template', 6, t.id, t.name,
                     COALESCE(? || (SELECT n.name FROM note n WHERE n.id = t.sourceNoteID), ''), t.deleted_at, 0
              FROM note_template t WHERE t.workspaceID = ? AND t.deleted_at IS NOT NULL
-             ORDER BY deleted_at DESC, kind, id`, [workspaceId, workspaceId, workspaceId, notePrefix, workspaceId, notePrefix, sectionPrefix, workspaceId, notePrefix, groupPrefix, workspaceId, fromPrefix, workspaceId])
+             ORDER BY deleted_at DESC, kind, id`, [workspaceId, workspaceId, workspaceId, notePrefix, workspaceId, notePrefix, groupPrefix, sectionPrefix, workspaceId, notePrefix, groupPrefix, workspaceId, fromPrefix, workspaceId])
 
         const counts = await loadTrashCounts(db, workspaceId, new Set(rows.map(row => row.type)))
         if (rows.some(row => row.type === "note_template")) {

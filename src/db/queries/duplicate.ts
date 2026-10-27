@@ -53,7 +53,7 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
         name = uniqueCopyName(source.name, new Set(siblings.map(row => row.name)))
         const built = await buildContentWithSectionIds(noteId)
         content = built.content
-        automations = await getDBPortableAutomations(noteId, content, built.sectionIds, built.groupIds)
+        automations = await getDBPortableAutomations(noteId, content, built.sectionIds, built.groupIds, built.defaultSectionIds)
     } catch (error: unknown) {
         throw toAppError(error, e => createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.load", { message: getErrorMessage(e) })))
     }
@@ -65,8 +65,8 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
     const note = tx.add(
         'INSERT INTO note (workspaceID, folderID, name, color, position) VALUES (?, ?, ?, ?, ?)',
         [source.workspaceID, source.folderID, name, source.color, source.position + 1])
-    const { groups, sections } = addNoteContent(tx, tx.idOf(note), content)
-    addNoteAutomations(tx, tx.idOf(note), automations, content, sections, groups)
+    const { groups, sections, defaultSections } = addNoteContent(tx, tx.idOf(note), content)
+    addNoteAutomations(tx, tx.idOf(note), automations, content, sections, groups, defaultSections)
 
     try {
         const results = await tx.run()
@@ -94,7 +94,7 @@ export async function duplicateDBSection(sectionId: number): Promise<number> {
     try {
         const db = await getDB()
         const rows = await db.select<SectionRow[]>(
-            'SELECT id, groupID, title, color, position FROM section WHERE id = ? AND deleted_at IS NULL', [sectionId])
+            'SELECT id, groupID, title, color, position FROM section WHERE id = ? AND deleted_at IS NULL AND is_default = 0', [sectionId])
         if (rows.length === 0)
             throw createError("DUPLICATE_SOURCE_MISSING", i18n.t("errors.duplicate.sectionMissing"))
         source = rows[0]
@@ -110,7 +110,7 @@ export async function duplicateDBSection(sectionId: number): Promise<number> {
     }
 
     const tx = new Transaction()
-    tx.add('UPDATE section SET position = position + 1 WHERE groupID = ? AND position > ? AND deleted_at IS NULL',
+    tx.add('UPDATE section SET position = position + 1 WHERE groupID = ? AND position > ? AND deleted_at IS NULL AND is_default = 0',
         [source.groupID, source.position])
     const [sectionRef] = addSections(tx, [{ groupRef: source.groupID, section: { ...snapshot, title, position: source.position + 1 } }])
     const sectionStatement = sectionRef.$ref

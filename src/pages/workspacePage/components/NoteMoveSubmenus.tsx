@@ -106,7 +106,7 @@ export const TaskMoveSubmenu = ({ taskId, onDone }: TaskMoveSubmenuProps) => {
                     >
                         {destination.type === "section"
                             ? <>
-                                <span className="truncate font-medium" title={t("menu.sectionLabel", { label: destination.label })}>{t("menu.sectionLabel", { label: destination.label })}</span>
+                                <span className="truncate font-medium" title={destination.direct ? destination.label : t("menu.sectionLabel", { label: destination.label })}>{destination.direct ? destination.label : t("menu.sectionLabel", { label: destination.label })}</span>
                                 {destination.hint && <span className="ml-auto shrink-0 text-muted-foreground">{destination.hint}</span>}
                             </>
                             : <span className="truncate" title={t("menu.underTask", { label: destination.label })}><span aria-hidden>↳ </span>{destination.label}</span>}

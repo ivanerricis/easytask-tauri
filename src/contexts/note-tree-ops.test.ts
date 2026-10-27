@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest"
 import type { NoteDataTree } from "@/types/types"
-import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import {
-    buildGroup, buildSection, buildTask, findGroup, findSection, findTask,
+    buildDefaultSection, buildGroup, buildSection, buildTask, findGroup, findSection, findTask,
     insertGroup, insertSection, insertTask, localTimestamp, moveSection, moveTask,
     nextPosition, patchGroup, patchSection, patchTask, removeGroup, removeSection, removeTask,
 } from "./note-tree-ops"
@@ -219,5 +219,63 @@ describe("builders", () => {
             id: 8, sectionID: 7, taskID: 3, position: 2, text: "Testo",
             completed: false, priority: false, description: "", color: null, subtasks: [],
         })
+    })
+})
+
+describe("default section (direct tasks of a group)", () => {
+    // group 1: direct [D1 [D1a]], sections S10 [T100]; group 2: direct []
+    const withDirect = (): NoteDataTree => ({
+        groups: [
+            makeGroup({
+                id: 1, name: "A",
+                defaultSection: makeDefaultSection({
+                    id: 90, groupID: 1,
+                    tasks: [makeTask({ id: 900, sectionID: 90, subtasks: [makeTask({ id: 901, sectionID: 90, taskID: 900 })] })],
+                }),
+                sections: [makeSection({ id: 10, groupID: 1, tasks: [makeTask({ id: 100, sectionID: 10 })] })],
+            }),
+            makeGroup({ id: 2, position: 1, defaultSection: makeDefaultSection({ id: 91, groupID: 2 }) }),
+        ],
+    })
+
+    it("builds a group with its default section", () => {
+        const group = buildGroup(5, 1, null, [], 50)
+        expect(group.defaultSection).toMatchObject({ id: 50, groupID: 5, title: "", position: 0, is_default: true, tasks: [] })
+        expect(group.sections).toEqual([])
+        expect(buildGroup(6, 1, null, []).defaultSection).toBeUndefined()
+        expect(buildDefaultSection(7, 5).is_default).toBe(true)
+    })
+
+    it("finds the default section (index -1) and the tasks directly in a group", () => {
+        const tree = withDirect()
+        expect(findSection(tree, 90)).toMatchObject({ groupId: 1, index: -1 })
+        expect(findTask(tree, 900)).toMatchObject({ parent: { sectionId: 90 }, index: 0 })
+        expect(findTask(tree, 901)).toMatchObject({ parent: { parentTaskId: 900 } })
+    })
+
+    it("patches, inserts, removes and moves the direct tasks", () => {
+        const tree = withDirect()
+        expect(patchTask(tree, 901, { completed: true }).groups[0].defaultSection!.tasks[0].subtasks[0].completed).toBe(true)
+        expect(patchSection(tree, 90, { color: "#fff" }).groups[0].defaultSection).toMatchObject({ color: "#fff" })
+
+        const inserted = insertTask(tree, { sectionId: 91 }, makeTask({ id: 910, sectionID: 91 }))
+        expect(inserted.groups[1].defaultSection!.tasks.map(t => t.id)).toEqual([910])
+        expect(inserted.groups[0]).toBe(tree.groups[0])
+
+        expect(removeTask(tree, 900).groups[0].defaultSection!.tasks).toEqual([])
+
+        // From the direct area to a section and back: the section of the whole subtree follows
+        const toSection = moveTask(tree, 900, { sectionId: 10, parentTaskId: null }, 0)
+        expect(toSection.groups[0].defaultSection!.tasks).toEqual([])
+        expect(toSection.groups[0].sections[0].tasks.map(t => t.id)).toEqual([900, 100])
+        expect(toSection.groups[0].sections[0].tasks[0].subtasks[0]).toMatchObject({ id: 901, sectionID: 10 })
+        const back = moveTask(toSection, 100, { sectionId: 91, parentTaskId: null }, 0)
+        expect(back.groups[1].defaultSection!.tasks[0]).toMatchObject({ id: 100, sectionID: 91 })
+    })
+
+    it("never removes or moves the default section on its own", () => {
+        const tree = withDirect()
+        expect(removeSection(tree, 90)).toBe(tree)
+        expect(moveSection(tree, 90, 2, 0)).toBe(tree)
     })
 })

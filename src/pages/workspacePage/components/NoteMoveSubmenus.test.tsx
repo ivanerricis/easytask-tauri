@@ -3,12 +3,12 @@ import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { toast } from "sonner"
 import type { NoteDataTree } from "@/types/types"
-import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import { SectionMoveSubmenu, TaskMoveSubmenu } from "./NoteMoveSubmenus"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 
 const moveSection = vi.fn().mockResolvedValue(undefined)
-const moveSectionToNewGroup = vi.fn().mockResolvedValue(9)
+const moveSectionToNewGroup = vi.fn().mockResolvedValue({ groupId: 9, defaultSectionId: 10 })
 const moveTask = vi.fn().mockResolvedValue(undefined)
 const rollback = vi.fn()
 const applySectionMove = vi.fn(() => rollback)
@@ -23,7 +23,7 @@ const noteDataTree: NoteDataTree = {
                 makeSection({ id: 2, groupID: 1, title: "Beta" }),
             ],
         }),
-        makeGroup({ id: 2, position: 1, sections: [makeSection({ id: 3, groupID: 2, title: "Gamma" })] }),
+        makeGroup({ id: 2, position: 1, defaultSection: makeDefaultSection({ id: 50, groupID: 2 }), sections: [makeSection({ id: 3, groupID: 2, title: "Gamma" })] }),
     ],
 }
 
@@ -57,7 +57,7 @@ beforeEach(() => {
     applySectionMove.mockReturnValue(rollback)
     applyTaskMove.mockReturnValue(rollback)
     applySectionMoveToNewGroup.mockReturnValue(rollback)
-    moveSectionToNewGroup.mockResolvedValue(9)
+    moveSectionToNewGroup.mockResolvedValue({ groupId: 9, defaultSectionId: 10 })
 })
 
 describe("SectionMoveSubmenu", () => {
@@ -87,7 +87,7 @@ describe("SectionMoveSubmenu", () => {
         await user.click(await screen.findByText("Nuovo gruppo"))
         await waitFor(() => expect(moveSectionToNewGroup).toHaveBeenCalledWith(1, 2))
         expect(applySectionMove).not.toHaveBeenCalled()
-        await waitFor(() => expect(applySectionMoveToNewGroup).toHaveBeenCalledWith(1, 9, 2))
+        await waitFor(() => expect(applySectionMoveToNewGroup).toHaveBeenCalledWith(1, 9, 2, 10))
         expect(rollback).not.toHaveBeenCalled()
     })
 
@@ -115,6 +115,16 @@ describe("TaskMoveSubmenu", () => {
         await user.click(await screen.findByText("Sezione Gamma"))
         await waitFor(() => expect(rollback).toHaveBeenCalledTimes(1))
         expect(toast.error).toHaveBeenCalledWith("invalid")
+    })
+
+    it("offers the direct tasks of a group, labelled with the group, and moves the task there", async () => {
+        const user = await openSubmenu(<TaskMoveSubmenu taskId={1} />)
+        // Not wrapped in "Sezione …": it is the group itself
+        expect(screen.getByText("Task del gruppo")).toBeInTheDocument()
+        expect(screen.queryByText("Sezione Gruppo 2")).not.toBeInTheDocument()
+        await user.click(await screen.findByTitle("Gruppo 2"))
+        await waitFor(() => expect(moveTask).toHaveBeenCalledWith(1, { sectionId: 50, parentTaskId: null }, expect.any(Number)))
+        expect(applyTaskMove).toHaveBeenCalledWith(1, { sectionId: 50, parentTaskId: null }, moveTask.mock.calls[0][2])
     })
 
     it("moves the task to a section as top level task", async () => {

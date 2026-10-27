@@ -41,6 +41,7 @@ describe("PreferencesContext", () => {
             showGroupSeparators: true,
             showUnnamedLabels: true,
             renameOnClick: false,
+            keepAddingTasks: false,
             undoLimit: 200,
             sidebarLeftOpen: false,
             sidebarRightOpen: true,
@@ -56,6 +57,7 @@ describe("PreferencesContext", () => {
             colorIntensity: 1.4,
             audioVolume: 0.3,
             audioPlayerVisible: false,
+            audioPlayerPinned: true,
             audioPlayerScale: 1.2,
             audioPlayerOpacity: 0.6,
             hideCompletedTasks: true,
@@ -96,6 +98,7 @@ describe("PreferencesContext", () => {
             result.current.setUndoLimit(25)
             result.current.setShowUnnamedLabels(false)
             result.current.setRenameOnClick(true)
+            result.current.setKeepAddingTasks(true)
         })
         expect(result.current.showAudioFileCount).toBe(true)
         expect(result.current.showGroupSeparators).toBe(false)
@@ -105,6 +108,8 @@ describe("PreferencesContext", () => {
         expect(prefs.savePref).toHaveBeenCalledWith("undoLimit", 25)
         expect(prefs.savePref).toHaveBeenCalledWith("showUnnamedLabels", false)
         expect(prefs.savePref).toHaveBeenCalledWith("renameOnClick", true)
+        expect(result.current.keepAddingTasks).toBe(true)
+        expect(prefs.savePref).toHaveBeenCalledWith("keepAddingTasks", true)
     })
 
     it("sets the spellcheck of the document from the preference", async () => {
@@ -138,6 +143,7 @@ describe("PreferencesContext", () => {
         expect(result.current.showGroupProgressBar).toBe(true)
         expect(result.current.showUnnamedLabels).toBe(false)
         expect(result.current.renameOnClick).toBe(true)
+        expect(result.current.keepAddingTasks).toBe(true)
         expect(result.current.workspaceView).toBe("grid")
         await waitFor(() => expect(result.current.primaryColor).toBe("#123456"))
     })
@@ -153,6 +159,7 @@ describe("PreferencesContext", () => {
         expect(result.current.showGroupSeparators).toBe(true)
         expect(result.current.showUnnamedLabels).toBe(true)
         expect(result.current.renameOnClick).toBe(false)
+        expect(result.current.keepAddingTasks).toBe(false)
         expect(result.current.undoLimit).toBe(200)
         expect(result.current.sidebarLeftOpen).toBe(false)
         expect(result.current.workspaceView).toBe("list")
@@ -193,10 +200,12 @@ describe("PreferencesContext", () => {
         const { result } = renderHook(() => usePreferences(), { wrapper })
         expect(result.current.audioVolume).toBe(1)
         expect(result.current.audioPlayerVisible).toBe(true)
+        expect(result.current.audioPlayerPinned).toBe(false)
         expect(result.current.audioPlayerScale).toBe(1)
         expect(result.current.audioPlayerOpacity).toBe(1)
         await waitFor(() => expect(result.current.audioVolume).toBe(0.3))
         expect(result.current.audioPlayerVisible).toBe(false)
+        expect(result.current.audioPlayerPinned).toBe(true)
         expect(result.current.audioPlayerScale).toBe(1.2)
         expect(result.current.audioPlayerOpacity).toBe(0.6)
     })
@@ -218,9 +227,14 @@ describe("PreferencesContext", () => {
         expect(result.current.audioPlayerScale).toBe(0.85)
         expect(prefs.savePref).toHaveBeenCalledWith("audioPlayerScale", 0.85)
         expect(prefs.savePref).toHaveBeenCalledWith("audioPlayerVisible", true)
+        expect(result.current.audioPlayerPinned).toBe(true)
+        act(() => result.current.setAudioPlayerPinned(false))
+        expect(prefs.savePref).toHaveBeenCalledWith("audioPlayerPinned", false)
+        act(() => result.current.setAudioPlayerPinned(true))
 
         act(() => result.current.setAudioVolume(0.2))
         act(() => result.current.resetAudioSettings())
+        expect(result.current.audioPlayerPinned).toBe(false)
         expect(result.current.audioVolume).toBe(1)
         expect(result.current.audioPlayerScale).toBe(1)
         expect(result.current.audioPlayerOpacity).toBe(1)

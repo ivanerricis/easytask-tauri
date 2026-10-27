@@ -24,7 +24,7 @@ Everything is stored locally on your computer.
 - **Duplicate** a note (with all its content, audio files excluded) or a section (with its tasks) from its menu; the copy is named "... (copy)" and undoable
 - **Audio**: attach audio files to a note and play them in the app
 - **Undo / redo** with `Ctrl+Z` / `Ctrl+Y` (`Ctrl+Shift+Z` also redoes)
-- **Search notes** with `Ctrl+O`
+- **Search notes** with `Ctrl+K`
 - **Customizable keyboard shortcuts** (Settings > Shortcuts); press `?` to see the list
 - **Settings search**: type in the Settings dialog to find an option by its name
 - **Italian and English** interface: choose the language in Settings, the default follows the system language
@@ -43,7 +43,7 @@ Default shortcuts (all but the fixed ones can be changed in Settings > Shortcuts
 | `Ctrl+N` | New note (new workspace on the home page) |
 | `Ctrl+M` | New folder |
 | `Alt+N` | New group |
-| `Ctrl+O` | Search notes |
+| `Ctrl+K` | Search notes |
 | `Ctrl+L` / `Ctrl+T` | Close the current note / close all notes |
 | `Ctrl+PageDown` / `Ctrl+PageUp` | Next / previous open note (also `Ctrl+Tab` / `Ctrl+Shift+Tab`) |
 | `Ctrl+B` | Toggle the sidebar |

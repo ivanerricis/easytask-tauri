@@ -1,6 +1,6 @@
 import type Database from "@tauri-apps/plugin-sql";
 import i18n from "@/i18n";
-import { APPLICATION_ID, archiveSchema, initialSchema, sectionTitleSchema, taskArchiveSchema } from "./schema/initial";
+import { APPLICATION_ID, archiveSchema, groupStructureSchema, initialSchema, sectionTitleSchema, taskArchiveSchema } from "./schema/initial";
 import { addGroupColorColumn } from "./schema/section_group";
 import { createWorkspaceEditTriggers } from "./schema/workspace_edit";
 import { automationSchema } from "./schema/automation";
@@ -26,6 +26,8 @@ const migrations: string[][] = [
     taskArchiveSchema,
     // v7: optional title of the sections
     sectionTitleSchema,
+    // v8: hidden default section per group (tasks directly in the group), width of the groups
+    groupStructureSchema,
 ];
 
 /**

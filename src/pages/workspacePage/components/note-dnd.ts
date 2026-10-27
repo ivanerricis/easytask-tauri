@@ -1,6 +1,8 @@
 import { getSectionLabel } from "./section/section-label"
 import { getGroupLabel } from "./groups/group-label"
 import type { Group, NoteDataTree, Section, Task } from "@/types/types"
+import i18n from "@/i18n"
+import { isDefaultSection, taskSections } from "@/lib/group-sections"
 
 // Lives with the other tree operations (the automations use it too); re-exported for the drag & drop callers
 export { moveGroupInList } from "@/contexts/note-tree-ops"
@@ -16,9 +18,11 @@ export type NoteDragRef = { kind: NoteDragKind, id: number }
 
 /**
  * What the pointer is over:
- * - section: a section card (drop of a section = before/after it, drop of a task = last top level task)
+ * - section: a section card (drop of a section = before/after it, drop of a task = last top level task); the direct
+ *   area of a group (its default section) is a section too: a section dropped on it counts as a drop on the group
+ * - group: the empty area of a group (a section is appended to it; a dragged group goes before / after it; a task
+ *   becomes the last direct task of the group)
  * - task: a task row (before / after / inside it)
- * - group: the empty area of a group (a section is appended to it; a dragged group goes before / after it)
  * - new-group: an insertion slot between groups (id = index in the list of groups) that creates a new group
  */
 export type NoteOverKind = "section" | "task" | "group" | "new-group"
@@ -33,7 +37,7 @@ export type DropZone = "before" | "after" | "inside" | "inside-start"
 export const ACCEPTS: Record<NoteOverKind, NoteDragKind[]> = {
     section: ["section", "task"],
     task: ["task"],
-    group: ["section", "group"],
+    group: ["section", "group", "task"],
     "new-group": ["section"],
 }
 
@@ -102,7 +106,8 @@ export function indexTree(tree: NoteDataTree): TreeIndex {
         }
     }
     for (const group of tree.groups) {
-        for (const section of group.sections) {
+        // The default section is indexed too: it is where the direct tasks of the group live
+        for (const section of taskSections(group)) {
             sections.set(section.id, { section, groupId: group.id })
             visit(section.tasks ?? [], section.id, null)
         }
@@ -144,7 +149,10 @@ export function computeSectionTarget(
 ): SectionTarget | null {
     const { sections } = indexTree(tree)
     const active = sections.get(activeId)
-    if (!active) return null
+    if (!active || isDefaultSection(active.section)) return null
+    // A section dropped on the direct area of a group is a drop on the group (the area is not part of the section order)
+    const overSection = over.kind === "section" ? sections.get(over.id) : undefined
+    if (overSection && isDefaultSection(overSection.section)) over = { kind: "group", id: overSection.groupId }
     const sourceGroup = tree.groups.find(group => group.id === active.groupId)
     if (!sourceGroup) return null
 
@@ -212,6 +220,13 @@ export function computeTaskTarget(
     if (over.kind === "section") {
         if (!sections.has(over.id)) return null
         sectionId = over.id
+        parentTaskId = null
+        index = siblingsOf(sectionId, null).filter(task => task.id !== activeId).length
+    } else if (over.kind === "group") {
+        // The empty area of a group: the task becomes its last direct task
+        const direct = tree.groups.find(group => group.id === over.id)?.defaultSection
+        if (!direct) return null
+        sectionId = direct.id
         parentTaskId = null
         index = siblingsOf(sectionId, null).filter(task => task.id !== activeId).length
     } else if (over.kind === "task") {
@@ -303,15 +318,18 @@ export type TaskMoveDestination = {
     type: "section" | "task"
     sectionId: number
     parentTaskId: number | null
+    /** The section title, or the group label when `direct` is set. */
     label: string
-    /** Group label (name or "Gruppo N") shown next to a section entry. */
+    /** Group label (name or "Gruppo N") shown next to a section entry ("Task del gruppo" for a direct entry). */
     hint?: string
+    /** True for the entry of the direct area of a group (its default section): `label` is then the group label. */
+    direct?: true
     depth: number
 }
 
 /**
- * Destinations offered by the "Sposta in…" menu of a task: every section (top level) followed by its tasks and
- * subtasks in depth-first order (as a subtask). Excludes the task itself and its descendants, the section where it
+ * Destinations offered by the "Sposta in…" menu of a task: for every group its direct area (one entry, labelled with
+ * the group), then every section (top level), each followed by its tasks and subtasks in depth-first order (as a subtask). Excludes the task itself and its descendants, the section where it
  * is already a top level task and its current parent.
  * @category Note DnD
  */
@@ -332,12 +350,18 @@ export function getTaskMoveDestinations(tree: NoteDataTree, taskId: number): Tas
     }
 
     tree.groups.forEach((group, groupIndex) => {
-        for (const section of group.sections) {
+        for (const section of taskSections(group)) {
+            const direct = isDefaultSection(section)
             if (!(active.parentId == null && active.sectionId === section.id))
-                result.push({
-                    key: `section-${section.id}`, type: "section", sectionId: section.id, parentTaskId: null,
-                    label: getSectionLabel(section), hint: getGroupLabel(group, groupIndex), depth: 0,
-                })
+                result.push(direct
+                    ? {
+                        key: `section-${section.id}`, type: "section", sectionId: section.id, parentTaskId: null,
+                        label: getGroupLabel(group, groupIndex), hint: i18n.t("groups.directTasks"), direct: true, depth: 0,
+                    }
+                    : {
+                        key: `section-${section.id}`, type: "section", sectionId: section.id, parentTaskId: null,
+                        label: getSectionLabel(section), hint: getGroupLabel(group, groupIndex), depth: 0,
+                    })
             visit(section.tasks ?? [], section.id, 1)
         }
     })

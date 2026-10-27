@@ -109,11 +109,11 @@ describe("deleteDBItem", () => {
         expect(db.select).not.toHaveBeenCalled()
     })
 
-    it("deletes only the section, never its group (an emptied group stays)", async () => {
+    it("deletes only the section, never its group (an emptied group stays) and never a default section", async () => {
         await deleteDBItem("section", 7)
         expect(db.select).not.toHaveBeenCalled()
         expect(db.execute).toHaveBeenCalledTimes(1)
-        expect(db.execute).toHaveBeenCalledWith("UPDATE section SET deleted_at = datetime('now','localtime') WHERE id=? AND deleted_at IS NULL", [7])
+        expect(db.execute).toHaveBeenCalledWith("UPDATE section SET deleted_at = datetime('now','localtime') WHERE id=? AND deleted_at IS NULL AND is_default = 0", [7])
     })
 
     it("throws a DELETE_FAILED error when the DB fails", async () => {

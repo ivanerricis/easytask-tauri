@@ -6,7 +6,7 @@ import { byLabel, byText, openContextMenu, sectionCard, topDialog, tr, treeRow, 
 import {
     addGroup, addSection, addSubtask, addTask, applyAppearance, closeDialog, dialogEl, fillDialogName, goCategory, goHome,
     openNote, openSettings, openTaskMenu, openWs, pad, pickColor, recover, setPanel, setSidebar, setTab, settle, submitDialog,
-    taskRowAction, waitDialogGone, waitHome, type Lang, type Theme,
+    showTaskDetails, taskRowAction, waitDialogGone, waitHome, type Lang, type Theme,
 } from "./tour-kit"
 
 /**
@@ -129,7 +129,7 @@ const captureMain = async (compact: boolean) => {
             await setTab("details")
             await shot(5, "workspace-note-details", "Workspace: note + details of the note (no task selected)", "Left sidebar with folder tree and footer, the open note with its groups/sections/tasks, right panel on the Details tab showing the note details.")
         }
-        await taskRowAction(T_LOGIN, `button[aria-label="${await tr("details.showTask")}"]`)
+        await showTaskDetails(T_LOGIN)
         await settle(600)
         await shot(6, compact ? "details-overlay-task" : "workspace-task-details", "Details of the selected task", "A task is selected (highlighted row) and the Details tab shows its path, status, priority, color, description and subtasks.")
         await setTab("history")
@@ -459,9 +459,9 @@ describe("UI tour", () => {
         await recover()
         await settle(500)
         await attempt("note-search", async () => {
-            await browser.keys(["Control", "o"])
+            await browser.keys(["Control", "k"])
             await dialogEl().waitForDisplayed()
-            await shot(52, "note-search-palette", "Note search palette", "Command palette (Ctrl+O) to search a note.")
+            await shot(52, "note-search-palette", "Note search palette", "Command palette (Ctrl+K) to search a note.")
             await closeDialog()
         })
         await recover()

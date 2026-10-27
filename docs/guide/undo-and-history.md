@@ -50,6 +50,8 @@ Open the right panel and choose the **History** tab. Show or hide the panel with
 - Click an entry to go back to that point. EasyTask undoes every action above it, in one step.
 - Below the line, the actions you have undone are marked **Undone**. Click one to redo everything up to it.
 
+An action on several selected items (folders, notes or tasks) is a single entry, however many items it touches.
+
 Doing a new action clears the undone list: you can no longer redo what you undid before.
 
 ## Limits
