@@ -117,6 +117,16 @@ Trascina un task dalla sua riga. Rilascialo:
 
 **Sposta su**, **Sposta giù** e **Sposta in…** nel menu fanno lo stesso senza trascinare.
 
+### Usare la tastiera
+
+Ogni lista di task è un albero per la tastiera e per gli screen reader: `Tab` entra nella lista su un solo task (l'ultimo che ha avuto il focus, o il primo) e il `Tab` successivo ne esce, così non devi attraversare ogni task. Dentro la lista:
+
+- `↑` e `↓` vanno al task visibile precedente e successivo, `Home` e `End` al primo e all'ultimo. Le frecce non escono dalla sezione.
+- `→` apre i sottotask di un task (se sono chiusi) e poi va al primo; `←` li chiude e poi va al task padre.
+- `Spazio` completa o riapre il task, `Invio` ne modifica il testo, `Shift+F10` (o il tasto menu) apre il suo menu.
+- `Alt+↑` e `Alt+↓` spostano il task di un passo tra i fratelli, come **Sposta su** e **Sposta giù** del menu. Il focus resta sul task e uno screen reader annuncia "Spostato in posizione N di M" (o che non si può spostare oltre).
+
+Il task che prende il focus diventa anche quello selezionato, come quando lo clicchi. Quando elimini, archivi o sposti altrove il task con il focus, il focus passa al task successivo (o al precedente) per poter continuare. La selezione da tastiera non è ancora disponibile. Tutti i tasti sono elencati in [Scorciatoie da tastiera](./shortcuts.md#task-da-tastiera).
 ### Selezionare più task
 
 Tieni premuto **Ctrl** (**Cmd** su macOS) e clicca per aggiungere un task alla selezione o toglierlo. Clicca un task con **Maiusc** per selezionare tutti i task visibili tra l'ultimo cliccato e questo, anche tra sezioni e gruppi. **Esc** annulla la selezione, come un normale clic.
