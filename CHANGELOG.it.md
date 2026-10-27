@@ -4,6 +4,37 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-27
+
+### Aggiunto
+
+- Barra del percorso sopra i gruppi, con `Cartella › Sottocartella › Nota`. Fai clic su una voce per mostrarla nella barra laterale sinistra: la barra si apre, le cartelle sopra di essa si espandono e la riga viene portata in vista e selezionata.
+- Cerca nella nota: il pulsante di ricerca nella barra del percorso (o `Ctrl+F`) apre un campo che evidenzia le corrispondenze in task, sottotask, sezioni e gruppi, con il contatore "N di M". `Invio` e `Maiusc+Invio` scorrono i risultati, aprendo i gruppi e le sezioni compressi che li contengono, ed `Esc` chiude la ricerca.
+- I task si possono creare direttamente in un gruppo, senza una sezione: il pulsante tratteggiato "Nuovo task" sotto i task del gruppo ne aggiunge uno, e si spostano da e verso le sezioni (trascinamento, "Sposta in…"). Una nuova sezione si crea dal menu del gruppo ("Nuova sezione").
+- I gruppi si possono ridimensionare: trascina il bordo destro di un gruppo, oppure usa frecce, Home e Fine sul bordo con il focus, e fai doppio clic per tornare alla larghezza automatica. La larghezza è salvata con la nota, e la barra di completamento del gruppo si nasconde quando il gruppo è più stretto di 320 px.
+- Seleziona più task con `Ctrl/Cmd+clic` e `Maiusc+clic` (`Esc` annulla la selezione), poi eliminali, archiviali, colorali o spostali insieme dal menu del tasto destro. Ogni azione è un solo passo di annullamento.
+- Le automazioni possono usare i task creati direttamente in un gruppo come punto di partenza di una regola e come destinazione di uno spostamento («Gruppo X», task diretti).
+- Impostazioni > Note: "Continua ad aggiungere task" (attiva di default). Dopo aver creato un task il campo resta aperto per il successivo; `Esc` o `Invio` su un campo vuoto lo chiudono.
+- Una puntina sul lettore audio flottante lo blocca nella sua posizione, così non si sposta per sbaglio.
+- Clic destro sull'area vuota di una nota: nuovo gruppo, e mostra o nascondi i task completati.
+
+### Modificato
+
+- La scorciatoia di ricerca delle note ora è `Ctrl+K` (prima `Ctrl+O`); `Ctrl+F` cerca nella nota aperta. Entrambe si cambiano in Impostazioni > Scorciatoie.
+- Il pulsante che nasconde i task completati si è spostato dalla scheda della nota alla barra del percorso. La scorciatoia, `Ctrl+Maiusc+H`, è la stessa.
+- Il pulsante in fondo a un gruppo aggiunge un task; le sezioni si creano dal menu del gruppo.
+- La barra di scorrimento orizzontale dei gruppi è più alta e più facile da afferrare.
+- Un task non mostra più il pulsante "Mostra dettagli" quando ci passi sopra con il mouse; la voce resta nel suo menu.
+- I file di esportazione hanno un nuovo formato (versione 2): i file esportati da versioni precedenti non sono più accettati. Il database passa a una nuova versione all'avvio dell'app (prima viene fatta una copia di sicurezza); una versione più vecchia dell'app non riesce ad aprirlo.
+- I riepiloghi di cestino e archivio non contano più la sezione nascosta che contiene i task diretti di un gruppo, e un task direttamente in un gruppo mostra «Nota X › Gruppo Y».
+
+### Corretto
+
+- Il pulsante "…" di gruppi, sezioni e file audio è centrato verticalmente nella sua riga.
+- Quando un gruppo viene allargato, la barra di completamento, i contatori e il pulsante "…" restano sul bordo destro dell'intestazione.
+- Aprire il campo di un nuovo task in un gruppo a larghezza automatica non aggiunge più una barra di scorrimento orizzontale, e i pulsanti di aggiunta e annulla si dividono la riga invece di allungarsi.
+- Un menu aperto mentre si crea un task non si chiude più quando il campo del nuovo task riprende il focus.
+
 ## [0.12.0] - 2026-10-23
 
 ### Aggiunto
@@ -347,7 +378,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.0...v0.10.1
