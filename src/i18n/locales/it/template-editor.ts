@@ -1,0 +1,15 @@
+export const templateEditor = {
+    badge: "Template",
+    tab: "Template: {{name}}",
+    edit: "Modifica",
+    editAria: "Modifica il template {{name}}",
+    pathRoot: "Template",
+    saving: "Salvataggio…",
+    saved: "Salvato",
+    saveError: "Salvataggio non riuscito",
+    retry: "Riprova",
+    hint: "Le modifiche si salvano da sole nel template. Le note già create non cambiano.",
+    closeEditor: "Chiudi l'editor",
+    refreshBlocked: "Chiudi l'editor del template per aggiornarlo da una nota",
+    recovered: "Modifiche al template «{{name}}» recuperate",
+}

@@ -91,6 +91,7 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
     const [uiStore] = useState(createTabUiStore)
     const [activeStore] = useState(() => createExternalStore<number | null>(null))
     const [restoredTick, setRestoredTick] = useState(0)
+    const [restoredFor, setRestoredFor] = useState<number | null>(null)
 
     const notesRef = useRef(notes)
     const restoredRef = useRef(false)
@@ -157,6 +158,7 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
                 if (token === restoreToken.current) {
                     restoredRef.current = true
                     setRestoredTick(tick => tick + 1)
+                    setRestoredFor(workspaceId)
                 }
             }
         }
@@ -194,8 +196,9 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
             activeId: state.activeId,
             tabs,
             currentNote: state.activeId !== null ? byId.get(state.activeId) ?? null : null,
+            restored: workspaceId !== null && restoredFor === workspaceId,
         }
-    }, [notes, state])
+    }, [notes, state, workspaceId, restoredFor])
 
     return (
         <TabsActionsContext.Provider value={actions}>

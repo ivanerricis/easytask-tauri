@@ -11,6 +11,8 @@ export type TabsContextType = {
     tabs: Note[]
     /** The active note, derived from the live notes list. */
     currentNote: Note | null
+    /** True once the tabs saved for the loaded workspace have been read (and reopened, if the preference is on). */
+    restored: boolean
 }
 
 export type TabsActionsType = {

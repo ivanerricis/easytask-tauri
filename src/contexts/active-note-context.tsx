@@ -20,6 +20,8 @@ type NoteCache = {
     /** Evicts the entries of the notes that are not in `keep`. */
     retain: (keep: readonly number[]) => void
     subscribe: (listener: () => void) => () => void
+    /** Listens to the notes whose entry is replaced (see `ActiveNoteActionsType.subscribeNoteChanges`). */
+    subscribeChanges: (listener: (noteId: number) => void) => () => void
 }
 
 /**
@@ -30,6 +32,7 @@ type NoteCache = {
 function createNoteCache(): NoteCache {
     const entries = new Map<number, NoteDataTree>()
     const listeners = new Set<() => void>()
+    const changeListeners = new Set<(noteId: number) => void>()
     const emit = () => listeners.forEach(listener => listener())
 
     return {
@@ -37,6 +40,7 @@ function createNoteCache(): NoteCache {
         set: (noteId, tree) => {
             entries.set(noteId, tree)
             emit()
+            changeListeners.forEach(listener => listener(noteId))
         },
         retain: keep => {
             const keepSet = new Set(keep)
@@ -52,6 +56,10 @@ function createNoteCache(): NoteCache {
         subscribe: listener => {
             listeners.add(listener)
             return () => { listeners.delete(listener) }
+        },
+        subscribeChanges: listener => {
+            changeListeners.add(listener)
+            return () => { changeListeners.delete(listener) }
         },
     }
 }
@@ -153,6 +161,7 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
             getNoteTree: () => getActive()?.tree ?? null,
             getCachedNoteTree: noteId => cache.get(noteId) ?? null,
             subscribeNoteTree: cache.subscribe,
+            subscribeNoteChanges: cache.subscribeChanges,
             ...optimistic,
         }
     }, [cache, loadNote, refreshActiveNote, getActive, commit])
