@@ -1,3 +1,6 @@
+import type { TemplateDraft } from "@/db/queries/template-draft"
+import type { Note } from "@/types/types"
+
 /**
  * Save state of a template draft: `idle` (nothing changed since it was opened), `saving`, `saved` or `error`
  * (the last save failed: the draft stays dirty and is saved again at the next change, flush or retry).
@@ -5,12 +8,14 @@
 export type DraftSaveStatus = "idle" | "saving" | "saved" | "error"
 
 export type DraftAutosaverOptions = {
-    /** Writes the current content of the draft `key` into its template. Must be a no-op when nothing changed. */
-    save: (key: number) => Promise<void>
+    /** Writes the current content of the draft `key` into its template. Resolves false when nothing needed to be written. */
+    save: (key: number) => Promise<boolean | void>
     /** Resolves when the writes in flight to the draft have finished (a save must not read a half written note). */
     whenIdle?: () => Promise<void>
     /** Quiet time after the last change before saving, in milliseconds (default 800). */
     delay?: number
+    /** A save that lasts less than this (default 250 ms) never shows the "saving" state, so a check that finds nothing to write does not flicker. */
+    savingDelay?: number
 }
 
 export type DraftAutosaver = {
@@ -39,6 +44,7 @@ type DraftState = {
 }
 
 export const DRAFT_SAVE_DELAY = 800
+export const DRAFT_SAVING_SHOW_DELAY = 250
 
 /**
  * Creates the autosaver of the template drafts: a debounced save per draft, serialized per draft, that skips the work
@@ -46,7 +52,7 @@ export const DRAFT_SAVE_DELAY = 800
  * @param options The save function and its timing.
  * @category Template drafts
  */
-export function createDraftAutosaver({ save, whenIdle, delay = DRAFT_SAVE_DELAY }: DraftAutosaverOptions): DraftAutosaver {
+export function createDraftAutosaver({ save, whenIdle, delay = DRAFT_SAVE_DELAY, savingDelay = DRAFT_SAVING_SHOW_DELAY }: DraftAutosaverOptions): DraftAutosaver {
     const drafts = new Map<number, DraftState>()
     const listeners = new Set<() => void>()
     const emit = () => listeners.forEach(listener => listener())
@@ -76,16 +82,21 @@ export function createDraftAutosaver({ save, whenIdle, delay = DRAFT_SAVE_DELAY 
     const run = (key: number, state: DraftState): Promise<boolean> => {
         const next = state.queue.then(async () => {
             if (!state.dirty) return state.status !== "error"
+            let showSaving: ReturnType<typeof setTimeout> | null = null
             try {
                 await whenIdle?.()
                 // Changes made while waiting are part of this save
                 state.dirty = false
-                setStatus(state, "saving")
-                await save(key)
-                // A change made during the save schedules its own run
-                setStatus(state, state.dirty ? "saving" : "saved")
+                const previous = state.status
+                showSaving = setTimeout(() => setStatus(state, "saving"), savingDelay)
+                const written = await save(key)
+                clearTimeout(showSaving)
+                // Nothing was written: an unchanged draft keeps its state. A change made during the save schedules its own run
+                if (written === false && (previous === "idle" || previous === "saved")) setStatus(state, state.dirty ? "saving" : previous)
+                else setStatus(state, state.dirty ? "saving" : "saved")
                 return true
             } catch {
+                if (showSaving !== null) clearTimeout(showSaving)
                 state.dirty = true
                 setStatus(state, "error")
                 return false
@@ -131,5 +142,18 @@ export function createDraftAutosaver({ save, whenIdle, delay = DRAFT_SAVE_DELAY 
             listeners.add(listener)
             return () => { listeners.delete(listener) }
         },
+    }
+}
+
+/**
+ * The note that stands for a draft in the list of the tabs (the tabs are derived from a list of notes): it has no
+ * workspace and no folder, the name of the template and its color.
+ * @param draft The draft.
+ */
+export function draftToNote(draft: TemplateDraft): Note {
+    return {
+        id: draft.noteId, workspaceID: null, folderID: null, name: draft.templateName, position: 0,
+        creation_date: "", creation_time: "", edit_date: "", edit_time: "",
+        color: draft.color ?? undefined, templateID: draft.templateId, groups: [],
     }
 }

@@ -22,6 +22,7 @@ const tree: WorkspaceDataTree = {
 const data = {
     getTemplates: vi.fn(),
     updateTemplateFromNote: vi.fn(),
+    duplicateTemplate: vi.fn(),
     createTemplateFromNote: vi.fn(),
     createNoteFromTemplate: vi.fn(),
     notes: [] as unknown[],
@@ -32,6 +33,8 @@ const data = {
     workspaceDataTree: tree as WorkspaceDataTree | null,
 }
 const tabs = { openNote: vi.fn() }
+const editor = { drafts: [] as { noteId: number, templateId: number }[], openTemplateEditor: vi.fn(), flushTemplate: vi.fn(), refreshDrafts: vi.fn() }
+vi.mock("@/contexts/use-template-drafts", () => ({ useTemplateDrafts: () => editor.drafts, useTemplateDraftActions: () => editor }))
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => data,
     useWorkspaceState: () => data,
@@ -82,6 +85,11 @@ describe("DialogTemplates", () => {
         data.getWorkspaceData.mockResolvedValue(undefined)
         data.deleteItem.mockResolvedValue(undefined)
         data.renameItem.mockResolvedValue(undefined)
+        data.duplicateTemplate.mockResolvedValue(9)
+        editor.drafts = []
+        editor.openTemplateEditor.mockResolvedValue(undefined)
+        editor.flushTemplate.mockResolvedValue(true)
+        editor.refreshDrafts.mockResolvedValue(undefined)
     })
 
     it("lists the templates with source note, date and counts", async () => {
@@ -204,6 +212,87 @@ describe("DialogTemplates", () => {
         render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
         await screen.findByText("Retro")
         expect(screen.queryByLabelText("Cerca template")).not.toBeInTheDocument()
+    })
+
+    describe("editing a template", () => {
+        it("opens the editor of the template and closes the dialog", async () => {
+            const user = userEvent.setup()
+            const onOpenChange = vi.fn()
+            render(<DialogTemplates isOpen onOpenChange={onOpenChange} />)
+            await user.click(await screen.findByRole("button", { name: "Modifica il template Retro" }))
+
+            await waitFor(() => expect(editor.openTemplateEditor).toHaveBeenCalledWith(expect.objectContaining({ id: 1, name: "Retro" })))
+            expect(onOpenChange).toHaveBeenCalledWith(false)
+        })
+
+        it("keeps the dialog open and shows the error when the editor cannot be opened", async () => {
+            const user = userEvent.setup()
+            const onOpenChange = vi.fn()
+            editor.openTemplateEditor.mockRejectedValue(new Error("boom"))
+            render(<DialogTemplates isOpen onOpenChange={onOpenChange} />)
+            await user.click(await screen.findByRole("button", { name: "Modifica il template Retro" }))
+
+            expect(await screen.findByText("boom")).toBeInTheDocument()
+            expect(onOpenChange).not.toHaveBeenCalledWith(false)
+        })
+
+        it("does not refresh a template from a note while its editor is open, and says why", async () => {
+            const user = userEvent.setup()
+            editor.drafts = [{ noteId: 50, templateId: 1 }]
+            render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
+            const refresh = await screen.findByRole("button", { name: "Aggiorna Retro dalla nota" })
+
+            expect(refresh).toHaveAttribute("aria-disabled", "true")
+            expect(refresh).toHaveAccessibleDescription("Chiudi l'editor del template per aggiornarlo da una nota")
+            await user.click(refresh)
+            expect(screen.queryByText("Aggiornare il template dalla nota?")).not.toBeInTheDocument()
+        })
+
+        it("saves the open editor before creating a note from the template", async () => {
+            const user = userEvent.setup()
+            render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
+            await user.click(await screen.findByRole("button", { name: "Crea nota da Retro" }))
+
+            expect(editor.flushTemplate).toHaveBeenCalledWith(1)
+            expect(await screen.findByLabelText("Nome")).toBeInTheDocument()
+        })
+
+        it("does not create the note when the open editor could not be saved", async () => {
+            const user = userEvent.setup()
+            editor.flushTemplate.mockResolvedValue(false)
+            render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
+            await user.click(await screen.findByRole("button", { name: "Crea nota da Retro" }))
+
+            expect(await screen.findByText("Salvataggio non riuscito")).toBeInTheDocument()
+            expect(screen.queryByLabelText("Nome")).not.toBeInTheDocument()
+        })
+
+        it("duplicates a template from the more actions menu, after saving its editor", async () => {
+            const user = userEvent.setup()
+            render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
+            await user.click(await screen.findByRole("button", { name: "Altre azioni per Retro" }))
+            await user.click(await screen.findByRole("menuitem", { name: "Duplica" }))
+
+            await waitFor(() => expect(data.duplicateTemplate).toHaveBeenCalledWith(1))
+            expect(editor.flushTemplate).toHaveBeenCalledWith(1)
+            expect(toast.success).toHaveBeenCalledWith("Template duplicato")
+            await waitFor(() => expect(data.getTemplates).toHaveBeenCalledTimes(2))
+        })
+
+        it("refreshes a template from another note, after a confirmation, and not while its editor is open", async () => {
+            const user = userEvent.setup()
+            data.notes = [{ id: 30, name: "Altra nota", folderID: null }]
+            data.workspaceDataTree = { rootFolders: [], rootNotes: [{ id: 30, workspaceID: 4, folderID: null, name: "Altra nota", position: 0, creation_date: "", creation_time: "", edit_date: "", edit_time: "", groups: [] }] }
+            render(<DialogTemplates isOpen onOpenChange={vi.fn()} />)
+            await user.click(await screen.findByRole("button", { name: "Altre azioni per Retro" }))
+            await user.click(await screen.findByRole("menuitem", { name: "Aggiorna da un'altra nota…" }))
+            await user.click(await screen.findByText("Altra nota"))
+
+            expect(await screen.findByText(/Altra nota/, { selector: "[data-slot=\"dialog-description\"], p" })).toBeInTheDocument()
+            expect(data.updateTemplateFromNote).not.toHaveBeenCalled()
+            await user.click(await screen.findByRole("button", { name: "Sovrascrivi template" }))
+            await waitFor(() => expect(data.updateTemplateFromNote).toHaveBeenCalledWith(1, 30))
+        })
     })
 
     describe("creating a template from an existing note", () => {

@@ -1,10 +1,11 @@
 import { useCallback, useMemo } from "react"
 import { countDBTemplates, createDBNoteFromTemplate, createDBTemplateFromNote, getDBTemplates, updateDBTemplateFromNote } from "@/db/queries/template"
+import { duplicateDBTemplate } from "@/db/queries/duplicate"
 import { buildNote, getFolderNotes, insertTreeItem, removeTreeItem } from "../workspace-tree-ops"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type TemplateActions = Pick<WorkspaceActionsType,
-    "getTemplates" | "countTemplates" | "createTemplateFromNote" | "updateTemplateFromNote" | "createNoteFromTemplate">
+    "getTemplates" | "countTemplates" | "createTemplateFromNote" | "updateTemplateFromNote" | "duplicateTemplate" | "createNoteFromTemplate">
 
 /**
  * Note templates. Every write bumps templatesVersion.
@@ -42,14 +43,29 @@ export function useTemplateActions({ withLoading, setTemplatesVersion, applyTree
     }), [withLoading, setTemplatesVersion])
 
     /**
-     * Refreshes the snapshot of a template from its source note.
+     * Refreshes the snapshot of a template from its source note, or from another note of the workspace (which then
+     * becomes the source of the template).
      * @param templateID - The ID of the template.
-     * @throws Will throw an error when the source note no longer exists.
+     * @param noteID - The note to copy; the source note when omitted.
+     * @throws Will throw an error when the note no longer exists.
      * @category Workspace Data Context
      */
-    const updateTemplateFromNote = useCallback((templateID: number) => withLoading(async () => {
-        await updateDBTemplateFromNote(templateID)
+    const updateTemplateFromNote = useCallback((templateID: number, noteID?: number) => withLoading(async () => {
+        await updateDBTemplateFromNote(templateID, noteID)
         setTemplatesVersion(version => version + 1)
+    }), [withLoading, setTemplatesVersion])
+
+    /**
+     * Duplicates a template in the same workspace ("<name> (copy)").
+     * @param templateID - The ID of the template.
+     * @returns The ID of the copy.
+     * @throws Will throw an error when the template no longer exists.
+     * @category Workspace Data Context
+     */
+    const duplicateTemplate = useCallback((templateID: number) => withLoading(async () => {
+        const id = await duplicateDBTemplate(templateID)
+        setTemplatesVersion(version => version + 1)
+        return id
     }), [withLoading, setTemplatesVersion])
 
     /**
@@ -75,5 +91,5 @@ export function useTemplateActions({ withLoading, setTemplatesVersion, applyTree
             return id
         }), [withLoading, applyTree, getWorkspaceData])
 
-    return useMemo(() => ({ getTemplates, countTemplates, createTemplateFromNote, updateTemplateFromNote, createNoteFromTemplate }), [ getTemplates, countTemplates, createTemplateFromNote, updateTemplateFromNote, createNoteFromTemplate ])
+    return useMemo(() => ({ getTemplates, countTemplates, createTemplateFromNote, updateTemplateFromNote, duplicateTemplate, createNoteFromTemplate }), [ getTemplates, countTemplates, createTemplateFromNote, updateTemplateFromNote, duplicateTemplate, createNoteFromTemplate ])
 }

@@ -2,11 +2,14 @@ import i18n from "@/i18n"
 import { useCallback, useMemo, useRef, useState } from "react"
 import type { Folder, WorkspaceDataTree } from "@/types/types"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
+import { getDBTemplateDrafts, type TemplateDraft } from "@/db/queries/template-draft"
+import { draftToNote } from "@/lib/template-draft"
 import { reportError } from "@/lib/report-error"
 import { buildWorkspaceTree } from "../tree-builders"
 import { flattenTree } from "../workspace-tree-ops"
 import { TabsProvider } from "../tabs-context"
 import { ActiveNoteProvider } from "../active-note-context"
+import { TemplateDraftsProvider } from "../template-drafts-context"
 import { WorkspaceActionsContext, WorkspaceLoadingContext, WorkspaceStateContext } from "./context"
 import { useTreeActions } from "./tree"
 import { useNoteContentActions } from "./note-content"
@@ -25,6 +28,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const [error, setError] = useState<string | null>(null)
     const [workspaceDataTree, setTreeState] = useState<WorkspaceDataTree | null>(null)
     const [loadedWorkspaceId, setLoadedWorkspaceId] = useState<number | null>(null)
+    // The working copies of the templates being edited (see TemplateDraftsProvider): they have a tab but are no part of the tree
+    const [drafts, setDrafts] = useState<TemplateDraft[]>([])
 
     const [currentFolder, setCurrentFolder] = useState<Folder | null>(null)
 
@@ -51,6 +56,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     // Bumped by every reload request: only the latest one applies its response
     const reloadSeq = useRef(0)
     const pendingOps = useRef(0)
+    const idleWaiters = useRef<(() => void)[]>([])
     const tabsBridge = useRef<TabsBridge | null>(null)
 
     /**
@@ -67,8 +73,17 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         } finally {
             pendingOps.current -= 1
             setIsLoading(pendingOps.current > 0)
+            if (pendingOps.current === 0) idleWaiters.current.splice(0).forEach(resolve => resolve())
         }
     }, [])
+
+    /**
+     * Resolves when no operation is in flight (a save of a template draft must not read a half written note).
+     * @category WorkspaceData Context
+     */
+    const whenIdle = useCallback(() => pendingOps.current === 0
+        ? Promise.resolve()
+        : new Promise<void>(resolve => { idleWaiters.current.push(resolve) }), [])
 
     /**
      * Runs an operation that can change the trash content and bumps trashVersion once it succeeds.
@@ -119,7 +134,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         try {
             for (let attempt = 0; ; attempt++) {
                 const seq = optimisticSeq.current
-                const data = await getDBWorkspaceData(workspaceID)
+                // The drafts come with the tree, so the tabs saved for the workspace can be restored to them
+                const [data, workspaceDrafts] = await Promise.all([getDBWorkspaceData(workspaceID), getDBTemplateDrafts(workspaceID, true)])
                 if (requestSeq !== reloadSeq.current) return
                 // An optimistic update of the same workspace arrived meanwhile: this response predates it, so fetch again
                 // (a bounded number of times: the last response is applied anyway, it is the freshest one)
@@ -128,6 +144,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
                 treeRef.current = tree
                 loadedWorkspaceRef.current = workspaceID
                 setTreeState(tree)
+                setDrafts(workspaceDrafts)
                 setLoadedWorkspaceId(workspaceID)
                 setError(null)
                 return
@@ -165,6 +182,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         setCurrentFolder(null)
         loadedWorkspaceRef.current = null
         setLoadedWorkspaceId(null)
+        setDrafts([])
     }, [])
 
     /* ------------------------------------------------------------------------------------ */
@@ -178,6 +196,9 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const trashActions = useTrashActions(runtime)
     const archiveActions = useArchiveActions(runtime)
     const templateActions = useTemplateActions(runtime)
+
+    // The tabs are derived from the notes of the tree and from the drafts of the templates that are not in the trash
+    const tabNotes = useMemo(() => [...notes, ...drafts.filter(draft => !draft.trashed).map(draftToNote)], [notes, drafts])
 
     const state = useMemo<WorkspaceStateType>(() => ({
         folders, notes, workspaceDataTree, currentFolder, error, trashVersion, archiveVersion, audioVersion, templatesVersion, loadedWorkspaceId
@@ -202,9 +223,11 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         <WorkspaceLoadingContext.Provider value={isLoading}>
             <WorkspaceStateContext.Provider value={state}>
                 <WorkspaceActionsContext.Provider value={actions}>
-                    <TabsProvider notes={notes} workspaceId={loadedWorkspaceId} bridgeRef={tabsBridge}>
+                    <TabsProvider notes={tabNotes} workspaceId={loadedWorkspaceId} bridgeRef={tabsBridge}>
                         <ActiveNoteProvider>
-                            {children}
+                            <TemplateDraftsProvider workspaceId={loadedWorkspaceId} drafts={drafts} setDrafts={setDrafts} whenIdle={whenIdle}>
+                                {children}
+                            </TemplateDraftsProvider>
                         </ActiveNoteProvider>
                     </TabsProvider>
                 </WorkspaceActionsContext.Provider>

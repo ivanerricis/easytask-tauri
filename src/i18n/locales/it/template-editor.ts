@@ -12,4 +12,15 @@ export const templateEditor = {
     closeEditor: "Chiudi l'editor",
     refreshBlocked: "Chiudi l'editor del template per aggiornarlo da una nota",
     recovered: "Modifiche al template «{{name}}» recuperate",
+    moreAria: "Altre azioni per {{name}}",
+    moreTooltip: "Altre azioni",
+    duplicate: "Duplica",
+    duplicated: "Template duplicato",
+    refreshFromOther: "Aggiorna da un'altra nota…",
+    pickOther: {
+        title: "Scegli la nota",
+        description: "Il contenuto del template sarà sostituito con quello della nota scelta, che diventa la nota di origine.",
+        placeholder: "Cerca la nota da cui aggiornare il template…",
+    },
+    refreshOtherDescription: "Il contenuto del template \"{{name}}\" verrà sostituito con quello attuale della nota \"{{note}}\", che diventa la sua nota di origine. Le note già create dal template non cambiano.",
 }

@@ -70,6 +70,7 @@ vi.mock("@/db/queries/template", () => ({
     getDBTemplates: vi.fn(),
     updateDBTemplateFromNote: vi.fn(),
 }))
+vi.mock("@/db/queries/template-draft", () => ({ getDBTemplateDrafts: vi.fn(async () => []), createDBTemplateDraft: vi.fn(), saveDBTemplateDraft: vi.fn(), deleteDBTemplateDraft: vi.fn() }))
 vi.mock("@/db/queries/shared_queries", () => ({
     renameDBItem: vi.fn(),
     updateDBColor: vi.fn(),

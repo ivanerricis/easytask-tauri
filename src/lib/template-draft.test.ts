@@ -157,12 +157,50 @@ describe("createDraftAutosaver", () => {
 
         saver.notify(1)
         await saver.flush(1)
-        const calls = listener.mock.calls.length
-        expect(calls).toBeGreaterThanOrEqual(2) // saving, saved
+        expect(listener).toHaveBeenCalledTimes(1) // saved (a quick save never shows "saving")
 
         stop()
         saver.notify(1)
         await saver.flush(1)
-        expect(listener.mock.calls.length).toBe(calls)
+        expect(listener).toHaveBeenCalledTimes(1)
+    })
+
+    it("shows the saving state only when the save lasts", async () => {
+        let release!: () => void
+        const save = vi.fn(() => new Promise<void>(resolve => { release = resolve }))
+        const saver = createDraftAutosaver({ save, savingDelay: 250 })
+
+        saver.notify(1)
+        const flushed = saver.flush(1)
+        await vi.advanceTimersByTimeAsync(100)
+        expect(saver.getStatus(1)).toBe("idle")
+
+        await vi.advanceTimersByTimeAsync(200)
+        expect(saver.getStatus(1)).toBe("saving")
+
+        release()
+        await flushed
+        expect(saver.getStatus(1)).toBe("saved")
+    })
+
+    it("a save that wrote nothing leaves the state as it was", async () => {
+        const save = vi.fn().mockResolvedValueOnce(true).mockResolvedValue(false)
+        const saver = createDraftAutosaver({ save })
+
+        saver.notify(1)
+        await saver.flush(1)
+        expect(saver.getStatus(1)).toBe("saved")
+
+        // Checked again (the note was reloaded): still saved, nothing flickers
+        const listener = vi.fn()
+        saver.subscribe(listener)
+        saver.notify(1)
+        await saver.flush(1)
+        expect(saver.getStatus(1)).toBe("saved")
+        expect(listener).not.toHaveBeenCalled()
+
+        saver.notify(2)
+        await saver.flush(2)
+        expect(saver.getStatus(2)).toBe("idle")
     })
 })

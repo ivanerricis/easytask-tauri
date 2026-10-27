@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
+import { useTemplateDraftActions } from "@/contexts/use-template-drafts"
 import { reportError } from "@/lib/report-error"
 import { exportItemToFile, exportItemsToFile, exportWorkspaceToFile, importItemsFromFile, importWorkspaceFromFile } from "@/lib/workspace-transfer"
 import { getErrorMessage } from "@/lib/utils"
@@ -16,18 +17,21 @@ import { useImportNames } from "@/contexts/import-names-context"
 export function useWorkspaceTransfer() {
     const { getWorkspaces } = useWorkspace()
     const chooseNames = useImportNames()
+    const { flushAll } = useTemplateDraftActions()
     const [isBusy, setBusy] = useState(false)
 
     const exportWorkspace = useCallback(async (workspace: { id: number, name: string }) => {
         setBusy(true)
         try {
+            // The templates are part of the export: the changes of an open template editor are saved first
+            await flushAll()
             if (await exportWorkspaceToFile(workspace)) toast.success(i18n.t("transfer.exported"))
         } catch (error) {
             reportError(error, getErrorMessage(error))
         } finally {
             setBusy(false)
         }
-    }, [])
+    }, [flushAll])
 
     const importWorkspace = useCallback(async () => {
         setBusy(true)
