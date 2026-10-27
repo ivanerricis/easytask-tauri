@@ -30,8 +30,10 @@ type AddTaskProps = {
 }
 
 /**
- * Inline "new subtask" row, laid out like a subtask row of Task.tsx (same padding, indent and font size).
- * - Enter adds and keeps the input open and focused for the next one.
+ * Inline "new subtask" row, laid out like a subtask row of Task.tsx (same padding, indent and font size). It follows the same
+ * rule as the field of a new task:
+ * - Enter adds the subtask. With keepAddingTasks the input stays open and focused for the next one, and Enter on the empty
+ *   input closes it; without it the input closes after adding.
  * - Escape or the X button closes it (discarding the text).
  * - Blur / click outside closes it only when empty: typed text is never lost silently.
  * While saving the input is read-only (not disabled, so it keeps focus) and further submits are ignored.
@@ -42,7 +44,7 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
     const { saving, run } = useSubmitOnce()
     const { createSubTask } = useWorkspaceActions()
     const { appendTask, applyTaskMove } = useActiveNoteActions()
-    const { newTaskPosition } = usePreferences()
+    const { newTaskPosition, keepAddingTasks } = usePreferences()
     const sizes = TASK_DENSITIES[useTaskDensity()]
     const recorder = useUndoRecorder()
     const inputRef = useRef<HTMLInputElement>(null)
@@ -54,7 +56,8 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
         await run(async () => {
             try {
                 const id = await createSubTask(parentTaskId, value, newTaskPosition)
-                setText("")
+                if (keepAddingTasks) setText("")
+                else onClose?.()
                 appendTask(id, { parentTaskId }, value)
                 // The cache appends it: at the top it moves before its siblings, as the database ordered it
                 if (newTaskPosition === "top" && sectionId !== null) applyTaskMove(id, { sectionId, parentTaskId }, 0)
@@ -62,7 +65,7 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
             } catch (error: unknown) {
                 reportError(error, getErrorMessage(error) || t("tasks.errors.createSubtask"))
             } finally {
-                inputRef.current?.focus()
+                if (keepAddingTasks) inputRef.current?.focus()
             }
         })
     }
@@ -86,6 +89,8 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
                         onKeyDown={(e) => {
                             if (e.key === "Escape") { e.preventDefault(); onClose?.() }
                             else if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault()
+                            // Enter on the empty input ends the series, like the field of a new task (the disabled submit button blocks the form there)
+                            else if (e.key === "Enter" && keepAddingTasks && !text.trim() && !saving) { e.preventDefault(); onClose?.() }
                         }}
                         onBlur={() => {
                             if (!text.trim() && !saving) onClose?.()

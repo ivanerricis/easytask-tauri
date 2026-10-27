@@ -244,7 +244,8 @@ describe("AddTask", () => {
             expect(ctx.createTask).not.toHaveBeenCalled()
         })
 
-        it("keeps the input open and empty to add the next subtask", async () => {
+        it("with keepAddingTasks on, keeps the input open and empty to add the next subtask", async () => {
+            prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: true }
             const user = userEvent.setup()
             const onClose = vi.fn()
             render(<AddTask sectionId={3} parentTaskId={7} onClose={onClose} />)
@@ -256,6 +257,31 @@ describe("AddTask", () => {
             await user.type(input, "Two{Enter}")
             await waitFor(() => expect(ctx.createSubTask).toHaveBeenLastCalledWith(7, "Two", "bottom"))
             expect(onClose).not.toHaveBeenCalled()
+        })
+
+        it("with keepAddingTasks on, Enter on the empty input ends the series", async () => {
+            prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: true }
+            const user = userEvent.setup()
+            const onClose = vi.fn()
+            render(<AddTask sectionId={3} parentTaskId={7} onClose={onClose} />)
+            const input = screen.getByPlaceholderText(placeholder)
+            await user.type(input, "One{Enter}")
+            await waitFor(() => expect(ctx.appendTask).toHaveBeenCalled())
+            expect(onClose).not.toHaveBeenCalled()
+
+            await user.type(input, "{Enter}")
+            expect(onClose).toHaveBeenCalledTimes(1)
+            expect(ctx.createSubTask).toHaveBeenCalledTimes(1)
+        })
+
+        it("with keepAddingTasks off, closes after adding the subtask", async () => {
+            const user = userEvent.setup()
+            const onClose = vi.fn()
+            render(<AddTask sectionId={3} parentTaskId={7} onClose={onClose} />)
+            await user.type(screen.getByPlaceholderText(placeholder), "One{Enter}")
+
+            await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
+            expect(ctx.createSubTask).toHaveBeenCalledWith(7, "One", "bottom")
         })
 
         it("closes on Escape", async () => {
