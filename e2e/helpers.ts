@@ -342,3 +342,14 @@ export const addTaskToGroup = async (group: ChainablePromiseElement | WebdriverI
     // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
     await closeTaskInput()
 }
+
+/** Opens the dialog of the templates (button at the bottom of the left sidebar) and returns it. */
+export const openTemplatesDialog = async () => {
+    await $(`//button[.//span[normalize-space()=${JSON.stringify(await tr("dialogs.templates.title"))}]]`).click()
+    const dialog = $('[role="dialog"]')
+    await dialog.waitForDisplayed({ timeoutMsg: "the templates dialog did not open" })
+    return dialog
+}
+
+/** The tab of the editor of a template (its label carries the full name in the title). */
+export const templateEditorTab = async (name: string) => $(`[title=${cssString(await tr("templateEditor.tab", { name }))}]`)
