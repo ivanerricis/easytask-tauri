@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Edit a template like a normal note: "Edit" in the templates dialog opens it in a "Template" tab. Changes are saved on their own, undo and redo work as in any note, and if the app closes the tab comes back at the next start (when "Reopen notes" is on) or the changes are saved into the template. The "⋯" menu of a template has "Duplicate" and "Refresh from another note"; "Refresh from the note" stays off while the editor is open.
+- A thin line with a "+" appears between two tasks when the mouse is over it (also above the first task, between subtasks and among the tasks of a group): a click opens the field of a new task in that place. With "Keep adding tasks" on, the field moves under the new task. Undo removes it in one step. Settings > Notes: "Line to insert a task" (on by default).
+- The tasks can be used with the keyboard: Tab enters a list in one stop, Up and Down, Home and End move between the tasks of the same list, Right and Left open and close the subtasks (or go to the first child or the parent), Space completes, Enter renames, Shift+F10 or the Menu key opens the menu, and Alt+Up and Alt+Down move the task and say its new position to screen readers. The shortcuts have a new "Tasks" category.
+- Selected tasks are marked with a dashed outline and a hidden "selected" text for screen readers, not only with a color, and a counter ("3 selected") shows when two or more are selected.
+- A "+" button in the path bar, the first on the left, creates a new group (same as `Alt+N`); it replaces the dashed box after the groups.
+
+### Changed
+
+- When the window gets smaller and the note would be narrower than 420 px, the sidebars close on their own (the right one first, then the left one) and they are not reopened by themselves.
+- Audio files of a group never scroll: the list shows every file above the sections.
+- Small improvements from the UI review: names for screen readers, a thicker focus ring, the resize handle of the sidebars, the search field of the notes, the details panel and the error page.
+- The database is upgraded to version 11 when the app starts (a backup is made first, and it is automatic): the notes being edited as templates are kept in the same table as the notes. Modification dates do not change; an older version of the app cannot open the upgraded database.
 ## [0.14.0] - 2026-10-27
 
 ### Added
