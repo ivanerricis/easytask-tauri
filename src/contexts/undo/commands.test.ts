@@ -319,6 +319,20 @@ describe("moves", () => {
         expect(ctx.rollbacks.section).toHaveBeenCalledTimes(1)
     })
 
+    it("sectionMove keeps beforeList on redo, so the section lands above the list again", async () => {
+        const command = commands.sectionMove(8, "S", { groupId: 1, index: 0 }, { groupId: 1, index: 1, beforeList: true })
+        await command.redo()
+        expect(ctx.deps.note.applySectionMove).toHaveBeenLastCalledWith(8, 1, 1, true)
+        expect(ctx.deps.workspace.moveSection).toHaveBeenLastCalledWith(8, 1, 1, true)
+    })
+
+    it("directMove has its own label, with the name of the group", () => {
+        const label = commands.directMove(1, "Spesa", 0, 2).label
+        expect(label).toContain("Sposta task del gruppo")
+        expect(label).toContain("Spesa")
+        expect(commands.directMove(1, "", 0, 2).label).toBe("Sposta task del gruppo")
+    })
+
     it("sectionMove: undoing puts the list of the direct tasks back where it was, when it moved", async () => {
         const place = { groupId: 1, index: 0, listIndex: 0 }
         const command = commands.sectionMove(8, "S", place, { groupId: 1, index: 1 })

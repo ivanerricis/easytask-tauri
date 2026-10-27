@@ -4,8 +4,8 @@ import { GroupTasks } from "./GroupTasks"
 import { makeDefaultSection, makeGroup, makeTask } from "@/test/ui-fixtures"
 import type { Task } from "@/types/types"
 
-const drop = { zone: null as string | null }
-const useNoteDrop = vi.fn((kind: string, id: number) => { void kind; void id; return { setNodeRef: vi.fn(), zone: drop.zone, active: null } })
+const drop = { zone: null as string | null, dragging: null as string | null }
+const useNoteDrop = vi.fn((kind: string, id: number) => { void kind; void id; return { setNodeRef: vi.fn(), zone: drop.zone, active: drop.dragging ? { kind: drop.dragging } : null } })
 const dnd = { targetSectionId: null as number | null, activeKind: null as string | null }
 vi.mock("../note-dnd-state", () => ({
     useNoteDrop: (kind: string, id: number) => useNoteDrop(kind, id),
@@ -28,6 +28,7 @@ vi.mock("@/lib/report-error", async importOriginal => ({ ...await importOriginal
 beforeEach(() => {
     vi.clearAllMocks()
     drop.zone = null
+    drop.dragging = null
     dnd.targetSectionId = null
     dnd.activeKind = null
     ensureDBDefaultSection.mockResolvedValue(9)
@@ -75,6 +76,26 @@ describe("GroupTasks", () => {
         dnd.targetSectionId = 13
         rerender(<GroupTasks group={{ ...withTasks("Uno") }} />)
         expect(container.querySelector("[data-direct-tasks]")).not.toHaveClass("ring-2")
+    })
+
+    it("draws an insertion line above or below the list for a dragged section, instead of outlining it", () => {
+        drop.dragging = "section"
+        drop.zone = "before"
+        const { container, rerender } = render(<GroupTasks group={withTasks("Uno")} />)
+        const area = container.querySelector("[data-direct-tasks]") as HTMLElement
+        expect(area).not.toHaveClass("ring-2")
+        const line = area.querySelector(".bg-primary") as HTMLElement
+        expect(line.className.split(/\s+/)).toContain("-top-[3px]")
+
+        drop.zone = "after"
+        rerender(<GroupTasks group={{ ...withTasks("Uno") }} />)
+        expect((area.querySelector(".bg-primary") as HTMLElement).className.split(/\s+/)).toContain("-bottom-[3px]")
+    })
+
+    it("positions the area so the insertion line is drawn inside it, with the classes kept apart", () => {
+        const { container } = render(<GroupTasks group={withTasks("Uno")} />)
+        const classes = (container.querySelector("[data-direct-tasks]") as HTMLElement).className.split(/\s+/)
+        expect(classes).toEqual(expect.arrayContaining(["relative", "flex", "flex-col", "gap-1", "w-full", "rounded-xs"]))
     })
 
     it("creates the default section once when the group has none, then reloads the note", async () => {

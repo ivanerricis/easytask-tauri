@@ -222,15 +222,16 @@ export function insertGroup(tree: NoteDataTree, group: Group, index?: number): N
 /**
  * Inserts a section in a group at `index` among the sections (default: the end). Same tree when the group does not exist.
  * Like the database, a section inserted exactly where the list of the direct tasks is goes after the list; one inserted
- * before it pushes the list down by one place.
+ * before it pushes the list down by one place. With `beforeList` a section inserted exactly where the list is goes right
+ * before it instead (the list is pushed down too).
  */
-export function insertSection(tree: NoteDataTree, groupId: number, section: Section, index?: number): NoteDataTree {
+export function insertSection(tree: NoteDataTree, groupId: number, section: Section, index?: number, beforeList = false): NoteDataTree {
     if (findSection(tree, section.id) || !tree.groups.some(group => group.id === groupId)) return tree
     return { groups: tree.groups.map(group => group.id === groupId
         ? {
             ...group,
             sections: insertAt(group.sections, section, index),
-            ...(group.defaultSection ? { defaultIndex: defaultIndexAfterInsert(directIndexOf(group), index ?? group.sections.length) } : {}),
+            ...(group.defaultSection ? { defaultIndex: defaultIndexAfterInsert(directIndexOf(group), Math.min(index ?? group.sections.length, group.sections.length), beforeList) } : {}),
         }
         : group) }
 }
@@ -290,13 +291,13 @@ export function moveGroupInList(groups: Group[], groupId: number, index: number)
 
 /**
  * Moves a section to a group at `index` among the destination sections (counted without the section itself,
- * like the database move). Same tree when the section or the group does not exist.
+ * like the database move). `beforeList`: see {@link insertSection}. Same tree when the section or the group does not exist.
  */
-export function moveSection(tree: NoteDataTree, sectionId: number, targetGroupId: number, index: number): NoteDataTree {
+export function moveSection(tree: NoteDataTree, sectionId: number, targetGroupId: number, index: number, beforeList = false): NoteDataTree {
     const found = findSection(tree, sectionId)
     if (!found || found.index < 0 || !tree.groups.some(group => group.id === targetGroupId)) return tree
     const moved: Section = { ...found.section, groupID: targetGroupId }
-    return insertSection(removeSection(tree, sectionId), targetGroupId, moved, index)
+    return insertSection(removeSection(tree, sectionId), targetGroupId, moved, index, beforeList)
 }
 
 /**

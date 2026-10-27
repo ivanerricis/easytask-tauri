@@ -126,11 +126,12 @@ export function useNoteMoves() {
 
     const moveSectionTo = useCallback((sectionId: number, target: SectionTarget) => recorder.track((async () => {
         const from = captureSectionPlace(getNoteTree(), sectionId)
-        const rollback = target.type === "group" ? applySectionMove(sectionId, target.groupId, target.index) : null
+        const flag = target.type === "group" && target.beforeList ? [true] as const : [] as const
+        const rollback = target.type === "group" ? applySectionMove(sectionId, target.groupId, target.index, ...flag) : null
         try {
             if (target.type === "group") {
-                await moveSection(sectionId, target.groupId, target.index)
-                if (from) recorder.sectionMove(sectionId, from.name, from, { groupId: target.groupId, index: target.index })
+                await moveSection(sectionId, target.groupId, target.index, ...flag)
+                if (from) recorder.sectionMove(sectionId, from.name, from, { groupId: target.groupId, index: target.index, ...(target.beforeList ? { beforeList: true } : {}) })
             } else {
                 // The new group only exists once the write is done; without its id the note is reloaded in background
                 const { groupId, defaultSectionId } = await moveSectionToNewGroup(sectionId, target.index)
@@ -145,12 +146,13 @@ export function useNoteMoves() {
 
     /** Moves the list of the direct tasks of a group before the `index`-th section of the group (after all of them when `index` is not less than their number). */
     const moveDirectSectionTo = useCallback((groupId: number, index: number) => recorder.track((async () => {
-        const from = getNoteTree()?.groups.find(group => group.id === groupId)?.defaultIndex ?? 0
+        const group = getNoteTree()?.groups.find(candidate => candidate.id === groupId)
+        const from = group?.defaultIndex ?? 0
         const rollback = applyDirectSectionMove(groupId, index)
         try {
             await moveDirectSection(groupId, index)
             const to = getNoteTree()?.groups.find(group => group.id === groupId)?.defaultIndex ?? index
-            if (to !== from) recorder.directMove(groupId, "", from, to)
+            if (to !== from) recorder.directMove(groupId, group?.name ?? "", from, to)
         } catch (err) {
             rollback()
             reportError(err, getErrorMessage(err))

@@ -50,11 +50,12 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
      * @param sectionID - The ID of the section to move.
      * @param targetGroupID - The destination group ID (same note).
      * @param targetIndex - The index among the destination sections (clamped).
+     * @param beforeList - A section moved exactly where the list of the direct tasks is goes right before it.
      * @throws Will throw an error if the move is invalid or the destination already has a section with the same title.
      * @category Workspace Data Context
      */
-    const moveSection = useCallback((sectionID: number, targetGroupID: number, targetIndex: number) =>
-        withTrashChange(() => moveDBSection(sectionID, targetGroupID, targetIndex)), [withTrashChange])
+    const moveSection = useCallback((sectionID: number, targetGroupID: number, targetIndex: number, beforeList?: boolean) =>
+        withTrashChange(() => moveDBSection(sectionID, targetGroupID, targetIndex, ...(beforeList ? [{ beforeList }] as const : [] as const))), [withTrashChange])
 
     /**
      * Moves the list of the direct tasks of a group among the sections of the group. It does NOT reload the data: the caller

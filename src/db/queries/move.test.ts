@@ -550,6 +550,42 @@ describe("the list of the direct tasks among the sections", () => {
         expect(allPositions(1)).toEqual([0, 1, 2, 3])
     })
 
+    it("beforeList puts the section right above the list, where the plain index would put it below", async () => {
+        await seedSections()
+        await moveDBDirectSection(1, 2)
+        // [S1, S2, (list), S3]: S1 down one place = after S2, above the list (the plain index 1 means before S3: after the list)
+        await moveDBSection(sectionId("S1"), 1, 1, { beforeList: true })
+        expect(order(1)).toEqual(["S2", "S1", "(list)", "S3"])
+        await moveDBSection(sectionId("S1"), 1, 0)
+        expect(order(1)).toEqual(["S1", "S2", "(list)", "S3"])
+        await moveDBSection(sectionId("S1"), 1, 1)
+        expect(order(1)).toEqual(["S2", "(list)", "S1", "S3"])
+        expect(allPositions(1)).toEqual([0, 1, 2, 3])
+    })
+
+    it("beforeList at the end of a group whose list is last keeps the list last: one write, no second move", async () => {
+        await seedSections()
+        await moveDBDirectSection(1, 3)
+        // [S1, S2, S3, (list)]: S2 down one place = the last place among the sections
+        await moveDBSection(sectionId("S2"), 1, 2, { beforeList: true })
+        expect(order(1)).toEqual(["S1", "S3", "S2", "(list)"])
+        // without the flag the section would pass the list as well
+        await moveDBSection(sectionId("S1"), 1, 2)
+        expect(order(1)).toEqual(["S3", "S2", "(list)", "S1"])
+    })
+
+    it("beforeList changes nothing when the list is not at the insertion point", async () => {
+        await seedSections()
+        await moveDBSection(sectionId("S3"), 1, 1, { beforeList: true })
+        expect(order(1)).toEqual(["(list)", "S1", "S3", "S2"])
+        // [(list), S1, S3, S2]: S2 to index 1 sits before S3, after S1: the list is not at that point
+        await moveDBSection(sectionId("S2"), 1, 2, { beforeList: true })
+        expect(order(1)).toEqual(["(list)", "S1", "S3", "S2"])
+        // at the front the list IS at the insertion point: the section goes above it
+        await moveDBSection(sectionId("S1"), 1, 0, { beforeList: true })
+        expect(order(1)).toEqual(["S1", "(list)", "S3", "S2"])
+    })
+
     it("a section stepping over the list is the same as the list stepping over the section", async () => {
         await seedSections()
         // [(list), S1, S2, S3]: the list down by one place is S1 up by one place

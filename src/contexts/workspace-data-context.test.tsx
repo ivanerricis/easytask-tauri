@@ -675,6 +675,8 @@ describe("WorkspaceDataContext", () => {
             await act(() => result.current.moveSectionToNewGroup(4, 0))
             await act(() => result.current.moveTask(9, { sectionId: 4, parentTaskId: 7 }, 3))
             expect(moveDBSection).toHaveBeenCalledWith(4, 2, 1)
+            await act(() => result.current.moveSection(4, 2, 1, true))
+            expect(moveDBSection).toHaveBeenLastCalledWith(4, 2, 1, { beforeList: true })
             expect(moveDBSectionToNewGroup).toHaveBeenCalledWith(4, 0)
             expect(moveDBTask).toHaveBeenCalledWith(9, { sectionId: 4, parentTaskId: 7 }, 3)
             expect(getDBNoteData).not.toHaveBeenCalled()

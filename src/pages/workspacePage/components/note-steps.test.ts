@@ -160,11 +160,16 @@ describe("steps with the list of the direct tasks among the sections", () => {
         expect(getSectionStep(tree(1), 1, -1)).toBeNull()
     })
 
-    it("a section stepping to the end of a group whose list is last stays before the list", () => {
+    it("a section stepping down onto the place of the list stays above it (one move, beforeList)", () => {
         // [S1, S2, S3, L]: S2 down lands on the last place among the sections, where the move would also pass the list
-        expect(getSectionStep(tree(3), 2, 1)).toEqual({ type: "group", groupId: 1, index: 2, thenListIndex: 3 })
+        expect(getSectionStep(tree(3), 2, 1)).toEqual({ type: "group", groupId: 1, index: 2, beforeList: true })
+        // [S1, S2, L, S3]: S1 down = after S2, above the list
+        expect(getSectionStep(tree(2), 1, 1)).toEqual({ type: "group", groupId: 1, index: 1, beforeList: true })
+        // going up never needs it: the section lands above the section it jumps over, wherever the list is
+        expect(getSectionStep(tree(3), 3, -1)).toEqual({ type: "group", groupId: 1, index: 1 })
         // ...but with the list elsewhere (or before the end) nothing more is needed
         expect(getSectionStep(tree(2), 2, 1)).toEqual({ type: "direct", groupId: 1, index: 1 })
+        expect(getSectionStep(tree(1), 1, 1)).toEqual({ type: "direct", groupId: 1, index: 0 })
         expect(getSectionStep(tree(0), 2, 1)).toEqual({ type: "group", groupId: 1, index: 2 })
         // S3 is already the last section but the list is below it: it jumps over the list
         expect(getSectionStep(tree(3), 3, 1)).toEqual({ type: "direct", groupId: 1, index: 2 })

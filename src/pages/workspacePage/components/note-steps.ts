@@ -43,14 +43,13 @@ export function getTaskStep(tree: NoteDataTree, taskId: number, step: Step, hide
 
 /**
  * One step of a section among the rows of its group, where the list of the direct tasks is one of the rows:
- * - "group": the section moves to `index` among the sections (`moveSectionTo`); `thenListIndex` is set when the list has to be moved
- *   right after it, to `thenListIndex` sections before it (the section reaches the end of the group, where the move would
- *   otherwise land after the list too);
+ * - "group": the section moves to `index` among the sections (`moveSectionTo`); `beforeList` is set when the list sits exactly
+ *   there (right after the section it jumps over): the move would land after the list too, so it asks to stay before it;
  * - "direct": the section jumps over the list, which is the same as moving the list the other way (`moveDirectSectionTo`).
  * @category Note DnD
  */
 export type SectionStepTarget =
-    | { type: "group", groupId: number, index: number, thenListIndex?: number }
+    | { type: "group", groupId: number, index: number, beforeList?: true }
     | { type: "direct", groupId: number, index: number }
 
 /**
@@ -73,9 +72,9 @@ export function getSectionStep(tree: NoteDataTree, sectionId: number, step: Step
     }
     const index = stepIndex(siblings, sectionId, step, () => true)
     if (index === null) return null
-    // The last place among the sections is after the list too: when the list is last, the section has to stay before it
-    const stayBeforeList = step > 0 && group?.defaultSection && index === siblings.length - 1 && directIndexOf(group) === siblings.length
-    return { type: "group", groupId: info.groupId, index, ...(stayBeforeList ? { thenListIndex: siblings.length } : {}) }
+    // The place after the section it jumps over is also after the list when the list follows that section: stay before the list
+    const beforeList = step > 0 && !!group?.defaultSection && directIndexOf(group) === index + 1
+    return { type: "group", groupId: info.groupId, index, ...(beforeList ? { beforeList: true as const } : {}) }
 }
 
 /**

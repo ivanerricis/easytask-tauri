@@ -80,7 +80,8 @@ export type WorkspaceActionsType = {
 
     moveTreeItem: (itemType: "folder" | "note", itemId: number, targetFolderId: number | null, targetIndex: number) => Promise<void>
 
-    moveSection: (sectionID: number, targetGroupID: number, targetIndex: number) => Promise<void>
+    /** `beforeList`: a section moved exactly where the list of the direct tasks is goes right before it, not after it. */
+    moveSection: (sectionID: number, targetGroupID: number, targetIndex: number, beforeList?: boolean) => Promise<void>
     /** Resolves with the id of the new group, so the caller can update the note without reloading. */
     moveDirectSection: (groupID: number, index: number) => Promise<void>
     moveSectionToNewGroup: (sectionID: number, groupPosition: number) => Promise<{ groupId: number, defaultSectionId: number }>

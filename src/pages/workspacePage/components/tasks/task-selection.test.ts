@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
+import { makeDefaultSection, makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { NoteDataTree } from "@/types/types"
 import { flattenVisibleTasks, getSelectedTasks, getTaskDestinations, getTopMostTasks, parseTaskKey, taskKey } from "./task-selection"
 
@@ -77,5 +77,30 @@ describe("getTaskDestinations", () => {
             [11, false, "B", "Gruppo 1"],
             [12, false, "C", "Altro"],
         ])
+    })
+})
+
+describe("the list of the direct tasks placed among the sections", () => {
+    // Gruppo 1: section A (3, 4), the list (1, 2), section B (5)
+    const placed: NoteDataTree = {
+        groups: [makeGroup({
+            id: 1, position: 0, defaultIndex: 1,
+            defaultSection: makeDefaultSection({ id: 99, groupID: 1, tasks: [makeTask({ id: 1, sectionID: 99 }), makeTask({ id: 2, sectionID: 99 })] }),
+            sections: [
+                makeSection({ id: 10, groupID: 1, title: "A", tasks: [makeTask({ id: 3, sectionID: 10 }), makeTask({ id: 4, sectionID: 10 })] }),
+                makeSection({ id: 11, groupID: 1, title: "B", tasks: [makeTask({ id: 5, sectionID: 11 })] }),
+            ],
+        })],
+    }
+
+    it("the range selection follows the real order: the tasks of the list sit between the sections", () => {
+        expect(ids(flattenVisibleTasks(placed, all))).toEqual([3, 4, 1, 2, 5])
+        expect(ids(flattenVisibleTasks({ groups: [{ ...placed.groups[0], defaultIndex: 2 }] }, all))).toEqual([3, 4, 5, 1, 2])
+        // the list is never closed, the sections around it can be
+        expect(ids(flattenVisibleTasks(placed, { ...all, isSectionOpen: () => false }))).toEqual([1, 2])
+    })
+
+    it("the destinations of the multi-selection list the area of the group where it is", () => {
+        expect(getTaskDestinations(placed).map(d => [d.sectionId, d.direct])).toEqual([[10, false], [99, true], [11, false]])
     })
 })

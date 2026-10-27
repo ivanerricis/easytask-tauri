@@ -59,6 +59,8 @@ export const menu = {
     moveDown: "Sposta giù",
     moveLeft: "Sposta a sinistra",
     moveRight: "Sposta a destra",
+    moveDirectUp: "Sposta task del gruppo su",
+    moveDirectDown: "Sposta task del gruppo giù",
     moveTo: "Sposta in…",
     newGroup: "Nuovo gruppo",
     sectionLabel: "Sezione {{label}}",

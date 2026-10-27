@@ -12,7 +12,7 @@ import { useItemMenuState } from "@/hooks/use-item-menu-state";
 import { useRenameAfterClose } from "@/hooks/use-rename-after-close";
 import { useActiveNoteActions } from "@/contexts/use-active-note";
 import { useAudioActions } from "@/contexts/use-audio";
-import { GroupStepMoves } from "../NoteStepMoves";
+import { DirectStepMoves, GroupStepMoves } from "../NoteStepMoves";
 import type { Group } from "@/types/types";
 import { useState, type ReactElement } from "react";
 import { useUndoRecorder } from "@/contexts/undo/use-undo";
@@ -94,6 +94,7 @@ export const ButtonMenuGroup = ({ group, onRename, onAddSection, children }: Pro
                     menu.close()
                 }}
             />}
+            <DirectStepMoves groupId={group.id} onDone={menu.close} />
             <Separator />
             <ButtonInPopover
                 text={t("common.rename")}

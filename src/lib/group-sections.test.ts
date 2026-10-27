@@ -77,4 +77,11 @@ describe("defaultIndexAfterInsert", () => {
         expect(defaultIndexAfterInsert(0, 0)).toBe(0)
         expect(defaultIndexAfterInsert(2, -4)).toBe(3)
     })
+
+    it("with beforeList a section inserted exactly where the list is goes before it, pushing it down", () => {
+        expect(defaultIndexAfterInsert(2, 2, true)).toBe(3)
+        expect(defaultIndexAfterInsert(2, 1, true)).toBe(3)
+        expect(defaultIndexAfterInsert(2, 3, true)).toBe(2)
+        expect(defaultIndexAfterInsert(0, 0, true)).toBe(1)
+    })
 })

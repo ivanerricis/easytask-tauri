@@ -20,11 +20,13 @@ const SECTION_UNIQUE_MESSAGE = () => i18n.t("errors.move.sectionUnique")
  * @param sectionId ID of the section to move.
  * @param targetGroupId ID of the destination group (same note, neither deleted nor archived).
  * @param targetIndex Position among the destination sections (0 based, clamped).
+ * @param options beforeList: when the list of the direct tasks sits exactly at that position (the index counts only the sections
+ * with a header, so the section would go after the list) the section goes right before the list instead.
  * @throws SECTION_MOVE_INVALID when the section or the destination group is not valid.
  * @throws SECTION_EXISTS when the destination group already has a section with the same title.
  * @category Database Queries
  */
-export async function moveDBSection(sectionId: number, targetGroupId: number, targetIndex: number) {
+export async function moveDBSection(sectionId: number, targetGroupId: number, targetIndex: number, options: { beforeList?: boolean } = {}) {
     const db = await getDB()
 
     try {
@@ -41,7 +43,7 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
         if (!targets[0] || targets[0].noteID !== section.noteID)
             throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.groupInvalid"))
 
-        const order = insertAmongSections(await groupOrderRows(db, targetGroupId, sectionId), targetIndex, sectionId)
+        const order = insertAmongSections(await groupOrderRows(db, targetGroupId, sectionId), targetIndex, sectionId, options.beforeList)
 
         const tx = new Transaction()
         addPositions(tx, "section", order, { column: "groupID", value: targetGroupId })

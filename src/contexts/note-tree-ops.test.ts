@@ -330,6 +330,22 @@ describe("the list of the direct tasks among the sections", () => {
         expect(listIndex(afterList)).toBe(1)
     })
 
+    it("moveSection with beforeList lands right above the list instead of right below it", () => {
+        // [S10, S11, (list), S12]: S10 stepping down one place = after S11, above the list
+        const above = moveSection(tree(), 10, 1, 1, true)
+        expect(above.groups[0].sections.map(s => s.id)).toEqual([11, 10, 12])
+        expect(listIndex(above)).toBe(2)
+        // [S10, S11, S12, (list)]: to the very end, still above the list
+        const last = moveDirectSection(tree(), 1, 3)
+        const atEnd = moveSection(last, 10, 1, 2, true)
+        expect(atEnd.groups[0].sections.map(s => s.id)).toEqual([11, 12, 10])
+        expect(listIndex(atEnd)).toBe(3)
+        // an index far past the end behaves like the end
+        expect(listIndex(moveSection(last, 10, 1, 99, true))).toBe(3)
+        // not where the list is: the flag changes nothing
+        expect(listIndex(moveSection(tree(), 12, 1, 0, true))).toBe(3)
+    })
+
     it("moveSection between groups changes the index of both lists", () => {
         const next = moveSection(tree(), 10, 2, 0)
         expect(next.groups.map(g => g.defaultIndex)).toEqual([1, 0])

@@ -38,6 +38,7 @@ export const undo: Translation["undo"] = {
         delete: "Delete {{type}}",
         create: "Create {{type}}",
         move: "Move {{type}}",
+        moveDirect: "Move group tasks",
         deleteMany_one: "Delete {{count}} item",
         deleteMany_other: "Delete {{count}} items",
         colorContent: "Color content of {{type}}",

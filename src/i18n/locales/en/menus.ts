@@ -61,6 +61,8 @@ export const menu: Translation["menu"] = {
     moveDown: "Move down",
     moveLeft: "Move left",
     moveRight: "Move right",
+    moveDirectUp: "Move group tasks up",
+    moveDirectDown: "Move group tasks down",
     moveTo: "Move to…",
     newGroup: "New group",
     sectionLabel: "Section {{label}}",

@@ -35,7 +35,7 @@ export type NoteOptimisticActions = {
     appendSection: (id: number, groupId: number, title: string) => Rollback
     appendTask: (id: number, parent: TaskParent, text: string) => Rollback
     /** Same semantics as the database move: `index` counts the destination siblings without the moved item. */
-    applySectionMove: (sectionId: number, targetGroupId: number, index: number) => Rollback
+    applySectionMove: (sectionId: number, targetGroupId: number, index: number, beforeList?: boolean) => Rollback
     /** Moves the list of the direct tasks of a group before the `index`-th section with a header (after all of them when `index` is not less than their number). */
     applyDirectSectionMove: (groupId: number, index: number) => Rollback
     /**
@@ -184,12 +184,12 @@ export function createNoteOptimisticActions(store: NoteTreeStore): BaseNoteOptim
             },
             t => removeTask(t, id)) : null,
 
-        applySectionMove: (sectionId, targetGroupId, index) => {
+        applySectionMove: (sectionId, targetGroupId, index, beforeList) => {
             const found = lookup(t => findSection(t, sectionId))
             if (!found) return noop
             const before = defaultIndexesOf(lookup(t => t), found.groupId, targetGroupId)
             return apply(
-                t => moveSection(t, sectionId, targetGroupId, index),
+                t => moveSection(t, sectionId, targetGroupId, index, beforeList),
                 t => restoreDefaultIndexes(moveSection(t, sectionId, found.groupId, found.index), before))
         },
         applyDirectSectionMove: (groupId, index) => {

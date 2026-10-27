@@ -88,13 +88,16 @@ export async function groupOrderRows(db: Database, groupId: number, excludeId: n
 /**
  * Inserts `id` in the rows of a group before the `index`-th section with a header (the default section is not counted), or
  * at the very end when `index` is not less than the number of those sections. The index is clamped. Returns the new order.
+ * When the default section sits exactly at the insertion point (right before that section, or last) the id normally goes after it;
+ * with `beforeList` it goes right before it instead (the place between the section above the list and the list).
  * @category Database Queries
  */
-export function insertAmongSections(rows: readonly OrderRow[], index: number, id: number): number[] {
+export function insertAmongSections(rows: readonly OrderRow[], index: number, id: number, beforeList = false): number[] {
     const ids = rows.map(row => row.id)
     const headed = rows.filter(row => !row.isDefault)
     const at = clampIndex(index, headed.length)
-    const before = at < headed.length ? ids.indexOf(headed[at].id) : ids.length
+    let before = at < headed.length ? ids.indexOf(headed[at].id) : ids.length
+    if (beforeList && before > 0 && rows[before - 1].isDefault) before -= 1
     ids.splice(before, 0, id)
     return ids
 }

@@ -39,9 +39,11 @@ export function taskSections(group: Pick<Group, "defaultSection" | "defaultIndex
 
 /**
  * The `defaultIndex` after a section with a header is inserted at `index` among the sections (before the `index`-th one, in
- * the order of the database: a section inserted exactly where the list is goes after the list).
+ * the order of the database: a section inserted exactly where the list is goes after the list, unless `beforeList` is set:
+ * then it goes right before the list, which is pushed down by one place).
  * @category Lib
  */
-export function defaultIndexAfterInsert(defaultIndex: number, index: number): number {
-    return Math.max(0, Math.trunc(index) || 0) < defaultIndex ? defaultIndex + 1 : defaultIndex
+export function defaultIndexAfterInsert(defaultIndex: number, index: number, beforeList = false): number {
+    const at = Math.max(0, Math.trunc(index) || 0)
+    return at < defaultIndex || (beforeList && at === defaultIndex) ? defaultIndex + 1 : defaultIndex
 }

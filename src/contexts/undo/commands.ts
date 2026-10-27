@@ -53,7 +53,7 @@ export type TreeMoveStep = { itemType: TreeItemType, id: number, name: string, f
  * captured (how many sections come before it): a section index alone cannot tell on which side of the list the section was,
  * so undoing a move puts the list back too.
  */
-export type SectionPlace = { groupId: number, index: number, listIndex?: number }
+export type SectionPlace = { groupId: number, index: number, listIndex?: number, beforeList?: boolean }
 /** Where a task sits in the open note: a section (top level, parentTaskId null; also the default section of a group) or under another task. */
 export type TaskPlace = { sectionId: number, parentTaskId: number | null, index: number }
 
@@ -66,7 +66,7 @@ const shorten = (name: string | null | undefined) => {
 
 const typeName = (itemType: DBItemType) => i18n.t(`undo.itemTypes.${itemType}`)
 
-type LabelKey = "rename" | "color" | "complete" | "reopen" | "addPriority" | "removePriority" | "description" | "delete" | "create" | "move" | "colorContent" | "archive" | "unarchive"
+type LabelKey = "rename" | "color" | "complete" | "reopen" | "addPriority" | "removePriority" | "description" | "delete" | "create" | "move" | "moveDirect" | "colorContent" | "archive" | "unarchive"
 
 /** The translated description of an action on an item, with the (shortened) name of the item when it has one. */
 export function makeLabel(key: LabelKey, itemType: DBItemType, name: string | null | undefined): string {
@@ -194,8 +194,10 @@ export function createUndoCommands(deps: UndoDeps) {
         await reloadTree()
     }
 
-    const moveSectionTo = async (sectionId: number, groupId: number, index: number) => {
-        await withRollback(note.applySectionMove(sectionId, groupId, index), () => workspace.moveSection(sectionId, groupId, index))
+    const moveSectionTo = async (sectionId: number, groupId: number, index: number, beforeList?: boolean) => {
+        // The flag is only passed when set, so the calls without it stay what they were
+        const flag = beforeList ? [true] as const : [] as const
+        await withRollback(note.applySectionMove(sectionId, groupId, index, ...flag), () => workspace.moveSection(sectionId, groupId, index, ...flag))
     }
 
     /** Moves the list of the direct tasks of a group; nothing is written when it already is there. */
@@ -394,12 +396,12 @@ export function createUndoCommands(deps: UndoDeps) {
         sectionMove: (sectionId: number, name: string, from: SectionPlace, to: SectionPlace): UndoCommand => ({
             label: makeLabel("move", "section", name),
             undo: () => putSectionBack(sectionId, from),
-            redo: () => moveSectionTo(sectionId, to.groupId, to.index),
+            redo: () => moveSectionTo(sectionId, to.groupId, to.index, to.beforeList),
         }),
 
         /** Move of the list of the direct tasks of a group among its sections (`from` and `to` count the sections before the list). */
         directMove: (groupId: number, name: string, from: number, to: number): UndoCommand => ({
-            label: makeLabel("move", "section", name),
+            label: makeLabel("moveDirect", "section_group", name),
             undo: () => moveListTo(groupId, from),
             redo: () => moveListTo(groupId, to),
         }),
