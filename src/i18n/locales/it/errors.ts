@@ -121,6 +121,9 @@ export const errors = {
         updatePositions: "Impossibile aggiornare la posizione dei gruppi: {{message}}",
         updateWidth: "Impossibile salvare la larghezza del gruppo: {{message}}",
     },
+    collapsed: {
+        save: "Impossibile salvare lo stato aperto o chiuso: {{message}}",
+    },
     unsupportedItemType: "Tipo di elemento non supportato: {{type}}",
     db: {
         legacy: "Database di una versione precedente non compatibile: elimina il file Documents/EasyTask/easytask.db e riavvia l'app.",

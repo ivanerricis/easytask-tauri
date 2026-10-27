@@ -6,12 +6,22 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Aggiunto
 
-- La lista dei task creati direttamente in un gruppo può stare in qualsiasi punto tra le sue sezioni, non solo in cima. Spostala con "Sposta task del gruppo su" e "Sposta task del gruppo giù" nel menu del gruppo; una sezione può scavalcarla con "Sposta su" e "Sposta giù" o trascinandola, e una linea mostra se cade sopra o sotto la lista. Il pulsante "Nuovo task" del gruppo aggiunge alla lista dove si trova. Annulla e ripeti funzionano, e dopo l'aggiornamento tutto resta com'era (lista in cima).
+- La lista dei task creati direttamente in un gruppo può stare in qualsiasi punto tra le sue sezioni, non solo in cima. Spostala con "Sposta lista task su" e "Sposta lista task giù" nel menu del gruppo; una sezione può scavalcarla con "Sposta su" e "Sposta giù" o trascinandola, e una linea mostra se cade sopra o sotto la lista. Il pulsante "Nuovo task" del gruppo aggiunge alla lista dove si trova. Annulla e ripeti funzionano, e dopo l'aggiornamento tutto resta com'era (lista in cima).
 - Template ed export salvano la posizione della lista dei task del gruppo.
+- Gruppi e sezioni aperti o chiusi vengono ricordati: restano come li hai lasciati anche dopo aver riavviato l'app. Dopo l'aggiornamento tutto è aperto. La ricerca apre ancora ciò che nasconde un risultato, ma solo finché è aperta.
+- "Comprimi sottotask" ed "Espandi sottotask" nel menu di un task che ha sottotask: i sottotask vengono nascosti e il task mostra il conteggio di quelli completati (anche con quell'opzione disattivata). Aggiungere un sottotask a un task compresso lo espande. Lo stato viene ricordato come quello di gruppi e sezioni.
+- L'albero della barra laterale sinistra si usa anche con la tastiera: Su e Giù passano da una riga all'altra, Destra e Sinistra aprono e chiudono le cartelle (o vanno al primo figlio o al genitore), Home e Fine saltano alla prima e all'ultima riga, e Tab entra ed esce dall'albero con una sola tappa. La scheda attiva scorre in vista e una cartella chiusa che contiene la nota aperta mostra un puntino.
 
 ### Modificato
 
+- Le conferme e le eliminazioni vengono eseguite una volta sola anche se premi Invio o clicchi due volte; i pulsanti aspettano mentre l'azione è in corso.
+- I toast con un'azione ("Annulla", "Mostra") restano per 8 secondi invece di 3.
+- Aree di clic più grandi per i pulsanti piccoli (lettore audio, pulsanti della finestra, schede, barra del percorso, ricerca) e il pulsante di chiusura delle finestre ha il contrasto pieno.
+- Un clic fuori dal campo di un nuovo task o di una nuova sezione non scarta più quello che hai scritto; l'elenco dei file audio di un gruppo scorre dopo alcuni file; le linee e gli anelli di rilascio del trascinamento non vengono più tagliati e la maniglia di larghezza del gruppo non copre più la sua barra di scorrimento.
+- Il selettore dei workspace distingue due workspace con lo stesso nome.
+
 - Il database viene aggiornato alla versione 9 all'avvio dell'app (prima si fa una copia di sicurezza, in automatico): la lista e le sezioni di un gruppo condividono un solo ordine. Le date di modifica non cambiano; una versione più vecchia dell'app non può aprire il database aggiornato.
+- Il database viene aggiornato alla versione 10 all'avvio dell'app (prima si fa una copia di sicurezza, in automatico): gruppi, sezioni e task ricordano se sono aperti o chiusi. Le date di modifica non cambiano, e nemmeno aprire o chiudere qualcosa le cambia; una versione più vecchia dell'app non può aprire il database aggiornato.
 
 ## [0.13.0] - 2026-10-27
 

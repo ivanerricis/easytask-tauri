@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { Task } from "./Task"
 import { TabsProvider } from "@/contexts/tabs-context"
-import { useSelectedTask, useTabsActions } from "@/contexts/use-tabs"
+import { useSelectedTask, useTabUiStore, useTabsActions } from "@/contexts/use-tabs"
 import { RightPanelContext, type RightPanelContextType } from "../rightbar/right-panel-context-object"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import { searchingStore } from "@/test/search-store"
@@ -21,9 +21,18 @@ vi.mock("@/contexts/workspace-data", () => ({
         updateTaskCompletion, renameItem, updateTaskPriority: vi.fn(), updateTaskDescription: vi.fn(), updateItemColor: vi.fn(),
     }),
 }))
+const patchTask = vi.fn(() => () => { })
+const setCollapsed = vi.fn().mockResolvedValue(undefined)
+// The tree of the active note as the open/closed hooks read it: the ids in this set are saved as closed
+const closedTasks = new Set<number>()
+const makeTree = () => ({ groups: [{ id: 1, noteID: 1, position: 0, sections: [{ id: 1, groupID: 1, title: "", position: 0, tasks: [...closedTasks].map(id => ({ id, collapsed: true, subtasks: [] })) }] }] })
 vi.mock("@/contexts/use-active-note", () => ({
-    useActiveNoteActions: () => ({ patchTask: () => () => { }, removeTask: vi.fn() }),
+    useActiveNoteActions: () => ({
+        patchTask, removeTask: vi.fn(), subscribeNoteTree: () => () => { },
+        getCachedNoteTree: () => makeTree(),
+    }),
 }))
+vi.mock("@/contexts/workspace-data/context", () => ({ useWorkspaceActions: () => ({ setCollapsed }) }))
 vi.mock("../note-dnd-state", () => ({
     useNoteDrop: vi.fn(() => ({ setNodeRef: () => { }, zone: null, active: null })),
     useNoteDrag: () => ({
@@ -53,10 +62,12 @@ function Probe() {
     const { activateNote, openNote } = useTabsActions()
     const [selected] = useSelectedTask(1)
     const [selected2] = useSelectedTask(2)
+    const ui = useTabUiStore()
     return (
         <>
             <output data-testid="selected-1">{String(selected)}</output>
             <output data-testid="selected-2">{String(selected2)}</output>
+            <button onClick={() => ui.setRevealed(1, "task", 10, true)}>reveal 10</button>
             <button onClick={() => openNote(2)}>go 2</button>
             <button onClick={() => activateNote(1)}>go 1</button>
         </>
@@ -71,7 +82,7 @@ const renderTasks = (ui: ReactNode, withPanel = true) => render(
     </TabsProvider>,
 )
 
-beforeEach(() => { vi.clearAllMocks() })
+beforeEach(() => { vi.clearAllMocks(); closedTasks.clear() })
 
 describe("Task selection", () => {
     const tasks = (
@@ -310,6 +321,76 @@ describe("Task subtasks", () => {
     it("shows no counter on a task without subtasks", () => {
         renderTasks(<Task task={makeTask({ id: 10, text: "Solo" })} />)
         expect(screen.queryByTitle(/sottotask completati/)).not.toBeInTheDocument()
+    })
+
+    it("closed: draws no subtask, shows the count (also with the preference off) and keeps the progress", () => {
+        closedTasks.add(10)
+        renderTasks(<Task task={parent} showSubtaskCount={false} />)
+        expect(screen.queryByText("Uno")).not.toBeInTheDocument()
+        expect(screen.queryByText("Due")).not.toBeInTheDocument()
+        const count = screen.getByTestId("subtask-count")
+        expect(count).toHaveTextContent("1/2")
+        expect(count).toHaveAttribute("data-subtasks-hidden", "true")
+        expect(count).toHaveAttribute("title", "1 di 2 sottotask completati (sottotask nascosti)")
+    })
+
+    it("a closed task that the search opens shows its subtasks without saving anything", async () => {
+        closedTasks.add(10)
+        const user = userEvent.setup()
+        renderTasks(<Task task={parent} />)
+        expect(screen.queryByDisplayValue("Uno")).not.toBeInTheDocument()
+        await user.click(screen.getByText("reveal 10"))
+        expect(screen.getByDisplayValue("Uno")).toBeInTheDocument()
+        expect(patchTask).not.toHaveBeenCalled()
+        expect(setCollapsed).not.toHaveBeenCalled()
+    })
+
+    it("open: draws the subtasks and no hidden-subtasks sign", () => {
+        renderTasks(<Task task={parent} />)
+        expect(screen.getByDisplayValue("Uno")).toBeInTheDocument()
+        expect(screen.getByTestId("subtask-count")).not.toHaveAttribute("data-subtasks-hidden")
+    })
+
+    it("closing one task leaves the subtasks of its siblings alone", () => {
+        closedTasks.add(10)
+        renderTasks(<><Task task={parent} /><Task task={makeTask({ id: 20, text: "Altro", subtasks: [makeTask({ id: 21, text: "Figlio" })] })} /></>)
+        expect(screen.queryByDisplayValue("Uno")).not.toBeInTheDocument()
+        expect(screen.getByDisplayValue("Figlio")).toBeInTheDocument()
+    })
+
+    it("the menu has Comprimi sottotask on a task with subtasks, and saves the closed state", async () => {
+        const user = userEvent.setup()
+        renderTasks(<Task task={parent} />)
+        fireEvent.contextMenu(document.querySelector('[data-task-id="10"]') as HTMLElement)
+        await user.click(await screen.findByRole("menuitem", { name: "Comprimi sottotask" }))
+        expect(patchTask).toHaveBeenCalledWith(10, { collapsed: true })
+        await waitFor(() => expect(setCollapsed).toHaveBeenCalledWith("task", 10, true))
+    })
+
+    it("the menu has Espandi sottotask on a closed task", async () => {
+        closedTasks.add(10)
+        const user = userEvent.setup()
+        renderTasks(<Task task={parent} />)
+        fireEvent.contextMenu(document.querySelector('[data-task-id="10"]') as HTMLElement)
+        await user.click(await screen.findByRole("menuitem", { name: "Espandi sottotask" }))
+        expect(patchTask).toHaveBeenCalledWith(10, { collapsed: false })
+        await waitFor(() => expect(setCollapsed).toHaveBeenCalledWith("task", 10, false))
+    })
+
+    it("the menu of a task without subtasks has no entry to collapse them", async () => {
+        renderTasks(<Task task={makeTask({ id: 10, text: "Solo" })} />)
+        fireEvent.contextMenu(document.querySelector('[data-task-id="10"]') as HTMLElement)
+        await screen.findByRole("menuitem", { name: "Aggiungi sottotask" })
+        expect(screen.queryByRole("menuitem", { name: "Comprimi sottotask" })).not.toBeInTheDocument()
+        expect(screen.queryByRole("menuitem", { name: "Espandi sottotask" })).not.toBeInTheDocument()
+    })
+
+    it("adding a subtask to a closed task opens it first", async () => {
+        closedTasks.add(10)
+        const user = userEvent.setup()
+        renderTasks(<Task task={parent} />)
+        await user.click(screen.getAllByRole("button", { name: "Aggiungi sottotask" })[0])
+        expect(patchTask).toHaveBeenCalledWith(10, { collapsed: false })
     })
 
     it("draws the tree connectors only for subtasks", () => {

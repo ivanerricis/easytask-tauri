@@ -145,7 +145,8 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (formRef.current && !formRef.current.contains(event.target as Node)) {
+            // Typed text is never lost with a click elsewhere: only an empty field closes
+            if (formRef.current && !formRef.current.contains(event.target as Node) && !text.trim()) {
                 setOpen(false)
                 setText("")
             }
@@ -153,7 +154,7 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
 
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
-    }, [])
+    }, [text])
 
     const handleOpen = () => {
         setOpen(prev => !prev)

@@ -31,7 +31,7 @@ Il clic destro sull'area vuota della nota (fuori da gruppi, sezioni e task) apre
 | **Cambia colore**                      | sì     | sì      | Imposta o toglie il colore.                                      |
 | **Sposta a sinistra**, **Sposta a destra** | sì |         | Sposta il gruppo di un passo nella riga.                         |
 | **Sposta su**, **Sposta giù**          |        | sì      | Sposta la sezione di un passo nel suo gruppo, anche oltre la lista dei task del gruppo. |
-| **Sposta task del gruppo su**, **Sposta task del gruppo giù** | sì |  | Sposta la lista dei task del gruppo di un passo tra le sue sezioni. |
+| **Sposta lista task su**, **Sposta lista task giù** | sì |  | Sposta la lista dei task del gruppo di un passo tra le sue sezioni. |
 | **Sposta in…**                         |        | sì      | Sposta la sezione in fondo a un altro gruppo, o in un **Nuovo gruppo**. |
 | **Automazioni…**                       | sì     | sì      | Apre le automazioni della nota. Vedi [Automazioni](./automations). |
 | **Archivia**                           | sì     | sì      | Lo nasconde senza eliminarlo. Vedi [Cestino e archivio](./trash-and-archive). |
@@ -44,11 +44,11 @@ Puoi spostare gli elementi anche trascinandoli:
 - Trascina un gruppo dalla sua intestazione per riordinare i gruppi.
 - Trascina una sezione su un altro gruppo, o tra due sezioni, per spostarla. Una linea mostra dove cade, anche sopra o sotto la lista dei task del gruppo. Rilasciala sull'area **Nuovo gruppo** al bordo per farne un gruppo a sé.
 
-La lista dei task del gruppo segue lo stesso ordine delle sezioni: di default è in cima, e la sposti con **Sposta task del gruppo su** e **Sposta task del gruppo giù** (anche nel menu del clic destro del gruppo), che sono disattivate quando la lista è già a un'estremità. [Annulla](./undo-and-history.md) la riporta com'era.
+La lista dei task del gruppo segue lo stesso ordine delle sezioni: di default è in cima, e la sposti con **Sposta lista task su** e **Sposta lista task giù** (anche nel menu del clic destro del gruppo), che sono disattivate quando la lista è già a un'estremità. [Annulla](./undo-and-history.md) la riporta com'era.
 
 ### Comprimere, contatori e barre d'avanzamento
 
-Ogni gruppo e ogni sezione ha un pulsante per comprimerlo (**Comprimi gruppo**, **Comprimi sezione**). Un gruppo può mostrare quante sezioni, task e file audio contiene. Gruppi e sezioni possono mostrare anche una barra d'avanzamento con la percentuale di task completati (per un gruppo contano tutti i task e i sottotask). Scegli cosa mostrare in **Impostazioni > Note e sezioni**: **Mostra barra d'avanzamento nelle sezioni**, **Mostra barra d'avanzamento nei gruppi**, **Mostra numero di sezioni**, **Mostra numero di task**, **Mostra numero di file audio**. L'opzione **Linee tra i gruppi** disegna una sottile linea guida tra le colonne.
+Ogni gruppo e ogni sezione ha un pulsante per comprimerlo (**Comprimi gruppo**, **Comprimi sezione**). Un task con sottotask ha nel suo menu **Comprimi sottotask** / **Espandi sottotask**: finché sono compressi i sottotask non vengono disegnati e il task mostra sempre il conteggio dei sottotask completati (anche con **Mostra sottotask completati** disattivato). Aggiungere un sottotask a un task compresso lo espande prima. I sottotask nascosti contano comunque in ogni barra d'avanzamento e contatore. Cosa è aperto e cosa chiuso viene ricordato tra un avvio e l'altro dell'app; non fa parte di annulla/ripeti, dei template né degli export, e aprire o chiudere qualcosa non cambia la data di modifica della workspace. La ricerca apre ciò che nasconde un risultato solo finché è aperta. Un gruppo può mostrare quante sezioni, task e file audio contiene. Gruppi e sezioni possono mostrare anche una barra d'avanzamento con la percentuale di task completati (per un gruppo contano tutti i task e i sottotask). Scegli cosa mostrare in **Impostazioni > Note e sezioni**: **Mostra barra d'avanzamento nelle sezioni**, **Mostra barra d'avanzamento nei gruppi**, **Mostra numero di sezioni**, **Mostra numero di task**, **Mostra numero di file audio**. L'opzione **Linee tra i gruppi** disegna una sottile linea guida tra le colonne.
 
 ### Ridimensionare un gruppo
 

@@ -36,7 +36,7 @@ export const undo = {
         delete: "Elimina {{type}}",
         create: "Crea {{type}}",
         move: "Sposta {{type}}",
-        moveDirect: "Sposta task del gruppo",
+        moveDirect: "Sposta lista task",
         deleteMany_one: "Elimina {{count}} elemento",
         deleteMany_other: "Elimina {{count}} elementi",
         colorContent: "Colora contenuto di {{type}}",

@@ -208,8 +208,29 @@ describe("ActiveNoteProvider", () => {
         const before = { ...latest.current }
         act(() => latest.current.openNote(1))
         await waitFor(() => expect(shownGroup(latest)).toBe(10))
-        for (const key of ["refreshActiveNote", "getNoteData", "setNoteDataTree", "patchGroup", "patchSection", "patchTask", "appendGroup", "appendSection", "appendTask", "removeTask", "applyTaskMove", "applySectionMoveToNewGroup"] as const)
+        for (const key of ["refreshActiveNote", "getNoteData", "setNoteDataTree", "patchGroup", "patchSection", "patchTask", "appendGroup", "appendSection", "appendTask", "removeTask", "applyTaskMove", "applySectionMoveToNewGroup", "getCachedNoteTree", "subscribeNoteTree"] as const)
             expect(latest.current[key]).toBe(before[key])
+    })
+
+    it("lets a row read one value of the cached tree and hear about its changes", async () => {
+        const latest = setup()
+        expect(latest.current.getCachedNoteTree(1)).toBeNull()
+        act(() => latest.current.openNote(1))
+        await waitFor(() => expect(shownGroup(latest)).toBe(10))
+        const listener = vi.fn()
+        const stop = latest.current.subscribeNoteTree(listener)
+        expect(latest.current.getCachedNoteTree(1)).toBe(latest.current.noteDataTree)
+
+        let rollback!: () => void
+        act(() => { rollback = latest.current.patchGroup(10, { collapsed: true }) })
+        expect(listener).toHaveBeenCalledTimes(1)
+        expect(latest.current.getCachedNoteTree(1)?.groups[0].collapsed).toBe(true)
+        act(() => rollback())
+        expect(latest.current.getCachedNoteTree(1)?.groups[0].collapsed).toBeFalsy()
+
+        stop()
+        act(() => { latest.current.patchGroup(10, { collapsed: true }) })
+        expect(listener).toHaveBeenCalledTimes(2)
     })
 
     describe("optimistic task updates", () => {

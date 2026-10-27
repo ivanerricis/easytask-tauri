@@ -7,7 +7,7 @@ import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { hexToRgba } from "@/lib/utils"
 import { useItemSize } from "../sidebar/item-size"
 import { DropLine } from "../sidebar/DropLine"
-import { openOnKeyboardFocus, stopDragActivation, treeRowKey, treeRowKeyDown, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { openOnKeyboardFocus, stopDragActivation, useIsTreeTabStop, treeRowKey, treeRowKeyDown, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
 import { SelectionMark } from "../sidebar/SelectionMark"
 import { handleSelectionClick } from "../sidebar/selection"
 import { useIsSelected, useSelectionStore } from "../sidebar/selection-context"
@@ -52,6 +52,8 @@ const NoteRow = React.memo(({ note, className, dropZone = null, level = 1, dndRe
     const selected = useIsSelected("note", note.id)
     // The note open in the active tab
     const isActive = useActiveNoteSelector(activeId => activeId === note.id)
+    // Roving tabindex: one row of the tree is in the tab order, the others are reached with the arrows
+    const tabStop = useIsTreeTabStop("note", note.id)
 
     // Ctrl/Cmd+click and Shift+click only select; a plain click opens the note and clears the selection
     const handleOpenFile = useCallback((e: React.MouseEvent) => {
@@ -84,6 +86,7 @@ const NoteRow = React.memo(({ note, className, dropZone = null, level = 1, dndRe
                         aria-label={note.name}
                         data-row-key={treeRowKey("note", note.id)}
                         aria-level={level}
+                        tabIndex={tabStop ? 0 : -1}
                         aria-pressed={undefined}
                         onClick={handleOpenFile}
                         aria-selected={selected}
@@ -105,7 +108,7 @@ const NoteRow = React.memo(({ note, className, dropZone = null, level = 1, dndRe
                                 </span>}
                         </div>
                         <div className={`flex items-center leading-none shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
-                            <ItemMenuButton name={note.name} />
+                            <ItemMenuButton name={note.name} tabIndex={tabStop ? undefined : -1} />
                         </div>
                     </div>
                 </TooltipTrigger>

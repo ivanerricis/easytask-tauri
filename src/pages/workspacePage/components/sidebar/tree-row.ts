@@ -39,6 +39,24 @@ export function useTreeRootActive(): boolean {
     return useStoreSelector(useContext(TreeHoverStoreContext), hover => hover.rootActive)
 }
 
+/**
+ * Roving tabindex: the key of the one row that is in the tab order (the last one that had the focus), the others are reached
+ * with the arrows. In a store, so that moving the focus re-renders only the two rows concerned.
+ */
+export type TreeTabStopStore = ExternalStore<string | null>
+export const createTreeTabStopStore = (): TreeTabStopStore => createExternalStore<string | null>(null)
+
+/** Without a provider (a row rendered alone) the row is its own tab stop. */
+const noTabStopStore = createTreeTabStopStore()
+export const TreeTabStopContext = createContext<TreeTabStopStore | null>(null)
+
+/** Whether the row is the tab stop of the tree. */
+export function useIsTreeTabStop(type: TreeItemType, id: number): boolean {
+    const store = useContext(TreeTabStopContext)
+    const key = treeRowKey(type, id)
+    return useStoreSelector(store ?? noTabStopStore, current => store ? current === key : true)
+}
+
 /** Makes a row both draggable and droppable, sharing the same DOM node. */
 export function useTreeRow(type: TreeItemType, id: number) {
     const key = treeRowKey(type, id)

@@ -94,7 +94,7 @@ export const PathBar = () => {
                 {search && (searchOpen
                     ? <NoteSearchField store={search} inputRef={searchInputRef} />
                     : <TooltipCustom text={t("notes.noteSearch.inNote")} shortcut={searchLabel}>
-                        <Button type="button" variant="ghost" size="icon" className="size-6 [&_svg]:!size-4"
+                        <Button type="button" variant="ghost" size="icon" className="relative size-7 after:absolute after:-inset-0.5 after:content-[''] [&_svg]:!size-4"
                             aria-label={t("notes.noteSearch.inNote")} onClick={() => search.open()}>
                             <Search />
                         </Button>
@@ -104,7 +104,7 @@ export const PathBar = () => {
                         aria-label={t("notes.hideCompleted")}
                         pressed={hideCompletedTasks}
                         onPressedChange={setHideCompletedTasks}
-                        className="size-6 min-w-6 p-0"
+                        className="relative size-7 min-w-7 p-0 after:absolute after:-inset-0.5 after:content-['']"
                     >
                         {hideCompletedTasks ? <EyeOff /> : <Eye />}
                     </Toggle>

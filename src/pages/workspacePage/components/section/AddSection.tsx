@@ -64,7 +64,8 @@ export const AddSection = ({ inGroup, groupId, open, onClose }: AddSectionFormPr
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (formRef.current && !formRef.current.contains(event.target as Node)) {
+            // Typed text is never lost with a click elsewhere: only an empty field closes
+            if (formRef.current && !formRef.current.contains(event.target as Node) && !name.trim()) {
                 setOpen(false)
                 setName("")
             }
@@ -72,7 +73,7 @@ export const AddSection = ({ inGroup, groupId, open, onClose }: AddSectionFormPr
 
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
-    }, [setOpen])
+    }, [setOpen, name])
 
     // Escape closes the form and discards the text, like a click outside
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

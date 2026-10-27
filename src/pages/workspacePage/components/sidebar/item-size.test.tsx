@@ -25,6 +25,7 @@ vi.mock("@/components/tooltip-custom", () => ({
 vi.mock("./tree-row", () => ({
     useTreeRow: () => ({ ref: vi.fn(), attributes: {}, listeners: {}, isDragging: false }),
     useTreeDropZone: () => null,
+    useIsTreeTabStop: () => true,
     isInsideZone: () => false,
     stopDragActivation: {},
     wasTreeJustDragged: () => false,

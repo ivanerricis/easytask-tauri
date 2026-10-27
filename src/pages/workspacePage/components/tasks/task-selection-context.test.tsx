@@ -8,11 +8,11 @@ import {
 
 let activeId: number | null = 1
 let hideCompleted = false
-const collapsedSections = new Set<number>()
+// What the search has opened in the note (temporary): "kind-id"
+const revealed = new Set<string>()
 const listeners = new Set<() => void>()
 const uiStore = {
-    isGroupCollapsed: () => false,
-    isSectionCollapsed: (_note: number, sectionId: number) => collapsedSections.has(sectionId),
+    isRevealed: (_note: number, kind: string, id: number) => revealed.has(`${kind}-${id}`),
     subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener) } },
 }
 const emitUi = () => act(() => listeners.forEach(listener => listener()))
@@ -43,6 +43,7 @@ function Probe() {
             <button onClick={() => store.toggle("task-1")}>t1</button>
             <button onClick={() => store.toggle("task-2")}>t2</button>
             <button onClick={() => store.toggle("task-3")}>t3</button>
+            <button onClick={() => store.toggle("task-5")}>t5</button>
             <button onClick={() => store.selectRange("task-3")}>range3</button>
             <input aria-label="campo" />
         </>
@@ -55,7 +56,7 @@ const keys = () => screen.getByTestId("keys").textContent
 beforeEach(() => {
     activeId = 1
     hideCompleted = false
-    collapsedSections.clear()
+    revealed.clear()
     tree = makeTree()
 })
 
@@ -88,12 +89,55 @@ describe("TaskSelectionProvider", () => {
         const { rerender } = setup()
         fireEvent.click(screen.getByText("t1"))
         fireEvent.click(screen.getByText("t3"))
-        collapsedSections.add(11)
-        emitUi()
+        // The closed state is the saved one, in the data of the note
+        tree = makeTree()
+        tree.groups[0].sections[1].collapsed = 1
+        rerender(<TaskSelectionProvider><Probe /></TaskSelectionProvider>)
         expect(keys()).toBe("task-1")
         tree = { groups: [makeGroup({ id: 1, sections: [makeSection({ id: 10, tasks: [] })] })] }
         rerender(<TaskSelectionProvider><Probe /></TaskSelectionProvider>)
         expect(keys()).toBe("")
+    })
+
+    it("a range skips the tasks of a closed group", () => {
+        tree = makeTree()
+        tree.groups.push(makeGroup({ id: 2, position: 1, collapsed: true, sections: [makeSection({ id: 20, groupID: 2, tasks: [makeTask({ id: 4 })] })] }))
+        setup()
+        fireEvent.click(screen.getByText("t1"))
+        fireEvent.click(screen.getByText("range3"))
+        expect(keys()).toBe("task-1,task-2,task-3")
+    })
+
+    it("the subtasks of a closed task are out of the selection, and back in when the task opens", () => {
+        const withSubtasks = (collapsed: boolean) => ({ groups: [makeGroup({ id: 1, sections: [makeSection({ id: 10, tasks: [
+            makeTask({ id: 1, collapsed, subtasks: [makeTask({ id: 5, taskID: 1 })] }), makeTask({ id: 3 }),
+        ] })] })] })
+        tree = withSubtasks(false)
+        const { rerender } = setup()
+        fireEvent.click(screen.getByText("t1"))
+        fireEvent.click(screen.getByText("t5"))
+        expect(keys()).toBe("task-1,task-5")
+        tree = withSubtasks(true)
+        rerender(<TaskSelectionProvider><Probe /></TaskSelectionProvider>)
+        expect(keys()).toBe("task-1")
+        // a range does not step into the hidden subtasks either
+        fireEvent.keyDown(window, { key: "Escape" })
+        fireEvent.click(screen.getByText("t1"))
+        fireEvent.click(screen.getByText("range3"))
+        expect(keys()).toBe("task-1,task-3")
+    })
+
+    it("what the search has opened counts as open", () => {
+        tree = makeTree()
+        tree.groups[0].sections[1].collapsed = true
+        revealed.add("section-11")
+        setup()
+        fireEvent.click(screen.getByText("t1"))
+        fireEvent.click(screen.getByText("range3"))
+        expect(keys()).toBe("task-1,task-2,task-3")
+        revealed.clear()
+        emitUi()
+        expect(keys()).toBe("task-1,task-2")
     })
 
     it("Esc clears the selection", () => {

@@ -64,6 +64,8 @@ export type Group = {
      * 0 = on top (the default), sections.length = after all of them. Absent = 0. Always kept in sync with the database order.
      */
     defaultIndex?: number
+    /** Saved state of the group: true (or 1 from the database) = closed; absent/false = open. A state of the view: undo, templates, exports and copies do not carry it. */
+    collapsed?: boolean | number
     sections: Section[]
 }
 
@@ -82,6 +84,8 @@ export type Section = {
     archived_at?: string | null
     /** The hidden default section of a group (true, or 1 from the database); absent/false = a normal section. */
     is_default?: boolean | number
+    /** Saved state of the section: true (or 1 from the database) = closed; absent/false = open. A state of the view: undo, templates, exports and copies do not carry it. */
+    collapsed?: boolean | number
     tasks: Task[]
 }
 
@@ -102,6 +106,8 @@ export type Task = {
     completed: boolean
     priority: boolean
     description: string
+    /** Saved state of the subtasks of the task (closed = hidden): true (or 1 from the database) = closed; absent/false = open. A state of the view: undo, templates, exports and copies do not carry it. */
+    collapsed?: boolean | number
     subtasks: Task[]
 }
 

@@ -4,6 +4,7 @@ import { addFolderArchivedAt, createFolderIndexes, createFolderTable, createFold
 import { addNoteArchivedAt, createNoteIndexes, createNoteTable, createNoteTrigger } from "./note";
 import { createNoteTemplateIndexes, createNoteTemplateTable, createNoteTemplateTrigger } from "./note_template";
 import { addSectionArchivedAt, addSectionDefaultFlag, addSectionSharedOrder, makeSectionTitleOptional, createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
+import { addCollapsedColumns } from "./collapsed";
 import { addGroupArchivedAt, addGroupColorColumn, addGroupWidthColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
 import { createTaskIndexes, createTaskTable, addTaskArchivedAt, createTaskTrigger, dropTaskArchivedColumn } from "./task";
 import { createWorkspaceEditTriggers } from "./workspace_edit";
@@ -83,10 +84,16 @@ export const groupStructureSchema: string[] = [...addSectionDefaultFlag, ...addG
 export const sectionOrderSchema: string[] = [...addSectionSharedOrder]
 
 /**
+ * Migration v10: saved open/closed state (`collapsed`) of groups, sections and tasks.
+ * @category Database Schema
+ */
+export const collapsedSchema: string[] = [...addCollapsedColumns]
+
+/**
  * The whole schema at the latest version (initial schema plus every additive migration), as statements.
  * Used by the tests to build a database in one go: the app itself goes through the migrations in initDb.
  * @category Database Schema
  */
 export const latestSchema: string[] = [
-    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema, ...groupStructureSchema, ...sectionOrderSchema,
+    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema, ...groupStructureSchema, ...sectionOrderSchema, ...collapsedSchema,
 ]

@@ -1,6 +1,7 @@
 import i18n from "@/i18n"
 import { toast } from "sonner"
 import { reportError } from "@/lib/report-error"
+import { ACTION_TOAST_DURATION } from "@/lib/toast-trashed"
 import type { UndoHistory, UndoManyOutcome, UndoOutcome } from "./stack"
 
 const TOAST_ID = "undo-redo"
@@ -25,6 +26,7 @@ export async function runHistoryTo(history: UndoHistory, direction: "undo" | "re
     if (count > 0) {
         toast(i18n.t(direction === "undo" ? "undo.undoneMany" : "undo.redoneMany", { count }), {
             id: TOAST_ID,
+            duration: ACTION_TOAST_DURATION,
             action: { label: i18n.t(`undo.${opposite}`), onClick: () => { void runHistoryTo(history, opposite, count - 1) } },
         })
     }
@@ -45,6 +47,7 @@ export async function runHistory(history: UndoHistory, direction: "undo" | "redo
     } else {
         toast(i18n.t(direction === "undo" ? "undo.undone" : "undo.redone", { label: outcome.label }), {
             id: TOAST_ID,
+            duration: ACTION_TOAST_DURATION,
             action: { label: i18n.t(`undo.${opposite}`), onClick: () => { void runHistory(history, opposite) } },
         })
     }

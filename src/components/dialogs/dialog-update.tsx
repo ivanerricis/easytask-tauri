@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { Update } from "@tauri-apps/plugin-updater"
 import { toast } from "sonner"
+import { ACTION_TOAST_DURATION } from "@/lib/toast-trashed"
 import { Download, ExternalLink } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -35,6 +36,7 @@ export const DialogUpdate = () => {
             if (!otherDialogOpen()) { setOpen(true); return }
             // Another dialog is in front: the cue that something is waiting (the dialog also opens by itself once it closes)
             toast(t("settings.about.update.dialog.title"), {
+                duration: ACTION_TOAST_DURATION,
                 action: { label: t("settings.about.update.dialog.show"), onClick: () => setOpen(true) },
             })
         }

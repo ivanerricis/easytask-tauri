@@ -291,7 +291,7 @@ export const AudioPlayer = ({
                         onPressedChange={onPinnedChange}
                         aria-label={pinned ? t("audio.player.unpin") : t("audio.player.pin")}
                         onPointerDown={event => event.stopPropagation()}
-                        className="size-5 min-w-5 shrink-0 p-0 cursor-pointer"
+                        className="size-7 min-w-7 shrink-0 p-0 cursor-pointer"
                     >
                         {pinned ? <Pin className="!size-4" /> : <PinOff className="!size-4" />}
                     </Toggle>
@@ -300,7 +300,7 @@ export const AudioPlayer = ({
                     <Button
                         type="button" variant="ghost" size="icon" onClick={handleClose} aria-label={t("audio.player.close")}
                         onPointerDown={event => event.stopPropagation()}
-                        className="size-5 shrink-0 cursor-pointer"
+                        className="size-7 shrink-0 cursor-pointer"
                     >
                         <X className="!size-4" />
                     </Button>
@@ -335,7 +335,7 @@ export const AudioPlayer = ({
                         className="relative shrink-0 rounded-full"
                     >
                         <RotateCcw className="!size-6" />
-                        <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[9px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
+                        <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[11px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
                     </Button>
                 </TooltipCustom>
                 <TooltipCustom text={isPlaying ? t("audio.player.pause") : t("audio.player.play")}>
@@ -360,7 +360,7 @@ export const AudioPlayer = ({
                         className="relative shrink-0 rounded-full"
                     >
                         <RotateCw className="!size-6" />
-                        <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[9px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
+                        <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[11px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
                     </Button>
                 </TooltipCustom>
                 <TooltipCustom text={t("audio.player.speed", { rate })}>
@@ -384,7 +384,7 @@ export const AudioPlayer = ({
                         pressed={muted}
                         onPressedChange={setMuted}
                         aria-label={muted ? t("audio.player.unmute") : t("audio.player.mute")}
-                        className="size-6 min-w-6 shrink-0 p-0"
+                        className="size-7 min-w-7 shrink-0 p-0"
                     >
                         {silent ? <VolumeX /> : <Volume2 />}
                     </Toggle>

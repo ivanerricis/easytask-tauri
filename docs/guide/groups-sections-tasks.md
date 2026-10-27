@@ -31,7 +31,7 @@ A right-click on the empty area of the note (outside any group, section or task)
 | **Change color**                       | yes   | yes     | Sets or removes the color.                                      |
 | **Move left**, **Move right**          | yes   |         | Moves the group one step in the row.                            |
 | **Move up**, **Move down**             |       | yes     | Moves the section one step in its group, also past the list of the group tasks. |
-| **Move group tasks up**, **Move group tasks down** | yes |   | Moves the list of the tasks of the group one step among its sections. |
+| **Move task list up**, **Move task list down** | yes |   | Moves the list of the tasks of the group one step among its sections. |
 | **Move to…**                           |       | yes     | Moves the section to the end of another group, or to a **New group**. |
 | **Automations…**                       | yes   | yes     | Opens the automations of the note. See [Automations](./automations). |
 | **Archive**                            | yes   | yes     | Hides it without deleting. See [Trash and archive](./trash-and-archive). |
@@ -44,11 +44,11 @@ You can also move things by dragging:
 - Drag a group by its header to reorder the groups.
 - Drag a section onto another group, or between sections, to move it. A line shows where it lands, also above or below the list of the group tasks. Drop it on the **New group** area at the edge to make it a group of its own.
 
-The list of the group tasks follows the same order as the sections: by default it is at the top, and you can move it with **Move group tasks up** and **Move group tasks down** (also in the right-click menu of the group), which are disabled when the list is already at the end. [Undo](./undo-and-history.md) brings it back.
+The list of the group tasks follows the same order as the sections: by default it is at the top, and you can move it with **Move task list up** and **Move task list down** (also in the right-click menu of the group), which are disabled when the list is already at the end. [Undo](./undo-and-history.md) brings it back.
 
 ### Collapse, counters and progress bars
 
-Each group and section has a button to collapse it (**Collapse group**, **Collapse section**). A group can show how many sections, tasks and audio files it holds. Groups and sections can also show a progress bar with the percentage of completed tasks (for a group, tasks and subtasks all count). Choose what to show in **Settings > Notes and sections**: **Show progress bar in sections**, **Show progress bar in groups**, **Show number of sections**, **Show number of tasks**, **Show number of audio files**. The option **Lines between groups** draws a thin guide between the columns.
+Each group and section has a button to collapse it (**Collapse group**, **Collapse section**). A task that has subtasks has **Collapse subtasks** / **Expand subtasks** in its menu: while they are collapsed the subtasks are not drawn, and the task always shows its count of completed subtasks (even if **Show completed subtasks** is off). Adding a subtask to a collapsed task expands it first. Hidden subtasks still count in every progress bar and counter. What is open and what is closed is remembered between runs of the app; it is not part of undo/redo, templates or exports, and opening or closing something does not change the modification date of the workspace. The search opens what hides a match only while it is open. A group can show how many sections, tasks and audio files it holds. Groups and sections can also show a progress bar with the percentage of completed tasks (for a group, tasks and subtasks all count). Choose what to show in **Settings > Notes and sections**: **Show progress bar in sections**, **Show progress bar in groups**, **Show number of sections**, **Show number of tasks**, **Show number of audio files**. The option **Lines between groups** draws a thin guide between the columns.
 
 ### Resize a group
 

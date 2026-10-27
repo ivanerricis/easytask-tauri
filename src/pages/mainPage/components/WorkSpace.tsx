@@ -57,7 +57,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                     </div>
 
                     {/* Menu Button */}
-                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center opacity-40 group-hover:opacity-100 focus-within:opacity-100">
+                    <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center justify-center opacity-60 group-hover:opacity-100 focus-within:opacity-100">
                         <ItemMenuButton className="hover:bg-accent" name={workspace.name} />
                     </div>
                 </div>
@@ -97,7 +97,7 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                 </div>
 
                 {/* Menu Button */}
-                <div className="absolute right-1 top-1 flex items-center justify-center opacity-40 group-hover:opacity-100 focus-within:opacity-100">
+                <div className="absolute right-1 top-1 flex items-center justify-center opacity-60 group-hover:opacity-100 focus-within:opacity-100">
                     <ItemMenuButton className="hover:bg-accent" name={workspace.name} />
                 </div>
             </div>

@@ -3,11 +3,12 @@ import type { Group } from "@/types/types"
 import { createDBSection, createDBSectionInGroup } from "@/db/queries/section"
 import { createDBGroup, updateDBGroupPositions, updateDBGroupWidth } from "@/db/queries/group"
 import { moveDBDirectSection, moveDBSection, moveDBSectionToNewGroup } from "@/db/queries/move"
+import { setDBCollapsed, type CollapsibleKind } from "@/db/queries/collapsed"
 import { duplicateDBSection } from "@/db/queries/duplicate"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type NoteContentActions = Pick<WorkspaceActionsType,
-    "createGroup" | "createSection" | "createSectionInGroup" | "updateGroupsPositions" | "setGroupWidth" | "moveSection" | "moveDirectSection" | "moveSectionToNewGroup" | "duplicateSection">
+    "createGroup" | "createSection" | "createSectionInGroup" | "updateGroupsPositions" | "setGroupWidth" | "setCollapsed" | "moveSection" | "moveDirectSection" | "moveSectionToNewGroup" | "duplicateSection">
 
 /**
  * Groups and sections of the open note. The creations resolve with the ids of the new rows (the callers build
@@ -43,6 +44,15 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
      */
     const setGroupWidth = useCallback((groupID: number, width: number | null) =>
         withLoading(() => updateDBGroupWidth(groupID, width)), [withLoading])
+
+    /**
+     * Saves whether a group, a section or a task is closed (a state of the view, not an undo step). The caller applies it to
+     * the open note first: `withRollback(patchGroup(id, { collapsed }), () => setCollapsed("group", id, collapsed))`.
+     * @throws Will throw an error if the state cannot be saved.
+     * @category Workspace Data Context
+     */
+    const setCollapsed = useCallback((kind: CollapsibleKind, id: number, collapsed: boolean) =>
+        withLoading(() => setDBCollapsed(kind, id, collapsed)), [withLoading])
 
     /**
      * Moves a section to a group of the open note at the given index among its sections. The section keeps all
@@ -89,5 +99,5 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
     const duplicateSection = useCallback((sectionID: number) =>
         withLoading(() => duplicateDBSection(sectionID)), [withLoading])
 
-    return useMemo(() => ({ createGroup, createSection, createSectionInGroup, updateGroupsPositions, setGroupWidth, moveSection, moveDirectSection, moveSectionToNewGroup, duplicateSection }), [ createGroup, createSection, createSectionInGroup, updateGroupsPositions, setGroupWidth, moveSection, moveDirectSection, moveSectionToNewGroup, duplicateSection ])
+    return useMemo(() => ({ createGroup, createSection, createSectionInGroup, updateGroupsPositions, setGroupWidth, setCollapsed, moveSection, moveDirectSection, moveSectionToNewGroup, duplicateSection }), [ createGroup, createSection, createSectionInGroup, updateGroupsPositions, setGroupWidth, setCollapsed, moveSection, moveDirectSection, moveSectionToNewGroup, duplicateSection ])
 }

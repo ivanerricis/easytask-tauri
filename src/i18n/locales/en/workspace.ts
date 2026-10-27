@@ -39,6 +39,7 @@ export const workspace: Translation["workspace"] = {
         select: "Select workspace…",
         search: "Search a workspace…",
         empty: "No workspace found.",
+        label: "Workspace: {{name}}",
     },
     backHome: "Back to home",
 }
@@ -123,6 +124,7 @@ export const sidebar: Translation["sidebar"] = {
     emptyTree: "No folders or notes",
     emptyTreeHint: "Create a note or a folder to get started.",
     treeLabel: "Folders and notes",
+    holdsOpenNote: "Contains the open note",
 }
 
 export const templates: Translation["templates"] = {

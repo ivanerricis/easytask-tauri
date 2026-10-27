@@ -328,9 +328,9 @@ describe("moves", () => {
 
     it("directMove has its own label, with the name of the group", () => {
         const label = commands.directMove(1, "Spesa", 0, 2).label
-        expect(label).toContain("Sposta task del gruppo")
+        expect(label).toContain("Sposta lista task")
         expect(label).toContain("Spesa")
-        expect(commands.directMove(1, "", 0, 2).label).toBe("Sposta task del gruppo")
+        expect(commands.directMove(1, "", 0, 2).label).toBe("Sposta lista task")
     })
 
     it("sectionMove: undoing puts the list of the direct tasks back where it was, when it moved", async () => {

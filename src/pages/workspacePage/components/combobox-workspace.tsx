@@ -19,6 +19,9 @@ import {
 } from "@/components/ui/popover"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
+import { reportError } from "@/lib/report-error"
+import { getErrorMessage } from "@/lib/utils"
+import type { Workspace } from "@/types/types"
 
 export function ComboboxWorkspace() {
     const { t } = useTranslation()
@@ -26,11 +29,14 @@ export function ComboboxWorkspace() {
     const { workspaces, currentWorkspace, setCurrentWorkspace } = useWorkspace()
     const { getWorkspaceData } = useWorkspaceData()
 
-    const handleSelect = async (selectedValue: string) => {
-        const selectedWorkspace = workspaces.find(ws => ws.name === selectedValue)
-        if (selectedWorkspace) {
-            setCurrentWorkspace(selectedWorkspace)
-            await getWorkspaceData(selectedWorkspace.id)
+    // The workspace is the one of the item (its id), not looked up by name: two workspaces can have the same name
+    const handleSelect = async (workspace: Workspace) => {
+        setCurrentWorkspace(workspace)
+        try {
+            await getWorkspaceData(workspace.id)
+        } catch (err) {
+            reportError(err, getErrorMessage(err))
+        } finally {
             setOpen(false)
         }
     }
@@ -42,6 +48,7 @@ export function ComboboxWorkspace() {
                     variant="outline"
                     role="combobox"
                     aria-expanded={open}
+                    aria-label={currentWorkspace ? t("workspace.combobox.label", { name: currentWorkspace.name }) : t("workspace.combobox.select")}
                     className="justify-between max-w-full rounded-xs border !px-2.5"
                 >
                     <div className="flex min-w-0 items-center gap-2">
@@ -60,8 +67,8 @@ export function ComboboxWorkspace() {
                             {workspaces.map((workspace) => (
                                 <CommandItem
                                     key={workspace.id}
-                                    value={workspace.name}
-                                    onSelect={() => handleSelect(workspace.name)}
+                                    value={`${workspace.name} ${workspace.id}`}
+                                    onSelect={() => handleSelect(workspace)}
                                 >
                                     <CheckIcon
                                         className={cn(

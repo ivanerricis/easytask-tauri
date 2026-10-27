@@ -1,11 +1,11 @@
-import { useRef, useState, type KeyboardEvent } from "react"
+import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import {
     DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors,
     type CollisionDetection, type DragMoveEvent,
 } from "@dnd-kit/core"
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
 import { CSS } from "@dnd-kit/utilities"
-import { useTabs, useTabsActions } from "@/contexts/use-tabs"
+import { useActiveNoteId, useTabs, useTabsActions } from "@/contexts/use-tabs"
 import { useTranslation } from "react-i18next"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { cn } from "@/lib/utils"
@@ -65,6 +65,14 @@ export const NoteList = () => {
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
     const accessibility = buildDndAccessibility(entry => tabs.find(tab => tab.id === entry.id)?.name, { keyboard: false })
+
+    // The active tab can be outside the visible part of the bar (many tabs open, a note opened from the tree, the search or a shortcut)
+    const activeId = useActiveNoteId()
+    useEffect(() => {
+        if (activeId === null) return
+        listRef.current?.querySelector<HTMLElement>(`[role="tab"][data-note-id="${activeId}"]`)
+            ?.scrollIntoView?.({ inline: "nearest", block: "nearest" })
+    }, [activeId, tabs.length])
 
     // Arrows, Home and End move between the tabs (roving tabindex: only the active tab is in the tab order)
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {

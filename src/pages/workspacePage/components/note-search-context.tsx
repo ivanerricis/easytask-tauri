@@ -21,20 +21,14 @@ const TYPING_DELAY_MS = 100
 const REVEAL_FRAMES = 10
 
 /**
- * EXTENSION POINT for closed subtasks: opens the ancestors of a subtask (`taskPath`, from the top level task down to its
- * parent) so the current match is drawn. Subtasks cannot be closed yet, so there is nothing to open; when they can, open
- * them here (the search only calls this for the current match).
+ * Opens (for the time of the search only: nothing is saved) the closed groups, sections and tasks that hide a match: the
+ * group and the section of a task, the parents of a subtask (a group name and a section title are always drawn). The
+ * elements the search opened close again when the search is closed.
  */
-export function expandTaskAncestors(noteId: number, taskPath: number[]): void {
-    void noteId
-    void taskPath
-}
-
-/** Opens the closed groups and sections that hide a match (a group name and a section title are always drawn). */
 function openAncestors(match: SearchMatch, noteId: number, ui: ReturnType<typeof useTabUiStore>) {
-    if (match.kind !== "group") ui.setGroupCollapsed(noteId, match.groupId, false)
-    if (match.kind === "task" && match.sectionId !== undefined) ui.setSectionCollapsed(noteId, match.sectionId, false)
-    if (match.kind === "task") expandTaskAncestors(noteId, match.taskPath)
+    if (match.kind !== "group") ui.setRevealed(noteId, "group", match.groupId, true)
+    if (match.kind === "task" && match.sectionId !== undefined) ui.setRevealed(noteId, "section", match.sectionId, true)
+    if (match.kind === "task") for (const taskId of match.taskPath) ui.setRevealed(noteId, "task", taskId, true)
 }
 
 /** Finds the matches of the query in the tree of the note, and brings the current one into view. Draws nothing. */
@@ -62,6 +56,12 @@ function NoteSearchEngine({ store }: { store: NoteSearchStore }) {
         const timer = setTimeout(run, TYPING_DELAY_MS)
         return () => clearTimeout(timer)
     }, [open, query, noteDataTree, hideCompletedTasks, store])
+
+    // What the search opened closes again with it
+    useEffect(() => {
+        if (!open || noteId === null) return
+        return () => uiStore.clearRevealed(noteId)
+    }, [open, noteId, uiStore])
 
     useEffect(() => {
         if (revealTick === 0 || noteId === null) return

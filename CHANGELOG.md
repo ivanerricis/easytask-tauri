@@ -8,12 +8,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ### Added
 
-- The list of the tasks created directly in a group can sit anywhere among its sections, not only on top. Move it with "Move group tasks up" and "Move group tasks down" in the menu of the group; a section can step over it with "Move up" and "Move down" or by dragging, and a line shows whether it lands above or below the list. The "New task" button of the group adds to the list where it is. Undo and redo work, and after the update everything stays as it was (list on top).
+- The list of the tasks created directly in a group can sit anywhere among its sections, not only on top. Move it with "Move task list up" and "Move task list down" in the menu of the group; a section can step over it with "Move up" and "Move down" or by dragging, and a line shows whether it lands above or below the list. The "New task" button of the group adds to the list where it is. Undo and redo work, and after the update everything stays as it was (list on top).
 - Templates and export files save the position of the list of the group tasks.
+- Open and closed groups and sections are remembered: they stay as you left them when you restart the app. Everything is open after the update. The search still opens what hides a match, but only while it is open.
+- "Collapse subtasks" and "Expand subtasks" in the menu of a task that has subtasks: the subtasks are hidden and the task shows the count of the completed ones (also with that option off). Adding a subtask to a collapsed task expands it. The state is remembered like the one of groups and sections.
+- The tree of the left sidebar can be used with the keyboard: Up and Down move between rows, Right and Left open and close folders (or go to the first child or the parent), Home and End jump to the first and last row, and Tab enters and leaves the tree in one stop. The active tab scrolls into view, and a closed folder that holds the open note shows a dot.
 
 ### Changed
 
+- Confirmations and deletions run once even when you press Enter or click twice; the buttons wait while the action is running.
+- The toasts with an action ("Undo", "Show") stay for 8 seconds instead of 3.
+- Bigger click areas for the small buttons (audio player, window buttons, tabs, path bar, search) and the close button of the dialogs has full contrast.
+- A click outside the field of a new task or a new section no longer discards what you typed; the list of audio files of a group scrolls after a few files; the drop lines and rings of the drag are no longer cut off, and the width handle of a group no longer covers its scrollbar.
+- The workspace picker tells apart two workspaces with the same name.
+
 - The database is upgraded to version 9 when the app starts (a backup is made first, and it is automatic): the list and the sections of a group share one order. Modification dates do not change; an older version of the app cannot open the upgraded database.
+- The database is upgraded to version 10 when the app starts (a backup is made first, and it is automatic): groups, sections and tasks remember whether they are open or closed. Modification dates do not change, and opening or closing something does not change them either; an older version of the app cannot open the upgraded database.
 
 ## [0.13.0] - 2026-10-27
 

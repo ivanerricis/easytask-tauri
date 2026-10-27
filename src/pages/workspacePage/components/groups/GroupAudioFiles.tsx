@@ -138,7 +138,7 @@ export const GroupAudioFiles = ({ groupId }: GroupAudioFilesProps) => {
     if (files.length === 0) return null
 
     return (
-        <div role="list" className="flex flex-col gap-1" aria-label={t("audio.files")}>
+        <div role="list" className="flex flex-col gap-1 max-h-32 overflow-y-auto" aria-label={t("audio.files")}>
             {files.map(file => (
                 <AudioFileRow key={file.id} file={file} groupId={groupId} />
             ))}

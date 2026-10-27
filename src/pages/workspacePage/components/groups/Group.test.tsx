@@ -116,6 +116,15 @@ describe("Group width when collapsed", () => {
 })
 
 
+describe("Group scrolling area", () => {
+    it("is padded and offset by the same amount, so the drop rings and lines are not cut and the content keeps its place", () => {
+        render(<Group group={makeGroup({ id: 301, sections: [makeSection({ id: 1 })] })} />)
+        const area = screen.getByText("section").parentElement as HTMLElement
+        const classes = area.className.split(/\s+/)
+        for (const token of ["overflow-y-auto", "-mx-1.5", "px-1.5", "-my-1", "py-1"]) expect(classes).toContain(token)
+    })
+})
+
 describe("Group explicit width", () => {
     const handle = () => screen.getByRole("separator")
     const drag = (by: number) => {

@@ -75,7 +75,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                             size="icon"
                             aria-label={isActive ? t("notes.closeCurrent") : t("notes.close")}
                             onClick={handleCloseHeader}
-                            className={cn("size-6", isActive ? "text-foreground" : "text-muted-foreground opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100")}
+                            className={cn("relative size-7 after:absolute after:-inset-0.5 after:content-['']", isActive ? "text-foreground" : "text-muted-foreground opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100")}
                         >
                             <X />
                         </Button>

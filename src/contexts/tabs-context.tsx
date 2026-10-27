@@ -20,30 +20,26 @@ import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
  * @category Tabs
  */
 function createTabUiStore(): TabUiStore {
-    const collapsed = new Map<number, Set<number>>()
-    const collapsedGroups = new Map<number, Set<number>>()
+    const revealed = new Map<number, Set<string>>()
     const scroll = new Map<number, ScrollPosition>()
     const selected = new Map<number, SelectedItem>()
     const listeners = new Set<() => void>()
     const emit = () => listeners.forEach(listener => listener())
 
     return {
-        isSectionCollapsed: (noteId, sectionId) => collapsed.get(noteId)?.has(sectionId) ?? false,
-        setSectionCollapsed: (noteId, sectionId, value) => {
-            const set = collapsed.get(noteId) ?? new Set<number>()
-            if (set.has(sectionId) === value) return
-            if (value) set.add(sectionId)
-            else set.delete(sectionId)
-            collapsed.set(noteId, set)
+        isRevealed: (noteId, kind, id) => revealed.get(noteId)?.has(`${kind}-${id}`) ?? false,
+        setRevealed: (noteId, kind, id, value) => {
+            const set = revealed.get(noteId) ?? new Set<string>()
+            const key = `${kind}-${id}`
+            if (set.has(key) === value) return
+            if (value) set.add(key)
+            else set.delete(key)
+            revealed.set(noteId, set)
             emit()
         },
-        isGroupCollapsed: (noteId, groupId) => collapsedGroups.get(noteId)?.has(groupId) ?? false,
-        setGroupCollapsed: (noteId, groupId, value) => {
-            const set = collapsedGroups.get(noteId) ?? new Set<number>()
-            if (set.has(groupId) === value) return
-            if (value) set.add(groupId)
-            else set.delete(groupId)
-            collapsedGroups.set(noteId, set)
+        clearRevealed: noteId => {
+            if (!revealed.get(noteId)?.size) return
+            revealed.delete(noteId)
             emit()
         },
         getSelectedItem: noteId => selected.get(noteId) ?? null,
@@ -62,8 +58,7 @@ function createTabUiStore(): TabUiStore {
         setScroll: (noteId, position) => { scroll.set(noteId, position) },
         retain: keep => {
             const keepSet = new Set(keep)
-            for (const id of [...collapsed.keys()]) if (!keepSet.has(id)) collapsed.delete(id)
-            for (const id of [...collapsedGroups.keys()]) if (!keepSet.has(id)) collapsedGroups.delete(id)
+            for (const id of [...revealed.keys()]) if (!keepSet.has(id)) revealed.delete(id)
             for (const id of [...selected.keys()]) if (!keepSet.has(id)) selected.delete(id)
             for (const id of [...scroll.keys()]) if (!keepSet.has(id)) scroll.delete(id)
         },

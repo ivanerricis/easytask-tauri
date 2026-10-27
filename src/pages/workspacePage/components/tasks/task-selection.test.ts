@@ -38,6 +38,12 @@ describe("keys", () => {
 })
 
 describe("flattenVisibleTasks", () => {
+    it("leaves out the subtasks of a closed task (and of its closed descendants), the task itself stays", () => {
+        expect(ids(flattenVisibleTasks(tree, { ...all, isTaskOpen: () => false }))).toEqual([1, 2, 3, 4, 5, 6])
+        expect(ids(flattenVisibleTasks(tree, { ...all, isTaskOpen: id => id !== 2 }))).toEqual([1, 2, 3, 4, 5, 6])
+        expect(ids(flattenVisibleTasks(tree, { ...all, isTaskOpen: () => true }))).toEqual([1, 2, 21, 3, 4, 5, 6])
+    })
+
     it("follows the screen: groups by position, direct tasks first, then the sections, subtasks after their parent", () => {
         expect(ids(flattenVisibleTasks(tree, all))).toEqual([1, 2, 21, 3, 4, 5, 6])
     })

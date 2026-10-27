@@ -16,6 +16,10 @@ export type ActiveNoteActionsType = NoteOptimisticActions & {
     setNoteDataTree: (tree: NoteDataTree | null) => void
     /** The cached data of the active note right now (not the render snapshot), null without active note or cached data. */
     getNoteTree: () => NoteDataTree | null
+    /** The cached data of an open note (null when not cached): unlike getNoteTree it follows the id the caller renders with, never the one of the previous commit. */
+    getCachedNoteTree: (noteId: number) => NoteDataTree | null
+    /** Calls the listener after every change of the cached note data (any note); returns the unsubscribe. For rows that read one value of the tree. */
+    subscribeNoteTree: (listener: () => void) => () => void
 }
 
 export const ActiveNoteContext = createContext<ActiveNoteContextType | null>(null)

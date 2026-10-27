@@ -3,7 +3,7 @@ import { toast } from "sonner"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ButtonMenuGroup } from "./ButtonMenuGroup"
-import { makeGroup } from "@/test/ui-fixtures"
+import { makeGroup, makeSection } from "@/test/ui-fixtures"
 
 const patchGroup = vi.fn()
 const removeGroup = vi.fn()
@@ -37,9 +37,9 @@ beforeEach(() => {
     archiveItem.mockResolvedValue(undefined)
 })
 
-const setup = (color?: string | null, withAddSection = true) => {
+const setup = (color?: string | null, withAddSection = true, withSections = true) => {
     render(
-        <ButtonMenuGroup group={makeGroup({ id: 3, color })} onRename={onRename} onAddSection={withAddSection ? onAddSection : undefined}>
+        <ButtonMenuGroup group={makeGroup({ id: 3, color, sections: withSections ? [makeSection({ id: 5, groupID: 3 })] : [] })} onRename={onRename} onAddSection={withAddSection ? onAddSection : undefined}>
             <div data-testid="row">Gruppo</div>
         </ButtonMenuGroup>,
     )
@@ -89,6 +89,13 @@ describe("ButtonMenuGroup", () => {
         expect(section.compareDocumentPosition(moves) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
         const rename = screen.getByRole("menuitem", { name: "Rinomina" })
         expect(moves.compareDocumentPosition(rename) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it("hides the moves of the list of the group while the group has no section", async () => {
+        const row = setup(undefined, true, false)
+        fireEvent.contextMenu(row)
+        await screen.findByText("Aggiungi file audio")
+        expect(screen.queryByRole("menuitem", { name: "mosse lista 3" })).not.toBeInTheDocument()
     })
 
     it("opens the section form only once the menu is closed, so it keeps the focus", async () => {

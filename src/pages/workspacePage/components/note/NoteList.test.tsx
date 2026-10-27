@@ -6,14 +6,37 @@ import { NoteList } from "./NoteList"
 const tabs = [{ id: 1, name: "Uno" }, { id: 2, name: "Due" }, { id: 3, name: "Tre" }] as unknown as Note[]
 const activateNote = vi.fn()
 
+let activeId: number | null = 2
 vi.mock("@/contexts/use-tabs", () => ({
     useTabs: () => ({ tabs }),
+    useActiveNoteId: () => activeId,
     useTabsActions: () => ({ reorderTabs: vi.fn(), activateNote }),
 }))
 // The tab itself: only what the keyboard handler of the list reads
 vi.mock("./NoteHeader", () => ({
     NoteHeader: ({ note }: { note: Note }) => <button role="tab" data-note-id={note.id}>{note.name}</button>,
 }))
+
+describe("NoteList active tab in view", () => {
+    it("scrolls the active tab into view when it changes", () => {
+        const scrolled: string[] = []
+        const original = Element.prototype.scrollIntoView
+        Element.prototype.scrollIntoView = function (this: Element, options?: boolean | ScrollIntoViewOptions) {
+            scrolled.push(`${this.getAttribute("data-note-id")}:${JSON.stringify(options)}`)
+        }
+        try {
+            activeId = 2
+            const { rerender } = render(<NoteList />)
+            expect(scrolled).toEqual(['2:{"inline":"nearest","block":"nearest"}'])
+            activeId = 3
+            rerender(<NoteList />)
+            expect(scrolled[scrolled.length - 1]).toBe('3:{"inline":"nearest","block":"nearest"}')
+        } finally {
+            Element.prototype.scrollIntoView = original
+            activeId = 2
+        }
+    })
+})
 
 describe("NoteList keyboard", () => {
     beforeEach(() => activateNote.mockClear())
