@@ -21,6 +21,11 @@ export const tasks = {
     addSubtask: "Aggiungi sottotask",
     add: "Aggiungi task",
     placeholder: "Nuovo task…",
+    insertLine: {
+        insertHere: "Aggiungi un task qui",
+        label: "Nuovo task",
+        placeholder: "Nuovo task…",
+    },
     menu: {
         collapseSubtasks: "Comprimi sottotask",
         expandSubtasks: "Espandi sottotask",

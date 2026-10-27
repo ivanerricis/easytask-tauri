@@ -23,6 +23,11 @@ export const tasks: Translation["tasks"] = {
     addSubtask: "Add subtask",
     add: "Add task",
     placeholder: "New task…",
+    insertLine: {
+        insertHere: "Add a task here",
+        label: "New task",
+        placeholder: "New task…",
+    },
     menu: {
         collapseSubtasks: "Collapse subtasks",
         expandSubtasks: "Expand subtasks",
