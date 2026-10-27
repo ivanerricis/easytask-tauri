@@ -15,14 +15,14 @@ export const SettingsNav = ({ categories, onSelect }: SettingsNavProps) => {
         <TabsList
             variant="line"
             aria-label={t("settings.nav")}
-            className="w-full shrink-0 max-sm:flex-row max-sm:flex-wrap sm:h-fit sm:justify-start sm:self-start gap-1 p-0"
+            className="w-full shrink-0 h-fit justify-start self-start gap-1 p-0"
         >
             {categories.map(({ id, labelKey, icon: Icon }) => (
                 <TabsTrigger
                     key={id}
                     value={id}
                     onClick={onSelect}
-                    className="flex-none sm:flex-1 justify-start px-3 py-2 data-[state=active]:font-medium data-[state=active]:bg-accent"
+                    className="flex-1 justify-start px-3 py-2 data-[state=active]:font-medium data-[state=active]:bg-accent"
                 >
                     <Icon />
                     {t(labelKey)}

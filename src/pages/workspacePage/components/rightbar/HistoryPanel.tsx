@@ -21,7 +21,7 @@ export function HistoryPanel() {
     const redoShortcut = useShortcutLabel("redo")
 
     return (
-        <div className="flex h-full min-h-0 flex-col" aria-label={t("history.title")}>
+        <div className="flex h-full min-h-0 flex-col" role="region" aria-label={t("history.title")}>
             <div className="flex items-center gap-1 border-b p-2">
                 <h2 className="mr-auto text-sm font-semibold">{t("history.title")}</h2>
                 <TooltipCustom text={t("undo.undo")} shortcut={undoShortcut}>

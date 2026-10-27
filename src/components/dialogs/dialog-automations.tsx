@@ -416,7 +416,7 @@ const StepIndicator = ({ step, draft, onSelect }: { step: Step, draft: Automatio
                                 <span aria-hidden className={cn(
                                     "flex size-5 items-center justify-center rounded-full border text-xs",
                                     current && "border-primary bg-primary text-primary-foreground",
-                                    done && "border-primary text-primary",
+                                    done && "border-primary text-primary-text",
                                 )}>{done ? <Check className="size-3" /> : index + 1}</span>
                                 <span className={cn(!current && "text-muted-foreground")}>{t(`automations.steps.${name}`)}</span>
                             </Button>

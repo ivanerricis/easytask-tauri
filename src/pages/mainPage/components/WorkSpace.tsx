@@ -5,7 +5,8 @@ import { useNavigate } from "react-router-dom"
 import { ButtonMenuWorkspace } from "./ButtonMenuWorkspace"
 import { ItemMenuButton } from "@/components/item-menu"
 import React from "react"
-import { formatDate } from "@/lib/utils"
+import { cn, formatDate } from "@/lib/utils"
+import { focusRing } from "@/lib/a11y"
 import { useInlineRename } from "@/hooks/use-inline-rename"
 import { InlineNameInput } from "@/components/inline-name-input"
 
@@ -32,13 +33,13 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
     if (view === "list") {
         return (
             <ButtonMenuWorkspace workspace={workspace} onRename={startRename}>
-                <div className="group relative flex items-center w-full h-11 shrink-0 bg-background hover:bg-secondary border rounded-xs">
+                <div className="group relative flex items-center w-full h-11 shrink-0 bg-background hover:border-primary/60 border rounded-xs">
                     <button
                         type="button"
                         onClick={handleOpen}
                         aria-label={t("home.workspace.open", { name: workspace.name })}
                         title={workspace.name}
-                        className="absolute inset-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                        className={cn("absolute inset-0 cursor-pointer rounded-xs", focusRing)} />
 
                     {/* Color Container */}
                     {workspace.color && <div
@@ -67,13 +68,13 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
 
     return (
         <ButtonMenuWorkspace workspace={workspace} onRename={startRename}>
-            <div className="group relative flex items-center w-full h-24 bg-background hover:bg-secondary border rounded-xs">
+            <div className="group relative flex items-center w-full h-24 bg-background hover:border-primary/60 border rounded-xs">
                 <button
                     type="button"
                     onClick={handleOpen}
                     aria-label={t("home.workspace.open", { name: workspace.name })}
                     title={workspace.name}
-                    className="absolute inset-0 cursor-pointer rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring" />
+                    className={cn("absolute inset-0 cursor-pointer rounded-xs", focusRing)} />
 
                 {/* Color Container */}
                 {workspace.color && <div
