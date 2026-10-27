@@ -67,6 +67,15 @@ describe("Group width", () => {
         await (await groupBar()).waitForDisplayed({ timeoutMsg: "the completion bar is not shown" })
     })
 
+    it("has a horizontal scrollbar taller than the global 6px one, so its thumb is visible", async () => {
+        // With the 3px transparent border of the thumb a 6px track would leave no thumb at all
+        const height = await browser.execute(() => {
+            const scroller = document.querySelector('[data-testid="group-scroll"]')!
+            return getComputedStyle(scroller, "::-webkit-scrollbar").height
+        })
+        expect(height).toBe("14px")
+    })
+
     it("resizes by dragging the handle, hides the completion bar when narrow and saves the width", async () => {
         const before = await renderedWidth()
         // Narrower than the automatic width: under the threshold of the completion bar (320), which then goes away

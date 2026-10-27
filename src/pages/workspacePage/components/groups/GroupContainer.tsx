@@ -63,7 +63,7 @@ export const GroupContainer = () => {
                 "flex w-full h-full items-start p-2 space-x-2 overflow-x-auto",
                 // Taller horizontal scrollbar than the global 6px one: a 14px track with an 8px pill.
                 // The height is important because the global rule of index.css is unlayered and would beat a layered utility
-                "[&::-webkit-scrollbar]:h-3.5![&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-[3px]",
+                "[&::-webkit-scrollbar]:h-3.5! [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:border-[3px]",
                 "[&::-webkit-scrollbar-thumb]:border-solid [&::-webkit-scrollbar-thumb]:border-transparent [&::-webkit-scrollbar-thumb]:bg-clip-padding",
             )}
         >
