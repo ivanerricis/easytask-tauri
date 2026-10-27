@@ -2,7 +2,7 @@ import { act, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it } from "vitest"
 import { createSelectionStore } from "../sidebar/selection"
 import { TaskSelectionContext } from "./task-selection-context"
-import { TaskSelectionBar } from "./TaskSelectionBar"
+import { SelectionBarInset, TaskSelectionBar } from "./TaskSelectionBar"
 
 let store: ReturnType<typeof createSelectionStore>
 
@@ -51,5 +51,26 @@ describe("TaskSelectionBar", () => {
     it("works outside a selection provider (nothing shown)", () => {
         render(<TaskSelectionBar />)
         expect(screen.queryByTestId("selection-count")).not.toBeInTheDocument()
+    })
+})
+
+describe("SelectionBarInset", () => {
+    const setupInset = () => render(
+        <TaskSelectionContext.Provider value={store}>
+            <SelectionBarInset data-testid="scroll" className="p-2" />
+        </TaskSelectionContext.Provider>,
+    )
+
+    it("reserves room at the bottom for the pill only with 2 or more tasks selected", () => {
+        setupInset()
+        const scroll = screen.getByTestId("scroll")
+        expect(scroll).toHaveClass("p-2")
+        expect(scroll).not.toHaveClass("pb-14")
+        select(1)
+        expect(scroll).not.toHaveClass("pb-14")
+        select(2)
+        expect(scroll).toHaveClass("pb-14")
+        select(2)
+        expect(scroll).not.toHaveClass("pb-14")
     })
 })

@@ -1,5 +1,7 @@
+import type { ComponentProps } from "react"
 import { useTranslation } from "react-i18next"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 import { useSelectedTaskKeys } from "./task-selection-context"
 
 /**
@@ -18,4 +20,15 @@ export function TaskSelectionBar() {
                 </Badge>}
         </div>
     )
+}
+
+
+/**
+ * The scrollable area of the groups. With 2 or more tasks selected it keeps free room at the bottom (the pill of
+ * TaskSelectionBar: bottom-4 plus its height) so that the pill does not cover the "+" of the last section. Without a
+ * multi-selection the layout is not touched.
+ */
+export function SelectionBarInset({ className, ...props }: ComponentProps<"div">) {
+    const multi = useSelectedTaskKeys().size >= 2
+    return <div {...props} data-selection-inset={multi ? "true" : undefined} className={cn(className, multi && "pb-14")} />
 }

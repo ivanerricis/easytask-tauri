@@ -12,7 +12,7 @@ import { NoteSkeleton } from "./NoteSkeleton"
 import { NoteBackgroundMenu } from "./NoteBackgroundMenu"
 import { TaskSelectionProvider } from "../tasks/task-selection-context"
 import { TaskInsertProvider } from "../tasks/task-insert-state"
-import { TaskSelectionBar } from "../tasks/TaskSelectionBar"
+import { SelectionBarInset, TaskSelectionBar } from "../tasks/TaskSelectionBar"
 import { NoteAnnouncer } from "../tasks/NoteAnnouncer"
 import { TaskSelectionActionsProvider } from "../tasks/task-selection-actions"
 import { cn } from "@/lib/utils"
@@ -60,7 +60,7 @@ export const GroupContainer = () => {
         <NoteBackgroundMenu>
         <div className="relative flex-1 min-h-0 w-full">
         {hasData && groups.length === 0 && <EmptyNoteHints />}
-        <div
+        <SelectionBarInset
             ref={scrollRef}
             data-testid="group-scroll"
             className={cn(
@@ -86,7 +86,7 @@ export const GroupContainer = () => {
             <NewGroupEnd index={groups?.length ?? 0}>
                 <AddSection />
             </NewGroupEnd>
-        </div>
+        </SelectionBarInset>
         <TaskSelectionBar />
         <NoteAnnouncer />
         </div>
