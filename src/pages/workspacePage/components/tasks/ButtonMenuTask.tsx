@@ -29,11 +29,14 @@ type ButtonMenuFolderProps = {
     onAddSubtask?: () => void
     /** Starts the inline edit of the text (once the menu has given the focus back). */
     onRename?: () => void
+    /** Whether the subtasks are shown; with {@link onToggleSubtasks} it gives the "Collapse / Expand subtasks" entry (only on a task that has subtasks). */
+    subtasksOpen?: boolean
+    onToggleSubtasks?: () => void
     /** The task row: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
     children: ReactElement
 }
 
-export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: ButtonMenuFolderProps) => {
+export const ButtonMenuTask = ({ task, onAddSubtask, onRename, subtasksOpen = true, onToggleSubtasks, children }: ButtonMenuFolderProps) => {
     const { t } = useTranslation()
     // The inline input is opened once the menu has given the focus back, otherwise the input would lose it
     const afterClose = useRef<"addSubtask" | "rename" | null>(null)
@@ -114,6 +117,12 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, children }: Butto
                 type="addSubtask"
                 onClick={() => { afterClose.current = "addSubtask"; menu.close() }}
             />
+            {onToggleSubtasks && task.subtasks.length > 0 &&
+                <ButtonInPopover
+                    text={subtasksOpen ? t("tasks.menu.collapseSubtasks") : t("tasks.menu.expandSubtasks")}
+                    type={subtasksOpen ? "collapseAll" : "expandAll"}
+                    onClick={() => { onToggleSubtasks(); menu.close() }}
+                />}
             <ButtonInPopover
                 text={task.description ? t("tasks.menu.removeDescription") : t("tasks.menu.addDescription")}
                 type={task.description ? 'removeDescription' : 'addDescription'}

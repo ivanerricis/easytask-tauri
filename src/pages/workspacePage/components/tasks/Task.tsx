@@ -22,7 +22,7 @@ import { AddTask } from "./AddTask"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import type { DropZone } from "../note-dnd"
-import { useIsTaskSelected, useSelectTask } from "@/contexts/use-tabs"
+import { useIsTaskSelected, useSelectTask, useSubtasksOpen } from "@/contexts/use-tabs"
 import { visibleTasks } from "../section/hide-completed"
 import { DropLine } from "../sidebar/DropLine"
 import type { TaskDensity } from "@/lib/store/preferences"
@@ -106,6 +106,10 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
     const multiSelected = useIsTaskMultiSelected(task.id)
     // The press that is going to focus the row carried Ctrl/Cmd/Shift: it is a selection gesture, not a single selection
     const gestureDown = useRef(false)
+    // Closed: the subtasks are not drawn (they stay in the note: counts, progress and "hide completed" still see them)
+    const [subtasksOpen, toggleSubtasks] = useSubtasksOpen(task.id)
+    const hasSubtasks = task.subtasks.length > 0
+    const subtasksHidden = hasSubtasks && !subtasksOpen
     const isSubtask = depth > 0
     const sizes = TASK_DENSITIES[density]
     // The line of a subtask runs under the checkbox of its parent: the checkbox of a subtask is 2px narrower than the one
@@ -116,6 +120,12 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
     const lineLeft = nestedSubtask ? "left-[4px]" : "left-[3px]"
     const doneSubtasks = task.subtasks.filter(subtask => subtask.completed).length
     const hasDescription = !!task.description?.trim()
+
+    // A new subtask of a closed task opens it first, so that the new subtask is seen
+    const startAddSubtask = () => {
+        if (!subtasksOpen) toggleSubtasks()
+        setAddingSubtask(true)
+    }
 
     const handleCheckedChange = async () => {
         // Optimistic: the cached tree is updated at once and restored if the write fails
@@ -141,7 +151,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                 <span aria-hidden className={cn("pointer-events-none absolute -top-px -bottom-px w-px bg-muted-foreground/45 [.subtask:last-child>&]:hidden", lineLeft)} />
                 <span aria-hidden className={cn("pointer-events-none absolute -top-px w-px [.subtask:last-child>&]:bg-muted-foreground/45", sizes.tickHeight, lineLeft)} />
             </>}
-            <ButtonMenuTask task={task} onAddSubtask={() => setAddingSubtask(true)} onRename={startEdit}>
+            <ButtonMenuTask task={task} onAddSubtask={startAddSubtask} onRename={startEdit} subtasksOpen={subtasksOpen} onToggleSubtasks={toggleSubtasks}>
                 <div
                     ref={setRowRef}
                     {...dragProps}
@@ -182,7 +192,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     <DropLine zone={dropZone} outside />
                     <SelectionMark selected={multiSelected} />
                     {/* The line of the subtasks starts under the checkbox: with a long text the row is tall, so it runs down to the bottom of the row where the line of the first subtask goes on */}
-                    {(task.subtasks.length > 0 || isAddingSubtask) &&
+                    {((hasSubtasks && subtasksOpen) || isAddingSubtask) &&
                         <span aria-hidden className={cn(
                             "pointer-events-none absolute bottom-0 w-px bg-muted-foreground/45",
                             isSubtask ? ["left-[27px]", sizes.lineTop.subtask] : ["left-[28px]", sizes.lineTop.task],
@@ -245,7 +255,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                             </div>
 
                             {/* What the task has besides its text: a description (click to read it) and its subtasks (done / total) */}
-                            {(hasDescription || (showSubtaskCount && task.subtasks.length > 0)) &&
+                            {(hasDescription || ((showSubtaskCount || subtasksHidden) && hasSubtasks)) &&
                                 <div className="flex shrink-0 items-center gap-1.5 mt-0.5 ml-1 text-xs">
                                     {hasDescription &&
                                         // The toolbar that shows on hover covers this one and has the same button: this copy is out of the
@@ -263,9 +273,12 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                                 <AlignLeft className="size-3.5" />
                                             </Button>
                                         </TooltipCustom>}
-                                    {showSubtaskCount && task.subtasks.length > 0 &&
+                                    {/* Hidden subtasks always show their count (also with the preference off): it is the sign that there are some */}
+                                    {(showSubtaskCount || subtasksHidden) && hasSubtasks &&
                                         <span
-                                            title={t("tasks.subtaskProgress", { done: doneSubtasks, total: task.subtasks.length })}
+                                            data-testid="subtask-count"
+                                            data-subtasks-hidden={subtasksHidden ? "true" : undefined}
+                                            title={t(subtasksHidden ? "tasks.subtaskProgressHidden" : "tasks.subtaskProgress", { done: doneSubtasks, total: task.subtasks.length })}
                                             className={cn(
                                                 "flex items-center gap-0.5 tabular-nums",
                                                 // All done: full-contrast text (the accent color is chosen by the user and can be unreadable as text)
@@ -304,7 +317,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                         variant="ghost"
                                         size="icon"
                                         aria-label={t("tasks.addSubtask")}
-                                        onClick={() => setAddingSubtask(true)}
+                                        onClick={startAddSubtask}
                                         className="size-6">
                                         <Plus />
                                     </Button>
@@ -318,7 +331,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
             </ButtonMenuTask>
             {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute h-px bg-muted-foreground/45", sizes.tickTop, lineLeft, nestedSubtask ? "w-[13px]" : "w-[14px]")} />}
             {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
-            {(task.subtasks.length > 0 || isAddingSubtask) && <div className={cn("flex flex-col self-stretch", sizes.subtasks, isSubtask ? "ml-[22px]" : "ml-6")}>
+            {((hasSubtasks && subtasksOpen) || isAddingSubtask) && <div className={cn("flex flex-col self-stretch", sizes.subtasks, isSubtask ? "ml-[22px]" : "ml-6")}>
                 {visibleTasks(task.subtasks, hideCompleted).map(subtask =>
                     <Task key={subtask.id} task={subtask} depth={depth + 1} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} density={density} />)}
                 {isAddingSubtask &&

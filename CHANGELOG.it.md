@@ -9,6 +9,7 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 - La lista dei task creati direttamente in un gruppo può stare in qualsiasi punto tra le sue sezioni, non solo in cima. Spostala con "Sposta task del gruppo su" e "Sposta task del gruppo giù" nel menu del gruppo; una sezione può scavalcarla con "Sposta su" e "Sposta giù" o trascinandola, e una linea mostra se cade sopra o sotto la lista. Il pulsante "Nuovo task" del gruppo aggiunge alla lista dove si trova. Annulla e ripeti funzionano, e dopo l'aggiornamento tutto resta com'era (lista in cima).
 - Template ed export salvano la posizione della lista dei task del gruppo.
 - Gruppi e sezioni aperti o chiusi vengono ricordati: restano come li hai lasciati anche dopo aver riavviato l'app. Dopo l'aggiornamento tutto è aperto. La ricerca apre ancora ciò che nasconde un risultato, ma solo finché è aperta.
+- "Comprimi sottotask" ed "Espandi sottotask" nel menu di un task che ha sottotask: i sottotask vengono nascosti e il task mostra il conteggio di quelli completati (anche con quell'opzione disattivata). Aggiungere un sottotask a un task compresso lo espande. Lo stato viene ricordato come quello di gruppi e sezioni.
 
 ### Modificato
 

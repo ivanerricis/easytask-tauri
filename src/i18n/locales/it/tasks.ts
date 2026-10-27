@@ -1,5 +1,6 @@
 export const tasks = {
     subtaskProgress: "{{done}} di {{total}} sottotask completati",
+    subtaskProgressHidden: "{{done}} di {{total}} sottotask completati (sottotask nascosti)",
     hiddenCompleted_one: "{{count}} task completato nascosto",
     hiddenCompleted_other: "{{count}} task completati nascosti",
     errors: {
@@ -21,6 +22,8 @@ export const tasks = {
     add: "Aggiungi task",
     placeholder: "Nuovo task…",
     menu: {
+        collapseSubtasks: "Comprimi sottotask",
+        expandSubtasks: "Espandi sottotask",
         addDescription: "Aggiungi descrizione",
         removeDescription: "Rimuovi descrizione",
         addPriority: "Aggiungi priorità",

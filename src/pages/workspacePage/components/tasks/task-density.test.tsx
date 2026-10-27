@@ -10,7 +10,7 @@ vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ pa
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({}) }))
 vi.mock("@/hooks/use-automations", () => ({ useAutomations: () => ({ dispatch: vi.fn() }) }))
 vi.mock("@/contexts/use-color-alpha", () => ({ useColorAlpha: () => ({ taskBackground: false, task: () => 0 }) }))
-vi.mock("@/contexts/use-tabs", () => ({ useIsTaskSelected: () => false, useSelectTask: () => vi.fn() }))
+vi.mock("@/contexts/use-tabs", () => ({ useIsTaskSelected: () => false, useSelectTask: () => vi.fn(), useSubtasksOpen: () => [true, vi.fn()] }))
 vi.mock("../rightbar/use-right-panel", () => ({ useShowTaskDetails: () => null }))
 vi.mock("../note-dnd-state", () => ({
     useNoteDrag: () => ({ setNodeRef: vi.fn(), dragProps: {}, isDragging: false }),

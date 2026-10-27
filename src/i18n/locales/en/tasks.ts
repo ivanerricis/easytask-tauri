@@ -2,6 +2,7 @@ import type { Translation } from "../it"
 
 export const tasks: Translation["tasks"] = {
     subtaskProgress: "{{done}} of {{total}} subtasks completed",
+    subtaskProgressHidden: "{{done}} of {{total}} subtasks completed (subtasks hidden)",
     hiddenCompleted_one: "{{count}} completed task hidden",
     hiddenCompleted_other: "{{count}} completed tasks hidden",
     errors: {
@@ -23,6 +24,8 @@ export const tasks: Translation["tasks"] = {
     add: "Add task",
     placeholder: "New task…",
     menu: {
+        collapseSubtasks: "Collapse subtasks",
+        expandSubtasks: "Expand subtasks",
         addDescription: "Add description",
         removeDescription: "Remove description",
         addPriority: "Add priority",

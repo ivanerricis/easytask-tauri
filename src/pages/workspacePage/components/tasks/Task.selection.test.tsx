@@ -46,8 +46,9 @@ vi.mock("@/contexts/workspace-data", () => ({
 }))
 vi.mock("@/contexts/use-active-note", () => ({
     useActiveNote: () => ({ noteDataTree: tree }),
-    useActiveNoteActions: () => ({ patchTask, removeTask, applyTaskMove, getNoteTree: () => tree }),
+    useActiveNoteActions: () => ({ patchTask, removeTask, applyTaskMove, getNoteTree: () => tree, getCachedNoteTree: () => tree, subscribeNoteTree: () => () => { } }),
 }))
+vi.mock("@/contexts/workspace-data/context", () => ({ useWorkspaceActions: () => ({ setCollapsed: vi.fn() }) }))
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder, useOptionalUndo: () => null }))
 vi.mock("@/hooks/use-automations", () => ({ useAutomations: () => ({ dispatch }) }))
 vi.mock("../note-dnd-state", () => ({
