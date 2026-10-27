@@ -1,5 +1,6 @@
 export const common = {
     cancel: "Annulla",
+    selected: "selezionato",
     delete: "Elimina",
     save: "Salva",
     rename: "Rinomina",

@@ -12,6 +12,7 @@ import { NoteSkeleton } from "./NoteSkeleton"
 import { NoteBackgroundMenu } from "./NoteBackgroundMenu"
 import { TaskSelectionProvider } from "../tasks/task-selection-context"
 import { TaskInsertProvider } from "../tasks/task-insert-state"
+import { TaskSelectionBar } from "../tasks/TaskSelectionBar"
 import { TaskSelectionActionsProvider } from "../tasks/task-selection-actions"
 import { cn } from "@/lib/utils"
 
@@ -85,6 +86,7 @@ export const GroupContainer = () => {
                 <AddSection />
             </NewGroupEnd>
         </div>
+        <TaskSelectionBar />
         </div>
         </NoteBackgroundMenu>
         </TaskSelectionActionsProvider>
