@@ -65,6 +65,17 @@ I task di un gruppo contano nella barra di avanzamento e nel numero di task del 
 
 I nuovi task vanno in fondo alla sezione. Per metterli in cima scegli **In cima** in **Impostazioni > Note e sezioni > Posizione dei nuovi task**.
 
+### Inserire un task tra due altri
+
+Passa il mouse tra due task (di una sezione, di un gruppo, o due sottotask): compare una linea sottile con un **+** al centro. Fai clic sul **+** e proprio lì si apre un campo. Scrivi il testo e premi `Invio` per inserire il task in quel punto; `Esc` chiude il campo e scarta il testo. La linea c'è anche sopra il primo task, per inserire prima di lui.
+
+- È aperto un solo campo alla volta: facendo clic su un altro **+** il campo si sposta.
+- Con **Continua ad aggiungere task** attivo il campo si sposta sotto il nuovo task, così puoi continuare a inserire in ordine; se è disattivato si chiude dopo ogni task.
+- Quando i task completati sono nascosti, la linea sopra il primo task visibile inserisce prima di lui e i nascosti restano dove sono.
+- La linea funziona solo con il mouse e non compare durante un trascinamento o con più task selezionati.
+- Ogni inserimento è un unico passo nella [cronologia di annulla](./undo-and-history.md).
+- Puoi disattivare le linee da **Impostazioni > Note e sezioni > Linea per inserire un task**.
+
 ### Aggiungere un sottotask
 
 Passa il mouse su un task e fai clic su **Aggiungi sottotask**, oppure scegli la voce dal menu del task. Scrivi il testo e premi `Invio`: il campo resta aperto per il sottotask successivo. `Esc` lo chiude. I sottotask possono avere altri sottotask, senza limiti. Il task mostra quanti sottotask sono completati (per esempio `1/3`) se **Mostra sottotask completati** è attivo.
