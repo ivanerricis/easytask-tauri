@@ -6,18 +6,26 @@
 export type UndoCommand = {
     /** Translated description of the action, shown in the toasts and in the menus. */
     label: string
+    /**
+     * The template draft (note id) the action was done in: it can only be undone/redone while that draft is the active note.
+     * Undefined for the actions on the normal notes and on the workspace.
+     */
+    scopeNoteId?: number
     undo: () => Promise<void>
     redo: () => Promise<void>
 }
 
 export type UndoOutcome =
     | { status: "empty" }
+    /** The next command belongs to a template draft that is not the active note: nothing was applied. */
+    | { status: "blocked", label: string }
     | { status: "done", label: string }
     | { status: "failed", label: string, error: unknown }
 
 /** Outcome of undoing/redoing several actions in a row: `executed` is how many were applied (also on failure). */
 export type UndoManyOutcome =
     | { status: "empty", executed: 0 }
+    | { status: "blocked", executed: number, label: string }
     | { status: "done", executed: number, label: string }
     | { status: "failed", executed: number, label: string, error: unknown }
 
@@ -43,10 +51,13 @@ export const UNDO_LIMIT = 50
  * - while an undo/redo runs, `record` is ignored (the inverse operations must not create history);
  * - undo/redo requests are serialized, so quick repeated shortcuts apply in order;
  * - a command that fails is dropped (its state can no longer be trusted) and the error is returned, never thrown;
+ * - a command for which `isBlocked` is true (an action done in a template draft, while another note is active) is not run;
+ * - `dropScope` removes the commands of a closed template draft;
  * - `clear` also discards the effect of a command that was running meanwhile.
  * @category Undo
  */
-export function createUndoHistory(limit = UNDO_LIMIT) {
+export function createUndoHistory(limit = UNDO_LIMIT, initialIsBlocked: (command: UndoCommand) => boolean = () => false) {
+    let isBlocked = initialIsBlocked
     let undoStack: UndoCommand[] = []
     let redoStack: UndoCommand[] = []
     let running = false
@@ -103,6 +114,7 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
             const from = direction === "undo" ? undoStack : redoStack
             const command = from.at(-1)
             if (!command) return { status: "empty" }
+            if (isBlocked(command)) return { status: "blocked", label: command.label }
             const startedAt = generation
             running = true
             try {
@@ -161,6 +173,7 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
         while (executed < target && startedAt === generation) {
             const outcome = await runOne(direction)
             if (outcome.status === "empty") break
+            if (outcome.status === "blocked") return executed === 0 ? { status: "blocked", executed: 0, label: outcome.label } : { status: "done", executed, label }
             if (outcome.status === "failed") return { status: "failed", executed, label: outcome.label, error: outcome.error }
             executed += 1
             label = outcome.label
@@ -171,6 +184,8 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
     return {
         record,
         track,
+        /** Replaces the check that tells a command cannot run now (see `createUndoHistory`). */
+        setIsBlocked: (next: (command: UndoCommand) => boolean) => { isBlocked = next },
         /** Changes the limit: the oldest actions beyond it are dropped at once. Invalid values are ignored. */
         setLimit: (next: number) => {
             if (!Number.isInteger(next) || next < 1) return
@@ -186,6 +201,14 @@ export function createUndoHistory(limit = UNDO_LIMIT) {
             generation += 1
             undoStack = []
             redoStack = []
+            emit()
+        },
+        /** Removes (undo and redo) the commands done in the template draft `noteId`: its note is deleted when the draft closes. */
+        dropScope: (noteId: number) => {
+            const keep = (command: UndoCommand) => command.scopeNoteId !== noteId
+            if (undoStack.every(keep) && redoStack.every(keep)) return
+            undoStack = undoStack.filter(keep)
+            redoStack = redoStack.filter(keep)
             emit()
         },
         /** True when `command` is the next one an undo would apply (identity check on the top of the undo stack). */

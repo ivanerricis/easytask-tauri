@@ -10,6 +10,7 @@ import { home, workspace, notes, groups, sidebar, templates, sections } from "./
 import { tasks, transfer, duplicate } from "./tasks"
 import { details, rightPanel } from "./details"
 import { automations } from "./automations"
+import { templateEditor } from "./template-editor"
 
 export const it = {
     common,
@@ -44,6 +45,7 @@ export const it = {
     rightPanel,
     details,
     automations,
+    templateEditor,
 }
 
 export type Translation = typeof it

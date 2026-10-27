@@ -1,11 +1,12 @@
 import i18n from "@/i18n"
 import type { Task } from "@/types/types"
+import type { NoteTemplate } from "@/types/template"
 import { createError, handleDBError, toAppError } from "@/types/error"
 import { getErrorMessage } from "@/lib/utils"
 import { getDB } from "../dbManager"
 import { Transaction, TransactionError } from "../transaction"
 import type { PortableAutomation } from "@/lib/automations/portable"
-import { addNoteContent, addSections, buildContentWithSectionIds, createSectionSnapshotter } from "./template"
+import { addNoteContent, addSections, buildContentWithSectionIds, createSectionSnapshotter, getDBTemplate } from "./template"
 import { addNoteAutomations, getDBPortableAutomations } from "./automation"
 
 /**
@@ -43,7 +44,8 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
     try {
         const db = await getDB()
         const rows = await db.select<NoteRow[]>(
-            'SELECT workspaceID, folderID, name, color, position FROM note WHERE id = ? AND deleted_at IS NULL', [noteId])
+            // A note without workspace is the working copy of a template (see template-draft.ts): it is not duplicated
+            'SELECT workspaceID, folderID, name, color, position FROM note WHERE id = ? AND workspaceID IS NOT NULL AND deleted_at IS NULL', [noteId])
         if (rows.length === 0)
             throw createError("DUPLICATE_SOURCE_MISSING", i18n.t("errors.duplicate.noteMissing"))
         source = rows[0]
@@ -75,6 +77,42 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
         if (error instanceof TransactionError && error.statementIndex === note)
             handleDBError(error, "NOTE", { UNIQUE: i18n.t("errors.template.noteUnique"), CHECK: i18n.t("errors.template.noteCheck") })
         throw createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.apply", { message: getErrorMessage(error) }))
+    }
+}
+
+/**
+ * Duplicates a template in the same workspace: the copy is named "<name> (copy)" ("(copy 2)"... when taken) and has the
+ * same color, source note and content. The content is the one saved in the database: the changes of an open template
+ * editor must be saved first.
+ * @param templateId The ID of the template to duplicate (it must not be deleted).
+ * @returns The ID of the new template.
+ * @throws "TEMPLATE_NOT_FOUND" when the template does not exist, "TEMPLATE_EXISTS" on a name clash, "DUPLICATE_FAILED" otherwise.
+ * @category Database Queries
+ */
+export async function duplicateDBTemplate(templateId: number): Promise<number> {
+    let source: NoteTemplate
+    let name: string
+    try {
+        const found = await getDBTemplate(templateId)
+        if (!found)
+            throw createError("TEMPLATE_NOT_FOUND", i18n.t("errors.template.notFound"))
+        source = found
+        const db = await getDB()
+        const siblings = await db.select<{ name: string }[]>(
+            'SELECT name FROM note_template WHERE workspaceID = ? AND deleted_at IS NULL', [source.workspaceID])
+        name = uniqueCopyName(source.name, new Set(siblings.map(row => row.name)))
+    } catch (error: unknown) {
+        throw toAppError(error, e => createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.load", { message: getErrorMessage(e) })))
+    }
+
+    try {
+        const db = await getDB()
+        const result = await db.execute(
+            'INSERT INTO note_template (workspaceID, sourceNoteID, name, color, content) VALUES (?, ?, ?, ?, ?)',
+            [source.workspaceID, source.sourceNoteID, name, source.color, JSON.stringify(source.content)])
+        return result.lastInsertId as number
+    } catch (error: unknown) {
+        throw toAppError(error, e => handleDBError(e, "TEMPLATE", { UNIQUE: i18n.t("errors.template.unique"), CHECK: i18n.t("errors.template.check") }))
     }
 }
 

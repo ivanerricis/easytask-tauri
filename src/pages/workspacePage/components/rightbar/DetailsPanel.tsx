@@ -18,6 +18,7 @@ import { findTask } from "@/contexts/note-tree-ops"
 import { formatDate, getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
+import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import { AudioContext, type AudioTrack } from "@/contexts/audio-context-object"
 import { formatBitDepth, formatBitrate, formatChannels, formatDateTime, formatDuration, formatFileSize, formatPosition, formatSampleRate, getAudioMetadata, type AudioMetadata } from "@/lib/audio-metadata"
 import { RightPanelContext } from "./right-panel-context-object"
@@ -379,10 +380,12 @@ const AudioDetails = () => {
  * @category RightPanel
  */
 export function DetailsPanel() {
+    // A template draft has no audio
+    const isDraft = useIsActiveDraft()
     return (
         <div className="flex h-full flex-col">
             <div className="min-h-0 flex-1 overflow-y-auto"><NoteOrTaskDetails /></div>
-            <AudioDetails />
+            {!isDraft && <AudioDetails />}
         </div>
     )
 }

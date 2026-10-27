@@ -17,4 +17,9 @@ describe("toastTrashed", () => {
         toastTrashed(2)
         expect(toast.success).toHaveBeenCalledWith(expect.any(String), undefined)
     })
+
+    it("says only that the item is deleted in a template draft, still with the undo button", () => {
+        toastTrashed(2, async () => undefined, true)
+        expect(toast.success).toHaveBeenCalledWith("Eliminato", expect.objectContaining({ action: expect.objectContaining({ label: expect.any(String) }) }))
+    })
 })

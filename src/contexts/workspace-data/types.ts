@@ -115,7 +115,10 @@ export type WorkspaceActionsType = {
     getTemplates: (workspaceID: number) => Promise<NoteTemplate[]>
     countTemplates: (workspaceID: number) => Promise<number>
     createTemplateFromNote: (noteID: number, name: string) => Promise<number>
-    updateTemplateFromNote: (templateID: number) => Promise<void>
+    /** Refreshes the snapshot of a template from its source note, or from another note of the workspace (which becomes the source). */
+    updateTemplateFromNote: (templateID: number, noteID?: number) => Promise<void>
+    /** Duplicates a template; resolves with the ID of the copy. */
+    duplicateTemplate: (templateID: number) => Promise<number>
     createNoteFromTemplate: (templateID: number, workspaceID: number, folderID: number | null, name: string, color?: string | null) => Promise<number>
 
     /** Copies a note (same folder, right after it, content included) and refreshes the sidebar tree. Resolves with the id of the copy. */

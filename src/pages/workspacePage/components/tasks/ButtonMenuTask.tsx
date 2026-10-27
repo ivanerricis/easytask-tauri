@@ -21,6 +21,7 @@ import { TaskMoveSubmenu } from "../NoteMoveSubmenus"
 import { TaskStepMoves } from "../NoteStepMoves"
 import { useShowTaskDetails } from "../rightbar/use-right-panel"
 import { useActiveNoteId, useSelectTask } from "@/contexts/use-tabs"
+import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import { useIsInTaskMultiSelection } from "./task-selection-context"
 import { TaskSelectionMenuItems } from "./TaskSelectionMenu"
 
@@ -45,6 +46,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, subtasksOpen = tr
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
     const { updateTaskPriority, updateTaskDescription, updateItemColor, archiveItem } = useWorkspaceActions()
     const activeId = useActiveNoteId()
+    const isDraft = useIsActiveDraft()
     const { patchTask, removeTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const selectTask = useSelectTask()
@@ -156,11 +158,11 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, subtasksOpen = tr
                 type="details"
                 onClick={() => { if (showTaskDetails) showTaskDetails(task.id); else selectTask(task.id); menu.close() }}
             />
-            <ButtonInPopover
+            {!isDraft && <ButtonInPopover
                 text={t("menu.archive")}
                 type="archive"
                 onClick={() => { void handleArchive() }}
-            />
+            />}
             <Separator />
             <ButtonInPopover
                 text={t("common.delete")}
