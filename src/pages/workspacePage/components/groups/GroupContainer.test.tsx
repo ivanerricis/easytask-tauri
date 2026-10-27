@@ -193,7 +193,11 @@ describe("GroupContainer reorder", () => {
 
         it("makes the horizontal scrollbar of the groups taller", async () => {
             await renderLoaded()
-            expect(emptyArea().className).toContain("[&::-webkit-scrollbar]:h-3.5!")
+            // Whole classes: two of them glued together by a missing space are no class at all
+            const classes = emptyArea().className.split(/\s+/)
+            expect(classes).toContain("[&::-webkit-scrollbar]:h-3.5!")
+            expect(classes).toContain("[&::-webkit-scrollbar-thumb]:rounded-full")
+            expect(classes).toContain("[&::-webkit-scrollbar-thumb]:border-[3px]")
         })
     })
 })

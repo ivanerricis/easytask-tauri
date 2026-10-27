@@ -6,6 +6,37 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-10-27
+
+### Added
+
+- Path bar above the groups showing `Folder › Subfolder › Note`. Click a segment to show it in the left sidebar: the sidebar opens, the folders above it expand and the row is scrolled into view and selected.
+- Search in a note: the search button in the path bar (or `Ctrl+F`) opens a field that highlights the matches in tasks, subtasks, sections and groups, with an "N of M" counter. `Enter` and `Shift+Enter` move between the matches, which open the collapsed groups and sections that hold them, and `Esc` closes the search.
+- Tasks can be created directly in a group, without a section: the dashed "New task" button under the tasks of the group adds one, and they can be moved to and from the sections (drag and drop, "Move to…"). A new section is created from the menu of the group ("New section").
+- Groups can be resized: drag the right edge of a group, or use the arrows, Home and End on the focused edge, and double-click it to go back to the automatic width. The width is saved with the note, and the completion bar of the group hides when the group is narrower than 320 px.
+- Select several tasks with `Ctrl/Cmd+click` and `Shift+click` (`Esc` clears the selection), then delete, archive, color or move them together from the right-click menu. Each action is a single step of the undo.
+- Automations can use the tasks created directly in a group as the place a rule starts from and as the destination of a move ("Group X, direct tasks").
+- Settings > Notes: "Keep adding tasks" (on by default). After creating a task the field stays open for the next one; `Esc` or `Enter` on an empty field closes it.
+- A pin on the floating audio player locks it in place, so it cannot be moved by mistake.
+- Right-click on the empty area of a note: new group, and show or hide the completed tasks.
+
+### Changed
+
+- The note search shortcut is now `Ctrl+K` (it was `Ctrl+O`); `Ctrl+F` searches inside the open note. Both can be changed in Settings > Shortcuts.
+- The button that hides the completed tasks moved from the tab of the note to the path bar. Its shortcut, `Ctrl+Shift+H`, is the same.
+- The button at the bottom of a group adds a task; sections are created from the menu of the group.
+- The horizontal scrollbar of the groups is taller and easier to grab.
+- A task no longer shows a "Show details" button when you hover it; the entry is still in its menu.
+- Export files have a new format (version 2): files exported by older versions are not accepted anymore. The database is upgraded to a new version when the app starts (a backup is made first); an older version of the app cannot open it.
+- The summaries of the trash and of the archive no longer count the hidden section that holds the direct tasks of a group, and a task directly in a group shows "Note X › Group Y".
+
+### Fixed
+
+- The "…" button of groups, sections and audio files is centered vertically in its row.
+- When a group is widened, its completion bar, counters and "…" button stay on the right edge of the header.
+- Opening the field of a new task in a group of automatic width no longer adds a horizontal scrollbar, and its add and cancel buttons share the row instead of stretching.
+- A menu opened while a task is being created no longer closes when the new task field takes the focus back.
+
 ## [0.12.0] - 2026-10-23
 
 ### Added
@@ -349,7 +380,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...HEAD
+[0.13.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...v0.12.0
 [0.11.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.1...v0.11.0
 [0.10.1]: https://github.com/ivanerricis/easytask-tauri/compare/v0.10.0...v0.10.1
