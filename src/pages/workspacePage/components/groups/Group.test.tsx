@@ -124,10 +124,10 @@ describe("Group scrolling area", () => {
         for (const token of ["overflow-y-auto", "-mx-1.5", "px-1.5", "-my-1", "py-1"]) expect(classes).toContain(token)
     })
 
-    it("holds the audio files too, so the group has one scrollbar and not one more inside the list", () => {
+    it("leaves the audio files out of it, so they stay put while the sections scroll", () => {
         render(<Group group={makeGroup({ id: 302, sections: [makeSection({ id: 1 })] })} />)
         const area = screen.getByText("section").parentElement as HTMLElement
-        expect(area.contains(screen.getByTestId("audio-files"))).toBe(true)
+        expect(area.contains(screen.getByTestId("audio-files"))).toBe(false)
     })
 })
 

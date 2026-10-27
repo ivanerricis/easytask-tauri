@@ -13,7 +13,7 @@ vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => n
 vi.mock("../rightbar/use-right-panel", () => ({ useShowAudioInfo: () => null }))
 
 describe("GroupAudioFiles", () => {
-    it("shows every file without a scrollbar of its own (the group scrolls)", () => {
+    it("shows every file and never scrolls by itself", () => {
         render(<GroupAudioFiles groupId={1} />)
         const list = screen.getByRole("list")
         const classes = list.className.split(/\s+/)
