@@ -17,6 +17,7 @@ import { reportError } from "@/lib/report-error"
 import { TASK_DENSITIES, useTaskDensity } from "./task-density"
 import { PlusButton } from "../section/PlusButton"
 import { CloseButton } from "../section/CloseButton"
+import { useEndFieldReplaced, useTaskInsertStore } from "./task-insert-state"
 
 type AddTaskProps = {
     /** Section of the new task; ignored for subtasks, which inherit the section of their parent. */
@@ -48,6 +49,16 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
     const sizes = TASK_DENSITIES[useTaskDensity()]
     const recorder = useUndoRecorder()
     const inputRef = useRef<HTMLInputElement>(null)
+    const insertStore = useTaskInsertStore()
+    const listKey = `t-${parentTaskId}`
+    const replaced = useEndFieldReplaced(listKey)
+
+    const close = () => {
+        insertStore.releaseEnd(listKey)
+        onClose?.()
+    }
+    // Only one field of a new task is open at a time: a "+" line (or another bottom field) opened elsewhere closes this one
+    useEffect(() => { if (replaced) onClose?.() }, [replaced, onClose])
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault()
@@ -57,7 +68,7 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
             try {
                 const id = await createSubTask(parentTaskId, value, newTaskPosition)
                 if (keepAddingTasks) setText("")
-                else onClose?.()
+                else close()
                 appendTask(id, { parentTaskId }, value)
                 // The cache appends it: at the top it moves before its siblings, as the database ordered it
                 if (newTaskPosition === "top" && sectionId !== null) applyTaskMove(id, { sectionId, parentTaskId }, 0)
@@ -87,13 +98,13 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
                         readOnly={saving}
                         aria-busy={saving}
                         onKeyDown={(e) => {
-                            if (e.key === "Escape") { e.preventDefault(); onClose?.() }
+                            if (e.key === "Escape") { e.preventDefault(); close() }
                             else if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault()
                             // Enter on the empty input ends the series, like the field of a new task (the disabled submit button blocks the form there)
-                            else if (e.key === "Enter" && keepAddingTasks && !text.trim() && !saving) { e.preventDefault(); onClose?.() }
+                            else if (e.key === "Enter" && keepAddingTasks && !text.trim() && !saving) { e.preventDefault(); close() }
                         }}
                         onBlur={() => {
-                            if (!text.trim() && !saving) onClose?.()
+                            if (!text.trim() && !saving) close()
                         }}
                         className={cn("flex-1 px-1 py-0 shadow-none", sizes.input, saving && "opacity-60")}
                     />
@@ -116,7 +127,7 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
                                 variant="ghost"
                                 size="icon"
                                 aria-label={t("common.close")}
-                                onClick={() => onClose?.()}
+                                onClick={close}
                                 className="size-6 text-muted-foreground hover:text-foreground"
                             >
                                 <X />
@@ -147,22 +158,35 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
     const formRef = useRef<HTMLFormElement>(null)
     const inputRef = useRef<HTMLInputElement>(null)
     const { saving, run } = useSubmitOnce()
+    const insertStore = useTaskInsertStore()
+    const listKey = `s-${sectionId}`
+
+    const closeField = () => {
+        insertStore.releaseEnd(listKey)
+        setOpen(false)
+        setText("")
+    }
+    // Only one field of a new task is open at a time: a "+" line (or another bottom field) opened elsewhere closes this one, text discarded
+    useEffect(() => insertStore.subscribe(() => {
+        const slot = insertStore.getState()
+        if (slot && !(slot.end && slot.listKey === listKey)) { setOpen(false); setText("") }
+    }), [insertStore, listKey])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             // Typed text is never lost with a click elsewhere: only an empty field closes
-            if (formRef.current && !formRef.current.contains(event.target as Node) && !text.trim()) {
-                setOpen(false)
-                setText("")
-            }
+            if (formRef.current && !formRef.current.contains(event.target as Node) && !text.trim()) closeField()
         }
 
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
+        // eslint-disable-next-line react-hooks/exhaustive-deps -- closeField only uses stable values
     }, [text])
 
     const handleOpen = () => {
-        setOpen(prev => !prev)
+        if (isOpen) { closeField(); return }
+        insertStore.claimEnd(listKey)
+        setOpen(true)
         setText("")
     }
 
@@ -171,15 +195,13 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" && keepAddingTasks && !text.trim() && !saving && !e.nativeEvent.isComposing) {
             e.preventDefault()
-            setOpen(false)
-            setText("")
+            closeField()
             return
         }
         if (e.key !== "Escape") return
         e.preventDefault()
         e.stopPropagation()
-        setOpen(false)
-        setText("")
+        closeField()
     }
 
     const handleSubmit = async (e: FormEvent) => {

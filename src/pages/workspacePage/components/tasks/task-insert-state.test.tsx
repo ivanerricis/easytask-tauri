@@ -1,4 +1,4 @@
-﻿import { act, renderHook } from "@testing-library/react"
+import { act, renderHook } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 import { createTaskInsertStore, TaskInsertProvider, useInsertSlot, useTaskInsertStore } from "./task-insert-state"
 
@@ -14,6 +14,24 @@ describe("task insert store", () => {
         store.close()
         expect(store.getState()).toBeNull()
         expect(listener).toHaveBeenCalledTimes(3)
+    })
+
+    it("the bottom field takes the place of any other and only its own list can release it", () => {
+        const store = createTaskInsertStore()
+        store.claim({ listKey: "s1", afterTaskId: 4 })
+        store.claimEnd("s1")
+        expect(store.getState()).toEqual({ listKey: "s1", afterTaskId: null, end: true })
+        store.moveAfter(9)
+        expect(store.getState()?.end).toBe(true)
+
+        store.releaseEnd("s2")
+        expect(store.getState()).not.toBeNull()
+        store.claim({ listKey: "s1", afterTaskId: 4 })
+        store.releaseEnd("s1")
+        expect(store.getState()).toEqual({ listKey: "s1", afterTaskId: 4 })
+        store.claimEnd("s1")
+        store.releaseEnd("s1")
+        expect(store.getState()).toBeNull()
     })
 
     it("moveAfter keeps the list and changes the task; it does nothing when closed", () => {

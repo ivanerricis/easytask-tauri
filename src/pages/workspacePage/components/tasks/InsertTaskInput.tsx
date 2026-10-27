@@ -1,4 +1,4 @@
-﻿import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import type { FormEvent } from "react"
 import { useTranslation } from "react-i18next"
 import { Check, Loader2, X } from "lucide-react"
@@ -15,7 +15,7 @@ import { reportError } from "@/lib/report-error"
 import { keyLabel } from "@/lib/shortcuts"
 import { cn, getErrorMessage } from "@/lib/utils"
 import { TASK_DENSITIES, useTaskDensity } from "./task-density"
-import { useInsertSlot, useTaskInsertStore } from "./task-insert-state"
+import { useInsertSlot, useTaskInsertStore, type InsertSlot } from "./task-insert-state"
 
 type InsertTaskInputProps = {
     listKey: string
@@ -53,11 +53,12 @@ function InsertTaskForm({ listKey, afterTaskId, parent, depth = 0 }: InsertTaskI
                 recorder.create("task", id, value)
                 if ("sectionId" in parent) void dispatch({ type: "task.created", taskId: id })
                 const current = store.getState()
+                const isThisSlot = (slot: InsertSlot | null) => !!slot && !slot.end && slot.listKey === listKey && slot.afterTaskId === afterTaskId
                 // Moves on only if this field is still the open one (it may have been closed or replaced meanwhile)
-                if (keepAddingTasks && current?.listKey === listKey && current.afterTaskId === afterTaskId) {
+                if (keepAddingTasks && isThisSlot(current)) {
                     store.moveAfter(id)
                     setText("")
-                } else if (current?.listKey === listKey && current.afterTaskId === afterTaskId) store.close()
+                } else if (isThisSlot(current)) store.close()
             } catch (error: unknown) {
                 reportError(error, getErrorMessage(error) || t("tasks.errors.createTask"))
             } finally {
@@ -132,6 +133,6 @@ function InsertTaskForm({ listKey, afterTaskId, parent, depth = 0 }: InsertTaskI
  */
 export function InsertTaskInput(props: InsertTaskInputProps) {
     const slot = useInsertSlot(props.listKey)
-    if (!slot || slot.afterTaskId !== props.afterTaskId) return null
+    if (!slot || slot.end || slot.afterTaskId !== props.afterTaskId) return null
     return <InsertTaskForm {...props} />
 }

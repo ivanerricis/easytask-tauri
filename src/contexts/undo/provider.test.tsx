@@ -13,7 +13,7 @@ import { UndoProvider } from "./provider"
 import { useUndo, useUndoRecorder } from "./use-undo"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
 import { getDBNoteData } from "@/db/queries/note"
-import { createDBTask, updateDBTaskCompletion } from "@/db/queries/task"
+import { createDBTask, insertDBTaskAfter, updateDBTaskCompletion } from "@/db/queries/task"
 import { moveDBTreeItem } from "@/db/queries/tree"
 import { moveDBSection, moveDBTask } from "@/db/queries/move"
 import { restoreDBItem } from "@/db/queries/trash"
@@ -38,6 +38,7 @@ vi.mock("@/db/queries/section", () => ({ createDBSection: vi.fn(), createDBSecti
 vi.mock("@/db/queries/task", () => ({
     createDBSubTask: vi.fn(),
     createDBTask: vi.fn(),
+    insertDBTaskAfter: vi.fn(),
     updateDBTaskCompletion: vi.fn(),
     updateDBTaskDescription: vi.fn(),
     updateDBTaskPriority: vi.fn(),
@@ -256,6 +257,22 @@ describe("UndoProvider", () => {
             await act(() => result.current.undo.redo())
             expect(restoreDBItem).toHaveBeenCalledWith("task", 31)
             await waitFor(() => expect(taskIds(result)).toEqual([30, 31]))
+        })
+
+        it("undoes a task inserted between two others in a single step", async () => {
+            vi.mocked(insertDBTaskAfter).mockResolvedValue({ id: 31, index: 0 })
+            const { result } = await setup()
+            await act(async () => {
+                const { id, index } = await result.current.data.insertTaskAfter({ sectionId: 20 }, null, "Mezzo")
+                result.current.noteActions.appendTask(id, { sectionId: 20 }, "Mezzo", index)
+                result.current.recorder.create("task", id, "Mezzo")
+            })
+            expect(taskIds(result)).toEqual([31, 30])
+
+            await act(() => result.current.undo.undo())
+            expect(deleteDBItem).toHaveBeenCalledWith("task", 31)
+            expect(taskIds(result)).toEqual([30])
+            expect(result.current.undo).toMatchObject({ canUndo: false, canRedo: true })
         })
 
         it("moves a task back to its old place with the optimistic update", async () => {

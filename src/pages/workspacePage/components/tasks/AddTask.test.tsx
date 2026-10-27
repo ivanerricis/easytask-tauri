@@ -1,9 +1,11 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { useEffect } from "react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { AddTask } from "./AddTask"
 import { toast } from "sonner"
 import { deferred } from "@/test/ui-render"
+import { TaskInsertProvider, useTaskInsertStore } from "./task-insert-state"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
 
@@ -315,5 +317,70 @@ describe("AddTask", () => {
             await waitFor(() => expect(toast.error).toHaveBeenCalledWith("boom"))
             expect(ctx.appendTask).not.toHaveBeenCalled()
         })
+    })
+})
+
+describe("AddTask and the field of a new task opened by a + line", () => {
+    beforeEach(() => {
+        vi.resetAllMocks()
+        prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: false }
+    })
+
+    const setup = (ui: React.ReactNode) => {
+        let store!: ReturnType<typeof useTaskInsertStore>
+        function Grab() {
+            const current = useTaskInsertStore()
+            useEffect(() => { store = current }, [current])
+            return null
+        }
+        render(<TaskInsertProvider><Grab />{ui}</TaskInsertProvider>)
+        return () => store
+    }
+
+    it("opening the bottom field takes the place of the open field", async () => {
+        const user = userEvent.setup()
+        const getStore = setup(<AddTask sectionId={3} />)
+        act(() => getStore().claim({ listKey: "s-3", afterTaskId: 4 }))
+        await user.click(screen.getByRole("button"))
+        expect(getStore().getState()).toEqual({ listKey: "s-3", afterTaskId: null, end: true })
+        expect(screen.getByPlaceholderText(/Nuovo task/)).toBeInTheDocument()
+    })
+
+    it("a + line that opens a field closes the bottom field, discarding its text", async () => {
+        const user = userEvent.setup()
+        const getStore = setup(<AddTask sectionId={3} />)
+        await user.type(await open(user), "bozza")
+        act(() => getStore().claim({ listKey: "s-3", afterTaskId: 4 }))
+        expect(screen.queryByPlaceholderText(/Nuovo task/)).not.toBeInTheDocument()
+
+        await user.click(screen.getByRole("button"))
+        expect(screen.getByPlaceholderText(/Nuovo task/)).toHaveValue("")
+    })
+
+    it("closing the bottom field frees the place, but not if another field took it", async () => {
+        const user = userEvent.setup()
+        const getStore = setup(<AddTask sectionId={3} />)
+        const input = await open(user)
+        await user.type(input, "{Escape}")
+        expect(getStore().getState()).toBeNull()
+
+        await open(user)
+        act(() => getStore().claim({ listKey: "s-9", afterTaskId: null }))
+        expect(getStore().getState()).toEqual({ listKey: "s-9", afterTaskId: null })
+    })
+
+    it("the new subtask field closes when a field is opened elsewhere, and frees the place when it closes", async () => {
+        const user = userEvent.setup()
+        const onClose = vi.fn()
+        const getStore = setup(<AddTask sectionId={3} parentTaskId={7} onClose={onClose} />)
+        act(() => getStore().claimEnd("t-7"))
+        expect(onClose).not.toHaveBeenCalled()
+
+        await user.type(screen.getByPlaceholderText(/Nuovo sottotask/), "{Escape}")
+        expect(onClose).toHaveBeenCalledTimes(1)
+        expect(getStore().getState()).toBeNull()
+
+        act(() => getStore().claim({ listKey: "t-7", afterTaskId: 11 }))
+        expect(onClose).toHaveBeenCalledTimes(2)
     })
 })
