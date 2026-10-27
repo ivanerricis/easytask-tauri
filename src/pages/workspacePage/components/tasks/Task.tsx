@@ -12,7 +12,7 @@ import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { useAutomations } from "@/hooks/use-automations"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { cn, getErrorMessage, hexToRgba } from "@/lib/utils"
-import React, { useCallback, useRef, useState, type HTMLAttributes } from "react"
+import React, { useCallback, useEffect, useRef, useState, type HTMLAttributes } from "react"
 import { AutoTextarea } from "@/components/auto-textarea"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { AlignLeft, Flag, ListTree, Plus } from "lucide-react"
@@ -36,6 +36,7 @@ import { taskKey } from "./task-selection"
 import { useSearchHighlight } from "../note-search-context"
 import { SearchedTaskText } from "./SearchedTaskText"
 import { useIsTaskTabStop, useTaskTabStopStore } from "./task-tab-stop"
+import { useTaskRowKeys } from "./use-task-row-keys"
 
 // Clicks on these keep their own action (checkbox, buttons) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
@@ -115,6 +116,18 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
     // Roving tabindex of the list: one task is in the tab order, the others are reached with the arrows
     const tabStop = useIsTaskTabStop(treeKey, task.id, isFirst)
     const tabStopStore = useTaskTabStopStore()
+    // Enter / Escape in the rename field give the focus back to the row (the field is removed, the focus would be lost)
+    const rowElement = useRef<HTMLElement | null>(null)
+    const refocusRow = useRef(false)
+    const setRef = useCallback((node: HTMLElement | null) => {
+        rowElement.current = node
+        setRowRef(node)
+    }, [setRowRef])
+    useEffect(() => {
+        if (isTextAreaOpen || !refocusRow.current) return
+        refocusRow.current = false
+        if (!document.activeElement || document.activeElement === document.body) rowElement.current?.focus()
+    }, [isTextAreaOpen])
     // The press that is going to focus the row carried Ctrl/Cmd/Shift: it is a selection gesture, not a single selection
     const gestureDown = useRef(false)
     // Closed: the subtasks are not drawn (they stay in the note: counts, progress and "hide completed" still see them)
@@ -152,6 +165,9 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
             reportError(err, t("tasks.errors.update", { message: getErrorMessage(err) }))
         }
     }
+
+    const onRowKeyDown = useTaskRowKeys({ taskId: task.id, subtasksOpen, onToggleSubtasks: toggleSubtasks, onToggleCompleted: () => { void handleCheckedChange() }, onRename: startEdit })
+
     return (
         <div className={cn(
             "relative flex flex-col items-center w-full border border-transparent transition-none",
@@ -165,7 +181,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
             </>}
             <ButtonMenuTask task={task} onAddSubtask={startAddSubtask} onRename={startEdit} subtasksOpen={subtasksOpen} onToggleSubtasks={toggleSubtasks}>
                 <div
-                    ref={setRowRef}
+                    ref={setRef}
                     {...dragProps}
                     role="treeitem"
                     aria-level={depth + 1}
@@ -174,6 +190,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     aria-checked={!!task.completed}
                     aria-label={task.text}
                     tabIndex={tabStop ? 0 : -1}
+                    onKeyDown={onRowKeyDown}
                     data-task-id={task.id}
                     data-selected={selected ? "true" : undefined}
                     aria-current={selected ? "true" : undefined}
@@ -268,6 +285,10 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                 />}
                                 {isTextAreaOpen && <InlineErrorTooltip message={error}><AutoTextarea
                                     {...inputProps}
+                                    onKeyDown={e => {
+                                        if ((e.key === "Enter" && !e.shiftKey) || e.key === "Escape") refocusRow.current = true
+                                        inputProps.onKeyDown(e)
+                                    }}
                                     onPointerDown={e => e.stopPropagation()}
                                     minRows={1}
                                     className={cn("w-full min-w-0 max-h-auto text-wrap break-words [overflow-wrap:anywhere] whitespace-normal resize-none", sizes.text)}

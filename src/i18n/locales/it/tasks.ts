@@ -50,6 +50,10 @@ export const tasks = {
     editText: "Modifica il testo del task",
     list: "Task",
     listOf: "Task di {{name}}",
+    keyboard: {
+        moved: "Spostato in posizione {{position}} di {{total}}",
+        cannotMove: "Impossibile spostare oltre",
+    },
     toggleCompleted: "Segna come completato: {{text}}",
     showDescription: "Mostra la descrizione",
 }

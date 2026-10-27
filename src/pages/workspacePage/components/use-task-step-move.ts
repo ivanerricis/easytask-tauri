@@ -5,18 +5,25 @@ import { useNoteMoves } from "./note-dnd-state"
 import { getTaskStep, type Step } from "./note-steps"
 
 /**
- * One step of a task among its siblings, for the keyboard (Alt+Up / Alt+Down). Reads the tree lazily when called, so the
- * list does not re-render with every change of the note. Resolves to whether the task moved (false at the edge of the list).
+ * One step of any task among its siblings, for the keyboard (Alt+Up / Alt+Down) of a whole list. Reads the tree lazily when
+ * called, so the list does not re-render with every change of the note. Resolves to whether the task moved (false at the
+ * edge of the list).
  */
-export function useTaskStepMove(taskId: number): (step: Step) => Promise<boolean> {
+export function useTaskStepMover(): (taskId: number, step: Step) => Promise<boolean> {
     const { getNoteTree } = useActiveNoteActions()
     const { hideCompletedTasks } = usePreferences()
     const { moveTaskTo } = useNoteMoves()
-    return useCallback(async (step: Step) => {
+    return useCallback(async (taskId: number, step: Step) => {
         const tree = getNoteTree()
         const target = tree ? getTaskStep(tree, taskId, step, hideCompletedTasks) : null
         if (!target) return false
         await moveTaskTo(taskId, target)
         return true
-    }, [getNoteTree, hideCompletedTasks, moveTaskTo, taskId])
+    }, [getNoteTree, hideCompletedTasks, moveTaskTo])
+}
+
+/** {@link useTaskStepMover} for one task. */
+export function useTaskStepMove(taskId: number): (step: Step) => Promise<boolean> {
+    const move = useTaskStepMover()
+    return useCallback((step: Step) => move(taskId, step), [move, taskId])
 }
