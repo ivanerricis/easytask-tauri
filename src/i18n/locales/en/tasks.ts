@@ -50,6 +50,8 @@ export const tasks: Translation["tasks"] = {
         deleteError: "Could not move all the tasks to the trash ({{done}} of {{total}} moved): {{message}}",
     },
     editText: "Edit the task text",
+    list: "Tasks",
+    listOf: "Tasks of {{name}}",
     toggleCompleted: "Mark as completed: {{text}}",
     showDescription: "Show the description",
 }

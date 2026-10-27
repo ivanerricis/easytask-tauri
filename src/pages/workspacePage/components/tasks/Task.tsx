@@ -35,6 +35,7 @@ import { useIsTaskMultiSelected, useTaskSelectionStore } from "./task-selection-
 import { taskKey } from "./task-selection"
 import { useSearchHighlight } from "../note-search-context"
 import { SearchedTaskText } from "./SearchedTaskText"
+import { useIsTaskTabStop, useTaskTabStopStore } from "./task-tab-stop"
 
 // Clicks on these keep their own action (checkbox, buttons) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
@@ -51,6 +52,10 @@ type TaskProps = {
     renameOnClick?: boolean
     /** Spacing and text size of the rows (preference "Task density"); a primitive prop, so the memo holds when other preferences change. */
     density?: TaskDensity
+    /** The list (tree) the task belongs to, for its roving tabindex; the subtasks belong to the list of their ancestor. */
+    treeKey?: string
+    /** The first task of the list: the tab stop while no task has taken the focus. */
+    isFirst?: boolean
 }
 
 type TaskRowProps = TaskProps & {
@@ -83,7 +88,7 @@ export const Task = React.memo((props: TaskProps) => {
     return <TaskRow {...props} setRowRef={setRowRef} dragProps={dragProps} isDragging={isDragging} dropZone={active?.kind === "task" ? zone : null} />
 })
 
-const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, renameOnClick = true, density = "normal", setRowRef, dragProps, isDragging, dropZone }: TaskRowProps) => {
+const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, renameOnClick = true, density = "normal", treeKey = "", isFirst = false, setRowRef, dragProps, isDragging, dropZone }: TaskRowProps) => {
     const { t } = useTranslation()
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
@@ -107,6 +112,9 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
     const selectionStore = useTaskSelectionStore()
     const insertStore = useTaskInsertStore()
     const multiSelected = useIsTaskMultiSelected(task.id)
+    // Roving tabindex of the list: one task is in the tab order, the others are reached with the arrows
+    const tabStop = useIsTaskTabStop(treeKey, task.id, isFirst)
+    const tabStopStore = useTaskTabStopStore()
     // The press that is going to focus the row carried Ctrl/Cmd/Shift: it is a selection gesture, not a single selection
     const gestureDown = useRef(false)
     // Closed: the subtasks are not drawn (they stay in the note: counts, progress and "hide completed" still see them)
@@ -144,7 +152,6 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
             reportError(err, t("tasks.errors.update", { message: getErrorMessage(err) }))
         }
     }
-
     return (
         <div className={cn(
             "relative flex flex-col items-center w-full border border-transparent transition-none",
@@ -160,6 +167,13 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                 <div
                     ref={setRowRef}
                     {...dragProps}
+                    role="treeitem"
+                    aria-level={depth + 1}
+                    aria-expanded={hasSubtasks ? subtasksOpen : undefined}
+                    aria-selected={selected || multiSelected}
+                    aria-checked={!!task.completed}
+                    aria-label={task.text}
+                    tabIndex={tabStop ? 0 : -1}
                     data-task-id={task.id}
                     data-selected={selected ? "true" : undefined}
                     aria-current={selected ? "true" : undefined}
@@ -182,12 +196,13 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                         if (!(e.target as HTMLElement).closest(SELECTION_IGNORED)) selectTask(task.id)
                     }}
                     onFocus={() => {
+                        tabStopStore?.set(task.id)
                         const gesture = gestureDown.current
                         gestureDown.current = false
                         if (!gesture) selectTask(task.id)
                     }}
                     className={cn(
-                        "peer/row relative flex flex-col items-center w-full touch-none cursor-grab active:cursor-grabbing",
+                        "peer/row relative flex flex-col items-center w-full touch-none cursor-grab active:cursor-grabbing focus-visible:outline-offset-[-2px]",
                         // Selected: a 2px bar in the primary colour on the left and a tint stronger than the hover one
                         selected && "bg-accent shadow-[inset_2px_0_0_0_var(--primary)]",
                         isDragging && "opacity-40",
@@ -336,14 +351,14 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
             </ButtonMenuTask>
             {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute h-px bg-muted-foreground/45", sizes.tickTop, lineLeft, nestedSubtask ? "w-[13px]" : "w-[14px]")} />}
             {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
-            {((hasSubtasks && subtasksOpen) || isAddingSubtask) && <div className={cn("flex flex-col self-stretch", sizes.subtasks, isSubtask ? "ml-[22px]" : "ml-6")}>
+            {((hasSubtasks && subtasksOpen) || isAddingSubtask) && <div role="group" className={cn("flex flex-col self-stretch", sizes.subtasks, isSubtask ? "ml-[22px]" : "ml-6")}>
                 {taskRowsWithInsert({
                     all: task.subtasks,
                     visible: visibleTasks(task.subtasks, hideCompleted),
                     listKey: `t-${task.id}`,
                     parent: { parentTaskId: task.id },
                     depth: depth + 1,
-                    renderTask: subtask => <Task key={subtask.id} task={subtask} depth={depth + 1} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} density={density} />,
+                    renderTask: subtask => <Task key={subtask.id} task={subtask} depth={depth + 1} treeKey={treeKey} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} density={density} />,
                 })}
                 {isAddingSubtask &&
                     <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}

@@ -23,9 +23,12 @@ export function TaskTabStopProvider({ listKey, children }: { listKey: string, ch
 /** The store of the enclosing list (null outside a provider), to move the tab stop when a row takes the focus. */
 export const useTaskTabStopStore = (): TaskTabStopStore | null => useContext(TaskTabStopContext)?.store ?? null
 
-/** Whether the task is the tab stop of its list; a boolean, so a move re-renders only the two rows concerned. */
-export function useIsTaskTabStop(listKey: string, taskId: number): boolean {
+/**
+ * Whether the task is the tab stop of its list; a boolean, so a move re-renders only the two rows concerned. While no row
+ * has taken the focus yet (or the one that had it is gone) the `fallback` row (the first of the list) is the tab stop.
+ */
+export function useIsTaskTabStop(listKey: string, taskId: number, fallback = false): boolean {
     const value = useContext(TaskTabStopContext)
     const inList = value !== null && value.listKey === listKey
-    return useStoreSelector(inList ? value.store : inertStore, current => inList ? current === taskId : true)
+    return useStoreSelector(inList ? value.store : inertStore, current => inList ? (current === null ? fallback : current === taskId) : true)
 }

@@ -48,6 +48,8 @@ export const tasks = {
         deleteError: "Impossibile spostare tutti i task nel cestino ({{done}} su {{total}} spostati): {{message}}",
     },
     editText: "Modifica il testo del task",
+    list: "Task",
+    listOf: "Task di {{name}}",
     toggleCompleted: "Segna come completato: {{text}}",
     showDescription: "Mostra la descrizione",
 }
