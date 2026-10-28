@@ -1,6 +1,6 @@
 import { taskSections } from "@/lib/group-sections"
 import type { NoteDataTree, Task } from "@/types/types"
-import { visibleTasks } from "./section/hide-completed"
+import { orderedVisibleTasks } from "./section/hide-completed"
 
 /** A range [start, end) of the original text. */
 export type MatchRange = readonly [start: number, end: number]
@@ -75,6 +75,8 @@ export type SearchMatch = {
 export type CollectOptions = {
     /** Matches inside tasks hidden by "hide completed tasks" are not counted (they are not on the screen). */
     hideCompleted: boolean
+    /** The completed tasks are listed after the open ones of their list, as they are drawn ("completed tasks last"). */
+    completedLast?: boolean
 }
 
 /**
@@ -82,7 +84,7 @@ export type CollectOptions = {
  * in it and their subtasks (depth first), then its sections by position (title, then tasks and subtasks).
  * @category Note
  */
-export function collectMatches(tree: NoteDataTree, query: string, { hideCompleted }: CollectOptions): SearchMatch[] {
+export function collectMatches(tree: NoteDataTree, query: string, { hideCompleted, completedLast = false }: CollectOptions): SearchMatch[] {
     if (!normalizeForSearch(query)) return []
     const matches: SearchMatch[] = []
     const add = (kind: SearchMatchKind, itemId: number, text: string | null | undefined, groupId: number, sectionId: number | undefined, taskPath: number[]) => {
@@ -92,7 +94,7 @@ export function collectMatches(tree: NoteDataTree, query: string, { hideComplete
             matches.push({ id: `${key}#${occurrence}`, key, kind, itemId, groupId, sectionId, taskPath, occurrence })
     }
     const visit = (list: Task[], groupId: number, sectionId: number, path: number[]) => {
-        for (const task of visibleTasks(list ?? [], hideCompleted)) {
+        for (const task of orderedVisibleTasks(list ?? [], { hideCompleted, completedLast })) {
             add("task", task.id, task.text, groupId, sectionId, path)
             visit(task.subtasks ?? [], groupId, sectionId, [...path, task.id])
         }

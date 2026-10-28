@@ -22,7 +22,7 @@ function TaskSelectionSync({ store }: { store: SelectionStore }) {
     const { noteDataTree } = useActiveNote()
     const noteId = useActiveNoteId()
     const uiStore = useTabUiStore()
-    const { hideCompletedTasks } = usePreferences()
+    const { hideCompletedTasks, completedTasksLast } = usePreferences()
 
     useEffect(() => {
         const sync = () => {
@@ -31,6 +31,7 @@ function TaskSelectionSync({ store }: { store: SelectionStore }) {
             const closed = collapsedIds(noteDataTree)
             const tasks = flattenVisibleTasks(noteDataTree, {
                 hideCompleted: hideCompletedTasks,
+                completedLast: completedTasksLast,
                 isGroupOpen: groupId => !closed.groups.has(groupId) || uiStore.isRevealed(noteId, "group", groupId),
                 isSectionOpen: sectionId => !closed.sections.has(sectionId) || uiStore.isRevealed(noteId, "section", sectionId),
                 isTaskOpen: taskId => !closed.tasks.has(taskId) || uiStore.isRevealed(noteId, "task", taskId),
@@ -39,7 +40,7 @@ function TaskSelectionSync({ store }: { store: SelectionStore }) {
         }
         sync()
         return uiStore.subscribe(sync)
-    }, [store, noteDataTree, noteId, uiStore, hideCompletedTasks])
+    }, [store, noteDataTree, noteId, uiStore, hideCompletedTasks, completedTasksLast])
 
     return null
 }

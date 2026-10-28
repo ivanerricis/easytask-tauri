@@ -26,6 +26,7 @@ export const NotesSettings = () => {
         spellcheck, setSpellcheck,
         confirmDeleteWithContent, setConfirmDeleteWithContent,
         hideCompletedTasks, setHideCompletedTasks,
+        completedTasksLast, setCompletedTasksLast,
         reopenNotes, setReopenNotes,
         reopenLastWorkspace, setReopenLastWorkspace,
     } = usePreferences()
@@ -47,6 +48,7 @@ export const NotesSettings = () => {
                 <SettingsSwitchRow label={t("settings.notes.unnamedLabels.label")} description={t("settings.notes.unnamedLabels.description")} checked={showUnnamedLabels} onCheckedChange={setShowUnnamedLabels} />
                 <SettingsSwitchRow label={t("settings.notes.taskBackground.label")} description={t("settings.notes.taskBackground.description")} checked={taskBackground} onCheckedChange={setTaskBackground} />
                 <SettingsSwitchRow label={t("settings.notes.hideCompleted.label")} description={t("settings.notes.hideCompleted.description")} checked={hideCompletedTasks} onCheckedChange={setHideCompletedTasks} />
+                <SettingsSwitchRow label={t("settings.notes.completedLast.label")} description={t("settings.notes.completedLast.description")} checked={completedTasksLast} onCheckedChange={setCompletedTasksLast} />
                 <SegmentedSetting
                     label={t("settings.notes.taskDensity.label")}
                     description={t("settings.notes.taskDensity.description")}

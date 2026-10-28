@@ -45,6 +45,7 @@ If the accent color has little contrast with the background, EasyTask warns you 
 | Show names of unnamed groups and sections | On / Off | Off |
 | Colored task background | On / Off | On |
 | Hide completed tasks | On / Off | Off |
+| Completed tasks at the bottom | On / Off | Off |
 | Task density | Compact, Normal, Roomy | Normal |
 | **Behavior**: Rename by clicking the name | On / Off | On |
 | Keep adding tasks (the field stays open after creating a task) | On / Off | On |

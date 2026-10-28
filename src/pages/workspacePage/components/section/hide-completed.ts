@@ -21,6 +21,24 @@ export const isHiddenTask = (task: Task, hide: boolean): boolean =>
 export const visibleTasks = (tasks: Task[], hide: boolean): Task[] =>
     hide ? tasks.filter(task => !isHiddenTask(task, true)) : tasks
 
+/**
+ * The tasks in the order they are drawn: `visibleTasks`, then (with `completedLast`) the open tasks first and the completed
+ * ones after them, each block in its stored order. Only a view: the stored order and every move index stay as they are.
+ * It is the same array when nothing changes, so a memoized list is not invalidated.
+ * @category Note
+ */
+export const orderedVisibleTasks = (tasks: Task[], { hideCompleted, completedLast }: { hideCompleted: boolean, completedLast: boolean }): Task[] => {
+    const visible = visibleTasks(tasks, hideCompleted)
+    if (!completedLast) return visible
+    let seenCompleted = false
+    let sorted = true
+    for (const task of visible) {
+        if (task.completed) seenCompleted = true
+        else if (seenCompleted) { sorted = false; break }
+    }
+    return sorted ? visible : [...visible.filter(task => !task.completed), ...visible.filter(task => task.completed)]
+}
+
 const countAll = (tasks: Task[]): number =>
     tasks.reduce((sum, task) => sum + 1 + countAll(task.subtasks ?? []), 0)
 

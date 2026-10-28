@@ -6,7 +6,7 @@ import { Task } from "./Task"
 import { TaskTree } from "./TaskTree"
 import { useTaskDensity } from "./task-density"
 import { taskRowsWithInsert } from "./task-insert-rows"
-import { countHiddenCompleted, visibleTasks } from "../section/hide-completed"
+import { countHiddenCompleted, orderedVisibleTasks } from "../section/hide-completed"
 
 type TaskListProps = {
     /** The top level tasks of a section (the default section of a group included), in order. */
@@ -30,10 +30,10 @@ type TaskListProps = {
  */
 export const TaskList = memo(({ tasks, listKey, sectionId, clipped, label }: TaskListProps) => {
     const { t } = useTranslation()
-    const { hideCompletedTasks, showSubtaskCount = true, renameOnClick = true } = usePreferences()
+    const { hideCompletedTasks, completedTasksLast = false, showSubtaskCount = true, renameOnClick = true } = usePreferences()
     const density = useTaskDensity()
     const hiddenCount = hideCompletedTasks ? countHiddenCompleted(tasks) : 0
-    const visible = visibleTasks(tasks, hideCompletedTasks)
+    const visible = orderedVisibleTasks(tasks, { hideCompleted: hideCompletedTasks, completedLast: completedTasksLast })
 
     return (
         <>
@@ -45,7 +45,8 @@ export const TaskList = memo(({ tasks, listKey, sectionId, clipped, label }: Tas
                 parent: { sectionId },
                 depth: 0,
                 clipped,
-                renderTask: task => <Task key={task.id} task={task} treeKey={listKey} isFirst={task === visible[0]} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompletedTasks} renameOnClick={renameOnClick} density={density} />,
+                completedLast: completedTasksLast,
+                renderTask: task => <Task key={task.id} task={task} treeKey={listKey} isFirst={task === visible[0]} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompletedTasks} completedLast={completedTasksLast} renameOnClick={renameOnClick} density={density} />,
                 })}
             </TaskTree>}
             {hiddenCount > 0 &&

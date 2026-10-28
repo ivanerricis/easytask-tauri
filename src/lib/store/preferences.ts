@@ -170,6 +170,7 @@ export const UI_PREFS = {
     reopenLastWorkspace: def({ key: "reopenLastWorkspace", default: false }),
     colorIntensity: def<number>({ key: "colorIntensity", default: DEFAULT_COLOR_INTENSITY, normalize: clampColorIntensity }),
     hideCompletedTasks: def({ key: "hideCompletedTasks", default: false }),
+    completedTasksLast: def({ key: "completedTasksLast", default: false }),
     language: def<LanguagePreference>({ key: "language", default: DEFAULT_LANGUAGE_PREFERENCE, normalize: value => isLanguagePreference(value) ? value : DEFAULT_LANGUAGE_PREFERENCE }),
     newTaskPosition: def<NewTaskPosition>({ key: "newTaskPosition", default: "bottom", normalize: value => value === "top" ? "top" : "bottom" }),
     taskDensity: def<TaskDensity>({ key: "taskDensity", default: "normal", normalize: value => value === "compact" || value === "large" ? value : "normal" }),

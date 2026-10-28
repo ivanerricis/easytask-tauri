@@ -117,7 +117,7 @@ Trascina un task dalla sua riga. Rilascialo:
 - al centro di un task, per renderlo un sottotask di quel task;
 - su una sezione, per farne l'ultimo task di quella sezione.
 
-**Sposta su**, **Sposta giù** e **Sposta in…** nel menu fanno lo stesso senza trascinare.
+**Sposta su**, **Sposta giù** e **Sposta in…** nel menu fanno lo stesso senza trascinare. Con [Task completati in fondo](#task-completati-in-fondo) attivo, un task rilasciato viene messo dove lo rilasci e l'elenco è poi mostrato con i completati in fondo.
 
 ### Usare la tastiera
 
@@ -150,6 +150,12 @@ Premi `Ctrl+F` o clicca la lente nella barra del percorso sopra i gruppi per apr
 ## Nascondere i task completati
 
 Premi `Ctrl+Maiusc+H`, usa il pulsante a forma di occhio nella barra del percorso sopra i gruppi, oppure scegli **Visualizza > Nascondi task completati**. I task completati e i loro sottotask spariscono, e ogni sezione indica quanti sono nascosti. Un task completato che ha ancora un sottotask aperto resta visibile, così il lavoro aperto non si perde. Non viene eliminato nulla: premi di nuovo la scorciatoia per rivederli. Per partire con i task nascosti usa **Impostazioni > Note e sezioni > Nascondi task completati**.
+
+## Task completati in fondo
+
+Attiva **Impostazioni > Note e sezioni > Task completati in fondo** per vedere i task completati dopo quelli da fare in ogni elenco: i task di una sezione, i task messi direttamente in un gruppo e i sottotask di un task. È solo una vista: ogni blocco mantiene il suo ordine, l'ordine salvato nella nota non cambia e non si sposta nulla quando completi o riapri un task (cambia solo posto sullo schermo). Funziona insieme a **Nascondi task completati**.
+
+Con l'opzione attiva, la selezione dei task, la ricerca e la tastiera seguono l'ordine che vedi. **Sposta su** e **Sposta giù** (e `Alt+↑` / `Alt+↓`) spostano un task tra i task dello stesso tipo e si fermano al bordo dei task da fare o di quelli completati. La riga **+** sopra il primo task completato aggiunge un nuovo task dopo l'ultimo da fare, e tra i task completati non c'è nessuna riga **+**. Quando trascini un task, viene messo dove lo rilasci, poi l'elenco è mostrato di nuovo con i completati in fondo.
 
 ## Il pannello dei dettagli
 
