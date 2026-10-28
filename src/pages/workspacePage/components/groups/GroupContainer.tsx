@@ -52,8 +52,8 @@ export const GroupContainer = () => {
     )
 
     return (
-        <NoteDndProvider>
         <TaskSelectionProvider>
+        <NoteDndProvider>
         <TaskInsertProvider>
         <TaskSelectionActionsProvider>
         {/* flex-1 + min-h-0: a tall note must scroll here instead of squeezing the tab bar above */}
@@ -93,7 +93,7 @@ export const GroupContainer = () => {
         </NoteBackgroundMenu>
         </TaskSelectionActionsProvider>
         </TaskInsertProvider>
-        </TaskSelectionProvider>
         </NoteDndProvider>
+        </TaskSelectionProvider>
     )
 }

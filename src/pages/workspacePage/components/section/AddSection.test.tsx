@@ -1,3 +1,4 @@
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import type { ReactElement } from "react"
 import { act, fireEvent, render as rtlRender, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
@@ -54,6 +55,15 @@ describe("AddSection", () => {
         expect(ctx.createGroup).toHaveBeenCalledWith(20, "Sprint")
         expect(ctx.createSectionInGroup).not.toHaveBeenCalled()
         expect(screen.queryByPlaceholderText(GROUP_PLACEHOLDER)).not.toBeInTheDocument()
+    })
+
+    it("limits the name of a new group and the title of a new section", async () => {
+        const user = userEvent.setup()
+        const group = render(<AddSection />)
+        expect(await openGroupForm()).toHaveAttribute("maxlength", String(MAX_NAME_LENGTH))
+        group.unmount()
+        render(<AddSection inGroup groupId={7} />)
+        expect(await openSectionForm(user)).toHaveAttribute("maxlength", String(MAX_NAME_LENGTH))
     })
 
     it("creates the group once when Enter is pressed twice while saving", async () => {

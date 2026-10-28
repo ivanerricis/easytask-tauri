@@ -56,6 +56,7 @@ export const tasks: Translation["tasks"] = {
     keyboard: {
         moved: "Moved to position {{position}} of {{total}}",
         cannotMove: "Cannot move any further",
+        dragSingle: "Only this task is moved",
         selected: "{{text}} selected",
         deselected: "{{text}} removed from the selection",
     },

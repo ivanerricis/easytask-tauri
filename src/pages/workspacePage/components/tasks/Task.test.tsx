@@ -441,7 +441,10 @@ describe("Task description icon", () => {
         expect(buttons[0]).not.toBe(indicator())
         expect(buttons[0].parentElement).toContainElement(screen.getByRole("button", { name: "Aggiungi sottotask" }))
         expect(indicator()).toHaveAttribute("aria-hidden", "true")
-        expect(indicator()).toHaveAttribute("tabindex", "-1")
+        // Decorative: not a control, so nothing aria-hidden can take the focus
+        expect(indicator()!.tagName).toBe("SPAN")
+        expect(indicator()).not.toHaveAttribute("tabindex")
+        expect(indicator()!.querySelector("button")).toBeNull()
     })
 
     it("has neither without a description, or with a blank one", () => {

@@ -16,6 +16,9 @@ import {
     computeDropZone, computeGroupDropZone, computeGroupTarget, computeSectionTarget, findGroup, computeTaskTarget, findSection, findTask,
     type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverKind, type NoteOverRef, type SectionTarget, type TaskTarget,
 } from "./note-dnd"
+import { useTaskSelectionStore } from "./tasks/task-selection-context"
+import { taskKey } from "./tasks/task-selection"
+import { announce } from "./tasks/note-announcer-store"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import type { NoteDataTree } from "@/types/types"
 import { NO_HOVER, NoteDndStoreContext, createNoteDndStore, noteKey, useGroupMoves, useNoteMoves, type NoteHover } from "./note-dnd-state"
@@ -75,7 +78,8 @@ const getPointer = (event: DragMoveEvent): { x: number, y: number } | null => {
  * @category Note DnD
  */
 export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
-    useTranslation() // re-renders on language change so the screen reader texts follow it
+    const { t } = useTranslation() // re-renders on language change so the screen reader texts follow it
+    const selection = useTaskSelectionStore()
     const { noteDataTree } = useActiveNote()
     const colorAlpha = useColorAlpha()
     const { moveSectionTo, moveTaskTo } = useNoteMoves()
@@ -109,6 +113,11 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
     const handleDragStart = (event: DragStartEvent) => {
         const data = event.active.data.current as NoteDragRef | undefined
         lastMoveRef.current = null
+        // A task of a multi-selection moves alone: the selection is dropped so what is dragged is what moves
+        if (data?.kind === "task" && selection && selection.getSelected().size >= 2 && selection.has(taskKey(data.id))) {
+            selection.reset()
+            announce(t("tasks.keyboard.dragSingle"))
+        }
         store.set({ active: data ? { kind: data.kind, id: data.id } : null })
     }
 
@@ -169,7 +178,9 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         else await moveTaskTo(pending.id, pending.target)
     }
 
-    useGrabbingCursor(active !== null)
+    // Over nothing valid (no droppable, or a no-op target such as a task under itself) the cursor says the drop does nothing
+    const noTarget = useSyncExternalStore(store.subscribe, () => store.getState().hover.overKey === null)
+    useGrabbingCursor(active !== null, noTarget)
 
     const preview = useMemo(() => {
         if (!active || !noteDataTree) return null

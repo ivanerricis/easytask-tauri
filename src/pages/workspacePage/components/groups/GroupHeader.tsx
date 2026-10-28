@@ -1,3 +1,4 @@
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
 import { usePreferences } from "@/contexts/use-preferences"
@@ -98,7 +99,8 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0, 
                     onKeyDown={e => { if (!renameOnClick && e.key === "Enter") { e.preventDefault(); startEditing() } }}
                     title={name || undefined}
                     // An unnamed group shows no text unless the preference asks for the fallback label
-                    aria-label={label}
+                    // Says what the button does (Enter renames), not only what it is called
+                    aria-label={t("groups.renameAria", { name: label })}
                     className={`text-sm font-semibold mr-1 min-w-[6ch] max-w-72 flex-1 h-6 truncate text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${renameOnClick ? "cursor-text" : ""} ${!name ? "text-muted-foreground" : ""}`}>
                     {search.query ? <Highlight text={name} query={search.query} active={search.active} /> : name || (showUnnamedLabels ? label : "")}
                 </button>}
@@ -109,6 +111,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0, 
                         type="text"
                         placeholder={label}
                         aria-label={t("groups.nameLabel")}
+                        maxLength={MAX_NAME_LENGTH}
                         className="h-6 min-w-0 flex-1 mr-1 px-1 py-0 text-sm font-semibold md:text-sm border-primary"
                     />
                 </InlineErrorTooltip>}

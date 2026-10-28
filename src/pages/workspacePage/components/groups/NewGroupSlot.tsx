@@ -59,7 +59,11 @@ export const NewGroupEnd = ({ index, children }: NewGroupEndProps) => {
         >
             <div className={cn(dragging && "invisible")}>{children}</div>
             {dragging &&
-                <span className="pointer-events-none absolute inset-x-0 top-1/2 text-center text-xs text-muted-foreground">
+                <span className={cn(
+                    "pointer-events-none absolute inset-x-0 top-1/2 -translate-y-1/2 text-center text-xs",
+                    // Full contrast on the highlighted drop area (the muted colour on the primary tint is too faint)
+                    zone ? "text-foreground" : "text-muted-foreground",
+                )}>
                     {t("menu.newGroup")}
                 </span>}
         </div>

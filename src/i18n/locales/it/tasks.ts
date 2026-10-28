@@ -54,6 +54,7 @@ export const tasks = {
     keyboard: {
         moved: "Spostato in posizione {{position}} di {{total}}",
         cannotMove: "Impossibile spostare oltre",
+        dragSingle: "Viene spostato solo questo task",
         selected: "{{text}} selezionato",
         deselected: "{{text}} rimosso dalla selezione",
     },
