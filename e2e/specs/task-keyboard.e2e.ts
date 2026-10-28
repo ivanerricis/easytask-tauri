@@ -204,7 +204,12 @@ describe("Task list keyboard", () => {
         await browser.keys(["Alt", "ArrowDown"])
         await browser.waitUntil(async () => JSON.stringify(await topLevelOrder(names)) === JSON.stringify([A2_RENAMED, A1, A3]), { timeoutMsg: "A1 was not moved down in the database" })
         await expectFocus(A1)
-        await expect($("[role='status'][aria-live='polite'].sr-only")).toHaveText(await tr("tasks.keyboard.moved", { position: 2, total: 3 }))
+        // The announcer alternates a trailing non-breaking space; WebKitGTK keeps it in getText, WebView2 does not
+        const announced = await tr("tasks.keyboard.moved", { position: 2, total: 3 })
+        await browser.waitUntil(
+            async () => (await $("[role='status'][aria-live='polite'].sr-only").getText()).replace(/ /g, " ").trim() === announced,
+            { timeoutMsg: "the move was not announced" },
+        )
         await browser.keys(["Alt", "ArrowUp"])
         await browser.waitUntil(async () => JSON.stringify(await topLevelOrder(names)) === JSON.stringify(names), { timeoutMsg: "A1 was not moved back up in the database" })
         await expectFocus(A1)
