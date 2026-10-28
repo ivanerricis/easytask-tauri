@@ -285,6 +285,10 @@ export const settings: Translation["settings"] = {
             label: "Hide completed tasks",
             description: "Completed tasks (and their subtasks) are not shown in the notes. A line tells how many are hidden.",
         },
+        completedLast: {
+            label: "Completed tasks at the bottom",
+            description: "In every list, completed tasks are shown after the open ones. Only a view: the saved order does not change.",
+        },
         newTaskPosition: {
             label: "Position of new tasks",
             description: "Where a new task is added in the section.",

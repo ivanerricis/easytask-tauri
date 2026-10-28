@@ -497,7 +497,7 @@ describe("preference table", () => {
     it("keeps the keys saved on disk", () => {
         expect(Object.values(all).map(definition => definition.key).sort()).toEqual([
             "alwaysOnTop", "animationSpeed", "audioPlayerOpacity", "audioPlayerPinned", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupFolder",
-            "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "confirmDeleteWithContent", "hideCompletedTasks", "keepAddingTasks", "language",
+            "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "completedTasksLast", "confirmDeleteWithContent", "hideCompletedTasks", "keepAddingTasks", "language",
             "lastWorkspaceId", "newTaskPosition", "rememberWindowState", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
             "showGroupProgressBar", "showGroupSeparators", "showProgressBar", "showSectionCount", "showSubtaskCount", "showTaskCount",
             "showTaskInsertLine", "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth", "sidebarRightOpen", "sidebarRightWidth",

@@ -384,6 +384,14 @@ describe("PreferencesContext", () => {
         expect(prefs.savePref).toHaveBeenCalledWith("hideCompletedTasks", false)
     })
 
+    it("loads and persists the completed tasks last preference (default off)", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.completedTasksLast).toBe(false)
+        act(() => result.current.setCompletedTasksLast(true))
+        expect(result.current.completedTasksLast).toBe(true)
+        expect(prefs.savePref).toHaveBeenCalledWith("completedTasksLast", true)
+    })
+
     it("loads and persists the subtask count preference (default on)", async () => {
         const { result } = renderHook(() => usePreferences(), { wrapper })
         expect(result.current.showSubtaskCount).toBe(true)

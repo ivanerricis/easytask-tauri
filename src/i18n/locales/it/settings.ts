@@ -283,6 +283,10 @@ export const settings = {
             label: "Nascondi task completati",
             description: "I task completati (con i loro sottotask) non vengono mostrati nelle note. Una riga indica quanti sono nascosti.",
         },
+        completedLast: {
+            label: "Task completati in fondo",
+            description: "In ogni elenco i task completati sono mostrati dopo quelli da fare. È solo una vista: l'ordine salvato non cambia.",
+        },
         newTaskPosition: {
             label: "Posizione dei nuovi task",
             description: "Dove aggiungere un task nuovo nella sezione.",
