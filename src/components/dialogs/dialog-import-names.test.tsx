@@ -62,4 +62,13 @@ describe("DialogImportNames", () => {
         expect(screen.getByLabelText("Nome della nota")).toHaveAttribute("aria-describedby", alert.id)
         expect(screen.getByLabelText("Nome della cartella")).not.toHaveAttribute("aria-describedby")
     })
+
+    it("durante l'importazione il pulsante è occupato e lo spinner si ferma con movimento ridotto", async () => {
+        const user = userEvent.setup()
+        render(<DialogImportNames proposed={proposed} onSubmit={() => new Promise(() => { /* never */ })} onCancel={vi.fn()} />)
+        await user.click(screen.getByRole("button", { name: "Importa" }))
+        const button = screen.getByRole("button", { name: "Importa" })
+        expect(button).toHaveAttribute("aria-busy", "true")
+        expect(button.querySelector("svg")).toHaveClass("motion-reduce:animate-none")
+    })
 })

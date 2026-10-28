@@ -83,6 +83,15 @@ describe("DialogAutomations", () => {
         expect(description).not.toHaveClass("text-xs")
     })
 
+    it("il caricamento è annunciato come occupato e lo spinner si ferma con movimento ridotto", async () => {
+        mocked(getDBNoteData).mockReturnValue(new Promise(() => { /* never */ }))
+        renderDialog()
+        const status = await screen.findByRole("status")
+        expect(status).toHaveAttribute("aria-busy", "true")
+        expect(status).toHaveTextContent("Caricamento…")
+        expect(status.querySelector("svg")).toHaveClass("motion-reduce:animate-none")
+    })
+
     it("creates a rule from the editor", async () => {
         const user = userEvent.setup()
         renderDialog()

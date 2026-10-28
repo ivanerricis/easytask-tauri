@@ -245,8 +245,8 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                     </DialogHeader>
 
                     {!loaded ? (
-                        <div role="status" className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-                            <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
+                        <div role="status" aria-busy="true" className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
+                            <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> {t("common.loading")}
                         </div>
                     ) : editing ? (
                         <>
@@ -353,7 +353,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                                         </Button>
                                     ) : (
                                         <Button type="button" onClick={() => void save()} disabled={saving || !stepValid(1, editing.draft)}>
-                                            {saving ? <Loader2 className="animate-spin" /> : <Check />}
+                                            {saving ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : <Check />}
                                             {t("common.save")}
                                         </Button>
                                     )}

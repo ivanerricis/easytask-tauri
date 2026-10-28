@@ -101,12 +101,12 @@ export const ConfirmDialog = ({
                     </Button>
                     {secondary && (
                         <Button variant={secondaryDestructive ? "destructive" : "outline"} onClick={run(secondary)} disabled={saving}>
-                            {pending === secondary ? <Loader2 className="animate-spin" /> : SecondaryIcon && <SecondaryIcon />}
+                            {pending === secondary ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : SecondaryIcon && <SecondaryIcon />}
                             {secondary.label}
                         </Button>
                     )}
                     <Button ref={confirmRef} variant={destructive ? (irreversible ? "destructiveSolid" : "destructive") : "default"} onClick={run(confirm)} disabled={saving}>
-                        {pending === confirm ? <Loader2 className="animate-spin" /> : ConfirmIcon && <ConfirmIcon />}
+                        {pending === confirm ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : ConfirmIcon && <ConfirmIcon />}
                         {confirm.label}
                     </Button>
                 </DialogFooter>

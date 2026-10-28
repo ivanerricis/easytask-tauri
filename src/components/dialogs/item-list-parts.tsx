@@ -54,8 +54,9 @@ export const ListSkeleton = ({ rows = 5 }: { rows?: number }) => {
     const { t } = useTranslation()
     const shown = useDelayedFlag(true)
     return (
-        <div role="status" className="flex flex-col gap-1">
-            <span className="sr-only">{t("common.loading")}</span>
+        <div role="status" aria-busy="true" className="flex flex-col gap-1">
+            {/* Visible together with the skeleton rows (the same delay), read out from the start */}
+            <span className={shown ? "px-1 pb-1 text-sm text-muted-foreground" : "sr-only"}>{t("common.loading")}</span>
             {shown && Array.from({ length: rows }, (_, index) => <RowSkeleton key={index} />)}
         </div>
     )
