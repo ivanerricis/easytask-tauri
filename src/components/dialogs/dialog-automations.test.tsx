@@ -92,6 +92,17 @@ describe("DialogAutomations", () => {
         expect(status.querySelector("svg")).toHaveClass("motion-reduce:animate-none")
     })
 
+    it("annuncia il passo corrente in una regione aria-live", async () => {
+        const user = userEvent.setup()
+        renderDialog()
+        await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+        const live = screen.getByText("Passo 1 di 3: Quando")
+        expect(live).toHaveAttribute("aria-live", "polite")
+        await pick(user, "In quale sezione", "Doing")
+        await click(user, "Avanti")
+        expect(screen.getByText("Passo 2 di 3: Allora")).toBe(live)
+    })
+
     it("creates a rule from the editor", async () => {
         const user = userEvent.setup()
         renderDialog()

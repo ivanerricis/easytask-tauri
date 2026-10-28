@@ -19,6 +19,7 @@ export const automations = {
     whenHint: "Scegli cosa fa partire la regola.",
     thenHint: "Scegli cosa deve succedere.",
     then: "Allora",
+    stepStatus: "Passo {{current}} di {{total}}: {{name}}",
     stepsAria: "Passaggi",
     steps: {
         when: "Quando",

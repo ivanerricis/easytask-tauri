@@ -21,6 +21,7 @@ export const automations: Translation["automations"] = {
     whenHint: "Choose what starts the rule.",
     thenHint: "Choose what should happen.",
     then: "Then",
+    stepStatus: "Step {{current}} of {{total}}: {{name}}",
     stepsAria: "Steps",
     steps: {
         when: "When",

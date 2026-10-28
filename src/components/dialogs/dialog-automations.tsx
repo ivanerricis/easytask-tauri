@@ -403,6 +403,10 @@ const StepIndicator = ({ step, draft, onSelect }: { step: Step, draft: Automatio
     const { t } = useTranslation()
     return (
         <nav aria-label={t("automations.stepsAria")}>
+            {/* The same element for every step, so a screen reader announces the change */}
+            <p aria-live="polite" className="sr-only">
+                {t("automations.stepStatus", { current: step + 1, total: STEPS.length, name: t(`automations.steps.${STEPS[step]}`) })}
+            </p>
             <ol className="flex items-center gap-2">
                 {STEPS.map((name, index) => {
                     const current = index === step
