@@ -8,9 +8,11 @@ import { restrictToParentElement } from "@dnd-kit/modifiers"
 import { DraggableAudioPlayer } from "@/components/draggable-audio-player"
 import { useTranslation } from "react-i18next"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
+import { AUDIO_PLAYER_MEASURING } from "@/lib/audio-player-dnd"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useTabShortcuts } from "@/hooks/use-tab-shortcuts"
 import { useAutoCloseSidebars } from "./use-auto-close-sidebars"
+
 
 export const MainContainer = () => {
     const { audioPlayerPosition, audioPlayerContainerRef, setAudioPlayerPosition, resetPlayerPosition } = usePreferences()
@@ -41,7 +43,7 @@ export const MainContainer = () => {
         <div ref={audioPlayerContainerRef} className="flex flex-1 w-full h-full relative">
             <SideBarLeft />
             <RightPanelProvider>
-                <DndContext accessibility={accessibility} onDragEnd={handleDragEnd} modifiers={[restrictToParentElement]}>
+                <DndContext accessibility={accessibility} onDragEnd={handleDragEnd} modifiers={[restrictToParentElement]} measuring={AUDIO_PLAYER_MEASURING}>
                     <CenterContainer />
                     <DraggableAudioPlayer position={audioPlayerPosition} />
                 </DndContext>
