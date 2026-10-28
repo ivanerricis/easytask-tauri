@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { reportError } from "@/lib/report-error"
 
 const exportItemToFile = vi.fn()
+const exportItemsToFile = vi.fn()
 const importItemsFromFile = vi.fn()
 const getWorkspaceData = vi.fn()
 const create = vi.hoisted(() => vi.fn())
@@ -20,6 +21,7 @@ vi.mock("@/lib/workspace-transfer", () => ({
     exportWorkspaceToFile: vi.fn(),
     importWorkspaceFromFile: vi.fn(),
     exportItemToFile: (...a: unknown[]) => exportItemToFile(...a),
+    exportItemsToFile: (...a: unknown[]) => exportItemsToFile(...a),
     importItemsFromFile: (...a: unknown[]) => importItemsFromFile(...a),
 }))
 
@@ -28,6 +30,7 @@ import { useItemTransfer } from "./use-workspace-transfer"
 beforeEach(() => {
     vi.clearAllMocks()
     exportItemToFile.mockResolvedValue(true)
+    exportItemsToFile.mockResolvedValue(true)
     getWorkspaceData.mockResolvedValue(undefined)
 })
 
@@ -48,6 +51,28 @@ describe("useItemTransfer", () => {
         exportItemToFile.mockRejectedValueOnce(new Error("boom"))
         await act(() => result.current.exportItem("folder", { id: 2, name: "F" }))
         expect(reportError).toHaveBeenCalledWith(expect.anything(), "boom")
+    })
+
+    it("exports several items in one file and confirms, or shows the error", async () => {
+        const items = [{ type: "note" as const, id: 1 }, { type: "folder" as const, id: 2 }]
+        const { result } = renderHook(() => useItemTransfer())
+        await act(() => result.current.exportItems(items, "Selezione"))
+        expect(exportItemsToFile).toHaveBeenCalledWith(items, "Selezione")
+        expect(toast.success).toHaveBeenCalledWith("Esportato")
+        exportItemsToFile.mockRejectedValueOnce(new Error("boom"))
+        await act(() => result.current.exportItems(items, "Selezione"))
+        expect(reportError).toHaveBeenCalledWith(expect.anything(), "boom")
+        expect(result.current.isBusy).toBe(false)
+    })
+
+    it("keeps the success when refreshing the tree fails after an import", async () => {
+        importItemsFromFile.mockResolvedValue({ skippedAudio: 0, items: [{ type: "note", id: 5, name: "N" }] })
+        getWorkspaceData.mockRejectedValue(new Error("refresh"))
+        const { result } = renderHook(() => useItemTransfer())
+        await act(() => result.current.importItems(null))
+        expect(reportError).toHaveBeenCalledWith(expect.anything(), expect.any(String))
+        expect(create).toHaveBeenCalledWith("note", 5, "N")
+        expect(toast.success).toHaveBeenCalledWith("Importato")
     })
 
     it("imports into a folder, refreshes the tree, records the creation for undo and confirms", async () => {

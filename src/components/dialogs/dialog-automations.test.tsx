@@ -378,7 +378,8 @@ describe("DialogAutomations", () => {
             await click(user, "Avanti")
             expect(screen.getByRole("combobox", { name: "Tipo di azione" })).toHaveTextContent("Archivia il gruppo")
             expect(screen.getAllByRole("combobox", { name: "Tipo di azione" })).toHaveLength(1)
-        })
+            // Many select clicks: it takes ~15s with the whole suite running in parallel, so it gets more than the default
+        }, 30_000)
 
         it("describes a group rule with the name of the group and pauses it when the group is missing", async () => {
             mocked(getDBAutomations).mockResolvedValue([

@@ -154,7 +154,7 @@ npm install
 
 The documentation site is a [VitePress](https://vitepress.dev/) project in `docs/` with its own dependencies: `cd docs && npm install && npm run dev`. It is published to GitHub Pages by the `Docs` workflow on every push to `master` that touches `docs/`.
 
-Coverage thresholds (enforced by `test:coverage`): 73% statements, 66% branches, 72% functions, 74% lines.
+Coverage thresholds (enforced by `test:coverage`): 89% statements, 83% branches, 87% functions, 91% lines.
 
 The e2e suite builds a debug app and runs it against a temporary data folder (`EASYTASK_DATA_DIR`), so it never touches your real data.
 
