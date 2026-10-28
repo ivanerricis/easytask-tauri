@@ -4,6 +4,24 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-28
+
+### Aggiunto
+
+- Nuova impostazione "Dimensione del testo" (Impostazioni > Aspetto): una dimensione in px da 12 a 24 (16 è quella normale) che ingrandisce o riduce tutta l'app (testo, icone e spazi). Si cambia con i pulsanti - e +, oppure con Ctrl+Più, Ctrl+Meno e Ctrl+0 (torna alla normale).
+- Nuova impostazione "Carattere" (Impostazioni > Aspetto): quello predefinito, oppure Inter, Lora, JetBrains Mono, Atkinson Hyperlegible o OpenDyslexic, che sono inclusi nell'app e si caricano solo quando li scegli.
+- Nuova impostazione "Apri all'avvio" (Impostazioni > Note): la pagina iniziale, l'ultimo workspace usato, oppure sempre un workspace a tua scelta. Sostituisce l'interruttore "Riapri l'ultimo workspace all'avvio": chi lo aveva attivo mantiene l'ultimo workspace.
+- Nuova impostazione "Accelerazione hardware" (Impostazioni > Sistema, attiva di default): spegnila se vedi problemi grafici; vale dal prossimo avvio e propone di riavviare subito.
+- Audio: nuove impostazioni "Fissa il player", "Ripeti il brano" e "Riprendi da dove eri" (le ultime due sono spente di default, la posizione di ogni brano viene ricordata), e la velocità di riproduzione scelta nel player viene ricordata.
+
+### Modificato
+
+- La lingua si sceglie da un menu, e i menu a tendina, i campi e le aree di testo usano lo stesso sfondo dei pulsanti con bordo.
+- Nelle impostazioni il pulsante di ripristino di una riga sta prima del controllo, così i controlli arrivano al bordo destro di ogni riga (anche nella pagina delle scorciatoie). In una finestra stretta il controllo va sotto il testo invece di schiacciarlo.
+- Tutte le scrollbar hanno lo stesso stile (9px). La scrollbar di un gruppo sta sotto la sua intestazione, e il pulsante "Nuovo task" dei task direttamente nel gruppo resta in fondo mentre l'elenco scorre.
+- Il "+" tra due task è centrato anche sopra il primo task e ha più spazio attorno all'icona.
+- La pipeline di rilascio esegue i controlli accanto alle build e costruisce lo zip portatile nel job Windows, così una release è più veloce.
+
 ## [0.16.0] - 2026-10-28
 
 ### Aggiunto
@@ -441,7 +459,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...v0.14.0
