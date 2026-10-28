@@ -2,6 +2,7 @@ import type { AudioPlayerPosition } from "@/types/types"
 import { store } from "./initStore"
 import { DEFAULT_PRIMARY_COLOR } from "@/lib/accent-color"
 import { SIDEBAR_DEFAULT_WIDTH, clampSidebarWidth } from "@/lib/sidebar-layout"
+import { DEFAULT_SPLIT_RATIO, clampRatio } from "@/lib/split-layout"
 import { DEFAULT_COLOR_INTENSITY, clampColorIntensity } from "@/lib/color-intensity"
 import { UNDO_LIMIT } from "@/contexts/undo/stack"
 import { DEFAULT_LANGUAGE_PREFERENCE, isLanguagePreference, type LanguagePreference } from "@/i18n"
@@ -253,6 +254,8 @@ export const UI_PREFS = {
 export const APP_PREFS = {
     /** Where each audio file was left (see `lib/audio-positions.ts`): kept out of the React state, it changes every few seconds while playing. */
     audioPositions: def<AudioPositions>({ key: "audioPositions", default: {}, normalize: normalizeAudioPositions }),
+    /** Share of the width given to the left pane of the split workspace (internal: no settings row). */
+    splitRatio: def<number>({ key: "splitRatio", default: DEFAULT_SPLIT_RATIO, normalize: value => isFiniteNumber(value) ? clampRatio(value, Infinity) : DEFAULT_SPLIT_RATIO }),
     lastWorkspaceId: def<number | null>({ key: "lastWorkspaceId", default: null, normalize: value => typeof value === "number" ? value : null }),
     skippedUpdateVersion: def<string | null>({ key: "skippedUpdateVersion", default: null, normalize: value => typeof value === "string" && value.length > 0 ? value : null }),
     checkUpdatesOnStartup: def({ key: "checkUpdatesOnStartup", default: true }),

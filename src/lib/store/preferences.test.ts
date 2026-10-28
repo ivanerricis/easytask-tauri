@@ -536,7 +536,7 @@ describe("preference table", () => {
             "lastWorkspaceId", "newTaskPosition", "rememberWindowState", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
             "showGroupProgressBar", "showGroupSeparators", "showProgressBar", "showSectionCount", "showSubtaskCount", "showTaskCount",
             "showTaskInsertLine", "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth", "sidebarRightOpen", "sidebarRightWidth",
-            "skippedUpdateVersion", "spellcheck", "startupWorkspaceId", "taskBackground", "taskDensity", "textZoom", "trashAutoEmptyDays", "undoLimit", "workspaceSort", "workspaceView",
+            "skippedUpdateVersion", "spellcheck", "splitRatio", "startupWorkspaceId", "taskBackground", "taskDensity", "textZoom", "trashAutoEmptyDays", "undoLimit", "workspaceSort", "workspaceView",
         ])
     })
 

@@ -12,6 +12,7 @@ import { makeNote } from "@/test/ui-fixtures"
 import { TemplateDraftsActionsContext, TemplateDraftsContext, type TemplateDraftsActionsType } from "@/contexts/template-drafts-context-object"
 import type { DraftSaveStatus } from "@/lib/template-draft"
 import type { TreeData } from "./sidebar/tree-dnd"
+import { LayoutActionsContext, LayoutContext } from "@/contexts/layout-context-object"
 import { PathBar } from "./PathBar"
 import { NoteSearchContext } from "./note-search-context"
 import { createNoteSearchStore } from "./note-search-store"
@@ -286,5 +287,39 @@ describe("PathBar of a template editor", () => {
         await setupDraft("error")
         await userEvent.click(screen.getByRole("button", { name: "Riprova" }))
         expect(retrySave).toHaveBeenCalledWith(7)
+    })
+})
+
+describe("PathBar split button", () => {
+    const renderWithLayout = async (isSplit: boolean) => {
+        const toggleSplit = vi.fn()
+        const layoutActions = { split: vi.fn(), unsplit: vi.fn(), toggleSplit, focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn() }
+        render(
+            <ShortcutsProvider>
+                <TabsProvider notes={notes} workspaceId={null}>
+                    <LayoutContext.Provider value={{ left: { openIds: [1], activeId: 1 }, right: isSplit ? { openIds: [], activeId: null } : null, focused: 0, isSplit }}>
+                        <LayoutActionsContext.Provider value={layoutActions}>
+                            <Opener ids={[1]} />
+                            <PathBar />
+                        </LayoutActionsContext.Provider>
+                    </LayoutContext.Provider>
+                </TabsProvider>
+            </ShortcutsProvider>,
+        )
+        await act(async () => { })
+        return toggleSplit
+    }
+
+    it("offers to split the workspace and toggles the split on click", async () => {
+        const toggleSplit = await renderWithLayout(false)
+        await userEvent.click(screen.getByRole("button", { name: "Dividi lo spazio" }))
+        expect(toggleSplit).toHaveBeenCalledTimes(1)
+    })
+
+    it("offers to close the split when the workspace is split", async () => {
+        const toggleSplit = await renderWithLayout(true)
+        expect(screen.queryByRole("button", { name: "Dividi lo spazio" })).not.toBeInTheDocument()
+        await userEvent.click(screen.getByRole("button", { name: "Chiudi la divisione" }))
+        expect(toggleSplit).toHaveBeenCalledTimes(1)
     })
 })

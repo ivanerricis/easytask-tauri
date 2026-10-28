@@ -2,8 +2,9 @@
 import { afterEach, describe, expect, it } from "vitest"
 import {
     COMPACT_BREAKPOINT, SIDEBAR_DEFAULT_WIDTH, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH,
-    MIN_CONTENT_WIDTH, SIDEBAR_RAIL_WIDTH, clampSidebarWidth, maxSidebarWidth, noteWidthFor, sidebarsToClose, useCompactLayout, widthForKey,
+    MIN_CONTENT_WIDTH, SIDEBAR_RAIL_WIDTH, minContentWidth, clampSidebarWidth, maxSidebarWidth, noteWidthFor, sidebarsToClose, useCompactLayout, widthForKey,
 } from "./sidebar-layout"
+import { MIN_PANE_WIDTH } from "./split-layout"
 
 describe("sidebar width helpers", () => {
     it("clamps the width to the allowed range", () => {
@@ -77,3 +78,27 @@ describe("useCompactLayout", () => {
     })
 })
 
+
+describe("sidebarsToClose with split panes", () => {
+    const bar = (open: boolean, width = SIDEBAR_DEFAULT_WIDTH) => ({ open, width })
+
+    it("needs the room of every pane, and keeps the single-pane minimum by default", () => {
+        expect(minContentWidth()).toBe(MIN_CONTENT_WIDTH)
+        expect(minContentWidth(1)).toBe(MIN_CONTENT_WIDTH)
+        expect(minContentWidth(2)).toBe(2 * MIN_PANE_WIDTH)
+        expect(minContentWidth(0)).toBe(MIN_CONTENT_WIDTH)
+    })
+
+    it("closes sidebars that a single pane would tolerate", () => {
+        // 1100 px with the default sidebars: note = 1100 - 90 - 520 = 490
+        expect(noteWidthFor(1100, bar(true), bar(true))).toBe(490)
+        expect(sidebarsToClose(1100, bar(true), bar(true))).toEqual({ left: false, right: false })
+        expect(sidebarsToClose(1100, bar(true), bar(true), 2)).toEqual({ left: false, right: true })
+        // 1100 - 90 - 260 = 750 >= 640: the left one stays
+        expect(sidebarsToClose(1100, bar(true), bar(true), 1)).toEqual({ left: false, right: false })
+    })
+
+    it("closes both when even one sidebar leaves too little room for two panes", () => {
+        expect(sidebarsToClose(900, bar(true, 300), bar(true, 300), 2)).toEqual({ left: true, right: true })
+    })
+})

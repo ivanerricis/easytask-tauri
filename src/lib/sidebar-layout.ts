@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState } from "react"
+import { MIN_PANE_WIDTH } from "@/lib/split-layout"
 
 /** Sidebar widths in pixels. */
 export const SIDEBAR_DEFAULT_WIDTH = 260
@@ -13,6 +14,9 @@ export const COMPACT_BREAKPOINT = 900
 export const CHROME_HEIGHT_CLASS = "min-h-[42px]"
 /** Room always left to the note next to the sidebar (rail included). */
 export const MIN_CONTENT_WIDTH = 420
+/** Room always left to the centre with the given number of panes: each pane of a split keeps its own minimum. */
+export const minContentWidth = (panes: number = 1): number => Math.max(MIN_CONTENT_WIDTH, Math.max(1, Math.floor(panes)) * MIN_PANE_WIDTH)
+
 /** Width of the little sidebar (rail) that stays visible next to each panel. */
 export const SIDEBAR_RAIL_WIDTH = 45
 
@@ -50,17 +54,18 @@ export const noteWidthFor = (windowWidth: number, left: SidebarState, right: Sid
 
 /**
  * Which open sidebars must close for the note to keep at least MIN_CONTENT_WIDTH: the right one first, then the left one,
- * until the note fits (or nothing is left open).
+ * until the note fits (or nothing is left open). With `panes` panes side by side (default 1) the minimum is that of the panes together.
  */
-export const sidebarsToClose = (windowWidth: number, left: SidebarState, right: SidebarState): { left: boolean, right: boolean } => {
+export const sidebarsToClose = (windowWidth: number, left: SidebarState, right: SidebarState, panes: number = 1): { left: boolean, right: boolean } => {
     const l = left
     let r = right
     const closed = { left: false, right: false }
-    if (noteWidthFor(windowWidth, l, r) < MIN_CONTENT_WIDTH && r.open) {
+    const minimum = minContentWidth(panes)
+    if (noteWidthFor(windowWidth, l, r) < minimum && r.open) {
         r = { ...r, open: false }
         closed.right = true
     }
-    if (noteWidthFor(windowWidth, l, r) < MIN_CONTENT_WIDTH && l.open) {
+    if (noteWidthFor(windowWidth, l, r) < minimum && l.open) {
         closed.left = true
     }
     return closed
