@@ -121,10 +121,12 @@ export const Group = memo(({ group, index = 0, audioCount = 0 }: GroupProps) => 
                 {!isDraft && <GroupAudioFiles groupId={group.id} />}
                 {/* The list of the direct tasks (with its "New task" button) sits among the sections where the user put it;
                     it, the sections and the form of a new section scroll together */}
-                {/* The scrolling area is wider (6px) and taller (4px) than the group, with the same padding inside: the drop rings (2px) and
-                    lines (3px) drawn outside the first/last item and at the sides are not cut, and the scrollbar sits right of the resize
-                    handle instead of under it. The content keeps its place. */}
-                <div className="flex flex-col gap-1 overflow-y-auto -mx-1.5 px-1.5 -my-1 py-1">
+                {/* The scrolling area is wider (6px on the left, 8px on the right) and taller (4px) than the group, with the same padding
+                    inside: the drop rings (2px) and lines (3px) drawn outside the first/last item and at the sides are not cut, and the
+                    scrollbar sits right of the resize handle instead of under it. The 8px on the right are the width of the scrollbar
+                    (8px instead of the global 10px, so it stays inside the 8px gap between two groups); the width is important because
+                    the global rule of index.css is unlayered and would beat a layered utility. The content keeps its place. */}
+                <div className="flex flex-col gap-1 overflow-y-auto -ml-1.5 -mr-2 px-1.5 -my-1 py-1 [&::-webkit-scrollbar]:w-2!">
                     {group.sections.map((section, position) => (
                         <Fragment key={section.id}>
                             {position === directIndex && <GroupTasks group={group} />}

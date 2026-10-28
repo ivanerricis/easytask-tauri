@@ -299,9 +299,13 @@ export const sql = async <T = unknown>(kind: "select" | "execute", query: string
         await dbUrl(), kind, query, values,
     ) as Promise<T>
 
-/** The card of a group, found through the label of its header (its name, or "Gruppo N" when it has none). */
+/**
+ * The card of a group, found through the label of its header (its name, or "Gruppo N" when it has none).
+ * The header button carries the name as its title and says "<Group name>: <label>, press Enter to rename" as its
+ * accessible name (groups.renameAria), so it is matched by the title or by the label inside that sentence.
+ */
 export const groupCard = (label: string) =>
-    $(`//div[@data-group-card][.//button[@aria-label=${xpathString(label)}]]`)
+    $(`//div[@data-group-card][.//button[@title=${xpathString(label)} or contains(@aria-label, ${xpathString(`: ${label},`)})]]`)
 
 /**
  * Creates a section from the menu of a group (there is no section button in the group): right click on its header,
@@ -319,9 +323,9 @@ export const newSectionInGroup = async (group: ChainablePromiseElement | Webdriv
 /** The area of the tasks created directly in a group (the list sits among its sections where the user placed it, on top by default). */
 export const directTasks = (group: ChainablePromiseElement | WebdriverIO.Element) => group.$("[data-direct-tasks]")
 
-/** The dashed "Nuovo task" button of a group: it adds a task to the direct area. */
+/** The dashed "Nuovo task" button of a group: it adds a task to the direct area (found by its visible text, it has no aria-label). */
 export const groupAddTaskButton = async (group: ChainablePromiseElement | WebdriverIO.Element) =>
-    directTasks(group).$(`button[aria-label="${await tr("groups.addTask")}"]`)
+    directTasks(group).$(`.//button[normalize-space()=${xpathString(await tr("groups.addTask"))}]`)
 
 /**
  * Closes the field of a new task. It stays open after saving (preference "keep adding tasks") and takes the focus back

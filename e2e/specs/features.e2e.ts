@@ -158,8 +158,13 @@ const closeTrash = async (trash: ChainableDialog) => {
 }
 
 /** Moves the item through the "delete" entry of its menu and confirms the dialog. */
-const deleteFromMenu = async (menu: ChainableDialog) => {
+/**
+ * Deletes from the menu of a task, section or group. A task always asks for a confirmation; an EMPTY section, group or
+ * note does not ("Confirm deleting only when there is content", on by default), so pass `{ confirms: false }` for those.
+ */
+const deleteFromMenu = async (menu: ChainableDialog, { confirms = true }: { confirms?: boolean } = {}) => {
     await byText(await tr("common.delete"), menu).click()
+    if (!confirms) return
     const dialog = await expectConfirmDialog("dialogs.delete.title", true)
     await confirmAndClose(dialog, await tr("dialogs.delete.confirm"))
 }
@@ -290,7 +295,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
     it("deletes a task and a section to the trash and restores them", async () => {
         await deleteFromMenu(await openTaskMenu(TASKS[2]))
         await browser.waitUntil(async () => !(await taskValues(SECTIONS[0])).includes(TASKS[2]), { timeoutMsg: "task not deleted" })
-        await deleteFromMenu(await openSectionMenu(SECTIONS[2]))
+        await deleteFromMenu(await openSectionMenu(SECTIONS[2]), { confirms: false })
         await browser.waitUntil(async () => !(await sectionTitles()).includes(SECTIONS[2]), { timeoutMsg: "section not deleted" })
 
         const trash = await openTrash()
@@ -323,7 +328,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
 
     it("empties the trash after a confirmation", async () => {
         await deleteFromMenu(await openTaskMenu(TASKS[0]))
-        await deleteFromMenu(await openSectionMenu(SECTIONS[2]))
+        await deleteFromMenu(await openSectionMenu(SECTIONS[2]), { confirms: false })
         await browser.waitUntil(async () => !(await sectionTitles()).includes(SECTIONS[2]), { timeoutMsg: "section not deleted" })
 
         const trash = await openTrash()
