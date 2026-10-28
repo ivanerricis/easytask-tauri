@@ -37,6 +37,8 @@ export const shortcuts: Translation["shortcuts"] = {
         "task-toggle": "Complete or reopen the task",
         "task-rename": "Edit the task text",
         "task-menu": "Open the task menu",
+        "task-extend-selection": "Extend the selection to the neighbouring tasks, or to the first or last",
+        "task-toggle-selection": "Add or remove the task from the selection",
         "toggle-sidebar": "Show or hide the sidebar",
         "toggle-right-sidebar": "Show or hide the details and history panel",
         "new-workspace": "New workspace",

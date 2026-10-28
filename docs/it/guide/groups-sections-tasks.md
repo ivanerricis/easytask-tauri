@@ -130,10 +130,12 @@ Ogni lista di task è un albero per la tastiera e per gli screen reader: `Tab` e
 - `Spazio` completa o riapre il task, `Invio` ne modifica il testo, `Shift+F10` (o il tasto menu) apre il suo menu.
 - `Alt+↑` e `Alt+↓` spostano il task di un passo tra i fratelli, come **Sposta su** e **Sposta giù** del menu. Il focus resta sul task e uno screen reader annuncia "Spostato in posizione N di M" (o che non si può spostare oltre).
 
-Il task che prende il focus diventa anche quello selezionato, come quando lo clicchi. Quando elimini, archivi o sposti altrove il task con il focus, il focus passa al task successivo (o al precedente) per poter continuare. La selezione da tastiera non è ancora disponibile. Tutti i tasti sono elencati in [Scorciatoie da tastiera](./shortcuts.md#task-da-tastiera).
+Il task che prende il focus diventa anche quello selezionato, come quando lo clicchi. Quando elimini, archivi o sposti altrove il task con il focus, il focus passa al task successivo (o al precedente) per poter continuare. Per selezionare più task da tastiera vedi [Selezionare più task](#selezionare-più-task). Tutti i tasti sono elencati in [Scorciatoie da tastiera](./shortcuts.md#task-da-tastiera).
 ### Selezionare più task
 
 Tieni premuto **Ctrl** (**Cmd** su macOS) e clicca per aggiungere un task alla selezione o toglierlo. Clicca un task con **Maiusc** per selezionare tutti i task visibili tra l'ultimo cliccato e questo, anche tra sezioni e gruppi. **Esc** annulla la selezione, come un normale clic.
+
+Da tastiera, porta il focus su un task e premi **Maiusc+Giù** o **Maiusc+Su** per estendere la selezione di un task alla volta (**Maiusc+Fine** e **Maiusc+Home** vanno all'ultimo e al primo task della lista); tornando verso il primo task la selezione si restringe. **Ctrl+Spazio** (**Cmd+Spazio** su macOS) aggiunge alla selezione il task con il focus o lo toglie, così puoi scegliere task non vicini: spostati con le frecce semplici, che mantengono la selezione, e premilo su ciascuno. Questi tasti non cambiano il task mostrato nel pannello dei dettagli. Quando la selezione scende a un solo task o a nessuno, uno screen reader lo annuncia; con due o più legge il contatore.
 
 Fai clic destro su un task selezionato (o apri il suo menu) per agire su tutti insieme: **Elimina**, **Archivia**, **Colora** e **Sposta in…** (in fondo a una sezione, o tra i task diretti di un gruppo). Un task selezionato vale anche per i suoi sottotask, che vengono eliminati, archiviati e spostati con lui. Ogni azione è un solo passo nella [cronologia di annullamento](./undo-and-history.md). Il trascinamento sposta sempre un task alla volta.
 

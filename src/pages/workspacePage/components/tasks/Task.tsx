@@ -37,6 +37,7 @@ import { useSearchHighlight } from "../note-search-context"
 import { SearchedTaskText } from "./SearchedTaskText"
 import { useIsTaskTabStop, useTaskTabStopStore } from "./task-tab-stop"
 import { useTaskRowKeys } from "./use-task-row-keys"
+import { isFocusKeepingDetails } from "./task-focus-intent"
 
 // Clicks on these keep their own action (checkbox, buttons) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
@@ -168,7 +169,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
         }
     }
 
-    const onRowKeyDown = useTaskRowKeys({ taskId: task.id, subtasksOpen, onToggleSubtasks: toggleSubtasks, onToggleCompleted: () => { void handleCheckedChange() }, onRename: startEdit })
+    const onRowKeyDown = useTaskRowKeys({ taskId: task.id, taskText: task.text, subtasksOpen, onToggleSubtasks: toggleSubtasks, onToggleCompleted: () => { void handleCheckedChange() }, onRename: startEdit })
 
     return (
         <div className={cn(
@@ -214,11 +215,12 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     onClick={e => {
                         if (!(e.target as HTMLElement).closest(SELECTION_IGNORED)) selectTask(task.id)
                     }}
-                    onFocus={() => {
+                    onFocus={e => {
                         tabStopStore?.set(task.id)
                         const gesture = gestureDown.current
                         gestureDown.current = false
-                        if (!gesture) selectTask(task.id)
+                        // A row focused by Shift+arrows / Ctrl+Space is part of a selection: the details stay as they are
+                        if (!gesture && !isFocusKeepingDetails(e.currentTarget)) selectTask(task.id)
                     }}
                     className={cn(
                         "peer/row relative flex flex-col items-center w-full touch-none cursor-grab active:cursor-grabbing focus-visible:outline-3 focus-visible:outline-offset-[-2px]",

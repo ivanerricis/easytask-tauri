@@ -9,6 +9,9 @@ import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { NoteDataTree, Task as TaskType } from "@/types/types"
 import { TaskList } from "./TaskList"
 import { NoteAnnouncer } from "./NoteAnnouncer"
+import { createSelectionStore } from "../sidebar/selection"
+import { TaskSelectionContext } from "./task-selection-context"
+import { useSelectedTask } from "@/contexts/use-tabs"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 
@@ -89,14 +92,25 @@ function Harness() {
     return <TaskList tasks={tasks} listKey="s-10" sectionId={10} label="Fare" />
 }
 
+function Probe() {
+    const [selected] = useSelectedTask(1)
+    return <div data-testid="selected">{String(selected)}</div>
+}
+
+let store: ReturnType<typeof createSelectionStore>
+
 const setup = () => render(
     <TabsProvider notes={[makeNote({ id: 1 })]} workspaceId={null}>
         <PreferencesContext.Provider value={{ showTaskInsertLine: true, taskDensity: "normal" } as never}>
-            <Harness />
+            <TaskSelectionContext.Provider value={store}>
+                <Harness />
+            </TaskSelectionContext.Provider>
             <NoteAnnouncer />
+            <Probe />
         </PreferencesContext.Provider>
     </TabsProvider>,
 )
+const multi = () => Array.from(document.querySelectorAll("[data-multi-selected='true']")).map(el => Number(el.getAttribute("data-task-id")))
 
 const row = (id: number) => document.querySelector(`[data-task-id="${id}"]`) as HTMLElement
 const focused = () => Number((document.activeElement as HTMLElement | null)?.getAttribute("data-task-id"))
@@ -104,6 +118,8 @@ const press = (id: number, key: string, init: Record<string, boolean> = {}) => {
 
 beforeEach(() => {
     vi.clearAllMocks()
+    store = createSelectionStore()
+    store.sync(["task-10", "task-11", "task-12", "task-13"])
     updateTaskCompletion.mockResolvedValue(undefined)
 })
 
@@ -189,6 +205,90 @@ describe("keys", () => {
         checkbox.focus()
         fireEvent.keyDown(checkbox, { key: "ArrowDown" })
         expect(checkbox).toHaveFocus()
+    })
+})
+
+describe("selecting with the keyboard", () => {
+    it("Shift+Down extends the selection to the next row, moves the focus, and leaves the details selection alone", () => {
+        setup()
+        // Focusing the first row shows it in the details, as always
+        act(() => row(10).focus())
+        expect(screen.getByTestId("selected")).toHaveTextContent("10")
+        fireEvent.keyDown(row(10), { key: "ArrowDown", shiftKey: true })
+        expect(focused()).toBe(11)
+        expect(multi()).toEqual([10, 11])
+        expect(screen.getByTestId("selected")).toHaveTextContent("10")
+        press(11, "ArrowDown", { shiftKey: true })
+        expect(multi()).toEqual([10, 11, 12])
+    })
+
+    it("Shift+Up goes back toward the anchor and shrinks the selection", () => {
+        setup()
+        press(10, "ArrowDown", { shiftKey: true })
+        press(11, "ArrowDown", { shiftKey: true })
+        press(12, "ArrowUp", { shiftKey: true })
+        expect(multi()).toEqual([10, 11])
+        expect(focused()).toBe(11)
+    })
+
+    it("Shift+Down on the last row selects it and keeps the focus there", () => {
+        setup()
+        press(13, "ArrowDown", { shiftKey: true })
+        expect(focused()).toBe(13)
+        expect(multi()).toEqual([13])
+    })
+
+    it("Shift+End and Shift+Home extend to the last and first row", () => {
+        setup()
+        press(11, "End", { shiftKey: true })
+        expect(multi()).toEqual([11, 12, 13])
+        expect(focused()).toBe(13)
+        // The anchor is the row where the range started
+        press(13, "Home", { shiftKey: true })
+        expect(multi()).toEqual([10, 11])
+    })
+
+    it("a plain arrow keeps the selection, and Ctrl+Space then adds a task that is not next to it", () => {
+        setup()
+        press(10, "ArrowDown", { shiftKey: true })
+        press(11, "ArrowDown")
+        expect(focused()).toBe(12)
+        expect(multi()).toEqual([10, 11])
+        press(12, "ArrowDown")
+        press(13, " ", { ctrlKey: true })
+        expect(multi()).toEqual([10, 11, 13])
+        expect(updateTaskCompletion).not.toHaveBeenCalled()
+    })
+
+    it("Ctrl+Space and Cmd+Space toggle the focused task", () => {
+        setup()
+        press(11, " ", { ctrlKey: true })
+        expect(multi()).toEqual([11])
+        press(11, " ", { metaKey: true })
+        expect(multi()).toEqual([])
+    })
+
+    it("announces the first selected task and the one that leaves the selection when 1 or 0 are left", async () => {
+        setup()
+        press(11, " ", { ctrlKey: true })
+        expect(await screen.findByText(/Secondo selezionato/)).toBeInTheDocument()
+        press(11, " ", { ctrlKey: true })
+        expect(await screen.findByText(/Secondo rimosso dalla selezione/)).toBeInTheDocument()
+    })
+
+    it("does not announce on its own when 2 or more are selected (the count of the bar does)", async () => {
+        setup()
+        press(10, " ", { ctrlKey: true })
+        press(11, " ", { ctrlKey: true })
+        expect(screen.queryByText(/Secondo selezionato/)).not.toBeInTheDocument()
+    })
+
+    it("without a selection store Shift+Down moves the focus like Down", () => {
+        store = null as never
+        setup()
+        press(10, "ArrowDown", { shiftKey: true })
+        expect(focused()).toBe(11)
+        expect(multi()).toEqual([])
     })
 })
 

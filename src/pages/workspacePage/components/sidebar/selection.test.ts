@@ -56,6 +56,34 @@ describe("selection store", () => {
         expect(selected(store)).toEqual(["folder-1", "folder-2", "note-20"])
     })
 
+    it("extend starts a range from the row the focus was on when nothing is selected", () => {
+        const store = storeWith()
+        store.extend("note-20", "note-10")
+        expect(selected(store)).toEqual(["note-10", "note-20"])
+        expect(store.getAnchor()).toBe("note-20")
+    })
+
+    it("extend keeps the anchor and shrinks when going back toward it", () => {
+        const store = storeWith()
+        store.extend("folder-2", "note-20")
+        store.extend("note-20", "note-10")
+        expect(selected(store)).toEqual(["folder-2", "note-10", "note-20"])
+        store.extend("note-10", "note-20")
+        expect(selected(store)).toEqual(["folder-2", "note-20"])
+        expect(store.getAnchor()).toBe("folder-2")
+    })
+
+    it("extend restarts from the focused row when the anchor is no longer in view", () => {
+        const store = storeWith()
+        store.toggle("note-40")
+        store.toggle("note-10")
+        // The folder is closed: the anchor (note-10) leaves the view, note-40 stays selected
+        store.sync(keys([1]))
+        store.extend("folder-3", "note-40")
+        expect(store.getAnchor()).toBe("folder-3")
+        expect(selected(store)).toEqual(["folder-3", "note-30", "note-40"])
+    })
+
     it("skips the children of collapsed folders in a range", () => {
         const store = storeWith(keys([1]))
         // f1 f3 n30 n40

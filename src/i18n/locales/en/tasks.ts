@@ -55,6 +55,8 @@ export const tasks: Translation["tasks"] = {
     keyboard: {
         moved: "Moved to position {{position}} of {{total}}",
         cannotMove: "Cannot move any further",
+        selected: "{{text}} selected",
+        deselected: "{{text}} removed from the selection",
     },
     toggleCompleted: "Mark as completed: {{text}}",
     showDescription: "Show the description",

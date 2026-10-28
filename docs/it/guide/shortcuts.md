@@ -47,7 +47,7 @@ Le scorciatoie funzionano quando non stai scrivendo, con alcune eccezioni: quell
 
 ## Task da tastiera
 
-Questi tasti funzionano quando una riga di task ha il focus (clicca un task o raggiungilo con `Tab`). Non funzionano mentre scrivi in un campo e, con `Ctrl` o `Cmd`, lasciano il posto alle altre scorciatoie. Non si possono cambiare.
+Questi tasti funzionano quando una riga di task ha il focus (clicca un task o raggiungilo con `Tab`). Non funzionano mentre scrivi in un campo e, con `Ctrl` o `Cmd`, lasciano il posto alle altre scorciatoie, tranne `Ctrl+Spazio` (`Cmd+Spazio` su macOS). Non si possono cambiare.
 
 | Azione | Scorciatoia |
 | --- | --- |
@@ -59,8 +59,11 @@ Questi tasti funzionano quando una riga di task ha il focus (clicca un task o ra
 | Modificare il testo del task | `Invio` |
 | Aprire il menu del task | `Shift+F10` o il tasto menu |
 | Spostare il task di un passo su o giù | `Alt+↑` / `Alt+↓` |
+| Estendere la selezione al task precedente o successivo | `Maiusc+↑` / `Maiusc+↓` |
+| Estendere la selezione al primo o all'ultimo task | `Maiusc+Home` / `Maiusc+Fine` |
+| Aggiungere il task alla selezione, o toglierlo | `Ctrl+Spazio` (`Cmd+Spazio` su macOS) |
 
-Le frecce restano dentro la lista della sezione (o dei task diretti di un gruppo): non saltano alla sezione successiva. Dopo `Alt+↑` o `Alt+↓` il focus resta sul task e uno screen reader annuncia la nuova posizione ("Spostato in posizione 2 di 5"). Vedi [Usare la tastiera](./groups-sections-tasks.md#usare-la-tastiera).
+Le frecce restano dentro la lista della sezione (o dei task diretti di un gruppo): non saltano alla sezione successiva. Dopo `Alt+↑` o `Alt+↓` il focus resta sul task e uno screen reader annuncia la nuova posizione ("Spostato in posizione 2 di 5"). I tasti di selezione non cambiano il task mostrato nel pannello dei dettagli. Vedi [Usare la tastiera](./groups-sections-tasks.md#usare-la-tastiera).
 ## Pagina iniziale
 
 | Azione | Scorciatoia | Modificabile |

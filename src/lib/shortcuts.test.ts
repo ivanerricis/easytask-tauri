@@ -102,7 +102,7 @@ describe("recording helpers", () => {
 })
 
 describe("task keyboard entries", () => {
-    const ids = ["task-navigate", "task-expand", "task-move", "task-toggle", "task-rename", "task-menu"]
+    const ids = ["task-navigate", "task-expand", "task-move", "task-toggle", "task-rename", "task-menu", "task-extend-selection", "task-toggle-selection"]
 
     it("are documentation-only entries of the tasks category", () => {
         for (const id of ids) {

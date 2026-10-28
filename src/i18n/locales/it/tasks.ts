@@ -53,6 +53,8 @@ export const tasks = {
     keyboard: {
         moved: "Spostato in posizione {{position}} di {{total}}",
         cannotMove: "Impossibile spostare oltre",
+        selected: "{{text}} selezionato",
+        deselected: "{{text}} rimosso dalla selezione",
     },
     toggleCompleted: "Segna come completato: {{text}}",
     showDescription: "Mostra la descrizione",

@@ -66,14 +66,40 @@ describe("taskKeyAction", () => {
         expect(act("a", "ArrowLeft", { altKey: true })).toBeNull()
         expect(act("a", "ArrowRight", { altKey: true })).toBeNull()
         expect(act("a", "ArrowDown", { altKey: true, shiftKey: true })).toBeNull()
-        expect(act("a", "ArrowDown", { shiftKey: true })).toBeNull()
-        expect(act("a", " ", { ctrlKey: true })).toBeNull()
+        expect(act("a", "ArrowLeft", { shiftKey: true })).toBeNull()
+        expect(act("a", " ", { ctrlKey: true, shiftKey: true })).toBeNull()
+        expect(act("a", " ", { ctrlKey: true, altKey: true })).toBeNull()
+        expect(act("a", "Enter", { ctrlKey: true })).toBeNull()
+        expect(act("a", "Home", { metaKey: true })).toBeNull()
         expect(act("a", "ArrowDown", { ctrlKey: true })).toBeNull()
         expect(act("a", "ArrowDown", { metaKey: true })).toBeNull()
         expect(act("a", "Enter", { shiftKey: true })).toBeNull()
         expect(act("a", "F10")).toBeNull()
         expect(act("a", "x")).toBeNull()
         expect(act("a", "Tab")).toBeNull()
+    })
+
+    it("Shift+Up / Shift+Down extend the selection to the neighbouring row, clamped at the edges", () => {
+        expect(act("a", "ArrowDown", { shiftKey: true })).toEqual({ type: "extend", key: "b" })
+        expect(act("b", "ArrowDown", { shiftKey: true })).toEqual({ type: "extend", key: "b1" })
+        expect(act("c", "ArrowUp", { shiftKey: true })).toEqual({ type: "extend", key: "b2" })
+        expect(act("d", "ArrowDown", { shiftKey: true })).toEqual({ type: "extend", key: "d" })
+        expect(act("a", "ArrowUp", { shiftKey: true })).toEqual({ type: "extend", key: "a" })
+    })
+
+    it("Shift+Home / Shift+End extend the selection to the first / last row", () => {
+        expect(act("c", "Home", { shiftKey: true })).toEqual({ type: "extend", key: "a" })
+        expect(act("b", "End", { shiftKey: true })).toEqual({ type: "extend", key: "d" })
+    })
+
+    it("Ctrl+Space and Cmd+Space toggle the selection of the row", () => {
+        expect(act("b", " ", { ctrlKey: true })).toEqual({ type: "toggleSelect" })
+        expect(act("b", " ", { metaKey: true })).toEqual({ type: "toggleSelect" })
+    })
+
+    it("Shift+F10 still opens the menu and Alt+Shift stays free", () => {
+        expect(act("a", "F10", { shiftKey: true })).toEqual({ type: "menu" })
+        expect(act("a", "ArrowUp", { altKey: true, shiftKey: true })).toBeNull()
     })
 
     it("returns null for an unknown row", () => {
