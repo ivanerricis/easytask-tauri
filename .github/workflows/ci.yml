@@ -185,6 +185,9 @@ jobs:
         if: runner.os == 'Linux'
         env:
           E2E_SHARD: ${{ matrix.shard }}
+          # No session bus on the runner: without these the app waits ~30 s for the accessibility bus at every start
+          NO_AT_BRIDGE: "1"
+          GTK_A11Y: none
         run: xvfb-run --auto-servernum npm run e2e
       - name: Build the debug app (Windows)
         if: runner.os == 'Windows'
