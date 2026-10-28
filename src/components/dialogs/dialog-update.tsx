@@ -53,7 +53,9 @@ export const DialogUpdate = () => {
             setOpen(true)
         }
         const observer = new MutationObserver(tryOpen)
-        observer.observe(document.body, { childList: true, subtree: true })
+        // Only the direct children of the body: the dialogs are portaled there, so watching the whole tree (subtree) would
+        // run this at every DOM change of the app (typing, drag...)
+        observer.observe(document.body, { childList: true })
         // It may have closed between the event and this effect
         const timer = window.setTimeout(tryOpen, 0)
         return () => {
