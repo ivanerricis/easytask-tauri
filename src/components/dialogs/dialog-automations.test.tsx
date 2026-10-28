@@ -103,6 +103,14 @@ describe("DialogAutomations", () => {
         expect(screen.getByText("Passo 2 di 3: Allora")).toBe(live)
     })
 
+    it("limita il nome dell'automazione a 120 caratteri", async () => {
+        mocked(getDBAutomations).mockResolvedValue([rule()])
+        const user = userEvent.setup()
+        renderDialog()
+        await user.click(await screen.findByRole("button", { name: /Modifica l'automazione/ }))
+        expect(screen.getByLabelText("Nome (facoltativo)")).toHaveAttribute("maxlength", "120")
+    })
+
     it("creates a rule from the editor", async () => {
         const user = userEvent.setup()
         renderDialog()

@@ -12,6 +12,7 @@ import { useWorkspaceActions, useWorkspaceState } from "@/contexts/workspace-dat
 import { useTabsActions } from "@/contexts/use-tabs"
 import { getFolderDestinations } from "@/pages/workspacePage/components/sidebar/tree-dnd"
 import { getErrorMessage } from "@/lib/utils"
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import type { NoteTemplate } from "@/types/template"
 
@@ -67,6 +68,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
             <Input
                 id={nameId}
                 name="name"
+                maxLength={MAX_NAME_LENGTH}
                 value={name}
                 autoFocus
                 // The prefilled name is selected: typing replaces it

@@ -46,4 +46,9 @@ describe("DialogNoteFromTemplate", () => {
         const alert = await screen.findByRole("alert")
         await waitFor(() => expect(screen.getByLabelText("Nome")).toHaveAttribute("aria-describedby", alert.id))
     })
+
+    it("limita il nome a 120 caratteri", () => {
+        render(<DialogNoteFromTemplate template={template} isOpen onOpenChange={vi.fn()} />)
+        expect(screen.getByLabelText("Nome")).toHaveAttribute("maxlength", "120")
+    })
 })

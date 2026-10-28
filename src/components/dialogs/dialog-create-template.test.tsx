@@ -89,4 +89,9 @@ describe("DialogCreateTemplate", () => {
         rerender(<DialogCreateTemplate note={note} isOpen onOpenChange={vi.fn()} />)
         expect(screen.getByLabelText("Nome del template")).toHaveValue("Sprint 12")
     })
+
+    it("limita il nome a 120 caratteri", () => {
+        render(<DialogCreateTemplate note={note} isOpen onOpenChange={vi.fn()} />)
+        expect(screen.getByLabelText("Nome del template")).toHaveAttribute("maxlength", "120")
+    })
 })

@@ -15,6 +15,7 @@ import { getDBNoteData } from "@/db/queries/note"
 import { createDBAutomation, deleteDBAutomation, getDBAutomations, setDBAutomationEnabled, updateDBAutomation } from "@/db/queries/automation"
 import { buildNoteTree } from "@/contexts/tree-builders"
 import { PALETTE_COLORS } from "@/lib/colors"
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { actionLabel, automationName, colorName, describeAutomation, triggerLabel, type SectionName } from "@/lib/automations/describe"
 import {
     TRIGGER_TYPES, actionsForTrigger, isGroupTrigger, isStateTrigger, isValidRule, referencedGroups, referencedSections, triggerSubject,
@@ -621,7 +622,7 @@ const AutomationEditor = ({ step, draft, groups, sections, titleOf, groupLabelOf
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor={nameId}>{t("automations.name")}</Label>
-                        <Input id={nameId} value={draft.name ?? ""}
+                        <Input id={nameId} value={draft.name ?? ""} maxLength={MAX_NAME_LENGTH}
                             onChange={e => onChange({ ...draft, name: e.target.value || null })} />
                     </div>
                     <div className="flex items-center gap-2 min-h-6">

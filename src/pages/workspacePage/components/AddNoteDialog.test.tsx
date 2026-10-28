@@ -26,6 +26,11 @@ beforeEach(() => {
 })
 
 describe("AddNoteDialog", () => {
+    it("limita il nome a 120 caratteri", () => {
+        render(<AddNoteDialog open onOpenChange={vi.fn()} parentId={null} />)
+        expect(screen.getByRole("textbox")).toHaveAttribute("maxlength", "120")
+    })
+
     it("creates a root note with the optional color", async () => {
         const user = userEvent.setup()
         const onOpenChange = vi.fn()
@@ -50,6 +55,11 @@ describe("AddNoteDialog", () => {
 })
 
 describe("AddFolderDialog", () => {
+    it("limita il nome a 120 caratteri", () => {
+        render(<AddFolderDialog open onOpenChange={vi.fn()} parentId={null} />)
+        expect(screen.getByRole("textbox")).toHaveAttribute("maxlength", "120")
+    })
+
     it("creates a root folder or a subfolder depending on parentId", async () => {
         const user = userEvent.setup()
         const { unmount } = render(<AddFolderDialog open onOpenChange={vi.fn()} parentId={null} withColor />)

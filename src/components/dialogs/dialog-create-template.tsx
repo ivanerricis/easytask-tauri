@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { getErrorMessage } from "@/lib/utils"
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 type DialogCreateTemplateProps = {
@@ -53,6 +54,7 @@ const TemplateForm = ({ note, onOpenChange, onCreated }: TemplateFormProps) => {
             <Input
                 id={nameId}
                 name="name"
+                maxLength={MAX_NAME_LENGTH}
                 value={name}
                 autoFocus
                 // The prefilled name is selected: typing replaces it
