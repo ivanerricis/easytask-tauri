@@ -1,4 +1,4 @@
-﻿import { describe, expect, it } from "vitest"
+import { describe, expect, it } from "vitest"
 import { taskKeyAction, type TaskKeyEvent, type TaskKeyRow } from "./task-keyboard"
 
 /* A, B (open: B1, B2), C (closed, has children), D */

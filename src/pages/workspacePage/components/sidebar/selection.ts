@@ -30,6 +30,17 @@ export function createSelectionStore() {
         emit()
     }
 
+    const selectRange = (key: string) => {
+        const to = visible.indexOf(key)
+        const from = anchor === null ? -1 : visible.indexOf(anchor)
+        if (to < 0 || from < 0) {
+            anchor = key
+            replace(new Set([key]))
+            return
+        }
+        replace(new Set(visible.slice(Math.min(from, to), Math.max(from, to) + 1)))
+    }
+
     return {
         getSelected: () => selected,
         getAnchor: () => anchor,
@@ -56,15 +67,14 @@ export function createSelectionStore() {
          * Shift+click: selects the rows in view between the anchor and `key` (both included), replacing the selection.
          * Without a usable anchor (none, or no longer in view) only `key` is selected.
          */
-        selectRange: (key: string) => {
-            const to = visible.indexOf(key)
-            const from = anchor === null ? -1 : visible.indexOf(anchor)
-            if (to < 0 || from < 0) {
-                anchor = key
-                replace(new Set([key]))
-                return
-            }
-            replace(new Set(visible.slice(Math.min(from, to), Math.max(from, to) + 1)))
+        selectRange,
+        /**
+         * Shift+arrow: extends the selection from the focused row (`fromKey`) to `toKey`. Without a selection, or with an
+         * anchor no longer in view, the range starts at `fromKey`; otherwise the anchor stays, so going back shrinks it.
+         */
+        extend: (fromKey: string, toKey: string) => {
+            if (selected.size === 0 || anchor === null || !visible.includes(anchor)) anchor = fromKey
+            selectRange(toKey)
         },
         /** Empties the selection; `nextAnchor` is where the next Shift+click range starts. */
         reset: (nextAnchor: string | null = null) => {

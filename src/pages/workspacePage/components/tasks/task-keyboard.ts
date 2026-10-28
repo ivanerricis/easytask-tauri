@@ -1,4 +1,4 @@
-﻿/** A visible row of a task list, already flattened (open subtasks included, in the visible order). */
+/** A visible row of a task list, already flattened (open subtasks included, in the visible order). */
 export type TaskKeyRow = {
     key: string
     level: number
