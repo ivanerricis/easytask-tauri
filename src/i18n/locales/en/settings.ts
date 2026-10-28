@@ -363,6 +363,11 @@ export const settings: Translation["settings"] = {
             description: "At startup the window comes back where you left it. Takes effect at the next start.",
             portable: "Not available in the portable version: the window position would be saved outside the data folder.",
         },
+        alwaysOnTop: {
+            label: "Keep the window on top",
+            description: "EasyTask stays above the other windows. Applies at once and is remembered at startup.",
+            error: "Cannot change the always on top setting: {{message}}",
+        },
         tray: {
             tooltip: "EasyTask",
             open: "Open EasyTask",

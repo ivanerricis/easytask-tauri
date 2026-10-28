@@ -11,6 +11,9 @@ const saveCloseToTray = vi.fn()
 const notifyCloseToTrayChanged = vi.fn()
 const saveRememberWindowState = vi.fn()
 const isPortable = vi.fn()
+const saveAlwaysOnTop = vi.fn()
+const setAlwaysOnTop = vi.fn()
+let alwaysOnTop = false
 let closeToTray = false
 let rememberWindowState = true
 
@@ -23,9 +26,12 @@ vi.mock("@tauri-apps/plugin-autostart", () => ({
 vi.mock("@/lib/store/preferences", () => ({
     getCloseToTray: async () => closeToTray,
     saveCloseToTray: (...a: unknown[]) => saveCloseToTray(...a),
+    getAlwaysOnTop: async () => alwaysOnTop,
+    saveAlwaysOnTop: (...a: unknown[]) => saveAlwaysOnTop(...a),
     getRememberWindowState: async () => rememberWindowState,
     saveRememberWindowState: (...a: unknown[]) => saveRememberWindowState(...a),
 }))
+vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ setAlwaysOnTop: (...a: unknown[]) => setAlwaysOnTop(...a) }) }))
 vi.mock("@/db/appPaths", () => ({ isPortable: () => isPortable() }))
 vi.mock("@/lib/tray", () => ({ notifyCloseToTrayChanged: (...a: unknown[]) => notifyCloseToTrayChanged(...a) }))
 
@@ -33,6 +39,9 @@ beforeEach(() => {
     vi.clearAllMocks()
     closeToTray = false
     rememberWindowState = true
+    alwaysOnTop = false
+    setAlwaysOnTop.mockResolvedValue(undefined)
+    saveAlwaysOnTop.mockResolvedValue(undefined)
     isPortable.mockResolvedValue(false)
     saveRememberWindowState.mockResolvedValue(undefined)
     isEnabled.mockResolvedValue(false)
@@ -93,5 +102,32 @@ describe("SystemSettings", () => {
         await waitFor(() => expect(toggle).toBeDisabled())
         expect(toggle).not.toBeChecked()
         expect(screen.getByText(/versione portatile/)).toBeInTheDocument()
+    })
+
+    it("puts the window on top and saves the choice", async () => {
+        const user = userEvent.setup()
+        render(<SystemSettings />)
+        const toggle = screen.getByRole("switch", { name: "Tieni la finestra in primo piano" })
+        await user.click(toggle)
+        expect(setAlwaysOnTop).toHaveBeenCalledWith(true)
+        await waitFor(() => expect(saveAlwaysOnTop).toHaveBeenCalledWith(true))
+        expect(toggle).toBeChecked()
+    })
+
+    it("shows the stored always on top state", async () => {
+        alwaysOnTop = true
+        render(<SystemSettings />)
+        await waitFor(() => expect(screen.getByRole("switch", { name: "Tieni la finestra in primo piano" })).toBeChecked())
+    })
+
+    it("reverts the switch and reports when the window refuses", async () => {
+        setAlwaysOnTop.mockRejectedValue(new Error("denied"))
+        const user = userEvent.setup()
+        render(<SystemSettings />)
+        const toggle = screen.getByRole("switch", { name: "Tieni la finestra in primo piano" })
+        await user.click(toggle)
+        await waitFor(() => expect(toast.error).toHaveBeenCalled())
+        expect(toggle).not.toBeChecked()
+        expect(saveAlwaysOnTop).not.toHaveBeenCalled()
     })
 })

@@ -361,6 +361,11 @@ export const settings = {
             description: "All'avvio la finestra torna dove l'hai lasciata. Ha effetto dal prossimo avvio.",
             portable: "Non disponibile nella versione portatile: la posizione della finestra verrebbe salvata fuori dalla cartella dei dati.",
         },
+        alwaysOnTop: {
+            label: "Tieni la finestra in primo piano",
+            description: "EasyTask resta sopra le altre finestre. Si applica subito e viene ricordato all'avvio.",
+            error: "Impossibile cambiare il primo piano: {{message}}",
+        },
         tray: {
             tooltip: "EasyTask",
             open: "Apri EasyTask",
