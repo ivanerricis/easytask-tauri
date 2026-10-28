@@ -204,10 +204,11 @@ describe("Task list keyboard", () => {
         await browser.keys(["Alt", "ArrowDown"])
         await browser.waitUntil(async () => JSON.stringify(await topLevelOrder(names)) === JSON.stringify([A2_RENAMED, A1, A3]), { timeoutMsg: "A1 was not moved down in the database" })
         await expectFocus(A1)
-        // The announcer alternates a trailing non-breaking space; WebKitGTK keeps it in getText, WebView2 does not
+        // The live region is visually hidden (sr-only): read its textContent, since WebKitGTK's getText returns nothing for it.
+        // The announcer also alternates a trailing non-breaking space, which is dropped here.
         const announced = await tr("tasks.keyboard.moved", { position: 2, total: 3 })
         await browser.waitUntil(
-            async () => (await $("[role='status'][aria-live='polite'].sr-only").getText()).replace(/\u00A0/g, " ").trim() === announced,
+            async () => (await browser.execute(() => document.querySelector("[role='status'][aria-live='polite'].sr-only")?.textContent ?? "")).replace(/\u00A0/g, " ").trim() === announced,
             { timeoutMsg: "the move was not announced" },
         )
         await browser.keys(["Alt", "ArrowUp"])
