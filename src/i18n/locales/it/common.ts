@@ -18,6 +18,8 @@ export const common = {
         task_other: "{{count}} task",
     },
     openMenu: "Apri menu",
+    breadcrumb: "Percorso di navigazione",
+    more: "Altro",
     menuOf: "Menu: {{name}}",
     workspaceRoot: "Radice del workspace",
     name: "Nome",
