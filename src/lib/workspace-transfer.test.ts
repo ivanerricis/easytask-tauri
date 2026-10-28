@@ -8,17 +8,21 @@ const suggestDBItemNames = vi.fn()
 const importDBWorkspace = vi.fn()
 const importDBItems = vi.fn()
 const buildDBItemExport = vi.fn()
+const buildDBWorkspaceExport = vi.fn()
+const buildDBItemsExport = vi.fn()
+const open = vi.fn()
 const save = vi.fn()
 const writeTextFile = vi.fn()
 
-vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn(async () => "/x/ws.easytask.json"), save: (...a: unknown[]) => save(...a) }))
+vi.mock("@tauri-apps/plugin-dialog", () => ({ open: (...a: unknown[]) => open(...a), save: (...a: unknown[]) => save(...a) }))
 vi.mock("@tauri-apps/plugin-fs", () => ({
     readTextFile: () => readTextFile(),
     writeTextFile: (...a: unknown[]) => writeTextFile(...a),
     stat: vi.fn(async () => ({ size })),
 }))
 vi.mock("@/db/queries/transfer", () => ({
-    buildDBWorkspaceExport: vi.fn(),
+    buildDBWorkspaceExport: (...a: unknown[]) => buildDBWorkspaceExport(...a),
+    buildDBItemsExport: (...a: unknown[]) => buildDBItemsExport(...a),
     buildDBItemExport: (...a: unknown[]) => buildDBItemExport(...a),
     importDBItems: (...a: unknown[]) => importDBItems(...a),
     importDBWorkspace: (...a: unknown[]) => importDBWorkspace(...a),
@@ -27,7 +31,7 @@ vi.mock("@/db/queries/transfer", () => ({
     validateWorkspaceExport: (data: unknown) => data,
 }))
 
-import { exportItemToFile, importItemsFromFile, importWorkspaceFromFile } from "./workspace-transfer"
+import { exportItemToFile, exportItemsToFile, exportWorkspaceToFile, importItemsFromFile, importWorkspaceFromFile } from "./workspace-transfer"
 
 beforeEach(() => {
     size = 10
@@ -37,6 +41,11 @@ beforeEach(() => {
     importDBWorkspace.mockReset().mockResolvedValue({ workspaceId: 1, skippedAudio: 0 })
     importDBItems.mockReset().mockResolvedValue({ skippedAudio: 0, items: [] })
     buildDBItemExport.mockReset().mockResolvedValue({ format: "easytask-workspace" })
+    open.mockReset().mockResolvedValue("/x/ws.easytask.json")
+    buildDBWorkspaceExport.mockReset().mockResolvedValue({ format: "easytask-workspace", scope: "workspace" })
+    buildDBItemsExport.mockReset().mockResolvedValue({ format: "easytask-workspace", scope: "items" })
+    buildDBWorkspaceExport.mockReset().mockResolvedValue({ format: "easytask-workspace", scope: "workspace" })
+    buildDBItemsExport.mockReset().mockResolvedValue({ format: "easytask-workspace", scope: "items" })
     save.mockReset().mockResolvedValue("/x/out.easytask.json")
     writeTextFile.mockReset()
 })
@@ -111,5 +120,57 @@ describe("exportItemToFile", () => {
         save.mockResolvedValue(null)
         await expect(exportItemToFile("folder", { id: 1, name: "F" })).resolves.toBe(false)
         expect(buildDBItemExport).not.toHaveBeenCalled()
+    })
+})
+
+describe("exportWorkspaceToFile", () => {
+    it("proposes the workspace name as file name and writes the pretty printed export", async () => {
+        await expect(exportWorkspaceToFile({ id: 3, name: "Casa: spese?" })).resolves.toBe(true)
+        expect(save).toHaveBeenCalledWith(expect.objectContaining({ defaultPath: "Casa_ spese_.easytask.json" }))
+        expect(buildDBWorkspaceExport).toHaveBeenCalledWith(3)
+        expect(writeTextFile).toHaveBeenCalledWith("/x/out.easytask.json", JSON.stringify({ format: "easytask-workspace", scope: "workspace" }, null, 2))
+    })
+
+    it("falls back to a generic file name when the name has no usable characters", async () => {
+        await exportWorkspaceToFile({ id: 3, name: "   " })
+        expect(save).toHaveBeenCalledWith(expect.objectContaining({ defaultPath: "workspace.easytask.json" }))
+    })
+
+    it("does nothing when the dialog is cancelled", async () => {
+        save.mockResolvedValue(null)
+        await expect(exportWorkspaceToFile({ id: 3, name: "W" })).resolves.toBe(false)
+        expect(buildDBWorkspaceExport).not.toHaveBeenCalled()
+        expect(writeTextFile).not.toHaveBeenCalled()
+    })
+})
+
+describe("exportItemsToFile", () => {
+    it("writes several items in one file named after the given name", async () => {
+        const items = [{ type: "note" as const, id: 1 }, { type: "folder" as const, id: 2 }]
+        await expect(exportItemsToFile(items, "Selezione")).resolves.toBe(true)
+        expect(save).toHaveBeenCalledWith(expect.objectContaining({ defaultPath: "Selezione.easytask.json" }))
+        expect(buildDBItemsExport).toHaveBeenCalledWith(items, "Selezione")
+        expect(writeTextFile).toHaveBeenCalledTimes(1)
+    })
+
+    it("does nothing when the dialog is cancelled", async () => {
+        save.mockResolvedValue(null)
+        await expect(exportItemsToFile([{ type: "note", id: 1 }], "S")).resolves.toBe(false)
+        expect(buildDBItemsExport).not.toHaveBeenCalled()
+    })
+})
+
+describe("picking an import file", () => {
+    it("returns null without reading anything when the dialog is cancelled", async () => {
+        open.mockResolvedValue(null)
+        await expect(importWorkspaceFromFile()).resolves.toBeNull()
+        await expect(importItemsFromFile(1, null)).resolves.toBeNull()
+        expect(readTextFile).not.toHaveBeenCalled()
+    })
+
+    it("rejects a file that is not valid JSON", async () => {
+        fileContent = "{ not json"
+        await expect(importWorkspaceFromFile()).rejects.toMatchObject({ code: "TRANSFER_INVALID_FILE" })
+        expect(importDBWorkspace).not.toHaveBeenCalled()
     })
 })
