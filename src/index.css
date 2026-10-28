@@ -13,17 +13,18 @@ body,
   width: 100%;
 }
 
+/* Thumb vs background contrast: 4.4:1 light, 5.8:1 dark at rest (WCAG 1.4.11 asks 3:1); the old 35% gave 2.3:1 on light */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: color-mix(in oklch, var(--foreground) 35%, transparent);
+  background-color: color-mix(in oklch, var(--foreground) 55%, transparent);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background-color: color-mix(in oklch, var(--foreground) 55%, transparent);
+  background-color: color-mix(in oklch, var(--foreground) 75%, transparent);
 }
 
 ::-webkit-scrollbar-track,
