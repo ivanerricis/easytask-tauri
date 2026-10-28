@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 import { FileText } from "lucide-react"
 import { ItemRow, ListSkeleton } from "./item-list-parts"
@@ -18,7 +18,9 @@ describe("ListSkeleton", () => {
         render(<ListSkeleton />)
         const status = screen.getByRole("status")
         expect(status).toHaveAttribute("aria-busy", "true")
-        expect(await screen.findByText("Caricamento…")).toHaveClass("text-sm")
+        // The skeleton (and the visible text) appear after a short delay; the text is read out from the start
+        expect(screen.getByText("Caricamento…")).toBeInTheDocument()
+        await waitFor(() => expect(screen.getByText("Caricamento…")).toHaveClass("text-sm"))
         expect(status.querySelector("[data-slot=skeleton]")).toHaveClass("motion-reduce:animate-none")
     })
 })
