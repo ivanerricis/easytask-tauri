@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 import { ItemMenuButton } from "@/components/item-menu"
 import { makeSection } from "@/test/ui-fixtures"
+// The request to delete is tested with its hook (use-delete-request.test.tsx): here it opens the dialog
+vi.mock("@/components/dialogs/use-delete-item", () => ({ useDeleteRequest: ({ openDialog }: { openDialog: () => void }) => ({ request: openDialog }) }))
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 const duplicateSection = vi.fn()

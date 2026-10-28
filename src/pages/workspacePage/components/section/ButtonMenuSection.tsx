@@ -9,6 +9,8 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
+import { useDeleteRequest } from "@/components/dialogs/use-delete-item"
+import { sectionHasContent } from "@/lib/delete-content"
 import { SectionMoveSubmenu } from "../NoteMoveSubmenus"
 import { SectionStepMoves } from "../NoteStepMoves"
 import { MenuGroup } from "@/components/menu-kind"
@@ -46,6 +48,13 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
     const { updateItemColor, duplicateSection, archiveItem } = useWorkspaceActions()
     const { patchSection, removeSection, refreshActiveNote } = useActiveNoteActions()
     const recorder = useUndoRecorder()
+    const { request: requestDelete } = useDeleteRequest({
+        item: section,
+        itemType: "section",
+        optimistic: () => removeSection(section.id),
+        hasContent: () => sectionHasContent(section),
+        openDialog: () => setDeleteOpen(true),
+    })
 
     // The copy is placed right after the original: reload the open note to show it
     const handleDuplicate = async () => {
@@ -128,7 +137,7 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
                 type="delete"
                 destructive
                 onClick={() => {
-                    setDeleteOpen(true)
+                    requestDelete()
                     menu.close()
                 }}
             />

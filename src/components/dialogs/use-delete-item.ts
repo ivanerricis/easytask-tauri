@@ -1,3 +1,9 @@
+import { useTranslation } from "react-i18next"
+import { useContext } from "react"
+import { PreferencesContext } from "@/contexts/preferences-context-object"
+import { useSubmitOnce } from "@/hooks/use-submit-once"
+import { reportError } from "@/lib/report-error"
+import { getErrorMessage } from "@/lib/utils"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useOptionalUndo, useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getItemName, isUndoableType } from "@/contexts/undo/commands"
@@ -40,4 +46,50 @@ export const useDeleteItem = <T extends { id: number }>({ item, itemType, getIte
             throw error
         }
     }
+}
+
+export type DeleteRequestOptions<T extends { id: number }> = DeleteItemOptions<T> & {
+    /** Tells whether the item holds something worth a confirmation (a rejection counts as yes). */
+    hasContent: () => boolean | Promise<boolean>
+    /** Opens the confirmation dialog. */
+    openDialog: () => void
+}
+
+/**
+ * Entry point of the delete menus of notes, sections and groups: asks for the confirmation only when needed.
+ * With the preference on the dialog opens only for an item with content; with it off the item is never confirmed.
+ * Without confirmation the item goes to the trash at once (undo toast included); a failure is reported with an error toast.
+ * @returns `request` to call from the menu entry.
+ */
+export const useDeleteRequest = <T extends { id: number }>({ hasContent, openDialog, ...deleteOptions }: DeleteRequestOptions<T>) => {
+    const { t } = useTranslation()
+    // Read straight from the context: outside a provider (menus rendered alone) the default applies, which is to ask
+    const confirmDeleteWithContent = useContext(PreferencesContext)?.confirmDeleteWithContent
+    const deleteNow = useDeleteItem(deleteOptions)
+    const { run } = useSubmitOnce()
+
+    const request = () => {
+        void run(async () => {
+            let confirm = false
+            if (confirmDeleteWithContent !== false) {
+                try {
+                    confirm = await hasContent()
+                } catch (error) {
+                    reportError(error)
+                    confirm = true
+                }
+            }
+            if (confirm) {
+                openDialog()
+                return
+            }
+            try {
+                await deleteNow()
+            } catch (error) {
+                reportError(error, t("dialogs.delete.error", { message: getErrorMessage(error) }))
+            }
+        })
+    }
+
+    return { request }
 }
