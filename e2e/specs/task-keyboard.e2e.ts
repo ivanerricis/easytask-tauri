@@ -185,6 +185,14 @@ describe("Task list keyboard", () => {
         await browser.waitUntil(async () => browser.execute(() => document.activeElement instanceof HTMLTextAreaElement && !document.activeElement.readOnly), { timeoutMsg: "the rename field did not open" })
         await browser.keys(["Control", "a"])
         await browser.keys(A2_RENAMED)
+        // WebKitWebDriver (Linux) can drop the Shift of capitals ("TaskKbd" arrives as "askKbd"): the text is then set
+        // through the native setter plus an input event, which React picks up like typing (see typeInto)
+        await browser.execute((text: string) => {
+            const el = document.activeElement
+            if (!(el instanceof HTMLTextAreaElement) || el.value === text) return
+            Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")?.set?.call(el, text)
+            el.dispatchEvent(new Event("input", { bubbles: true }))
+        }, A2_RENAMED)
         await browser.keys("Enter")
         await rowOf(A2_RENAMED).waitForDisplayed({ timeoutMsg: "the rename was not applied" })
         await expectFocus(A2_RENAMED)
