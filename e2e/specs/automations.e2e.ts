@@ -1,10 +1,8 @@
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    byLabel, byText, createFromSidebar, createWorkspace, cssColor, currentLang, domClick, openContextMenu, openWorkspace, sectionCard, tr, treeRow,
-    sql, typeInto, waitForApp,
-    addTaskButton, topDialog,
+    addTaskToSection, byLabel, byText, createFromSidebar, createWorkspace, cssColor, currentLang, domClick, openContextMenu, openWorkspace, sectionCard, tr, treeRow,
+    sql, typeInto, waitForApp, topDialog,
     groupCard, newSectionInGroup,
-    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Auto Workspace"
@@ -72,11 +70,7 @@ const isCompleted = async (text: string) => (await (await checkbox(text)).getAtt
 
 const addTask = async (section: string, text: string) => {
     const before = (await taskValues(section)).length
-    await (await addTaskButton(sectionCard(section))).click()
-    await typeInto(sectionCard(section).$("input"), text)
-    await sectionCard(section).$(`[aria-label="${await tr("common.add")}"]`).click()
-    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
-    await closeTaskInput()
+    await addTaskToSection(sectionCard(section), text)
     await browser.waitUntil(async () => (await taskValues(section)).length === before + 1, { timeoutMsg: `task "${text}" not created` })
 }
 

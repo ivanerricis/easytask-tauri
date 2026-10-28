@@ -1,6 +1,6 @@
 import { $, browser, expect } from "@wdio/globals"
 import {
-    addTaskButton, byLabel, byText, closeTaskInput, createFromSidebar, createWorkspace, domClick, groupCard, newSectionInGroup,
+    addTaskToSection, byLabel, byText, closeTaskInput, createFromSidebar, createWorkspace, domClick, groupCard, newSectionInGroup,
     openWorkspace, sectionCard, sql, tr, treeRow, typeInto, waitForApp,
 } from "../helpers"
 
@@ -52,10 +52,7 @@ const enterList = async () => {
 }
 
 const addTask = async (section: string, text: string) => {
-    await (await addTaskButton(sectionCard(section))).click()
-    await typeInto(sectionCard(section).$("input"), text)
-    await sectionCard(section).$(`[aria-label="${await tr("common.add")}"]`).click()
-    await closeTaskInput()
+    await addTaskToSection(sectionCard(section), text)
     await rowOf(text).waitForDisplayed({ timeoutMsg: `task "${text}" not created` })
 }
 

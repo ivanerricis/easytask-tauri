@@ -1,6 +1,6 @@
 import { browser, expect } from "@wdio/globals"
 import {
-    addTaskButton, byLabel, byText, closeTaskInput, createFromSidebar, createWorkspace, domClick, groupCard, newSectionInGroup, openWorkspace,
+    addTaskToSection, byLabel, byText, createFromSidebar, createWorkspace, domClick, groupCard, newSectionInGroup, openWorkspace,
     sectionCard, sql, tr, treeRow, typeInto, waitForApp,
 } from "../helpers"
 
@@ -54,11 +54,7 @@ describe("Group width", () => {
         await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
         await newSectionInGroup(groupCard(GROUP), SECTION)
-        await (await addTaskButton(sectionCard(SECTION))).click()
-        await typeInto(sectionCard(SECTION).$("input"), TASK)
-        await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
-        // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
-        await closeTaskInput()
+        await addTaskToSection(sectionCard(SECTION), TASK)
         await browser.waitUntil(async () => (await sql<unknown[]>("select", "SELECT id FROM task WHERE text = ?", [TASK])).length > 0, { timeoutMsg: "task not created" })
     })
 

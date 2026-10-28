@@ -334,15 +334,25 @@ export const closeTaskInput = async () => {
     )
     await browser.keys("Escape")
 }
-/** Adds a task directly in a group with its "Nuovo task" button, typing `text` and confirming with the add button. */
-export const addTaskToGroup = async (group: ChainablePromiseElement | WebdriverIO.Element, text: string) => {
-    await (await groupAddTaskButton(group)).click()
-    await typeInto(directTasks(group).$("input"), text)
-    await directTasks(group).$(`[aria-label="${await tr("common.add")}"]`).click()
-    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
+/**
+ * Adds a task to a section (or to the card `scope` that holds the "+" button): opens the field, types `text` and confirms
+ * with Enter (the field has no buttons). It leaves the field closed: it stays open after saving (preference "keep adding
+ * tasks"), so it waits for the saved task and then closes it with Esc.
+ */
+export const addTaskToSection = async (scope: ChainablePromiseElement | WebdriverIO.Element, text: string) => {
+    await (await addTaskButton(scope)).click()
+    await typeInto(scope.$("input"), text)
+    await browser.keys("Enter")
     await closeTaskInput()
 }
 
+/** Adds a task directly in a group with its "Nuovo task" button, typing `text` and confirming with Enter. */
+export const addTaskToGroup = async (group: ChainablePromiseElement | WebdriverIO.Element, text: string) => {
+    await (await groupAddTaskButton(group)).click()
+    await typeInto(directTasks(group).$("input"), text)
+    await browser.keys("Enter")
+    await closeTaskInput()
+}
 
 /** Top to bottom texts of the tasks (subtasks included) inside `scope`, read in a single page-side call. */
 export const taskTexts = async (scope: ChainablePromiseElement | WebdriverIO.Element): Promise<string[]> => {

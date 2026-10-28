@@ -1,9 +1,8 @@
 import { $, $$, browser } from "@wdio/globals"
 import {
-    byLabel, byText, createFromSidebar, createWorkspace, openContextMenu, openSubmenu, openWorkspace, sectionCard, sql, tr, treeRow, typeInto,
-    waitForApp, addTaskButton,
+    addTaskToSection, byLabel, byText, createFromSidebar, createWorkspace, openContextMenu, openSubmenu, openWorkspace, sectionCard, sql, tr, treeRow, typeInto,
+    waitForApp,
     groupCard, newSectionInGroup,
-    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Multi Workspace"
@@ -64,11 +63,7 @@ describe("Multi-selection of tasks", () => {
         await newSectionInGroup(groupCard(GROUP), SECTION)
 
         for (const text of TASKS) {
-            await (await addTaskButton(sectionCard(SECTION))).click()
-            await typeInto(sectionCard(SECTION).$("input"), text)
-            await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
-            // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
-            await closeTaskInput()
+            await addTaskToSection(sectionCard(SECTION), text)
             await (await rowOf(text)).waitForDisplayed({ timeoutMsg: `task "${text}" not created` })
         }
     })

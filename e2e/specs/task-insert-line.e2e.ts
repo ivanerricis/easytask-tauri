@@ -1,6 +1,6 @@
 import { $, browser, expect } from "@wdio/globals"
 import {
-    addTaskButton, byLabel, byText, closeAllDialogs, closeTaskInput, createFromSidebar, createWorkspace, domClick, groupCard, hoverInsertZone,
+    addTaskToSection, byLabel, byText, closeAllDialogs, closeTaskInput, createFromSidebar, createWorkspace, domClick, groupCard, hoverInsertZone,
     insertFields, insertPlusOpacity, insertZoneAbove, insertZones, newSectionInGroup, openSettingsOn, openWorkspace, sectionCard, settingsSwitch,
     sql, taskTexts, tr, treeRow, typeInto, waitForApp,
 } from "../helpers"
@@ -86,10 +86,7 @@ describe("Insert line between tasks", () => {
         await newSectionInGroup(groupCard(GROUP), SECTION)
 
         for (const text of [A, B, C]) {
-            await (await addTaskButton(sectionCard(SECTION))).click()
-            await typeInto(sectionCard(SECTION).$("input"), text)
-            await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
-            await closeTaskInput()
+            await addTaskToSection(sectionCard(SECTION), text)
             await browser.waitUntil(async () => (await texts()).includes(text), { timeoutMsg: `task ${text} not created` })
         }
         await waitForTexts([A, B, C])

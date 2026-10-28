@@ -3,11 +3,9 @@ import fs from "node:fs"
 import path from "node:path"
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    byLabel, byText, createFromSidebar, createWorkspace, currentLang, dataDir, domClick, openWorkspace, sectionCard, topDialog, tr, trIn,
+    addTaskToSection, byLabel, byText, createFromSidebar, createWorkspace, currentLang, dataDir, domClick, openWorkspace, sectionCard, topDialog, tr, trIn,
     treeRow, typeInto, waitForApp,
-    addTaskButton,
     groupCard, newSectionInGroup,
-    closeTaskInput,
 } from "../helpers"
 
 /**
@@ -137,11 +135,7 @@ describe("Settings and data survive an app restart", () => {
         await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
         await newSectionInGroup(groupCard(GROUP), SECTION)
-        await (await addTaskButton(sectionCard(SECTION))).click()
-        await typeInto(sectionCard(SECTION).$("input"), TASK)
-        await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
-        // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
-        await closeTaskInput()
+        await addTaskToSection(sectionCard(SECTION), TASK)
         await browser.waitUntil(async () => (await taskValues(SECTION)).includes(TASK), { timeoutMsg: "task not created" })
         await domClick(sectionCard(SECTION).$('[role="checkbox"]'))
         await expect(sectionCard(SECTION).$('[role="checkbox"]')).toHaveAttribute("aria-checked", "true")

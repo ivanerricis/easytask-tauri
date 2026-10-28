@@ -4,11 +4,9 @@ import path from "node:path"
 import { $, browser, expect } from "@wdio/globals"
 import type { ChainablePromiseElement } from "webdriverio"
 import {
-    backgroundOf, byLabel, byText, compose, contrastRatio, createFromSidebar, createWorkspace, cssColor, domClick, inTheme,
+    addTaskToSection, backgroundOf, byLabel, byText, compose, contrastRatio, createFromSidebar, createWorkspace, cssColor, domClick, inTheme,
     openWorkspace, sql, tr, treeRow, typeInto, waitForApp, type Rgba,
-    addTaskButton,
     groupCard, newSectionInGroup,
-    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Layout Workspace"
@@ -54,11 +52,7 @@ const idOf = async (table: "task" | "section_group", column: "text" | "name", va
 /** Adds a task to the section through the "+" of its header. */
 const addTask = async (text: string) => {
     const card = $(`//div[@data-section-card][.//button[@title=${JSON.stringify(SECTION)}]]`)
-    await (await addTaskButton(card)).click()
-    await typeInto(card.$("input"), text)
-    await card.$(`[aria-label="${await tr("common.add")}"]`).click()
-    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
-    await closeTaskInput()
+    await addTaskToSection(card, text)
     await browser.waitUntil(
         async () => browser.execute((value: string) => Array.from(document.querySelectorAll("textarea")).some(area => area.value === value), text),
         { timeoutMsg: `task "${text}" not created` },
