@@ -33,11 +33,6 @@ let dataDir = ""
 let tauriDriver: ChildProcess | undefined
 let exiting = false
 
-// Temporary: where does the per-spec start-up time go? (one line per phase, "ms since the start of the session")
-let sessionStartedAt = 0
-let firstTestLogged = false
-const phase = (name: string) => console.log(`[e2e-timing] ${name} +${Date.now() - sessionStartedAt}ms`)
-
 const stopDriver = () => {
     exiting = true
     tauriDriver?.kill()
@@ -128,8 +123,6 @@ export const config: Options.Testrunner & { capabilities: unknown[] } = {
     },
 
     beforeSession: async () => {
-        sessionStartedAt = Date.now()
-        firstTestLogged = false
         const nativeDriver = await resolveNativeDriver()
         exiting = false
         const args = nativeDriver ? ["--native-driver", nativeDriver] : []
@@ -157,21 +150,11 @@ export const config: Options.Testrunner & { capabilities: unknown[] } = {
                 socket.once("connect", () => { socket.destroy(); resolve(true) })
                 socket.once("error", () => { socket.destroy(); resolve(false) })
             })
-            if (listening) { phase("tauri-driver listening"); return }
+            if (listening) return
             await new Promise((resolve) => setTimeout(resolve, 200))
         }
         throw new Error("tauri-driver did not start listening on port 4444")
     },
-
-    before: () => phase("session ready (app launched)"),
-
-    beforeTest: () => {
-        if (firstTestLogged) return
-        firstTestLogged = true
-        phase("first test starts")
-    },
-
-    after: () => phase("last test done"),
 
     afterTest: async (test, _context, result) => {
         if (result.passed) return
@@ -181,7 +164,6 @@ export const config: Options.Testrunner & { capabilities: unknown[] } = {
     },
 
     afterSession: () => {
-        phase("afterSession")
         stopDriver()
     },
 
