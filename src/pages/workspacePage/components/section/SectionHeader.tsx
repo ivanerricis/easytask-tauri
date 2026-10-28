@@ -77,6 +77,8 @@ export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }:
                     style={section.color ? { backgroundColor: hexToRgba(colorAlpha.header(), section.color) } : undefined}
                     {...dragProps}
                 >
+                    {/* Without tasks there is nothing to collapse, but the arrow's space stays so the title does not move */}
+                    {(section.tasks.length === 0) && <span aria-hidden data-testid="collapse-placeholder" className="size-6 shrink-0" />}
                     {(section.tasks.length > 0) &&
                         <Button
                             type="button"

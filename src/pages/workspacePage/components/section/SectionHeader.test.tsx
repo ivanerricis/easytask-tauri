@@ -31,6 +31,18 @@ describe("SectionHeader keyboard", () => {
         expect(onOpenChange).toHaveBeenCalledWith(false)
     })
 
+    it("reserves the space of the collapse arrow in a section without tasks, so the title does not jump", () => {
+        const { rerender } = render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ tasks: [] })} />)
+        expect(screen.queryByRole("button", { name: "Comprimi sezione" })).toBeNull()
+        const placeholder = screen.getByTestId("collapse-placeholder")
+        expect(placeholder).toHaveAttribute("aria-hidden", "true")
+        expect(placeholder).toHaveClass("size-6", "shrink-0")
+
+        rerender(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ tasks: [makeTask()] })} />)
+        expect(screen.queryByTestId("collapse-placeholder")).toBeNull()
+        expect(screen.getByRole("button", { name: "Comprimi sezione" })).toHaveClass("size-6", "shrink-0")
+    })
+
     it("starts editing the title with Enter", async () => {
         render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)
         screen.getByRole("button", { name: "Titolo" }).focus()
