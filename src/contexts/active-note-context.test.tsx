@@ -1,3 +1,4 @@
+import { useContext } from "react"
 import { act, render, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
@@ -7,6 +8,10 @@ import { ActiveNoteProvider } from "./active-note-context"
 import { useActiveNote, useActiveNoteActions } from "./use-active-note"
 import { getDBNoteData } from "@/db/queries/note"
 import { deferred } from "@/test/ui-render"
+import { SplitHarness } from "@/test/split-harness"
+import type { SplitState } from "@/test/split-fixtures"
+import type { ActiveNoteActionsType } from "./active-note-context-object"
+import { PaneNoteActionsContext, PaneNoteTreesContext } from "./layout-context-object"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
@@ -354,6 +359,100 @@ describe("ActiveNoteProvider", () => {
             expect(latest.current.noteDataTree!.groups[0].sections[0].tasks).toEqual([])
             act(() => undo())
             expect(latest.current.noteDataTree!.groups[0].sections[0].tasks.map(t => t.id)).toEqual([1000])
+        })
+    })
+
+    describe("split workspace", () => {
+        const base: SplitState = { open0: [1], active0: 1, open1: [2], active1: 2, focused: 0 }
+
+        function setupSplit(initial: SplitState) {
+            const latest: { current: Api & { paneActions: readonly [ActiveNoteActionsType, ActiveNoteActionsType], trees: readonly unknown[] } } = { current: undefined as never }
+            function Probe() {
+                latest.current = {
+                    ...useTabs(), ...useTabsActions(), ...useActiveNote(), ...useActiveNoteActions(),
+                    paneActions: useContext(PaneNoteActionsContext)!,
+                    trees: useContext(PaneNoteTreesContext)!,
+                }
+                return null
+            }
+            const ui = (state: SplitState) => <SplitHarness state={state}><ActiveNoteProvider><Probe /></ActiveNoteProvider></SplitHarness>
+            const view = render(ui(initial))
+            return { latest, update: (state: SplitState) => view.rerender(ui(state)) }
+        }
+        const groupOf = (tree: unknown) => (tree as { groups: { id: number }[] } | null)?.groups[0]?.id ?? null
+        const taskOf = (tree: unknown) => (tree as ReturnType<typeof dataOf>["groups"] & { groups: { sections: { tasks: { completed: boolean }[] }[] }[] }).groups[0].sections[0].tasks[0]
+
+        it("loads the active note of each pane, once", async () => {
+            const { latest } = setupSplit(base)
+            await waitFor(() => expect(groupOf(latest.current.trees[1])).toBe(20))
+            expect(groupOf(latest.current.trees[0])).toBe(10)
+            expect(getDBNoteData).toHaveBeenCalledTimes(2)
+            expect(shownGroup(latest)).toBe(10) // the focused pane
+        })
+
+        it("retains the notes of both panes and evicts a closed one", async () => {
+            const { latest, update } = setupSplit({ ...base, open0: [1, 3] })
+            await waitFor(() => expect(groupOf(latest.current.trees[1])).toBe(20))
+            update({ ...base, open0: [1, 3], active0: 3 })
+            await waitFor(() => expect(latest.current.getCachedNoteTree(3)).not.toBeNull())
+            expect(latest.current.getCachedNoteTree(1)).not.toBeNull()
+            expect(latest.current.getCachedNoteTree(2)).not.toBeNull()
+            update({ ...base, open0: [3], active0: 3 })
+            await waitFor(() => expect(latest.current.getCachedNoteTree(1)).toBeNull())
+            expect(latest.current.getCachedNoteTree(2)).not.toBeNull()
+        })
+
+        it("does not reload pane 0 when pane 1 changes its note", async () => {
+            const { latest, update } = setupSplit({ ...base, open1: [2, 3] })
+            await waitFor(() => expect(groupOf(latest.current.trees[1])).toBe(20))
+            update({ ...base, open1: [2, 3], active1: 3 })
+            await waitFor(() => expect(groupOf(latest.current.trees[1])).toBe(30))
+            expect(getDBNoteData).toHaveBeenCalledTimes(3)
+            expect(vi.mocked(getDBNoteData).mock.calls.filter(([id]) => id === 1)).toHaveLength(1)
+        })
+
+        it("patches only the note of the pane whose actions are used", async () => {
+            const { latest } = setupSplit(base)
+            await waitFor(() => expect(groupOf(latest.current.trees[1])).toBe(20))
+            const before0 = latest.current.trees[0]
+            act(() => { latest.current.paneActions[1].patchTask(2000, { completed: true }) })
+            expect(taskOf(latest.current.trees[1]).completed).toBe(true)
+            expect(latest.current.trees[0]).toBe(before0)
+            expect(getDBNoteData).toHaveBeenCalledTimes(2)
+        })
+
+        it("makes the focused actions and tree follow the focused pane", async () => {
+            const { latest, update } = setupSplit(base)
+            await waitFor(() => expect(groupOf(latest.current.trees[1])).toBe(20))
+            act(() => { latest.current.patchTask(1000, { completed: true }) })
+            expect(taskOf(latest.current.trees[0]).completed).toBe(true)
+            expect(taskOf(latest.current.trees[1]).completed).toBe(false)
+
+            update({ ...base, focused: 1 })
+            expect(shownGroup(latest)).toBe(20)
+            expect(latest.current.getNoteTree()).toBe(latest.current.trees[1])
+            act(() => { latest.current.patchTask(2000, { completed: true }) })
+            expect(taskOf(latest.current.trees[1]).completed).toBe(true)
+        })
+
+        it("refreshActiveNote of a pane reloads that pane's note", async () => {
+            const { latest } = setupSplit(base)
+            await waitFor(() => expect(groupOf(latest.current.trees[1])).toBe(20))
+            await act(async () => { await latest.current.paneActions[1].refreshActiveNote() })
+            expect(vi.mocked(getDBNoteData).mock.calls.filter(([id]) => id === 2)).toHaveLength(2)
+            expect(vi.mocked(getDBNoteData).mock.calls.filter(([id]) => id === 1)).toHaveLength(1)
+        })
+
+        it("ignores a stale response of a pane note that has been replaced by an optimistic update", async () => {
+            const slow = deferred<ReturnType<typeof dataOf>>()
+            const { latest } = setupSplit(base)
+            await waitFor(() => expect(groupOf(latest.current.trees[1])).toBe(20))
+            vi.mocked(getDBNoteData).mockReturnValueOnce(slow.promise as never)
+            let reload!: Promise<void>
+            act(() => { reload = latest.current.paneActions[1].refreshActiveNote() })
+            act(() => { latest.current.paneActions[1].patchTask(2000, { completed: true }) })
+            await act(async () => { slow.resolve(dataOf(2)); await reload })
+            expect(taskOf(latest.current.trees[1]).completed).toBe(true)
         })
     })
 })
