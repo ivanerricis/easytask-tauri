@@ -32,6 +32,8 @@ export const appMenu = {
     leftSidebar: "Barra laterale",
     rightSidebar: "Pannello dei dettagli",
     hideCompleted: "Nascondi task completati",
+    toggleSplit: "Dividi o unisci lo spazio di lavoro",
+    moveNoteToOtherPane: "Sposta la nota nell'altra area",
     nextNote: "Nota successiva",
     previousNote: "Nota precedente",
     theme: "Tema",

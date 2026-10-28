@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import {
-    Archive, ArrowLeft, ArrowRight, BookOpen, CircleX, EyeOff, FileDown, FilePlus, FileText, FolderPlus, House, Info, Keyboard, LayoutTemplate,
+    Archive, ArrowLeft, ArrowRight, ArrowRightLeft, BookOpen, CircleX, Columns2, EyeOff, FileDown, FilePlus, FileText, FolderPlus, House, Info, Keyboard, LayoutTemplate,
     LogOut, Monitor, Moon, PanelLeft, PanelRight, Plus, Redo2, Rows3, ScrollText, Search, Settings, Sun, SunMoon, Trash2, Undo2, X, type LucideIcon,
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
@@ -186,6 +186,8 @@ export const AppMenu = ({ page }: AppMenuProps) => {
                             <ShortcutItem id="toggle-sidebar" icon={PanelLeft} label={t("appMenu.leftSidebar")} />
                             <ShortcutItem id="toggle-right-sidebar" icon={PanelRight} label={t("appMenu.rightSidebar")} />
                             <ShortcutItem id="toggle-hide-completed" icon={EyeOff} label={t("appMenu.hideCompleted")} />
+                            <ShortcutItem id="toggle-split" icon={Columns2} label={t("appMenu.toggleSplit")} />
+                            <ShortcutItem id="move-note-to-other-pane" icon={ArrowRightLeft} label={t("appMenu.moveNoteToOtherPane")} />
                             <MenubarSeparator />
                             <ShortcutItem id="next-note" icon={ArrowRight} label={t("appMenu.nextNote")} />
                             <ShortcutItem id="previous-note" icon={ArrowLeft} label={t("appMenu.previousNote")} />
