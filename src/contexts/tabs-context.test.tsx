@@ -1,15 +1,24 @@
 import { act, render, renderHook, waitFor } from "@testing-library/react"
 import type { ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { useContext } from "react"
 import { TabsProvider } from "./tabs-context"
+import { FocusedPaneStoreContext, PaneTabsContext } from "./layout-context-object"
+import { TabUiContext } from "./tabs-context-object"
+import { useLayout, useLayoutActions } from "./use-layout"
+import type { TabsBridge } from "./workspace-data/types"
 import { useActiveNoteId, useActiveNoteSelector, useIsTaskSelected, useSelectTask, useSelectedTask, useTabs, useTabsActions } from "./use-tabs"
 import { getReopenNotes } from "@/lib/store/preferences"
 import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
 import { makeNote } from "@/test/ui-fixtures"
 import type { Note } from "@/types/types"
+import type { LayoutState } from "./layout-reducer"
 
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn() }))
 vi.mock("@/lib/store/tabs", () => ({ getWorkspaceTabs: vi.fn(), saveWorkspaceTabs: vi.fn() }))
+
+/** A saved layout with a single pane. */
+const single = (openIds: number[], activeId: number | null): LayoutState => ({ left: { openIds, activeId }, right: null, focused: 0 })
 
 const notesOf = (...ids: number[]) => ids.map(id => makeNote({ id, name: `Nota ${id}` }))
 
@@ -35,7 +44,7 @@ describe("TabsProvider", () => {
         vi.resetAllMocks()
         vi.spyOn(console, "error").mockImplementation(() => {})
         vi.mocked(getReopenNotes).mockResolvedValue(true)
-        vi.mocked(getWorkspaceTabs).mockResolvedValue({ openIds: [], activeId: null })
+        vi.mocked(getWorkspaceTabs).mockResolvedValue(single([], null))
         vi.mocked(saveWorkspaceTabs).mockResolvedValue(undefined)
     })
 
@@ -100,7 +109,7 @@ describe("TabsProvider", () => {
 
     describe("persistence", () => {
         it("restores the saved tabs and the active one, dropping the notes that no longer exist", async () => {
-            vi.mocked(getWorkspaceTabs).mockResolvedValue({ openIds: [3, 99, 1], activeId: 1 })
+            vi.mocked(getWorkspaceTabs).mockResolvedValue(single([3, 99, 1], 1))
             const { latest } = harness({ notes: notesOf(1, 2, 3), workspaceId: 7 })
 
             await waitFor(() => expect(latest.current.openIds).toEqual([3, 1]))
@@ -109,12 +118,12 @@ describe("TabsProvider", () => {
         })
 
         it("reports restored once the saved tabs have been read, also when the preference is off", async () => {
-            let release!: (tabs: { openIds: number[], activeId: number | null }) => void
+            let release!: (tabs: LayoutState) => void
             vi.mocked(getWorkspaceTabs).mockReturnValue(new Promise(resolve => { release = resolve }))
             const { latest, update } = harness({ notes: notesOf(1, 2), workspaceId: 7 })
             expect(latest.current.restored).toBe(false)
 
-            await act(async () => { release({ openIds: [1], activeId: 1 }) })
+            await act(async () => { release(single([1], 1)) })
             await waitFor(() => expect(latest.current.restored).toBe(true))
             expect(latest.current.openIds).toEqual([1])
 
@@ -126,7 +135,7 @@ describe("TabsProvider", () => {
         })
 
         it("falls back to the first tab when the saved active note no longer exists", async () => {
-            vi.mocked(getWorkspaceTabs).mockResolvedValue({ openIds: [2, 3], activeId: 99 })
+            vi.mocked(getWorkspaceTabs).mockResolvedValue(single([2, 3], 99))
             const { latest } = harness({ notes: notesOf(1, 2, 3), workspaceId: 7 })
 
             await waitFor(() => expect(latest.current.openIds).toEqual([2, 3]))
@@ -135,7 +144,7 @@ describe("TabsProvider", () => {
 
         it("does not restore when the preference is off, but still saves the tabs", async () => {
             vi.mocked(getReopenNotes).mockResolvedValue(false)
-            vi.mocked(getWorkspaceTabs).mockResolvedValue({ openIds: [1], activeId: 1 })
+            vi.mocked(getWorkspaceTabs).mockResolvedValue(single([1], 1))
             const { latest } = harness({ notes: notesOf(1, 2), workspaceId: 7 })
 
             await waitFor(() => expect(getReopenNotes).toHaveBeenCalled())
@@ -144,11 +153,11 @@ describe("TabsProvider", () => {
             expect(latest.current.openIds).toEqual([])
 
             act(() => latest.current.openNote(2))
-            await waitFor(() => expect(saveWorkspaceTabs).toHaveBeenLastCalledWith(7, { openIds: [2], activeId: 2 }))
+            await waitFor(() => expect(saveWorkspaceTabs).toHaveBeenLastCalledWith(7, single([2], 2)))
         })
 
         it("saves every change per workspace, and never before the saved tabs have been read", async () => {
-            let release!: (tabs: { openIds: number[], activeId: number | null }) => void
+            let release!: (tabs: LayoutState) => void
             vi.mocked(getWorkspaceTabs).mockReturnValue(new Promise(resolve => { release = resolve }))
             const { latest } = harness({ notes: notesOf(1, 2), workspaceId: 7 })
 
@@ -156,15 +165,15 @@ describe("TabsProvider", () => {
             await act(async () => { await Promise.resolve() })
             expect(saveWorkspaceTabs).not.toHaveBeenCalled()
 
-            await act(async () => { release({ openIds: [1], activeId: 1 }) })
+            await act(async () => { release(single([1], 1)) })
             // The tab opened by the user in the meantime wins over the saved ones
-            await waitFor(() => expect(saveWorkspaceTabs).toHaveBeenLastCalledWith(7, { openIds: [2], activeId: 2 }))
+            await waitFor(() => expect(saveWorkspaceTabs).toHaveBeenLastCalledWith(7, single([2], 2)))
             expect(latest.current.openIds).toEqual([2])
         })
 
         it("resets and restores again when the workspace changes", async () => {
             vi.mocked(getWorkspaceTabs).mockImplementation(async id =>
-                id === 7 ? { openIds: [1], activeId: 1 } : { openIds: [11], activeId: 11 })
+                id === 7 ? single([1], 1) : single([11], 11))
             const { latest, update } = harness({ notes: notesOf(1), workspaceId: 7 })
             await waitFor(() => expect(latest.current.openIds).toEqual([1]))
 
@@ -173,18 +182,18 @@ describe("TabsProvider", () => {
             await waitFor(() => expect(latest.current.openIds).toEqual([11]))
             expect(latest.current.activeId).toBe(11)
             // The tabs of workspace 7 are not saved under workspace 8
-            expect(saveWorkspaceTabs).not.toHaveBeenCalledWith(8, { openIds: [1], activeId: 1 })
+            expect(saveWorkspaceTabs).not.toHaveBeenCalledWith(8, single([1], 1))
         })
 
         it("closes every tab when the workspace is unloaded", async () => {
-            vi.mocked(getWorkspaceTabs).mockResolvedValue({ openIds: [1, 2], activeId: 2 })
+            vi.mocked(getWorkspaceTabs).mockResolvedValue(single([1, 2], 2))
             const { latest, update } = harness({ notes: notesOf(1, 2), workspaceId: 7 })
             await waitFor(() => expect(latest.current.openIds).toEqual([1, 2]))
 
             update({ notes: notesOf(1, 2), workspaceId: null })
 
             await waitFor(() => expect(latest.current.openIds).toEqual([]))
-            expect(saveWorkspaceTabs).not.toHaveBeenCalledWith(7, { openIds: [], activeId: null })
+            expect(saveWorkspaceTabs).not.toHaveBeenCalledWith(7, single([], null))
         })
 
         it("survives a store failure", async () => {
@@ -281,5 +290,264 @@ describe("useActiveNoteSelector", () => {
         expect(renders.two).toBe(twoBefore)
         act(() => actions.openNote(2))
         expect(answers).toEqual({ one: false, two: true })
+    })
+})
+
+describe("TabsProvider split workspace", () => {
+    beforeEach(() => {
+        vi.resetAllMocks()
+        vi.spyOn(console, "error").mockImplementation(() => {})
+        vi.mocked(getReopenNotes).mockResolvedValue(true)
+        vi.mocked(getWorkspaceTabs).mockResolvedValue(single([], null))
+        vi.mocked(saveWorkspaceTabs).mockResolvedValue(undefined)
+    })
+
+    function splitHarness(initial: Props) {
+        const bridgeRef: { current: TabsBridge | null } = { current: null }
+        const latest: { current: ReturnType<typeof useAll> } = { current: undefined as never }
+        function useAll() {
+            return {
+                ...useTabs(), ...useTabsActions(), layout: useLayout(), layoutActions: useLayoutActions(),
+                panes: useContext(PaneTabsContext)!, focusedStore: useContext(FocusedPaneStoreContext), ui: useContext(TabUiContext)!,
+            }
+        }
+        function Probe() {
+            latest.current = useAll()
+            return null
+        }
+        const ui = (props: Props) => <TabsProvider notes={props.notes} workspaceId={props.workspaceId} bridgeRef={bridgeRef}><Probe /></TabsProvider>
+        const view = render(ui(initial))
+        return { latest, bridgeRef, update: (props: Props) => view.rerender(ui(props)) }
+    }
+
+    /** Notes 1 and 2 in the left pane, 3 and 4 in the right one (focused). */
+    function splitSetup(workspaceId: number | null = null) {
+        const h = splitHarness({ notes: notesOf(1, 2, 3, 4, 5), workspaceId })
+        act(() => { h.latest.current.openNote(1); h.latest.current.openNote(2) })
+        act(() => h.latest.current.layoutActions.split())
+        act(() => { h.latest.current.layoutActions.openInPane(3, 1); h.latest.current.layoutActions.openInPane(4, 1) })
+        return h
+    }
+
+    it("exposes the union of the panes and the focused pane's active note", () => {
+        const { latest } = splitSetup()
+        expect(latest.current.layout.isSplit).toBe(true)
+        expect(latest.current.openIds).toEqual([1, 2, 3, 4])
+        expect(latest.current.tabs.map(n => n.id)).toEqual([1, 2, 3, 4])
+        expect(latest.current.activeId).toBe(4)
+        expect(latest.current.currentNote?.id).toBe(4)
+
+        act(() => latest.current.layoutActions.focusPane(0))
+        expect(latest.current.activeId).toBe(2)
+        expect(latest.current.currentNote?.id).toBe(2)
+        expect(latest.current.layout.focused).toBe(0)
+    })
+
+    it("builds the pane values and per-pane active stores, with an empty state for an absent right pane", () => {
+        const { latest } = splitSetup()
+        const [leftPane, rightPane] = latest.current.panes
+        expect(leftPane.tabs.openIds).toEqual([1, 2])
+        expect(leftPane.tabs.activeId).toBe(2)
+        expect(leftPane.tabs.currentNote?.id).toBe(2)
+        expect(rightPane.tabs.tabs.map(n => n.id)).toEqual([3, 4])
+        expect(leftPane.activeStore.getState()).toBe(2)
+        expect(rightPane.activeStore.getState()).toBe(4)
+        expect(latest.current.focusedStore.getState()).toBe(1)
+
+        act(() => latest.current.layoutActions.unsplit())
+        expect(latest.current.panes[1].tabs.openIds).toEqual([])
+        expect(latest.current.panes[1].tabs.currentNote).toBeNull()
+        expect(latest.current.panes[1].activeStore.getState()).toBeNull()
+        expect(latest.current.focusedStore.getState()).toBe(0)
+        expect(latest.current.openIds).toEqual([1, 2])
+    })
+
+    it("opens in the focused pane, activates in the pane that holds the note and moves it with openInPane/moveToPane", () => {
+        const { latest } = splitSetup()
+        act(() => latest.current.layoutActions.focusPane(0))
+        act(() => latest.current.openNote(5))
+        expect(latest.current.panes[0].tabs.openIds).toEqual([1, 2, 5])
+
+        act(() => latest.current.activateNote(3))
+        expect(latest.current.layout.focused).toBe(1)
+        expect(latest.current.panes[1].tabs.activeId).toBe(3)
+
+        act(() => latest.current.layoutActions.openInPane(1, 1))
+        expect(latest.current.panes[0].tabs.openIds).toEqual([2, 5])
+        expect(latest.current.panes[1].tabs.openIds).toEqual([3, 4, 1])
+
+        act(() => latest.current.layoutActions.moveToPane(4, 0, 0))
+        expect(latest.current.panes[0].tabs.openIds).toEqual([4, 2, 5])
+        expect(latest.current.panes[1].tabs.openIds).toEqual([3, 1])
+        expect(latest.current.layout.focused).toBe(0)
+    })
+
+    it("closes a note in any pane, and the active/cycle/reorder actions follow the focused pane", () => {
+        const { latest } = splitSetup()
+        act(() => latest.current.closeNote(1))
+        expect(latest.current.panes[0].tabs.openIds).toEqual([2])
+
+        act(() => latest.current.reorderTabs(0, 1))
+        expect(latest.current.panes[1].tabs.openIds).toEqual([4, 3])
+        act(() => latest.current.cycleNote(1))
+        expect(latest.current.panes[1].tabs.activeId).toBe(4)
+        act(() => latest.current.closeActiveNote())
+        expect(latest.current.panes[1].tabs.openIds).toEqual([3])
+
+        act(() => latest.current.closeNotes([2, 3]))
+        expect(latest.current.layout.isSplit).toBe(false)
+        expect(latest.current.openIds).toEqual([])
+    })
+
+    it("closeAllNotes closes both panes and goes back to a single one", () => {
+        const { latest } = splitSetup()
+        act(() => latest.current.closeAllNotes())
+        expect(latest.current.layout.isSplit).toBe(false)
+        expect(latest.current.openIds).toEqual([])
+    })
+
+    it("toggles the split and unsplit closes the right tabs", () => {
+        const { latest } = splitSetup()
+        act(() => latest.current.layoutActions.toggleSplit())
+        expect(latest.current.layout.isSplit).toBe(false)
+        expect(latest.current.openIds).toEqual([1, 2])
+        act(() => latest.current.layoutActions.toggleSplit())
+        expect(latest.current.layout.isSplit).toBe(true)
+        expect(latest.current.panes[1].tabs.openIds).toEqual([])
+    })
+
+    it("has pane-bound actions that focus their pane and close the tabs of that pane only", () => {
+        const { latest } = splitSetup()
+        act(() => latest.current.panes[0].actions.activateNote(1))
+        expect(latest.current.layout.focused).toBe(0)
+        expect(latest.current.panes[0].tabs.activeId).toBe(1)
+
+        act(() => latest.current.panes[1].actions.openNote(5))
+        expect(latest.current.panes[1].tabs.openIds).toEqual([3, 4, 5])
+        expect(latest.current.layout.focused).toBe(1)
+
+        act(() => latest.current.panes[1].actions.reorderTabs(2, 0))
+        expect(latest.current.panes[1].tabs.openIds).toEqual([5, 3, 4])
+        act(() => latest.current.panes[0].actions.cycleNote(1))
+        expect(latest.current.panes[0].tabs.activeId).toBe(2)
+        expect(latest.current.layout.focused).toBe(0)
+
+        act(() => latest.current.panes[0].actions.closeActiveNote())
+        expect(latest.current.panes[0].tabs.openIds).toEqual([1])
+        act(() => latest.current.panes[1].actions.closeNote(5))
+        expect(latest.current.panes[1].tabs.openIds).toEqual([3, 4])
+        act(() => latest.current.panes[1].actions.closeNotes([3]))
+        expect(latest.current.panes[1].tabs.openIds).toEqual([4])
+
+        act(() => latest.current.panes[1].actions.closeAllNotes())
+        expect(latest.current.layout.isSplit).toBe(false)
+        expect(latest.current.openIds).toEqual([1])
+        // Closing all of an absent or empty pane does nothing
+        act(() => latest.current.panes[1].actions.closeAllNotes())
+        expect(latest.current.openIds).toEqual([1])
+    })
+
+    it("keeps identities stable across unrelated renders", () => {
+        const { latest, update } = splitSetup()
+        const before = latest.current
+        update({ notes: latest.current.tabs.length ? notesOf(1, 2, 3, 4, 5) : [], workspaceId: null })
+        // New notes array of equal content: the pane values change, but actions, stores and layout actions do not
+        for (const pane of [0, 1] as const) {
+            expect(latest.current.panes[pane].actions).toBe(before.panes[pane].actions)
+            expect(latest.current.panes[pane].activeStore).toBe(before.panes[pane].activeStore)
+        }
+        expect(latest.current.layoutActions).toBe(before.layoutActions)
+        expect(latest.current.layout).toBe(before.layout)
+        expect(latest.current.focusedStore).toBe(before.focusedStore)
+    })
+
+    it("keeps the UI state of the notes open in either pane and drops it on close", () => {
+        const { latest } = splitSetup()
+        act(() => {
+            latest.current.ui.setSelectedItem(1, { type: "task", id: 10 })
+            latest.current.ui.setSelectedItem(4, { type: "task", id: 40 })
+        })
+        act(() => latest.current.layoutActions.moveToPane(1, 1))
+        expect(latest.current.ui.getSelectedItem(1)).toEqual({ type: "task", id: 10 })
+        expect(latest.current.ui.getSelectedItem(4)).toEqual({ type: "task", id: 40 })
+
+        act(() => latest.current.closeNote(4))
+        expect(latest.current.ui.getSelectedItem(4)).toBeNull()
+        expect(latest.current.ui.getSelectedItem(1)).toEqual({ type: "task", id: 10 })
+    })
+
+    it("prunes the tabs of deleted notes in both panes", () => {
+        const { latest, update } = splitSetup()
+        update({ notes: notesOf(2, 3), workspaceId: null })
+        expect(latest.current.panes[0].tabs.openIds).toEqual([2])
+        expect(latest.current.panes[1].tabs.openIds).toEqual([3])
+        update({ notes: notesOf(2), workspaceId: null })
+        expect(latest.current.layout.isSplit).toBe(false)
+        expect(latest.current.openIds).toEqual([2])
+    })
+
+    it("snapshots and reopens the whole layout through the bridge", () => {
+        const { latest, bridgeRef, update } = splitSetup()
+        const snapshot = bridgeRef.current!.snapshot()
+        expect(snapshot.left.openIds).toEqual([1, 2])
+        expect(snapshot.right?.openIds).toEqual([3, 4])
+        expect(snapshot.focused).toBe(1)
+
+        update({ notes: notesOf(1, 2), workspaceId: null })
+        expect(latest.current.layout.isSplit).toBe(false)
+
+        update({ notes: notesOf(1, 2, 3, 4, 5), workspaceId: null })
+        act(() => bridgeRef.current!.reopen(snapshot))
+        expect(latest.current.panes[0].tabs.openIds).toEqual([1, 2])
+        expect(latest.current.panes[1].tabs.openIds).toEqual([3, 4])
+    })
+
+    describe("persistence", () => {
+        it("restores a saved split layout, dropping missing notes in every pane", async () => {
+            vi.mocked(getWorkspaceTabs).mockResolvedValue({ left: { openIds: [1, 99], activeId: 99 }, right: { openIds: [3, 98], activeId: 3 }, focused: 1 })
+            const { latest } = splitHarness({ notes: notesOf(1, 2, 3), workspaceId: 7 })
+
+            await waitFor(() => expect(latest.current.layout.isSplit).toBe(true))
+            expect(latest.current.panes[0].tabs.openIds).toEqual([1])
+            expect(latest.current.panes[0].tabs.activeId).toBe(1)
+            expect(latest.current.panes[1].tabs.openIds).toEqual([3])
+            expect(latest.current.layout.focused).toBe(1)
+            expect(latest.current.activeId).toBe(3)
+        })
+
+        it("collapses the saved split when the right pane has no existing note left", async () => {
+            vi.mocked(getWorkspaceTabs).mockResolvedValue({ left: { openIds: [1], activeId: 1 }, right: { openIds: [99], activeId: 99 }, focused: 1 })
+            const { latest } = splitHarness({ notes: notesOf(1), workspaceId: 7 })
+            await waitFor(() => expect(latest.current.restored).toBe(true))
+            expect(latest.current.openIds).toEqual([1])
+            expect(latest.current.layout.focused).toBe(0)
+        })
+
+        it("does not restore the split when the preference is off, and saves the layout afterwards", async () => {
+            vi.mocked(getReopenNotes).mockResolvedValue(false)
+            vi.mocked(getWorkspaceTabs).mockResolvedValue({ left: { openIds: [1], activeId: 1 }, right: { openIds: [2], activeId: 2 }, focused: 1 })
+            const { latest } = splitHarness({ notes: notesOf(1, 2), workspaceId: 7 })
+            await waitFor(() => expect(latest.current.restored).toBe(true))
+            expect(getWorkspaceTabs).not.toHaveBeenCalled()
+            expect(latest.current.layout.isSplit).toBe(false)
+
+            act(() => latest.current.openNote(1))
+            act(() => latest.current.layoutActions.split())
+            await waitFor(() => expect(saveWorkspaceTabs).toHaveBeenLastCalledWith(7, {
+                left: { openIds: [1], activeId: 1 }, right: { openIds: [], activeId: null }, focused: 1,
+            }))
+        })
+
+        it("never saves before the saved layout has been read", async () => {
+            let release!: (layout: LayoutState) => void
+            vi.mocked(getWorkspaceTabs).mockReturnValue(new Promise(resolve => { release = resolve }))
+            const { latest } = splitHarness({ notes: notesOf(1, 2), workspaceId: 7 })
+            act(() => latest.current.layoutActions.split())
+            await act(async () => { await Promise.resolve() })
+            expect(saveWorkspaceTabs).not.toHaveBeenCalled()
+
+            await act(async () => { release(single([1], 1)) })
+            await waitFor(() => expect(saveWorkspaceTabs).toHaveBeenCalled())
+        })
     })
 })

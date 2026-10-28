@@ -3,10 +3,18 @@ import type { MutableRefObject } from "react"
 import type { Note } from "@/types/types"
 import type { TabsBridge } from "./workspace-data/types"
 import {
+    FocusedPaneStoreContext, LayoutActionsContext, LayoutContext, PaneTabsContext,
+    type LayoutActionsType, type LayoutContextType, type PaneTabsValue,
+} from "./layout-context-object"
+import {
+    focusedPane, initialLayoutState, layoutReducer, normalizeLayout, unionOpenIds,
+    type LayoutState, type PaneIndex,
+} from "./layout-reducer"
+import {
     ActiveIdContext, ActiveIdStoreContext, TabUiContext, TabsActionsContext, TabsContext,
     type ScrollPosition, type SelectedItem, type TabUiStore, type TabsActionsType, type TabsContextType,
 } from "./tabs-context-object"
-import { initialTabsState, tabsReducer } from "./tabs-reducer"
+import { initialTabsState, type TabsState } from "./tabs-reducer"
 import { createExternalStore } from "@/lib/external-store"
 import { reportError } from "@/lib/report-error"
 import { getReopenNotes } from "@/lib/store/preferences"
@@ -76,20 +84,43 @@ type TabsProviderProps = {
     notes: Note[]
     /** The ID of the loaded workspace (null when none), used to save and restore the open tabs. */
     workspaceId: number | null
-    /** Filled with the tabs bridge (state snapshot and reopen), for the module that deletes notes. Optional. */
+    /** Filled with the tabs bridge (layout snapshot and reopen), for the module that deletes notes. Optional. */
     bridgeRef?: MutableRefObject<TabsBridge | null>
     children: React.ReactNode
 }
 
+/** The tabs of a pane that exist in `existing`, with a valid active id. */
+function filterPane(tabs: TabsState, existing: ReadonlySet<number>): TabsState {
+    const openIds = tabs.openIds.filter(id => existing.has(id))
+    const activeId = tabs.activeId !== null && openIds.includes(tabs.activeId) ? tabs.activeId : (openIds[0] ?? null)
+    return { openIds, activeId }
+}
+
+/** The value of the tabs context for a pane (an absent pane is the empty state). */
+function paneTabsValue(tabs: TabsState | null, byId: ReadonlyMap<number, Note>, restored: boolean): TabsContextType {
+    const state = tabs ?? initialTabsState
+    return {
+        openIds: state.openIds,
+        activeId: state.activeId,
+        tabs: state.openIds.flatMap(id => byId.get(id) ?? []),
+        currentNote: state.activeId !== null ? byId.get(state.activeId) ?? null : null,
+        restored,
+    }
+}
+
 /**
- * Manages the open note tabs (ids only, reducer based), restores them per workspace at startup
- * and keeps the per-note UI state. Split in several contexts so consumers re-render only for what they use.
+ * Manages the open note tabs of the (possibly split) workspace: up to two panes, each with its tabs (ids only, reducer
+ * based). It restores them per workspace at startup and keeps the per-note UI state. Split in several contexts so
+ * consumers re-render only for what they use. Outside the panes the tabs hooks see the union of the open notes and the
+ * focused pane's active note; `PaneTabsContext` holds the values and the actions bound to each pane.
  * @category Tabs
  */
 export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsProviderProps) {
-    const [state, dispatch] = useReducer(tabsReducer, initialTabsState)
+    const [state, dispatch] = useReducer(layoutReducer, initialLayoutState)
     const [uiStore] = useState(createTabUiStore)
     const [activeStore] = useState(() => createExternalStore<number | null>(null))
+    const [focusedStore] = useState(() => createExternalStore<PaneIndex>(0))
+    const [paneStores] = useState(() => [createExternalStore<number | null>(null), createExternalStore<number | null>(null)] as const)
     const [restoredTick, setRestoredTick] = useState(0)
     const [restoredFor, setRestoredFor] = useState<number | null>(null)
 
@@ -99,16 +130,23 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
     const lastWorkspaceId = useRef<number | null>(null)
     const notesSeen = useRef(false)
 
-    const stateRef = useRef(state)
+    const stateRef = useRef<LayoutState>(state)
+
+    const { left, right, focused } = state
+    const active = focusedPane(state).activeId
+    const openIds = useMemo(() => unionOpenIds({ left, right, focused }), [left, right, focused])
 
     useEffect(() => {
         notesRef.current = notes
     }, [notes])
 
-    // Before paint, so the rows that read the store never show a stale active note
+    // Before paint, so the rows that read the stores never show a stale active note
     useLayoutEffect(() => {
-        activeStore.set(state.activeId)
-    }, [activeStore, state.activeId])
+        activeStore.set(active)
+        focusedStore.set(focused)
+        paneStores[0].set(left.activeId)
+        paneStores[1].set(right?.activeId ?? null)
+    }, [activeStore, focusedStore, paneStores, active, focused, left.activeId, right?.activeId])
 
     useEffect(() => {
         stateRef.current = state
@@ -133,13 +171,13 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
         dispatch({ type: "prune", existing: new Set(notes.map(note => note.id)) })
     }, [notes])
 
-    // Reset on workspace change, then restore the tabs saved for that workspace
+    // Reset on workspace change, then restore the layout saved for that workspace
     useEffect(() => {
         restoredRef.current = false
         const token = ++restoreToken.current
         if (lastWorkspaceId.current !== workspaceId) {
             lastWorkspaceId.current = workspaceId
-            dispatch({ type: "restore", state: initialTabsState })
+            dispatch({ type: "restore", state: initialLayoutState })
         }
         if (workspaceId === null) return
 
@@ -149,9 +187,16 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
                 const saved = await getWorkspaceTabs(workspaceId)
                 if (token !== restoreToken.current) return
                 const existing = new Set(notesRef.current.map(note => note.id))
-                const openIds = saved.openIds.filter(id => existing.has(id))
-                const activeId = saved.activeId !== null && openIds.includes(saved.activeId) ? saved.activeId : (openIds[0] ?? null)
-                dispatch({ type: "hydrate", state: { openIds, activeId } })
+                // A saved right pane whose notes are all gone is dropped (an empty one that was saved empty is kept)
+                const right = saved.right ? filterPane(saved.right, existing) : null
+                dispatch({
+                    type: "hydrate",
+                    state: normalizeLayout({
+                        left: filterPane(saved.left, existing),
+                        right: right && (right.openIds.length > 0 || saved.right?.openIds.length === 0) ? right : null,
+                        focused: saved.focused,
+                    }),
+                })
             } catch (error) {
                 reportError(error)
             } finally {
@@ -165,17 +210,17 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
         restore()
     }, [workspaceId])
 
-    // Persist the tabs of the workspace (only once the saved ones have been read, or they would be overwritten)
+    // Persist the layout of the workspace (only once the saved one has been read, or it would be overwritten)
     useEffect(() => {
         if (workspaceId === null || !restoredRef.current) return
-        saveWorkspaceTabs(workspaceId, { openIds: state.openIds, activeId: state.activeId })
+        saveWorkspaceTabs(workspaceId, state)
             .catch(error => reportError(error))
-    }, [state.openIds, state.activeId, workspaceId, restoredTick])
+    }, [state, workspaceId, restoredTick])
 
-    // The UI state of closed tabs is dropped
+    // The UI state of closed tabs is dropped (a note open in either pane keeps its state)
     useEffect(() => {
-        uiStore.retain(state.openIds)
-    }, [uiStore, state.openIds])
+        uiStore.retain(openIds)
+    }, [uiStore, openIds])
 
     const actions = useMemo<TabsActionsType>(() => ({
         openNote: id => dispatch({ type: "open", id }),
@@ -183,34 +228,79 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
         closeNotes: ids => dispatch({ type: "closeMany", ids }),
         closeActiveNote: () => dispatch({ type: "closeActive" }),
         closeAllNotes: () => dispatch({ type: "closeAll" }),
-        reorderTabs: (from, to) => dispatch({ type: "reorder", from, to }),
+        reorderTabs: (from, to) => dispatch({ type: "pane", pane: stateRef.current.focused, action: { type: "reorder", from, to } }),
         activateNote: id => dispatch({ type: "activate", id }),
         cycleNote: direction => dispatch({ type: "cycle", direction }),
     }), [])
 
+    const layoutActions = useMemo<LayoutActionsType>(() => ({
+        split: () => dispatch({ type: "split" }),
+        unsplit: () => dispatch({ type: "unsplit" }),
+        toggleSplit: () => dispatch({ type: stateRef.current.right ? "unsplit" : "split" }),
+        focusPane: pane => dispatch({ type: "focus", pane }),
+        openInPane: (noteId, pane) => dispatch({ type: "pane", pane, action: { type: "open", id: noteId } }),
+        moveToPane: (noteId, pane, index) => dispatch({ type: "moveToPane", id: noteId, pane, index }),
+    }), [])
+
+    const paneActions = useMemo(() => ([0, 1] as const).map((pane): TabsActionsType => ({
+        openNote: id => dispatch({ type: "pane", pane, action: { type: "open", id } }),
+        closeNote: id => dispatch({ type: "close", id }),
+        closeNotes: ids => dispatch({ type: "closeMany", ids }),
+        closeActiveNote: () => dispatch({ type: "pane", pane, action: { type: "closeActive" } }),
+        closeAllNotes: () => {
+            const current = stateRef.current
+            const ids = (pane === 0 ? current.left : current.right)?.openIds
+            if (ids?.length) dispatch({ type: "closeMany", ids })
+        },
+        reorderTabs: (from, to) => dispatch({ type: "pane", pane, action: { type: "reorder", from, to } }),
+        activateNote: id => dispatch({ type: "pane", pane, action: { type: "activate", id } }),
+        cycleNote: direction => dispatch({ type: "pane", pane, action: { type: "cycle", direction } }),
+    })), [])
+
+    const restored = workspaceId !== null && restoredFor === workspaceId
+    const byId = useMemo(() => new Map(notes.map(note => [note.id, note])), [notes])
+
+    const leftValue = useMemo(() => paneTabsValue(left, byId, restored), [left, byId, restored])
+    const rightValue = useMemo(() => paneTabsValue(right, byId, restored), [right, byId, restored])
+
     const value = useMemo<TabsContextType>(() => {
-        const byId = new Map(notes.map(note => [note.id, note]))
-        const tabs = state.openIds.flatMap(id => byId.get(id) ?? [])
+        if (!right) return { ...leftValue }
+        const focusedValue = focused === 0 ? leftValue : rightValue
         return {
-            openIds: state.openIds,
-            activeId: state.activeId,
-            tabs,
-            currentNote: state.activeId !== null ? byId.get(state.activeId) ?? null : null,
-            restored: workspaceId !== null && restoredFor === workspaceId,
+            openIds,
+            activeId: focusedValue.activeId,
+            tabs: [...leftValue.tabs, ...rightValue.tabs],
+            currentNote: focusedValue.currentNote,
+            restored,
         }
-    }, [notes, state, workspaceId, restoredFor])
+    }, [right, focused, leftValue, rightValue, openIds, restored])
+
+    const layout = useMemo<LayoutContextType>(() => ({ left, right, focused, isSplit: right !== null }), [left, right, focused])
+
+    const paneTabs = useMemo<readonly [PaneTabsValue, PaneTabsValue]>(() => [
+        { tabs: leftValue, actions: paneActions[0], activeStore: paneStores[0] },
+        { tabs: rightValue, actions: paneActions[1], activeStore: paneStores[1] },
+    ], [leftValue, rightValue, paneActions, paneStores])
 
     return (
         <TabsActionsContext.Provider value={actions}>
-            <TabUiContext.Provider value={uiStore}>
-                <ActiveIdContext.Provider value={state.activeId}>
-                    <ActiveIdStoreContext.Provider value={activeStore}>
-                        <TabsContext.Provider value={value}>
-                            {children}
-                        </TabsContext.Provider>
-                    </ActiveIdStoreContext.Provider>
-                </ActiveIdContext.Provider>
-            </TabUiContext.Provider>
+            <LayoutActionsContext.Provider value={layoutActions}>
+                <TabUiContext.Provider value={uiStore}>
+                    <FocusedPaneStoreContext.Provider value={focusedStore}>
+                        <LayoutContext.Provider value={layout}>
+                            <PaneTabsContext.Provider value={paneTabs}>
+                                <ActiveIdContext.Provider value={active}>
+                                    <ActiveIdStoreContext.Provider value={activeStore}>
+                                        <TabsContext.Provider value={value}>
+                                            {children}
+                                        </TabsContext.Provider>
+                                    </ActiveIdStoreContext.Provider>
+                                </ActiveIdContext.Provider>
+                            </PaneTabsContext.Provider>
+                        </LayoutContext.Provider>
+                    </FocusedPaneStoreContext.Provider>
+                </TabUiContext.Provider>
+            </LayoutActionsContext.Provider>
         </TabsActionsContext.Provider>
     )
 }

@@ -74,7 +74,7 @@ describe("TemplateDraftsProvider", () => {
         vi.spyOn(console, "error").mockImplementation(() => {})
         dbDrafts = []
         vi.mocked(getReopenNotes).mockResolvedValue(true)
-        vi.mocked(getWorkspaceTabs).mockResolvedValue({ openIds: [], activeId: null })
+        vi.mocked(getWorkspaceTabs).mockResolvedValue({ left: { openIds: [], activeId: null }, right: null, focused: 0 })
         vi.mocked(saveWorkspaceTabs).mockResolvedValue(undefined)
         vi.mocked(getDBNoteData).mockImplementation(async id => noteData(id) as never)
         vi.mocked(getDBTemplateDrafts).mockImplementation(async () => dbDrafts)
@@ -133,7 +133,7 @@ describe("TemplateDraftsProvider", () => {
 
     it("a template deleted while its editor is open closes the tab, and the draft is saved into the trashed template", async () => {
         dbDrafts = [draft(50, 3)]
-        vi.mocked(getWorkspaceTabs).mockResolvedValue({ openIds: [50], activeId: 50 })
+        vi.mocked(getWorkspaceTabs).mockResolvedValue({ left: { openIds: [50], activeId: 50 }, right: null, focused: 0 })
         const latest = setup(dbDrafts)
         await waitFor(() => expect(latest.current.openIds).toEqual([50]))
 
@@ -148,7 +148,7 @@ describe("TemplateDraftsProvider", () => {
     describe("at startup", () => {
         it("keeps the editor open when its tab is restored", async () => {
             dbDrafts = [draft(50, 3)]
-            vi.mocked(getWorkspaceTabs).mockResolvedValue({ openIds: [50], activeId: 50 })
+            vi.mocked(getWorkspaceTabs).mockResolvedValue({ left: { openIds: [50], activeId: 50 }, right: null, focused: 0 })
             const latest = setup(dbDrafts)
 
             await waitFor(() => expect(latest.current.restored).toBe(true))

@@ -5,6 +5,7 @@ import type { DBItemType } from "@/db/queries/shared_queries"
 import type { TaskMoveTarget } from "@/db/queries/move"
 import type { NoteTemplate } from "@/types/template"
 import type { NewTaskPosition } from "@/lib/store/preferences"
+import type { LayoutState } from "@/contexts/layout-reducer"
 
 export type WorkspaceStateType = {
     folders: Folder[]
@@ -35,10 +36,10 @@ export type PreviousColor = { itemType: "folder" | "note", id: number, name: str
 
 /** What the workspace data needs from the tabs module. */
 export type TabsBridge = {
-    /** The open tabs right now. */
-    snapshot: () => { openIds: number[], activeId: number | null }
-    /** Reopens the tabs of a snapshot that were closed since. */
-    reopen: (snapshot: { openIds: number[], activeId: number | null }) => void
+    /** The layout of the open tabs (both panes) right now. */
+    snapshot: () => LayoutState
+    /** Reopens the tabs of a snapshot (in their panes) that were closed since. */
+    reopen: (snapshot: LayoutState) => void
 }
 
 /** Every action has a stable identity (it never changes), so consumers of the actions alone never re-render because of it. */
