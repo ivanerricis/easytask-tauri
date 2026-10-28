@@ -4,6 +4,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-28
+
 ### Aggiunto
 
 - Selezione dei task da tastiera: Maiusc+Su/Giù/Home/Fine estendono la selezione e Ctrl+Spazio (Cmd+Spazio su macOS) aggiunge o toglie il task con il focus. Il pannello dei dettagli non cambia durante la selezione e uno screen reader annuncia quando la selezione scende a un task o a nessuno.
@@ -439,7 +441,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...v0.13.0
