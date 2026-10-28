@@ -139,7 +139,8 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     // load, use the plain layout with a single list
     const tabbed = hasTabs && (isLoading || loadError === null)
     const title = <DialogTitle>{t("trash.title")}</DialogTitle>
-    const description = <DialogDescription>{t("trash.description")}</DialogDescription>
+    // pr-10: the close button of the dialog sits at the top right and must not cover the end of the text
+    const description = <DialogDescription className="pr-10">{t("trash.description")}</DialogDescription>
     const footer = (
         <>
             <FormError>{error}</FormError>

@@ -80,6 +80,11 @@ describe("DialogTrash", () => {
         expect(screen.queryByText("Cartella A")).not.toBeInTheDocument()
     })
 
+    it("la descrizione lascia spazio alla X di chiusura (pr-10)", async () => {
+        render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        expect(await screen.findByText(/Ripristina gli elementi eliminati oppure/)).toHaveClass("pr-10")
+    })
+
     it("says so when the selected type has no items", async () => {
         const user = userEvent.setup()
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)

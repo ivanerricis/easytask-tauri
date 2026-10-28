@@ -122,7 +122,8 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
     // every tab at 0), so nothing moves when the items arrive; only a failed load uses the plain layout
     const tabbed = isLoading || loadError === null
     const title = <DialogTitle>{t("archive.title")}</DialogTitle>
-    const description = <DialogDescription>{t("archive.description")}</DialogDescription>
+    // pr-10: the close button of the dialog sits at the top right and must not cover the end of the text
+    const description = <DialogDescription className="pr-10">{t("archive.description")}</DialogDescription>
     const footer = (
         <>
             <FormError>{error}</FormError>
