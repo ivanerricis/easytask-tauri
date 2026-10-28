@@ -35,6 +35,22 @@ export const languageSelect = async () =>
     $(`//button[@role='combobox'][@id=//label[normalize-space()=${xpathString(await tr("settings.appearance.language.label"))}]/@for]`)
 
 /**
+ * The label of the language selected in the select of Settings > Appearance. It opens the list and reads the checked option
+ * (the text shown by the closed select is empty for the WebKitGTK driver), then closes the list.
+ */
+export const selectedLanguage = async (): Promise<string> => {
+    await (await languageSelect()).click()
+    const listbox = $("[role='listbox']")
+    await listbox.waitForDisplayed({ timeoutMsg: "the language list did not open" })
+    const label: string = await browser.execute(() =>
+        (Array.from(document.querySelectorAll("[role='option']")).find(option => option.getAttribute("data-state") === "checked")?.textContent ?? "").trim(),
+    )
+    await browser.keys("Escape")
+    await listbox.waitForExist({ reverse: true, timeoutMsg: "the language list did not close" })
+    return label
+}
+
+/**
  * Picks a language in the select of Settings > Appearance, by the label of its option ("Italiano", "English", the translated
  * "System"). It moves with the keyboard (the highlighted option starts on the selected one): a click on an option is not
  * reliable on WebKitGTK, where the pointer events of the list differ.

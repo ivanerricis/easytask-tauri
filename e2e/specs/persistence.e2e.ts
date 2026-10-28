@@ -4,7 +4,7 @@ import path from "node:path"
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
     addTaskToSection, byLabel, byText, chooseLanguage, createFromSidebar, createWorkspace, currentLang, dataDir, domClick, openWorkspace, sectionCard, topDialog, tr, trIn,
-    languageSelect, treeRow, typeInto, waitForApp,
+    selectedLanguage, treeRow, typeInto, waitForApp,
     groupCard, newSectionInGroup,
 } from "../helpers"
 
@@ -114,7 +114,7 @@ describe("Settings and data survive an app restart", () => {
                 const confirm = await topDialog()
                 await domClick(byText(await tr("settings.appearance.reset.confirm"), confirm))
             }
-            await expect(await languageSelect()).toHaveText(trIn(await currentLang(), "common.system"))
+            expect(await selectedLanguage()).toBe(trIn(await currentLang(), "common.system"))
             await closeSettings()
         } catch (error) {
             console.log("[e2e] could not restore the default settings:", error)
@@ -188,7 +188,7 @@ describe("Settings and data survive an app restart", () => {
         expect(await currentLang()).toBe(languageChosen)
 
         const dialog = await openSettings("appearance")
-        await expect(await languageSelect()).toHaveText(languageChosen === "it" ? "Italiano" : "English")
+        expect(await selectedLanguage()).toBe(languageChosen === "it" ? "Italiano" : "English")
         const accent = await accentInput()
         await accent.waitForExist()
         expect(await accent.getValue()).toBe(ACCENT)

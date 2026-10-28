@@ -1,5 +1,5 @@
 import { $, $$, browser, expect } from "@wdio/globals"
-import { byLabel, chooseLanguage, currentLang, languageSelect, tr, trIn, waitForApp } from "../helpers"
+import { byLabel, chooseLanguage, currentLang, selectedLanguage, tr, trIn, waitForApp } from "../helpers"
 
 describe("Language setting and shortcuts dialog", () => {
     before(async () => {
@@ -15,7 +15,7 @@ describe("Language setting and shortcuts dialog", () => {
         await chooseLanguage("Italiano")
         await browser.waitUntil(async () => (await currentLang()) === "it", { timeoutMsg: "UI did not switch to Italian" })
         await expect(dialog.$(`h2=${trIn("it", "settings.title")}`)).toBeDisplayed()
-        await expect(await languageSelect()).toHaveText("Italiano")
+        expect(await selectedLanguage()).toBe("Italiano")
 
         await chooseLanguage("English")
         await browser.waitUntil(async () => (await currentLang()) === "en", { timeoutMsg: "UI did not switch to English" })
