@@ -117,7 +117,7 @@ Drag a task by its row. Drop it:
 - on the middle of a task, to make it a subtask of that task;
 - on a section, to make it the last task of that section.
 
-**Move up**, **Move down** and **Move to…** in the menu do the same without dragging.
+**Move up**, **Move down** and **Move to…** in the menu do the same without dragging. With [Completed tasks at the bottom](#completed-tasks-at-the-bottom) on, a dropped task is placed where you drop it and the list is then shown with the completed tasks last.
 
 ### Use the keyboard
 
@@ -150,6 +150,12 @@ Press `Ctrl+F` or click the magnifier in the path bar above the groups to open t
 ## Hide completed tasks
 
 Press `Ctrl+Shift+H`, use the eye button in the path bar above the groups, or choose **View > Hide completed tasks**. Completed tasks and their subtasks disappear, and each section tells you how many are hidden. A completed task that still has an open subtask stays visible, so open work is never lost. Nothing is deleted: press the shortcut again to see them. To start hidden, use **Settings > Notes and sections > Hide completed tasks**.
+
+## Completed tasks at the bottom
+
+Turn on **Settings > Notes and sections > Completed tasks at the bottom** to see the completed tasks after the open ones in every list: the tasks of a section, the tasks directly in a group and the subtasks of a task. It is only a view: each block keeps its order, the order saved in the note does not change and nothing is moved when you complete or reopen a task (it just changes place on screen). It works together with **Hide completed tasks**.
+
+With it on, the task selection, the search and the keyboard follow the order you see. **Move up** and **Move down** (and `Alt+↑` / `Alt+↓`) move a task among the tasks of the same kind, and stop at the edge of the open tasks or of the completed ones. The **+** line above the first completed task adds a new task after the last open one, and there is no **+** line between completed tasks. When you drag a task, it is placed where you drop it, then the list is shown again with the completed tasks last.
 
 ## The details panel
 
