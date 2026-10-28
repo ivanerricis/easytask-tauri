@@ -16,12 +16,16 @@ import type { Options } from "@wdio/types"
  * - onComplete: removes the temporary data directory.
  *
  * Environment: E2E_SKIP_BUILD=1 reuses an existing debug binary, E2E_APP=<path> uses a custom binary,
- * E2E_NATIVE_DRIVER=<path> uses a specific msedgedriver / WebKitWebDriver.
+ * E2E_NATIVE_DRIVER=<path> uses a specific msedgedriver / WebKitWebDriver, E2E_SHARD=<current>/<total> (e.g. 2/3)
+ * runs only that share of the spec files (the CI splits the suite across runners).
  */
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const isWindows = process.platform === "win32"
 const binName = isWindows ? "EasyTask.exe" : "EasyTask"
 const application = process.env.E2E_APP ?? path.join(root, "src-tauri", "target", "debug", binName)
+
+const [shardCurrent, shardTotal] = (process.env.E2E_SHARD ?? "").split("/").map(Number)
+const shard = shardCurrent >= 1 && shardTotal >= shardCurrent ? { current: shardCurrent, total: shardTotal } : undefined
 
 const edgeArgs = (process.env.E2E_EDGE_ARGS ?? "").split(/\s+/).filter(Boolean)
 
@@ -86,6 +90,7 @@ export const config: Options.Testrunner & { capabilities: unknown[] } = {
     port: 4444,
     specs: ["./specs/**/*.e2e.ts"],
     maxInstances: 1,
+    ...(shard ? { shard } : {}),
     capabilities: [
         {
             maxInstances: 1,
