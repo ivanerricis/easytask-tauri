@@ -3,6 +3,7 @@ import { useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Button } from "@/components/ui/button"
 import { getErrorMessage } from "@/lib/utils"
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import {
     Dialog,
     DialogContent,
@@ -95,6 +96,7 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
                                 <Input
                                     id={nameId}
                                     name="name"
+                                    maxLength={MAX_NAME_LENGTH}
                                     aria-invalid={error ? true : undefined}
                                     aria-describedby={error ? errorId : undefined}
                                     value={name}

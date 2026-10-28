@@ -15,6 +15,7 @@ import { getDBNoteData } from "@/db/queries/note"
 import { createDBAutomation, deleteDBAutomation, getDBAutomations, setDBAutomationEnabled, updateDBAutomation } from "@/db/queries/automation"
 import { buildNoteTree } from "@/contexts/tree-builders"
 import { PALETTE_COLORS } from "@/lib/colors"
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { actionLabel, automationName, colorName, describeAutomation, triggerLabel, type SectionName } from "@/lib/automations/describe"
 import {
     TRIGGER_TYPES, actionsForTrigger, isGroupTrigger, isStateTrigger, isValidRule, referencedGroups, referencedSections, triggerSubject,
@@ -245,8 +246,8 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                     </DialogHeader>
 
                     {!loaded ? (
-                        <div role="status" className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
-                            <Loader2 className="size-4 animate-spin" /> {t("common.loading")}
+                        <div role="status" aria-busy="true" className="flex items-center justify-center gap-2 py-6 text-muted-foreground text-sm">
+                            <Loader2 className="size-4 animate-spin motion-reduce:animate-none" aria-hidden /> {t("common.loading")}
                         </div>
                     ) : editing ? (
                         <>
@@ -302,11 +303,11 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                                         />
                                         <div className={cn("flex flex-col min-w-0 flex-1", !rule.enabled && "opacity-60")}>
                                             {rule.name && <span className="text-sm font-medium truncate">{rule.name}</span>}
-                                            <span className={cn("break-words", rule.name ? "text-xs text-muted-foreground" : "text-sm")}>
+                                            <span className={cn("break-words", rule.name ? "text-sm text-muted-foreground" : "text-sm")}>
                                                 {describeAutomation(rule, titleOf, groupLabelOf)}
                                             </span>
                                             {pausedKey && (
-                                                <span className="flex items-start gap-1 text-xs text-destructive break-words">
+                                                <span className="flex items-start gap-1 text-sm text-destructive break-words">
                                                     <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
                                                     {t(pausedKey)}
                                                 </span>
@@ -353,7 +354,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                                         </Button>
                                     ) : (
                                         <Button type="button" onClick={() => void save()} disabled={saving || !stepValid(1, editing.draft)}>
-                                            {saving ? <Loader2 className="animate-spin" /> : <Check />}
+                                            {saving ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : <Check />}
                                             {t("common.save")}
                                         </Button>
                                     )}
@@ -403,6 +404,10 @@ const StepIndicator = ({ step, draft, onSelect }: { step: Step, draft: Automatio
     const { t } = useTranslation()
     return (
         <nav aria-label={t("automations.stepsAria")}>
+            {/* The same element for every step, so a screen reader announces the change */}
+            <p aria-live="polite" className="sr-only">
+                {t("automations.stepStatus", { current: step + 1, total: STEPS.length, name: t(`automations.steps.${STEPS[step]}`) })}
+            </p>
             <ol className="flex items-center gap-2">
                 {STEPS.map((name, index) => {
                     const current = index === step
@@ -617,7 +622,7 @@ const AutomationEditor = ({ step, draft, groups, sections, titleOf, groupLabelOf
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor={nameId}>{t("automations.name")}</Label>
-                        <Input id={nameId} value={draft.name ?? ""}
+                        <Input id={nameId} value={draft.name ?? ""} maxLength={MAX_NAME_LENGTH}
                             onChange={e => onChange({ ...draft, name: e.target.value || null })} />
                     </div>
                     <div className="flex items-center gap-2 min-h-6">

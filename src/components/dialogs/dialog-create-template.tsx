@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { getErrorMessage } from "@/lib/utils"
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 type DialogCreateTemplateProps = {
@@ -29,6 +30,7 @@ const TemplateForm = ({ note, onOpenChange, onCreated }: TemplateFormProps) => {
     const [name, setName] = useState(note.name)
     const [error, setError] = useState<string | null>(null)
     const errorId = useId()
+    const nameId = useId()
     const { saving: busy, run } = useSubmitOnce()
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -48,12 +50,15 @@ const TemplateForm = ({ note, onOpenChange, onCreated }: TemplateFormProps) => {
 
     return (
         <form onSubmit={handleSubmit} className="grid gap-3">
-            <Label htmlFor="template-name">{t("dialogs.createTemplate.name")}</Label>
+            <Label htmlFor={nameId}>{t("dialogs.createTemplate.name")}</Label>
             <Input
-                id="template-name"
+                id={nameId}
                 name="name"
+                maxLength={MAX_NAME_LENGTH}
                 value={name}
                 autoFocus
+                // The prefilled name is selected: typing replaces it
+                onFocus={e => e.target.select()}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? errorId : undefined}
                 onChange={e => {

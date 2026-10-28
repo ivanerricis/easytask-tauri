@@ -3,6 +3,9 @@ import userEvent from "@testing-library/user-event"
 import { Trash2, FolderSearch } from "lucide-react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ConfirmDialog } from "./dialog-confirm"
+import i18n from "@/i18n"
+
+const sources = import.meta.glob("../../**/*.tsx", { query: "?raw", import: "default", eager: true }) as Record<string, string>
 
 const onOpenChange = vi.fn()
 const onConfirm = vi.fn()
@@ -154,5 +157,15 @@ describe("ConfirmDialog", () => {
         await user.click(screen.getByRole("button", { name: "Elimina" }))
         await user.click(screen.getByRole("button", { name: "Annulla" }))
         expect(onParentClick).not.toHaveBeenCalled()
+    })
+
+    it("ogni uso di ConfirmDialog ha un titolo specifico e il titolo generico non esiste più", () => {
+        expect(i18n.exists("dialogs.confirm.title")).toBe(false)
+        const usages = Object.entries(sources).filter(([path, code]) => !path.endsWith(".test.tsx") && /<ConfirmDialog/.test(code))
+        expect(usages.length).toBeGreaterThan(5)
+        for (const [path, code] of usages) {
+            expect(code, path).toMatch(/<ConfirmDialog[\s\S]{0,700}?title=/)
+            expect(code, path).not.toContain("dialogs.confirm")
+        }
     })
 })

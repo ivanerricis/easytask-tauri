@@ -12,6 +12,7 @@ import { useWorkspaceActions, useWorkspaceState } from "@/contexts/workspace-dat
 import { useTabsActions } from "@/contexts/use-tabs"
 import { getFolderDestinations } from "@/pages/workspacePage/components/sidebar/tree-dnd"
 import { getErrorMessage } from "@/lib/utils"
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import type { NoteTemplate } from "@/types/template"
 
@@ -37,6 +38,8 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
     const [destination, setDestination] = useState(ROOT_VALUE)
     const [error, setError] = useState<string | null>(null)
     const errorId = useId()
+    const nameId = useId()
+    const destinationId = useId()
     const { saving: busy, run } = useSubmitOnce()
 
     const destinations = workspaceDataTree ? getFolderDestinations(workspaceDataTree) : [{ id: null, name: null, depth: 0 }]
@@ -61,12 +64,15 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
 
     return (
         <form onSubmit={handleSubmit} className="grid gap-3">
-            <Label htmlFor="note-from-template-name">{t("dialogs.noteFromTemplate.name")}</Label>
+            <Label htmlFor={nameId}>{t("dialogs.noteFromTemplate.name")}</Label>
             <Input
-                id="note-from-template-name"
+                id={nameId}
                 name="name"
+                maxLength={MAX_NAME_LENGTH}
                 value={name}
                 autoFocus
+                // The prefilled name is selected: typing replaces it
+                onFocus={e => e.target.select()}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? errorId : undefined}
                 onChange={e => {
@@ -74,7 +80,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
                     setName(e.target.value)
                 }}
             />
-            <Label htmlFor="note-from-template-destination">{t("dialogs.noteFromTemplate.destination")}</Label>
+            <Label htmlFor={destinationId}>{t("dialogs.noteFromTemplate.destination")}</Label>
             <Select
                 value={destination}
                 onValueChange={value => {
@@ -82,7 +88,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
                     setDestination(value)
                 }}
             >
-                <SelectTrigger id="note-from-template-destination" className="w-full">
+                <SelectTrigger id={destinationId} className="w-full">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

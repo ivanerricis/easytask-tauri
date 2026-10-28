@@ -2,6 +2,7 @@ import type { ComponentProps } from "react"
 import { Input } from "@/components/ui/input"
 import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { cn } from "@/lib/utils"
+import { MAX_NAME_LENGTH } from "@/lib/names"
 
 type InlineNameInputProps = Omit<ComponentProps<typeof Input>, "type"> & {
     /** The error of the save; shown next to the field. */
@@ -16,6 +17,7 @@ type InlineNameInputProps = Omit<ComponentProps<typeof Input>, "type"> & {
 export const InlineNameInput = ({ error, className, ...props }: InlineNameInputProps) => (
     <InlineErrorTooltip message={error}>
         <Input
+            maxLength={MAX_NAME_LENGTH}
             {...props}
             type="text"
             onClick={e => e.stopPropagation()}

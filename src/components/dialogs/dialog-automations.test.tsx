@@ -75,6 +75,42 @@ describe("DialogAutomations", () => {
         expect(screen.getAllByRole("button", { name: "Nuova automazione" })).toHaveLength(1)
     })
 
+    it("scrive la descrizione della regola in text-sm (non più piccola)", async () => {
+        mocked(getDBAutomations).mockResolvedValue([rule()])
+        renderDialog()
+        const description = await screen.findByText("Quando un task viene completato in \"Doing\", sposta in fondo a \"Done\"")
+        expect(description).toHaveClass("text-sm")
+        expect(description).not.toHaveClass("text-xs")
+    })
+
+    it("il caricamento è annunciato come occupato e lo spinner si ferma con movimento ridotto", async () => {
+        mocked(getDBNoteData).mockReturnValue(new Promise(() => { /* never */ }))
+        renderDialog()
+        const status = await screen.findByRole("status")
+        expect(status).toHaveAttribute("aria-busy", "true")
+        expect(status).toHaveTextContent("Caricamento…")
+        expect(status.querySelector("svg")).toHaveClass("motion-reduce:animate-none")
+    })
+
+    it("annuncia il passo corrente in una regione aria-live", async () => {
+        const user = userEvent.setup()
+        renderDialog()
+        await user.click(await screen.findByRole("button", { name: "Nuova automazione" }))
+        const live = screen.getByText("Passo 1 di 3: Quando")
+        expect(live).toHaveAttribute("aria-live", "polite")
+        await pick(user, "In quale sezione", "Doing")
+        await click(user, "Avanti")
+        expect(screen.getByText("Passo 2 di 3: Allora")).toBe(live)
+    })
+
+    it("limita il nome dell'automazione a 120 caratteri", async () => {
+        mocked(getDBAutomations).mockResolvedValue([rule()])
+        const user = userEvent.setup()
+        renderDialog()
+        await user.click(await screen.findByRole("button", { name: /Modifica l'automazione/ }))
+        expect(screen.getByLabelText("Nome (facoltativo)")).toHaveAttribute("maxlength", "120")
+    })
+
     it("creates a rule from the editor", async () => {
         const user = userEvent.setup()
         renderDialog()
@@ -107,7 +143,7 @@ describe("DialogAutomations", () => {
         const user = userEvent.setup()
         mocked(getDBAutomations).mockResolvedValue([rule()])
         renderDialog()
-        await user.click(await screen.findByRole("switch", { name: "Attiva l'automazione \"Chiudi\"" }))
+        await user.click(await screen.findByRole("switch", { name: "Automazione \"Chiudi\"" }))
         await waitFor(() => expect(setDBAutomationEnabled).toHaveBeenCalledWith(10, false))
     })
 
@@ -214,7 +250,7 @@ describe("DialogAutomations", () => {
         const user = userEvent.setup()
         mocked(getDBAutomations).mockResolvedValue([rule()])
         renderDialog()
-        await user.click(await screen.findByRole("switch", { name: "Attiva l'automazione \"Chiudi\"" }))
+        await user.click(await screen.findByRole("switch", { name: "Automazione \"Chiudi\"" }))
         await waitFor(() => expect(sync).toHaveBeenCalledTimes(1))
 
         await user.click(screen.getByRole("button", { name: "Elimina l'automazione \"Chiudi\"" }))
