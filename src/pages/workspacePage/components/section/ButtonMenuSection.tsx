@@ -22,6 +22,7 @@ import { toast } from "sonner"
 import { withRollback } from "@/contexts/with-rollback"
 import { LazyMount } from "@/components/lazy-mount"
 import { useActiveNoteId } from "@/contexts/use-tabs"
+import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 
 const DialogAutomations = lazyWithPreload(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
 preloadWhenIdle(DialogAutomations)
@@ -39,6 +40,7 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const [isAutomationsOpen, setAutomationsOpen] = useState(false)
     const noteId = useActiveNoteId()
+    const isDraft = useIsActiveDraft()
     const menu = useItemMenuState()
     const { requestRename, onCloseAutoFocus } = useRenameAfterClose(onRename)
     const { updateItemColor, duplicateSection, archiveItem } = useWorkspaceActions()
@@ -106,8 +108,8 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
             <Separator />
             <SectionStepMoves sectionId={section.id} onDone={menu.close} />
             <SectionMoveSubmenu sectionId={section.id} onDone={menu.close} />
-            <Separator />
-            {noteId !== null && <ButtonInPopover
+            {!isDraft && <Separator />}
+            {noteId !== null && !isDraft && <ButtonInPopover
                 text={t("automations.menu")}
                 type="automations"
                 onClick={() => {
@@ -115,11 +117,11 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
                     menu.close()
                 }}
             />}
-            <ButtonInPopover
+            {!isDraft && <ButtonInPopover
                 text={t("menu.archive")}
                 type="archive"
                 onClick={handleArchive}
-            />
+            />}
             <Separator />
             <ButtonInPopover
                 text={t("common.delete")}
@@ -135,7 +137,7 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
 
     const dialogs = (
         <>
-            {noteId !== null && <LazyMount active={isAutomationsOpen}>
+            {noteId !== null && !isDraft && <LazyMount active={isAutomationsOpen}>
                 <DialogAutomations
                     noteId={noteId}
                     sectionId={section.id}

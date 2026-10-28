@@ -22,6 +22,12 @@ describe("ShortcutsSettings", () => {
         expect(await getShortcutOverrides()).toEqual({})
     })
 
+    it("announces the recording state as a status", () => {
+        setup()
+        edit("Cerca una nota")
+        expect(screen.getByRole("status")).toHaveTextContent("Premi i tasti, Esc per annullare")
+    })
+
     it("rejects a conflicting binding and keeps recording", async () => {
         setup()
         edit("Cerca una nota")
@@ -29,7 +35,7 @@ describe("ShortcutsSettings", () => {
 
         expect((await screen.findByRole("alert")).textContent).toContain("Torna alla home")
         expect(await getShortcutOverrides()).toEqual({})
-        expect(screen.getByText("Premi i tasti…")).toBeTruthy()
+        expect(screen.getByText("Premi i tasti, Esc per annullare")).toBeTruthy()
     })
 
     it("does not conflict across scopes and needs a modifier", async () => {
@@ -45,7 +51,7 @@ describe("ShortcutsSettings", () => {
         setup()
         edit("Cerca una nota")
         press({ key: "Escape" })
-        expect(screen.queryByText("Premi i tasti…")).toBeNull()
+        expect(screen.queryByText("Premi i tasti, Esc per annullare")).toBeNull()
         expect(await getShortcutOverrides()).toEqual({})
 
         edit("Torna alla home")

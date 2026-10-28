@@ -118,6 +118,26 @@ describe("ActiveNoteProvider", () => {
         await waitFor(() => expect(shownGroup(latest)).toBe(11))
     })
 
+    it("tells the subscribers which note changed, and stops after unsubscribing", async () => {
+        const latest = setup()
+        const listener = vi.fn()
+        let stop!: () => void
+        act(() => { stop = latest.current.subscribeNoteChanges(listener) })
+
+        act(() => latest.current.openNote(1))
+        await waitFor(() => expect(shownGroup(latest)).toBe(10))
+        expect(listener).toHaveBeenCalledWith(1)
+
+        listener.mockClear()
+        act(() => { latest.current.patchGroup(10, { name: "Named" }) })
+        expect(listener).toHaveBeenCalledWith(1)
+
+        stop()
+        listener.mockClear()
+        act(() => { latest.current.patchGroup(10, { name: "Again" }) })
+        expect(listener).not.toHaveBeenCalled()
+    })
+
     it("evicts the cache of a closed tab", async () => {
         const latest = setup()
         act(() => latest.current.openNote(1))

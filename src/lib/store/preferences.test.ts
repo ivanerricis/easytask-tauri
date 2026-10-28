@@ -419,6 +419,15 @@ describe("audio file count and section separators preferences", () => {
         expect(await getPref("showUnnamedLabels")).toBe(true)
     })
 
+    it("shows the task insert line by default and only an explicit false hides it", async () => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getPref("showTaskInsertLine")).toBe(true)
+        vi.mocked(store.get).mockResolvedValue("no")
+        expect(await getPref("showTaskInsertLine")).toBe(true)
+        vi.mocked(store.get).mockResolvedValue(false)
+        expect(await getPref("showTaskInsertLine")).toBe(false)
+    })
+
     it("keeps adding tasks by default and leaves the player unpinned", async () => {
         vi.mocked(store.get).mockResolvedValue(undefined)
         expect(await getPref("keepAddingTasks")).toBe(true)
@@ -491,7 +500,7 @@ describe("preference table", () => {
             "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "hideCompletedTasks", "keepAddingTasks", "language",
             "lastWorkspaceId", "newTaskPosition", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
             "showGroupProgressBar", "showGroupSeparators", "showProgressBar", "showSectionCount", "showSubtaskCount", "showTaskCount",
-            "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth", "sidebarRightOpen", "sidebarRightWidth",
+            "showTaskInsertLine", "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth", "sidebarRightOpen", "sidebarRightWidth",
             "skippedUpdateVersion", "spellcheck", "taskBackground", "taskDensity", "trashAutoEmptyDays", "undoLimit", "workspaceSort", "workspaceView",
         ])
     })

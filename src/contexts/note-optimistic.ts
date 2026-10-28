@@ -33,7 +33,8 @@ export type NoteOptimisticActions = {
      */
     appendGroup: (id: number, noteId: number, name: string, defaultSectionId: number) => Rollback
     appendSection: (id: number, groupId: number, title: string) => Rollback
-    appendTask: (id: number, parent: TaskParent, text: string) => Rollback
+    /** `index` is the place among all the siblings, the completed ones hidden by the view included (default: the end). */
+    appendTask: (id: number, parent: TaskParent, text: string, index?: number) => Rollback
     /** Same semantics as the database move: `index` counts the destination siblings without the moved item. */
     applySectionMove: (sectionId: number, targetGroupId: number, index: number, beforeList?: boolean) => Rollback
     /** Moves the list of the direct tasks of a group before the `index`-th section with a header (after all of them when `index` is not less than their number). */
@@ -173,14 +174,14 @@ export function createNoteOptimisticActions(store: NoteTreeStore): BaseNoteOptim
                 return group ? insertSection(t, groupId, buildSection(id, groupId, title, orderedItems(group.group))) : t
             },
             t => removeSection(t, id)) : null,
-        appendTask: (id, parent, text) => Number.isInteger(id) ? tryApply(
+        appendTask: (id, parent, text, index) => Number.isInteger(id) ? tryApply(
             t => {
                 if ("sectionId" in parent) {
                     const section = findSection(t, parent.sectionId)
-                    return section ? insertTask(t, parent, buildTask(id, parent.sectionId, null, text, section.section.tasks)) : t
+                    return section ? insertTask(t, parent, buildTask(id, parent.sectionId, null, text, section.section.tasks), index) : t
                 }
                 const found = findTask(t, parent.parentTaskId)
-                return found ? insertTask(t, parent, buildTask(id, found.task.sectionID, parent.parentTaskId, text, found.task.subtasks)) : t
+                return found ? insertTask(t, parent, buildTask(id, found.task.sectionID, parent.parentTaskId, text, found.task.subtasks), index) : t
             },
             t => removeTask(t, id)) : null,
 

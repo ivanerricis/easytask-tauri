@@ -63,7 +63,7 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
     })
 
     it("creates a group, two sections and a task", async () => {
-        await byText(await tr("menu.newGroup")).click()
+        await byLabel(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
         await browser.keys("Enter")
         // Once saved, the group name is a button (the input only exists while the name is being edited)

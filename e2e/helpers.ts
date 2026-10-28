@@ -342,3 +342,94 @@ export const addTaskToGroup = async (group: ChainablePromiseElement | WebdriverI
     // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
     await closeTaskInput()
 }
+
+
+/** Top to bottom texts of the tasks (subtasks included) inside `scope`, read in a single page-side call. */
+export const taskTexts = async (scope: ChainablePromiseElement | WebdriverIO.Element): Promise<string[]> => {
+    const label = await tr("tasks.editText")
+    const el = (await scope.getElement()) as unknown as HTMLElement
+    return browser.execute(
+        (root: HTMLElement, aria: string) => Array.from(root.querySelectorAll<HTMLTextAreaElement>(`[aria-label="${aria}"]`)).map(area => area.value),
+        el,
+        label,
+    )
+}
+
+/** Hover zones of the "+" insert lines inside `scope` (one above each visible task, none under the last). */
+export const insertZones = async (scope: ChainablePromiseElement) => Array.from(await scope.$$('[data-testid="task-insert-zone"]'))
+
+/**
+ * The hover zone of the "+" line right above the task with this text (the nearest zone before it in document order, so it
+ * also finds the lines of subtasks). Tagged with `data-e2e-zone` in the page and returned selected by it.
+ */
+export const insertZoneAbove = async (text: string) => {
+    const label = await tr("tasks.editText")
+    const found = await browser.execute((aria: string, value: string) => {
+        document.querySelectorAll("[data-e2e-zone]").forEach(el => el.removeAttribute("data-e2e-zone"))
+        const area = Array.from(document.querySelectorAll<HTMLTextAreaElement>(`[aria-label="${aria}"]`)).find(a => a.value === value)
+        if (!area) return false
+        const before = Array.from(document.querySelectorAll<HTMLElement>('[data-testid="task-insert-zone"]'))
+            .filter(zone => zone.compareDocumentPosition(area) & Node.DOCUMENT_POSITION_FOLLOWING)
+        const zone = before[before.length - 1]
+        if (!zone) return false
+        zone.setAttribute("data-e2e-zone", "true")
+        return true
+    }, label, text)
+    if (!found) throw new Error(`no insert line above the task "${text}"`)
+    return $('[data-e2e-zone="true"]')
+}
+
+/** Computed opacity of the "+" button of an insert line zone (0 = hidden, 1 = shown by the hover). */
+export const insertPlusOpacity = async (zone: ChainablePromiseElement): Promise<number> => {
+    const el = (await zone.$("button").getElement()) as unknown as HTMLElement
+    return browser.execute((button: HTMLElement) => Number(getComputedStyle(button).opacity), el)
+}
+
+/** Moves the mouse onto an insert line zone and waits until its "+" shows. */
+export const hoverInsertZone = async (zone: ChainablePromiseElement) => {
+    await zone.scrollIntoView({ block: "center" })
+    await zone.moveTo()
+    await browser.waitUntil(async () => (await insertPlusOpacity(zone)) > 0.9, { timeoutMsg: "the + of the insert line did not show on hover" })
+}
+
+/** The field of a new task opened by an insert line (there can be only one). An input: the "New task" button of a group has the same label. */
+export const insertFields = async () => Array.from(await $$(`input[aria-label=${cssString(await tr("tasks.insertLine.label"))}]`))
+
+/** Opens the Settings dialog on a category and returns the dialog. */
+export const openSettingsOn = async (category: "appearance" | "notes") => {
+    await domClick(byLabel(await tr("settings.title")))
+    const dialog = $('[role="dialog"]')
+    await dialog.waitForDisplayed({ timeoutMsg: "the settings dialog did not open" })
+    // A real click: Radix tabs activate on mouse down, which the DOM click of domClick does not dispatch
+    await byText(await tr(`settings.categories.${category}`), dialog).click()
+    return dialog
+}
+
+/** The switch of a settings row, named by its <label for>. */
+export const settingsSwitch = async (labelKey: string) => {
+    const label = (await tr(labelKey)).replace(/'/g, "\\'")
+    return $(`//*[@role="dialog"]//*[@role="switch"][@id=//label[normalize-space()='${label}']/@for]`)
+}
+
+/** Closes every open dialog with Escape. */
+export const closeAllDialogs = async () => {
+    await browser.waitUntil(
+        async () => {
+            if (Array.from(await $$('[role="dialog"]')).length === 0) return true
+            await browser.keys("Escape")
+            return false
+        },
+        { timeoutMsg: "the dialog did not close", interval: 500 },
+    )
+}
+
+/** Opens the dialog of the templates (button at the bottom of the left sidebar) and returns it. */
+export const openTemplatesDialog = async () => {
+    await $(`//button[.//span[normalize-space()=${JSON.stringify(await tr("dialogs.templates.title"))}]]`).click()
+    const dialog = $('[role="dialog"]')
+    await dialog.waitForDisplayed({ timeoutMsg: "the templates dialog did not open" })
+    return dialog
+}
+
+/** The tab of the editor of a template (its label carries the full name in the title). */
+export const templateEditorTab = async (name: string) => $(`[title=${cssString(await tr("templateEditor.tab", { name }))}]`)

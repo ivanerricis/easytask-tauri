@@ -45,6 +45,22 @@ The shortcuts work when you are not typing, with a few exceptions: the shortcuts
 | Cancel renaming the group or close the new subtask | `Esc` | No |
 | New line in a task description | `Shift+Enter` | No |
 
+## Tasks with the keyboard
+
+These keys work when a task row has the focus (click a task or reach it with `Tab`). They do not work while you type in a field, and with `Ctrl` or `Cmd` they are left to the other shortcuts. They cannot be changed.
+
+| Action | Shortcut |
+| --- | --- |
+| Previous or next task in the list | `↑` / `↓` |
+| First or last task in the list | `Home` / `End` |
+| Open the subtasks, then go to the first subtask | `→` |
+| Close the subtasks, then go to the parent task | `←` |
+| Complete or reopen the task | `Space` |
+| Edit the task text | `Enter` |
+| Open the task menu | `Shift+F10` or the menu key |
+| Move the task one step up or down | `Alt+↑` / `Alt+↓` |
+
+The arrows stay inside the list of the section (or of the tasks directly in a group): they do not jump to the next section. After `Alt+↑` or `Alt+↓` the focus stays on the task and a screen reader announces its new position ("Moved to position 2 of 5"). See [Use the keyboard](./groups-sections-tasks.md#use-the-keyboard).
 ## Home page
 
 | Action | Shortcut | Can be changed |

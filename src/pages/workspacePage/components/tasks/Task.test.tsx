@@ -13,6 +13,7 @@ import { NoteSearchContext } from "../note-search-context"
 import { COLOR_ALPHA_BASE } from "@/lib/color-intensity"
 import { PreferencesContext } from "@/contexts/preferences-context-object"
 import { useNoteDrop } from "../note-dnd-state"
+import { TaskInsertProvider, useTaskInsertStore } from "./task-insert-state"
 
 const updateTaskCompletion = vi.fn()
 const renameItem = vi.fn()
@@ -34,6 +35,7 @@ vi.mock("@/contexts/use-active-note", () => ({
 }))
 vi.mock("@/contexts/workspace-data/context", () => ({ useWorkspaceActions: () => ({ setCollapsed }) }))
 vi.mock("../note-dnd-state", () => ({
+    useNoteDndSelector: (select: (state: unknown) => unknown) => select({ active: null }),
     useNoteDrop: vi.fn(() => ({ setNodeRef: () => { }, zone: null, active: null })),
     useNoteDrag: () => ({
         setNodeRef: () => { }, setActivatorNodeRef: () => { },
@@ -77,7 +79,9 @@ function Probe() {
 const renderTasks = (ui: ReactNode, withPanel = true) => render(
     <TabsProvider notes={[makeNote({ id: 1 }), makeNote({ id: 2 })]} workspaceId={null}>
         <OpenNote id={1}>
-            <RightPanelContext.Provider value={withPanel ? panel : null}>{ui}<Probe /></RightPanelContext.Provider>
+            <PreferencesContext.Provider value={{ showTaskInsertLine: true, taskDensity: "normal" } as never}>
+                <RightPanelContext.Provider value={withPanel ? panel : null}>{ui}<Probe /></RightPanelContext.Provider>
+            </PreferencesContext.Provider>
         </OpenNote>
     </TabsProvider>,
 )
@@ -446,7 +450,9 @@ describe("Task description icon", () => {
         expect(screen.queryByRole("button", { name: "Mostra la descrizione" })).not.toBeInTheDocument()
         rerender(
             <TabsProvider notes={[makeNote({ id: 1 }), makeNote({ id: 2 })]} workspaceId={null}>
-                <OpenNote id={1}><Task task={makeTask({ id: 10, text: "Genitore", description: "  \n  ", subtasks: withSubtasks })} /></OpenNote>
+                <PreferencesContext.Provider value={{ showTaskInsertLine: true, taskDensity: "normal" } as never}>
+                    <OpenNote id={1}><Task task={makeTask({ id: 10, text: "Genitore", description: "  \n  ", subtasks: withSubtasks })} /></OpenNote>
+                </PreferencesContext.Provider>
             </TabsProvider>,
         )
         expect(indicator()).toBeNull()
@@ -495,10 +501,12 @@ describe("Task rendering", () => {
         const a = makeTask({ id: 10, text: "A", subtasks: [leaf] })
         const b = makeTask({ id: 20, text: "B", subtasks: [makeTask({ id: 21, text: "Altra foglia" })] })
         const ui = (x: typeof a) => (
-            <TabsProvider notes={[makeNote({ id: 1 })]} workspaceId={null}>
-                <Task task={x} />
-                <Task task={b} />
-            </TabsProvider>
+            <PreferencesContext.Provider value={{ showTaskInsertLine: true, taskDensity: "normal" } as never}>
+                <TabsProvider notes={[makeNote({ id: 1 })]} workspaceId={null}>
+                    <Task task={x} />
+                    <Task task={b} />
+                </TabsProvider>
+            </PreferencesContext.Provider>
         )
         const { rerender } = render(ui(a))
         const rendersOf = (id: number) => vi.mocked(useNoteDrop).mock.calls.filter(call => call[1] === id).length
@@ -548,5 +556,67 @@ describe("Task search", () => {
         await userEvent.click(screen.getByRole("textbox", { name: "Modifica il testo del task" }))
         expect(screen.getByRole("textbox")).toHaveValue("Compra il Latte")
         expect(document.querySelector("mark")).toBeNull()
+    })
+})
+
+describe("Task insert lines between subtasks", () => {
+    let store!: ReturnType<typeof useTaskInsertStore>
+    function Grab() {
+        const current = useTaskInsertStore()
+        useEffect(() => { store = current }, [current])
+        return null
+    }
+    const renderTree = (task: ReturnType<typeof makeTask>, hideCompleted = false) => renderTasks(
+        <TaskInsertProvider><Grab /><Task task={task} hideCompleted={hideCompleted} /></TaskInsertProvider>,
+    )
+    const zones = () => screen.getAllByTestId("task-insert-zone")
+    const plus = (index: number) => zones()[index].querySelector("button") as HTMLElement
+    const fields = () => screen.queryAllByPlaceholderText(/Nuovo task/)
+    const parent = (...subtasks: ReturnType<typeof makeTask>[]) => makeTask({ id: 10, text: "Padre", sectionID: 1, subtasks })
+    const rowOfText = (text: string) => screen.getAllByLabelText("Modifica il testo del task").find(node => (node as HTMLTextAreaElement).value === text)!
+
+    it("has a line above every subtask (also the first) and none under the last", () => {
+        renderTree(parent(makeTask({ id: 11 }), makeTask({ id: 12 }), makeTask({ id: 13 })))
+        expect(zones()).toHaveLength(3)
+    })
+
+    it("a click on a line opens the field there: above the first, or under the task above", () => {
+        renderTree(parent(makeTask({ id: 11, text: "Uno" }), makeTask({ id: 12, text: "Due" })))
+        fireEvent.click(plus(0))
+        expect(store.getState()).toEqual({ listKey: "t-10", afterTaskId: null })
+        expect(fields()).toHaveLength(1)
+        expect(fields()[0].compareDocumentPosition(rowOfText("Uno")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+        fireEvent.click(plus(1))
+        expect(store.getState()).toEqual({ listKey: "t-10", afterTaskId: 11 })
+        expect(fields()).toHaveLength(1)
+        expect(rowOfText("Uno").compareDocumentPosition(fields()[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+        expect(fields()[0].compareDocumentPosition(rowOfText("Due")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it("with the completed hidden, the line above the first visible subtask inserts right before it", () => {
+        renderTree(parent(makeTask({ id: 11, completed: true }), makeTask({ id: 12 }), makeTask({ id: 13, completed: true }), makeTask({ id: 14 })), true)
+        expect(zones()).toHaveLength(2)
+        fireEvent.click(plus(0))
+        // The hidden subtask 11 is the one before the first visible one (12)
+        expect(store.getState()).toEqual({ listKey: "t-10", afterTaskId: 11 })
+        fireEvent.click(plus(1))
+        expect(store.getState()).toEqual({ listKey: "t-10", afterTaskId: 12 })
+    })
+
+    it("with the completed hidden and nothing hidden before the first one, the top line is the first place", () => {
+        renderTree(parent(makeTask({ id: 11 }), makeTask({ id: 12, completed: true })), true)
+        fireEvent.click(plus(0))
+        expect(store.getState()).toEqual({ listKey: "t-10", afterTaskId: null })
+    })
+
+    it("hovering a line does not re-render the rows", () => {
+        renderTree(parent(makeTask({ id: 11 }), makeTask({ id: 12 })))
+        const calls = vi.mocked(useNoteDrop).mock.calls.length
+        const zone = zones()[1]
+        fireEvent.mouseEnter(zone)
+        fireEvent.mouseOver(zone)
+        fireEvent.mouseLeave(zone)
+        expect(vi.mocked(useNoteDrop).mock.calls.length).toBe(calls)
     })
 })

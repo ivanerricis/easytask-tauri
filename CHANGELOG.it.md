@@ -4,6 +4,22 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-28
+
+### Aggiunto
+
+- Modifica un template come una nota normale: "Modifica" nella finestra dei template lo apre in una scheda "Template". Le modifiche si salvano da sole, annulla e ripeti funzionano come in ogni nota, e se l'app si chiude la scheda torna al prossimo avvio (con "Riapri le note" attivo) oppure le modifiche vengono salvate nel template. Il menu "⋯" di un template ha "Duplica" e "Aggiorna da un'altra nota"; "Aggiorna dalla nota" resta disattivato mentre l'editor è aperto.
+- Tra due task compare una linea sottile con un "+" quando ci passi sopra con il mouse (anche sopra il primo task, tra i sottotask e tra i task di un gruppo): un clic apre il campo di un nuovo task in quel punto. Con "Continua ad aggiungere task" attivo il campo scende sotto il nuovo task. Annulla lo toglie in un solo passo. Impostazioni > Note: "Linea per inserire un task" (attiva di default).
+- I task si usano anche con la tastiera: Tab entra in una lista con una sola tappa, Su e Giù, Home e Fine passano tra i task della stessa lista, Destra e Sinistra aprono e chiudono i sottotask (o vanno al primo figlio o al genitore), Spazio completa, Invio rinomina, Maiusc+F10 o il tasto Menu apre il menu, e Alt+Su e Alt+Giù spostano il task e dicono la nuova posizione agli screen reader. Le scorciatoie hanno una nuova categoria "Task".
+- I task selezionati sono segnati da un contorno tratteggiato e da un testo "selezionato" nascosto per gli screen reader, non solo da un colore, e un contatore ("3 selezionati") compare con due o più task selezionati.
+- Un pulsante "+" nella barra del percorso, il primo a sinistra, crea un nuovo gruppo (come `Alt+N`); sostituisce la casella tratteggiata dopo i gruppi.
+
+### Modificato
+
+- Quando la finestra si restringe e la nota resterebbe sotto i 420 px, le barre laterali si chiudono da sole (prima la destra, poi la sinistra) e non si riaprono da sole.
+- I file audio di un gruppo non scorrono mai: la lista mostra tutti i file sopra le sezioni.
+- Piccoli miglioramenti dalla revisione UI: nomi per gli screen reader, un anello di focus più spesso, la maniglia di ridimensionamento delle barre laterali, il campo di ricerca delle note, il pannello dei dettagli e la pagina di errore.
+- Il database viene aggiornato alla versione 11 all'avvio dell'app (prima viene fatto un backup, in automatico): le note in modifica come template stanno nella stessa tabella delle note. Le date di modifica non cambiano; una versione più vecchia dell'app non può aprire il database aggiornato.
 ## [0.14.0] - 2026-10-27
 
 ### Aggiunto
@@ -399,7 +415,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...v0.12.0

@@ -2,6 +2,8 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncE
 import { PreferencesContext } from "../preferences-context-object"
 import { useShortcut } from "@/hooks/use-shortcut"
 import { useWorkspace } from "../use-workspace"
+import { useActiveNoteId } from "../use-tabs"
+import { useTemplateDrafts } from "../use-template-drafts"
 import { useActiveNoteActions } from "../use-active-note"
 import { useWorkspaceActions } from "../workspace-data"
 import { createUndoCommands, createUndoRecorder } from "./commands"
@@ -21,6 +23,11 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
     const noteActions = useActiveNoteActions()
     // Optional: without preferences the default limit applies
     const undoLimit = useContext(PreferencesContext)?.undoLimit ?? UNDO_LIMIT
+    const activeNoteId = useActiveNoteId()
+    const drafts = useTemplateDrafts()
+    // The action of a template draft is undone only from its editor: the history reads the active note when it runs
+    const activeNoteIdRef = useRef(activeNoteId)
+    const draftIdsRef = useRef<number[]>([])
     const [history] = useState(() => createUndoHistory(undoLimit))
     const workspaceId = currentWorkspace?.id ?? null
     const workspaceIdRef = useRef(workspaceId)
@@ -31,10 +38,28 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
         history.clear()
     }, [workspaceId, history])
 
+    useEffect(() => {
+        activeNoteIdRef.current = activeNoteId
+        history.setIsBlocked(command => command.scopeNoteId !== undefined && command.scopeNoteId !== activeNoteIdRef.current)
+    }, [activeNoteId, history])
+
+    // The note of a draft is deleted when it closes: its actions can no longer be undone or redone
+    useEffect(() => {
+        const ids = drafts.map(draft => draft.noteId)
+        for (const id of draftIdsRef.current) if (!ids.includes(id)) history.dropScope(id)
+        draftIdsRef.current = ids
+    }, [drafts, history])
+
     // The limit can change in the settings: the history is trimmed at once
     useEffect(() => { history.setLimit(undoLimit) }, [history, undoLimit])
 
     const snapshot = useSyncExternalStore(history.subscribe, history.getSnapshot)
+
+    // The id of the active note when it is a template draft (the actions done there are scoped to it)
+    const getScope = useCallback(() => {
+        const id = activeNoteIdRef.current
+        return id !== null && draftIdsRef.current.includes(id) ? id : undefined
+    }, [])
 
     // The commands read the ref only when they run (never during render)
     const recorder = useMemo(() => createUndoRecorder(
@@ -42,7 +67,9 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
         createUndoCommands({ getWorkspaceId: () => workspaceIdRef.current, workspace: workspaceActions, note: noteActions }),
         history.record,
         history.track,
-    ), [history, workspaceActions, noteActions])
+        // eslint-disable-next-line react-hooks/refs
+        getScope,
+    ), [history, workspaceActions, noteActions, getScope])
 
     const isLatest = useCallback((command: UndoCommand) => history.isLatest(command), [history])
     const clear = useCallback(() => history.clear(), [history])

@@ -45,6 +45,22 @@ Le scorciatoie funzionano quando non stai scrivendo, con alcune eccezioni: quell
 | Annulla la rinomina del gruppo o chiudi il nuovo sottotask | `Esc` | No |
 | Vai a capo nella descrizione di un task | `Maiusc+Invio` | No |
 
+## Task da tastiera
+
+Questi tasti funzionano quando una riga di task ha il focus (clicca un task o raggiungilo con `Tab`). Non funzionano mentre scrivi in un campo e, con `Ctrl` o `Cmd`, lasciano il posto alle altre scorciatoie. Non si possono cambiare.
+
+| Azione | Scorciatoia |
+| --- | --- |
+| Task precedente o successivo della lista | `↑` / `↓` |
+| Primo o ultimo task della lista | `Home` / `End` |
+| Aprire i sottotask, poi andare al primo sottotask | `→` |
+| Chiudere i sottotask, poi andare al task padre | `←` |
+| Completare o riaprire il task | `Spazio` |
+| Modificare il testo del task | `Invio` |
+| Aprire il menu del task | `Shift+F10` o il tasto menu |
+| Spostare il task di un passo su o giù | `Alt+↑` / `Alt+↓` |
+
+Le frecce restano dentro la lista della sezione (o dei task diretti di un gruppo): non saltano alla sezione successiva. Dopo `Alt+↑` o `Alt+↓` il focus resta sul task e uno screen reader annuncia la nuova posizione ("Spostato in posizione 2 di 5"). Vedi [Usare la tastiera](./groups-sections-tasks.md#usare-la-tastiera).
 ## Pagina iniziale
 
 | Azione | Scorciatoia | Modificabile |

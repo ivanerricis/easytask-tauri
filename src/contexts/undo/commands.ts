@@ -467,10 +467,16 @@ export type UndoRecorder = RecorderOf<UndoCommands> & {
 }
 
 /** Wraps the builders so that every call records the command. */
-export function createUndoRecorder(commands: UndoCommands, record: (command: UndoCommand) => void, track: UndoRecorder["track"] = write => write): UndoRecorder {
+export function createUndoRecorder(commands: UndoCommands, record: (command: UndoCommand) => void, track: UndoRecorder["track"] = write => write, getScope?: () => number | undefined): UndoRecorder {
+    // Every command is stamped with the template draft it is done in (if any), so it is only undone from that draft
+    const scoped = (command: UndoCommand) => {
+        const scope = getScope?.()
+        if (scope !== undefined && command.scopeNoteId === undefined) command.scopeNoteId = scope
+        record(command)
+    }
     const entries = Object.entries(commands).map(([name, build]) =>
-        [name, (...args: never[]) => record((build as (...a: never[]) => UndoCommand)(...args))] as const)
-    return { ...Object.fromEntries(entries), record, track } as UndoRecorder
+        [name, (...args: never[]) => scoped((build as (...a: never[]) => UndoCommand)(...args))] as const)
+    return { ...Object.fromEntries(entries), record: scoped, track } as UndoRecorder
 }
 
 /** A recorder that does nothing (outside an UndoProvider, e.g. in isolated component tests). */

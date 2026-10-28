@@ -1,6 +1,6 @@
 import i18n from "@/i18n"
 
-export type ShortcutCategory = "general" | "notes" | "groups" | "home"
+export type ShortcutCategory = "general" | "notes" | "groups" | "tasks" | "home"
 
 // "global" shortcuts clash with every scope; "workspace" and "home" are separate pages and can reuse the same keys
 export type ShortcutScope = "global" | "workspace" | "home"
@@ -26,9 +26,9 @@ export interface Shortcut {
 
 type ShortcutId = keyof typeof import("@/i18n/locales/it").it.shortcuts.items
 
-export type ShortcutKey = "enter" | "escape" | "shift" | "space" | "delete"
+export type ShortcutKey = "enter" | "escape" | "shift" | "space" | "delete" | "alt" | "ctrl" | "arrowup" | "arrowdown" | "arrowleft" | "arrowright" | "home" | "end" | "f10"
 
-export const SHORTCUT_CATEGORIES: ShortcutCategory[] = ["general", "notes", "groups", "home"]
+export const SHORTCUT_CATEGORIES: ShortcutCategory[] = ["general", "notes", "groups", "tasks", "home"]
 
 /** The translated name of a category. */
 export const categoryLabel = (category: ShortcutCategory): string => i18n.t(`shortcuts.categories.${category}`)
@@ -38,7 +38,7 @@ export const shortcutDescription = (id: string): string =>
     i18n.t(`shortcuts.items.${id as ShortcutId}`)
 
 /** The translated label of a named key ("Invio", "Esc"...). */
-export const keyLabel = (key: ShortcutKey | "ctrl" | "alt"): string => i18n.t(`shortcuts.keys.${key}`)
+export const keyLabel = (key: ShortcutKey): string => i18n.t(`shortcuts.keys.${key}`)
 
 // "?" is fixed: it needs Shift on most layouts and would clash with the modifier rule of the recorder.
 export const SHORTCUTS: Shortcut[] = [
@@ -70,6 +70,13 @@ export const SHORTCUTS: Shortcut[] = [
     { id: "confirm-rename", keys: ["enter"], editable: false, scope: "workspace", category: "groups" },
     { id: "cancel-rename", keys: ["escape"], editable: false, scope: "workspace", category: "groups" },
     { id: "task-newline", keys: ["shift", "enter"], editable: false, scope: "workspace", category: "groups" },
+    // Keyboard of the task lists (documentation only: the keys act on the focused task)
+    { id: "task-navigate", keys: ["arrowup", "arrowdown", "home", "end"], editable: false, scope: "workspace", category: "tasks" },
+    { id: "task-expand", keys: ["arrowleft", "arrowright"], editable: false, scope: "workspace", category: "tasks" },
+    { id: "task-move", keys: ["alt", "arrowup", "arrowdown"], editable: false, scope: "workspace", category: "tasks" },
+    { id: "task-toggle", keys: ["space"], editable: false, scope: "workspace", category: "tasks" },
+    { id: "task-rename", keys: ["enter"], editable: false, scope: "workspace", category: "tasks" },
+    { id: "task-menu", keys: ["shift", "f10"], editable: false, scope: "workspace", category: "tasks" },
     { id: "new-workspace", defaultBinding: { key: "n", ctrl: true }, editable: true, scope: "home", category: "home" },
 ]
 

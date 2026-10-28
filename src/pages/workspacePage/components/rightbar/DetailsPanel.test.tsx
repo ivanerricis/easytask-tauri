@@ -76,8 +76,8 @@ function Selector() {
     )
 }
 
-const renderPanel = (noteId: number | null = 1) => render(
-    <TabsProvider notes={[makeNote({ id: 1, name: "Mia nota", color: "#ff0000", creation_date: "2026-01-02", creation_time: "08:00:00", edit_date: "2026-02-03", edit_time: "12:00:00" })]} workspaceId={null}>
+const renderPanel = (noteId: number | null = 1, over: Partial<ReturnType<typeof makeNote>> = {}) => render(
+    <TabsProvider notes={[makeNote({ id: 1, name: "Mia nota", color: "#ff0000", creation_date: "2026-01-02", creation_time: "08:00:00", edit_date: "2026-02-03", edit_time: "12:00:00", ...over })]} workspaceId={null}>
         <UndoContext.Provider value={undoValue}>
             <Setup noteId={noteId}><Selector /><DetailsPanel /></Setup>
         </UndoContext.Provider>
@@ -101,13 +101,13 @@ afterEach(async () => { await i18n.changeLanguage("it") })
 describe("DetailsPanel without selection", () => {
     it("asks to open a note when there is none", () => {
         renderPanel(null)
-        expect(screen.getByText("Apri una nota per vederne i dettagli.")).toBeInTheDocument()
+        expect(screen.getByText("Apri una nota per vederne i dettagli.")).toHaveAttribute("role", "status")
     })
 
     it("waits for the data of the note", () => {
         tree = null
         renderPanel()
-        expect(screen.getByText("Caricamento dei dettagli…")).toBeInTheDocument()
+        expect(screen.getByText("Caricamento dei dettagli…")).toHaveAttribute("role", "status")
     })
 
     it("shows the note: name, statistics, progress, color and dates", async () => {
@@ -121,6 +121,13 @@ describe("DetailsPanel without selection", () => {
         expect(screen.getByRole("progressbar", { name: "3 di 6 task completati" })).toBeInTheDocument()
         expect(screen.getByText("Creato il 02-01-2026 alle 08:00:00")).toBeInTheDocument()
         expect(screen.getByText("Modificato il 03-02-2026 alle 12:00:00")).toBeInTheDocument()
+    })
+
+    it("shows no dates for a note without them (the draft of a template)", async () => {
+        renderPanel(1, { creation_date: "", creation_time: "", edit_date: "", edit_time: "" })
+        await screen.findByRole("heading", { name: /^Dettagli della nota/ })
+        expect(screen.queryByText("Date")).toBeNull()
+        expect(screen.queryByText(/Creato il/)).toBeNull()
     })
 
     it("shows the empty state of the progress for a note without tasks", () => {
@@ -198,7 +205,7 @@ describe("DetailsPanel with a selected task", () => {
         const user = userEvent.setup()
         renderPanel()
         await select(10)
-        await user.click(await screen.findByRole("button", { name: "Cambia colore" }))
+        await user.click(await screen.findByRole("button", { name: "Cambia colore: #00ff00" }))
         await user.click(await screen.findByText("pick color"))
         expect(patchTask).toHaveBeenCalledWith(10, { color: "#ff0000" })
         await waitFor(() => expect(updateItemColor).toHaveBeenCalledWith("task", 10, "#ff0000"))

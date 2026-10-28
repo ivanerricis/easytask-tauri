@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -10,10 +10,12 @@ import { useActiveNote, useActiveNoteActions } from "../use-active-note"
 import { useTabsActions } from "../use-tabs"
 import { useWorkspace } from "../use-workspace"
 import { UndoProvider } from "./provider"
+import { TemplateDraftsContext } from "../template-drafts-context-object"
+import type { TemplateDraft } from "@/db/queries/template-draft"
 import { useUndo, useUndoRecorder } from "./use-undo"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
 import { getDBNoteData } from "@/db/queries/note"
-import { createDBTask, updateDBTaskCompletion } from "@/db/queries/task"
+import { createDBTask, insertDBTaskAfter, updateDBTaskCompletion } from "@/db/queries/task"
 import { moveDBTreeItem } from "@/db/queries/tree"
 import { moveDBSection, moveDBTask } from "@/db/queries/move"
 import { restoreDBItem } from "@/db/queries/trash"
@@ -38,6 +40,7 @@ vi.mock("@/db/queries/section", () => ({ createDBSection: vi.fn(), createDBSecti
 vi.mock("@/db/queries/task", () => ({
     createDBSubTask: vi.fn(),
     createDBTask: vi.fn(),
+    insertDBTaskAfter: vi.fn(),
     updateDBTaskCompletion: vi.fn(),
     updateDBTaskDescription: vi.fn(),
     updateDBTaskPriority: vi.fn(),
@@ -59,6 +62,7 @@ vi.mock("@/db/queries/template", () => ({
     getDBTemplates: vi.fn(),
     updateDBTemplateFromNote: vi.fn(),
 }))
+vi.mock("@/db/queries/template-draft", () => ({ getDBTemplateDrafts: vi.fn(async () => []), createDBTemplateDraft: vi.fn(), saveDBTemplateDraft: vi.fn(), deleteDBTemplateDraft: vi.fn() }))
 vi.mock("@/db/queries/shared_queries", () => ({ renameDBItem: vi.fn(), updateDBColor: vi.fn(), deleteDBItem: vi.fn() }))
 
 const wrapper = ({ children }: { children: ReactNode }) => (
@@ -256,6 +260,22 @@ describe("UndoProvider", () => {
             await act(() => result.current.undo.redo())
             expect(restoreDBItem).toHaveBeenCalledWith("task", 31)
             await waitFor(() => expect(taskIds(result)).toEqual([30, 31]))
+        })
+
+        it("undoes a task inserted between two others in a single step", async () => {
+            vi.mocked(insertDBTaskAfter).mockResolvedValue({ id: 31, index: 0 })
+            const { result } = await setup()
+            await act(async () => {
+                const { id, index } = await result.current.data.insertTaskAfter({ sectionId: 20 }, null, "Mezzo")
+                result.current.noteActions.appendTask(id, { sectionId: 20 }, "Mezzo", index)
+                result.current.recorder.create("task", id, "Mezzo")
+            })
+            expect(taskIds(result)).toEqual([31, 30])
+
+            await act(() => result.current.undo.undo())
+            expect(deleteDBItem).toHaveBeenCalledWith("task", 31)
+            expect(taskIds(result)).toEqual([30])
+            expect(result.current.undo).toMatchObject({ canUndo: false, canRedo: true })
         })
 
         it("moves a task back to its old place with the optimistic update", async () => {
@@ -493,5 +513,77 @@ describe("UndoProvider", () => {
             expect(vi.mocked(toast).mock.calls.at(-1)![0]).toBe("Annullata 1 azione")
             expect(result.current.undo.entries).toEqual({ undo: ["Rinomina nota \"A\""], redo: ["Rinomina nota \"C\""] })
         })
+    })
+})
+
+describe("UndoProvider with template drafts", () => {
+    const draft = (noteId: number): TemplateDraft => ({ noteId, templateId: 1, templateName: "T", color: null, trashed: false })
+    const command = (label: string) => ({ label, undo: vi.fn().mockResolvedValue(undefined), redo: vi.fn().mockResolvedValue(undefined) })
+
+    async function setupWithDrafts() {
+        const control: { setDrafts: (drafts: TemplateDraft[]) => void } = { setDrafts: () => {} }
+        const Drafts = ({ children }: { children: ReactNode }) => {
+            const [drafts, set] = useState<TemplateDraft[]>([draft(11)])
+            useEffect(() => { control.setDrafts = set }, [set])
+            return <TemplateDraftsContext.Provider value={{ drafts }}>{children}</TemplateDraftsContext.Provider>
+        }
+        const draftsWrapper = ({ children }: { children: ReactNode }) => (
+            <MemoryRouter>
+                <WorkspaceProvider>
+                    <ShortcutsProvider>
+                        <WorkspaceDataProvider>
+                            <Drafts><UndoProvider>{children}</UndoProvider></Drafts>
+                        </WorkspaceDataProvider>
+                    </ShortcutsProvider>
+                </WorkspaceProvider>
+            </MemoryRouter>
+        )
+        vi.mocked(getDBWorkspaceData).mockResolvedValue({
+            folders: [],
+            notes: [makeNote({ id: 10, name: "Open note", position: 0 }), makeNote({ id: 11, name: "Draft", position: 1 })],
+        } as never)
+        vi.mocked(getDBNoteData).mockResolvedValue(noteData() as never)
+        const hook = renderHook(() => useAll(), { wrapper: draftsWrapper })
+        await act(async () => { hook.result.current.workspace.setCurrentWorkspace(makeWorkspace({ id: 1 })) })
+        await act(() => hook.result.current.data.getWorkspaceData(1))
+        await act(async () => { hook.result.current.tabs.openNote(10) })
+        await waitFor(() => expect(taskIds(hook.result)).toEqual([30]))
+        return { ...hook, setDrafts: (drafts: TemplateDraft[]) => act(() => control.setDrafts(drafts)) }
+    }
+
+    it("undoes a change done in a draft only with the draft active, and a normal one from anywhere", async () => {
+        const { result } = await setupWithDrafts()
+        const normal = command("normal")
+        const inDraft = command("in draft")
+        act(() => result.current.recorder.record(normal))
+        await act(async () => { result.current.tabs.openNote(11) })
+        act(() => result.current.recorder.record(inDraft))
+
+        // Another note is active: the draft change is blocked and stays in the history
+        await act(async () => { result.current.tabs.openNote(10) })
+        await act(() => result.current.undo.undo())
+        expect(inDraft.undo).not.toHaveBeenCalled()
+        expect(toast.info).toHaveBeenCalledWith(expect.stringContaining("template"), expect.anything())
+        expect(result.current.undo.canUndo).toBe(true)
+
+        await act(async () => { result.current.tabs.openNote(11) })
+        await act(() => result.current.undo.undo())
+        expect(inDraft.undo).toHaveBeenCalledTimes(1)
+
+        // The normal change is undone while the draft is active
+        await act(() => result.current.undo.undo())
+        expect(normal.undo).toHaveBeenCalledTimes(1)
+    })
+
+    it("drops the actions of a draft from both stacks when the draft goes away", async () => {
+        const { result, setDrafts } = await setupWithDrafts()
+        await act(async () => { result.current.tabs.openNote(11) })
+        act(() => result.current.recorder.record(command("a")))
+        act(() => result.current.recorder.record(command("b")))
+        await act(() => result.current.undo.undo())
+        expect(result.current.undo).toMatchObject({ canUndo: true, canRedo: true })
+
+        await setDrafts([])
+        expect(result.current.undo).toMatchObject({ canUndo: false, canRedo: false })
     })
 })

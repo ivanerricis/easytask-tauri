@@ -9,7 +9,7 @@ Il contenuto di una nota è organizzato su tre livelli. Una nota contiene dei **
 
 ### Aggiungerli
 
-- Fai clic su **Nuovo gruppo**, oppure premi `Alt+N`, scrivi un nome e premi `Invio`. `Esc` chiude il campo.
+- Fai clic sul pulsante **+** (**Nuovo gruppo**), il primo a sinistra dei pulsanti nella barra sopra la nota, oppure premi `Alt+N`: si apre un campo in fondo ai gruppi. Scrivi un nome e premi `Invio`. `Esc` chiude il campo.
 - Dentro un gruppo apri il suo menu (il pulsante del menu del gruppo, o il clic destro sull'intestazione), scegli **Nuova sezione**, scrivi un titolo e premi `Invio`. Il campo si apre in fondo al gruppo.
 
 Il nome è facoltativo: premi `Invio` su un campo vuoto e il gruppo o la sezione viene creato senza nome. EasyTask mostra allora **Gruppo 1**, **Gruppo 2**… o **Sezione senza titolo** in grigio. Puoi nascondere queste etichette con **Impostazioni > Note e sezioni > Mostra il nome dei gruppi e delle sezioni senza nome**.
@@ -65,6 +65,19 @@ I task di un gruppo contano nella barra di avanzamento e nel numero di task del 
 
 I nuovi task vanno in fondo alla sezione. Per metterli in cima scegli **In cima** in **Impostazioni > Note e sezioni > Posizione dei nuovi task**.
 
+### Inserire un task tra due altri
+
+Passa il mouse tra due task (di una sezione, di un gruppo, o due sottotask): compare una linea sottile con un **+** al centro. Fai clic sul **+** e proprio lì si apre un campo. Scrivi il testo e premi `Invio` per inserire il task in quel punto; `Esc` chiude il campo e scarta il testo. La linea c'è anche sopra il primo task, per inserire prima di lui.
+
+![La linea per inserire un task](../../screenshots/it/task-insert-field-light.png)
+
+- È aperto un solo campo alla volta: facendo clic su un altro **+** il campo si sposta.
+- Con **Continua ad aggiungere task** attivo il campo si sposta sotto il nuovo task, così puoi continuare a inserire in ordine; se è disattivato si chiude dopo ogni task.
+- Quando i task completati sono nascosti, la linea sopra il primo task visibile inserisce prima di lui e i nascosti restano dove sono.
+- La linea funziona solo con il mouse e non compare durante un trascinamento o con più task selezionati.
+- Ogni inserimento è un unico passo nella [cronologia di annulla](./undo-and-history.md).
+- Puoi disattivare le linee da **Impostazioni > Note e sezioni > Linea per inserire un task**.
+
 ### Aggiungere un sottotask
 
 Passa il mouse su un task e fai clic su **Aggiungi sottotask**, oppure scegli la voce dal menu del task. Scrivi il testo e premi `Invio`: il campo resta aperto per il sottotask successivo. `Esc` lo chiude. I sottotask possono avere altri sottotask, senza limiti. Il task mostra quanti sottotask sono completati (per esempio `1/3`) se **Mostra sottotask completati** è attivo.
@@ -106,11 +119,27 @@ Trascina un task dalla sua riga. Rilascialo:
 
 **Sposta su**, **Sposta giù** e **Sposta in…** nel menu fanno lo stesso senza trascinare.
 
+### Usare la tastiera
+
+Ogni lista di task è un albero per la tastiera e per gli screen reader: `Tab` entra nella lista su un solo task (l'ultimo che ha avuto il focus, o il primo) e il `Tab` successivo ne esce, così non devi attraversare ogni task. Dentro la lista:
+
+![L'anello di focus su un task](../../screenshots/it/task-keyboard-light.png)
+
+- `↑` e `↓` vanno al task visibile precedente e successivo, `Home` e `End` al primo e all'ultimo. Le frecce non escono dalla sezione.
+- `→` apre i sottotask di un task (se sono chiusi) e poi va al primo; `←` li chiude e poi va al task padre.
+- `Spazio` completa o riapre il task, `Invio` ne modifica il testo, `Shift+F10` (o il tasto menu) apre il suo menu.
+- `Alt+↑` e `Alt+↓` spostano il task di un passo tra i fratelli, come **Sposta su** e **Sposta giù** del menu. Il focus resta sul task e uno screen reader annuncia "Spostato in posizione N di M" (o che non si può spostare oltre).
+
+Il task che prende il focus diventa anche quello selezionato, come quando lo clicchi. Quando elimini, archivi o sposti altrove il task con il focus, il focus passa al task successivo (o al precedente) per poter continuare. La selezione da tastiera non è ancora disponibile. Tutti i tasti sono elencati in [Scorciatoie da tastiera](./shortcuts.md#task-da-tastiera).
 ### Selezionare più task
 
 Tieni premuto **Ctrl** (**Cmd** su macOS) e clicca per aggiungere un task alla selezione o toglierlo. Clicca un task con **Maiusc** per selezionare tutti i task visibili tra l'ultimo cliccato e questo, anche tra sezioni e gruppi. **Esc** annulla la selezione, come un normale clic.
 
 Fai clic destro su un task selezionato (o apri il suo menu) per agire su tutti insieme: **Elimina**, **Archivia**, **Colora** e **Sposta in…** (in fondo a una sezione, o tra i task diretti di un gruppo). Un task selezionato vale anche per i suoi sottotask, che vengono eliminati, archiviati e spostati con lui. Ogni azione è un solo passo nella [cronologia di annullamento](./undo-and-history.md). Il trascinamento sposta sempre un task alla volta.
+
+I task selezionati hanno un contorno tratteggiato (oltre alla tinta) e gli screen reader li annunciano come "selezionato"; con due o più task selezionati, in basso nella nota compare un contatore, ad esempio "3 selezionati".
+
+![Task selezionati con il contorno tratteggiato e il contatore](../../screenshots/it/task-selection-light.png)
 
 ## Cercare in una nota
 

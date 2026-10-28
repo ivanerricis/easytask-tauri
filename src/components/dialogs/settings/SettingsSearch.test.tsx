@@ -49,6 +49,7 @@ vi.mock("@/contexts/use-preferences", () => ({
         taskBackground: true, setTaskBackground: vi.fn(),
         renameOnClick: true, setRenameOnClick: (value: boolean) => setRenameOnClick(value),
         keepAddingTasks: true, setKeepAddingTasks: vi.fn(),
+        showTaskInsertLine: true, setShowTaskInsertLine: vi.fn(),
         undoLimit: 50, setUndoLimit: vi.fn(),
         hideCompletedTasks: false, setHideCompletedTasks: (value: boolean) => setHideCompletedTasks(value),
         reopenNotes: true, setReopenNotes: vi.fn(),
@@ -103,6 +104,13 @@ describe("settings search", () => {
         await user.clear(searchBox())
         await search(user, "rinomina CLICCANDO")
         expect(screen.getByText("Rinomina cliccando sul nome")).toBeInTheDocument()
+    })
+
+    it("shows no category as current while searching", async () => {
+        const user = await open()
+        expect(screen.getAllByRole("tab").some(tab => tab.getAttribute("aria-selected") === "true")).toBe(true)
+        await search(user, "task")
+        expect(screen.getAllByRole("tab").every(tab => tab.getAttribute("aria-selected") === "false")).toBe(true)
     })
 
     it("shows all the rows of a panel when its title matches", async () => {

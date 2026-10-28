@@ -1,5 +1,5 @@
 import { MenuItem, MenuShortcut } from "@/components/menu-kind"
-import { Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, Info, Link2, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2, Upload, Zap, ListCollapse, ListChevronsUpDown, Eye, EyeOff, Columns3, Rows3 } from "lucide-react"
+import { Archive, ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Copy, Download, FilePlus, FileText, FileX, FolderInput, FolderPlus, Info, Link2, LayoutTemplate, ListPlus, Music, OctagonAlert, OctagonX, PaintBucket, Palette, Pen, SquareArrowOutUpRight, Trash2, Upload, Zap, ListCollapse, ListChevronsUpDown, Eye, EyeOff, Columns3, Rows3, X } from "lucide-react"
 import React from "react"
 
 type ButtonInPopoverProps = {
@@ -49,6 +49,7 @@ const iconMap = {
     hideCompleted: EyeOff,
     showCompleted: Eye,
     addSection: Rows3,
+    close: X,
 } satisfies Record<string, React.ElementType>
 
 export type ButtonInPopoverIcon = keyof typeof iconMap

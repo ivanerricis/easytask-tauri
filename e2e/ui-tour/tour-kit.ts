@@ -41,7 +41,7 @@ const languageRadio = (label: string) => $(`//*[@role='radiogroup']//*[@role='ra
 export const applyAppearance = async (nextTheme: Theme, nextLang: Lang) => {
     await openSettings()
     await goCategory("appearance")
-    await $(`//button[@aria-label='${await tr("settings.appearance.theme.toggle")}']`).click()
+    await $(`//button[starts-with(@aria-label, '${await tr("settings.appearance.theme.toggle")}:')]`).click()
     const item = $(`//*[@role='menuitemradio'][normalize-space()='${await tr(`settings.appearance.theme.${nextTheme}`)}']`)
     await item.waitForDisplayed()
     await item.click()
@@ -199,14 +199,8 @@ export const addSubtask = async (parent: string, text: string) => {
     await settle(300)
 }
 
-const lastByText = async (text: string) => {
-    const all = Array.from(await $$(`//button[normalize-space()=${JSON.stringify(text)}]`))
-    if (all.length === 0) throw new Error(`no button "${text}"`)
-    return all[all.length - 1]
-}
-
 export const addGroup = async (name: string) => {
-    await (await lastByText(await tr("menu.newGroup"))).click()
+    await byLabel(await tr("menu.newGroup")).click()
     await typeInto(byLabel(await tr("groups.nameLabel")), name)
     await browser.keys("Enter")
     await byText(name).waitForDisplayed({ timeoutMsg: `group ${name} not created` })

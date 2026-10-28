@@ -108,6 +108,23 @@ describe("TabsProvider", () => {
             expect(latest.current.activeId).toBe(1)
         })
 
+        it("reports restored once the saved tabs have been read, also when the preference is off", async () => {
+            let release!: (tabs: { openIds: number[], activeId: number | null }) => void
+            vi.mocked(getWorkspaceTabs).mockReturnValue(new Promise(resolve => { release = resolve }))
+            const { latest, update } = harness({ notes: notesOf(1, 2), workspaceId: 7 })
+            expect(latest.current.restored).toBe(false)
+
+            await act(async () => { release({ openIds: [1], activeId: 1 }) })
+            await waitFor(() => expect(latest.current.restored).toBe(true))
+            expect(latest.current.openIds).toEqual([1])
+
+            // Another workspace starts again from not restored
+            vi.mocked(getReopenNotes).mockResolvedValue(false)
+            update({ notes: notesOf(1, 2), workspaceId: 8 })
+            expect(latest.current.restored).toBe(false)
+            await waitFor(() => expect(latest.current.restored).toBe(true))
+        })
+
         it("falls back to the first tab when the saved active note no longer exists", async () => {
             vi.mocked(getWorkspaceTabs).mockResolvedValue({ openIds: [2, 3], activeId: 99 })
             const { latest } = harness({ notes: notesOf(1, 2, 3), workspaceId: 7 })

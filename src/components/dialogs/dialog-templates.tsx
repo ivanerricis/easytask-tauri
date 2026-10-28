@@ -1,16 +1,18 @@
 import { useTranslation } from "react-i18next"
 import { useCallback, useEffect, useId, useRef, useState } from "react"
-import { FilePlus, LayoutTemplate, Pencil, Plus, FileInput, Trash2 } from "lucide-react"
+import { Copy, FilePlus, LayoutTemplate, MoreHorizontal, Pencil, Plus, FileInput, SquarePen, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { FormError } from "@/components/form-error"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { ItemRow, ListError, ListSkeleton } from "./item-list-parts"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { useTemplateDraftActions, useTemplateDrafts } from "@/contexts/use-template-drafts"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { DialogNoteFromTemplate } from "@/components/dialogs/dialog-note-from-template"
@@ -32,15 +34,18 @@ type DialogTemplatesProps = {
 }
 
 /**
- * Templates of the current workspace: create a template from one of the notes, create a note from a template, rename,
- * refresh from the source note, delete (soft delete: the template goes to the trash).
+ * Templates of the current workspace: create a template from one of the notes, create a note from a template, edit it
+ * (in a tab), rename, duplicate, refresh from the source note or from another note, delete (soft delete: the template
+ * goes to the trash).
  * @category Dialogs
  */
 export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) => {
     const { t } = useTranslation()
     const reasonId = useId()
     const { currentWorkspace } = useWorkspace()
-    const { getTemplates, updateTemplateFromNote } = useWorkspaceActions()
+    const { getTemplates, updateTemplateFromNote, duplicateTemplate } = useWorkspaceActions()
+    const drafts = useTemplateDrafts()
+    const { openTemplateEditor, flushTemplate, refreshDrafts } = useTemplateDraftActions()
     const workspaceID = currentWorkspace?.id
     const allNotes = useAllNotes()
 
@@ -51,12 +56,16 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     const [creating, setCreating] = useState<NoteTemplate | null>(null)
     const [renaming, setRenaming] = useState<NoteTemplate | null>(null)
     const [deleting, setDeleting] = useState<NoteTemplate | null>(null)
-    const [refreshing, setRefreshing] = useState<NoteTemplate | null>(null)
+    // The template being refreshed; `note` is the other note chosen as the source (none = its source note)
+    const [refreshing, setRefreshing] = useState<{ template: NoteTemplate, note?: { id: number, name: string } } | null>(null)
+    // Choosing the other note to refresh a template from
+    const [pickingFor, setPickingFor] = useState<NoteTemplate | null>(null)
     // Creating a template here: first the note is chosen, then the template gets its name
     const [picking, setPicking] = useState(false)
     const [source, setSource] = useState<{ id: number, name: string } | null>(null)
     const getTemplatesRef = useRef(getTemplates)
-    useEffect(() => { getTemplatesRef.current = getTemplates })
+    const refreshDraftsRef = useRef(refreshDrafts)
+    useEffect(() => { getTemplatesRef.current = getTemplates; refreshDraftsRef.current = refreshDrafts })
 
     // Error of an action (shown under the list) and error of the load (shown instead of the list)
     const [error, setError] = useState<string | null>(null)
@@ -67,6 +76,8 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
         try {
             setTemplates(await getTemplatesRef.current(workspaceID))
             setLoadError(null)
+            // A renamed template renames the tab of its editor
+            void refreshDraftsRef.current()
         } catch (err) {
             setLoadError(getErrorMessage(err))
         }
@@ -79,14 +90,50 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     }, [isOpen, reload])
     const isLoading = isOpen && !loaded
 
-    const handleRefresh = async () => {
-        const template = refreshing
-        setRefreshing(null)
-        if (!template) return
+    // The template is saved first, so what the user sees in the list is what the action works on
+    const saved = async (template: NoteTemplate) => {
+        if (await flushTemplate(template.id)) return true
+        setError(t("templateEditor.saveError"))
+        return false
+    }
+
+    const handleEdit = async (template: NoteTemplate) => {
         setError(null)
         await run(async () => {
             try {
-                await updateTemplateFromNote(template.id)
+                await openTemplateEditor(template)
+                onOpenChange(false)
+            } catch (err) {
+                setError(getErrorMessage(err))
+            }
+        })
+    }
+
+    const handleDuplicate = async (template: NoteTemplate) => {
+        setError(null)
+        await run(async () => {
+            try {
+                if (!await saved(template)) return
+                await duplicateTemplate(template.id)
+                toast.success(t("templateEditor.duplicated"))
+            } catch (err) {
+                setError(getErrorMessage(err))
+            } finally {
+                await reload()
+            }
+        })
+    }
+
+    const handleRefresh = async () => {
+        const target = refreshing
+        setRefreshing(null)
+        if (!target) return
+        const { template, note } = target
+        setError(null)
+        await run(async () => {
+            try {
+                if (note) await updateTemplateFromNote(template.id, note.id)
+                else await updateTemplateFromNote(template.id)
                 toast.success(t("dialogs.templates.updated"))
             } catch (err) {
                 setError(getErrorMessage(err))
@@ -131,6 +178,9 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                         ) : (
                             visible.map(template => {
                                 const counts = countTemplateContent(template.content)
+                                // While its editor is open the content of the template changes by itself: no refresh from a note
+                                const editing = drafts.some(draft => draft.templateId === template.id)
+                                const refreshReason = editing ? t("templateEditor.refreshBlocked") : template.sourceNoteName === null ? t("dialogs.templates.sourceMissing") : null
                                 return (
                                     <ItemRow
                                         key={template.id}
@@ -151,9 +201,20 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                                                 size="icon"
                                                 aria-label={t("dialogs.templates.createNoteFrom", { name: template.name })}
                                                 disabled={busy}
-                                                onClick={() => setCreating(template)}
+                                                onClick={() => { void saved(template).then(ok => { if (ok) setCreating(template) }) }}
                                             >
                                                 <FilePlus />
+                                            </Button>
+                                        </TooltipCustom>
+                                        <TooltipCustom text={t("templateEditor.edit")}>
+                                            <Button
+                                                variant="outline"
+                                                size="icon"
+                                                aria-label={t("templateEditor.editAria", { name: template.name })}
+                                                disabled={busy}
+                                                onClick={() => void handleEdit(template)}
+                                            >
+                                                <SquarePen />
                                             </Button>
                                         </TooltipCustom>
                                         <TooltipCustom text={t("common.rename")}>
@@ -167,25 +228,49 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                                                 <Pencil />
                                             </Button>
                                         </TooltipCustom>
-                                        <TooltipCustom text={template.sourceNoteName !== null ? t("dialogs.templates.refreshTooltip") : t("dialogs.templates.sourceMissing")}>
+                                        <TooltipCustom text={refreshReason ?? t("dialogs.templates.refreshTooltip")}>
                                             {/* A disabled button gets no pointer events: the span keeps the tooltip working */}
                                             <span>
                                                 <Button
                                                     variant="outline"
                                                     size="icon"
                                                     aria-label={t("dialogs.templates.refreshAria", { name: template.name })}
-                                                    aria-describedby={template.sourceNoteName === null ? `${reasonId}-source-${template.id}` : undefined}
-                                                    aria-disabled={template.sourceNoteName === null || undefined}
+                                                    aria-describedby={refreshReason !== null ? `${reasonId}-source-${template.id}` : undefined}
+                                                    aria-disabled={refreshReason !== null || undefined}
                                                     disabled={busy}
                                                     className="aria-disabled:opacity-50 aria-disabled:pointer-events-none"
-                                                    onClick={() => { if (template.sourceNoteName !== null) setRefreshing(template) }}
+                                                    onClick={() => { if (refreshReason === null) setRefreshing({ template }) }}
                                                 >
                                                     <FileInput />
                                                 </Button>
                                                 {/* aria-disabled, not disabled: the button stays focusable and the reason is read aloud */}
-                                                {template.sourceNoteName === null && <span id={`${reasonId}-source-${template.id}`} className="sr-only">{t("dialogs.templates.sourceMissing")}</span>}
+                                                {refreshReason !== null && <span id={`${reasonId}-source-${template.id}`} className="sr-only">{refreshReason}</span>}
                                             </span>
                                         </TooltipCustom>
+                                        <DropdownMenu>
+                                            <TooltipCustom text={t("templateEditor.moreTooltip")}>
+                                                <DropdownMenuTrigger asChild>
+                                                    <Button
+                                                        variant="outline"
+                                                        size="icon"
+                                                        aria-label={t("templateEditor.moreAria", { name: template.name })}
+                                                        disabled={busy}
+                                                    >
+                                                        <MoreHorizontal />
+                                                    </Button>
+                                                </DropdownMenuTrigger>
+                                            </TooltipCustom>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuItem onSelect={() => void handleDuplicate(template)}>
+                                                    <Copy />
+                                                    {t("templateEditor.duplicate")}
+                                                </DropdownMenuItem>
+                                                <DropdownMenuItem disabled={editing} onSelect={() => setPickingFor(template)}>
+                                                    <FileInput />
+                                                    {t("templateEditor.refreshFromOther")}
+                                                </DropdownMenuItem>
+                                            </DropdownMenuContent>
+                                        </DropdownMenu>
                                         <span aria-hidden className="mx-0.5 w-px self-stretch bg-border" />
                                         <TooltipCustom text={t("common.delete")}>
                                             <Button
@@ -239,6 +324,14 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                 description={t("dialogs.templates.pickNote.description")}
                 placeholder={t("dialogs.templates.pickNote.placeholder")}
             />
+            <DialogPickNote
+                isOpen={pickingFor !== null}
+                onOpenChange={open => { if (!open) setPickingFor(null) }}
+                onPick={note => { if (pickingFor) setRefreshing({ template: pickingFor, note }) }}
+                title={t("templateEditor.pickOther.title")}
+                description={t("templateEditor.pickOther.description")}
+                placeholder={t("templateEditor.pickOther.placeholder")}
+            />
             {source && (
                 <DialogCreateTemplate
                     key={source.id}
@@ -285,7 +378,9 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                 destructive
                 initialFocus="cancel"
                 title={t("dialogs.templates.refreshTitle")}
-                description={t("dialogs.templates.refreshDescription", { name: refreshing?.name, note: refreshing?.sourceNoteName })}
+                description={refreshing?.note
+                    ? t("templateEditor.refreshOtherDescription", { name: refreshing.template.name, note: refreshing.note.name })
+                    : t("dialogs.templates.refreshDescription", { name: refreshing?.template.name, note: refreshing?.template.sourceNoteName })}
                 confirm={{ label: t("dialogs.templates.overwrite"), icon: FileInput, onClick: handleRefresh }}
             />
         </>

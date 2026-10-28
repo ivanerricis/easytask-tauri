@@ -21,6 +21,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { reportError } from "@/lib/report-error";
 import { LazyMount } from "@/components/lazy-mount";
 import { useActiveNoteId } from "@/contexts/use-tabs";
+import { useIsActiveDraft } from "@/contexts/use-template-drafts";
 
 const DialogAutomations = lazyWithPreload(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
 preloadWhenIdle(DialogAutomations)
@@ -40,6 +41,7 @@ export const ButtonMenuGroup = ({ group, onRename, onAddSection, children }: Pro
     const [isDeleteOpen, setDeleteOpen] = useState(false)
     const [isAutomationsOpen, setAutomationsOpen] = useState(false)
     const noteId = useActiveNoteId()
+    const isDraft = useIsActiveDraft()
     const menu = useItemMenuState()
     // Both actions take the focus (an input), so each waits for the menu to give it back, or Radix would steal it again
     const { requestRename, onCloseAutoFocus: renameAfterClose } = useRenameAfterClose(onRename)
@@ -78,14 +80,14 @@ export const ButtonMenuGroup = ({ group, onRename, onAddSection, children }: Pro
     // Groups, apart by a separator: add, edit, move, the rest, delete (the same order in the menus of sections and tasks)
     const items = (
         <MenuGroup className="flex flex-col gap-1">
-            <ButtonInPopover
+            {!isDraft && <ButtonInPopover
                 text={t("audio.add")}
                 type="addAudio"
                 onClick={() => {
                     menu.close()
                     void addFiles(group.id)
                 }}
-            />
+            />}
             {onAddSection && <ButtonInPopover
                 text={t("sections.new")}
                 type="addSection"
@@ -113,8 +115,8 @@ export const ButtonMenuGroup = ({ group, onRename, onAddSection, children }: Pro
             />
             <Separator />
             <GroupStepMoves groupId={group.id} onDone={menu.close} />
-            <Separator />
-            {noteId !== null && <ButtonInPopover
+            {!isDraft && <Separator />}
+            {noteId !== null && !isDraft && <ButtonInPopover
                 text={t("automations.menu")}
                 type="automations"
                 onClick={() => {
@@ -122,11 +124,11 @@ export const ButtonMenuGroup = ({ group, onRename, onAddSection, children }: Pro
                     menu.close()
                 }}
             />}
-            <ButtonInPopover
+            {!isDraft && <ButtonInPopover
                 text={t("menu.archive")}
                 type="archive"
                 onClick={handleArchive}
-            />
+            />}
             <Separator />
             <ButtonInPopover
                 text={t("common.delete")}
@@ -142,7 +144,7 @@ export const ButtonMenuGroup = ({ group, onRename, onAddSection, children }: Pro
 
     const dialogs = (
         <>
-            {noteId !== null && <LazyMount active={isAutomationsOpen}>
+            {noteId !== null && !isDraft && <LazyMount active={isAutomationsOpen}>
                 <DialogAutomations
                     noteId={noteId}
                     groupId={group.id}

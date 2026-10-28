@@ -86,8 +86,9 @@ export async function deleteDBItem(itemType: DBItemType, itemID: number) {
 
     try {
         // The default section of a group is hidden and goes away only with its group
-        const notDefault = itemType === "section" ? " AND is_default = 0" : ""
-        await db.execute(`UPDATE ${itemType} ${SOFT_DELETE} WHERE id=? AND deleted_at IS NULL${notDefault}`, [itemID])
+        // The working copy of a template (a note with a templateID) is deleted with the editor, never sent to the trash
+        const guard = itemType === "section" ? " AND is_default = 0" : itemType === "note" ? " AND templateID IS NULL" : ""
+        await db.execute(`UPDATE ${itemType} ${SOFT_DELETE} WHERE id=? AND deleted_at IS NULL${guard}`, [itemID])
     } catch (error: unknown) {
         throw createError(`${itemType.toUpperCase()}_DELETE_FAILED`, i18n.t("errors.item.delete", { message: getErrorMessage(error) }))
     }

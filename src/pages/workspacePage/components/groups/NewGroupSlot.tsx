@@ -38,7 +38,7 @@ type NewGroupEndProps = {
 }
 
 /**
- * Column at the end of the groups (holding the "Nuovo gruppo" button): a section dropped on it
+ * Column at the end of the groups (holding the form of the new group): a section dropped on it
  * becomes a new last group. While a section is dragged the button is hidden and the column itself is the dashed drop area.
  * @category Note DnD
  */
@@ -52,12 +52,12 @@ export const NewGroupEnd = ({ index, children }: NewGroupEndProps) => {
             ref={setNodeRef}
             className={cn(
                 "relative flex h-full min-w-44 flex-col rounded-xs",
-                // The button inside is hidden while dragging: the dashed rectangle is the column, as big as the drop area
-                dragging && "border border-dashed border-primary/50 [&>:first-child]:invisible",
+                // The form inside is hidden while dragging: the dashed rectangle is the column, as big as the drop area
+                dragging && "border border-dashed border-primary/50",
                 dragging && zone && "border-solid bg-primary/10 ring-2 ring-primary",
             )}
         >
-            {children}
+            <div className={cn(dragging && "invisible")}>{children}</div>
             {dragging &&
                 <span className="pointer-events-none absolute inset-x-0 top-1/2 text-center text-xs text-muted-foreground">
                     {t("menu.newGroup")}

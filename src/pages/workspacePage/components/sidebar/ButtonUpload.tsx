@@ -3,6 +3,7 @@ import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import { useActiveNote } from "@/contexts/use-active-note"
 import { useAudioActions } from "@/contexts/use-audio"
+import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import { Music } from "lucide-react"
 
 /**
@@ -14,6 +15,8 @@ export const ButtonUpload = () => {
     const { noteDataTree } = useActiveNote()
     const { addFiles } = useAudioActions()
     const firstGroup = noteDataTree?.groups[0]
+    // A template draft has no audio
+    if (useIsActiveDraft()) return null
 
     return (
         <TooltipCustom text={t("sidebar.addAudioFirstGroup")}>

@@ -13,12 +13,12 @@ vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => n
 vi.mock("../rightbar/use-right-panel", () => ({ useShowAudioInfo: () => null }))
 
 describe("GroupAudioFiles", () => {
-    it("has a maximum height and scrolls inside, so many files do not push the sections out of the group", () => {
+    it("shows every file and never scrolls by itself", () => {
         render(<GroupAudioFiles groupId={1} />)
         const list = screen.getByRole("list")
         const classes = list.className.split(/\s+/)
-        expect(classes).toContain("max-h-32")
-        expect(classes).toContain("overflow-y-auto")
+        expect(classes).not.toContain("overflow-y-auto")
+        expect(classes.some(token => token.startsWith("max-h-"))).toBe(false)
         expect(screen.getAllByRole("listitem")).toHaveLength(12)
     })
 })

@@ -7,6 +7,8 @@ import { TabsProvider } from "@/contexts/tabs-context"
 import { useTabsActions } from "@/contexts/use-tabs"
 import { makeNote } from "@/test/ui-fixtures"
 import { NoteHeader } from "./NoteHeader"
+import { TemplateDraftsContext } from "@/contexts/template-drafts-context-object"
+vi.mock("../template-draft/DraftTabMenu", () => ({ DraftTabMenu: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 
 // The rename field needs the workspace data; the rows are tested without it
 vi.mock("@/hooks/use-inline-rename", () => ({
@@ -99,5 +101,32 @@ describe("NoteHeader tab semantics", () => {
         const tab = screen.getByRole("tab", { name: long })
         expect(tab).toHaveAttribute("title", long)
         expect(screen.getByText(long).className).toContain("truncate")
+    })
+})
+
+describe("NoteHeader of a template editor", () => {
+    it("shows the Template badge and the template name; a normal tab stays plain", async () => {
+        const draftNote = makeNote({ id: 7, name: "bozza interna" })
+        render(
+            <ShortcutsProvider>
+                <TabsProvider notes={[...notes, draftNote]} workspaceId={null}>
+                    <TemplateDraftsContext.Provider value={{ drafts: [{ noteId: 7, templateId: 3, templateName: "Sprint", color: null, trashed: false }] }}>
+                        <NoteHeader note={notes[0]} />
+                        <NoteHeader note={draftNote} />
+                    </TemplateDraftsContext.Provider>
+                </TabsProvider>
+            </ShortcutsProvider>,
+        )
+        await act(async () => { })
+
+        const draftTab = screen.getByRole("tab", { name: /Sprint/ })
+        expect(draftTab).toHaveAttribute("title", "Template: Sprint")
+        expect(draftTab).toHaveTextContent("Template")
+        expect(draftTab).toHaveAttribute("data-note-id", "7")
+        expect(screen.queryByText("bozza interna")).not.toBeInTheDocument()
+
+        const plain = screen.getByRole("tab", { name: "Uno" })
+        expect(plain).toHaveAttribute("title", "Uno")
+        expect(plain).not.toHaveTextContent("Template")
     })
 })

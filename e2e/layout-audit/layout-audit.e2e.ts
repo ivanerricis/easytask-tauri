@@ -743,8 +743,7 @@ describe("Layout audit", () => {
             })
             await state("note-add-group-input", async () => {
                 await noteBase()
-                const all = Array.from(await $$(`//button[normalize-space()=${xp(await tr("menu.newGroup"))}]`))
-                await all[all.length - 1].click()
+                await byLabel(await tr("menu.newGroup")).click()
                 await settle(300)
             })
             await state("note-add-section-input", async () => {

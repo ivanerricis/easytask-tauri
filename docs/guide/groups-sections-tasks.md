@@ -9,7 +9,7 @@ The content of a note is organized in three levels. A note holds **groups**, sho
 
 ### Add them
 
-- Click **New group**, or press `Alt+N`, type a name and press `Enter`. `Esc` closes the field.
+- Click the **+** button (**New group**) at the left of the buttons in the bar above the note, or press `Alt+N`: a field opens at the end of the groups. Type a name and press `Enter`. `Esc` closes the field.
 - Inside a group, open its menu (the menu button of the group, or a right-click on its header), choose **New section**, type a title and press `Enter`. The field opens at the end of the group.
 
 The name is optional: press `Enter` on an empty field and the group or section is created without a name. EasyTask then shows **Group 1**, **Group 2**… or **Untitled section** in muted text. You can hide those labels with **Settings > Notes and sections > Show names of unnamed groups and sections**.
@@ -65,6 +65,19 @@ Tasks of a group count in its progress bar and in its task count. Drag one into 
 
 New tasks go to the end of the section. To put them at the top, choose **At the top** in **Settings > Notes and sections > Position of new tasks**.
 
+### Insert a task between two others
+
+Move the mouse between two tasks (of a section, of a group, or two subtasks): a thin line with a **+** in the middle appears. Click the **+** and a field opens right there. Type the text and press `Enter` to insert the task at that point; `Esc` closes the field and discards the text. The line also sits above the first task, to insert before it.
+
+![The line to insert a task](../screenshots/en/task-insert-field-light.png)
+
+- Only one field is open at a time: clicking another **+** moves it.
+- With **Keep adding tasks** on, the field moves under the new task so you can keep inserting in order; with it off, it closes after each task.
+- When completed tasks are hidden, the line above the first visible task inserts before it, and the hidden ones stay where they are.
+- The line is mouse only, and is not shown while you drag or with several tasks selected.
+- Each insert is a single step in the [undo history](./undo-and-history.md).
+- You can turn the lines off with **Settings > Notes and sections > Line to insert a task**.
+
 ### Add a subtask
 
 Point at a task and click **Add subtask**, or choose it from the task menu. Type the text and press `Enter`: the field stays open for the next subtask. `Esc` closes it. Subtasks can have their own subtasks, with no limit. The task shows how many of its subtasks are done (for example `1/3`) if **Show completed subtasks** is on.
@@ -106,11 +119,27 @@ Drag a task by its row. Drop it:
 
 **Move up**, **Move down** and **Move to…** in the menu do the same without dragging.
 
+### Use the keyboard
+
+Every list of tasks is a tree for the keyboard and for screen readers: `Tab` enters the list on a single task (the last one that had the focus, or the first) and the next `Tab` leaves it, so you do not have to cross every task. Inside the list:
+
+![The focus ring on a task](../screenshots/en/task-keyboard-light.png)
+
+- `↑` and `↓` go to the previous and next visible task, `Home` and `End` to the first and last one. The arrows do not leave the section.
+- `→` opens the subtasks of a task (if they are closed) and then goes to the first one; `←` closes them and then goes to the parent task.
+- `Space` completes or reopens the task, `Enter` edits its text, `Shift+F10` (or the menu key) opens its menu.
+- `Alt+↑` and `Alt+↓` move the task one step among its siblings, like **Move up** and **Move down** in the menu. The focus stays on the task and a screen reader announces "Moved to position N of M" (or that it cannot move any further).
+
+The task that takes the focus becomes the selected one, as when you click it. When you delete, archive or move the focused task away, the focus passes to the next task (or the previous one) so you can go on. The selection with the keyboard is not available yet. All the keys are listed in [Keyboard shortcuts](./shortcuts.md#tasks-with-the-keyboard).
 ### Select several tasks
 
 Hold **Ctrl** (**Cmd** on macOS) and click to add a task to the selection or remove it. Click a task with **Shift** to select every visible task between the last one you clicked and this one, across sections and groups. **Esc** clears the selection, and so does a plain click.
 
 Right click a selected task (or open its menu) to act on all of them at once: **Delete**, **Archive**, **Color** and **Move to…** (the end of a section, or the tasks directly in a group). A selected task stands for its subtasks too, so they are deleted, archived and moved with it. Each action is a single step in the [undo history](./undo-and-history.md). Dragging still moves one task at a time.
+
+Selected tasks get a dashed outline (not only a tint) and are announced as "selected" by screen readers; with two or more selected, a counter such as "3 selected" appears at the bottom of the note.
+
+![Selected tasks with the dashed outline and the counter](../screenshots/en/task-selection-light.png)
 
 ## Search in a note
 

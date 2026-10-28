@@ -132,6 +132,16 @@ describe("note optimistic actions", () => {
         expect(tree!.groups[0].sections[0].tasks[0].subtasks[0].subtasks[0]).toMatchObject({ id: 9, sectionID: 10, taskID: 101 })
     })
 
+    it("appendTask puts the task at the given index among all the siblings", () => {
+        const actions = createNoteOptimisticActions(store)
+        actions.appendTask(8, { sectionId: 10 }, "In mezzo", 1)
+        expect(tree!.groups[0].sections[0].tasks.map(t => t.id)).toEqual([100, 8, 102])
+        actions.appendTask(9, { sectionId: 10 }, "In cima", 0)
+        expect(tree!.groups[0].sections[0].tasks.map(t => t.id)).toEqual([9, 100, 8, 102])
+        actions.appendTask(7, { parentTaskId: 101 }, "Sub", 0)
+        expect(tree!.groups[0].sections[0].tasks[1].subtasks[0].subtasks[0]).toMatchObject({ id: 7, taskID: 101 })
+    })
+
     it("append* roll back by removing the item", () => {
         const actions = createNoteOptimisticActions(store)
         const before = tree

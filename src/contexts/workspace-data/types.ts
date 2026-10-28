@@ -67,6 +67,7 @@ export type WorkspaceActionsType = {
     createSectionInGroup: (groupId: number, title: string) => Promise<number>
     createTask: (sectionID: number, text: string, position?: NewTaskPosition) => Promise<number>
     createSubTask: (taskID: number, text: string, position?: NewTaskPosition) => Promise<number>
+    insertTaskAfter: (parent: { sectionId: number } | { parentTaskId: number }, afterTaskId: number | null, text: string) => Promise<{ id: number, index: number }>
 
     updateTaskPriority: (taskID: number, priority: boolean) => Promise<void>
     updateTaskCompletion: (taskID: number, isCompleted: boolean) => Promise<void>
@@ -114,7 +115,10 @@ export type WorkspaceActionsType = {
     getTemplates: (workspaceID: number) => Promise<NoteTemplate[]>
     countTemplates: (workspaceID: number) => Promise<number>
     createTemplateFromNote: (noteID: number, name: string) => Promise<number>
-    updateTemplateFromNote: (templateID: number) => Promise<void>
+    /** Refreshes the snapshot of a template from its source note, or from another note of the workspace (which becomes the source). */
+    updateTemplateFromNote: (templateID: number, noteID?: number) => Promise<void>
+    /** Duplicates a template; resolves with the ID of the copy. */
+    duplicateTemplate: (templateID: number) => Promise<number>
     createNoteFromTemplate: (templateID: number, workspaceID: number, folderID: number | null, name: string, color?: string | null) => Promise<number>
 
     /** Copies a note (same folder, right after it, content included) and refreshes the sidebar tree. Resolves with the id of the copy. */

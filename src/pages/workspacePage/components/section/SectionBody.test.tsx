@@ -1,10 +1,19 @@
-import { render, screen } from "@testing-library/react"
+import { useEffect } from "react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
+import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { NoteDndStoreContext, createNoteDndStore } from "../note-dnd-state"
+import { TaskInsertProvider, useTaskInsertStore } from "../tasks/task-insert-state"
 import { SectionBody } from "./SectionBody"
 import { makeSection, makeTask } from "@/test/ui-fixtures"
 
-const prefs = { hideCompletedTasks: false }
+const prefs = { hideCompletedTasks: false, showTaskInsertLine: true, taskDensity: "normal", keepAddingTasks: false }
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
+const ctx = { insertTaskAfter: vi.fn(), appendTask: vi.fn() }
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ctx }))
+vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }))
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create: vi.fn() }) }))
+vi.mock("@/hooks/use-automations", () => ({ useAutomations: () => ({ dispatch: vi.fn() }) }))
 vi.mock("../tasks/AddTask", () => ({ AddTask: () => <div>add task</div> }))
 // Shows the task and, nested, its visible subtasks (what the real Task does: it renders them itself)
 vi.mock("../tasks/Task", async () => {
@@ -90,5 +99,91 @@ describe("SectionBody collapsed", () => {
         expect(container.firstElementChild).toHaveClass("hidden")
         rerender(<SectionBody isOpen section={section} />)
         expect(container.firstElementChild).not.toHaveClass("hidden")
+    })
+})
+
+describe("SectionBody + lines", () => {
+    beforeEach(() => { prefs.hideCompletedTasks = false; vi.clearAllMocks(); ctx.insertTaskAfter.mockResolvedValue({ id: 50, index: 1 }) })
+
+    const dnd = createNoteDndStore()
+    const setup = (tasks: ReturnType<typeof makeTask>[]) => {
+        let store!: ReturnType<typeof useTaskInsertStore>
+        function Grab() {
+            const current = useTaskInsertStore()
+            useEffect(() => { store = current }, [current])
+            return null
+        }
+        render(
+            <NoteDndStoreContext.Provider value={dnd}>
+                <TaskInsertProvider><Grab /><SectionBody isOpen section={makeSection({ id: 1, tasks })} /></TaskInsertProvider>
+            </NoteDndStoreContext.Provider>,
+        )
+        return () => store
+    }
+    const plus = (index: number) => screen.getAllByTestId("task-insert-zone")[index].querySelector("button") as HTMLElement
+    const fields = () => screen.queryAllByPlaceholderText(/Nuovo task/)
+
+    it("draws a line above every task, the first included, and none under the last", () => {
+        setup([makeTask({ id: 1, text: "Uno" }), makeTask({ id: 2, text: "Due" }), makeTask({ id: 3, text: "Tre" })])
+        expect(screen.getAllByTestId("task-insert-zone")).toHaveLength(3)
+    })
+
+    it("draws no line in an empty section", () => {
+        setup([])
+        expect(screen.queryByTestId("task-insert-zone")).not.toBeInTheDocument()
+    })
+
+    it("opens the field at the top for the first line and under the task above for the others, one field at a time", () => {
+        const getStore = setup([makeTask({ id: 1, text: "Uno" }), makeTask({ id: 2, text: "Due" })])
+        fireEvent.click(plus(0))
+        expect(getStore().getState()).toEqual({ listKey: "s-1", afterTaskId: null })
+        expect(fields()).toHaveLength(1)
+        expect(fields()[0].compareDocumentPosition(screen.getByText("Uno")) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+
+        fireEvent.click(plus(1))
+        expect(getStore().getState()).toEqual({ listKey: "s-1", afterTaskId: 1 })
+        expect(fields()).toHaveLength(1)
+        expect(screen.getByText("Uno").compareDocumentPosition(fields()[0]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
+    it("hides the lines while the preference is off", () => {
+        prefs.showTaskInsertLine = false
+        setup([makeTask({ id: 1 }), makeTask({ id: 2 })])
+        expect(screen.queryByTestId("task-insert-zone")).not.toBeInTheDocument()
+        prefs.showTaskInsertLine = true
+    })
+
+    it("with the completed hidden, inserts before the first visible task and after the visible one above the others", async () => {
+        prefs.hideCompletedTasks = true
+        const user = userEvent.setup()
+        const getStore = setup([
+            makeTask({ id: 1, completed: true }), makeTask({ id: 2, text: "Due" }), makeTask({ id: 3, completed: true }), makeTask({ id: 4, text: "Quattro" }),
+        ])
+        expect(screen.getAllByTestId("task-insert-zone")).toHaveLength(2)
+
+        fireEvent.click(plus(0))
+        expect(getStore().getState()).toEqual({ listKey: "s-1", afterTaskId: 1 })
+        await user.type(fields()[0], "Prima{Enter}")
+        await waitFor(() => expect(ctx.insertTaskAfter).toHaveBeenCalledWith({ sectionId: 1 }, 1, "Prima"))
+        expect(ctx.appendTask).toHaveBeenCalledWith(50, { sectionId: 1 }, "Prima", 1)
+
+        fireEvent.click(plus(1))
+        await user.type(fields()[0], "Dopo{Enter}")
+        await waitFor(() => expect(ctx.insertTaskAfter).toHaveBeenLastCalledWith({ sectionId: 1 }, 2, "Dopo"))
+    })
+
+    it("a line at the top inserts in the first place", async () => {
+        const user = userEvent.setup()
+        setup([makeTask({ id: 1, text: "Uno" })])
+        fireEvent.click(plus(0))
+        await user.type(fields()[0], "Primo{Enter}")
+        await waitFor(() => expect(ctx.insertTaskAfter).toHaveBeenCalledWith({ sectionId: 1 }, null, "Primo"))
+    })
+
+    it("a line opened while the bottom field is open is the only field", () => {
+        const getStore = setup([makeTask({ id: 1 })])
+        act(() => getStore().claimEnd("s-1"))
+        fireEvent.click(plus(0))
+        expect(getStore().getState()).toEqual({ listKey: "s-1", afterTaskId: null })
     })
 })

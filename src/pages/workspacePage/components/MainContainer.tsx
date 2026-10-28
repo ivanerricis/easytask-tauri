@@ -1,4 +1,4 @@
-import { useEffect } from "react"
+﻿import { useEffect } from "react"
 import { CenterContainer } from "./CenterContainer"
 import { SideBarLeft } from "./sidebar/SideBarLeft"
 import { SideBarRight } from "./rightbar/SideBarRight"
@@ -10,11 +10,13 @@ import { useTranslation } from "react-i18next"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useTabShortcuts } from "@/hooks/use-tab-shortcuts"
+import { useAutoCloseSidebars } from "./use-auto-close-sidebars"
 
 export const MainContainer = () => {
     const { audioPlayerPosition, audioPlayerContainerRef, setAudioPlayerPosition, resetPlayerPosition } = usePreferences()
     const { t } = useTranslation()
     useTabShortcuts()
+    useAutoCloseSidebars()
     const accessibility = buildDndAccessibility(entry => entry.id === "audio-player" ? t("dnd.audioPlayer") : undefined, { keyboard: false })
 
     useEffect(() => {

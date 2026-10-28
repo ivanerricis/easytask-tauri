@@ -1,5 +1,6 @@
 export const common = {
     cancel: "Annulla",
+    selected: "selezionato",
     delete: "Elimina",
     save: "Salva",
     rename: "Rinomina",
@@ -61,7 +62,7 @@ export const dnd = {
     unknownItem: "elemento",
     instructions: {
         keyboard: "Per spostare l'elemento premi Spazio, poi usa le frecce per scegliere la posizione e premi di nuovo Spazio per rilasciarlo. Premi Esc per annullare.",
-        pointer: "Trascina l'elemento con il mouse, oppure usa il menu \"Sposta in…\" per spostarlo con la tastiera.",
+        pointer: "Trascina l'elemento con il mouse, oppure usa il menu \"Sposta in…\" per spostarlo con la tastiera (per un task anche Alt+Su o Alt+Giù).",
     },
     start: "Hai sollevato {{name}}.",
     over: "{{name}} è sopra {{target}}.",

@@ -1,7 +1,7 @@
 import { createAudioFileIndexes, createTableAudioFile } from "./audio_file";
 import { automationSchema } from "./automation";
 import { addFolderArchivedAt, createFolderIndexes, createFolderTable, createFolderTrigger } from "./folder";
-import { addNoteArchivedAt, createNoteIndexes, createNoteTable, createNoteTrigger } from "./note";
+import { addNoteArchivedAt, addNoteTemplateDraft, createNoteIndexes, createNoteTable, createNoteTrigger } from "./note";
 import { createNoteTemplateIndexes, createNoteTemplateTable, createNoteTemplateTrigger } from "./note_template";
 import { addSectionArchivedAt, addSectionDefaultFlag, addSectionSharedOrder, makeSectionTitleOptional, createSectionIndexes, createSectionTable, createSectionTrigger } from "./section";
 import { addCollapsedColumns } from "./collapsed";
@@ -90,10 +90,17 @@ export const sectionOrderSchema: string[] = [...addSectionSharedOrder]
 export const collapsedSchema: string[] = [...addCollapsedColumns]
 
 /**
+ * Migration v11: the working copy (draft) of a template while it is edited, a note with no workspace (
+ote.templateID).
+ * @category Database Schema
+ */
+export const templateDraftSchema: string[] = [...addNoteTemplateDraft]
+
+/**
  * The whole schema at the latest version (initial schema plus every additive migration), as statements.
  * Used by the tests to build a database in one go: the app itself goes through the migrations in initDb.
  * @category Database Schema
  */
 export const latestSchema: string[] = [
-    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema, ...groupStructureSchema, ...sectionOrderSchema, ...collapsedSchema,
+    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema, ...groupStructureSchema, ...sectionOrderSchema, ...collapsedSchema, ...templateDraftSchema,
 ]

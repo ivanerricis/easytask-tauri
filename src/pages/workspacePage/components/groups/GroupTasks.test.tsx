@@ -15,7 +15,7 @@ vi.mock("../tasks/AddTask", () => ({
     AddTask: ({ sectionId, inGroup }: { sectionId: number, inGroup?: boolean }) => <button>nuovo task {sectionId} {String(inGroup)}</button>,
 }))
 vi.mock("../tasks/TaskList", () => ({
-    TaskList: ({ tasks }: { tasks: Task[] }) => <>{tasks.map(task => <div key={task.id}>{task.text}</div>)}</>,
+    TaskList: ({ tasks, listKey, sectionId }: { tasks: Task[], listKey: string, sectionId: number }) => <>{tasks.map(task => <div key={task.id} data-list={listKey} data-section={sectionId}>{task.text}</div>)}</>,
 }))
 
 const refreshActiveNote = vi.fn()
@@ -49,6 +49,12 @@ describe("GroupTasks", () => {
         const button = screen.getByRole("button", { name: "nuovo task 12 true" })
         expect(button.compareDocumentPosition(screen.getByText("Due")) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy()
         expect(container.querySelector("[data-direct-tasks]")).toBeInTheDocument()
+    })
+
+    it("gives the list of direct tasks the key and the section of the default section for the + lines", () => {
+        render(<GroupTasks group={withTasks("Uno")} />)
+        expect(screen.getByText("Uno")).toHaveAttribute("data-list", "s-12")
+        expect(screen.getByText("Uno")).toHaveAttribute("data-section", "12")
     })
 
     it("registers the area as the droppable of the default section", () => {

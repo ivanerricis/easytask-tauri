@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import React, { useState, useEffect, useLayoutEffect, useRef, useCallback } from "react"
+import React, { useState, useEffect, useLayoutEffect, useRef } from "react"
 import { Button } from "@/components/ui/button"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
@@ -50,35 +50,31 @@ export const SideBar = ({
 
     const currentWidth = clampSidebarWidth(dragWidth ?? width, window.innerWidth)
 
-    const startResizing = useCallback((e: React.MouseEvent) => {
+    // The handle captures the pointer, so move and up events keep coming to it even outside its few pixels
+    const startResizing = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (e.button !== 0) return
         e.preventDefault()
+        e.currentTarget.setPointerCapture(e.pointerId)
         dragWidthRef.current = currentWidth
         setDragWidth(currentWidth)
-    }, [currentWidth])
+    }
 
-    useEffect(() => {
-        if (!isResizing) return
-        const resize = (e: MouseEvent) => {
-            if (!sidebarRef.current) return
-            const rect = sidebarRef.current.getBoundingClientRect()
-            const next = position === "left" ? e.clientX - rect.left : rect.right - e.clientX
-            const clamped = clampSidebarWidth(next, window.innerWidth)
-            dragWidthRef.current = clamped
-            setDragWidth(clamped)
-        }
-        const stop = () => {
-            const final = dragWidthRef.current
-            dragWidthRef.current = null
-            setDragWidth(null)
-            if (final !== null) onWidthChange?.(final)
-        }
-        window.addEventListener("mousemove", resize)
-        window.addEventListener("mouseup", stop)
-        return () => {
-            window.removeEventListener("mousemove", resize)
-            window.removeEventListener("mouseup", stop)
-        }
-    }, [isResizing, position, onWidthChange])
+    const resize = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (dragWidthRef.current === null || !sidebarRef.current) return
+        const rect = sidebarRef.current.getBoundingClientRect()
+        const next = position === "left" ? e.clientX - rect.left : rect.right - e.clientX
+        const clamped = clampSidebarWidth(next, window.innerWidth)
+        dragWidthRef.current = clamped
+        setDragWidth(clamped)
+    }
+
+    const stopResizing = () => {
+        const final = dragWidthRef.current
+        if (final === null) return
+        dragWidthRef.current = null
+        setDragWidth(null)
+        onWidthChange?.(final)
+    }
 
     const handleResizerKeyDown = (e: React.KeyboardEvent) => {
         const next = widthForKey(e.key, currentWidth, window.innerWidth, e.shiftKey, direction)
@@ -143,11 +139,10 @@ export const SideBar = ({
             {!overlay && <div
                 ref={sidebarRef}
                 data-testid="sidebar-panel"
-                className={`relative flex flex-col h-full bg-secondary ${showPanel ? borderClass : ""}`}
+                className={`relative flex flex-col h-full bg-secondary ${isResizing ? "transition-none" : "transition-[width]"} ${showPanel ? borderClass : ""}`}
                 style={{
                     width: showPanel ? currentWidth : 0,
                     minWidth: 0,
-                    transition: isResizing ? "none" : "width 0.2s",
                     overflow: "hidden",
                 }}
             >
@@ -170,8 +165,11 @@ export const SideBar = ({
                         aria-valuenow={currentWidth}
                         aria-valuetext={t("layout.resizeValue", { width: currentWidth })}
                         tabIndex={0}
-                        className={`${focusRing} absolute top-0 h-full w-1.5 cursor-col-resize hover:bg-accent ${isResizing ? "bg-accent" : ""} ${resizerPosition}`}
-                        onMouseDown={startResizing}
+                        className={`${focusRing} focus-visible:ring-inset absolute top-0 h-full w-1.5 cursor-col-resize touch-none before:absolute before:inset-y-0 before:-inset-x-1 before:content-[''] hover:bg-accent ${isResizing ? "bg-accent" : ""} ${resizerPosition}`}
+                        onPointerDown={startResizing}
+                        onPointerMove={resize}
+                        onPointerUp={stopResizing}
+                        onPointerCancel={stopResizing}
                         onDoubleClick={() => onWidthChange?.(SIDEBAR_DEFAULT_WIDTH)}
                         onKeyDown={handleResizerKeyDown}
                     />

@@ -8,6 +8,7 @@ import { useSelectedTask, useTabsActions } from "@/contexts/use-tabs"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { NoteDataTree } from "@/types/types"
 import { createSelectionStore } from "../sidebar/selection"
+import { PreferencesContext } from "@/contexts/preferences-context-object"
 import { TaskSelectionContext } from "./task-selection-context"
 import { TaskSelectionActionsProvider } from "./task-selection-actions"
 
@@ -52,6 +53,7 @@ vi.mock("@/contexts/workspace-data/context", () => ({ useWorkspaceActions: () =>
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder, useOptionalUndo: () => null }))
 vi.mock("@/hooks/use-automations", () => ({ useAutomations: () => ({ dispatch }) }))
 vi.mock("../note-dnd-state", () => ({
+    useNoteDndSelector: (select: (state: unknown) => unknown) => select({ active: null }),
     useNoteDrop: () => ({ setNodeRef: () => { }, zone: null, active: null }),
     useNoteDrag: () => ({ setNodeRef: () => { }, dragProps: {}, isDragging: false }),
 }))
@@ -77,11 +79,13 @@ let store: ReturnType<typeof createSelectionStore>
 const setup = () => render(
     <TabsProvider notes={[makeNote({ id: 1 })]} workspaceId={null}>
         <OpenNote>
-            <TaskSelectionContext.Provider value={store}>
-                <TaskSelectionActionsProvider>
-                    {tasks.map(task => <Task key={task.id} task={task} />)}
-                </TaskSelectionActionsProvider>
-            </TaskSelectionContext.Provider>
+            <PreferencesContext.Provider value={{ showTaskInsertLine: true, taskDensity: "normal" } as never}>
+                <TaskSelectionContext.Provider value={store}>
+                    <TaskSelectionActionsProvider>
+                        {tasks.map(task => <Task key={task.id} task={task} />)}
+                    </TaskSelectionActionsProvider>
+                </TaskSelectionContext.Provider>
+            </PreferencesContext.Provider>
             <Probe />
         </OpenNote>
     </TabsProvider>,
@@ -113,6 +117,15 @@ describe("gestures", () => {
 
         fireEvent.click(rowOf(10), { metaKey: true })
         expect(multi()).toEqual([12])
+    })
+
+    it("a selected row says so to the screen readers, the others do not", () => {
+        setup()
+        expect(screen.queryByText("selezionato")).not.toBeInTheDocument()
+        select(10, 12)
+        expect(screen.getAllByText("selezionato")).toHaveLength(2)
+        expect(rowOf(10)).toHaveTextContent("selezionato")
+        expect(rowOf(11)).not.toHaveTextContent("selezionato")
     })
 
     it("a click on the text with Ctrl does not start the rename", async () => {

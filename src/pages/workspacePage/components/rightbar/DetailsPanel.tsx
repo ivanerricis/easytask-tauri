@@ -18,6 +18,7 @@ import { findTask } from "@/contexts/note-tree-ops"
 import { formatDate, getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
+import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import { AudioContext, type AudioTrack } from "@/contexts/audio-context-object"
 import { formatBitDepth, formatBitrate, formatChannels, formatDateTime, formatDuration, formatFileSize, formatPosition, formatSampleRate, getAudioMetadata, type AudioMetadata } from "@/lib/audio-metadata"
 import { RightPanelContext } from "./right-panel-context-object"
@@ -67,7 +68,7 @@ const ColorField = ({ item, itemType, addColorItem, getItemId }: ColorFieldProps
             <h3 className={sectionTitle}>{t("details.color")}</h3>
             <Popover>
                 <PopoverTrigger asChild>
-                    <Button variant="outline" size="sm" aria-label={t("menu.changeColor")}>
+                    <Button variant="outline" size="sm" aria-label={`${t("menu.changeColor")}: ${item.color ?? t("details.noColor")}`}>
                         {item.color ? <ColorSwatch color={item.color} /> : <span className="text-xs">{t("details.noColor")}</span>}
                     </Button>
                 </PopoverTrigger>
@@ -226,8 +227,8 @@ function NoteOrTaskDetails() {
     const { updateItemColor } = useWorkspaceActions()
     const [selectedId] = useSelectedTask(currentNote?.id ?? null)
 
-    if (!currentNote) return <p className="p-3 text-sm text-muted-foreground">{t("details.emptyNote")}</p>
-    if (!noteDataTree) return <p className="p-3 text-sm text-muted-foreground">{t("details.loading")}</p>
+    if (!currentNote) return <p role="status" className="p-3 text-sm text-muted-foreground">{t("details.emptyNote")}</p>
+    if (!noteDataTree) return <p role="status" className="p-3 text-sm text-muted-foreground">{t("details.loading")}</p>
 
     const task = selectedId !== null ? findTask(noteDataTree, selectedId)?.task : undefined
     if (task) {
@@ -258,7 +259,10 @@ function NoteOrTaskDetails() {
             </Field>
             {/* The cached sidebar tree is patched by updateItemColor, and the open note reads its color from it */}
             <ColorField item={currentNote} itemType="note" addColorItem={updateItemColor} getItemId={currentNote.id} />
-            <Dates creationDate={currentNote.creation_date} creationTime={currentNote.creation_time} editDate={currentNote.edit_date} editTime={currentNote.edit_time} />
+            {/* The draft of a template has no dates (empty strings): "Created on at" would be shown */}
+            {currentNote.creation_date !== "" && (
+                <Dates creationDate={currentNote.creation_date} creationTime={currentNote.creation_time} editDate={currentNote.edit_date} editTime={currentNote.edit_time} />
+            )}
         </div>
     )
 }
@@ -350,8 +354,8 @@ const AudioDetails = () => {
     }, [path])
 
     let content: React.ReactNode
-    if (!file || !path) content = <p className="text-sm text-muted-foreground">{t("details.audio.empty")}</p>
-    else if (state?.path !== path) content = <p className="text-sm text-muted-foreground">{t("details.audio.loading")}</p>
+    if (!file || !path) content = <p role="status" className="text-sm text-muted-foreground">{t("details.audio.empty")}</p>
+    else if (state?.path !== path) content = <p role="status" className="text-sm text-muted-foreground">{t("details.audio.loading")}</p>
     else if (state.failed || !state.metadata) content = <p role="alert" className="text-sm text-destructive">{t("details.audio.error")}</p>
     else content = <AudioFields name={file.name} path={path} metadata={state.metadata} />
 
@@ -379,10 +383,12 @@ const AudioDetails = () => {
  * @category RightPanel
  */
 export function DetailsPanel() {
+    // A template draft has no audio
+    const isDraft = useIsActiveDraft()
     return (
         <div className="flex h-full flex-col">
             <div className="min-h-0 flex-1 overflow-y-auto"><NoteOrTaskDetails /></div>
-            <AudioDetails />
+            {!isDraft && <AudioDetails />}
         </div>
     )
 }

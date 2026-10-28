@@ -1,8 +1,11 @@
 import fs from "node:fs"
 import path from "node:path"
 import { fileURLToPath } from "node:url"
-import { $, browser } from "@wdio/globals"
-import { byLabel, byText, domClick, openContextMenu, sectionCard, topDialog, tr, treeRow, typeInto, waitForApp } from "../helpers"
+import { $, $$, browser } from "@wdio/globals"
+import {
+    byLabel, byText, domClick, hoverInsertZone, insertFields, insertZoneAbove, openContextMenu, sectionCard, templateEditorTab, topDialog, tr,
+    treeRow, typeInto, waitForApp,
+} from "../helpers"
 import {
     addGroup, addSection, addSubtask, addTask, applyAppearance, closeDialog, dialogEl, fillDialogName, goCategory, goHome,
     openNote, openSettings, openTaskMenu, openWs, pickColor, recover, setPanel, setSidebar, setTab, settle, submitDialog,
@@ -63,6 +66,14 @@ const shot = async (name: string, wait = 400) => {
     console.log(`[docs-shots] ${lang}/${name}-${theme}.png`)
 }
 
+/** Screenshot of one element only (a bar), saved as <name>-<theme>.png. */
+const shotOf = async (name: string, element: ReturnType<typeof $>, wait = 400) => {
+    await noToasts()
+    await settle(wait)
+    await element.saveScreenshot(path.join(OUT, lang, `${name}-${theme}.png`))
+    console.log(`[docs-shots] ${lang}/${name}-${theme}.png`)
+}
+
 const attempt = async (label: string, fn: () => Promise<void>) => {
     try {
         await fn()
@@ -83,7 +94,14 @@ const setAppearance = async (nextTheme: Theme, nextLang: Lang) => {
     lang = nextLang
 }
 
+const taskArea = async (text: string) => {
+    const label = await tr("tasks.editText")
+    for (const candidate of await $$(`[aria-label="${label}"]`)) if ((await candidate.getValue()) === text) return candidate.getElement()
+    throw new Error(`task "${text}" not found`)
+}
 const footerButton = async (key: string) => $(`//button[.//span[normalize-space()='${await tr(key)}']]`)
+/** Parks the pointer on an empty part of the window, so that no hover state or tooltip is captured. */
+const parkMouse = () => browser.action("pointer").move({ x: 900, y: 820, origin: "viewport" }).perform()
 const blur = () => browser.execute(() => (document.activeElement as HTMLElement | null)?.blur())
 const xpathString = (value: string) =>
     value.includes("'") ? `concat('${value.split("'").join(`', "'", '`)}')` : `'${value}'`
@@ -263,7 +281,47 @@ const tourFor = async (nextLang: Lang) => {
         await pickColor(menu, "#4363d8")
     })
     await recover()
-    // The history is per session of the workspace: it is captured now, before leaving it
+    await attempt("path-bar", async () => {
+        await blur()
+        // The row of the bar: the path on the left, the buttons (new group, search, hide completed) on the right
+        await shotOf("path-bar", $(`nav[aria-label=${JSON.stringify(await tr("notes.path.label"))}]`).$(".."))
+    })
+    await recover()
+    await attempt("task-insert-line", async () => {
+        const zone = await insertZoneAbove(n.tMockups)
+        await hoverInsertZone(zone)
+        await shot("task-insert-line", 200)
+        await zone.$("button").click()
+        await browser.waitUntil(async () => (await insertFields()).length === 1, { timeoutMsg: "the insert field did not open" })
+        await shot("task-insert-field", 200)
+        await browser.keys("Escape")
+    })
+    await recover()
+    await attempt("task-selection", async () => {
+        for (const text of [n.tMockups, n.tIcons, n.tCi]) {
+            const area = await taskArea(text)
+            await browser.execute((el: HTMLElement) => {
+                const row = el.closest("[data-task-id]") as HTMLElement
+                row.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true }))
+            }, area as unknown as HTMLElement)
+        }
+        await parkMouse()
+        await shot("task-selection")
+        await browser.keys("Escape")
+    })
+    await recover()
+    await attempt("task-keyboard", async () => {
+        await browser.execute((aria: string, value: string) => {
+            const area = Array.from(document.querySelectorAll<HTMLTextAreaElement>(`textarea[aria-label="${aria}"]`)).find((a) => a.value === value)
+            ;(area?.closest("[role='treeitem']") as HTMLElement | null)?.focus()
+        }, await tr("tasks.editText"), n.tMockups)
+        // A key press makes the focus ring visible, as for a user on the keyboard
+        await browser.keys("ArrowDown")
+        await browser.keys("ArrowUp")
+        await parkMouse()
+        await shot("task-keyboard")
+    })
+    await recover()    // The history is per session of the workspace: it is captured now, before leaving it
     await attempt("history", async () => {
         await setPanel(true)
         await setTab("history")
@@ -331,9 +389,23 @@ const tourFor = async (nextLang: Lang) => {
         await closeDialog()
     })
     await recover()
-    await attempt("note-search", async () => {
+    await attempt("template-editor", async () => {
+        await (await footerButton("dialogs.templates.title")).click()
+        const dialog = dialogEl()
+        await dialog.waitForDisplayed()
+        await dialog.$(`[aria-label=${JSON.stringify(await tr("templateEditor.editAria", { name: n.template }))}]`).click()
+        await dialog.waitForExist({ reverse: true })
+        await (await templateEditorTab(n.template)).waitForDisplayed()
+        await byLabel(await tr("menu.newGroup")).waitForDisplayed()
         await blur()
-        await browser.keys(["Control", "o"])
+        await parkMouse()
+        await shot("template-editor", 1500)
+        await byLabel(await tr("notes.closeCurrent")).click()
+        await (await templateEditorTab(n.template)).waitForDisplayed({ reverse: true })
+    })
+    await recover()
+    await attempt("note-search", async () => {        await blur()
+        await browser.keys(["Control", "k"])
         await dialogEl().waitForDisplayed()
         await shot("note-search")
         await closeDialog()
@@ -418,7 +490,8 @@ describe("Docs screenshots", () => {
     it("Italian", async () => { await tourFor("it") })
 
     after(() => {
-        if (skipped.length) console.log(`[docs-shots] skipped:\n${skipped.map((s) => `  - ${s}`).join("\n")}`)
+        if (skipped.length) console.log(`[docs-shots] skipped:
+${skipped.map((s) => `  - ${s}`).join("\n")}`)
         else console.log("[docs-shots] nothing skipped")
     })
 })

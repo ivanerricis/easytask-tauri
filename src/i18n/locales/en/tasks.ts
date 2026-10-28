@@ -23,6 +23,11 @@ export const tasks: Translation["tasks"] = {
     addSubtask: "Add subtask",
     add: "Add task",
     placeholder: "New task…",
+    insertLine: {
+        insertHere: "Add a task here",
+        label: "New task",
+        placeholder: "New task…",
+    },
     menu: {
         collapseSubtasks: "Collapse subtasks",
         expandSubtasks: "Expand subtasks",
@@ -34,6 +39,8 @@ export const tasks: Translation["tasks"] = {
     selection: {
         delete: "Delete {{count}} tasks",
         archive: "Archive {{count}} tasks",
+        count_one: "{{count}} selected",
+        count_other: "{{count}} selected",
         color: "Color",
         move: "Move to…",
         directTasks: "Direct tasks",
@@ -43,6 +50,12 @@ export const tasks: Translation["tasks"] = {
         deleteError: "Could not move all the tasks to the trash ({{done}} of {{total}} moved): {{message}}",
     },
     editText: "Edit the task text",
+    list: "Tasks",
+    listOf: "Tasks of {{name}}",
+    keyboard: {
+        moved: "Moved to position {{position}} of {{total}}",
+        cannotMove: "Cannot move any further",
+    },
     toggleCompleted: "Mark as completed: {{text}}",
     showDescription: "Show the description",
 }

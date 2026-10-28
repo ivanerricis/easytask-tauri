@@ -21,6 +21,11 @@ export const tasks = {
     addSubtask: "Aggiungi sottotask",
     add: "Aggiungi task",
     placeholder: "Nuovo task…",
+    insertLine: {
+        insertHere: "Aggiungi un task qui",
+        label: "Nuovo task",
+        placeholder: "Nuovo task…",
+    },
     menu: {
         collapseSubtasks: "Comprimi sottotask",
         expandSubtasks: "Espandi sottotask",
@@ -32,6 +37,8 @@ export const tasks = {
     selection: {
         delete: "Elimina {{count}} task",
         archive: "Archivia {{count}} task",
+        count_one: "{{count}} selezionato",
+        count_other: "{{count}} selezionati",
         color: "Colora",
         move: "Sposta in…",
         directTasks: "Task diretti",
@@ -41,6 +48,12 @@ export const tasks = {
         deleteError: "Impossibile spostare tutti i task nel cestino ({{done}} su {{total}} spostati): {{message}}",
     },
     editText: "Modifica il testo del task",
+    list: "Task",
+    listOf: "Task di {{name}}",
+    keyboard: {
+        moved: "Spostato in posizione {{position}} di {{total}}",
+        cannotMove: "Impossibile spostare oltre",
+    },
     toggleCompleted: "Segna come completato: {{text}}",
     showDescription: "Mostra la descrizione",
 }

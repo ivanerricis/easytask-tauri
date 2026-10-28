@@ -1,9 +1,11 @@
 import i18n from "@/i18n"
-import { createError, handleDBError } from "@/types/error"
+import { createError, handleDBError, toAppError } from "@/types/error"
 import { getDB } from "../dbManager"
 import { getErrorMessage } from "@/lib/utils"
 import { DEFAULT_SECTION_SQL } from "./sql"
 import type { NewTaskPosition } from "@/lib/store/preferences"
+import { Transaction, type TxRef } from "../transaction"
+import { addPositions, siblingIds } from "./ordering"
 
 /**
  * SQL of the position of a new row among its siblings: after the last one, or before the first one ("top": one below the
@@ -85,6 +87,54 @@ export async function createDBSubTask(taskId: number, text: string, position: Ne
     if (result.rowsAffected !== 1)
         throw createError("TASK_PARENT_MISSING", i18n.t("errors.task.parentMissing"))
     return result.lastInsertId as number
+}
+
+/**
+ * Creates a new task (top level or subtask) right after a sibling, or first when no sibling is given. The siblings are
+ * renumbered with the new row in place (one transaction), so the position does not depend on gaps in the old ones.
+ * An anchor that is not among the living siblings any more (e.g. trashed in the meantime) puts the task at the end.
+ * @param parent The section (top level task) or the parent task (subtask) that holds the new task.
+ * @param afterTaskId The sibling the new task follows, null for the first place.
+ * @param text The text of the task.
+ * @returns The id of the new task and its index among the living siblings.
+ * @throws TASK_PARENT_MISSING when the parent task is missing or in the trash.
+ * @category Database
+ */
+export async function insertDBTaskAfter(
+    parent: { sectionId: number } | { parentTaskId: number }, afterTaskId: number | null, text: string,
+): Promise<{ id: number, index: number }> {
+    try {
+        const db = await getDB()
+        let sectionId: number
+        let parentTaskId: number | null = null
+        let ids: (number | TxRef)[]
+        if ("sectionId" in parent) {
+            sectionId = parent.sectionId
+            ids = await siblingIds(db, "task", "sectionID = ? AND taskID IS NULL", [sectionId], -1)
+        } else {
+            const rows = await db.select<{ sectionID: number }[]>(
+                'SELECT sectionID FROM task WHERE id = ? AND deleted_at IS NULL', [parent.parentTaskId])
+            if (!rows[0])
+                throw createError("TASK_PARENT_MISSING", i18n.t("errors.task.parentMissing"))
+            sectionId = rows[0].sectionID
+            parentTaskId = parent.parentTaskId
+            ids = await siblingIds(db, "task", "taskID = ?", [parentTaskId], -1)
+        }
+        const anchor = afterTaskId === null ? -1 : ids.indexOf(afterTaskId)
+        const at = afterTaskId === null ? 0 : anchor < 0 ? ids.length : anchor + 1
+
+        const tx = new Transaction()
+        const ins = tx.add("INSERT INTO task (sectionID, taskID, text, position) VALUES (?, ?, ?, 0)", [sectionId, parentTaskId, text])
+        ids.splice(at, 0, tx.idOf(ins))
+        addPositions(tx, "task", ids)
+        const results = await tx.run()
+        return { id: results[ins].lastInsertId, index: at }
+    } catch (error: unknown) {
+        throw toAppError(error, e => handleDBError(e, "TASK", {
+            UNIQUE: i18n.t("errors.task.unique"),
+            CHECK: i18n.t("errors.task.check"),
+        }))
+    }
 }
 
 /**

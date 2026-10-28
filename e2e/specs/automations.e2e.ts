@@ -208,7 +208,7 @@ describe("Automations", () => {
         await treeRow(NOTE).click()
         await byLabel(await tr("notes.closeCurrent")).waitForDisplayed()
 
-        await byText(await tr("menu.newGroup")).click()
+        await byLabel(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), GROUP)
         await browser.keys("Enter")
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
@@ -488,7 +488,7 @@ describe("Automations", () => {
             await treeRow(LONG_NOTE).click()
             await hideSidebar()
             await byLabel(await tr("notes.closeCurrent")).waitForDisplayed()
-            await byText(await tr("menu.newGroup")).click()
+            await byLabel(await tr("menu.newGroup")).click()
             await typeInto(byLabel(await tr("groups.nameLabel")), "Auto Layout Group")
             await browser.keys("Enter")
             for (const title of [LONG_A, LONG_B]) {
@@ -554,7 +554,7 @@ describe("Automations", () => {
         await createFromSidebar("sidebar.addNote", "dialogs.addNote.submit", STATE_NOTE)
         await treeRow(STATE_NOTE).click()
         await byLabel(await tr("notes.closeCurrent")).waitForDisplayed()
-        await byText(await tr("menu.newGroup")).click()
+        await byLabel(await tr("menu.newGroup")).click()
         await typeInto(byLabel(await tr("groups.nameLabel")), STATE_GROUP)
         await browser.keys("Enter")
         await byText(STATE_GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })

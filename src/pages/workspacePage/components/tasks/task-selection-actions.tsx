@@ -11,6 +11,7 @@ import { useAutomations } from "@/hooks/use-automations"
 import { ConfirmDialog } from "@/components/dialogs/dialog-confirm"
 import { FormError } from "@/components/form-error"
 import { reportError } from "@/lib/report-error"
+import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import { toastTrashed } from "@/lib/toast-trashed"
 import { getErrorMessage } from "@/lib/utils"
 import { END_INDEX } from "../note-dnd"
@@ -48,6 +49,7 @@ export function TaskSelectionActionsProvider({ children }: { children: ReactNode
     const recorder = useUndoRecorder()
     const { dispatch } = useAutomations()
     const undo = useOptionalUndo()?.undo
+    const isDraft = useIsActiveDraft()
     const [deleting, setDeleting] = useState<{ items: ManyItemRef[], open: boolean }>({ items: [], open: false })
     const [error, setError] = useState<string | null>(null)
     // Trashed by an earlier attempt of the same confirmation
@@ -80,7 +82,7 @@ export function TaskSelectionActionsProvider({ children }: { children: ReactNode
                 done.push(item)
             }
             trashed.current.clear()
-            toastTrashed(deleting.items.length, undo)
+            toastTrashed(deleting.items.length, undo, isDraft)
             setDeleting(prev => ({ ...prev, open: false }))
         } catch (err) {
             setError(t("tasks.selection.deleteError", { done: trashed.current.size, total: deleting.items.length, message: getErrorMessage(err) }))
@@ -90,6 +92,8 @@ export function TaskSelectionActionsProvider({ children }: { children: ReactNode
     }
 
     const archiveSelection = useCallback(async () => {
+        // A template draft has no archive
+        if (isDraft) return
         const done: ManyItemRef[] = []
         try {
             for (const item of getTargets()) {
@@ -101,7 +105,7 @@ export function TaskSelectionActionsProvider({ children }: { children: ReactNode
         }
         if (done.length > 0) recorder.archiveMany(done)
         store?.reset()
-    }, [getTargets, removeTask, archiveItem, recorder, store])
+    }, [getTargets, removeTask, archiveItem, recorder, store, isDraft])
 
     const applyColor = useCallback(async (color: string | null) => {
         const tree = getNoteTree()
