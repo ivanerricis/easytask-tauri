@@ -40,6 +40,13 @@ describe("DialogCreateTemplate", () => {
         expect(input.selectionEnd).toBe("Sprint 12".length)
     })
 
+    it("due istanze hanno id del campo diversi e l'etichetta punta al proprio campo", () => {
+        render(<><DialogCreateTemplate note={note} isOpen onOpenChange={vi.fn()} /><DialogCreateTemplate note={note} isOpen onOpenChange={vi.fn()} /></>)
+        const inputs = screen.getAllByLabelText("Nome del template")
+        expect(inputs).toHaveLength(2)
+        expect(inputs[0].id).not.toBe(inputs[1].id)
+    })
+
     it("shows the error of a name clash and stays open", async () => {
         const user = userEvent.setup()
         const onOpenChange = vi.fn()

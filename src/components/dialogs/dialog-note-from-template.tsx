@@ -37,6 +37,8 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
     const [destination, setDestination] = useState(ROOT_VALUE)
     const [error, setError] = useState<string | null>(null)
     const errorId = useId()
+    const nameId = useId()
+    const destinationId = useId()
     const { saving: busy, run } = useSubmitOnce()
 
     const destinations = workspaceDataTree ? getFolderDestinations(workspaceDataTree) : [{ id: null, name: null, depth: 0 }]
@@ -61,9 +63,9 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
 
     return (
         <form onSubmit={handleSubmit} className="grid gap-3">
-            <Label htmlFor="note-from-template-name">{t("dialogs.noteFromTemplate.name")}</Label>
+            <Label htmlFor={nameId}>{t("dialogs.noteFromTemplate.name")}</Label>
             <Input
-                id="note-from-template-name"
+                id={nameId}
                 name="name"
                 value={name}
                 autoFocus
@@ -76,7 +78,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
                     setName(e.target.value)
                 }}
             />
-            <Label htmlFor="note-from-template-destination">{t("dialogs.noteFromTemplate.destination")}</Label>
+            <Label htmlFor={destinationId}>{t("dialogs.noteFromTemplate.destination")}</Label>
             <Select
                 value={destination}
                 onValueChange={value => {
@@ -84,7 +86,7 @@ const NoteFromTemplateForm = ({ template, onOpenChange, onCreated }: FormProps) 
                     setDestination(value)
                 }}
             >
-                <SelectTrigger id="note-from-template-destination" className="w-full">
+                <SelectTrigger id={destinationId} className="w-full">
                     <SelectValue />
                 </SelectTrigger>
                 <SelectContent>

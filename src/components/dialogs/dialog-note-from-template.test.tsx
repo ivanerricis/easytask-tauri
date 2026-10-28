@@ -27,4 +27,14 @@ describe("DialogNoteFromTemplate", () => {
         expect(input.selectionStart).toBe(0)
         expect(input.selectionEnd).toBe("Sprint tipo".length)
     })
+
+    it("due istanze hanno id diversi e le etichette puntano ai propri campi", () => {
+        render(<><DialogNoteFromTemplate template={template} isOpen onOpenChange={vi.fn()} /><DialogNoteFromTemplate template={template} isOpen onOpenChange={vi.fn()} /></>)
+        const names = screen.getAllByLabelText("Nome")
+        const destinations = screen.getAllByLabelText("Destinazione")
+        expect(names).toHaveLength(2)
+        expect(names[0].id).not.toBe(names[1].id)
+        expect(destinations).toHaveLength(2)
+        expect(destinations[0].id).not.toBe(destinations[1].id)
+    })
 })

@@ -29,6 +29,7 @@ const TemplateForm = ({ note, onOpenChange, onCreated }: TemplateFormProps) => {
     const [name, setName] = useState(note.name)
     const [error, setError] = useState<string | null>(null)
     const errorId = useId()
+    const nameId = useId()
     const { saving: busy, run } = useSubmitOnce()
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -48,9 +49,9 @@ const TemplateForm = ({ note, onOpenChange, onCreated }: TemplateFormProps) => {
 
     return (
         <form onSubmit={handleSubmit} className="grid gap-3">
-            <Label htmlFor="template-name">{t("dialogs.createTemplate.name")}</Label>
+            <Label htmlFor={nameId}>{t("dialogs.createTemplate.name")}</Label>
             <Input
-                id="template-name"
+                id={nameId}
                 name="name"
                 value={name}
                 autoFocus
