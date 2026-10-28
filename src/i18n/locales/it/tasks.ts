@@ -20,6 +20,7 @@ export const tasks = {
     newSubtask: "Nuovo sottotask",
     addSubtask: "Aggiungi sottotask",
     add: "Aggiungi task",
+    inputHint: "Invio per aggiungere, Esc per annullare",
     placeholder: "Nuovo task…",
     insertLine: {
         insertHere: "Aggiungi un task qui",

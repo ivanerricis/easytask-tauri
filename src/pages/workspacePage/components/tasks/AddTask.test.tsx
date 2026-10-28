@@ -153,9 +153,6 @@ describe("AddTask", () => {
         render(<AddTask sectionId={3} />)
         const input = await open(user)
 
-        const submit = screen.getAllByRole("button").find(b => b.getAttribute("type") === "submit")!
-        expect(submit).toBeDisabled()
-
         await user.type(input, "   {Enter}")
         expect(ctx.createTask).not.toHaveBeenCalled()
     })

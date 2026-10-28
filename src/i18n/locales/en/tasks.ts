@@ -22,6 +22,7 @@ export const tasks: Translation["tasks"] = {
     newSubtask: "New subtask",
     addSubtask: "Add subtask",
     add: "Add task",
+    inputHint: "Enter to add, Esc to cancel",
     placeholder: "New task…",
     insertLine: {
         insertHere: "Add a task here",
