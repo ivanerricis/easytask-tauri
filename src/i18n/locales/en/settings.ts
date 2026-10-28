@@ -302,6 +302,10 @@ export const settings: Translation["settings"] = {
             label: "Spell check",
             description: "Underlines misspelled words while you type.",
         },
+        confirmDelete: {
+            label: "Confirm deleting only when there is content",
+            description: "For notes, sections and groups: asks only if they contain something, otherwise they go straight to the trash (with \"Undo\"). When off, it never asks. Folders, workspaces, tasks and multiple selections always ask.",
+        },
         reopenNotes: {
             label: "Reopen notes at startup",
             description: "Restores the open notes and the active one when you reopen a workspace.",
@@ -353,6 +357,16 @@ export const settings: Translation["settings"] = {
         closeToTray: {
             label: "Minimize to the notification area",
             description: "Closing the window keeps EasyTask running in the notification area. To quit, use \"Quit\" in the menu of its icon.",
+        },
+        rememberWindowState: {
+            label: "Remember window position and size",
+            description: "At startup the window comes back where you left it. Takes effect at the next start.",
+            portable: "Not available in the portable version: the window position would be saved outside the data folder.",
+        },
+        alwaysOnTop: {
+            label: "Keep the window on top",
+            description: "EasyTask stays above the other windows. Applies at once and is remembered at startup.",
+            error: "Cannot change the always on top setting: {{message}}",
         },
         tray: {
             tooltip: "EasyTask",

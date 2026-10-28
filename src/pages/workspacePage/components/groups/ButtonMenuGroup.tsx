@@ -2,6 +2,9 @@ import { useTranslation } from "react-i18next"
 import { lazyWithPreload, preloadWhenIdle } from "@/lib/lazy-preload"
 import { ButtonInPopover } from "@/components/button-in-popover";
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete";
+import { useDeleteRequest } from "@/components/dialogs/use-delete-item";
+import { getDBGroupAudioFiles } from "@/db/queries/audio";
+import { groupHasContent } from "@/lib/delete-content";
 import { MenuGroup } from "@/components/menu-kind";
 import { Separator } from "@/components/ui/separator";
 import { ColorSubmenu } from "../ColorSubmenu";
@@ -54,6 +57,13 @@ export const ButtonMenuGroup = ({ group, onRename, onAddSection, children }: Pro
     const { addFiles } = useAudioActions()
     const { updateItemColor, archiveItem } = useWorkspaceActions()
     const recorder = useUndoRecorder()
+    const { request: requestDelete } = useDeleteRequest({
+        item: group,
+        itemType: "section_group",
+        optimistic: () => removeGroup(group.id),
+        hasContent: async () => groupHasContent(group, (await getDBGroupAudioFiles(group.id)).length),
+        openDialog: () => setDeleteOpen(true),
+    })
 
     // The color is applied to the cached note at once and restored if the write fails (the dialog shows the error)
     const addColorItem = async (itemType: DBItemType, itemId: number, color?: string) => {
@@ -135,7 +145,7 @@ export const ButtonMenuGroup = ({ group, onRename, onAddSection, children }: Pro
                 type="delete"
                 destructive
                 onClick={() => {
-                    setDeleteOpen(true)
+                    requestDelete()
                     menu.close()
                 }}
             />

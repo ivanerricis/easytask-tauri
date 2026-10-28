@@ -496,9 +496,9 @@ describe("preference table", () => {
 
     it("keeps the keys saved on disk", () => {
         expect(Object.values(all).map(definition => definition.key).sort()).toEqual([
-            "animationSpeed", "audioPlayerOpacity", "audioPlayerPinned", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupFolder",
-            "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "hideCompletedTasks", "keepAddingTasks", "language",
-            "lastWorkspaceId", "newTaskPosition", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
+            "alwaysOnTop", "animationSpeed", "audioPlayerOpacity", "audioPlayerPinned", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupFolder",
+            "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "confirmDeleteWithContent", "hideCompletedTasks", "keepAddingTasks", "language",
+            "lastWorkspaceId", "newTaskPosition", "rememberWindowState", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
             "showGroupProgressBar", "showGroupSeparators", "showProgressBar", "showSectionCount", "showSubtaskCount", "showTaskCount",
             "showTaskInsertLine", "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth", "sidebarRightOpen", "sidebarRightWidth",
             "skippedUpdateVersion", "spellcheck", "taskBackground", "taskDensity", "trashAutoEmptyDays", "undoLimit", "workspaceSort", "workspaceView",
@@ -552,5 +552,30 @@ describe("preference table", () => {
         await vi.advanceTimersByTimeAsync(500)
         await Promise.all(saves)
         expect(store.save).toHaveBeenCalledTimes(1)
+    })
+})
+
+describe("delete confirmation and window preferences", () => {
+    beforeEach(() => { vi.resetAllMocks() })
+
+    it.each([
+        ["confirmDeleteWithContent", true],
+        ["rememberWindowState", true],
+        ["alwaysOnTop", false],
+    ] as const)("%s defaults to %s", async (name, expected) => {
+        vi.mocked(store.get).mockResolvedValue(undefined)
+        expect(await getPref(name)).toBe(expected)
+    })
+
+    it.each(["confirmDeleteWithContent", "rememberWindowState"] as const)("%s is on unless stored as false", (name) => {
+        expect(normalizePref(name, false)).toBe(false)
+        expect(normalizePref(name, "x")).toBe(true)
+        expect(normalizePref(name, null)).toBe(true)
+    })
+
+    it("alwaysOnTop is off unless stored as true", () => {
+        expect(normalizePref("alwaysOnTop", true)).toBe(true)
+        expect(normalizePref("alwaysOnTop", "yes")).toBe(false)
+        expect(normalizePref("alwaysOnTop", 1)).toBe(false)
     })
 })

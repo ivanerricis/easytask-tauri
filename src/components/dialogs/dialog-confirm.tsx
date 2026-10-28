@@ -41,6 +41,8 @@ type ConfirmDialogProps = {
      * use "cancel" for what cannot be undone (permanent delete, restoring a backup, overwriting).
      */
     initialFocus?: "confirm" | "cancel"
+    /** Id of an element (e.g. an inline error among the children) that the main button points to with aria-describedby. */
+    confirmDescribedBy?: string
 }
 
 /**
@@ -49,7 +51,7 @@ type ConfirmDialogProps = {
  * @category Dialogs
  */
 export const ConfirmDialog = ({
-    open, onOpenChange, title, description, children, destructive = false, irreversible = false, confirm, secondary, secondaryDestructive = false, autoClose = true, initialFocus = "confirm",
+    open, onOpenChange, title, description, children, destructive = false, irreversible = false, confirm, secondary, secondaryDestructive = false, autoClose = true, initialFocus = "confirm", confirmDescribedBy,
 }: ConfirmDialogProps) => {
     const { t } = useTranslation()
     const confirmRef = useRef<HTMLButtonElement>(null)
@@ -105,7 +107,7 @@ export const ConfirmDialog = ({
                             {secondary.label}
                         </Button>
                     )}
-                    <Button ref={confirmRef} variant={destructive ? (irreversible ? "destructiveSolid" : "destructive") : "default"} onClick={run(confirm)} disabled={saving}>
+                    <Button ref={confirmRef} variant={destructive ? (irreversible ? "destructiveSolid" : "destructive") : "default"} onClick={run(confirm)} disabled={saving} aria-describedby={confirmDescribedBy}>
                         {pending === confirm ? <Loader2 className="animate-spin motion-reduce:animate-none" /> : ConfirmIcon && <ConfirmIcon />}
                         {confirm.label}
                     </Button>

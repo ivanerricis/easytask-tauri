@@ -1,15 +1,11 @@
+import { useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Trash2 } from "lucide-react"
 import { ConfirmDialog } from "./dialog-confirm"
-import { useWorkspaceActions } from "@/contexts/workspace-data"
+import { useDeleteItem } from "./use-delete-item"
 import { FormError } from "@/components/form-error"
-import { useOptionalUndo, useUndoRecorder } from "@/contexts/undo/use-undo"
-import { getItemName, isUndoableType } from "@/contexts/undo/commands"
-import { useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
-import { useIsActiveDraft } from "@/contexts/use-template-drafts"
-import { toastTrashed } from "@/lib/toast-trashed"
 
 type DialogDeleteProps<T> = {
     item: T
@@ -29,26 +25,17 @@ type defaultItemType = {
 
 export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, getItemId, isOpen, onOpenChange, getItemData, optimistic }: DialogDeleteProps<T>) => {
     const { t } = useTranslation()
-    const { deleteItem } = useWorkspaceActions()
-    const recorder = useUndoRecorder()
-    const undo = useOptionalUndo()?.undo
-    const isDraft = useIsActiveDraft()
+    const deleteNow = useDeleteItem({ item, itemType, getItemId, getItemData, optimistic })
 
+    const errorId = useId()
     const [error, setError] = useState<string | null>(null)
 
     const handleDelete = async () => {
         setError(null)
-        const rollback = optimistic?.()
         try {
-            await deleteItem(itemType, item.id)
-            // Without an explicit id the reload gets the deleted item's own (e.g. the home reloads its workspaces)
-            await getItemData?.(getItemId ?? item.id)
-            const undoable = isUndoableType(itemType)
-            if (undoable) recorder.remove(itemType, item.id, getItemName(item))
-            toastTrashed(1, undoable ? undo : undefined, isDraft)
+            await deleteNow()
             onOpenChange(false)
         } catch (error) {
-            rollback?.()
             setError(t("dialogs.delete.error", { message: getErrorMessage(error) }))
         }
     }
@@ -59,11 +46,12 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             onOpenChange={(open) => { if (!open) setError(null); onOpenChange(open) }}
             destructive
             autoClose={false}
+            confirmDescribedBy={error ? errorId : undefined}
             title={t("dialogs.delete.title")}
             description={t("dialogs.delete.description")}
             confirm={{ label: t("dialogs.delete.confirm"), icon: Trash2, onClick: handleDelete }}
         >
-            {error && <FormError>{error}</FormError>}
+            {error && <FormError id={errorId}>{error}</FormError>}
         </ConfirmDialog>
     )
 }

@@ -21,6 +21,10 @@ const BACKUPS_SUBFOLDER: &str = "backups";
 /// holding the custom backup folder.
 const SETTINGS_FILE: &str = "settings.dat";
 const BACKUP_FOLDER_KEY: &str = "backupFolder";
+/// Keys of the booleans read at startup, written by the settings (APP_PREFS in src/lib/store/preferences.ts):
+/// keep the names identical on both sides.
+const REMEMBER_WINDOW_STATE_KEY: &str = "rememberWindowState";
+const ALWAYS_ON_TOP_KEY: &str = "alwaysOnTop";
 
 /// Where the app keeps its data and whether it runs in portable mode.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -116,11 +120,24 @@ fn is_portable(info: tauri::State<'_, DataDirInfo>) -> bool {
     info.portable
 }
 
+/// The settings file of the data folder (the store of the app), parsed. None when it is missing or not valid JSON.
+fn read_settings(data_dir: &Path) -> Option<serde_json::Value> {
+    let content = std::fs::read(data_dir.join(SETTINGS_FILE)).ok()?;
+    serde_json::from_slice(&content).ok()
+}
+
+/// A boolean setting from the settings file of the data folder; `default` when the file, the key or a boolean
+/// value is missing. The keys are the ones of the JS side (src/lib/store/preferences.ts): keep them identical.
+fn setting_bool(data_dir: &Path, key: &str, default: bool) -> bool {
+    read_settings(data_dir)
+        .and_then(|settings| settings.get(key)?.as_bool())
+        .unwrap_or(default)
+}
+
 /// The custom backup folder chosen in the settings, read from the settings file of the data folder. None when
 /// there is none, or when it is not an existing absolute folder (the default folder is used then).
 fn custom_backup_folder(data_dir: &Path) -> Option<PathBuf> {
-    let content = std::fs::read(data_dir.join(SETTINGS_FILE)).ok()?;
-    let settings: serde_json::Value = serde_json::from_slice(&content).ok()?;
+    let settings = read_settings(data_dir)?;
     let folder = PathBuf::from(settings.get(BACKUP_FOLDER_KEY)?.as_str()?.trim());
     (folder.is_absolute() && folder.is_dir()).then_some(folder)
 }
@@ -471,9 +488,14 @@ pub fn run() {
         }));
     }
     // The plugin stores .window-state.json in the user profile, outside the portable folder, so it is
-    // skipped in portable mode.
+    // skipped in portable mode. It still saves the state of the main window when the app closes, but does not
+    // restore it by itself: the setup does, when the "remember the window" setting is on.
     if !portable_install() {
-        builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());
+        builder = builder.plugin(
+            tauri_plugin_window_state::Builder::default()
+                .skip_initial_state("main")
+                .build(),
+        );
     }
     builder
         .plugin(tauri_plugin_dialog::init())
@@ -558,7 +580,24 @@ pub fn run() {
             if info.portable {
                 window = window.data_directory(info.path.join("webview"));
             }
-            window.build()?;
+            if setting_bool(&info.path, ALWAYS_ON_TOP_KEY, false) {
+                window = window.always_on_top(true);
+            }
+            // Without the plugin (portable mode) there is no state to restore
+            let restore_state = !info.portable
+                && setting_bool(&info.path, REMEMBER_WINDOW_STATE_KEY, true);
+            if restore_state {
+                // Hidden until the saved position and size are applied, or it would flash at the default place
+                window = window.visible(false);
+            }
+            let window = window.build()?;
+            if restore_state {
+                use tauri_plugin_window_state::{StateFlags, WindowExt};
+                if let Err(error) = window.restore_state(StateFlags::all() - StateFlags::VISIBLE) {
+                    log::warn!("cannot restore the window state: {error}");
+                }
+                window.show()?;
+            }
 
             // Updater: registered at runtime (desktop only). The public key comes from tauri.conf.json; while it
             // is still the placeholder the plugin loads fine and `check()` fails with a handled error.
@@ -840,6 +879,29 @@ mod tests {
         assert_eq!(custom_backup_folder(&data), None);
         std::fs::write(data.join(SETTINGS_FILE), b"not json").unwrap();
         assert_eq!(custom_backup_folder(&data), None);
+    }
+
+    #[test]
+    fn setting_bool_reads_a_boolean_or_gives_the_default() {
+        let data = temp_dir("sb-data");
+        // No settings file
+        assert!(setting_bool(&data, "rememberWindowState", true));
+        assert!(!setting_bool(&data, "alwaysOnTop", false));
+        let write = |value: serde_json::Value| {
+            std::fs::write(data.join(SETTINGS_FILE), value.to_string()).unwrap()
+        };
+        write(json!({ "rememberWindowState": false, "alwaysOnTop": true }));
+        assert!(!setting_bool(&data, "rememberWindowState", true));
+        assert!(setting_bool(&data, "alwaysOnTop", false));
+        // Missing key, or a value that is not a boolean
+        write(json!({ "alwaysOnTop": "yes", "other": 1 }));
+        assert!(setting_bool(&data, "rememberWindowState", true));
+        assert!(!setting_bool(&data, "alwaysOnTop", false));
+        assert!(setting_bool(&data, "alwaysOnTop", true));
+        // Broken file
+        std::fs::write(data.join(SETTINGS_FILE), b"not json").unwrap();
+        assert!(setting_bool(&data, "rememberWindowState", true));
+        assert!(!setting_bool(&data, "alwaysOnTop", false));
     }
 
     #[test]
