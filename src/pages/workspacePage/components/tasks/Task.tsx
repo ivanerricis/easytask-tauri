@@ -390,6 +390,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     listKey: `t-${task.id}`,
                     parent: { parentTaskId: task.id },
                     depth: depth + 1,
+                    completedLast,
                     renderTask: subtask => <Task key={subtask.id} task={subtask} depth={depth + 1} treeKey={treeKey} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} completedLast={completedLast} renameOnClick={renameOnClick} density={density} />,
                 })}
                 {isAddingSubtask &&

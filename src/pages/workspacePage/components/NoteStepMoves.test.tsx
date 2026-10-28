@@ -8,7 +8,7 @@ import { DirectStepMoves, GroupStepMoves, SectionStepMoves, TaskStepMoves } from
 import { useTaskStepMove } from "./use-task-step-move"
 
 const noteData: { tree: NoteDataTree | null } = { tree: null }
-const prefs = { hideCompletedTasks: false }
+const prefs = { hideCompletedTasks: false, completedTasksLast: false }
 const moveTaskTo = vi.fn()
 const moveSectionTo = vi.fn()
 const moveDirectSectionTo = vi.fn()
@@ -34,6 +34,7 @@ const top = (id: number, text: string, completed = false) => makeTask({ id, sect
 beforeEach(() => {
     vi.clearAllMocks()
     prefs.hideCompletedTasks = false
+    prefs.completedTasksLast = false
     noteData.tree = {
         groups: [
             makeGroup({
@@ -81,6 +82,21 @@ describe("TaskStepMoves", () => {
         render(<TaskStepMoves taskId={1} />)
         await userEvent.click(screen.getByRole("menuitem", { name: "Sposta giù" }))
         expect(moveTaskTo).toHaveBeenCalledWith(1, { sectionId: 1, parentTaskId: null, index: 2 })
+    })
+
+    it("with the completed tasks last, steps in the displayed order and stops at the edge of the block", async () => {
+        prefs.completedTasksLast = true
+        // Displayed: A, C, B(done). A goes down over C (stored index 2)
+        const { unmount } = render(<TaskStepMoves taskId={1} />)
+        await userEvent.click(screen.getByRole("menuitem", { name: "Sposta giù" }))
+        expect(moveTaskTo).toHaveBeenCalledWith(1, { sectionId: 1, parentTaskId: null, index: 2 })
+        unmount()
+        // C is the last open task, B the only completed one: no step over the block edge
+        const last = render(<TaskStepMoves taskId={3} />)
+        expect(screen.getByRole("menuitem", { name: "Sposta giù" })).toHaveAttribute("aria-disabled", "true")
+        last.unmount()
+        render(<TaskStepMoves taskId={2} />)
+        expect(screen.getByRole("menuitem", { name: "Sposta su" })).toHaveAttribute("aria-disabled", "true")
     })
 
     it("disables both items while the note is not loaded", () => {

@@ -68,6 +68,43 @@ describe("getTaskStep", () => {
         expect(getTaskStep(tree, 1, 1, true)).toEqual({ sectionId: 1, parentTaskId: null, index: 1 })
     })
 
+    it("with the completed tasks last, steps within the displayed order and never between the open and the completed block", () => {
+        // Displayed: A, C (open) then B (completed); stored: A, B, C
+        // A down: it jumps over C, whose stored index is 2
+        expect(getTaskStep(buildTree(), 1, 1, false, true)).toEqual({ sectionId: 1, parentTaskId: null, index: 2 })
+        // C up: over A
+        expect(getTaskStep(buildTree(), 3, -1, false, true)).toEqual({ sectionId: 1, parentTaskId: null, index: 0 })
+        // The edges of the blocks: C is the last open one, B the only completed one
+        expect(getTaskStep(buildTree(), 3, 1, false, true)).toBeNull()
+        expect(getTaskStep(buildTree(), 2, -1, false, true)).toBeNull()
+        expect(getTaskStep(buildTree(), 2, 1, false, true)).toBeNull()
+        expect(getTaskStep(buildTree(), 1, -1, false, true)).toBeNull()
+    })
+
+    it("with the completed tasks last, swaps two completed tasks and works among the subtasks", () => {
+        const tree: NoteDataTree = { groups: [makeGroup({ id: 1, position: 0, sections: [makeSection({ id: 1, groupID: 1, tasks: [
+            top(1, 1, "A", { completed: true }), top(2, 1, "B"), top(3, 1, "C", { completed: true }), top(4, 1, "D"),
+            top(5, 1, "E", { subtasks: [
+                makeTask({ id: 51, sectionID: 1, taskID: 5, completed: true }), makeTask({ id: 52, sectionID: 1, taskID: 5 }),
+            ] }),
+        ] })] })] }
+        // Displayed: B, D, E, A, C. A down: over C (stored index 2)
+        expect(getTaskStep(tree, 1, 1, false, true)).toEqual({ sectionId: 1, parentTaskId: null, index: 2 })
+        expect(getTaskStep(tree, 3, -1, false, true)).toEqual({ sectionId: 1, parentTaskId: null, index: 0 })
+        // B down: over D (stored index 3), D down: over E
+        expect(getTaskStep(tree, 2, 1, false, true)).toEqual({ sectionId: 1, parentTaskId: null, index: 3 })
+        expect(getTaskStep(tree, 4, 1, false, true)).toEqual({ sectionId: 1, parentTaskId: null, index: 4 })
+        // Subtasks: 52 (open) is displayed before 51 (completed)
+        expect(getTaskStep(tree, 51, -1, false, true)).toBeNull()
+        expect(getTaskStep(tree, 52, 1, false, true)).toBeNull()
+    })
+
+    it("with the completed tasks last and hidden, still skips the hidden ones", () => {
+        // Displayed: A, C; B is hidden. A down: over C
+        expect(getTaskStep(buildTree(), 1, 1, true, true)).toEqual({ sectionId: 1, parentTaskId: null, index: 2 })
+        expect(getTaskStep(buildTree(), 3, -1, true, true)).toEqual({ sectionId: 1, parentTaskId: null, index: 0 })
+    })
+
     it("gives the expected order once applied (the index is the final one among the siblings)", () => {
         const order = (ids: number[], id: number, index: number) => { const rest = ids.filter(x => x !== id); rest.splice(index, 0, id); return rest }
         expect(order([1, 2, 3], 1, getTaskStep(buildTree(), 1, 1, false)!.index)).toEqual([2, 1, 3])

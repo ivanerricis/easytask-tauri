@@ -186,6 +186,21 @@ describe("SectionBody + lines", () => {
         await waitFor(() => expect(ctx.insertTaskAfter).toHaveBeenLastCalledWith({ sectionId: 1 }, 2, "Dopo"))
     })
 
+    it("with the completed tasks last, keeps the line above the first completed task and has none between completed ones", async () => {
+        prefs.completedTasksLast = true
+        const user = userEvent.setup()
+        setup([
+            makeTask({ id: 1, text: "Uno", completed: true }), makeTask({ id: 2, text: "Due" }),
+            makeTask({ id: 3, text: "Tre", completed: true }), makeTask({ id: 4, text: "Quattro" }), makeTask({ id: 5, text: "Cinque", completed: true }),
+        ])
+        // Drawn: Due, Quattro, Uno, Tre, Cinque: lines above Due, Quattro and Uno only
+        expect(screen.getAllByTestId("task-insert-zone")).toHaveLength(3)
+        fireEvent.click(plus(2))
+        await user.type(fields()[0], "Nuovo{Enter}")
+        await waitFor(() => expect(ctx.insertTaskAfter).toHaveBeenCalledWith({ sectionId: 1 }, 4, "Nuovo"))
+        prefs.completedTasksLast = false
+    })
+
     it("a line at the top inserts in the first place", async () => {
         const user = userEvent.setup()
         setup([makeTask({ id: 1, text: "Uno" })])

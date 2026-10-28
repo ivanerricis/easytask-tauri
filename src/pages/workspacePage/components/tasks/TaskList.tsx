@@ -45,6 +45,7 @@ export const TaskList = memo(({ tasks, listKey, sectionId, clipped, label }: Tas
                 parent: { sectionId },
                 depth: 0,
                 clipped,
+                completedLast: completedTasksLast,
                 renderTask: task => <Task key={task.id} task={task} treeKey={listKey} isFirst={task === visible[0]} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompletedTasks} completedLast={completedTasksLast} renameOnClick={renameOnClick} density={density} />,
                 })}
             </TaskTree>}
