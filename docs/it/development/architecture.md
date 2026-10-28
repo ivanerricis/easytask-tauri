@@ -53,7 +53,19 @@ Regole per una nuova migrazione: aggiungila in coda, non modificare mai una già
 
 ## Impostazioni
 
-Preferenze e scorciatoie sono salvate con `tauri-plugin-store` in `settings.dat`, dentro la cartella dati (`src/lib/store`). Le scritture sono ritardate e raggruppate (`save-soon.ts`). Le schede aperte e l'ultimo workspace stanno nello stesso store.
+Preferenze e scorciatoie sono salvate con `tauri-plugin-store` in `settings.dat`, dentro la cartella dati (`src/lib/store`). Le scritture sono ritardate e raggruppate (`save-soon.ts`). Le schede aperte (il layout delle due aree, vedi sotto) e l'ultimo workspace stanno nello stesso store.
+
+## Spazio di lavoro diviso
+
+Lo spazio di lavoro può essere diviso in due aree affiancate (pane), ognuna con le sue schede e la sua nota attiva.
+
+- `src/contexts/layout-reducer.ts` contiene `LayoutState { left, right, focused }` (`right` è `null` quando non è diviso) e avvolge il `tabsReducer` di area, che resta invariato. Lo spostamento di una scheda tra le aree è un'unica azione atomica.
+- `TabsProvider` espone gli hook di sempre (`useTabs`, `useActiveNote`) per l'area con il focus: `activeId` e `currentNote` sono quelli dell'area focalizzata, mentre `openIds` e `tabs` sono l'unione delle due aree. `PaneProvider` (`src/contexts/pane-provider.tsx`) sovrascrive i contesti delle schede e della nota attiva con i valori di una sola area, così i componenti dentro un'area funzionano come se ci fosse una sola nota.
+- `ActiveNoteProvider` carica le note di entrambe le aree e tiene tre istanze delle azioni ottimistiche: area focalizzata, sinistra e destra.
+- Una nota è aperta al massimo in un'area. Aprire una nota già aperta nell'altra area la attiva lì.
+- Un solo `TabsDndProvider` avvolge le due barre di schede, così una scheda si trascina dall'una all'altra.
+- I gestori registrati con `useShortcut` e `useAppCommand` scattano solo nell'area con il focus, così una scorciatoia non scatta due volte.
+- Il layout è salvato in `openTabs:<workspaceId>` come `{ version: 2, left, right, focused }`. Il vecchio formato `{ openIds, activeId }` si legge come area sinistra. All'avvio viene ripristinato solo se "riapri le note" è attivo.
 
 ## Traduzioni
 

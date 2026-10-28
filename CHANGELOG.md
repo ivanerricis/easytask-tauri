@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Split workspace: the **Split the workspace** button on the right of the path bar (or Ctrl+\) shows two notes side by side. Each area has its own tabs and its own open note, and **Close the split** closes the tabs of the right area. A note is open in one area at a time, the divider between the areas can be dragged (or moved with the arrow keys, double click for 50%), and the split and its tabs are reopened at the next start when "Reopen notes at startup" is on.
+- You can drag a tab from one tab bar to the other (or into the empty bar) to move the note to the other area.
+- New entries "Open on the right" and "Open on the left" in the menu of a note and of its tab: the first one creates the split if needed.
+- New shortcuts: Ctrl+\ splits the workspace or closes the split, Ctrl+Alt+→ (also Ctrl+Alt+←) moves the active note to the other area, and Ctrl+Alt+\ moves the focus to the other area. They can be changed in Settings > Shortcuts (except Ctrl+Alt+←).
+
 ## [0.17.0] - 2026-10-28
 
 ### Added

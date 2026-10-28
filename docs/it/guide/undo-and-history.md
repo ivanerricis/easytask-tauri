@@ -19,6 +19,8 @@ In un campo di testo, `Ctrl+Z` e `Ctrl+Y` annullano e ripetono il testo che stai
 
 Puoi cambiare `Ctrl+Z` e `Ctrl+Y` in **Impostazioni > Scorciatoie**. `Ctrl+Maiusc+Z` è fissa. Vedi [Scorciatoie da tastiera](./shortcuts).
 
+Con lo [spazio di lavoro diviso](./folders-and-notes#dividere-lo-spazio-di-lavoro) in due aree la cronologia resta una sola per tutto il workspace. Se annulli o ripeti un'azione fatta sulla nota dell'altra area, anche quella nota viene aggiornata.
+
 ## Cosa si può annullare
 
 Puoi annullare le modifiche al contenuto di un workspace, per esempio:

@@ -496,3 +496,9 @@ export const openTemplatesDialog = async () => {
 
 /** The tab of the editor of a template (its label carries the full name in the title). */
 export const templateEditorTab = async (name: string) => $(`[title=${cssString(await tr("templateEditor.tab", { name }))}]`)
+
+/** A pane of the split workspace (`[data-pane]`, 0 = left, 1 = right); everything of the pane is searched inside it. */
+export const pane = (index: 0 | 1) => $(`[data-pane="${index}"]`)
+
+/** The tab of a note inside a pane (the tab carries the full note name in its title). */
+export const paneTab = (index: 0 | 1, noteName: string) => $(`[data-pane="${index}"] [role="tab"][title=${cssString(noteName)}]`)

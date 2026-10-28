@@ -53,7 +53,19 @@ Rules for a new migration: append it, never edit one that was already applied, a
 
 ## Settings
 
-Preferences and shortcuts are saved with `tauri-plugin-store` in `settings.dat`, inside the data folder (`src/lib/store`). Writes are debounced (`save-soon.ts`). The open tabs and the last workspace are kept in the same store.
+Preferences and shortcuts are saved with `tauri-plugin-store` in `settings.dat`, inside the data folder (`src/lib/store`). Writes are debounced (`save-soon.ts`). The open tabs (the layout of the two areas, see below) and the last workspace are kept in the same store.
+
+## Split workspace
+
+The workspace can be split in two side-by-side areas (panes), each with its own tabs and active note.
+
+- `src/contexts/layout-reducer.ts` holds `LayoutState { left, right, focused }` (`right` is `null` when not split) and wraps the per-pane `tabsReducer`, which is unchanged. Moving a tab between panes is one atomic action.
+- `TabsProvider` exposes the usual hooks (`useTabs`, `useActiveNote`) for the focused pane: `activeId` and `currentNote` are the focused pane's, while `openIds` and `tabs` are the union of both panes. `PaneProvider` (`src/contexts/pane-provider.tsx`) overrides the tabs and active-note contexts with the values of one pane, so the components inside a pane work as if there was a single note.
+- `ActiveNoteProvider` loads the notes of both panes and keeps three instances of the optimistic actions: the focused pane, the left one and the right one.
+- One note is open in at most one pane. Opening a note already open in the other pane activates it there.
+- A single `TabsDndProvider` wraps both tab bars, so a tab can be dragged from one to the other.
+- Handlers registered by `useShortcut` and `useAppCommand` run only in the focused pane, so a shortcut does not fire twice.
+- The layout is saved in `openTabs:<workspaceId>` as `{ version: 2, left, right, focused }`. The old `{ openIds, activeId }` shape is read as the left pane. It is restored at startup only when "reopen notes" is on.
 
 ## Translations
 
