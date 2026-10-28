@@ -62,6 +62,7 @@ vi.mock("@/contexts/use-preferences", () => ({
         taskDensity: "normal", setTaskDensity: vi.fn(),
         spellcheck: true, setSpellcheck: vi.fn(),
         trashAutoEmptyDays: 0, setTrashAutoEmptyDays: vi.fn(),
+        confirmDeleteWithContent: true, setConfirmDeleteWithContent: vi.fn(),
     }),
 }))
 
