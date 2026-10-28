@@ -1,10 +1,8 @@
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    byLabel, byText, createFromSidebar, createWorkspace, cssColor, domClick, openWorkspace, sectionCard, sql, tr, treeRow, typeInto,
-    waitForApp, type Rgba,
-    addTaskButton, menuButton, menuButtonPredicate, openMenuWithButton,
+    addTaskToSection, byLabel, byText, createFromSidebar, createWorkspace, cssColor, domClick, openWorkspace, sectionCard, sql, tr, treeRow, typeInto,
+    waitForApp, type Rgba, menuButton, menuButtonPredicate, openMenuWithButton,
     groupCard, newSectionInGroup,
-    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Feat Workspace"
@@ -83,11 +81,7 @@ const openSectionMenu = async (title: string) => openMenuWithButton(await menuBu
 
 const addTask = async (section: string, text: string) => {
     const before = (await taskValues(section)).length
-    await (await addTaskButton(sectionCard(section))).click()
-    await typeInto(sectionCard(section).$("input"), text)
-    await sectionCard(section).$(`[aria-label="${await tr("common.add")}"]`).click()
-    // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
-    await closeTaskInput()
+    await addTaskToSection(sectionCard(section), text)
     await browser.waitUntil(async () => (await taskValues(section)).length === before + 1, { timeoutMsg: `task "${text}" not created` })
 }
 
@@ -164,8 +158,13 @@ const closeTrash = async (trash: ChainableDialog) => {
 }
 
 /** Moves the item through the "delete" entry of its menu and confirms the dialog. */
-const deleteFromMenu = async (menu: ChainableDialog) => {
+/**
+ * Deletes from the menu of a task, section or group. A task always asks for a confirmation; an EMPTY section, group or
+ * note does not ("Confirm deleting only when there is content", on by default), so pass `{ confirms: false }` for those.
+ */
+const deleteFromMenu = async (menu: ChainableDialog, { confirms = true }: { confirms?: boolean } = {}) => {
     await byText(await tr("common.delete"), menu).click()
+    if (!confirms) return
     const dialog = await expectConfirmDialog("dialogs.delete.title", true)
     await confirmAndClose(dialog, await tr("dialogs.delete.confirm"))
 }
@@ -231,6 +230,47 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         await waitForTasks(SECTIONS[0], TASKS)
     })
 
+    it("shows the completed tasks last from the settings without changing the saved order", async () => {
+        const toggleCompletedLast = async () => {
+            await byLabel(await tr("settings.title")).click()
+            await $('[role="dialog"]').waitForDisplayed()
+            const nav = $(`[role="tablist"][aria-label="${await tr("settings.nav")}"]`)
+            await byText(await tr("settings.categories.notes"), nav).click()
+            await $(`//*[@role="dialog"]//*[@role="switch"][@id=//label[normalize-space()=${xpathString(await tr("settings.notes.completedLast.label"))}]/@for]`).click()
+            await browser.keys("Escape")
+            await $('[role="dialog"]').waitForExist({ reverse: true })
+        }
+        const toggleFirstTask = async () => {
+            const areas = await $$(`[aria-label="${await tr("tasks.editText")}"]`)
+            for (const area of areas) {
+                if ((await area.getValue()) !== TASKS[0]) continue
+                const row = await area.$("./ancestor::div[@data-task-id][1]")
+                await domClick(row.$('[role="checkbox"]'))
+                return
+            }
+            throw new Error(`task "${TASKS[0]}" not found`)
+        }
+
+        await toggleFirstTask()
+        // Off by default: the completed task keeps its place
+        await waitForTasks(SECTIONS[0], TASKS)
+        await toggleCompletedLast()
+        // Shown last, while the saved order is still the original one
+        await browser.waitUntil(async () => JSON.stringify(await taskValues(SECTIONS[0])) === JSON.stringify([TASKS[1], TASKS[2], TASKS[0]]), {
+            timeoutMsg: "the completed task is not shown last",
+        })
+        expect(await savedOrder("task", "text", TASKS)).toEqual(TASKS)
+        // The completed task cannot move up over the open ones
+        const menu = await openTaskMenu(TASKS[0])
+        await expect(byText(await tr("menu.moveUp"), menu)).toHaveAttribute("aria-disabled", "true")
+        await browser.keys("Escape")
+
+        // Back to the original state for the next tests
+        await toggleCompletedLast()
+        await waitForTasks(SECTIONS[0], TASKS)
+        await toggleFirstTask()
+    })
+
     it("moves a section down from its menu, then undoes and redoes", async () => {
         let menu = await openSectionMenu(SECTIONS[0])
         // The first section can still go up: the list of the direct tasks of the group sits above it
@@ -255,7 +295,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
     it("deletes a task and a section to the trash and restores them", async () => {
         await deleteFromMenu(await openTaskMenu(TASKS[2]))
         await browser.waitUntil(async () => !(await taskValues(SECTIONS[0])).includes(TASKS[2]), { timeoutMsg: "task not deleted" })
-        await deleteFromMenu(await openSectionMenu(SECTIONS[2]))
+        await deleteFromMenu(await openSectionMenu(SECTIONS[2]), { confirms: false })
         await browser.waitUntil(async () => !(await sectionTitles()).includes(SECTIONS[2]), { timeoutMsg: "section not deleted" })
 
         const trash = await openTrash()
@@ -288,7 +328,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
 
     it("empties the trash after a confirmation", async () => {
         await deleteFromMenu(await openTaskMenu(TASKS[0]))
-        await deleteFromMenu(await openSectionMenu(SECTIONS[2]))
+        await deleteFromMenu(await openSectionMenu(SECTIONS[2]), { confirms: false })
         await browser.waitUntil(async () => !(await sectionTitles()).includes(SECTIONS[2]), { timeoutMsg: "section not deleted" })
 
         const trash = await openTrash()

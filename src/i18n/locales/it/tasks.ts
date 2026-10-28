@@ -20,6 +20,7 @@ export const tasks = {
     newSubtask: "Nuovo sottotask",
     addSubtask: "Aggiungi sottotask",
     add: "Aggiungi task",
+    inputHint: "Invio per aggiungere, Esc per annullare",
     placeholder: "Nuovo task…",
     insertLine: {
         insertHere: "Aggiungi un task qui",
@@ -53,6 +54,9 @@ export const tasks = {
     keyboard: {
         moved: "Spostato in posizione {{position}} di {{total}}",
         cannotMove: "Impossibile spostare oltre",
+        dragSingle: "Viene spostato solo questo task",
+        selected: "{{text}} selezionato",
+        deselected: "{{text}} rimosso dalla selezione",
     },
     toggleCompleted: "Segna come completato: {{text}}",
     showDescription: "Mostra la descrizione",

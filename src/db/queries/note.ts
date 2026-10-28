@@ -137,3 +137,23 @@ export async function createDBNoteInFolder(workspaceId: number, folderId: number
         })
     }
 }
+
+/**
+ * Tells whether a note holds anything: at least one group (with its sections and tasks) that is not deleted.
+ * A group, a section and a task all live inside a group, so a note without live groups is empty.
+ * Archived groups count (they are still the user's content).
+ * @param noteId The ID of the note.
+ * @returns True when the note has content.
+ * @throws A createError('NOTE_DATA_LOAD_FAILED') error when the query fails.
+ * @category Database
+ */
+export async function noteHasContent(noteId: number): Promise<boolean> {
+    try {
+        const db = await getDB()
+        const rows = await db.select<{ found: number }[]>(
+            `SELECT EXISTS(SELECT 1 FROM section_group WHERE noteID = ? AND deleted_at IS NULL) AS found`, [noteId])
+        return rows[0]?.found === 1
+    } catch (error: unknown) {
+        throw createError('NOTE_DATA_LOAD_FAILED', i18n.t("errors.note.load", { message: getErrorMessage(error) }))
+    }
+}

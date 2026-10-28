@@ -167,4 +167,9 @@ describe("DialogRenameItem", () => {
         expect(screen.getByRole("textbox")).toHaveValue("Old name")
         expect(screen.queryByText("boom")).toBeNull()
     })
+
+    it("limita il nome a 120 caratteri", () => {
+        setup()
+        expect(screen.getByRole("textbox")).toHaveAttribute("maxlength", "120")
+    })
 })

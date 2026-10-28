@@ -19,6 +19,7 @@ export const automations = {
     whenHint: "Scegli cosa fa partire la regola.",
     thenHint: "Scegli cosa deve succedere.",
     then: "Allora",
+    stepStatus: "Passo {{current}} di {{total}}: {{name}}",
     stepsAria: "Passaggi",
     steps: {
         when: "Quando",
@@ -30,7 +31,7 @@ export const automations = {
     summaryTitle: "La regola",
     addAction: "Aggiungi azione",
     removeAction: "Rimuovi azione",
-    enabledAria: "Attiva l'automazione \"{{name}}\"",
+    enabledAria: "Automazione \"{{name}}\"",
     editAria: "Modifica l'automazione \"{{name}}\"",
     deleteAria: "Elimina l'automazione \"{{name}}\"",
     actionType: "Tipo di azione",

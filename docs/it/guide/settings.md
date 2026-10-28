@@ -45,12 +45,14 @@ Se il colore d'accento ha poco contrasto con lo sfondo, EasyTask ti avvisa e sug
 | Mostra il nome dei gruppi e delle sezioni senza nome | Sì / No | No |
 | Sfondo colorato dei task | Sì / No | Sì |
 | Nascondi task completati | Sì / No | No |
+| Task completati in fondo | Sì / No | No |
 | Densità dei task | Compatta, Normale, Ampia | Normale |
 | **Comportamento**: Rinomina cliccando sul nome | Sì / No | Sì |
 | Continua ad aggiungere task (il campo resta aperto dopo aver creato un task) | Sì / No | Sì |
 | Linea per inserire un task (una linea con un + tra due task; con Continua ad aggiungere task il campo si sposta sotto il nuovo task) | Sì / No | Sì |
 | Posizione dei nuovi task | In cima, In fondo | In fondo |
 | Controllo ortografico | Sì / No | Sì |
+| Conferma l'eliminazione solo se c'è contenuto (note, sezioni e gruppi: se attiva, quelli vuoti vanno subito nel cestino con **Annulla**, gli altri chiedono conferma; se disattivata non chiede mai. Cartelle, workspace, task e selezioni multiple chiedono sempre) | Sì / No | Sì |
 | **All'avvio**: Riapri l'ultimo workspace all'avvio | Sì / No | No |
 | Riapri le note all'avvio | Sì / No | Sì |
 
@@ -102,6 +104,8 @@ Backup, ripristino e cartella dati sono spiegati in [Dati e backup](./data-and-b
 | --- | --- | --- |
 | Avvia con Windows | Apre EasyTask quando accedi a Windows | No |
 | Riduci nell'area di notifica | Chiudendo la finestra EasyTask resta attivo nell'area di notifica. Per uscire usa **Esci** dal menu della sua icona. Il menu dell'icona ha anche **Apri EasyTask** | No |
+| Ricorda posizione e dimensione della finestra | Al prossimo avvio la finestra torna dove l'hai lasciata. Non disponibile nella versione portatile | Sì |
+| Tieni la finestra in primo piano | EasyTask resta sopra le altre finestre; si applica subito e viene ricordato all'avvio | No |
 
 ## Informazioni
 

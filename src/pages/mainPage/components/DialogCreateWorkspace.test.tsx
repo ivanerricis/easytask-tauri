@@ -42,4 +42,10 @@ describe("DialogCreateWorkspace", () => {
         pending.resolve()
         await waitFor(() => expect(ctx.getWorkspaces).toHaveBeenCalledTimes(1))
     })
+
+    it("limita il nome a 120 caratteri", async () => {
+        const user = userEvent.setup()
+        render(<DialogCreateWorkspace />, { wrapper: ShortcutsProvider })
+        expect(await open(user)).toHaveAttribute("maxlength", "120")
+    })
 })

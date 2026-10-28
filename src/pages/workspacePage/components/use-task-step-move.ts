@@ -11,15 +11,15 @@ import { getTaskStep, type Step } from "./note-steps"
  */
 export function useTaskStepMover(): (taskId: number, step: Step) => Promise<boolean> {
     const { getNoteTree } = useActiveNoteActions()
-    const { hideCompletedTasks } = usePreferences()
+    const { hideCompletedTasks, completedTasksLast } = usePreferences()
     const { moveTaskTo } = useNoteMoves()
     return useCallback(async (taskId: number, step: Step) => {
         const tree = getNoteTree()
-        const target = tree ? getTaskStep(tree, taskId, step, hideCompletedTasks) : null
+        const target = tree ? getTaskStep(tree, taskId, step, hideCompletedTasks, completedTasksLast) : null
         if (!target) return false
         await moveTaskTo(taskId, target)
         return true
-    }, [getNoteTree, hideCompletedTasks, moveTaskTo])
+    }, [getNoteTree, hideCompletedTasks, completedTasksLast, moveTaskTo])
 }
 
 /** {@link useTaskStepMover} for one task. */

@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { useEffect } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
+import { deferred } from "@/test/ui-render"
 import { TaskInsertProvider, useTaskInsertStore } from "./task-insert-state"
 import { InsertTaskInput } from "./InsertTaskInput"
 
@@ -95,11 +96,35 @@ describe("InsertTaskInput", () => {
         expect(ctx.insertTaskAfter).not.toHaveBeenCalled()
     })
 
-    it("the X button closes", async () => {
+    it("non ha bottoni di aggiunta o annullamento: Invio aggiunge, Esc annulla", async () => {
         const user = userEvent.setup()
         const getStore = setup()
-        await user.click(screen.getByRole("button", { name: "Chiudi" }))
+        const input = screen.getByPlaceholderText("Nuovo task…")
+        expect(screen.queryByRole("button")).not.toBeInTheDocument()
+        expect(input).toHaveAccessibleDescription("Invio per aggiungere, Esc per annullare")
+
+        await user.type(input, "Bozza{Escape}")
         expect(getStore().getState()).toBeNull()
+        expect(ctx.insertTaskAfter).not.toHaveBeenCalled()
+    })
+
+    it("Invio aggiunge il task", async () => {
+        const user = userEvent.setup()
+        setup()
+        await user.type(screen.getByPlaceholderText("Nuovo task…"), "Nuovo{Enter}")
+        await waitFor(() => expect(ctx.insertTaskAfter).toHaveBeenCalledWith({ sectionId: 3 }, 4, "Nuovo"))
+    })
+
+    it("segna il campo come occupato mentre salva", async () => {
+        const gate = deferred<{ id: number, index: number }>()
+        ctx.insertTaskAfter.mockReturnValue(gate.promise)
+        const user = userEvent.setup()
+        setup()
+        const input = screen.getByPlaceholderText("Nuovo task…")
+        await user.type(input, "Lento{Enter}")
+        await waitFor(() => expect(input).toHaveAttribute("aria-busy", "true"))
+        gate.resolve({ id: 50, index: 2 })
+        await waitFor(() => expect(ctx.appendTask).toHaveBeenCalled())
     })
 
     it("blur closes only when the field is empty", async () => {

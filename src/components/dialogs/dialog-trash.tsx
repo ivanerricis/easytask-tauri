@@ -139,12 +139,16 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
     // load, use the plain layout with a single list
     const tabbed = hasTabs && (isLoading || loadError === null)
     const title = <DialogTitle>{t("trash.title")}</DialogTitle>
-    const description = <DialogDescription>{t("trash.description")}</DialogDescription>
+    // pr-10: the close button of the dialog sits at the top right and must not cover the end of the text
+    const description = <DialogDescription className="pr-10">{t("trash.description")}</DialogDescription>
     const footer = (
         <>
             <FormError>{error}</FormError>
             {/* mt-auto: with few or no items the buttons stay at the bottom of the (fixed height) dialog */}
             <DialogFooter className="mt-auto">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    {t("common.close")}
+                </Button>
                 <Button
                     variant="destructive"
                     disabled={busy || isLoading || items.length === 0}
@@ -152,9 +156,6 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                 >
                     <Trash2 />
                     {t("trash.empty")}
-                </Button>
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
-                    {t("common.close")}
                 </Button>
             </DialogFooter>
         </>

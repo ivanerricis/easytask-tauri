@@ -16,6 +16,8 @@ export type TaskKeyAction =
     | { type: "collapse", key: string }
     | { type: "focusFirstChild", key: string }
     | { type: "focusParent", key: string }
+    | { type: "extend", key: string }
+    | { type: "toggleSelect" }
     | { type: "toggle" }
     | { type: "rename" }
     | { type: "menu" }
@@ -25,15 +27,17 @@ export type TaskKeyAction =
  * Keyboard of a task list (same model as the tree of the sidebar), within one list only:
  * Up / Down / Home / End move between the rows, Right opens a closed task with subtasks (on an open one it goes to its
  * first subtask), Left closes an open one (otherwise it goes to the parent), Space toggles, Enter renames,
- * Shift+F10 or the menu key open the menu, Alt+Up / Alt+Down move the task one step.
+ * Shift+F10 or the menu key open the menu, Shift+Up / Down / Home / End extend the selection to that row (`key`),
+ * Ctrl/Cmd+Space toggles the selection of the row, Alt+Up / Alt+Down move the task one step.
  * Returns null for any other key or modifier; a handled key that cannot move (Down on the last row) focuses the same row.
  */
 export function taskKeyAction(rows: TaskKeyRow[], currentKey: string, event: TaskKeyEvent): TaskKeyAction | null {
-    if (event.ctrlKey || event.metaKey) return null
     const index = rows.findIndex(row => row.key === currentKey)
     if (index < 0) return null
     const current = rows[index]
     const focus = (target: TaskKeyRow | undefined): TaskKeyAction => ({ type: "focus", key: (target ?? current).key })
+
+    if (event.ctrlKey || event.metaKey) return event.key === " " && !event.shiftKey && !event.altKey ? { type: "toggleSelect" } : null
 
     if (event.altKey) {
         if (event.shiftKey) return null
@@ -41,7 +45,17 @@ export function taskKeyAction(rows: TaskKeyRow[], currentKey: string, event: Tas
         if (event.key === "ArrowDown") return { type: "move", step: 1 }
         return null
     }
-    if (event.shiftKey) return event.key === "F10" ? { type: "menu" } : null
+    if (event.shiftKey) {
+        const extend = (target: TaskKeyRow | undefined): TaskKeyAction => ({ type: "extend", key: (target ?? current).key })
+        switch (event.key) {
+            case "F10": return { type: "menu" }
+            case "ArrowDown": return extend(rows[index + 1])
+            case "ArrowUp": return extend(rows[index - 1])
+            case "Home": return extend(rows[0])
+            case "End": return extend(rows[rows.length - 1])
+            default: return null
+        }
+    }
 
     switch (event.key) {
         case "ArrowDown": return focus(rows[index + 1])

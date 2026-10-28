@@ -59,7 +59,7 @@ Trascina il bordo destro di un gruppo per allargarlo o restringerlo. Da tastiera
 ### Aggiungere un task
 
 1. In fondo a una sezione fai clic sul pulsante **+** (**Aggiungi task**). Per aggiungere un task a un gruppo senza sezione, fai clic sul pulsante tratteggiato **Nuovo task** del gruppo: si trova subito sotto i task del gruppo, ovunque sia quella lista tra le sezioni, e il nuovo task viene creato in quella lista.
-2. Scrivi il testo in **Nuovo task…** e conferma con `Invio` o con il pulsante di aggiunta. `Esc` chiude il campo.
+2. Scrivi il testo in **Nuovo task…** e conferma con `Invio` (il campo non ha pulsanti). `Esc` lo chiude scartando il testo.
 
 I task di un gruppo contano nella barra di avanzamento e nel numero di task del gruppo. Trascinane uno in una sezione, o il contrario, oppure usa **Sposta in…** (il gruppo compare nell'elenco come **Task del gruppo**). **Sposta su** e **Sposta giù** di un task restano dentro la stessa lista.
 
@@ -117,7 +117,7 @@ Trascina un task dalla sua riga. Rilascialo:
 - al centro di un task, per renderlo un sottotask di quel task;
 - su una sezione, per farne l'ultimo task di quella sezione.
 
-**Sposta su**, **Sposta giù** e **Sposta in…** nel menu fanno lo stesso senza trascinare.
+**Sposta su**, **Sposta giù** e **Sposta in…** nel menu fanno lo stesso senza trascinare. Con [Task completati in fondo](#task-completati-in-fondo) attivo, un task rilasciato viene messo dove lo rilasci e l'elenco è poi mostrato con i completati in fondo.
 
 ### Usare la tastiera
 
@@ -130,10 +130,12 @@ Ogni lista di task è un albero per la tastiera e per gli screen reader: `Tab` e
 - `Spazio` completa o riapre il task, `Invio` ne modifica il testo, `Shift+F10` (o il tasto menu) apre il suo menu.
 - `Alt+↑` e `Alt+↓` spostano il task di un passo tra i fratelli, come **Sposta su** e **Sposta giù** del menu. Il focus resta sul task e uno screen reader annuncia "Spostato in posizione N di M" (o che non si può spostare oltre).
 
-Il task che prende il focus diventa anche quello selezionato, come quando lo clicchi. Quando elimini, archivi o sposti altrove il task con il focus, il focus passa al task successivo (o al precedente) per poter continuare. La selezione da tastiera non è ancora disponibile. Tutti i tasti sono elencati in [Scorciatoie da tastiera](./shortcuts.md#task-da-tastiera).
+Il task che prende il focus diventa anche quello selezionato, come quando lo clicchi. Quando elimini, archivi o sposti altrove il task con il focus, il focus passa al task successivo (o al precedente) per poter continuare. Per selezionare più task da tastiera vedi [Selezionare più task](#selezionare-più-task). Tutti i tasti sono elencati in [Scorciatoie da tastiera](./shortcuts.md#task-da-tastiera).
 ### Selezionare più task
 
 Tieni premuto **Ctrl** (**Cmd** su macOS) e clicca per aggiungere un task alla selezione o toglierlo. Clicca un task con **Maiusc** per selezionare tutti i task visibili tra l'ultimo cliccato e questo, anche tra sezioni e gruppi. **Esc** annulla la selezione, come un normale clic.
+
+Da tastiera, porta il focus su un task e premi **Maiusc+Giù** o **Maiusc+Su** per estendere la selezione di un task alla volta (**Maiusc+Fine** e **Maiusc+Home** vanno all'ultimo e al primo task della lista); tornando verso il primo task la selezione si restringe. **Ctrl+Spazio** (**Cmd+Spazio** su macOS) aggiunge alla selezione il task con il focus o lo toglie, così puoi scegliere task non vicini: spostati con le frecce semplici, che mantengono la selezione, e premilo su ciascuno. Questi tasti non cambiano il task mostrato nel pannello dei dettagli. Quando la selezione scende a un solo task o a nessuno, uno screen reader lo annuncia; con due o più legge il contatore.
 
 Fai clic destro su un task selezionato (o apri il suo menu) per agire su tutti insieme: **Elimina**, **Archivia**, **Colora** e **Sposta in…** (in fondo a una sezione, o tra i task diretti di un gruppo). Un task selezionato vale anche per i suoi sottotask, che vengono eliminati, archiviati e spostati con lui. Ogni azione è un solo passo nella [cronologia di annullamento](./undo-and-history.md). Il trascinamento sposta sempre un task alla volta.
 
@@ -148,6 +150,12 @@ Premi `Ctrl+F` o clicca la lente nella barra del percorso sopra i gruppi per apr
 ## Nascondere i task completati
 
 Premi `Ctrl+Maiusc+H`, usa il pulsante a forma di occhio nella barra del percorso sopra i gruppi, oppure scegli **Visualizza > Nascondi task completati**. I task completati e i loro sottotask spariscono, e ogni sezione indica quanti sono nascosti. Un task completato che ha ancora un sottotask aperto resta visibile, così il lavoro aperto non si perde. Non viene eliminato nulla: premi di nuovo la scorciatoia per rivederli. Per partire con i task nascosti usa **Impostazioni > Note e sezioni > Nascondi task completati**.
+
+## Task completati in fondo
+
+Attiva **Impostazioni > Note e sezioni > Task completati in fondo** per vedere i task completati dopo quelli da fare in ogni elenco: i task di una sezione, i task messi direttamente in un gruppo e i sottotask di un task. È solo una vista: ogni blocco mantiene il suo ordine, l'ordine salvato nella nota non cambia e non si sposta nulla quando completi o riapri un task (cambia solo posto sullo schermo). Funziona insieme a **Nascondi task completati**.
+
+Con l'opzione attiva, la selezione dei task, la ricerca e la tastiera seguono l'ordine che vedi. **Sposta su** e **Sposta giù** (e `Alt+↑` / `Alt+↓`) spostano un task tra i task dello stesso tipo e si fermano al bordo dei task da fare o di quelli completati. La riga **+** sopra il primo task completato aggiunge un nuovo task dopo l'ultimo da fare, e tra i task completati non c'è nessuna riga **+**. Quando trascini un task, viene messo dove lo rilasci, poi l'elenco è mostrato di nuovo con i completati in fondo.
 
 ## Il pannello dei dettagli
 

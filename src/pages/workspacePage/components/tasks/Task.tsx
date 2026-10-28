@@ -25,7 +25,7 @@ import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import type { DropZone } from "../note-dnd"
 import { useIsTaskSelected, useSelectTask, useSubtasksOpen } from "@/contexts/use-tabs"
-import { visibleTasks } from "../section/hide-completed"
+import { orderedVisibleTasks } from "../section/hide-completed"
 import { DropLine } from "../sidebar/DropLine"
 import type { TaskDensity } from "@/lib/store/preferences"
 import { TASK_DENSITIES } from "./task-density"
@@ -37,6 +37,7 @@ import { useSearchHighlight } from "../note-search-context"
 import { SearchedTaskText } from "./SearchedTaskText"
 import { useIsTaskTabStop, useTaskTabStopStore } from "./task-tab-stop"
 import { useTaskRowKeys } from "./use-task-row-keys"
+import { isFocusKeepingDetails } from "./task-focus-intent"
 
 // Clicks on these keep their own action (checkbox, buttons) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
@@ -49,6 +50,8 @@ type TaskProps = {
     showSubtaskCount?: boolean
     /** Hides the fully completed subtasks (see isHiddenTask). Only primitive props: the subtasks are rendered here, so the memo holds. */
     hideCompleted?: boolean
+    /** Shows the completed subtasks after the open ones (display only). A primitive, so the memo holds. */
+    completedLast?: boolean
     /** Whether a click on the text starts the rename (preference "Rename on click"); otherwise only the menu does. */
     renameOnClick?: boolean
     /** Spacing and text size of the rows (preference "Task density"); a primitive prop, so the memo holds when other preferences change. */
@@ -89,7 +92,7 @@ export const Task = React.memo((props: TaskProps) => {
     return <TaskRow {...props} setRowRef={setRowRef} dragProps={dragProps} isDragging={isDragging} dropZone={active?.kind === "task" ? zone : null} />
 })
 
-const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, renameOnClick = true, density = "normal", treeKey = "", isFirst = false, setRowRef, dragProps, isDragging, dropZone }: TaskRowProps) => {
+const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, completedLast = false, renameOnClick = true, density = "normal", treeKey = "", isFirst = false, setRowRef, dragProps, isDragging, dropZone }: TaskRowProps) => {
     const { t } = useTranslation()
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
@@ -168,7 +171,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
         }
     }
 
-    const onRowKeyDown = useTaskRowKeys({ taskId: task.id, subtasksOpen, onToggleSubtasks: toggleSubtasks, onToggleCompleted: () => { void handleCheckedChange() }, onRename: startEdit })
+    const onRowKeyDown = useTaskRowKeys({ taskId: task.id, taskText: task.text, subtasksOpen, onToggleSubtasks: toggleSubtasks, onToggleCompleted: () => { void handleCheckedChange() }, onRename: startEdit })
 
     return (
         <div className={cn(
@@ -214,11 +217,12 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     onClick={e => {
                         if (!(e.target as HTMLElement).closest(SELECTION_IGNORED)) selectTask(task.id)
                     }}
-                    onFocus={() => {
+                    onFocus={e => {
                         tabStopStore?.set(task.id)
                         const gesture = gestureDown.current
                         gestureDown.current = false
-                        if (!gesture) selectTask(task.id)
+                        // A row focused by Shift+arrows / Ctrl+Space is part of a selection: the details stay as they are
+                        if (!gesture && !isFocusKeepingDetails(e.currentTarget)) selectTask(task.id)
                     }}
                     className={cn(
                         "peer/row relative flex flex-col items-center w-full touch-none cursor-grab active:cursor-grabbing focus-visible:outline-3 focus-visible:outline-offset-[-2px]",
@@ -307,17 +311,13 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                         // The toolbar that shows on hover covers this one and has the same button: this copy is out of the
                                         // tab order and of the accessibility tree
                                         <TooltipCustom text={t("tasks.showDescription")}>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                tabIndex={-1}
+                                            <span
                                                 aria-hidden
                                                 data-testid="description-indicator"
-                                                onClick={() => { onOpenChange(true) }}
-                                                className="size-6 -m-1 text-muted-foreground hover:text-foreground">
+                                                onClick={e => { e.stopPropagation(); onOpenChange(true) }}
+                                                className="flex size-6 -m-1 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground">
                                                 <AlignLeft className="size-3.5" />
-                                            </Button>
+                                            </span>
                                         </TooltipCustom>}
                                     {/* Hidden subtasks always show their count (also with the preference off): it is the sign that there are some */}
                                     {(showSubtaskCount || subtasksHidden) && hasSubtasks &&
@@ -382,11 +382,12 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
             {((hasSubtasks && subtasksOpen) || isAddingSubtask) && <div role="group" className={cn("flex flex-col self-stretch", sizes.subtasks, isSubtask ? "ml-[22px]" : "ml-6")}>
                 {taskRowsWithInsert({
                     all: task.subtasks,
-                    visible: visibleTasks(task.subtasks, hideCompleted),
+                    visible: orderedVisibleTasks(task.subtasks, { hideCompleted, completedLast }),
                     listKey: `t-${task.id}`,
                     parent: { parentTaskId: task.id },
                     depth: depth + 1,
-                    renderTask: subtask => <Task key={subtask.id} task={subtask} depth={depth + 1} treeKey={treeKey} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} density={density} />,
+                    completedLast,
+                    renderTask: subtask => <Task key={subtask.id} task={subtask} depth={depth + 1} treeKey={treeKey} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} completedLast={completedLast} renameOnClick={renameOnClick} density={density} />,
                 })}
                 {isAddingSubtask &&
                     <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}

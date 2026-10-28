@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import { ItemMenuButton } from "@/components/item-menu"
 import { makeNote } from "@/test/ui-fixtures"
+// The request to delete is tested with its hook (use-delete-request.test.tsx): here it opens the dialog
+vi.mock("@/components/dialogs/use-delete-item", () => ({ useDeleteRequest: ({ openDialog }: { openDialog: () => void }) => ({ request: openDialog }) }))
 
 const openNote = vi.fn()
 const duplicateNote = vi.fn()

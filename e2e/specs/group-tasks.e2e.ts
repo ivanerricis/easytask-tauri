@@ -1,8 +1,7 @@
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    addTaskButton, addTaskToGroup, byLabel, byText, createFromSidebar, createWorkspace, directTasks, groupAddTaskButton, groupCard,
+    addTaskToSection, addTaskToGroup, byLabel, byText, createFromSidebar, createWorkspace, directTasks, groupAddTaskButton, groupCard,
     menuButton, menuButtonPredicate, newSectionInGroup, openMenuWithButton, openSubmenu, openWorkspace, sectionCard, tr, treeRow, typeInto, waitForApp,
-    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Direct Tasks Workspace"
@@ -65,7 +64,7 @@ describe("Tasks directly in a group", () => {
         await browser.waitUntil(async () => (await valuesIn(directTasks(groupCard(GROUP)))).includes(DIRECT_TASK), { timeoutMsg: "the direct task was not created" })
     })
 
-    it("opens the new task field without a horizontal scrollbar, the add and cancel buttons sharing the width of the form", async () => {
+    it("opens the new task field without a horizontal scrollbar and without add or cancel buttons", async () => {
         await (await groupAddTaskButton(groupCard(GROUP))).click()
         await directTasks(groupCard(GROUP)).$("input").waitForDisplayed()
         const size = await browser.execute((group: HTMLElement) => {
@@ -77,7 +76,9 @@ describe("Tasks directly in a group", () => {
             return { scrollWidth: scroller.scrollWidth, clientWidth: scroller.clientWidth, form: form.getBoundingClientRect().width, buttons }
         }, (await groupCard(GROUP).getElement()) as unknown as HTMLElement)
         expect(size.scrollWidth).toBeLessThanOrEqual(size.clientWidth + 1)
-        expect(size.buttons.reduce((sum, width) => sum + width, 0)).toBeLessThanOrEqual(size.form + 1)
+        // Enter adds and Esc cancels: the field has no buttons any more
+        expect(size.buttons).toEqual([])
+        expect(size.form).toBeGreaterThan(0)
         await browser.keys("Escape")
         await expect(await groupAddTaskButton(groupCard(GROUP))).toBeDisplayed()
     })
@@ -97,11 +98,7 @@ describe("Tasks directly in a group", () => {
     })
 
     it("creates a task in the section", async () => {
-        await (await addTaskButton(sectionCard(SECTION))).click()
-        await typeInto(sectionCard(SECTION).$("input"), SECTION_TASK)
-        await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
-        // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
-        await closeTaskInput()
+        await addTaskToSection(sectionCard(SECTION), SECTION_TASK)
         await browser.waitUntil(async () => (await valuesIn(sectionCard(SECTION))).includes(SECTION_TASK), { timeoutMsg: "the section task was not created" })
     })
 

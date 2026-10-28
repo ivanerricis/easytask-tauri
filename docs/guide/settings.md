@@ -45,12 +45,14 @@ If the accent color has little contrast with the background, EasyTask warns you 
 | Show names of unnamed groups and sections | On / Off | Off |
 | Colored task background | On / Off | On |
 | Hide completed tasks | On / Off | Off |
+| Completed tasks at the bottom | On / Off | Off |
 | Task density | Compact, Normal, Roomy | Normal |
 | **Behavior**: Rename by clicking the name | On / Off | On |
 | Keep adding tasks (the field stays open after creating a task) | On / Off | On |
 | Line to insert a task (a line with a + between two tasks; with Keep adding tasks the field moves under the new task) | On / Off | On |
 | Position of new tasks | At the top, At the bottom | At the bottom |
 | Spell check | On / Off | On |
+| Confirm deleting only when there is content (notes, sections and groups: with it on, empty ones go straight to the trash with **Undo**, the others ask first; off never asks. Folders, workspaces, tasks and multiple selections always ask) | On / Off | On |
 | **On startup**: Reopen the last workspace at startup | On / Off | Off |
 | Reopen notes at startup | On / Off | On |
 
@@ -102,6 +104,8 @@ Backups, restore and the data folder are explained in [Data and backups](./data-
 | --- | --- | --- |
 | Start with Windows | Opens EasyTask when you sign in to Windows | Off |
 | Minimize to the notification area | Closing the window keeps EasyTask running in the notification area. Use **Quit** in the menu of its icon to exit. The icon menu also has **Open EasyTask** | Off |
+| Remember window position and size | The window comes back where you left it at the next start. Not available in the portable version | On |
+| Keep the window on top | EasyTask stays above the other windows; applies at once and is remembered at startup | Off |
 
 ## About
 

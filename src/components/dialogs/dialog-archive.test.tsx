@@ -49,6 +49,11 @@ describe("DialogArchive", () => {
         expect(screen.queryByText("Sezione G")).not.toBeInTheDocument()
     })
 
+    it("la descrizione lascia spazio alla X di chiusura (pr-10)", async () => {
+        render(<DialogArchive isOpen onOpenChange={vi.fn()} />)
+        expect(await screen.findByText(/Gli elementi archiviati sono nascosti da/)).toHaveClass("pr-10")
+    })
+
     it("shows context, summary and archive date of a row", async () => {
         render(<DialogArchive isOpen onOpenChange={vi.fn()} />)
         expect(await screen.findByText("Cartella A · 2 gruppi · 3 sezioni · Archiviato il 02-09-2026 08:05")).toBeInTheDocument()

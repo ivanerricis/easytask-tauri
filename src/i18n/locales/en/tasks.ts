@@ -22,6 +22,7 @@ export const tasks: Translation["tasks"] = {
     newSubtask: "New subtask",
     addSubtask: "Add subtask",
     add: "Add task",
+    inputHint: "Enter to add, Esc to cancel",
     placeholder: "New task…",
     insertLine: {
         insertHere: "Add a task here",
@@ -55,6 +56,9 @@ export const tasks: Translation["tasks"] = {
     keyboard: {
         moved: "Moved to position {{position}} of {{total}}",
         cannotMove: "Cannot move any further",
+        dragSingle: "Only this task is moved",
+        selected: "{{text}} selected",
+        deselected: "{{text}} removed from the selection",
     },
     toggleCompleted: "Mark as completed: {{text}}",
     showDescription: "Show the description",

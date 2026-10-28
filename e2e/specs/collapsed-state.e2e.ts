@@ -1,6 +1,6 @@
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    addTaskButton, byLabel, byText, closeTaskInput, createFromSidebar, createWorkspace, domClick, groupCard, menuButton, menuButtonPredicate,
+    addTaskToSection, byLabel, byText, createFromSidebar, createWorkspace, domClick, groupCard, menuButton, menuButtonPredicate,
     newSectionInGroup, openMenuWithButton, openWorkspace, sectionCard, sql, tr, treeRow, typeInto, waitForApp,
 } from "../helpers"
 
@@ -77,10 +77,7 @@ describe("Open and closed state of groups, sections and subtasks", () => {
         await byText(GROUP).waitForDisplayed({ timeoutMsg: "the group was not created" })
         await newSectionInGroup(groupCard(GROUP), SECTION)
 
-        await (await addTaskButton(sectionCard(SECTION))).click()
-        await typeInto(sectionCard(SECTION).$("input"), PARENT)
-        await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
-        await closeTaskInput()
+        await addTaskToSection(sectionCard(SECTION), PARENT)
         await browser.waitUntil(async () => (await valuesIn(sectionCard(SECTION))).includes(PARENT), { timeoutMsg: "task not created" })
 
         const menu = await openTaskMenu(PARENT)

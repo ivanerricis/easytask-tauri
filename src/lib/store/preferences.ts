@@ -170,6 +170,7 @@ export const UI_PREFS = {
     reopenLastWorkspace: def({ key: "reopenLastWorkspace", default: false }),
     colorIntensity: def<number>({ key: "colorIntensity", default: DEFAULT_COLOR_INTENSITY, normalize: clampColorIntensity }),
     hideCompletedTasks: def({ key: "hideCompletedTasks", default: false }),
+    completedTasksLast: def({ key: "completedTasksLast", default: false }),
     language: def<LanguagePreference>({ key: "language", default: DEFAULT_LANGUAGE_PREFERENCE, normalize: value => isLanguagePreference(value) ? value : DEFAULT_LANGUAGE_PREFERENCE }),
     newTaskPosition: def<NewTaskPosition>({ key: "newTaskPosition", default: "bottom", normalize: value => value === "top" ? "top" : "bottom" }),
     taskDensity: def<TaskDensity>({ key: "taskDensity", default: "normal", normalize: value => value === "compact" || value === "large" ? value : "normal" }),
@@ -179,6 +180,8 @@ export const UI_PREFS = {
         default: 0,
         normalize: value => TRASH_AUTO_EMPTY_DAYS.includes(value as TrashAutoEmptyDays) ? value as TrashAutoEmptyDays : 0,
     }),
+    /** On: ask before deleting a note, section or group only when it has content (empty ones go straight to the trash). Off: never ask for these. */
+    confirmDeleteWithContent: def({ key: "confirmDeleteWithContent", default: true, normalize: value => value !== false }),
 }
 
 /** The preferences used by the app only (not part of `usePreferences()`); saving null removes them from the store. */
@@ -196,6 +199,11 @@ export const APP_PREFS = {
     /** A folder chosen by the user for the backups; null = the "backups" folder in the data folder. */
     backupFolder: def<string | null>({ key: "backupFolder", default: null, normalize: value => typeof value === "string" && value.trim().length > 0 ? value : null }),
     closeToTray: def({ key: "closeToTray", default: false, normalize: value => value === true }),
+    // The two keys below are also read by the Rust side at startup (src-tauri/src/lib.rs, setup): keep the names identical there
+    /** Restore the position and size of the window at the next start. */
+    rememberWindowState: def({ key: "rememberWindowState", default: true, normalize: value => value !== false }),
+    /** Keep the window above the others (applied at start by the Rust side, and when changed). */
+    alwaysOnTop: def({ key: "alwaysOnTop", default: false, normalize: value => value === true }),
 }
 
 const ALL_PREFS = { ...UI_PREFS, ...APP_PREFS }
@@ -251,6 +259,10 @@ export const getBackupFolder = () => getPref("backupFolder")
 export const saveBackupFolder = (path: string | null) => savePref("backupFolder", path)
 export const getCloseToTray = () => getPref("closeToTray")
 export const saveCloseToTray = (value: boolean) => savePref("closeToTray", value)
+export const getRememberWindowState = () => getPref("rememberWindowState")
+export const saveRememberWindowState = (value: boolean) => savePref("rememberWindowState", value)
+export const getAlwaysOnTop = () => getPref("alwaysOnTop")
+export const saveAlwaysOnTop = (value: boolean) => savePref("alwaysOnTop", value)
 export const getTrashAutoEmptyDays = () => getPref("trashAutoEmptyDays")
 export const getCheckUpdatesOnStartup = () => getPref("checkUpdatesOnStartup")
 export const saveCheckUpdatesOnStartup = (value: boolean) => savePref("checkUpdatesOnStartup", value)

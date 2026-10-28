@@ -6,6 +6,7 @@ import { toast } from "sonner"
 const setSidebarItemSize = vi.fn()
 const setColorIntensity = vi.fn()
 const setHideCompletedTasks = vi.fn()
+const setCompletedTasksLast = vi.fn()
 const setShowUnnamedLabels = vi.fn()
 const setRenameOnClick = vi.fn()
 const colorPrefs = { colorIntensity: 1 }
@@ -48,6 +49,7 @@ vi.mock("@/contexts/use-preferences", () => ({
         showTaskInsertLine: true, setShowTaskInsertLine: vi.fn(),
         undoLimit: 50, setUndoLimit: vi.fn(),
         hideCompletedTasks: false, setHideCompletedTasks: (value: boolean) => setHideCompletedTasks(value),
+        completedTasksLast: false, setCompletedTasksLast: (value: boolean) => setCompletedTasksLast(value),
         reopenNotes: true, setReopenNotes: vi.fn(),
         reopenLastWorkspace: false, setReopenLastWorkspace: vi.fn(),
         resetPlayerPosition: vi.fn(),
@@ -62,6 +64,7 @@ vi.mock("@/contexts/use-preferences", () => ({
         taskDensity: "normal", setTaskDensity: vi.fn(),
         spellcheck: true, setSpellcheck: vi.fn(),
         trashAutoEmptyDays: 0, setTrashAutoEmptyDays: vi.fn(),
+        confirmDeleteWithContent: true, setConfirmDeleteWithContent: vi.fn(),
     }),
 }))
 
@@ -82,6 +85,7 @@ describe("DialogSettings", () => {
         setSidebarItemSize.mockReset()
         setColorIntensity.mockReset()
         setHideCompletedTasks.mockReset()
+        setCompletedTasksLast.mockReset()
         colorPrefs.colorIntensity = 1
         vi.mocked(openUrl).mockReset().mockResolvedValue(undefined)
         vi.mocked(toast.error).mockReset()
@@ -95,7 +99,7 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
-        expect(screen.getAllByRole("switch")).toHaveLength(16)
+        expect(screen.getAllByRole("switch")).toHaveLength(18)
         expect(screen.getByRole("switch", { name: "Nascondi task completati" })).not.toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra il nome dei gruppi e delle sezioni senza nome" })).not.toBeChecked()
@@ -123,6 +127,14 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
         await user.click(screen.getByRole("switch", { name: "Nascondi task completati" }))
         expect(setHideCompletedTasks).toHaveBeenCalledWith(true)
+    })
+
+    it("toggles the completed tasks last preference", async () => {
+        const user = await open()
+        await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
+        expect(screen.getByRole("switch", { name: "Task completati in fondo" })).not.toBeChecked()
+        await user.click(screen.getByRole("switch", { name: "Task completati in fondo" }))
+        expect(setCompletedTasksLast).toHaveBeenCalledWith(true)
     })
 
     it("toggles the unnamed labels and rename on click preferences", async () => {

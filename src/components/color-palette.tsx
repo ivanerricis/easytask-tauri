@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState, type MouseEvent } from "react"
 import { useTranslation } from "react-i18next"
-import { Plus } from "lucide-react"
+import { Check, Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { textColorOn } from "@/lib/accent-color"
 import { PALETTE_COLORS, isPaletteColor } from "@/lib/colors"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 
@@ -53,7 +54,10 @@ export const ColorPalette = ({ value, onPick, className }: ColorPaletteProps) =>
                             selected && "ring-2 ring-inset ring-foreground",
                         )}
                         style={{ backgroundColor: color }}
-                    />
+                    >
+                        {/* Not only a ring: the check reads on any swatch (dark or white, whichever contrasts) */}
+                        {selected && <Check className="size-5" style={{ color: textColorOn(color) }} aria-hidden="true" />}
+                    </ToggleGroupItem>
                 )
             })}
             <div
@@ -72,7 +76,8 @@ export const ColorPalette = ({ value, onPick, className }: ColorPaletteProps) =>
                     value={customColor}
                     onChange={e => setCustom(e.target.value)}
                 />
-                <Plus className="absolute pointer-events-none size-5 text-background dark:text-foreground" />
+                {customSelected && <Check className="absolute pointer-events-none size-5" style={{ color: textColorOn(customColor) }} aria-hidden="true" />}
+                {!customSelected && <Plus className="absolute pointer-events-none size-5" style={{ color: textColorOn(customColor) }} />}
             </div>
         </ToggleGroup>
     )

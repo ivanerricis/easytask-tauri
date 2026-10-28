@@ -285,6 +285,10 @@ export const settings: Translation["settings"] = {
             label: "Hide completed tasks",
             description: "Completed tasks (and their subtasks) are not shown in the notes. A line tells how many are hidden.",
         },
+        completedLast: {
+            label: "Completed tasks at the bottom",
+            description: "In every list, completed tasks are shown after the open ones. Only a view: the saved order does not change.",
+        },
         newTaskPosition: {
             label: "Position of new tasks",
             description: "Where a new task is added in the section.",
@@ -301,6 +305,10 @@ export const settings: Translation["settings"] = {
         spellcheck: {
             label: "Spell check",
             description: "Underlines misspelled words while you type.",
+        },
+        confirmDelete: {
+            label: "Confirm deleting only when there is content",
+            description: "For notes, sections and groups: asks only if they contain something, otherwise they go straight to the trash (with \"Undo\"). When off, it never asks. Folders, workspaces, tasks and multiple selections always ask.",
         },
         reopenNotes: {
             label: "Reopen notes at startup",
@@ -353,6 +361,16 @@ export const settings: Translation["settings"] = {
         closeToTray: {
             label: "Minimize to the notification area",
             description: "Closing the window keeps EasyTask running in the notification area. To quit, use \"Quit\" in the menu of its icon.",
+        },
+        rememberWindowState: {
+            label: "Remember window position and size",
+            description: "At startup the window comes back where you left it. Takes effect at the next start.",
+            portable: "Not available in the portable version: the window position would be saved outside the data folder.",
+        },
+        alwaysOnTop: {
+            label: "Keep the window on top",
+            description: "EasyTask stays above the other windows. Applies at once and is remembered at startup.",
+            error: "Cannot change the always on top setting: {{message}}",
         },
         tray: {
             tooltip: "EasyTask",

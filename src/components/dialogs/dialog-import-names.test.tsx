@@ -40,4 +40,35 @@ describe("DialogImportNames", () => {
         expect(onCancel).toHaveBeenCalledTimes(1)
         expect(onSubmit).not.toHaveBeenCalled()
     })
+
+    it("collega l'errore del server ai campi con aria-describedby", async () => {
+        const user = userEvent.setup()
+        const onSubmit = vi.fn().mockRejectedValue(new Error("Esiste già un elemento chiamato \"Nota\" in questa posizione."))
+        render(<DialogImportNames proposed={proposed} onSubmit={onSubmit} onCancel={vi.fn()} />)
+        await user.click(screen.getByRole("button", { name: "Importa" }))
+        const alert = await screen.findByRole("alert")
+        for (const label of ["Nome della cartella", "Nome della nota"]) {
+            const field = screen.getByLabelText(label)
+            expect(field).toHaveAttribute("aria-describedby", alert.id)
+            expect(field).toHaveAttribute("aria-invalid", "true")
+        }
+    })
+
+    it("collega l'errore del nome vuoto solo al campo vuoto", async () => {
+        const user = userEvent.setup()
+        render(<DialogImportNames proposed={proposed} onSubmit={vi.fn()} onCancel={vi.fn()} />)
+        await user.clear(screen.getByLabelText("Nome della nota"))
+        const alert = screen.getByRole("alert")
+        expect(screen.getByLabelText("Nome della nota")).toHaveAttribute("aria-describedby", alert.id)
+        expect(screen.getByLabelText("Nome della cartella")).not.toHaveAttribute("aria-describedby")
+    })
+
+    it("durante l'importazione il pulsante è occupato e lo spinner si ferma con movimento ridotto", async () => {
+        const user = userEvent.setup()
+        render(<DialogImportNames proposed={proposed} onSubmit={() => new Promise(() => { /* never */ })} onCancel={vi.fn()} />)
+        await user.click(screen.getByRole("button", { name: "Importa" }))
+        const button = screen.getByRole("button", { name: "Importa" })
+        expect(button).toHaveAttribute("aria-busy", "true")
+        expect(button.querySelector("svg")).toHaveClass("motion-reduce:animate-none")
+    })
 })

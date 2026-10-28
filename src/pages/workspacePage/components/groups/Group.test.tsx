@@ -121,7 +121,8 @@ describe("Group scrolling area", () => {
         render(<Group group={makeGroup({ id: 301, sections: [makeSection({ id: 1 })] })} />)
         const area = screen.getByText("section").parentElement as HTMLElement
         const classes = area.className.split(/\s+/)
-        for (const token of ["overflow-y-auto", "-mx-1.5", "px-1.5", "-my-1", "py-1"]) expect(classes).toContain(token)
+        // On the right it is offset by the width of its scrollbar (8px), so the scrollbar sits right of the resize handle
+        for (const token of ["overflow-y-auto", "-ml-1.5", "-mr-2", "px-1.5", "-my-1", "py-1", "[&::-webkit-scrollbar]:w-2!"]) expect(classes).toContain(token)
     })
 
     it("leaves the audio files out of it, so they stay put while the sections scroll", () => {

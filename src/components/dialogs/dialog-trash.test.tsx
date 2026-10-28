@@ -80,6 +80,11 @@ describe("DialogTrash", () => {
         expect(screen.queryByText("Cartella A")).not.toBeInTheDocument()
     })
 
+    it("la descrizione lascia spazio alla X di chiusura (pr-10)", async () => {
+        render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        expect(await screen.findByText(/Ripristina gli elementi eliminati oppure/)).toHaveClass("pr-10")
+    })
+
     it("says so when the selected type has no items", async () => {
         const user = userEvent.setup()
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
@@ -105,6 +110,14 @@ describe("DialogTrash", () => {
         expect(folderLine).toHaveAttribute("title", "1 sottocartella · 2 note · Eliminato il 01-09-2026 10:30")
         await openTab(user, /Task/)
         expect(screen.getByText("Nota B › Sezione 1 · Vuoto · Eliminato il 03-09-2026 12:00")).toBeInTheDocument()
+    })
+
+    it("nel piè di pagina Chiudi sta a sinistra e Svuota cestino (l'azione) a destra", async () => {
+        render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        const empty = await screen.findByRole("button", { name: "Svuota cestino" })
+        const footer = empty.closest("[data-slot=dialog-footer]") as HTMLElement
+        const close = within(footer).getByRole("button", { name: "Chiudi" })
+        expect(close.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
     })
 
     it("shows the empty state and disables emptying", async () => {

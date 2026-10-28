@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Palette } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { textColorOn } from "@/lib/accent-color"
 import { Button } from "@/components/ui/button"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -34,7 +35,7 @@ export const OptionalColorField = ({ value, onChange }: OptionalColorFieldProps)
                         className={cn("size-9 shrink-0", !value && "border-dashed")}
                         style={value ? { backgroundColor: value } : undefined}
                     >
-                        <Palette className={value ? "text-background dark:text-foreground" : "text-muted-foreground"} />
+                        <Palette className={value ? undefined : "text-muted-foreground"} style={value ? { color: textColorOn(value) } : undefined} />
                     </Button>
                 </PopoverTrigger>
             </TooltipCustom>

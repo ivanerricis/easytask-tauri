@@ -6,6 +6,32 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-28
+
+### Added
+
+- Select tasks with the keyboard: Shift+Up/Down/Home/End extend the selection and Ctrl+Space (Cmd+Space on macOS) adds or removes the focused task. The details panel does not change while you select, and a screen reader announces when the selection drops to one task or none.
+- New setting "Completed tasks at the bottom" (Settings > Notes): in every list (sections, tasks directly in a group, subtasks) the completed tasks are shown after the open ones. Display only: the saved order does not change.
+- New setting "Confirm deleting only when there is content" (Settings > Notes, on by default): an empty note, section or group goes straight to the trash with "Undo", and with the setting off none of them asks. Folders, workspaces, tasks and multiple selections always ask.
+- New setting "Remember window position and size" (on by default, not available in the portable version): the window comes back where you left it at the next start.
+- New setting "Keep the window on top": it applies at once and is remembered at the next start.
+
+### Changed
+
+- The fields for adding a task, a subtask or a task between two others no longer have the add and close buttons: press Enter to add and Esc to cancel (a hint is read by screen readers).
+- Dragging a task that is part of a multiple selection moves only that task, clears the selection and says so to screen readers. While a dragged item is over no valid target the cursor shows "not allowed".
+- Names (workspaces, folders, notes, groups, sections, templates, automations) are limited to 120 characters.
+- Accessibility and readability: the vertical scrollbar is wider and darker, the border of the destructive button has more contrast, the selected color shows a check, the breadcrumb is announced in the language of the app, the group and section names say "press Enter to rename", the switch of an automation has a neutral name, the editor of the automations announces the current step, and the descriptions of rules and rows are larger.
+- The error pages show a translated message with the technical details folded away and can copy them. Trash, archive and template lists announce their loading and respect reduced motion; the footer of the trash has "Close" on the left and "Empty trash" on the right.
+- Template dialogs select the prefilled name when they open, and the errors of the import and note-from-template forms are linked to their fields for screen readers. The template picker no longer says "No results" while loading or after an error.
+- The update dialog no longer watches the whole page while it waits for another dialog.
+
+### Fixed
+
+- The floating music player no longer flashes at its old position for a frame when you release it after dragging.
+- A section without tasks keeps the space of the collapse arrow, so its title no longer shifts; the description icon of a task is no longer a hidden button that can take the focus; the "New group" label in the drop area is centered and more readable.
+- The error of the delete dialog is linked to its confirm button for screen readers.
+
 ## [0.15.0] - 2026-10-28
 
 ### Added
@@ -417,7 +443,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...v0.13.0

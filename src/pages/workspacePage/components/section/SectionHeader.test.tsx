@@ -1,3 +1,4 @@
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -31,9 +32,32 @@ describe("SectionHeader keyboard", () => {
         expect(onOpenChange).toHaveBeenCalledWith(false)
     })
 
+    it("reserves the space of the collapse arrow in a section without tasks, so the title does not jump", () => {
+        const { rerender } = render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ tasks: [] })} />)
+        expect(screen.queryByRole("button", { name: "Comprimi sezione" })).toBeNull()
+        const placeholder = screen.getByTestId("collapse-placeholder")
+        expect(placeholder).toHaveAttribute("aria-hidden", "true")
+        expect(placeholder).toHaveClass("size-6", "shrink-0")
+
+        rerender(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ tasks: [makeTask()] })} />)
+        expect(screen.queryByTestId("collapse-placeholder")).toBeNull()
+        expect(screen.getByRole("button", { name: "Comprimi sezione" })).toHaveClass("size-6", "shrink-0")
+    })
+
+    it("names the title button after its action, with the title in it", () => {
+        render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Spesa" })} />)
+        expect(screen.getByRole("button", { name: "Titolo sezione: Spesa, premi Invio per rinominare" })).toHaveTextContent("Spesa")
+    })
+
+    it("limits the title typed in the rename field", async () => {
+        render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)
+        await userEvent.click(screen.getByText("Titolo"))
+        expect(screen.getByRole("textbox")).toHaveAttribute("maxlength", String(MAX_NAME_LENGTH))
+    })
+
     it("starts editing the title with Enter", async () => {
         render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)
-        screen.getByRole("button", { name: "Titolo" }).focus()
+        screen.getByRole("button", { name: "Titolo sezione: Titolo, premi Invio per rinominare" }).focus()
         await userEvent.keyboard("{Enter}")
         expect(screen.getByRole("textbox")).toHaveValue("Titolo")
     })
@@ -41,13 +65,13 @@ describe("SectionHeader keyboard", () => {
     it("Escape cancels the title edit: no rename, and the blur that follows does not save it", async () => {
         const user = userEvent.setup()
         render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)
-        await user.click(screen.getByRole("button", { name: "Titolo" }))
+        await user.click(screen.getByRole("button", { name: "Titolo sezione: Titolo, premi Invio per rinominare" }))
         await user.type(screen.getByRole("textbox"), "X{Escape}")
         await user.click(document.body)
 
         expect(renameItem).not.toHaveBeenCalled()
         expect(screen.queryByRole("textbox")).toBeNull()
-        expect(screen.getByRole("button", { name: "Titolo" })).toBeInTheDocument()
+        expect(screen.getByRole("button", { name: "Titolo sezione: Titolo, premi Invio per rinominare" })).toBeInTheDocument()
     })
 
     it("shows the progress bar only when the section has tasks", () => {
@@ -62,11 +86,11 @@ describe("SectionHeader keyboard", () => {
 
     it("shows no text for an untitled section by default and the fallback label when the preference is on", () => {
         const { rerender } = render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "" })} />)
-        expect(screen.getByRole("button", { name: "Sezione senza titolo" })).toBeEmptyDOMElement()
+        expect(screen.getByRole("button", { name: "Titolo sezione: Sezione senza titolo, premi Invio per rinominare" })).toBeEmptyDOMElement()
 
         prefs.showUnnamedLabels = true
         rerender(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "" })} />)
-        const name = screen.getByRole("button", { name: "Sezione senza titolo" })
+        const name = screen.getByRole("button", { name: "Titolo sezione: Sezione senza titolo, premi Invio per rinominare" })
         expect(name).toHaveTextContent("Sezione senza titolo")
         expect(name).toHaveClass("text-muted-foreground")
     })
@@ -74,7 +98,7 @@ describe("SectionHeader keyboard", () => {
     it("does not start the rename on click when renameOnClick is off", async () => {
         prefs.renameOnClick = false
         render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)
-        await userEvent.click(screen.getByRole("button", { name: "Titolo" }))
+        await userEvent.click(screen.getByRole("button", { name: "Titolo sezione: Titolo, premi Invio per rinominare" }))
         expect(screen.queryByRole("textbox")).toBeNull()
     })
 
@@ -82,7 +106,7 @@ describe("SectionHeader keyboard", () => {
         prefs.renameOnClick = false
         const user = userEvent.setup()
         render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)
-        screen.getByRole("button", { name: "Titolo" }).focus()
+        screen.getByRole("button", { name: "Titolo sezione: Titolo, premi Invio per rinominare" }).focus()
         await user.keyboard("{Enter}")
         expect(screen.getByRole("textbox")).toBeInTheDocument()
     })
@@ -90,7 +114,7 @@ describe("SectionHeader keyboard", () => {
     it("Enter saves once", async () => {
         const user = userEvent.setup()
         render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)
-        await user.click(screen.getByRole("button", { name: "Titolo" }))
+        await user.click(screen.getByRole("button", { name: "Titolo sezione: Titolo, premi Invio per rinominare" }))
         await user.type(screen.getByRole("textbox"), "X{Enter}")
 
         expect(renameItem).toHaveBeenCalledTimes(1)
@@ -114,6 +138,6 @@ describe("SectionHeader search", () => {
         expect(marks.map(mark => mark.textContent)).toEqual(["a", "a"])
         expect(marks[0]).toHaveAttribute("data-active", "true")
         expect(marks[1]).not.toHaveAttribute("data-active")
-        expect(screen.getByRole("button", { name: "Da comprare" })).toHaveTextContent("Da comprare")
+        expect(screen.getByRole("button", { name: "Titolo sezione: Da comprare, premi Invio per rinominare" })).toHaveTextContent("Da comprare")
     })
 })

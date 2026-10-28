@@ -283,6 +283,10 @@ export const settings = {
             label: "Nascondi task completati",
             description: "I task completati (con i loro sottotask) non vengono mostrati nelle note. Una riga indica quanti sono nascosti.",
         },
+        completedLast: {
+            label: "Task completati in fondo",
+            description: "In ogni elenco i task completati sono mostrati dopo quelli da fare. È solo una vista: l'ordine salvato non cambia.",
+        },
         newTaskPosition: {
             label: "Posizione dei nuovi task",
             description: "Dove aggiungere un task nuovo nella sezione.",
@@ -299,6 +303,10 @@ export const settings = {
         spellcheck: {
             label: "Controllo ortografico",
             description: "Sottolinea le parole sbagliate mentre scrivi.",
+        },
+        confirmDelete: {
+            label: "Conferma l'eliminazione solo se c'è contenuto",
+            description: "Per note, sezioni e gruppi: chiede conferma solo se contengono qualcosa, altrimenti vanno subito nel cestino (con \"Annulla\"). Se disattivata, non chiede mai conferma. Cartelle, workspace, task e selezioni multiple chiedono sempre.",
         },
         reopenNotes: {
             label: "Riapri le note all'avvio",
@@ -351,6 +359,16 @@ export const settings = {
         closeToTray: {
             label: "Riduci nell'area di notifica",
             description: "Chiudendo la finestra EasyTask resta attivo nell'area di notifica. Per uscire usa \"Esci\" dal menu della sua icona.",
+        },
+        rememberWindowState: {
+            label: "Ricorda posizione e dimensione della finestra",
+            description: "All'avvio la finestra torna dove l'hai lasciata. Ha effetto dal prossimo avvio.",
+            portable: "Non disponibile nella versione portatile: la posizione della finestra verrebbe salvata fuori dalla cartella dei dati.",
+        },
+        alwaysOnTop: {
+            label: "Tieni la finestra in primo piano",
+            description: "EasyTask resta sopra le altre finestre. Si applica subito e viene ricordato all'avvio.",
+            error: "Impossibile cambiare il primo piano: {{message}}",
         },
         tray: {
             tooltip: "EasyTask",

@@ -4,6 +4,32 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.16.0] - 2026-10-28
+
+### Aggiunto
+
+- Selezione dei task da tastiera: Maiusc+Su/Giù/Home/Fine estendono la selezione e Ctrl+Spazio (Cmd+Spazio su macOS) aggiunge o toglie il task con il focus. Il pannello dei dettagli non cambia durante la selezione e uno screen reader annuncia quando la selezione scende a un task o a nessuno.
+- Nuova impostazione "Task completati in fondo" (Impostazioni > Note): in ogni elenco (sezioni, task direttamente nel gruppo, sottotask) i task completati sono mostrati dopo quelli da fare. Solo una vista: l'ordine salvato non cambia.
+- Nuova impostazione "Conferma l'eliminazione solo se c'è contenuto" (Impostazioni > Note, attiva di default): una nota, una sezione o un gruppo vuoti vanno subito nel cestino con "Annulla", e con l'impostazione disattivata nessuno dei tre chiede conferma. Cartelle, workspace, task e selezioni multiple chiedono sempre.
+- Nuova impostazione "Ricorda posizione e dimensione della finestra" (attiva di default, non disponibile nella versione portatile): al prossimo avvio la finestra torna dove l'hai lasciata.
+- Nuova impostazione "Tieni la finestra in primo piano": si applica subito e viene ricordata al prossimo avvio.
+
+### Modificato
+
+- I campi per aggiungere un task, un sottotask o un task tra due altri non hanno più i bottoni di aggiunta e chiusura: Invio aggiunge, Esc annulla (un suggerimento è letto dagli screen reader).
+- Trascinando un task che fa parte di una selezione multipla si sposta solo quel task, la selezione si azzera e lo dice agli screen reader. Quando un elemento trascinato non è su una destinazione valida il cursore mostra "non consentito".
+- I nomi (workspace, cartelle, note, gruppi, sezioni, template, automazioni) sono limitati a 120 caratteri.
+- Accessibilità e leggibilità: la barra di scorrimento verticale è più larga e più scura, il bordo del pulsante distruttivo ha più contrasto, il colore selezionato mostra una spunta, il percorso di navigazione è annunciato nella lingua dell'app, i nomi di gruppi e sezioni dicono "premi Invio per rinominare", l'interruttore di un'automazione ha un nome neutro, l'editor delle automazioni annuncia il passo corrente e le descrizioni di regole e righe sono più grandi.
+- Le pagine di errore mostrano un messaggio tradotto con i dettagli tecnici ripiegati e permettono di copiarli. Le liste di cestino, archivio e template annunciano il caricamento e rispettano il movimento ridotto; il piè di pagina del cestino ha "Chiudi" a sinistra e "Svuota cestino" a destra.
+- I dialog dei template selezionano il nome precompilato all'apertura, e gli errori dei moduli di importazione e di nota da template sono collegati ai campi per gli screen reader. Il selettore dei template non scrive più "Nessun risultato" durante il caricamento o dopo un errore.
+- La finestra di aggiornamento non osserva più l'intera pagina mentre attende la chiusura di un'altra finestra.
+
+### Corretto
+
+- Il lettore musicale flottante non lampeggia più per un istante nella vecchia posizione quando lo si rilascia dopo il trascinamento.
+- Una sezione senza task mantiene lo spazio della freccia di compressione, così il titolo non si sposta; l'icona della descrizione di un task non è più un pulsante nascosto che può prendere il focus; l'etichetta "Nuovo gruppo" nell'area di rilascio è centrata e più leggibile.
+- L'errore del dialogo di eliminazione è collegato al pulsante di conferma per gli screen reader.
+
 ## [0.15.0] - 2026-10-28
 
 ### Aggiunto
@@ -415,7 +441,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.16.0...HEAD
+[0.16.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...v0.13.0

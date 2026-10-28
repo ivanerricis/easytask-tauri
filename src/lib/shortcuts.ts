@@ -77,6 +77,8 @@ export const SHORTCUTS: Shortcut[] = [
     { id: "task-toggle", keys: ["space"], editable: false, scope: "workspace", category: "tasks" },
     { id: "task-rename", keys: ["enter"], editable: false, scope: "workspace", category: "tasks" },
     { id: "task-menu", keys: ["shift", "f10"], editable: false, scope: "workspace", category: "tasks" },
+    { id: "task-extend-selection", keys: ["shift", "arrowup", "arrowdown", "home", "end"], editable: false, scope: "workspace", category: "tasks" },
+    { id: "task-toggle-selection", keys: ["ctrl", "space"], editable: false, scope: "workspace", category: "tasks" },
     { id: "new-workspace", defaultBinding: { key: "n", ctrl: true }, editable: true, scope: "home", category: "home" },
 ]
 

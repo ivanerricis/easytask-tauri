@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest"
 import { makeTask } from "@/test/ui-fixtures"
 import { countTasks } from "../groups/group-progress"
-import { countHiddenCompleted, hasOpenDescendant, isHiddenTask, visibleTasks } from "./hide-completed"
+import { countHiddenCompleted, hasOpenDescendant, isHiddenTask, orderedVisibleTasks, visibleTasks } from "./hide-completed"
 
 describe("hide completed tasks", () => {
     const open = makeTask({ id: 1, text: "open" })
@@ -53,3 +53,43 @@ describe("hide completed tasks", () => {
         expect(before).toEqual({ done: 3, total: 7 })
     })
 })
+
+describe("orderedVisibleTasks", () => {
+    const a = makeTask({ id: 1, text: "a" })
+    const b = makeTask({ id: 2, text: "b", completed: true })
+    const c = makeTask({ id: 3, text: "c" })
+    const d = makeTask({ id: 4, text: "d", completed: true })
+    const tasks = [a, b, c, d]
+
+    it("returns the same array when no option changes anything", () => {
+        expect(orderedVisibleTasks(tasks, { hideCompleted: false, completedLast: false })).toBe(tasks)
+    })
+
+    it("puts the completed tasks after the open ones, keeping the order inside each block", () => {
+        expect(orderedVisibleTasks(tasks, { hideCompleted: false, completedLast: true }).map(t => t.id)).toEqual([1, 3, 2, 4])
+    })
+
+    it("returns the same array when it is already in that order, or has only one kind", () => {
+        const sorted = [a, c, b, d]
+        expect(orderedVisibleTasks(sorted, { hideCompleted: false, completedLast: true })).toBe(sorted)
+        const onlyOpen = [a, c]
+        expect(orderedVisibleTasks(onlyOpen, { hideCompleted: false, completedLast: true })).toBe(onlyOpen)
+        const onlyDone = [b, d]
+        expect(orderedVisibleTasks(onlyDone, { hideCompleted: false, completedLast: true })).toBe(onlyDone)
+        expect(orderedVisibleTasks([], { hideCompleted: false, completedLast: true }).length).toBe(0)
+    })
+
+    it("combines with hide completed: the fully completed ones go away, the others are ordered", () => {
+        const doneWithOpen = makeTask({ id: 5, completed: true, subtasks: [makeTask({ id: 51 })] })
+        const list = [b, a, doneWithOpen, d, c]
+        expect(orderedVisibleTasks(list, { hideCompleted: true, completedLast: true }).map(t => t.id)).toEqual([1, 3, 5])
+        expect(orderedVisibleTasks(list, { hideCompleted: true, completedLast: false }).map(t => t.id)).toEqual([1, 5, 3])
+        expect(orderedVisibleTasks(tasks, { hideCompleted: true, completedLast: false }).map(t => t.id)).toEqual([1, 3])
+    })
+
+    it("does not change the input", () => {
+        const copy = [...tasks]
+        orderedVisibleTasks(tasks, { hideCompleted: false, completedLast: true })
+        expect(tasks).toEqual(copy)
+    })
+})

@@ -7,6 +7,8 @@ import { useTabs, useTabsActions } from "@/contexts/use-tabs"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { LazyMount } from "@/components/lazy-mount"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
+import { useDeleteRequest } from "@/components/dialogs/use-delete-item"
+import { noteHasContent } from "@/db/queries/note"
 import { Separator } from "@/components/ui/separator"
 import { ColorSubmenu } from "../ColorSubmenu"
 import { MoveToSubmenu } from "../MoveToSubmenu"
@@ -71,6 +73,12 @@ export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps
     const { openNote } = useTabsActions()
     const recorder = useUndoRecorder()
     const { exportItem } = useItemTransfer()
+    const { request: requestDelete } = useDeleteRequest({
+        item: note,
+        itemType: "note",
+        hasContent: () => noteHasContent(note.id),
+        openDialog: () => setDeleteOpen(true),
+    })
 
     // The copy is added to the tree by the context: open it in a tab and make the creation undoable
     const handleDuplicate = async () => {
@@ -153,7 +161,7 @@ export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps
                 text={t("common.delete")}
                 type="delete"
                 destructive
-                onClick={() => { setDeleteOpen(true); menu.close() }}
+                onClick={() => { requestDelete(); menu.close() }}
             />
         </MenuGroup>
     )

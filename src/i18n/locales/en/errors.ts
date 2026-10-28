@@ -157,7 +157,8 @@ export const crash: Translation["crash"] = {
 
 export const errorPage: Translation["errorPage"] = {
     title: "Something went wrong",
-    description: "Error description",
+    description: "The operation did not succeed. You can try again; if the problem persists, copy the details and report them.",
+    details: "Technical details",
     home: "Back to home",
     retry: "Try again",
 }

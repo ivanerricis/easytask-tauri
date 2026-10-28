@@ -9,10 +9,6 @@ export const dialogs = {
         heading: "Template",
         none: "Non ci sono ancora template. Creane uno con il pulsante \"Template\" in fondo alla sidebar.",
     },
-    confirm: {
-        title: "Sei sicuro di voler procedere?",
-        description: "Questa azione non può essere annullata.",
-    },
     color: {
         swatch: "Colore {{color}}",
         palette: "Colori",

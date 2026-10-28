@@ -14,8 +14,6 @@ export const AddButton = ({ onClick }: AddButtonProps) => {
             type="button"
             variant="ghost"
             onClick={onClick}
-            aria-label={label}
-            title={label}
             className="w-full h-9 rounded-xs border border-dashed border-muted-foreground/45 hover:border-foreground/60 font-normal text-muted-foreground hover:text-foreground"
         >
             <Plus />

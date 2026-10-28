@@ -47,7 +47,7 @@ The shortcuts work when you are not typing, with a few exceptions: the shortcuts
 
 ## Tasks with the keyboard
 
-These keys work when a task row has the focus (click a task or reach it with `Tab`). They do not work while you type in a field, and with `Ctrl` or `Cmd` they are left to the other shortcuts. They cannot be changed.
+These keys work when a task row has the focus (click a task or reach it with `Tab`). They do not work while you type in a field, and with `Ctrl` or `Cmd` they are left to the other shortcuts, except `Ctrl+Space` (`Cmd+Space` on macOS). They cannot be changed.
 
 | Action | Shortcut |
 | --- | --- |
@@ -59,8 +59,11 @@ These keys work when a task row has the focus (click a task or reach it with `Ta
 | Edit the task text | `Enter` |
 | Open the task menu | `Shift+F10` or the menu key |
 | Move the task one step up or down | `Alt+↑` / `Alt+↓` |
+| Extend the selection to the previous or next task | `Shift+↑` / `Shift+↓` |
+| Extend the selection to the first or last task | `Shift+Home` / `Shift+End` |
+| Add the task to the selection, or remove it | `Ctrl+Space` (`Cmd+Space` on macOS) |
 
-The arrows stay inside the list of the section (or of the tasks directly in a group): they do not jump to the next section. After `Alt+↑` or `Alt+↓` the focus stays on the task and a screen reader announces its new position ("Moved to position 2 of 5"). See [Use the keyboard](./groups-sections-tasks.md#use-the-keyboard).
+The arrows stay inside the list of the section (or of the tasks directly in a group): they do not jump to the next section. After `Alt+↑` or `Alt+↓` the focus stays on the task and a screen reader announces its new position ("Moved to position 2 of 5"). The selection keys do not change the task shown in the details panel. See [Use the keyboard](./groups-sections-tasks.md#use-the-keyboard).
 ## Home page
 
 | Action | Shortcut | Can be changed |

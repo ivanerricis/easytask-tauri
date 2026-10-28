@@ -35,17 +35,17 @@ type StepMovesProps = {
 
 /**
  * "Sposta su / giù" of a task or subtask: one step among its siblings (accessible alternative to drag & drop,
- * next to "Sposta in…"). Completed siblings that are hidden are jumped over.
+ * next to "Sposta in…"). Completed siblings that are hidden are jumped over; with "completed tasks last" a step stays inside the open or the completed block.
  * @category Note DnD
  */
 export const TaskStepMoves = ({ taskId, onDone }: StepMovesProps & { taskId: number }) => {
     const { noteDataTree } = useActiveNote()
-    const { hideCompletedTasks } = usePreferences()
+    const { hideCompletedTasks, completedTasksLast } = usePreferences()
     const move = useTaskStepMove(taskId)
 
     const steps = useMemo(() => noteDataTree
-        ? { up: getTaskStep(noteDataTree, taskId, -1, hideCompletedTasks), down: getTaskStep(noteDataTree, taskId, 1, hideCompletedTasks) }
-        : { up: null, down: null }, [noteDataTree, taskId, hideCompletedTasks])
+        ? { up: getTaskStep(noteDataTree, taskId, -1, hideCompletedTasks, completedTasksLast), down: getTaskStep(noteDataTree, taskId, 1, hideCompletedTasks, completedTasksLast) }
+        : { up: null, down: null }, [noteDataTree, taskId, hideCompletedTasks, completedTasksLast])
 
     return (
         <StepButtons

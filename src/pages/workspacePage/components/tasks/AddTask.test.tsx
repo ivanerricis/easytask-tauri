@@ -153,9 +153,6 @@ describe("AddTask", () => {
         render(<AddTask sectionId={3} />)
         const input = await open(user)
 
-        const submit = screen.getAllByRole("button").find(b => b.getAttribute("type") === "submit")!
-        expect(submit).toBeDisabled()
-
         await user.type(input, "   {Enter}")
         expect(ctx.createTask).not.toHaveBeenCalled()
     })
@@ -207,15 +204,32 @@ describe("AddTask", () => {
         expect(await open(user)).toHaveValue("")
     })
 
-    it("closes with the X button without creating", async () => {
+    it("non ha bottoni di aggiunta o annullamento: Invio aggiunge, Esc annulla", async () => {
         const user = userEvent.setup()
         render(<AddTask sectionId={3} />)
-        await open(user)
-        const close = screen.getAllByRole("button").find(b => b.getAttribute("type") === "button")!
-        await user.click(close)
+        const input = await open(user)
+        expect(screen.queryByRole("button")).not.toBeInTheDocument()
+        expect(input).toHaveAccessibleDescription("Invio per aggiungere, Esc per annullare")
 
+        await user.type(input, "Uno{Enter}")
+        await waitFor(() => expect(ctx.createTask).toHaveBeenCalledWith(3, "Uno", "bottom"))
+
+        const reopened = await open(user)
+        await user.type(reopened, "Bozza{Escape}")
         expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument()
-        expect(ctx.createTask).not.toHaveBeenCalled()
+        expect(ctx.createTask).toHaveBeenCalledTimes(1)
+    })
+
+    it("segna il campo come occupato mentre salva", async () => {
+        const gate = deferred<number>()
+        ctx.createTask.mockReturnValue(gate.promise)
+        const user = userEvent.setup()
+        render(<AddTask sectionId={3} />)
+        const input = await open(user)
+        await user.type(input, "Lento{Enter}")
+        await waitFor(() => expect(input).toHaveAttribute("aria-busy", "true"))
+        gate.resolve(50)
+        await waitFor(() => expect(screen.queryByPlaceholderText("Nuovo task…")).not.toBeInTheDocument())
     })
 
     it("closes on Escape, discarding the text, without creating", async () => {
@@ -284,6 +298,22 @@ describe("AddTask", () => {
 
             await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1))
             expect(ctx.createSubTask).toHaveBeenCalledWith(7, "One", "bottom")
+        })
+
+        it("non ha bottoni di aggiunta o annullamento: Invio aggiunge, Esc annulla", async () => {
+            const user = userEvent.setup()
+            const onClose = vi.fn()
+            render(<AddTask sectionId={3} parentTaskId={7} onClose={onClose} />)
+            const input = screen.getByPlaceholderText(placeholder)
+            expect(screen.queryByRole("button")).not.toBeInTheDocument()
+            expect(input).toHaveAccessibleDescription("Invio per aggiungere, Esc per annullare")
+
+            await user.type(input, "Passo{Enter}")
+            await waitFor(() => expect(ctx.createSubTask).toHaveBeenCalledWith(7, "Passo", "bottom"))
+            onClose.mockClear()
+            await user.type(screen.getByPlaceholderText(placeholder), "Bozza{Escape}")
+            expect(onClose).toHaveBeenCalledTimes(1)
+            expect(ctx.createSubTask).toHaveBeenCalledTimes(1)
         })
 
         it("closes on Escape", async () => {

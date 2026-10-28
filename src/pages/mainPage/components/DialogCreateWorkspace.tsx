@@ -19,6 +19,7 @@ import { Plus } from "lucide-react"
 import { useId, useState } from "react"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { getErrorMessage } from "@/lib/utils"
+import { MAX_NAME_LENGTH } from "@/lib/names"
 
 export function DialogCreateWorkspace() {
     const { t } = useTranslation()
@@ -73,6 +74,7 @@ export function DialogCreateWorkspace() {
                                     <Input
                                         id={nameId}
                                         name="name"
+                                        maxLength={MAX_NAME_LENGTH}
                                         aria-invalid={error ? true : undefined}
                                         aria-describedby={error ? errorId : undefined}
                                         value={name}

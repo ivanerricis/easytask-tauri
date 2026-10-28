@@ -1,6 +1,6 @@
 import { $, browser, expect } from "@wdio/globals"
 import {
-    addTaskButton, byLabel, byText, closeTaskInput, createFromSidebar, createWorkspace, domClick, groupCard, newSectionInGroup,
+    addTaskToSection, byLabel, byText, closeTaskInput, createFromSidebar, createWorkspace, domClick, groupCard, newSectionInGroup,
     openWorkspace, sectionCard, sql, tr, treeRow, typeInto, waitForApp,
 } from "../helpers"
 
@@ -52,10 +52,7 @@ const enterList = async () => {
 }
 
 const addTask = async (section: string, text: string) => {
-    await (await addTaskButton(sectionCard(section))).click()
-    await typeInto(sectionCard(section).$("input"), text)
-    await sectionCard(section).$(`[aria-label="${await tr("common.add")}"]`).click()
-    await closeTaskInput()
+    await addTaskToSection(sectionCard(section), text)
     await rowOf(text).waitForDisplayed({ timeoutMsg: `task "${text}" not created` })
 }
 
@@ -227,5 +224,40 @@ describe("Task list keyboard", () => {
         await browser.keys("Escape")
         await $('[role="menu"]').waitForExist({ reverse: true, timeoutMsg: "the menu did not close" })
         await expectFocus(A2_RENAMED)
+    })
+
+    const selectedTasks = () => browser.execute(() =>
+        Array.from(document.querySelectorAll("[data-multi-selected='true']")).map(el => el.getAttribute("aria-label") ?? ""))
+
+    it("Shift+Down extends the selection, Shift+Up shrinks it and the counter appears from 2 tasks", async () => {
+        await focusRow(A1)
+        await browser.keys(["Shift", "ArrowDown"])
+        await expectFocus(A2_RENAMED)
+        await browser.waitUntil(async () => (await $$("[data-multi-selected='true']").length) === 2, { timeoutMsg: "two tasks were not selected" })
+        await expect($("[data-testid='selection-count']")).toBeDisplayed()
+        await browser.keys(["Shift", "ArrowDown"])
+        await browser.waitUntil(async () => (await $$("[data-multi-selected='true']").length) === 3, { timeoutMsg: "three tasks were not selected" })
+        await browser.keys(["Shift", "ArrowUp"])
+        await browser.waitUntil(async () => (await $$("[data-multi-selected='true']").length) === 2, { timeoutMsg: "the selection did not shrink" })
+        expect((await selectedTasks()).map(label => label.startsWith(A1) || label.startsWith(A2_RENAMED)).every(Boolean)).toBe(true)
+        await browser.keys("Escape")
+        await browser.waitUntil(async () => (await $$("[data-multi-selected='true']").length) === 0, { timeoutMsg: "Esc did not clear the selection" })
+    })
+
+    it("Ctrl+Space adds a task that is not next to the selection, and plain arrows keep the selection", async () => {
+        await focusRow(A1)
+        await browser.keys(["Control", " "])
+        await browser.waitUntil(async () => (await $$("[data-multi-selected='true']").length) === 1, { timeoutMsg: "A1 was not selected" })
+        // Space alone would complete the task: it must not have
+        expect(await completed(A1)).toBe(false)
+        await browser.keys("ArrowDown")
+        await browser.keys("ArrowDown")
+        await expectFocus(A3)
+        await browser.keys(["Control", " "])
+        await browser.waitUntil(async () => (await $$("[data-multi-selected='true']").length) === 2, { timeoutMsg: "A3 was not added to the selection" })
+        await expect($("[data-testid='selection-count']")).toBeDisplayed()
+        await browser.keys(["Control", " "])
+        await browser.waitUntil(async () => (await $$("[data-multi-selected='true']").length) === 1, { timeoutMsg: "A3 was not removed from the selection" })
+        await browser.keys("Escape")
     })
 })

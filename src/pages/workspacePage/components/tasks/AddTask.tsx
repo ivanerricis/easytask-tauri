@@ -1,22 +1,18 @@
 import { useTranslation } from "react-i18next"
 import { Input } from "@/components/ui/input"
-import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { usePreferences } from "@/contexts/use-preferences"
 import { cn, getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Check, Loader2, Plus, X } from "lucide-react"
+import { Plus } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
 import type { FormEvent, KeyboardEvent } from "react"
-import { keyLabel } from "@/lib/shortcuts"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { useAutomations } from "@/hooks/use-automations"
 import { reportError } from "@/lib/report-error"
 import { TASK_DENSITIES, useTaskDensity } from "./task-density"
-import { PlusButton } from "../section/PlusButton"
-import { CloseButton } from "../section/CloseButton"
 import { useEndFieldReplaced, useTaskInsertStore } from "./task-insert-state"
 
 type AddTaskProps = {
@@ -35,7 +31,7 @@ type AddTaskProps = {
  * rule as the field of a new task:
  * - Enter adds the subtask. With keepAddingTasks the input stays open and focused for the next one, and Enter on the empty
  *   input closes it; without it the input closes after adding.
- * - Escape or the X button closes it (discarding the text).
+ * - Escape closes it (discarding the text). There are no add/close buttons: Enter and Escape are the only controls.
  * - Blur / click outside closes it only when empty: typed text is never lost silently.
  * While saving the input is read-only (not disabled, so it keeps focus) and further submits are ignored.
  */
@@ -95,12 +91,13 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
                         aria-label={t("tasks.newSubtask")}
                         autoFocus
                         autoComplete="off"
+                        aria-description={t("tasks.inputHint")}
                         readOnly={saving}
                         aria-busy={saving}
                         onKeyDown={(e) => {
                             if (e.key === "Escape") { e.preventDefault(); close() }
                             else if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault()
-                            // Enter on the empty input ends the series, like the field of a new task (the disabled submit button blocks the form there)
+                            // Enter on the empty input ends the series, like the field of a new task (there is nothing to submit)
                             else if (e.key === "Enter" && keepAddingTasks && !text.trim() && !saving) { e.preventDefault(); close() }
                         }}
                         onBlur={() => {
@@ -108,32 +105,6 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
                         }}
                         className={cn("flex-1 px-1 py-0 shadow-none", sizes.input, saving && "opacity-60")}
                     />
-                    <div className="flex items-center gap-0.5 shrink-0">
-                        <TooltipCustom text={t("common.add")} shortcut={keyLabel("enter")}>
-                            <Button
-                                type="submit"
-                                variant="ghost"
-                                size="icon"
-                                aria-label={t("tasks.addSubtask")}
-                                disabled={!text.trim() || saving}
-                                className="size-6 text-muted-foreground hover:text-foreground"
-                            >
-                                {saving ? <Loader2 className="animate-spin" /> : <Check />}
-                            </Button>
-                        </TooltipCustom>
-                        <TooltipCustom text={t("common.close")} shortcut={keyLabel("escape")}>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                aria-label={t("common.close")}
-                                onClick={close}
-                                className="size-6 text-muted-foreground hover:text-foreground"
-                            >
-                                <X />
-                            </Button>
-                        </TooltipCustom>
-                    </div>
                 </div>
             </div>
         </form>
@@ -190,8 +161,8 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
         setText("")
     }
 
-    // Escape closes the row and discards the text, like the X button.
-    // With keepAddingTasks, Enter on an empty field closes it too (the disabled submit button blocks the form submit there).
+    // Escape closes the row and discards the text.
+    // With keepAddingTasks, Enter on an empty field closes it too (there is nothing to submit).
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
         if (e.key === "Enter" && keepAddingTasks && !text.trim() && !saving && !e.nativeEvent.isComposing) {
             e.preventDefault()
@@ -235,8 +206,6 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
                     type="button"
                     variant="ghost"
                     onClick={handleOpen}
-                    aria-label={t("groups.addTask")}
-                    title={t("groups.addTask")}
                     className="w-full h-9 rounded-xs border border-dashed border-muted-foreground/45 hover:border-foreground/60 font-normal text-muted-foreground hover:text-foreground"
                 >
                     <Plus />
@@ -268,14 +237,12 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
                         onKeyDown={handleKeyDown}
                         placeholder={t("tasks.placeholder")}
                         aria-label={t("tasks.add")}
+                        aria-description={t("tasks.inputHint")}
                         autoFocus
                         readOnly={saving}
+                        aria-busy={saving}
                         className="rounded-none border-none text-sm"
                     />
-                </div>
-                <div className="flex items-center w-full border-t divide-x">
-                    <PlusButton disabled={!text.trim() || saving} />
-                    <CloseButton onClick={handleOpen} />
                 </div>
             </form>
         )

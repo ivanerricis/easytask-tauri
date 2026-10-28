@@ -36,7 +36,7 @@ function NoteSearchEngine({ store }: { store: NoteSearchStore }) {
     const { noteDataTree } = useActiveNote()
     const noteId = useActiveNoteId()
     const uiStore = useTabUiStore()
-    const { hideCompletedTasks } = usePreferences()
+    const { hideCompletedTasks, completedTasksLast } = usePreferences()
     const open = useStoreSelector(store, s => s.open)
     const query = useStoreSelector(store, s => s.query)
     const revealTick = useStoreSelector(store, s => s.revealTick)
@@ -49,13 +49,13 @@ function NoteSearchEngine({ store }: { store: NoteSearchStore }) {
         const fresh = scanned.current !== query
         const run = () => {
             scanned.current = query
-            store.setMatches(collectMatches(noteDataTree, query, { hideCompleted: hideCompletedTasks }), fresh)
+            store.setMatches(collectMatches(noteDataTree, query, { hideCompleted: hideCompletedTasks, completedLast: completedTasksLast }), fresh)
         }
         // A new query waits for the typing to pause; a change of the tree is scanned at once
         if (!fresh || !query) { run(); return }
         const timer = setTimeout(run, TYPING_DELAY_MS)
         return () => clearTimeout(timer)
-    }, [open, query, noteDataTree, hideCompletedTasks, store])
+    }, [open, query, noteDataTree, hideCompletedTasks, completedTasksLast, store])
 
     // What the search opened closes again with it
     useEffect(() => {

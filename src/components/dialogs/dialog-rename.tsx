@@ -11,6 +11,7 @@ import { isUndoableType } from "@/contexts/undo/commands"
 import React, { useId, useRef, useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 type DialogRenameProps<T> = {
@@ -100,6 +101,7 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
                             id={nameId}
                             ref={inputRef}
                             name="name"
+                            maxLength={MAX_NAME_LENGTH}
                             value={value}
                             readOnly={saving}
                             aria-invalid={error ? true : undefined}

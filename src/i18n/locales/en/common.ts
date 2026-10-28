@@ -19,6 +19,8 @@ export const common: Translation["common"] = {
         task_one: "{{count}} task",
         task_other: "{{count}} tasks",
     },
+    breadcrumb: "Breadcrumb",
+    more: "More",
     openMenu: "Open menu",
     menuOf: "Menu: {{name}}",
     workspaceRoot: "Workspace root",

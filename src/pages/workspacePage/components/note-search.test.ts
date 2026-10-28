@@ -107,6 +107,19 @@ describe("collectMatches", () => {
         expect(collectMatches(tree, "altro", { hideCompleted: false })[0]).toMatchObject({ kind: "section", itemId: 12, sectionId: 12, groupId: 2 })
     })
 
+    it("lists the matches in the displayed order when the completed tasks go last", () => {
+        const mixed: NoteDataTree = { groups: [makeGroup({
+            id: 1, position: 0, name: "x", sections: [makeSection({
+                id: 5, groupID: 1, title: "y", tasks: [
+                    makeTask({ id: 7, sectionID: 5, completed: true, text: "voce uno" }),
+                    makeTask({ id: 8, sectionID: 5, text: "voce due" }),
+                ],
+            })],
+        })] }
+        expect(collectMatches(mixed, "voce", { hideCompleted: false }).map(m => m.id)).toEqual(["task-7#0", "task-8#0"])
+        expect(collectMatches(mixed, "voce", { hideCompleted: false, completedLast: true }).map(m => m.id)).toEqual(["task-8#0", "task-7#0"])
+    })
+
     it("has no matches for an empty query", () => {
         expect(summary("")).toEqual([])
         expect(summary("   ".trim())).toEqual([])

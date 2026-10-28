@@ -24,7 +24,9 @@ export const NotesSettings = () => {
         taskDensity, setTaskDensity,
         newTaskPosition, setNewTaskPosition,
         spellcheck, setSpellcheck,
+        confirmDeleteWithContent, setConfirmDeleteWithContent,
         hideCompletedTasks, setHideCompletedTasks,
+        completedTasksLast, setCompletedTasksLast,
         reopenNotes, setReopenNotes,
         reopenLastWorkspace, setReopenLastWorkspace,
     } = usePreferences()
@@ -46,6 +48,7 @@ export const NotesSettings = () => {
                 <SettingsSwitchRow label={t("settings.notes.unnamedLabels.label")} description={t("settings.notes.unnamedLabels.description")} checked={showUnnamedLabels} onCheckedChange={setShowUnnamedLabels} />
                 <SettingsSwitchRow label={t("settings.notes.taskBackground.label")} description={t("settings.notes.taskBackground.description")} checked={taskBackground} onCheckedChange={setTaskBackground} />
                 <SettingsSwitchRow label={t("settings.notes.hideCompleted.label")} description={t("settings.notes.hideCompleted.description")} checked={hideCompletedTasks} onCheckedChange={setHideCompletedTasks} />
+                <SettingsSwitchRow label={t("settings.notes.completedLast.label")} description={t("settings.notes.completedLast.description")} checked={completedTasksLast} onCheckedChange={setCompletedTasksLast} />
                 <SegmentedSetting
                     label={t("settings.notes.taskDensity.label")}
                     description={t("settings.notes.taskDensity.description")}
@@ -66,6 +69,7 @@ export const NotesSettings = () => {
                     onChange={setNewTaskPosition}
                 />
                 <SettingsSwitchRow label={t("settings.notes.spellcheck.label")} description={t("settings.notes.spellcheck.description")} checked={spellcheck} onCheckedChange={setSpellcheck} />
+                <SettingsSwitchRow label={t("settings.notes.confirmDelete.label")} description={t("settings.notes.confirmDelete.description")} checked={confirmDeleteWithContent} onCheckedChange={setConfirmDeleteWithContent} />
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.notes.sections.startup")}>
                 <SettingsSwitchRow label={t("settings.notes.reopenWorkspace.label")} description={t("settings.notes.reopenWorkspace.description")} checked={reopenLastWorkspace} onCheckedChange={setReopenLastWorkspace} />
