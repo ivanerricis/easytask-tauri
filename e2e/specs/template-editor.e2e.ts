@@ -154,7 +154,10 @@ describe("Template editor", () => {
 
     it("reopens the template tab after a restart (reopen notes on)", async () => {
         // Back to the tab of the template and one more edit
-        await (await templateEditorTab(TEMPLATE)).click()
+        // A toast of the previous step can still cover the tab on WebKitGTK; the tab reacts to onClick, so click it through the DOM
+        const tab = await templateEditorTab(TEMPLATE)
+        await domClick(tab)
+        await browser.waitUntil(async () => (await tab.getAttribute("aria-selected")) === "true", { timeoutMsg: "the template tab was not activated" })
         await addTaskToGroup(groupCard(GROUP), TASK_B)
         await (await savedStatus()).waitForDisplayed({ timeout: 15_000, timeoutMsg: "the second edit was not saved" })
         expect(await draftCount()).toBe(1)
