@@ -73,4 +73,5 @@ export const dnd = {
     endNone: "{{name}} è stato rilasciato fuori da una destinazione valida.",
     cancel: "Spostamento di {{name}} annullato.",
     audioPlayer: "Lettore audio",
+    tabMovedToPane: "{{name}} spostata in: {{pane}}.",
 }

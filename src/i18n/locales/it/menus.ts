@@ -69,6 +69,8 @@ export const menu = {
     newFolder: "Nuova cartella",
     colorContent: "Colora contenuto",
     open: "Apri",
+    openRight: "Apri a destra",
+    openLeft: "Apri a sinistra",
     createTemplate: "Crea template",
     duplicate: "Duplica",
     archive: "Archivia",

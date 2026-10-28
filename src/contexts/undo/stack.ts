@@ -11,6 +11,8 @@ export type UndoCommand = {
      * Undefined for the actions on the normal notes and on the workspace.
      */
     scopeNoteId?: number
+    /** The note open when the action was recorded. */
+    noteId?: number
     undo: () => Promise<void>
     redo: () => Promise<void>
 }

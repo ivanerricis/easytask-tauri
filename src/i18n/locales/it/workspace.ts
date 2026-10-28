@@ -55,6 +55,17 @@ export const notes = {
         title: "Nota vuota",
     },
     closeAll: "Chiudi tutte le note",
+    split: {
+        split: "Dividi lo spazio",
+        close: "Chiudi la divisione",
+        divider: "Ridimensiona le due aree",
+        dividerValue: "{{percent}}% a sinistra",
+        emptyTitle: "Area vuota",
+        emptyHint: "Trascina qui un tab oppure usa \"Apri a destra\" dal menu di una nota.",
+        leftPane: "Area sinistra",
+        rightPane: "Area destra",
+        openTabsPane: "Note aperte, {{pane}}",
+    },
     search: {
         placeholder: "Cerca una nota…",
         empty: "Nessun risultato.",

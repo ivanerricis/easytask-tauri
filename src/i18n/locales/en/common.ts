@@ -75,4 +75,5 @@ export const dnd: Translation["dnd"] = {
     endNone: "{{name}} was dropped outside a valid target.",
     cancel: "Moving {{name}} cancelled.",
     audioPlayer: "Audio player",
+    tabMovedToPane: "{{name}} moved to: {{pane}}.",
 }

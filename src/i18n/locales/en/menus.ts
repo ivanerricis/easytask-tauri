@@ -71,6 +71,8 @@ export const menu: Translation["menu"] = {
     newFolder: "New folder",
     colorContent: "Color content",
     open: "Open",
+    openRight: "Open on the right",
+    openLeft: "Open on the left",
     createTemplate: "Create template",
     duplicate: "Duplicate",
     archive: "Archive",
