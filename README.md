@@ -1,6 +1,9 @@
 # EasyTask
 
 [![CI](https://github.com/ivanerricis/easytask-tauri/actions/workflows/ci.yml/badge.svg)](https://github.com/ivanerricis/easytask-tauri/actions/workflows/ci.yml)
+[![Coverage](https://codecov.io/gh/ivanerricis/easytask-tauri/graph/badge.svg)](https://codecov.io/gh/ivanerricis/easytask-tauri)
+[![Release](https://img.shields.io/github/v/release/ivanerricis/easytask-tauri)](https://github.com/ivanerricis/easytask-tauri/releases/latest)
+[![License: MIT](https://img.shields.io/github/license/ivanerricis/easytask-tauri)](LICENSE)
 
 An **advanced todo list** based on **Workspaces**, inspired by tools like Notion, Obsidian and Trello.
 Each Workspace is fully customizable and supports hierarchical management of elements, with the ability to color any object.
