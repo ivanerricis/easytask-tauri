@@ -51,7 +51,8 @@ export const DialogPickTemplate = ({ isOpen, onOpenChange, onPick }: DialogPickT
             <CommandInput placeholder={t("dialogs.pickTemplate.placeholder")} />
             <CommandList>
                 {error && <FormError className="px-3 py-2 text-xs">{error}</FormError>}
-                <CommandEmpty>{loaded && templates.length === 0 ? t("dialogs.pickTemplate.none") : t("common.noResults")}</CommandEmpty>
+                {!loaded && <p role="status" aria-busy="true" className="px-3 py-6 text-center text-sm text-muted-foreground">{t("common.loading")}</p>}
+                {loaded && !error && <CommandEmpty>{templates.length === 0 ? t("dialogs.pickTemplate.none") : t("common.noResults")}</CommandEmpty>}
                 <CommandGroup heading={t("dialogs.pickTemplate.heading")}>
                     {templates.map(template => {
                         const counts = countTemplateContent(template.content)
