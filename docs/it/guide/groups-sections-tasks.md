@@ -59,7 +59,7 @@ Trascina il bordo destro di un gruppo per allargarlo o restringerlo. Da tastiera
 ### Aggiungere un task
 
 1. In fondo a una sezione fai clic sul pulsante **+** (**Aggiungi task**). Per aggiungere un task a un gruppo senza sezione, fai clic sul pulsante tratteggiato **Nuovo task** del gruppo: si trova subito sotto i task del gruppo, ovunque sia quella lista tra le sezioni, e il nuovo task viene creato in quella lista.
-2. Scrivi il testo in **Nuovo task…** e conferma con `Invio` o con il pulsante di aggiunta. `Esc` chiude il campo.
+2. Scrivi il testo in **Nuovo task…** e conferma con `Invio` (il campo non ha pulsanti). `Esc` lo chiude scartando il testo.
 
 I task di un gruppo contano nella barra di avanzamento e nel numero di task del gruppo. Trascinane uno in una sezione, o il contrario, oppure usa **Sposta in…** (il gruppo compare nell'elenco come **Task del gruppo**). **Sposta su** e **Sposta giù** di un task restano dentro la stessa lista.
 

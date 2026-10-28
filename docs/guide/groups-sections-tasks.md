@@ -59,7 +59,7 @@ Drag the right edge of a group to make it wider or narrower. With the keyboard, 
 ### Add a task
 
 1. At the bottom of a section click the **+** button (**Add task**). To add a task to a group without a section, click the dashed **New task** button of the group: it sits right under the tasks of the group, wherever that list is among the sections, and the new task is created in that list.
-2. Type the text in **New task…** and confirm with `Enter` or the add button. `Esc` closes the field.
+2. Type the text in **New task…** and confirm with `Enter` (the field has no buttons). `Esc` closes it and discards the text.
 
 Tasks of a group count in its progress bar and in its task count. Drag one into a section, or the other way round, or use **Move to…** (the group appears in the list as **Group tasks**). **Move up** and **Move down** of a task stay inside the same list.
 
