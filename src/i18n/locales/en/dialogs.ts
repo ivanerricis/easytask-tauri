@@ -11,10 +11,6 @@ export const dialogs: Translation["dialogs"] = {
         heading: "Templates",
         none: "No templates yet. Create one with the \"Template\" button at the bottom of the sidebar.",
     },
-    confirm: {
-        title: "Are you sure you want to proceed?",
-        description: "This action cannot be undone.",
-    },
     color: {
         swatch: "Color {{color}}",
         palette: "Colors",
