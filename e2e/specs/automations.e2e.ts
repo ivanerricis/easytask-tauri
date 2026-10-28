@@ -401,10 +401,18 @@ describe("Automations", () => {
             const panel = document.querySelector('[data-testid="sidebar-panel"]')
             return !!panel && panel.getBoundingClientRect().width > 0 && panel.getAttribute("data-state") !== "closed"
         })
+        // The Sheet slides in for 500ms and `sidebarOpen` is already true at its first frame: a click on one of its buttons
+        // while it moves lands where the button was (seen on the Linux CI: the new note dialog did not open)
+        const sidebarSettled = () => browser.execute(() => {
+            const panel = document.querySelector('[data-testid="sidebar-panel"]')
+            return !!panel && panel.getAnimations().every((animation) => animation.playState === "finished" || animation.playState === "idle")
+        })
         const showSidebar = async () => {
-            if (await sidebarOpen()) return
-            await byLabel(await tr("sidebar.toggle")).click()
-            await browser.waitUntil(sidebarOpen, { timeoutMsg: "the sidebar did not open" })
+            if (!(await sidebarOpen())) {
+                await byLabel(await tr("sidebar.toggle")).click()
+                await browser.waitUntil(sidebarOpen, { timeoutMsg: "the sidebar did not open" })
+            }
+            await browser.waitUntil(sidebarSettled, { timeoutMsg: "the sidebar kept moving" })
         }
         // Escape closes only the topmost layer: a tooltip left open by the click on a row takes the first one (seen on WebKitGTK)
         const hideSidebar = async () => {
