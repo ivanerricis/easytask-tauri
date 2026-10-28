@@ -52,6 +52,20 @@ describe("flattenVisibleTasks", () => {
         expect(ids(flattenVisibleTasks(tree, { ...all, hideCompleted: true }))).toEqual([1, 2, 21, 3, 5, 6])
     })
 
+    it("follows the displayed order with the completed tasks last: open ones first, in each list", () => {
+        const mixed: NoteDataTree = { groups: [makeGroup({
+            id: 1, position: 0,
+            defaultSection: makeSection({ id: 99, groupID: 1, title: "", is_default: true, tasks: [
+                makeTask({ id: 1, sectionID: 99, completed: true }),
+                makeTask({ id: 2, sectionID: 99, subtasks: [makeTask({ id: 21, sectionID: 99, taskID: 2, completed: true }), makeTask({ id: 22, sectionID: 99, taskID: 2 })] }),
+            ] }),
+            sections: [makeSection({ id: 10, groupID: 1, title: "A", tasks: [makeTask({ id: 3, sectionID: 10, completed: true }), makeTask({ id: 4, sectionID: 10 })] })],
+        })] }
+        expect(ids(flattenVisibleTasks(mixed, { ...all, completedLast: true }))).toEqual([2, 22, 21, 1, 4, 3])
+        expect(ids(flattenVisibleTasks(mixed, all))).toEqual([1, 2, 21, 22, 3, 4])
+        expect(ids(flattenVisibleTasks(mixed, { ...all, completedLast: true, hideCompleted: true }))).toEqual([2, 22, 4])
+    })
+
     it("leaves out closed groups and closed sections, but never closes the direct tasks of an open group", () => {
         expect(ids(flattenVisibleTasks(tree, { ...all, isGroupOpen: id => id !== 2 }))).toEqual([1, 2, 21, 3, 4, 5])
         expect(ids(flattenVisibleTasks(tree, { ...all, isSectionOpen: () => false }))).toEqual([1, 2, 21])

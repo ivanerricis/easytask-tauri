@@ -7,7 +7,7 @@ import { TaskInsertProvider, useTaskInsertStore } from "../tasks/task-insert-sta
 import { SectionBody } from "./SectionBody"
 import { makeSection, makeTask } from "@/test/ui-fixtures"
 
-const prefs = { hideCompletedTasks: false, showTaskInsertLine: true, taskDensity: "normal", keepAddingTasks: false }
+const prefs = { hideCompletedTasks: false, completedTasksLast: false, showTaskInsertLine: true, taskDensity: "normal", keepAddingTasks: false }
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 const ctx = { insertTaskAfter: vi.fn(), appendTask: vi.fn() }
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ctx }))
@@ -41,7 +41,21 @@ const section = makeSection({
 })
 
 describe("SectionBody hiding the completed tasks", () => {
-    beforeEach(() => { prefs.hideCompletedTasks = false })
+    beforeEach(() => { prefs.hideCompletedTasks = false; prefs.completedTasksLast = false })
+
+    it("shows the completed tasks after the open ones when the preference is on, without touching the stored order", () => {
+        const mixed = makeSection({ id: 4, tasks: [
+            makeTask({ id: 1, text: "Uno", completed: true }), makeTask({ id: 2, text: "Due" }),
+            makeTask({ id: 3, text: "Tre", completed: true }), makeTask({ id: 4, text: "Quattro" }),
+        ] })
+        const texts = () => screen.getAllByTestId("task").map(node => node.textContent)
+        const { rerender } = render(<SectionBody isOpen section={mixed} />)
+        expect(texts()).toEqual(["Uno", "Due", "Tre", "Quattro"])
+        prefs.completedTasksLast = true
+        rerender(<SectionBody isOpen section={makeSection({ ...mixed, tasks: [...mixed.tasks] })} />)
+        expect(texts()).toEqual(["Due", "Quattro", "Uno", "Tre"])
+        expect(mixed.tasks.map(task => task.id)).toEqual([1, 2, 3, 4])
+    })
 
     it("shows every task and no counter when the preference is off", () => {
         render(<SectionBody isOpen section={section} />)

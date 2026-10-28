@@ -25,7 +25,7 @@ import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import type { DropZone } from "../note-dnd"
 import { useIsTaskSelected, useSelectTask, useSubtasksOpen } from "@/contexts/use-tabs"
-import { visibleTasks } from "../section/hide-completed"
+import { orderedVisibleTasks } from "../section/hide-completed"
 import { DropLine } from "../sidebar/DropLine"
 import type { TaskDensity } from "@/lib/store/preferences"
 import { TASK_DENSITIES } from "./task-density"
@@ -50,6 +50,8 @@ type TaskProps = {
     showSubtaskCount?: boolean
     /** Hides the fully completed subtasks (see isHiddenTask). Only primitive props: the subtasks are rendered here, so the memo holds. */
     hideCompleted?: boolean
+    /** Shows the completed subtasks after the open ones (display only). A primitive, so the memo holds. */
+    completedLast?: boolean
     /** Whether a click on the text starts the rename (preference "Rename on click"); otherwise only the menu does. */
     renameOnClick?: boolean
     /** Spacing and text size of the rows (preference "Task density"); a primitive prop, so the memo holds when other preferences change. */
@@ -90,7 +92,7 @@ export const Task = React.memo((props: TaskProps) => {
     return <TaskRow {...props} setRowRef={setRowRef} dragProps={dragProps} isDragging={isDragging} dropZone={active?.kind === "task" ? zone : null} />
 })
 
-const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, renameOnClick = true, density = "normal", treeKey = "", isFirst = false, setRowRef, dragProps, isDragging, dropZone }: TaskRowProps) => {
+const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, completedLast = false, renameOnClick = true, density = "normal", treeKey = "", isFirst = false, setRowRef, dragProps, isDragging, dropZone }: TaskRowProps) => {
     const { t } = useTranslation()
     const [open, onOpenChange] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
@@ -384,11 +386,11 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
             {((hasSubtasks && subtasksOpen) || isAddingSubtask) && <div role="group" className={cn("flex flex-col self-stretch", sizes.subtasks, isSubtask ? "ml-[22px]" : "ml-6")}>
                 {taskRowsWithInsert({
                     all: task.subtasks,
-                    visible: visibleTasks(task.subtasks, hideCompleted),
+                    visible: orderedVisibleTasks(task.subtasks, { hideCompleted, completedLast }),
                     listKey: `t-${task.id}`,
                     parent: { parentTaskId: task.id },
                     depth: depth + 1,
-                    renderTask: subtask => <Task key={subtask.id} task={subtask} depth={depth + 1} treeKey={treeKey} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} renameOnClick={renameOnClick} density={density} />,
+                    renderTask: subtask => <Task key={subtask.id} task={subtask} depth={depth + 1} treeKey={treeKey} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} completedLast={completedLast} renameOnClick={renameOnClick} density={density} />,
                 })}
                 {isAddingSubtask &&
                     <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}
