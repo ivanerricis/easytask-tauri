@@ -8,6 +8,7 @@ import { ShortcutsProvider } from "../shortcuts-context"
 import { WorkspaceDataProvider, useWorkspaceData } from "../workspace-data"
 import { useActiveNote, useActiveNoteActions } from "../use-active-note"
 import { useTabsActions } from "../use-tabs"
+import { useLayoutActions } from "../use-layout"
 import { useWorkspace } from "../use-workspace"
 import { UndoProvider } from "./provider"
 import { TemplateDraftsContext } from "../template-drafts-context-object"
@@ -83,6 +84,7 @@ const useAll = () => ({
     note: useActiveNote(),
     noteActions: useActiveNoteActions(),
     tabs: useTabsActions(),
+    layout: useLayoutActions(),
     undo: useUndo(),
     recorder: useUndoRecorder(),
 })
@@ -298,6 +300,48 @@ describe("UndoProvider", () => {
             expect(moveDBTask).toHaveBeenLastCalledWith(30, { sectionId: 20, parentTaskId: null }, 0)
             expect(idsOf(0)).toEqual([30])
             expect(idsOf(1)).toEqual([])
+        })
+    })
+
+    describe("two panes", () => {
+        /** Note 10 open in the left pane, 11 in the right one, the focus on the left. */
+        async function splitSetup() {
+            const hook = await setup()
+            await act(async () => {
+                hook.result.current.layout.split()
+                hook.result.current.layout.openInPane(11, 1)
+                hook.result.current.layout.focusPane(0)
+            })
+            vi.mocked(getDBNoteData).mockClear()
+            return hook
+        }
+
+        it("stamps the commands with the note of the focused pane and reloads that note after an undo done from the other pane", async () => {
+            const { result } = await splitSetup()
+            await act(async () => { result.current.recorder.taskCompletion(30, "Task", false, true) })
+
+            // The user moves to the other pane: an undo now acts on a note that is open but not focused
+            await act(async () => { result.current.layout.focusPane(1) })
+            await act(() => result.current.undo.undo())
+            expect(updateDBTaskCompletion).toHaveBeenLastCalledWith(30, false)
+            expect(getDBNoteData).toHaveBeenCalledWith(10)
+
+            vi.mocked(getDBNoteData).mockClear()
+            await act(() => result.current.undo.redo())
+            expect(getDBNoteData).toHaveBeenCalledWith(10)
+        })
+
+        it("does not reload the note when it is the focused one, nor when it is no longer open", async () => {
+            const { result } = await splitSetup()
+            await act(async () => { result.current.recorder.taskCompletion(30, "Task", false, true) })
+            await act(() => result.current.undo.undo())
+            expect(getDBNoteData).not.toHaveBeenCalled()
+
+            await act(async () => { result.current.recorder.taskCompletion(30, "Task", false, true) })
+            await act(async () => { result.current.layout.focusPane(1); result.current.tabs.closeNote(10) })
+            vi.mocked(getDBNoteData).mockClear()
+            await act(() => result.current.undo.undo())
+            expect(getDBNoteData).not.toHaveBeenCalled()
         })
     })
 

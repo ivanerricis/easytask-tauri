@@ -1,5 +1,7 @@
 import { act, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { useRef, type ReactNode } from "react"
+import { PaneContext } from "@/contexts/layout-context-object"
 import { useStoreSelector } from "@/lib/external-store"
 import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { NoteDataTree } from "@/types/types"
@@ -117,5 +119,25 @@ describe("NoteSearchProvider", () => {
         await frames()
         expect(screen.getByTestId("count")).toHaveTextContent("0")
         expect(screen.getByTestId("t1")).toHaveTextContent("|-1")
+    })
+})
+
+describe("NoteSearchProvider in a pane", () => {
+    it("scrolls to the current mark of its own pane, not to the first one of the document", async () => {
+        function PaneRoot({ children }: { children: ReactNode }) {
+            const rootRef = useRef<HTMLDivElement>(null)
+            return (
+                <PaneContext.Provider value={{ pane: 1, focused: true, isFocused: () => true, rootRef }}>
+                    <div ref={rootRef} data-testid="root">{children}</div>
+                </PaneContext.Provider>
+            )
+        }
+        render(<><mark data-active="true" data-testid="decoy">altra area</mark><PaneRoot><NoteSearchProvider><Probe /></NoteSearchProvider></PaneRoot></>)
+        act(() => { screen.getByText("search").click() })
+        await frames()
+        expect(scrollIntoView).toHaveBeenCalled()
+        const targets = scrollIntoView.mock.contexts as Element[]
+        expect(targets.every(target => screen.getByTestId("root").contains(target))).toBe(true)
+        expect(targets.includes(screen.getByTestId("decoy"))).toBe(false)
     })
 })

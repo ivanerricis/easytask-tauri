@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from "react"
 import { useActiveNote } from "@/contexts/use-active-note"
+import { usePaneFocusGetter } from "@/contexts/use-layout"
 import { useActiveNoteId, useTabUiStore } from "@/contexts/use-tabs"
 import { usePreferences } from "@/contexts/use-preferences"
 import { collapsedIds } from "@/lib/collapsed"
@@ -48,23 +49,24 @@ function TaskSelectionSync({ store }: { store: SelectionStore }) {
 /**
  * Holds the multi-selection of the tasks of the open note (Ctrl/Cmd+click toggles, Shift+click selects a range, Esc clears).
  * The selection belongs to the active note (it is cleared when another note becomes active) and Esc leaves it alone when
- * another handler already used the key or the focus is in a field/dialog/menu.
+ * another handler already used the key, the pane has not the focus or the focus is in a field/dialog/menu.
  */
 export function TaskSelectionProvider({ children }: { children: ReactNode }) {
     const noteId = useActiveNoteId()
     const [store] = useState(createSelectionStore)
+    const isFocused = usePaneFocusGetter()
 
     useEffect(() => { store.reset() }, [store, noteId])
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent) => {
-            if (event.key !== "Escape" || event.defaultPrevented || store.getSelected().size === 0) return
+            if (event.key !== "Escape" || event.defaultPrevented || !isFocused() || store.getSelected().size === 0) return
             if (escapeIsTaken(event.target)) return
             store.reset()
         }
         window.addEventListener("keydown", onKeyDown)
         return () => window.removeEventListener("keydown", onKeyDown)
-    }, [store])
+    }, [store, isFocused])
 
     return (
         <TaskSelectionContext.Provider value={store}>

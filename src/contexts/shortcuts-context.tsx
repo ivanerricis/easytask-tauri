@@ -44,7 +44,7 @@ export const ShortcutsProvider = ({ children }: { children: React.ReactNode }) =
                 if (!matches) return
                 entries.forEach(ref => {
                     const entry = ref.current
-                    if (!entry.enabled || (inInput && !entry.allowInInputs)) return
+                    if (!entry.enabled || (inInput && !entry.allowInInputs) || entry.isFocused?.() === false) return
                     handled = true
                     entry.handler(e)
                 })
@@ -97,7 +97,7 @@ export const ShortcutsProvider = ({ children }: { children: React.ReactNode }) =
     const isActive = useCallback((id: string) => activeEntries(id).length > 0, [activeEntries])
 
     const trigger = useCallback((id: string) => {
-        const entries = activeEntries(id)
+        const entries = activeEntries(id).filter(entry => entry.isFocused?.() !== false)
         const event = new KeyboardEvent("keydown")
         entries.forEach(entry => entry.handler(event))
         return entries.length > 0

@@ -1,8 +1,10 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
 import { PreferencesContext } from "../preferences-context-object"
 import { useShortcut } from "@/hooks/use-shortcut"
+import { reportError } from "@/lib/report-error"
 import { useWorkspace } from "../use-workspace"
 import { useActiveNoteId } from "../use-tabs"
+import { TabsContext } from "../tabs-context-object"
 import { useTemplateDrafts } from "../use-template-drafts"
 import { useActiveNoteActions } from "../use-active-note"
 import { useWorkspaceActions } from "../workspace-data"
@@ -25,6 +27,9 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
     const undoLimit = useContext(PreferencesContext)?.undoLimit ?? UNDO_LIMIT
     const activeNoteId = useActiveNoteId()
     const drafts = useTemplateDrafts()
+    // Every note open in any pane (outside the tabs provider: none)
+    const openIds = useContext(TabsContext)?.openIds
+    const openIdsRef = useRef<number[]>([])
     // The action of a template draft is undone only from its editor: the history reads the active note when it runs
     const activeNoteIdRef = useRef(activeNoteId)
     const draftIdsRef = useRef<number[]>([])
@@ -42,6 +47,8 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
         activeNoteIdRef.current = activeNoteId
         history.setIsBlocked(command => command.scopeNoteId !== undefined && command.scopeNoteId !== activeNoteIdRef.current)
     }, [activeNoteId, history])
+
+    useEffect(() => { openIdsRef.current = openIds ?? [] }, [openIds])
 
     // The note of a draft is deleted when it closes: its actions can no longer be undone or redone
     useEffect(() => {
@@ -61,6 +68,17 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
         return id !== null && draftIdsRef.current.includes(id) ? id : undefined
     }, [])
 
+    // Undo/redo of an action done in a note that is open in a pane without the focus reloads that note (the focused one is
+    // refreshed by its own optimistic update path); a note that is not open has nothing cached to refresh
+    const getNoteData = noteActions.getNoteData
+    useEffect(() => {
+        history.setOnApplied(command => {
+            const id = command.noteId
+            if (id === undefined || id === activeNoteIdRef.current || !openIdsRef.current.includes(id)) return
+            return getNoteData(id).catch(error => reportError(error))
+        })
+    }, [history, getNoteData])
+
     // The commands read the ref only when they run (never during render)
     const recorder = useMemo(() => createUndoRecorder(
         // eslint-disable-next-line react-hooks/refs
@@ -69,6 +87,8 @@ export function UndoProvider({ children }: { children: React.ReactNode }) {
         history.track,
         // eslint-disable-next-line react-hooks/refs
         getScope,
+        // eslint-disable-next-line react-hooks/refs
+        () => activeNoteIdRef.current,
     ), [history, workspaceActions, noteActions, getScope])
 
     const isLatest = useCallback((command: UndoCommand) => history.isLatest(command), [history])

@@ -467,11 +467,14 @@ export type UndoRecorder = RecorderOf<UndoCommands> & {
 }
 
 /** Wraps the builders so that every call records the command. */
-export function createUndoRecorder(commands: UndoCommands, record: (command: UndoCommand) => void, track: UndoRecorder["track"] = write => write, getScope?: () => number | undefined): UndoRecorder {
+export function createUndoRecorder(commands: UndoCommands, record: (command: UndoCommand) => void, track: UndoRecorder["track"] = write => write, getScope?: () => number | undefined, getNoteId?: () => number | null | undefined): UndoRecorder {
     // Every command is stamped with the template draft it is done in (if any), so it is only undone from that draft
     const scoped = (command: UndoCommand) => {
         const scope = getScope?.()
         if (scope !== undefined && command.scopeNoteId === undefined) command.scopeNoteId = scope
+        // ...and with the note that was active (in the focused pane) when it was done, so undo/redo can refresh that note
+        const noteId = getNoteId?.()
+        if (noteId != null && command.noteId === undefined) command.noteId = noteId
         record(command)
     }
     const entries = Object.entries(commands).map(([name, build]) =>

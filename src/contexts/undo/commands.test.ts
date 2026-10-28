@@ -433,6 +433,19 @@ describe("recorder", () => {
         expect(record).toHaveBeenLastCalledWith(own)
     })
 
+    it("stamps every command with the note active in the focused pane, keeping a note id that is already set", () => {
+        const record = vi.fn()
+        let active: number | null = 10
+        const recorder = createUndoRecorder(commands, record, undefined, undefined, () => active)
+        recorder.rename("task", 1, "a", "b")
+        active = 11
+        recorder.create("note", 2, "N")
+        recorder.record({ label: "own", noteId: 5, undo: fn(), redo: fn() })
+        active = null
+        recorder.rename("task", 1, "a", "c")
+        expect(record.mock.calls.map(call => (call[0] as UndoCommand).noteId)).toEqual([10, 11, 5, undefined])
+    })
+
     it("the no-op recorder accepts every call", () => {
         expect(() => {
             NOOP_RECORDER.rename("task", 1, "a", "b")

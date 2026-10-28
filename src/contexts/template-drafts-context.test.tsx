@@ -6,6 +6,7 @@ import { TabsProvider } from "./tabs-context"
 import { ActiveNoteProvider } from "./active-note-context"
 import { TemplateDraftsProvider } from "./template-drafts-context"
 import { useTabs, useTabsActions } from "./use-tabs"
+import { useLayout, useLayoutActions } from "./use-layout"
 import { useActiveNoteActions } from "./use-active-note"
 import { useTemplateDraftActions, useTemplateDrafts } from "./use-template-drafts"
 import { WorkspaceStateContext } from "./workspace-data/context"
@@ -39,14 +40,14 @@ const noteData = (noteId: number) => ({
 })
 
 type Api = ReturnType<typeof useTabs> & ReturnType<typeof useTabsActions> & ReturnType<typeof useActiveNoteActions>
-    & ReturnType<typeof useTemplateDraftActions> & { drafts: TemplateDraft[] }
+    & ReturnType<typeof useTemplateDraftActions> & { drafts: TemplateDraft[], layout: ReturnType<typeof useLayout>, layoutActions: ReturnType<typeof useLayoutActions> }
 
 function setup(initial: TemplateDraft[] = []) {
     const latest: { current: Api } = { current: undefined as never }
     const whenIdle = () => Promise.resolve()
     const state = { templatesVersion: 0, trashVersion: 0 } as WorkspaceStateType
     function Probe() {
-        latest.current = { ...useTabs(), ...useTabsActions(), ...useActiveNoteActions(), ...useTemplateDraftActions(), drafts: useTemplateDrafts() }
+        latest.current = { ...useTabs(), ...useTabsActions(), ...useActiveNoteActions(), ...useTemplateDraftActions(), drafts: useTemplateDrafts(), layout: useLayout(), layoutActions: useLayoutActions() }
         return null
     }
     function Host() {
@@ -116,6 +117,31 @@ describe("TemplateDraftsProvider", () => {
         expect(saveDBTemplateDraft).toHaveBeenCalledWith(50)
         expect(vi.mocked(saveDBTemplateDraft).mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(deleteDBTemplateDraft).mock.invocationCallOrder[0])
         await waitFor(() => expect(latest.current.drafts).toEqual([]))
+    })
+
+    it("moving the editor tab to the other pane keeps the draft: it is neither saved nor deleted", async () => {
+        const latest = setup()
+        await waitFor(() => expect(latest.current.restored).toBe(true))
+        act(() => latest.current.openNote(1))
+        await act(async () => { await latest.current.openTemplateEditor({ id: 3, name: "Template 3" }) })
+        act(() => latest.current.layoutActions.split())
+        expect(latest.current.layout.isSplit).toBe(true)
+
+        // The union of the open notes does not change: the draft must survive the move
+        act(() => latest.current.layoutActions.moveToPane(50, 1))
+        await act(async () => { await Promise.resolve() })
+        expect(latest.current.layout.right?.openIds).toEqual([50])
+        expect(latest.current.layout.left.openIds).toEqual([1])
+        expect(latest.current.drafts.map(candidate => candidate.noteId)).toEqual([50])
+        expect(saveDBTemplateDraft).not.toHaveBeenCalled()
+        expect(deleteDBTemplateDraft).not.toHaveBeenCalled()
+
+        // ...and back again
+        act(() => latest.current.layoutActions.moveToPane(50, 0))
+        await act(async () => { await Promise.resolve() })
+        expect(latest.current.drafts).toHaveLength(1)
+        expect(saveDBTemplateDraft).not.toHaveBeenCalled()
+        expect(deleteDBTemplateDraft).not.toHaveBeenCalled()
     })
 
     it("keeps the draft when it could not be saved", async () => {

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest"
 import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 import { useShortcutsContext } from "@/contexts/use-shortcuts"
 import { store } from "@/lib/store/initStore"
+import { PaneContext } from "@/contexts/layout-context-object"
 import { useShortcut } from "./use-shortcut"
 
 type Options = Parameters<typeof useShortcut>[2]
@@ -92,5 +93,51 @@ describe("useShortcut", () => {
         ctx().setRecording(false)
         fireEvent.keyDown(document.body, { key: "l", ctrlKey: true })
         expect(handler).toHaveBeenCalledTimes(1)
+    })
+
+    describe("in two panes", () => {
+        const Pane = ({ pane, focus, children }: { pane: 0 | 1, focus: { current: 0 | 1 }, children: ReactNode }) => (
+            <PaneContext.Provider value={{ pane, focused: focus.current === pane, isFocused: () => focus.current === pane, rootRef: { current: null } }}>
+                {children}
+            </PaneContext.Provider>
+        )
+
+        it("runs only the handler of the focused pane, following the focus without re-registering, and always the global one", () => {
+            const focus: { current: 0 | 1 } = { current: 0 }
+            const left = vi.fn()
+            const right = vi.fn()
+            const global = vi.fn()
+            setup(<>
+                <Pane pane={0} focus={focus}><Probe id="close-note" handler={left} /></Pane>
+                <Pane pane={1} focus={focus}><Probe id="close-note" handler={right} /></Pane>
+                <Probe id="close-note" handler={global} />
+            </>)
+            fireEvent.keyDown(document.body, { key: "l", ctrlKey: true })
+            expect([left.mock.calls.length, right.mock.calls.length, global.mock.calls.length]).toEqual([1, 0, 1])
+            focus.current = 1
+            fireEvent.keyDown(document.body, { key: "l", ctrlKey: true })
+            expect([left.mock.calls.length, right.mock.calls.length, global.mock.calls.length]).toEqual([1, 1, 2])
+        })
+
+        it("does not prevent the default action when the only handler sits in a pane without the focus", () => {
+            const focus: { current: 0 | 1 } = { current: 1 }
+            const handler = vi.fn()
+            setup(<Pane pane={0} focus={focus}><Probe id="close-note" handler={handler} /></Pane>)
+            const notPrevented = fireEvent.keyDown(document.body, { key: "l", ctrlKey: true })
+            expect(handler).not.toHaveBeenCalled()
+            expect(notPrevented).toBe(true)
+        })
+
+        it("trigger (the app menu) runs only the focused pane's handler", () => {
+            const focus: { current: 0 | 1 } = { current: 1 }
+            const left = vi.fn()
+            const right = vi.fn()
+            setup(<>
+                <Pane pane={0} focus={focus}><Probe id="close-note" handler={left} /></Pane>
+                <Pane pane={1} focus={focus}><Probe id="close-note" handler={right} /></Pane>
+            </>)
+            expect(ctx().trigger("close-note")).toBe(true)
+            expect([left.mock.calls.length, right.mock.calls.length]).toEqual([0, 1])
+        })
     })
 })

@@ -1,3 +1,4 @@
+import { usePaneFocusGetter } from "@/contexts/use-layout"
 import { useEffect, useRef, useSyncExternalStore } from "react"
 
 /** Window event the app menu fires for the actions that have no shortcut (the component that owns the action listens to it). */
@@ -33,18 +34,22 @@ export function useIsAppCommandActive(command: AppCommand): boolean {
 }
 
 /**
- * Runs `handler` when the app menu requests `command`. While mounted and enabled the command counts as active.
+ * Runs `handler` when the app menu requests `command`. While mounted and enabled the command counts as active (also when
+ * the handler sits in a pane without the focus: the menu entry stays enabled and the focused pane's handler runs, a
+ * handler in a pane without the focus is skipped so the command does not fire once per pane).
  * @category Shortcuts
  */
 export function useAppCommand(command: AppCommand, handler: () => void, options?: { enabled?: boolean }) {
     const enabled = options?.enabled ?? true
+    const isFocused = usePaneFocusGetter()
     const handlerRef = useRef(handler)
-    useEffect(() => { handlerRef.current = handler })
+    const isFocusedRef = useRef(isFocused)
+    useEffect(() => { handlerRef.current = handler; isFocusedRef.current = isFocused })
 
     useEffect(() => {
         if (!enabled) return
         const onCommand = (event: Event) => {
-            if ((event as CustomEvent<AppCommand>).detail === command) handlerRef.current()
+            if ((event as CustomEvent<AppCommand>).detail === command && isFocusedRef.current()) handlerRef.current()
         }
         window.addEventListener(APP_COMMAND_EVENT, onCommand)
         changeActive(command, 1)
