@@ -23,16 +23,20 @@ Everything is stored locally on your computer.
 - **Trash**: deleted workspaces and deleted items (folders, notes, groups, sections, tasks, audio files, templates) go to the trash, where you can restore them or delete them permanently
 - **Archive**: archive folders, notes, groups, sections and tasks to hide them without deleting them; restore them from the archive
 - **Automations**: per-note rules that act on tasks and groups by themselves when something happens (e.g. a task is completed)
-- **Templates**: save a note as a template and create new notes from it
+- **Templates**: save a note as a template and create new notes from it; edit a template like a normal note, in its own tab
+- **Tasks with the keyboard**: move between tasks with the arrow keys, `Space` completes, `Enter` renames, `Alt+Up` / `Alt+Down` move, `Shift+Up` / `Shift+Down` select several; a thin "+" line between two tasks adds one in that place
 - **Duplicate** a note (with all its content, audio files excluded) or a section (with its tasks) from its menu; the copy is named "... (copy)" and undoable
-- **Audio**: attach audio files to a note and play them in the app
+- **Audio**: attach audio files to a note and play them in the app; the player can be pinned, repeat a track, resume where you left off, and remembers the playback speed
 - **Undo / redo** with `Ctrl+Z` / `Ctrl+Y` (`Ctrl+Shift+Z` also redoes)
 - **Search notes** with `Ctrl+K`
 - **Customizable keyboard shortcuts** (Settings > Shortcuts); press `?` to see the list
 - **Settings search**: type in the Settings dialog to find an option by its name
 - **Italian and English** interface: choose the language in Settings, the default follows the system language
 - **Light, dark or system theme**, accent color (with a contrast warning and a suggested color), color intensity, sidebar size and animation speed (normal, slow or off)
-- **Task list options**: new tasks at the top or at the bottom, list density, spell check on or off
+- **Text size and font**: scale the whole app from 12 to 24 px (`Ctrl+Plus`, `Ctrl+Minus`, `Ctrl+0`) and pick Inter, Lora, JetBrains Mono, Atkinson Hyperlegible or OpenDyslexic, bundled with the app
+- **Task list options**: new tasks at the top or at the bottom, completed tasks at the bottom, list density, spell check on or off
+- **Open at startup**: the home page, the last workspace, or always a workspace you choose
+- **Window**: remember its position and size, keep it on top, turn hardware acceleration off if you see graphics problems
 - **Start with Windows** and **close to the notification area** (Settings > System, both off by default)
 - **Trash auto-empty**: optionally delete for good the items trashed more than a chosen number of days ago
 - **Automatic backups** at startup with a chosen frequency and an optional folder of your choice (5 kept by default), manual backups and one-click restore; a separate copy is kept before every database update (the last 10)
@@ -49,6 +53,7 @@ Default shortcuts (all but the fixed ones can be changed in Settings > Shortcuts
 | `Ctrl+K` | Search notes |
 | `Ctrl+L` / `Ctrl+T` | Close the current note / close all notes |
 | `Ctrl+PageDown` / `Ctrl+PageUp` | Next / previous open note (also `Ctrl+Tab` / `Ctrl+Shift+Tab`) |
+| `Ctrl+Plus` / `Ctrl+Minus` / `Ctrl+0` | Make the text bigger / smaller / back to the normal size |
 | `Ctrl+B` | Toggle the sidebar |
 | `Ctrl+Shift+B` | Toggle the right sidebar |
 | `Ctrl+Shift+H` | Hide / show completed tasks |
@@ -163,7 +168,7 @@ The e2e suite builds a debug app and runs it against a temporary data folder (`E
 On pushes to `master` and on pull requests, GitHub Actions runs:
 
 - version check (`package.json`, `Cargo.toml` and `tauri.conf.json` must agree)
-- frontend: ESLint, TypeScript, tests, coverage, build
+- frontend: ESLint, TypeScript, tests, coverage (uploaded to [Codecov](https://codecov.io/gh/ivanerricis/easytask-tauri) for the badge, never blocking), build
 - backend (Windows and Linux): `cargo fmt --check`, `cargo clippy -D warnings`, `cargo test`
 - audit (blocking): `npm audit` (high/critical, production dependencies), `cargo audit`, `cargo deny`
 - e2e on Linux (**not blocking** for now); the Windows run starts manually (`workflow_dispatch`), because the hosted runner cannot attach the driver to the app, while the suite passes on a Windows machine (`npm run e2e`)
