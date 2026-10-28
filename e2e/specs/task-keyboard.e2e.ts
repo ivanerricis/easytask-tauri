@@ -207,7 +207,7 @@ describe("Task list keyboard", () => {
         // The announcer alternates a trailing non-breaking space; WebKitGTK keeps it in getText, WebView2 does not
         const announced = await tr("tasks.keyboard.moved", { position: 2, total: 3 })
         await browser.waitUntil(
-            async () => (await $("[role='status'][aria-live='polite'].sr-only").getText()).replace(/ /g, " ").trim() === announced,
+            async () => (await $("[role='status'][aria-live='polite'].sr-only").getText()).replace(/\u00A0/g, " ").trim() === announced,
             { timeoutMsg: "the move was not announced" },
         )
         await browser.keys(["Alt", "ArrowUp"])
