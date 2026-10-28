@@ -30,7 +30,7 @@ export const automations = {
     summaryTitle: "La regola",
     addAction: "Aggiungi azione",
     removeAction: "Rimuovi azione",
-    enabledAria: "Attiva l'automazione \"{{name}}\"",
+    enabledAria: "Automazione \"{{name}}\"",
     editAria: "Modifica l'automazione \"{{name}}\"",
     deleteAria: "Elimina l'automazione \"{{name}}\"",
     actionType: "Tipo di azione",

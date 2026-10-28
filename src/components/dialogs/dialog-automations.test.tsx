@@ -107,7 +107,7 @@ describe("DialogAutomations", () => {
         const user = userEvent.setup()
         mocked(getDBAutomations).mockResolvedValue([rule()])
         renderDialog()
-        await user.click(await screen.findByRole("switch", { name: "Attiva l'automazione \"Chiudi\"" }))
+        await user.click(await screen.findByRole("switch", { name: "Automazione \"Chiudi\"" }))
         await waitFor(() => expect(setDBAutomationEnabled).toHaveBeenCalledWith(10, false))
     })
 
@@ -214,7 +214,7 @@ describe("DialogAutomations", () => {
         const user = userEvent.setup()
         mocked(getDBAutomations).mockResolvedValue([rule()])
         renderDialog()
-        await user.click(await screen.findByRole("switch", { name: "Attiva l'automazione \"Chiudi\"" }))
+        await user.click(await screen.findByRole("switch", { name: "Automazione \"Chiudi\"" }))
         await waitFor(() => expect(sync).toHaveBeenCalledTimes(1))
 
         await user.click(screen.getByRole("button", { name: "Elimina l'automazione \"Chiudi\"" }))

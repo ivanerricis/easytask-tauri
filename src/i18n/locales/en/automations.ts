@@ -32,7 +32,7 @@ export const automations: Translation["automations"] = {
     summaryTitle: "The rule",
     addAction: "Add action",
     removeAction: "Remove action",
-    enabledAria: "Enable the automation \"{{name}}\"",
+    enabledAria: "Automation \"{{name}}\"",
     editAria: "Edit the automation \"{{name}}\"",
     deleteAria: "Delete the automation \"{{name}}\"",
     actionType: "Action type",
