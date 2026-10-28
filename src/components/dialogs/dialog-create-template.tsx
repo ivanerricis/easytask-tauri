@@ -54,6 +54,8 @@ const TemplateForm = ({ note, onOpenChange, onCreated }: TemplateFormProps) => {
                 name="name"
                 value={name}
                 autoFocus
+                // The prefilled name is selected: typing replaces it
+                onFocus={e => e.target.select()}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? errorId : undefined}
                 onChange={e => {

@@ -32,6 +32,14 @@ describe("DialogCreateTemplate", () => {
         expect(onOpenChange).toHaveBeenCalledWith(false)
     })
 
+    it("seleziona il nome precompilato all'apertura, come Rinomina", () => {
+        render(<DialogCreateTemplate note={note} isOpen onOpenChange={vi.fn()} />)
+        const input = screen.getByLabelText("Nome del template") as HTMLInputElement
+        expect(input).toHaveFocus()
+        expect(input.selectionStart).toBe(0)
+        expect(input.selectionEnd).toBe("Sprint 12".length)
+    })
+
     it("shows the error of a name clash and stays open", async () => {
         const user = userEvent.setup()
         const onOpenChange = vi.fn()
