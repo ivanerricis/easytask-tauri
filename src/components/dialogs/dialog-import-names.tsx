@@ -27,10 +27,12 @@ type DialogImportNamesProps = {
 export const DialogImportNames = ({ proposed, onSubmit, onCancel }: DialogImportNamesProps) => {
     const { t } = useTranslation()
     const baseId = useId()
+    const errorId = useId()
     const [names, setNames] = useState(() => proposed.map(item => item.name))
     const [error, setError] = useState<string | null>(null)
     const { saving, run } = useSubmitOnce()
     const blank = names.some(name => !name.trim())
+    const message = error ?? (blank ? t("errors.transfer.nameEmpty") : null)
 
     const handleSubmit = (e: FormEvent) => {
         e.preventDefault()
@@ -70,7 +72,9 @@ export const DialogImportNames = ({ proposed, onSubmit, onCancel }: DialogImport
                                         autoFocus={index === 0}
                                         onFocus={e => { if (index === 0) e.currentTarget.select() }}
                                         readOnly={saving}
-                                        aria-invalid={!names[index].trim() || undefined}
+                                        // A refused import names no field: the message belongs to all of them; an empty name only to itself
+                                        aria-invalid={error || !names[index].trim() ? true : undefined}
+                                        aria-describedby={error || !names[index].trim() ? errorId : undefined}
                                         onChange={e => {
                                             const value = e.target.value
                                             setError(null)
@@ -81,7 +85,7 @@ export const DialogImportNames = ({ proposed, onSubmit, onCancel }: DialogImport
                             )
                         })}
                     </div>
-                    <FormError>{error ?? (blank ? t("errors.transfer.nameEmpty") : null)}</FormError>
+                    <FormError id={errorId}>{message}</FormError>
                     <DialogFooter>
                         <Button type="button" variant="outline" onClick={onCancel} disabled={saving}>{t("common.cancel")}</Button>
                         <Button type="submit" disabled={saving || blank}>

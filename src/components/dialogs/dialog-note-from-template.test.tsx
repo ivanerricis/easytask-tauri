@@ -37,4 +37,13 @@ describe("DialogNoteFromTemplate", () => {
         expect(destinations).toHaveLength(2)
         expect(destinations[0].id).not.toBe(destinations[1].id)
     })
+
+    it("collega l'errore al campo nome con aria-describedby", async () => {
+        const user = userEvent.setup()
+        actions.createNoteFromTemplate.mockRejectedValue(new Error("Nome già usato"))
+        render(<DialogNoteFromTemplate template={template} isOpen onOpenChange={vi.fn()} />)
+        await user.click(screen.getByRole("button", { name: "Crea" }))
+        const alert = await screen.findByRole("alert")
+        await waitFor(() => expect(screen.getByLabelText("Nome")).toHaveAttribute("aria-describedby", alert.id))
+    })
 })
