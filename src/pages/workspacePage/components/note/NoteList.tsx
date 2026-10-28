@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type KeyboardEvent } from "react"
+import { useContext, useEffect, useRef, useState, type KeyboardEvent } from "react"
 import {
     DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors,
     type CollisionDetection, type DragMoveEvent,
@@ -6,13 +6,15 @@ import {
 import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
 import { CSS } from "@dnd-kit/utilities"
 import { useActiveNoteId, useTabs, useTabsActions } from "@/contexts/use-tabs"
+import { usePane } from "@/contexts/use-layout"
 import { useTranslation } from "react-i18next"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { cn } from "@/lib/utils"
 import { useGrabbingCursor } from "@/hooks/use-grabbing-cursor"
 import { NoteHeader } from "./NoteHeader"
 import { DropLine } from "../sidebar/DropLine"
-import { computeTabMove, computeTabZone, pickTabByX, type TabZone } from "./tab-reorder"
+import { computeTabMove, computeTabZone, pickTabByX, barDndId, tabDndId, type TabHover, type TabZone } from "./tab-reorder"
+import { TabsDndContext } from "./tabs-dnd-context-object"
 import type { Note } from "@/types/types"
 
 type Hover = { overId: number, zone: TabZone } | null
@@ -29,10 +31,13 @@ const collisionDetection: CollisionDetection = ({ droppableContainers, droppable
     return id === null ? [] : [{ id }]
 }
 
-const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {
-    const { setNodeRef: setDropRef } = useDroppable({ id: note.id })
-    const { setNodeRef: setDragRef, listeners, transform, isDragging } = useDraggable({ id: note.id })
-    const indicator = hover?.overId === note.id ? hover.zone : null
+/**
+ * One draggable / droppable tab. `dndId` is the note id in a bar with its own dnd context, `tab:<pane>:<noteId>` in the shared one;
+ * `overlay` is true when a `DragOverlay` shows the dragged tab (the original then stays in place, dimmed).
+ */
+const Tab = ({ note, indicator, dndId = note.id, overlay = false }: { note: Note, indicator: TabZone | null, dndId?: string | number, overlay?: boolean }) => {
+    const { setNodeRef: setDropRef } = useDroppable({ id: dndId })
+    const { setNodeRef: setDragRef, listeners, transform, isDragging } = useDraggable({ id: dndId })
 
     return (
         <div
@@ -43,7 +48,7 @@ const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {
             {...listeners}
             style={{ transform: CSS.Translate.toString(transform) }}
             // The bar draws the lines between the tabs (divide-x): the last tab closes itself on the right
-            className={cn("relative min-w-28 shrink-0 last:border-r", isDragging && "z-10 opacity-70")}
+            className={cn("relative min-w-28 shrink-0 last:border-r", isDragging && (overlay ? "opacity-40" : "z-10 opacity-70"))}
         >
             {!isDragging && <DropLine zone={indicator} vertical className="z-20" />}
             <NoteHeader note={note} />
@@ -51,20 +56,10 @@ const Tab = ({ note, hover }: { note: Note, hover: Hover }) => {
     )
 }
 
-export const NoteList = () => {
-    const { t } = useTranslation()
-    const { tabs } = useTabs()
-    const { reorderTabs, activateNote } = useTabsActions()
+/** Scroll of the active tab into view and roving tabindex / arrow keys of one bar (scoped to the tabs inside its list). */
+function useTabBar(tabs: Note[]) {
+    const { activateNote } = useTabsActions()
     const listRef = useRef<HTMLDivElement>(null)
-    const [hover, setHover] = useState<Hover>(null)
-    const hoverRef = useRef<Hover>(null)
-    const [dragging, setDragging] = useState(false)
-    useGrabbingCursor(dragging)
-
-    // A small distance keeps plain clicks (open / close tab) working
-    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
-
-    const accessibility = buildDndAccessibility(entry => tabs.find(tab => tab.id === entry.id)?.name, { keyboard: false })
 
     // The active tab can be outside the visible part of the bar (many tabs open, a note opened from the tree, the search or a shortcut)
     const activeId = useActiveNoteId()
@@ -93,6 +88,75 @@ export const NoteList = () => {
         activateNote(note.id)
         listRef.current?.querySelector<HTMLElement>(`[role="tab"][data-note-id="${note.id}"]`)?.focus()
     }
+    return { listRef, handleKeyDown }
+}
+
+// The line under the tabs: drawn by every inactive tab and, as an inset shadow, by the empty part of the bar.
+// The active tab paints over it, so it opens onto the note below.
+const BAR_CLASS = "flex shrink-0 w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1 shadow-[inset_0_-1px_0_0_var(--color-primary)]"
+
+/**
+ * The tab bar of a pane inside `TabsDndProvider`: the drag and drop context is the shared one, the bar is a droppable
+ * (`bar:<pane>`, also the target of an empty bar) and keeps a minimum height so an empty pane can still receive a tab.
+ */
+function SharedNoteList({ hover }: { hover: TabHover | null }) {
+    const { t } = useTranslation()
+    const { tabs } = useTabs()
+    const pane = usePane()?.pane ?? 0
+    const { listRef, handleKeyDown } = useTabBar(tabs)
+    const { setNodeRef } = useDroppable({ id: barDndId(pane) })
+    const mine = hover?.pane === pane ? hover : null
+    const label = t(pane === 0 ? "notes.split.leftPane" : "notes.split.rightPane")
+
+    return (
+        <div
+            ref={node => {
+                listRef.current = node
+                setNodeRef(node)
+            }}
+            role="tablist"
+            aria-label={t("notes.split.openTabsPane", { pane: label })}
+            onKeyDown={handleKeyDown}
+            className={cn(BAR_CLASS, "relative min-h-[42px]")}
+        >
+            {tabs.map(note => (
+                <Tab
+                    key={note.id}
+                    note={note}
+                    dndId={tabDndId(pane, note.id)}
+                    overlay
+                    indicator={mine?.overId === note.id ? mine.zone : null}
+                />
+            ))}
+            {/* Over the bar itself (it has no tab to point at): the line at the start, which is also its end */}
+            {tabs.length === 0 && <DropLine zone={mine && mine.overId === null ? "before" : null} vertical />}
+        </div>
+    )
+}
+
+/**
+ * The tab bar of the open notes. Inside `TabsDndProvider` (workspace split in two panes) it takes part in the shared drag and drop;
+ * on its own it runs its own context: tabs can only be reordered, along the horizontal axis.
+ */
+export const NoteList = () => {
+    const shared = useContext(TabsDndContext)
+    return shared ? <SharedNoteList hover={shared.hover} /> : <StandaloneNoteList />
+}
+
+function StandaloneNoteList() {
+    const { t } = useTranslation()
+    const { tabs } = useTabs()
+    const { reorderTabs } = useTabsActions()
+    const { listRef, handleKeyDown } = useTabBar(tabs)
+    const [hover, setHover] = useState<Hover>(null)
+    const hoverRef = useRef<Hover>(null)
+    const [dragging, setDragging] = useState(false)
+    useGrabbingCursor(dragging)
+
+    // A small distance keeps plain clicks (open / close tab) working
+    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
+
+    const accessibility = buildDndAccessibility(entry => tabs.find(tab => tab.id === entry.id)?.name, { keyboard: false })
 
     const updateHover = (next: Hover) => {
         hoverRef.current = next
@@ -125,10 +189,8 @@ export const NoteList = () => {
             onDragEnd={event => { setDragging(false); handleDragEnd(Number(event.active.id)) }}
             onDragCancel={() => { setDragging(false); updateHover(null) }}
         >
-            {/* The line under the tabs: drawn by every inactive tab and, as an inset shadow, by the empty part of the bar.
-                The active tab paints over it, so it opens onto the note below. */}
-            <div ref={listRef} role="tablist" aria-label={t("notes.openTabs")} onKeyDown={handleKeyDown} className="flex shrink-0 w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1 shadow-[inset_0_-1px_0_0_var(--color-primary)]">
-                {tabs.map(note => <Tab key={note.id} note={note} hover={hover} />)}
+            <div ref={listRef} role="tablist" aria-label={t("notes.openTabs")} onKeyDown={handleKeyDown} className={BAR_CLASS}>
+                {tabs.map(note => <Tab key={note.id} note={note} indicator={hover?.overId === note.id ? hover.zone : null} />)}
             </div>
         </DndContext>
     )
