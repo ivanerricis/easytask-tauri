@@ -1,15 +1,18 @@
 import { useTranslation } from "react-i18next"
 import { lazyWithPreload, preloadWhenIdle } from "@/lib/lazy-preload"
-import { useState, type ReactElement } from "react"
+import { useContext, useState, type ReactElement } from "react"
 import type { Note } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useTabs, useTabsActions } from "@/contexts/use-tabs"
+import { usePaneOfNote } from "@/contexts/use-layout"
+import { PaneTabsContext } from "@/contexts/layout-context-object"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { LazyMount } from "@/components/lazy-mount"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { useDeleteRequest } from "@/components/dialogs/use-delete-item"
 import { noteHasContent } from "@/db/queries/note"
 import { Separator } from "@/components/ui/separator"
+import { OpenInPaneItem } from "../OpenInPaneItem"
 import { ColorSubmenu } from "../ColorSubmenu"
 import { MoveToSubmenu } from "../MoveToSubmenu"
 import { MenuGroup } from "@/components/menu-kind"
@@ -28,12 +31,20 @@ const DialogAutomations = lazyWithPreload(() => import("@/components/dialogs/dia
 const DialogCreateTemplate = lazyWithPreload(() => import("@/components/dialogs/dialog-create-template").then(m => ({ default: m.DialogCreateTemplate })))
 preloadWhenIdle(DialogAutomations, DialogCreateTemplate)
 
-/** The tab moves are the keyboard way to reorder the tabs. Kept apart so the tabs are read only while the menu is open, not by every sidebar row. */
+/**
+ * The tab moves are the keyboard way to reorder the tabs. Kept apart so the tabs are read only while the menu is open, not by every sidebar row.
+ * When the workspace is split they act on the tab bar of the pane that holds the note.
+ */
 const TabMoveItems = ({ noteId, onDone }: { noteId: number, onDone: () => void }) => {
     const { t } = useTranslation()
-    const { tabs } = useTabs()
-    const { reorderTabs } = useTabsActions()
-    // Position of the note among the open tabs (-1 when it is not open)
+    const { tabs: allTabs } = useTabs()
+    const { reorderTabs: reorderFocused } = useTabsActions()
+    const pane = usePaneOfNote(noteId)
+    const paneTabs = useContext(PaneTabsContext)
+    const own = pane !== null && paneTabs ? paneTabs[pane] : null
+    const tabs = own ? own.tabs.tabs : allTabs
+    const reorderTabs = own ? own.actions.reorderTabs : reorderFocused
+    // Position of the note among the open tabs of its bar (-1 when it is not open)
     const tabIndex = tabs.findIndex(tab => tab.id === noteId)
     if (tabIndex < 0) return null
     return (
@@ -111,6 +122,7 @@ export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps
                 type="open"
                 onClick={() => { openNote(note.id); menu.close() }}
             />
+            <OpenInPaneItem noteId={note.id} onDone={menu.close} />
             <ButtonInPopover
                 text={t("common.rename")}
                 type="rename"

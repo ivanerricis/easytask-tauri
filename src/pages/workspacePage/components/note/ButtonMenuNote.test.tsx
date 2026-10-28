@@ -5,6 +5,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import { ItemMenuButton } from "@/components/item-menu"
 import { makeNote } from "@/test/ui-fixtures"
+import { LayoutActionsContext, LayoutContext, PaneTabsContext, type LayoutActionsType, type PaneTabsValue } from "@/contexts/layout-context-object"
+import type { TabsActionsType } from "@/contexts/tabs-context-object"
 // The request to delete is tested with its hook (use-delete-request.test.tsx): here it opens the dialog
 vi.mock("@/components/dialogs/use-delete-item", () => ({ useDeleteRequest: ({ openDialog }: { openDialog: () => void }) => ({ request: openDialog }) }))
 
@@ -183,3 +185,75 @@ describe("ButtonMenuNote", () => {
         expect(screen.queryByText("Elimina")).not.toBeInTheDocument()
     })
 })
+
+describe("ButtonMenuNote in a split workspace", () => {
+    const layoutActions: LayoutActionsType = { split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn() }
+    const reorder0 = vi.fn()
+    const reorder1 = vi.fn()
+    const paneValue = (ids: number[], reorderTabs: () => void): PaneTabsValue => ({
+        tabs: { openIds: ids, activeId: ids[0] ?? null, tabs: ids.map(id => makeNote({ id })), currentNote: null, restored: true },
+        actions: { reorderTabs } as unknown as TabsActionsType,
+        activeStore: undefined as never,
+    })
+    const setupSplit = (left: number[], right: number[] | null) => {
+        render(
+            <LayoutContext.Provider value={{ left: { openIds: left, activeId: null }, right: right && { openIds: right, activeId: null }, focused: 0, isSplit: right !== null }}>
+                <LayoutActionsContext.Provider value={layoutActions}>
+                    <PaneTabsContext.Provider value={[paneValue(left, reorder0), paneValue(right ?? [], reorder1)]}>
+                        <ButtonMenuNote note={makeNote({ id: 4 })}>
+                            <div data-testid="row">Nota<ItemMenuButton /></div>
+                        </ButtonMenuNote>
+                    </PaneTabsContext.Provider>
+                </LayoutActionsContext.Provider>
+            </LayoutContext.Provider>,
+        )
+        return screen.getByTestId("row")
+    }
+
+    it("offers 'Apri a destra' after 'Apri' and not 'Apri a sinistra' for a note that is not in the right pane", async () => {
+        const user = userEvent.setup()
+        const row = setupSplit([4], [9])
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Apri a destra"))
+        expect(layoutActions.openInPane).toHaveBeenCalledWith(4, 1)
+        expect(screen.queryByText("Apri a sinistra")).not.toBeInTheDocument()
+        expect(screen.queryByText("Apri a destra")).not.toBeInTheDocument()
+    })
+
+    it("offers 'Apri a destra' when the workspace is not split and the note is not open", async () => {
+        const row = setupSplit([], null)
+        fireEvent.contextMenu(row)
+        expect(await screen.findByText("Apri a destra")).toBeInTheDocument()
+    })
+
+    it("offers 'Apri a sinistra' instead for a note of the right pane", async () => {
+        const user = userEvent.setup()
+        const row = setupSplit([1], [4])
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Apri a sinistra"))
+        expect(layoutActions.moveToPane).toHaveBeenCalledWith(4, 0)
+        expect(screen.queryByText("Apri a destra")).not.toBeInTheDocument()
+    })
+
+    it("moves the tab inside the bar of the right pane", async () => {
+        const user = userEvent.setup()
+        openTabs = [{ id: 1 }, { id: 4 }]
+        const row = setupSplit([1], [7, 4, 8])
+        fireEvent.contextMenu(row)
+        await user.click(await screen.findByText("Sposta tab a destra"))
+        expect(reorder1).toHaveBeenCalledWith(1, 2)
+        expect(reorder0).not.toHaveBeenCalled()
+        expect(reorderTabs).not.toHaveBeenCalled()
+    })
+
+    it("moves the tab inside the bar of the left pane, disabled at its ends", async () => {
+        const user = userEvent.setup()
+        openTabs = [{ id: 4 }, { id: 8 }, { id: 9 }]
+        const row = setupSplit([5, 4], [8, 9])
+        fireEvent.contextMenu(row)
+        expect((await screen.findByText("Sposta tab a destra")).closest("[role=menuitem]")).toHaveAttribute("aria-disabled", "true")
+        await user.click(screen.getByText("Sposta tab a sinistra"))
+        expect(reorder0).toHaveBeenCalledWith(1, 0)
+    })
+})
+
