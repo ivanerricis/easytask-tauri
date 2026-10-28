@@ -309,17 +309,13 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                         // The toolbar that shows on hover covers this one and has the same button: this copy is out of the
                                         // tab order and of the accessibility tree
                                         <TooltipCustom text={t("tasks.showDescription")}>
-                                            <Button
-                                                type="button"
-                                                variant="ghost"
-                                                size="icon"
-                                                tabIndex={-1}
+                                            <span
                                                 aria-hidden
                                                 data-testid="description-indicator"
-                                                onClick={() => { onOpenChange(true) }}
-                                                className="size-6 -m-1 text-muted-foreground hover:text-foreground">
+                                                onClick={e => { e.stopPropagation(); onOpenChange(true) }}
+                                                className="flex size-6 -m-1 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground">
                                                 <AlignLeft className="size-3.5" />
-                                            </Button>
+                                            </span>
                                         </TooltipCustom>}
                                     {/* Hidden subtasks always show their count (also with the preference off): it is the sign that there are some */}
                                     {(showSubtaskCount || subtasksHidden) && hasSubtasks &&
