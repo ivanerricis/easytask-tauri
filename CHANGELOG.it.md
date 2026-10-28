@@ -4,6 +4,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-28
+
 ### Aggiunto
 
 - Modifica un template come una nota normale: "Modifica" nella finestra dei template lo apre in una scheda "Template". Le modifiche si salvano da sole, annulla e ripeti funzionano come in ogni nota, e se l'app si chiude la scheda torna al prossimo avvio (con "Riapri le note" attivo) oppure le modifiche vengono salvate nel template. Il menu "⋯" di un template ha "Duplica" e "Aggiorna da un'altra nota"; "Aggiorna dalla nota" resta disattivato mentre l'editor è aperto.
@@ -413,7 +415,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...v0.12.0

@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.15.0] - 2026-10-28
+
 ### Added
 
 - Edit a template like a normal note: "Edit" in the templates dialog opens it in a "Template" tab. Changes are saved on their own, undo and redo work as in any note, and if the app closes the tab comes back at the next start (when "Reopen notes" is on) or the changes are saved into the template. The "⋯" menu of a template has "Duplicate" and "Refresh from another note"; "Refresh from the note" stays off while the editor is open.
@@ -415,7 +417,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...HEAD
+[0.15.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...v0.14.0
 [0.13.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.12.0...v0.13.0
 [0.12.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.11.0...v0.12.0
