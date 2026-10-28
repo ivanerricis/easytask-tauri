@@ -6,6 +6,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.17.0] - 2026-10-28
+
+### Added
+
+- New setting "Text size" (Settings > Appearance): a size in px from 12 to 24 (16 is the normal one) that makes the whole app bigger or smaller (text, icons and spaces). Change it with the - and + buttons, or with Ctrl+Plus, Ctrl+Minus and Ctrl+0 (back to normal).
+- New setting "Font" (Settings > Appearance): the default one, or Inter, Lora, JetBrains Mono, Atkinson Hyperlegible or OpenDyslexic, which come with the app and are loaded only when chosen.
+- New setting "Open at startup" (Settings > Notes): the home page, the last workspace used, or always a workspace you choose. It replaces the switch "Reopen the last workspace at startup": whoever had it on keeps the last workspace.
+- New setting "Hardware acceleration" (Settings > System, on by default): turn it off if you see graphics problems; it applies at the next start and offers to restart now.
+- Audio: new settings "Pin the player", "Repeat the track" and "Resume where you left off" (the last two are off by default, the position of each track is remembered), and the playback speed you choose in the player is remembered.
+
+### Changed
+
+- The language is chosen from a menu, and the select, input and text fields use the same background as the outline buttons.
+- In the settings the reset button of a row comes before its control, so the controls end at the right edge of every row (also in the shortcuts page). In a narrow window the control goes under the text instead of squeezing it.
+- All the scrollbars share one style (9px). The scrollbar of a group sits under its header, and the "New task" button of the tasks directly in a group stays at the bottom while the list scrolls.
+- The "+" between two tasks is also centered above the first task, and has more room around its icon.
+- The release pipeline runs its checks next to the builds and builds the portable zip in the Windows job, so a release is faster.
+
 ## [0.16.0] - 2026-10-28
 
 ### Added
@@ -443,7 +461,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.16.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.17.0...HEAD
+[0.17.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...v0.15.0
 [0.14.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.13.0...v0.14.0
