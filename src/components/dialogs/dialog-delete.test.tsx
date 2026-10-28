@@ -67,7 +67,9 @@ describe("DialogDeleteItem", () => {
         const { onOpenChange } = setup()
         await user.click(screen.getByRole("button", { name: "Sposta nel cestino" }))
 
-        expect(await screen.findByRole("alert")).toHaveTextContent("constraint")
+        const alert = await screen.findByRole("alert")
+        expect(alert).toHaveTextContent("constraint")
+        expect(screen.getByRole("button", { name: "Sposta nel cestino" })).toHaveAttribute("aria-describedby", alert.id)
         expect(onOpenChange).not.toHaveBeenCalledWith(false)
     })
 

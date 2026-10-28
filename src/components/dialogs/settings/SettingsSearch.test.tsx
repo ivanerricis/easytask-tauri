@@ -66,6 +66,7 @@ vi.mock("@/contexts/use-preferences", () => ({
         taskDensity: "normal", setTaskDensity: vi.fn(),
         spellcheck: true, setSpellcheck: vi.fn(),
         trashAutoEmptyDays: 0, setTrashAutoEmptyDays: vi.fn(),
+        confirmDeleteWithContent: true, setConfirmDeleteWithContent: vi.fn(),
     }),
 }))
 
@@ -95,6 +96,13 @@ describe("settings search", () => {
         expect(screen.getByText("Nascondi task completati")).toBeInTheDocument()
         expect(screen.queryByText("Mostra numero di task")).not.toBeInTheDocument()
         expect(screen.queryByText("Rinomina cliccando sul nome")).not.toBeInTheDocument()
+    })
+
+    it("finds the delete confirmation by its description", async () => {
+        const user = await open()
+        await search(user, "vanno subito nel cestino")
+        expect(screen.getByText("Conferma l'eliminazione solo se c'è contenuto")).toBeInTheDocument()
+        expect(screen.queryByText("Nascondi task completati")).not.toBeInTheDocument()
     })
 
     it("ignores case and accents", async () => {

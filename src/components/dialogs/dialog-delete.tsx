@@ -1,9 +1,9 @@
+import { useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Trash2 } from "lucide-react"
 import { ConfirmDialog } from "./dialog-confirm"
 import { useDeleteItem } from "./use-delete-item"
 import { FormError } from "@/components/form-error"
-import { useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
 import { getErrorMessage } from "@/lib/utils"
 
@@ -27,6 +27,7 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
     const { t } = useTranslation()
     const deleteNow = useDeleteItem({ item, itemType, getItemId, getItemData, optimistic })
 
+    const errorId = useId()
     const [error, setError] = useState<string | null>(null)
 
     const handleDelete = async () => {
@@ -45,11 +46,12 @@ export const DialogDeleteItem = <T extends defaultItemType>({ item, itemType, ge
             onOpenChange={(open) => { if (!open) setError(null); onOpenChange(open) }}
             destructive
             autoClose={false}
+            confirmDescribedBy={error ? errorId : undefined}
             title={t("dialogs.delete.title")}
             description={t("dialogs.delete.description")}
             confirm={{ label: t("dialogs.delete.confirm"), icon: Trash2, onClick: handleDelete }}
         >
-            {error && <FormError>{error}</FormError>}
+            {error && <FormError id={errorId}>{error}</FormError>}
         </ConfirmDialog>
     )
 }

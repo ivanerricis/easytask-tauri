@@ -24,6 +24,7 @@ export const NotesSettings = () => {
         taskDensity, setTaskDensity,
         newTaskPosition, setNewTaskPosition,
         spellcheck, setSpellcheck,
+        confirmDeleteWithContent, setConfirmDeleteWithContent,
         hideCompletedTasks, setHideCompletedTasks,
         reopenNotes, setReopenNotes,
         reopenLastWorkspace, setReopenLastWorkspace,
@@ -66,6 +67,7 @@ export const NotesSettings = () => {
                     onChange={setNewTaskPosition}
                 />
                 <SettingsSwitchRow label={t("settings.notes.spellcheck.label")} description={t("settings.notes.spellcheck.description")} checked={spellcheck} onCheckedChange={setSpellcheck} />
+                <SettingsSwitchRow label={t("settings.notes.confirmDelete.label")} description={t("settings.notes.confirmDelete.description")} checked={confirmDeleteWithContent} onCheckedChange={setConfirmDeleteWithContent} />
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.notes.sections.startup")}>
                 <SettingsSwitchRow label={t("settings.notes.reopenWorkspace.label")} description={t("settings.notes.reopenWorkspace.description")} checked={reopenLastWorkspace} onCheckedChange={setReopenLastWorkspace} />

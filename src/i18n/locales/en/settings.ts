@@ -302,6 +302,10 @@ export const settings: Translation["settings"] = {
             label: "Spell check",
             description: "Underlines misspelled words while you type.",
         },
+        confirmDelete: {
+            label: "Confirm deleting only when there is content",
+            description: "For notes, sections and groups: asks only if they contain something, otherwise they go straight to the trash (with \"Undo\"). When off, it never asks. Folders, workspaces, tasks and multiple selections always ask.",
+        },
         reopenNotes: {
             label: "Reopen notes at startup",
             description: "Restores the open notes and the active one when you reopen a workspace.",
