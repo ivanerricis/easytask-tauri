@@ -110,6 +110,29 @@ describe("DialogUpdate", () => {
         act(() => other.remove())
     })
 
+    it("opens once the other dialog closes", async () => {
+        const other = document.createElement("div")
+        other.setAttribute("role", "dialog")
+        document.body.appendChild(other)
+        render(<DialogUpdate />)
+        announce()
+        expect(screen.queryByText("Aggiornamento disponibile")).not.toBeInTheDocument()
+        act(() => other.remove())
+        expect(await screen.findByRole("dialog")).toHaveTextContent("Aggiornamento disponibile")
+    })
+
+    it("does not watch the whole DOM tree while it waits for the other dialog", () => {
+        const observe = vi.spyOn(MutationObserver.prototype, "observe")
+        const other = document.createElement("div")
+        other.setAttribute("role", "dialog")
+        document.body.appendChild(other)
+        render(<DialogUpdate />)
+        announce()
+        expect(observe).toHaveBeenCalledWith(document.body, { childList: true })
+        observe.mockRestore()
+        act(() => other.remove())
+    })
+
     it("closes on Later without skipping the version", async () => {
         render(<DialogUpdate />)
         announce()
