@@ -358,6 +358,11 @@ export const settings: Translation["settings"] = {
             label: "Minimize to the notification area",
             description: "Closing the window keeps EasyTask running in the notification area. To quit, use \"Quit\" in the menu of its icon.",
         },
+        rememberWindowState: {
+            label: "Remember window position and size",
+            description: "At startup the window comes back where you left it. Takes effect at the next start.",
+            portable: "Not available in the portable version: the window position would be saved outside the data folder.",
+        },
         tray: {
             tooltip: "EasyTask",
             open: "Open EasyTask",

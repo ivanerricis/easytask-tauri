@@ -9,7 +9,10 @@ const enable = vi.fn()
 const disable = vi.fn()
 const saveCloseToTray = vi.fn()
 const notifyCloseToTrayChanged = vi.fn()
+const saveRememberWindowState = vi.fn()
+const isPortable = vi.fn()
 let closeToTray = false
+let rememberWindowState = true
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
 vi.mock("@tauri-apps/plugin-autostart", () => ({
@@ -20,12 +23,18 @@ vi.mock("@tauri-apps/plugin-autostart", () => ({
 vi.mock("@/lib/store/preferences", () => ({
     getCloseToTray: async () => closeToTray,
     saveCloseToTray: (...a: unknown[]) => saveCloseToTray(...a),
+    getRememberWindowState: async () => rememberWindowState,
+    saveRememberWindowState: (...a: unknown[]) => saveRememberWindowState(...a),
 }))
+vi.mock("@/db/appPaths", () => ({ isPortable: () => isPortable() }))
 vi.mock("@/lib/tray", () => ({ notifyCloseToTrayChanged: (...a: unknown[]) => notifyCloseToTrayChanged(...a) }))
 
 beforeEach(() => {
     vi.clearAllMocks()
     closeToTray = false
+    rememberWindowState = true
+    isPortable.mockResolvedValue(false)
+    saveRememberWindowState.mockResolvedValue(undefined)
     isEnabled.mockResolvedValue(false)
     enable.mockResolvedValue(undefined)
     disable.mockResolvedValue(undefined)
@@ -65,5 +74,24 @@ describe("SystemSettings", () => {
         expect(saveCloseToTray).toHaveBeenCalledWith(true)
         expect(notifyCloseToTrayChanged).toHaveBeenCalledWith(true)
         expect(toggle).toBeChecked()
+    })
+
+    it("saves remembering the window", async () => {
+        const user = userEvent.setup()
+        render(<SystemSettings />)
+        const toggle = await screen.findByRole("switch", { name: "Ricorda posizione e dimensione della finestra" })
+        await waitFor(() => expect(toggle).toBeChecked())
+        await user.click(toggle)
+        expect(saveRememberWindowState).toHaveBeenCalledWith(false)
+        expect(toggle).not.toBeChecked()
+    })
+
+    it("shows remembering the window off and disabled in portable mode, with the reason", async () => {
+        isPortable.mockResolvedValue(true)
+        render(<SystemSettings />)
+        const toggle = screen.getByRole("switch", { name: "Ricorda posizione e dimensione della finestra" })
+        await waitFor(() => expect(toggle).toBeDisabled())
+        expect(toggle).not.toBeChecked()
+        expect(screen.getByText(/versione portatile/)).toBeInTheDocument()
     })
 })

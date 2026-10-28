@@ -3,7 +3,8 @@ import { useTranslation } from "react-i18next"
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart"
 import { toast } from "sonner"
 import { reportError } from "@/lib/report-error"
-import { getCloseToTray, saveCloseToTray } from "@/lib/store/preferences"
+import { isPortable } from "@/db/appPaths"
+import { getCloseToTray, getRememberWindowState, saveCloseToTray, saveRememberWindowState } from "@/lib/store/preferences"
 import { notifyCloseToTrayChanged } from "@/lib/tray"
 import { getErrorMessage } from "@/lib/utils"
 import { SettingsCard, SettingsPanel, SettingsSwitchRow } from "./SettingsRow"
@@ -73,6 +74,35 @@ const CloseToTraySetting = () => {
     )
 }
 
+/** Keep position and size of the window between runs. Applied by the Rust side at the next start; not available in portable mode. */
+const RememberWindowStateSetting = () => {
+    const { t } = useTranslation()
+    const [checked, setChecked] = useState(true)
+    const [portable, setPortable] = useState(false)
+
+    useEffect(() => {
+        let cancelled = false
+        void getRememberWindowState().then(value => { if (!cancelled) setChecked(value) }).catch(error => reportError(error))
+        void isPortable().then(value => { if (!cancelled) setPortable(value) }).catch(error => reportError(error))
+        return () => { cancelled = true }
+    }, [])
+
+    const change = (value: boolean) => {
+        setChecked(value)
+        void saveRememberWindowState(value).catch(error => reportError(error))
+    }
+
+    return (
+        <SettingsSwitchRow
+            label={t("settings.system.rememberWindowState.label")}
+            description={t(portable ? "settings.system.rememberWindowState.portable" : "settings.system.rememberWindowState.description")}
+            checked={checked && !portable}
+            disabled={portable}
+            onCheckedChange={change}
+        />
+    )
+}
+
 /** Integration with the operating system: start with Windows, close to the notification area. */
 export const SystemSettings = () => {
     const { t } = useTranslation()
@@ -81,6 +111,7 @@ export const SystemSettings = () => {
             <SettingsCard>
                 <AutostartSetting />
                 <CloseToTraySetting />
+                <RememberWindowStateSetting />
             </SettingsCard>
         </SettingsPanel>
     )

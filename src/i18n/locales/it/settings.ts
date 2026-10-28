@@ -356,6 +356,11 @@ export const settings = {
             label: "Riduci nell'area di notifica",
             description: "Chiudendo la finestra EasyTask resta attivo nell'area di notifica. Per uscire usa \"Esci\" dal menu della sua icona.",
         },
+        rememberWindowState: {
+            label: "Ricorda posizione e dimensione della finestra",
+            description: "All'avvio la finestra torna dove l'hai lasciata. Ha effetto dal prossimo avvio.",
+            portable: "Non disponibile nella versione portatile: la posizione della finestra verrebbe salvata fuori dalla cartella dei dati.",
+        },
         tray: {
             tooltip: "EasyTask",
             open: "Apri EasyTask",
