@@ -8,6 +8,8 @@ import { ResetAppearanceSetting } from "./ResetAppearanceSetting"
 const setTheme = vi.fn()
 const setPrimaryColor = vi.fn()
 const setLanguage = vi.fn()
+const setTextZoom = vi.fn()
+const setFontFamily = vi.fn()
 const setSidebarItemSize = vi.fn()
 const setColorIntensity = vi.fn()
 const setAnimationSpeed = vi.fn()
@@ -16,6 +18,8 @@ const state = {
     theme: "system",
     primaryColor: DEFAULT_PRIMARY_COLOR,
     language: "system",
+    textZoom: 1,
+    fontFamily: "system",
     sidebarItemSize: "normal",
     colorIntensity: DEFAULT_COLOR_INTENSITY,
     animationSpeed: "system",
@@ -23,13 +27,13 @@ const state = {
 
 vi.mock("@/components/use-theme", () => ({ useTheme: () => ({ theme: state.theme, setTheme }) }))
 vi.mock("@/contexts/use-preferences", () => ({
-    usePreferences: () => ({ ...state, setPrimaryColor, setLanguage, setSidebarItemSize, setColorIntensity, setAnimationSpeed }),
+    usePreferences: () => ({ ...state, setPrimaryColor, setLanguage, setFontFamily, setTextZoom, setSidebarItemSize, setColorIntensity, setAnimationSpeed }),
 }))
 
 beforeEach(() => {
     vi.clearAllMocks()
     Object.assign(state, {
-        theme: "system", primaryColor: DEFAULT_PRIMARY_COLOR, language: "system", sidebarItemSize: "normal", colorIntensity: DEFAULT_COLOR_INTENSITY, animationSpeed: "system",
+        theme: "system", primaryColor: DEFAULT_PRIMARY_COLOR, language: "system", fontFamily: "system", textZoom: 1, sidebarItemSize: "normal", colorIntensity: DEFAULT_COLOR_INTENSITY, animationSpeed: "system",
     })
 })
 
@@ -43,6 +47,8 @@ describe("ResetAppearanceSetting", () => {
         ["theme", { theme: "dark" }],
         ["accent color", { primaryColor: "#3366ff" }],
         ["language", { language: "en" }],
+        ["font", { fontFamily: "lora" }],
+        ["app size", { textZoom: 1.3 }],
         ["size of folders and notes", { sidebarItemSize: "large" }],
         ["color intensity", { colorIntensity: 1.5 }],
         ["speed of the animations", { animationSpeed: "none" }],
@@ -59,7 +65,7 @@ describe("ResetAppearanceSetting", () => {
     })
 
     it("asks for confirmation and resets every control to its default", async () => {
-        Object.assign(state, { theme: "dark", primaryColor: "#3366ff", language: "en", sidebarItemSize: "large", colorIntensity: 1.5, animationSpeed: "slow" })
+        Object.assign(state, { theme: "dark", primaryColor: "#3366ff", language: "en", fontFamily: "lora", textZoom: 1.3, sidebarItemSize: "large", colorIntensity: 1.5, animationSpeed: "slow" })
         const user = userEvent.setup()
         render(<ResetAppearanceSetting />)
 
@@ -73,6 +79,8 @@ describe("ResetAppearanceSetting", () => {
         expect(setTheme).toHaveBeenCalledWith("system")
         expect(setPrimaryColor).toHaveBeenCalledWith(DEFAULT_PRIMARY_COLOR)
         expect(setLanguage).toHaveBeenCalledWith("system")
+        expect(setFontFamily).toHaveBeenCalledWith("system")
+        expect(setTextZoom).toHaveBeenCalledWith(1)
         expect(setSidebarItemSize).toHaveBeenCalledWith("normal")
         expect(setColorIntensity).toHaveBeenCalledWith(DEFAULT_COLOR_INTENSITY)
         expect(setAnimationSpeed).toHaveBeenCalledWith("system")

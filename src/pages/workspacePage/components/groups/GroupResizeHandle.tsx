@@ -108,7 +108,7 @@ export const GroupResizeHandle = ({ getWidth, width, onResize, onCommit }: Group
             aria-valuetext={width === null && !isResizing ? t("groups.width.auto") : t("groups.width.value", { width: currentWidth })}
             tabIndex={0}
             data-testid="group-resize-handle"
-            className={`${focusRing} absolute right-0 top-0 z-10 h-full w-1.5 cursor-col-resize hover:bg-accent ${isResizing ? "bg-accent" : ""}`}
+            className={`${focusRing} absolute -right-1.5 top-0 z-10 h-full w-1.5 cursor-col-resize hover:bg-accent ${isResizing ? "bg-accent" : ""}`}
             onPointerDown={e => e.stopPropagation()}
             onMouseDown={startResizing}
             onDoubleClick={reset}

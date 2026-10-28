@@ -5,6 +5,11 @@ import { PreferencesProvider } from "./preferences-context"
 import { usePreferences } from "./use-preferences"
 import * as prefs from "@/lib/store/preferences"
 import { reportError } from "@/lib/report-error"
+import { applyTextZoom } from "@/lib/text-zoom"
+import { applyFontFamily } from "@/lib/font-family"
+
+vi.mock("@/lib/text-zoom", () => ({ applyTextZoom: vi.fn() }))
+vi.mock("@/lib/font-family", () => ({ applyFontFamily: vi.fn() }))
 
 vi.mock("@/lib/store/initStore", () => ({ store: {} }))
 vi.mock("@/lib/store/preferences", async (importOriginal) => ({
@@ -51,6 +56,8 @@ describe("PreferencesContext", () => {
             reopenNotes: false,
             reopenLastWorkspace: true,
             sidebarItemSize: "large",
+            textZoom: 1.25,
+            fontFamily: "lora",
             sidebarLeftWidth: 320,
             sidebarRightWidth: 300,
             rightPanelTab: "history",
@@ -61,6 +68,9 @@ describe("PreferencesContext", () => {
             audioPlayerPinned: true,
             audioPlayerScale: 1.2,
             audioPlayerOpacity: 0.6,
+            audioPlaybackRate: 1.5,
+            audioRepeat: true,
+            audioResume: true,
             hideCompletedTasks: true,
             showSubtaskCount: false,
         }
@@ -207,7 +217,13 @@ describe("PreferencesContext", () => {
         expect(result.current.audioPlayerPinned).toBe(false)
         expect(result.current.audioPlayerScale).toBe(1)
         expect(result.current.audioPlayerOpacity).toBe(1)
+        expect(result.current.audioPlaybackRate).toBe(1)
+        expect(result.current.audioRepeat).toBe(false)
+        expect(result.current.audioResume).toBe(false)
         await waitFor(() => expect(result.current.audioVolume).toBe(0.3))
+        expect(result.current.audioPlaybackRate).toBe(1.5)
+        expect(result.current.audioRepeat).toBe(true)
+        expect(result.current.audioResume).toBe(true)
         expect(result.current.audioPlayerVisible).toBe(false)
         expect(result.current.audioPlayerPinned).toBe(true)
         expect(result.current.audioPlayerScale).toBe(1.2)
@@ -235,10 +251,19 @@ describe("PreferencesContext", () => {
         act(() => result.current.setAudioPlayerPinned(false))
         expect(prefs.savePref).toHaveBeenCalledWith("audioPlayerPinned", false)
         act(() => result.current.setAudioPlayerPinned(true))
+        act(() => result.current.setAudioPlaybackRate(2))
+        expect(prefs.savePref).toHaveBeenCalledWith("audioPlaybackRate", 2)
+        act(() => result.current.setAudioRepeat(true))
+        expect(prefs.savePref).toHaveBeenCalledWith("audioRepeat", true)
+        act(() => result.current.setAudioResume(true))
+        expect(prefs.savePref).toHaveBeenCalledWith("audioResume", true)
 
         act(() => result.current.setAudioVolume(0.2))
         act(() => result.current.resetAudioSettings())
         expect(result.current.audioPlayerPinned).toBe(false)
+        expect(result.current.audioPlaybackRate).toBe(1)
+        expect(result.current.audioRepeat).toBe(false)
+        expect(result.current.audioResume).toBe(false)
         expect(result.current.audioVolume).toBe(1)
         expect(result.current.audioPlayerScale).toBe(1)
         expect(result.current.audioPlayerOpacity).toBe(1)
@@ -295,6 +320,31 @@ describe("PreferencesContext", () => {
 
         expect(result.current.reopenLastWorkspace).toBe(false)
         expect(prefs.savePref).toHaveBeenCalledWith("reopenLastWorkspace", false)
+    })
+
+    it("loads the app zoom, saves it and applies it to the window", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.textZoom).toBe(1)
+        await waitFor(() => expect(result.current.textZoom).toBe(1.25))
+        expect(applyTextZoom).toHaveBeenLastCalledWith(1.25)
+
+        act(() => result.current.setTextZoom(1.5))
+
+        expect(result.current.textZoom).toBe(1.5)
+        expect(prefs.savePref).toHaveBeenCalledWith("textZoom", 1.5)
+        expect(applyTextZoom).toHaveBeenLastCalledWith(1.5)
+    })
+
+    it("loads the font, saves it and applies it", async () => {
+        const { result } = renderHook(() => usePreferences(), { wrapper })
+        expect(result.current.fontFamily).toBe("system")
+        await waitFor(() => expect(result.current.fontFamily).toBe("lora"))
+        expect(applyFontFamily).toHaveBeenLastCalledWith("lora")
+
+        act(() => result.current.setFontFamily("inter"))
+
+        expect(prefs.savePref).toHaveBeenCalledWith("fontFamily", "inter")
+        expect(applyFontFamily).toHaveBeenLastCalledWith("inter")
     })
 
     it("loads and persists the sidebar item size (default normal)", async () => {

@@ -1,7 +1,5 @@
 import { $, $$, browser, expect } from "@wdio/globals"
-import { byLabel, currentLang, tr, trIn, waitForApp } from "../helpers"
-
-const languageRadio = (label: string) => $(`//*[@role='radiogroup']//*[@role='radio'][normalize-space()='${label}']`)
+import { byLabel, chooseLanguage, currentLang, languageSelect, tr, trIn, waitForApp } from "../helpers"
 
 describe("Language setting and shortcuts dialog", () => {
     before(async () => {
@@ -14,17 +12,17 @@ describe("Language setting and shortcuts dialog", () => {
         const dialog = $('[role="dialog"]')
         await dialog.waitForDisplayed()
 
-        await languageRadio("Italiano").click()
+        await chooseLanguage("Italiano")
         await browser.waitUntil(async () => (await currentLang()) === "it", { timeoutMsg: "UI did not switch to Italian" })
         await expect(dialog.$(`h2=${trIn("it", "settings.title")}`)).toBeDisplayed()
-        await expect(languageRadio("Italiano")).toHaveAttribute("aria-checked", "true")
+        await expect(await languageSelect()).toHaveText("Italiano")
 
-        await languageRadio("English").click()
+        await chooseLanguage("English")
         await browser.waitUntil(async () => (await currentLang()) === "en", { timeoutMsg: "UI did not switch to English" })
         await expect(dialog.$(`h2=${trIn("en", "settings.title")}`)).toBeDisplayed()
 
         // Back to the default so the other specs start from the system language
-        await languageRadio(trIn("en", "common.system")).click()
+        await chooseLanguage(trIn("en", "common.system"))
         await browser.keys("Escape")
         await dialog.waitForExist({ reverse: true })
     })

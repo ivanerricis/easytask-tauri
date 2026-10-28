@@ -1,5 +1,5 @@
 import { $, $$, browser } from "@wdio/globals"
-import { byLabel, byText, closeTaskInput, currentLang, newSectionInGroup, openSubmenu, sectionCard, tr, treeRow, typeInto } from "../helpers"
+import { byLabel, byText, chooseLanguage, closeTaskInput, currentLang, newSectionInGroup, openSubmenu, sectionCard, tr, treeRow, typeInto } from "../helpers"
 
 /**
  * Helpers shared by the screenshot tours (ui-tour and docs-shots): they drive the real app through the UI, as a user would.
@@ -35,8 +35,6 @@ export const goCategory = async (id: string) => {
     await settle(500)
 }
 
-const languageRadio = (label: string) => $(`//*[@role='radiogroup']//*[@role='radio'][normalize-space()='${label}']`)
-
 /** Theme and language are changed from Settings -> Appearance, exactly as a user would. */
 export const applyAppearance = async (nextTheme: Theme, nextLang: Lang) => {
     await openSettings()
@@ -45,7 +43,7 @@ export const applyAppearance = async (nextTheme: Theme, nextLang: Lang) => {
     const item = $(`//*[@role='menuitemradio'][normalize-space()='${await tr(`settings.appearance.theme.${nextTheme}`)}']`)
     await item.waitForDisplayed()
     await item.click()
-    await languageRadio(nextLang === "it" ? "Italiano" : "English").click()
+    await chooseLanguage(nextLang === "it" ? "Italiano" : "English")
     await browser.waitUntil(async () => (await currentLang()) === nextLang, { timeoutMsg: "language did not change" })
     await browser.waitUntil(
         async () => (await browser.execute(() => document.documentElement.classList.contains("dark"))) === (nextTheme === "dark"),

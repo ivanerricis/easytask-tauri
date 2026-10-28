@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react"
+import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, describe, expect, it, vi } from "vitest"
 import i18n, { applyLanguagePreference, getSystemLanguage, initI18n, languageFromLocale, resolveLanguage } from "@/i18n"
@@ -105,30 +105,29 @@ describe("language setting", () => {
     }
 
     it("offers System, Italiano and English and starts on System", async () => {
-        await renderSettings()
-        const group = await screen.findByRole("radiogroup", { name: "Lingua" })
-        expect(group).toBeInTheDocument()
-        // The animation speed has a "Sistema" value too: look inside the language group
-        const language = within(group)
-        expect(language.getByRole("radio", { name: "Sistema" })).toBeInTheDocument()
-        expect(language.getByRole("radio", { name: "Italiano" })).toBeInTheDocument()
-        expect(language.getByRole("radio", { name: "English" })).toBeInTheDocument()
-        await waitFor(() => expect(language.getByRole("radio", { name: "Sistema" })).toHaveAttribute("aria-checked", "true"))
+        const user = await renderSettings()
+        const select = await screen.findByRole("combobox", { name: "Lingua" })
+        await waitFor(() => expect(select).toHaveTextContent("Sistema"))
+        await user.click(select)
+        expect(await screen.findByRole("option", { name: "Sistema" })).toBeInTheDocument()
+        expect(screen.getByRole("option", { name: "Italiano" })).toBeInTheDocument()
+        expect(screen.getByRole("option", { name: "English" })).toBeInTheDocument()
     })
 
     it("switches the UI immediately and persists the choice", async () => {
         const user = await renderSettings()
-        await user.click(await screen.findByRole("radio", { name: "English" }))
+        await user.click(await screen.findByRole("combobox", { name: "Lingua" }))
+        await user.click(await screen.findByRole("option", { name: "English" }))
 
         // Dialog title, nav and panel are re-rendered in English without a restart
         expect(await screen.findByRole("heading", { name: "Appearance" })).toBeInTheDocument()
-        expect(screen.getByRole("radiogroup", { name: "Language" })).toBeInTheDocument()
-        expect(screen.getByRole("radio", { name: "English" })).toHaveAttribute("aria-checked", "true")
+        expect(screen.getByRole("combobox", { name: "Language" })).toHaveTextContent("English")
         expect(screen.getByRole("tab", { name: "Notes and sections" })).toBeInTheDocument()
         expect(document.documentElement.lang).toBe("en")
         expect(await getLanguage()).toBe("en")
 
-        await user.click(screen.getByRole("radio", { name: "Italiano" }))
+        await user.click(screen.getByRole("combobox", { name: "Language" }))
+        await user.click(await screen.findByRole("option", { name: "Italiano" }))
         expect(await screen.findByRole("heading", { name: "Aspetto" })).toBeInTheDocument()
         expect(document.documentElement.lang).toBe("it")
         expect(await getLanguage()).toBe("it")

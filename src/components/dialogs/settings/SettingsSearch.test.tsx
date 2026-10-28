@@ -33,7 +33,7 @@ vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn().mockResolvedValue(
 vi.mock("@/lib/store/shortcuts", () => ({ getShortcutOverrides: vi.fn().mockResolvedValue({}), saveShortcutOverrides: vi.fn() }))
 vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn().mockResolvedValue(false) }))
 vi.mock("@/hooks/use-workspace-transfer", () => ({ useWorkspaceTransfer: () => ({ exportWorkspace: vi.fn(), importWorkspace: vi.fn(), isBusy: false }) }))
-vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: null }) }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: null, workspaces: [] }) }))
 vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: vi.fn() }))
 vi.mock("@/components/mode-toggle", () => ({ ModeToggle: () => <div>mode-toggle</div> }))
 vi.mock("@/contexts/use-preferences", () => ({
@@ -55,6 +55,7 @@ vi.mock("@/contexts/use-preferences", () => ({
         completedTasksLast: false, setCompletedTasksLast: vi.fn(),
         reopenNotes: true, setReopenNotes: vi.fn(),
         reopenLastWorkspace: false, setReopenLastWorkspace: vi.fn(),
+        startupWorkspaceId: null, setStartupWorkspaceId: vi.fn(),
         resetPlayerPosition: vi.fn(),
         audioVolume: 0.5, setAudioVolume: (value: number) => audioPrefs.setAudioVolume(value),
         audioPlayerVisible: true, setAudioPlayerVisible: (value: boolean) => audioPrefs.setAudioPlayerVisible(value),

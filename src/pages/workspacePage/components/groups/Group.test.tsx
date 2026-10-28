@@ -117,12 +117,12 @@ describe("Group width when collapsed", () => {
 
 
 describe("Group scrolling area", () => {
-    it("is padded and offset by the same amount, so the drop rings and lines are not cut and the content keeps its place", () => {
+    it("is wider on the left and ends at the edge of the group, so its scrollbar is entirely under the header", () => {
         render(<Group group={makeGroup({ id: 301, sections: [makeSection({ id: 1 })] })} />)
         const area = screen.getByText("section").parentElement as HTMLElement
         const classes = area.className.split(/\s+/)
-        // On the right it is offset by the width of its scrollbar (8px), so the scrollbar sits right of the resize handle
-        for (const token of ["overflow-y-auto", "-ml-1.5", "-mr-2", "px-1.5", "-my-1", "py-1", "[&::-webkit-scrollbar]:w-2!"]) expect(classes).toContain(token)
+        // No offset on the right (the resize handle is outside the group): only a little padding for the drop rings
+        for (const token of ["overflow-y-auto", "-ml-1.5", "pl-1.5", "pr-0.5", "-my-1", "py-1"]) expect(classes).toContain(token)
     })
 
     it("leaves the audio files out of it, so they stay put while the sections scroll", () => {

@@ -1,14 +1,14 @@
 import { renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { resetStartupRestore, useStartupRestore } from "./startup-restore"
-import { getLastWorkspaceId, getReopenLastWorkspace } from "@/lib/store/preferences"
+import { getLastWorkspaceId, getReopenLastWorkspace, getStartupWorkspaceId } from "@/lib/store/preferences"
 import { makeWorkspace } from "@/test/ui-fixtures"
 
 const ctx = { workspaces: [] as ReturnType<typeof makeWorkspace>[], setCurrentWorkspace: vi.fn() }
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ctx }))
 const navigate = vi.fn()
 vi.mock("react-router-dom", () => ({ useNavigate: () => navigate }))
-vi.mock("@/lib/store/preferences", () => ({ getReopenLastWorkspace: vi.fn(), getLastWorkspaceId: vi.fn() }))
+vi.mock("@/lib/store/preferences", () => ({ getReopenLastWorkspace: vi.fn(), getLastWorkspaceId: vi.fn(), getStartupWorkspaceId: vi.fn() }))
 
 describe("useStartupRestore", () => {
     beforeEach(() => {
@@ -17,6 +17,29 @@ describe("useStartupRestore", () => {
         resetStartupRestore()
         vi.mocked(getReopenLastWorkspace).mockResolvedValue(false)
         vi.mocked(getLastWorkspaceId).mockResolvedValue(null)
+        vi.mocked(getStartupWorkspaceId).mockResolvedValue(null)
+    })
+
+    it("opens the fixed workspace instead of the last one", async () => {
+        const fixed = makeWorkspace({ id: 3 })
+        ctx.workspaces = [makeWorkspace({ id: 9 }), fixed]
+        vi.mocked(getReopenLastWorkspace).mockResolvedValue(true)
+        vi.mocked(getLastWorkspaceId).mockResolvedValue(9)
+        vi.mocked(getStartupWorkspaceId).mockResolvedValue(3)
+        renderHook(() => useStartupRestore(true))
+
+        await waitFor(() => expect(navigate).toHaveBeenCalledWith("/workspace/3"))
+        expect(ctx.setCurrentWorkspace).toHaveBeenCalledWith(fixed)
+    })
+
+    it("opens the last workspace when the fixed one was deleted", async () => {
+        ctx.workspaces = [makeWorkspace({ id: 9 })]
+        vi.mocked(getReopenLastWorkspace).mockResolvedValue(true)
+        vi.mocked(getLastWorkspaceId).mockResolvedValue(9)
+        vi.mocked(getStartupWorkspaceId).mockResolvedValue(3)
+        renderHook(() => useStartupRestore(true))
+
+        await waitFor(() => expect(navigate).toHaveBeenCalledWith("/workspace/9"))
     })
 
     it("opens the stored workspace when enabled", async () => {

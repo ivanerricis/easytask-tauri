@@ -12,6 +12,9 @@ vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => appWindow }))
 const setTheme = vi.fn()
 vi.mock("@/components/use-theme", () => ({ useTheme: () => ({ theme: "dark", setTheme }) }))
 
+const prefs = { textZoom: 1, setTextZoom: vi.fn() }
+vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
+
 function Probe({ id, handler, enabled }: { id: string, handler: () => void, enabled?: boolean }) {
     useShortcut(id, handler, { enabled })
     return null
@@ -24,6 +27,7 @@ function CommandProbe({ command, enabled }: { command: AppCommand, enabled?: boo
 
 beforeEach(() => {
     vi.clearAllMocks()
+    prefs.textZoom = 1
     appWindow.close.mockResolvedValue(undefined)
 })
 
@@ -32,6 +36,18 @@ const openMenu = async (user: ReturnType<typeof userEvent.setup>, name: string) 
 }
 
 describe("AppMenu", () => {
+    it.each([
+        ["Ctrl+Plus", { key: "+", ctrlKey: true }, 17 / 16],
+        ["Ctrl+= (US layout)", { key: "=", ctrlKey: true }, 17 / 16],
+        ["Ctrl+Minus", { key: "-", ctrlKey: true }, 15 / 16],
+        ["Ctrl+0", { key: "0", ctrlKey: true }, 1],
+    ])("changes the app size with %s", (_name, init, expected) => {
+        prefs.textZoom = init.key === "0" ? 1.25 : 1
+        render(<ShortcutsProvider><AppMenu page="home" /></ShortcutsProvider>)
+        fireEvent.keyDown(window, init)
+        expect(prefs.setTextZoom).toHaveBeenCalledWith(expected)
+    })
+
     it("shows File, Edit, View and Help in the workspace, without Edit in the home", () => {
         const { unmount } = render(<ShortcutsProvider><AppMenu page="workspace" /></ShortcutsProvider>)
         expect(screen.getAllByRole("menuitem").map(item => item.textContent)).toEqual(["File", "Modifica", "Visualizza", "Aiuto"])

@@ -13,11 +13,15 @@ const saveRememberWindowState = vi.fn()
 const isPortable = vi.fn()
 const saveAlwaysOnTop = vi.fn()
 const setAlwaysOnTop = vi.fn()
+const saveHardwareAcceleration = vi.fn()
+const flushPreferences = vi.fn()
+const relaunch = vi.fn()
+let hardwareAcceleration = true
 let alwaysOnTop = false
 let closeToTray = false
 let rememberWindowState = true
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }))
 vi.mock("@tauri-apps/plugin-autostart", () => ({
     isEnabled: () => isEnabled(),
     enable: () => enable(),
@@ -28,9 +32,13 @@ vi.mock("@/lib/store/preferences", () => ({
     saveCloseToTray: (...a: unknown[]) => saveCloseToTray(...a),
     getAlwaysOnTop: async () => alwaysOnTop,
     saveAlwaysOnTop: (...a: unknown[]) => saveAlwaysOnTop(...a),
+    getHardwareAcceleration: async () => hardwareAcceleration,
+    saveHardwareAcceleration: (...a: unknown[]) => saveHardwareAcceleration(...a),
+    flushPreferences: () => flushPreferences(),
     getRememberWindowState: async () => rememberWindowState,
     saveRememberWindowState: (...a: unknown[]) => saveRememberWindowState(...a),
 }))
+vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: () => relaunch() }))
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ setAlwaysOnTop: (...a: unknown[]) => setAlwaysOnTop(...a) }) }))
 vi.mock("@/db/appPaths", () => ({ isPortable: () => isPortable() }))
 vi.mock("@/lib/tray", () => ({ notifyCloseToTrayChanged: (...a: unknown[]) => notifyCloseToTrayChanged(...a) }))
@@ -40,6 +48,10 @@ beforeEach(() => {
     closeToTray = false
     rememberWindowState = true
     alwaysOnTop = false
+    hardwareAcceleration = true
+    saveHardwareAcceleration.mockResolvedValue(undefined)
+    flushPreferences.mockResolvedValue(undefined)
+    relaunch.mockResolvedValue(undefined)
     setAlwaysOnTop.mockResolvedValue(undefined)
     saveAlwaysOnTop.mockResolvedValue(undefined)
     isPortable.mockResolvedValue(false)
@@ -118,6 +130,27 @@ describe("SystemSettings", () => {
         alwaysOnTop = true
         render(<SystemSettings />)
         await waitFor(() => expect(screen.getByRole("switch", { name: "Tieni la finestra in primo piano" })).toBeChecked())
+    })
+
+    it("shows the stored hardware acceleration state", async () => {
+        hardwareAcceleration = false
+        render(<SystemSettings />)
+        await waitFor(() => expect(screen.getByRole("switch", { name: "Accelerazione hardware" })).not.toBeChecked())
+    })
+
+    it("saves hardware acceleration and offers to restart now", async () => {
+        const user = userEvent.setup()
+        render(<SystemSettings />)
+        const toggle = screen.getByRole("switch", { name: "Accelerazione hardware" })
+        await waitFor(() => expect(toggle).toBeChecked())
+        await user.click(toggle)
+        expect(saveHardwareAcceleration).toHaveBeenCalledWith(false)
+        expect(toggle).not.toBeChecked()
+        const [message, options] = vi.mocked(toast).mock.calls[0] as unknown as [string, { action: { onClick: () => void } }]
+        expect(message).toBe("L'accelerazione hardware cambia al prossimo avvio.")
+        options.action.onClick()
+        await waitFor(() => expect(relaunch).toHaveBeenCalled())
+        expect(flushPreferences).toHaveBeenCalled()
     })
 
     it("reverts the switch and reports when the window refuses", async () => {

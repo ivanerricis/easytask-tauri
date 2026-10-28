@@ -72,6 +72,61 @@ const clampAudioPlayerOpacity = (value: unknown): number => {
 const normalizeAudioPlayerScale = (value: unknown): AudioPlayerScale =>
     AUDIO_PLAYER_SCALES.find(scale => scale === value) ?? DEFAULT_AUDIO_PLAYER_SCALE
 
+/** Playback speeds the speed button of the player cycles through; the chosen one is remembered. */
+export const AUDIO_PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const
+export type AudioPlaybackRate = typeof AUDIO_PLAYBACK_RATES[number]
+export const DEFAULT_AUDIO_PLAYBACK_RATE: AudioPlaybackRate = 1
+
+/** Returns the allowed speed a stored value stands for; anything else gives 1. */
+const normalizeAudioPlaybackRate = (value: unknown): AudioPlaybackRate =>
+    AUDIO_PLAYBACK_RATES.find(rate => rate === value) ?? DEFAULT_AUDIO_PLAYBACK_RATE
+
+/** Where a track was left: the position in seconds and when it was saved (the keys are numbers, so the object itself keeps no order). */
+export type AudioPosition = { position: number, updatedAt: number }
+/** The remembered positions of the audio files, by audio id. */
+export type AudioPositions = Record<string, AudioPosition>
+/** Most positions kept: past this the oldest ones are dropped. */
+export const MAX_AUDIO_POSITIONS = 200
+
+/** Keeps the valid entries (id key, finite position >= 0; a bare number is a position saved without a date) and the most recent MAX_AUDIO_POSITIONS. */
+export const normalizeAudioPositions = (value: unknown): AudioPositions => {
+    if (typeof value !== "object" || value === null || Array.isArray(value)) return {}
+    const entries: [string, AudioPosition][] = []
+    for (const [id, raw] of Object.entries(value)) {
+        if (!/^\d+$/.test(id)) continue
+        const entry = typeof raw === "number" ? { position: raw, updatedAt: 0 } : (raw ?? {}) as Partial<AudioPosition>
+        const { position, updatedAt } = entry
+        if (typeof position !== "number" || !Number.isFinite(position) || position < 0) continue
+        entries.push([id, { position, updatedAt: typeof updatedAt === "number" && Number.isFinite(updatedAt) ? updatedAt : 0 }])
+    }
+    entries.sort((a, b) => b[1].updatedAt - a[1].updatedAt)
+    return Object.fromEntries(entries.slice(0, MAX_AUDIO_POSITIONS))
+}
+
+/** Size of the text at the normal zoom, in px: the size of the app is edited in px of that text (16 px = normal). */
+export const BASE_TEXT_PX = 16
+export const MIN_TEXT_PX = 12
+export const MAX_TEXT_PX = 24
+/** Zoom of the whole window (text, icons and spaces): 1 = normal. */
+export type TextZoom = number
+export const DEFAULT_TEXT_ZOOM: TextZoom = 1
+
+/** The zoom for a size of the text in px, brought into the allowed range. */
+export const textZoomFromPx = (px: number): TextZoom =>
+    Math.min(MAX_TEXT_PX, Math.max(MIN_TEXT_PX, Math.round(px))) / BASE_TEXT_PX
+
+/** The size of the text in px that a zoom stands for. */
+export const textPxFromZoom = (zoom: TextZoom): number => Math.round(zoom * BASE_TEXT_PX)
+
+/** Brings a stored value to a whole number of px between the limits; anything else gives the normal zoom. */
+const normalizeTextZoom = (value: unknown): TextZoom =>
+    typeof value === "number" && Number.isFinite(value) ? textZoomFromPx(value * BASE_TEXT_PX) : DEFAULT_TEXT_ZOOM
+
+/** Fonts of the app: the default one (the one used so far) and fonts bundled with the app (loaded when chosen). */
+export const FONT_FAMILIES = ["system", "inter", "lora", "jetbrains-mono", "atkinson", "opendyslexic"] as const
+export type FontFamily = typeof FONT_FAMILIES[number]
+export const DEFAULT_FONT_FAMILY: FontFamily = "system"
+
 export type WorkspaceView = "grid" | "list"
 export type WorkspaceSortBy = "edited" | "created" | "name"
 export type WorkspaceSortDir = "asc" | "desc"
@@ -151,12 +206,20 @@ export const UI_PREFS = {
     sidebarLeftWidth: def<number>({ key: "sidebarLeftWidth", default: SIDEBAR_DEFAULT_WIDTH, normalize: normalizeSidebarWidth }),
     sidebarRightWidth: def<number>({ key: "sidebarRightWidth", default: SIDEBAR_DEFAULT_WIDTH, normalize: normalizeSidebarWidth }),
     sidebarItemSize: def<SidebarItemSize>({ key: "sidebarItemSize", default: "normal", normalize: value => value === "compact" || value === "large" ? value : "normal" }),
+    fontFamily: def<FontFamily>({ key: "fontFamily", default: DEFAULT_FONT_FAMILY, normalize: value => FONT_FAMILIES.find(font => font === value) ?? DEFAULT_FONT_FAMILY }),
+    textZoom: def<TextZoom>({ key: "textZoom", default: DEFAULT_TEXT_ZOOM, normalize: normalizeTextZoom }),
     rightPanelTab: def<RightPanelTab>({ key: "rightPanelTab", default: "details", normalize: value => value === "history" ? "history" : "details" }),
     audioVolume: def<number>({ key: "audioVolume", default: DEFAULT_AUDIO_VOLUME, normalize: clampAudioVolume }),
     audioPlayerVisible: def({ key: "audioPlayerVisible", default: true }),
     audioPlayerPinned: def({ key: "audioPlayerPinned", default: false, normalize: value => value === true }),
     audioPlayerScale: def<AudioPlayerScale>({ key: "audioPlayerScale", default: DEFAULT_AUDIO_PLAYER_SCALE, normalize: normalizeAudioPlayerScale }),
     audioPlayerOpacity: def<number>({ key: "audioPlayerOpacity", default: DEFAULT_AUDIO_PLAYER_OPACITY, normalize: clampAudioPlayerOpacity }),
+    /** The speed chosen in the player: the next tracks (and the next start) begin with it. */
+    audioPlaybackRate: def<AudioPlaybackRate>({ key: "audioPlaybackRate", default: DEFAULT_AUDIO_PLAYBACK_RATE, normalize: normalizeAudioPlaybackRate }),
+    /** On: the track starts over when it ends. */
+    audioRepeat: def({ key: "audioRepeat", default: false, normalize: value => value === true }),
+    /** On: each track starts again from where it was left. */
+    audioResume: def({ key: "audioResume", default: false, normalize: value => value === true }),
     workspaceView: def<WorkspaceView>({ key: "workspaceView", default: "grid", normalize: value => value === "list" ? "list" : "grid" }),
     workspaceSort: def<WorkspaceSort>({
         key: "workspaceSort",
@@ -168,6 +231,8 @@ export const UI_PREFS = {
     }),
     reopenNotes: def({ key: "reopenNotes", default: true }),
     reopenLastWorkspace: def({ key: "reopenLastWorkspace", default: false }),
+    /** With "reopen at startup" on: the workspace to always open (null = the last one used). */
+    startupWorkspaceId: def<number | null>({ key: "startupWorkspaceId", default: null, normalize: value => typeof value === "number" && Number.isInteger(value) ? value : null }),
     colorIntensity: def<number>({ key: "colorIntensity", default: DEFAULT_COLOR_INTENSITY, normalize: clampColorIntensity }),
     hideCompletedTasks: def({ key: "hideCompletedTasks", default: false }),
     completedTasksLast: def({ key: "completedTasksLast", default: false }),
@@ -186,6 +251,8 @@ export const UI_PREFS = {
 
 /** The preferences used by the app only (not part of `usePreferences()`); saving null removes them from the store. */
 export const APP_PREFS = {
+    /** Where each audio file was left (see `lib/audio-positions.ts`): kept out of the React state, it changes every few seconds while playing. */
+    audioPositions: def<AudioPositions>({ key: "audioPositions", default: {}, normalize: normalizeAudioPositions }),
     lastWorkspaceId: def<number | null>({ key: "lastWorkspaceId", default: null, normalize: value => typeof value === "number" ? value : null }),
     skippedUpdateVersion: def<string | null>({ key: "skippedUpdateVersion", default: null, normalize: value => typeof value === "string" && value.length > 0 ? value : null }),
     checkUpdatesOnStartup: def({ key: "checkUpdatesOnStartup", default: true }),
@@ -204,6 +271,8 @@ export const APP_PREFS = {
     rememberWindowState: def({ key: "rememberWindowState", default: true, normalize: value => value !== false }),
     /** Keep the window above the others (applied at start by the Rust side, and when changed). */
     alwaysOnTop: def({ key: "alwaysOnTop", default: false, normalize: value => value === true }),
+    /** Read by the Rust side at startup (key "hardwareAcceleration" in settings.dat): off starts WebView2 without the GPU. */
+    hardwareAcceleration: def({ key: "hardwareAcceleration", default: true, normalize: value => value !== false }),
 }
 
 const ALL_PREFS = { ...UI_PREFS, ...APP_PREFS }
@@ -263,6 +332,8 @@ export const getRememberWindowState = () => getPref("rememberWindowState")
 export const saveRememberWindowState = (value: boolean) => savePref("rememberWindowState", value)
 export const getAlwaysOnTop = () => getPref("alwaysOnTop")
 export const saveAlwaysOnTop = (value: boolean) => savePref("alwaysOnTop", value)
+export const getHardwareAcceleration = () => getPref("hardwareAcceleration")
+export const saveHardwareAcceleration = (value: boolean) => savePref("hardwareAcceleration", value)
 export const getTrashAutoEmptyDays = () => getPref("trashAutoEmptyDays")
 export const getCheckUpdatesOnStartup = () => getPref("checkUpdatesOnStartup")
 export const saveCheckUpdatesOnStartup = (value: boolean) => savePref("checkUpdatesOnStartup", value)
@@ -273,6 +344,7 @@ export const saveLastWorkspaceId = (id: number) => savePref("lastWorkspaceId", i
 /** Forgets the last open workspace (e.g. after going back to the home). */
 export const clearLastWorkspaceId = () => savePref("lastWorkspaceId", null)
 export const getReopenNotes = () => getPref("reopenNotes")
+export const getStartupWorkspaceId = () => getPref("startupWorkspaceId")
 export const getReopenLastWorkspace = () => getPref("reopenLastWorkspace")
 export const getLanguage = () => getPref("language")
 export const saveLanguage = (value: LanguagePreference) => savePref("language", value)

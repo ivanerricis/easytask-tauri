@@ -30,6 +30,18 @@ const xpathString = (value: string) =>
 export const byLabel = (label: string) => $(`[aria-label=${cssString(label)}]`)
 export const allByLabel = (label: string) => $$(`[aria-label=${cssString(label)}]`)
 
+/** The language select of Settings > Appearance: a combobox tied (label for=id) to the label of its row, in the current language. */
+export const languageSelect = async () =>
+    $(`//button[@role='combobox'][@id=//label[normalize-space()=${xpathString(await tr("settings.appearance.language.label"))}]/@for]`)
+
+/** Picks a language in the select of Settings > Appearance, by the label of its option ("Italiano", "English", the translated "System"). */
+export const chooseLanguage = async (label: string) => {
+    await (await languageSelect()).click()
+    await $(`//*[@role='option'][normalize-space()=${xpathString(label)}]`).click()
+    // The list closes with an animation: an Escape pressed before it is gone would only close the list
+    await $("[role='listbox']").waitForExist({ reverse: true, timeoutMsg: "the language list did not close" })
+}
+
 /** Button (or any element) whose visible text is exactly `text`, optionally inside `scope`. */
 export const byText = (text: string, scope?: ChainablePromiseElement | WebdriverIO.Element) =>
     (scope ?? $("body")).$(`.//*[self::button or @role='button' or @role='radio' or @role='menuitem' or @role='menuitemradio' or @role='tab'][normalize-space()=${xpathString(text)}]`)

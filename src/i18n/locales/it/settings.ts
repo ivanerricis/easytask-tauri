@@ -12,9 +12,9 @@ export const settings = {
         },
         title: "Aspetto",
         reset: {
-            description: "Riporta tema, colore d'accento, lingua, dimensione di cartelle e note e intensità dei colori ai valori predefiniti.",
+            description: "Riporta tema, colore d'accento, lingua, dimensione dell'app, dimensione di cartelle e note e intensità dei colori ai valori predefiniti.",
             confirmTitle: "Reimpostare l'aspetto?",
-            confirmDescription: "Tema, colore d'accento, lingua, dimensione di cartelle e note e intensità dei colori tornano ai valori predefiniti. I tuoi dati non vengono toccati.",
+            confirmDescription: "Tema, colore d'accento, lingua, dimensione dell'app, dimensione di cartelle e note e intensità dei colori tornano ai valori predefiniti. I tuoi dati non vengono toccati.",
             confirm: "Reimposta",
         },
         theme: {
@@ -35,6 +35,26 @@ export const settings = {
                 },
                 use: "Usa {{color}} ({{ratio}}:1)",
             },
+        },
+        fontFamily: {
+            label: "Carattere",
+            description: "Il carattere di tutta l'app. «Predefinito» è quello usato finora; gli altri sono inclusi nell'app.",
+            options: {
+                system: "Predefinito",
+                inter: "Inter",
+                lora: "Lora (con grazie)",
+                "jetbrains-mono": "JetBrains Mono (a spaziatura fissa)",
+                atkinson: "Atkinson Hyperlegible (alta leggibilità)",
+                opendyslexic: "OpenDyslexic (per la dislessia)",
+            },
+        },
+        textZoom: {
+            label: "Dimensione del testo",
+            description: "Ingrandisce o riduce tutta l'app (testi, icone e spazi) in base alla dimensione del testo: 16 px è quella normale. Scorciatoie: Ctrl+Più, Ctrl+Meno, Ctrl+0.",
+            unit: "px",
+            decrease: "Riduci il testo di 1 px",
+            increase: "Ingrandisci il testo di 1 px",
+            reset: "Torna a 16 px",
         },
         sidebarSize: {
             label: "Dimensione di cartelle e note",
@@ -275,9 +295,12 @@ export const settings = {
             label: "Mostra sottotask completati",
             description: "Un task con sottotask mostra quanti ne sono completati (es. 1/3).",
         },
-        reopenWorkspace: {
-            label: "Riapri l'ultimo workspace all'avvio",
-            description: "Se chiudi l'app dentro un workspace, lo riapre al prossimo avvio.",
+        startupWorkspace: {
+            label: "Apri all'avvio",
+            description: "Cosa mostra l'app quando si avvia: la pagina iniziale, l'ultimo workspace usato oppure sempre lo stesso workspace.",
+            home: "Pagina iniziale",
+            last: "Ultimo workspace usato",
+            always: "Apri sempre",
         },
         hideCompleted: {
             label: "Nascondi task completati",
@@ -328,6 +351,18 @@ export const settings = {
             label: "Mostra il player flottante",
             description: "Se disattivato, i file audio non vengono riprodotti perché il player contiene i comandi.",
         },
+        playerPinned: {
+            label: "Fissa il player",
+            description: "Il player non si può più trascinare finché è fissato.",
+        },
+        repeat: {
+            label: "Ripeti il brano",
+            description: "Quando un brano finisce, riparte da capo.",
+        },
+        resume: {
+            label: "Riprendi da dove eri",
+            description: "Ogni brano riparte dal punto in cui lo avevi lasciato.",
+        },
         playerSize: {
             label: "Dimensione del player",
             description: "Ingrandisce o riduce il player flottante.",
@@ -340,7 +375,7 @@ export const settings = {
             description: "Rende il player più o meno trasparente (minimo 40%).",
         },
         resetAll: {
-            description: "Volume, visibilità, dimensione e trasparenza tornano ai valori predefiniti.",
+            description: "Volume, visibilità, fissaggio, dimensione, trasparenza, velocità, ripetizione e ripresa tornano ai valori predefiniti.",
         },
     },
     search: {
@@ -369,6 +404,13 @@ export const settings = {
             label: "Tieni la finestra in primo piano",
             description: "EasyTask resta sopra le altre finestre. Si applica subito e viene ricordato all'avvio.",
             error: "Impossibile cambiare il primo piano: {{message}}",
+        },
+        hardwareAcceleration: {
+            label: "Accelerazione hardware",
+            description: "Usa la scheda grafica per disegnare l'app. Spegnila solo se vedi problemi grafici (schermo nero, sfarfallii). Si applica al prossimo avvio.",
+            restartToast: "L'accelerazione hardware cambia al prossimo avvio.",
+            restartNow: "Riavvia ora",
+            restartError: "Impossibile riavviare l'app: {{message}}",
         },
         tray: {
             tooltip: "EasyTask",

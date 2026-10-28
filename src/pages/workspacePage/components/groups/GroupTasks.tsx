@@ -36,10 +36,14 @@ const DirectTasks = memo(({ section }: DirectTasksProps) => {
             {draggingSection && <DropLine zone={zone} />}
             {/* Without tasks only the button is left: the empty box would just be a double border */}
             {section.tasks.length > 0 &&
-                <div className="flex flex-col w-full overflow-hidden border dark:bg-secondary bg-background">
+                <div className="flex flex-col w-full border dark:bg-secondary bg-background">
                     <TaskList tasks={section.tasks} listKey={`s-${section.id}`} sectionId={section.id} clipped label={t("tasks.selection.directTasks")} />
                 </div>}
-            <AddTask sectionId={section.id} inGroup />
+            {/* Like the "Add a card" of Trello: when the tasks are more than the group can show, the button stays at the bottom of the
+                scrolling area instead of scrolling away (the 4px are the offset of the scrolling area, taller than the group) */}
+            <div className="sticky bottom-1 z-10 bg-background">
+                <AddTask sectionId={section.id} inGroup />
+            </div>
         </div>
     )
 })

@@ -10,11 +10,12 @@ import { TooltipCustom } from "@/components/tooltip-custom"
 import type { DraggableAttributes, useDraggable } from "@dnd-kit/core"
 import type { PlaybackState } from "@/contexts/audio-context-object"
 import { useMediaSession, type MediaSessionActions } from "@/hooks/use-media-session"
+import { AUDIO_PLAYBACK_RATES, type AudioPlaybackRate } from "@/lib/store/preferences"
+import { POSITION_SAVE_INTERVAL_MS, forgetPosition, getResumePosition, rememberPosition } from "@/lib/audio-positions"
 
 type SyntheticListenerMap = ReturnType<typeof useDraggable>["listeners"]
 
-/** Playback speeds the speed button cycles through. */
-const PLAYBACK_RATES = [0.75, 1, 1.25, 1.5, 2] as const
+const PLAYBACK_RATES = AUDIO_PLAYBACK_RATES
 /** Seconds the arrow keys move the seek bar. */
 const KEY_SEEK_SECONDS = 5
 /** Seconds of the "back" and "forward" buttons, also used by the seek keys of the system. */
@@ -45,6 +46,16 @@ type Props = {
     pinned?: boolean
     /** Called when the user toggles the pin button. */
     onPinnedChange?: (pinned: boolean) => void
+    /** Speed (one of the speeds of the speed button): the player follows it when it changes from outside. Default 1. */
+    playbackRate?: AudioPlaybackRate
+    /** Called when the user changes the speed. */
+    onPlaybackRateChange?: (rate: AudioPlaybackRate) => void
+    /** The track starts over when it ends (default: it stops). */
+    repeat?: boolean
+    /** The id of the track: with `resume` its position is remembered under it. */
+    audioId?: number
+    /** Remember where each track is and start it again from there (default: always from the beginning). */
+    resume?: boolean
 }
 
 /** "3:05", or "1:05:09" from one hour on. */
@@ -136,6 +147,7 @@ const MediaSessionSync = ({ audioRef, title, playing, actions }: MediaSessionSyn
 export const AudioPlayer = ({
     src, fileName, listenersHandle, attributesHandle, open = true, onClose, autoPlayKey, toggleKey, onStateChange, onError,
     volume: volumeProp = 1, onVolumeChange, pinned = false, onPinnedChange,
+    playbackRate: rateProp = 1, onPlaybackRateChange, repeat = false, audioId, resume = false,
 }: Props) => {
     const { t } = useTranslation()
     const audioRef = useRef<HTMLAudioElement>(null)
@@ -146,13 +158,25 @@ export const AudioPlayer = ({
     const [lastVolumeProp, setLastVolumeProp] = useState(volumeProp)
     // Muting is only for this player: it is not saved as the default volume
     const [muted, setMuted] = useState(false)
-    const [rate, setRate] = useState<number>(1)
+    const [rate, setRate] = useState<number>(rateProp)
+    const [lastRateProp, setLastRateProp] = useState(rateProp)
     const lastToggleKey = useRef(toggleKey)
+    // Read by the effect of a play request, which must not run again when they change
+    const resumeRef = useRef({ resume, audioId })
+    useEffect(() => {
+        resumeRef.current = { resume, audioId }
+    })
 
     // Follow the volume set from outside (settings), without an effect
     if (volumeProp !== lastVolumeProp) {
         setLastVolumeProp(volumeProp)
         setVolume(volumeProp)
+    }
+
+    // Same for the speed (the saved one arrives a moment after the first render)
+    if (rateProp !== lastRateProp) {
+        setLastRateProp(rateProp)
+        setRate(rateProp)
     }
 
     useEffect(() => {
@@ -171,14 +195,57 @@ export const AudioPlayer = ({
         audio.playbackRate = rate
     }, [rate])
 
-    // A play request (new file) starts the track from the beginning
+    // A play request (new file) starts the track from the beginning, or from where it was left when asked to resume
     useEffect(() => {
         const audio = audioRef.current
         if (!audio || autoPlayKey === undefined || !src) return
-        audio.currentTime = 0
-        notifyProgress(audio)
-        audio.play().catch(() => setIsPlaying(false))
+        const { resume: shouldResume, audioId: id } = resumeRef.current
+        const start = (at: number) => {
+            audio.currentTime = at
+            notifyProgress(audio)
+            audio.play().catch(() => setIsPlaying(false))
+        }
+        if (!shouldResume || id === undefined) {
+            start(0)
+            return
+        }
+        let cancelled = false
+        void getResumePosition(id, audio.duration).then(at => { if (!cancelled) start(at) })
+        return () => { cancelled = true }
     }, [autoPlayKey, src])
+
+    // Remembers where the track is (every few seconds, when paused, when another track replaces it or the player closes)
+    // and forgets it when the track ends
+    useEffect(() => {
+        const audio = audioRef.current
+        if (!audio || !resume || audioId === undefined) return
+        let lastSave = Date.now()
+        let time = 0
+        let length = Number.NaN
+        const track = () => { time = audio.currentTime; length = audio.duration }
+        const onTimeUpdate = () => {
+            track()
+            const now = Date.now()
+            if (audio.paused || now - lastSave < POSITION_SAVE_INTERVAL_MS) return
+            lastSave = now
+            void rememberPosition(audioId, time, length)
+        }
+        const onPause = () => {
+            track()
+            void (audio.ended ? forgetPosition(audioId) : rememberPosition(audioId, time, length))
+        }
+        const onEnded = () => { void forgetPosition(audioId) }
+        audio.addEventListener("timeupdate", onTimeUpdate)
+        audio.addEventListener("pause", onPause)
+        audio.addEventListener("ended", onEnded)
+        return () => {
+            audio.removeEventListener("timeupdate", onTimeUpdate)
+            audio.removeEventListener("pause", onPause)
+            audio.removeEventListener("ended", onEnded)
+            // The last position seen: the element may already hold the next track
+            if (time > 0) void rememberPosition(audioId, time, length)
+        }
+    }, [audioId, resume])
 
     const state: PlaybackState = isPlaying ? "playing" : ended ? "ended" : "paused"
     useEffect(() => {
@@ -256,7 +323,9 @@ export const AudioPlayer = ({
 
     const cycleRate = () => {
         const index = PLAYBACK_RATES.indexOf(rate as (typeof PLAYBACK_RATES)[number])
-        setRate(PLAYBACK_RATES[(index + 1) % PLAYBACK_RATES.length])
+        const next = PLAYBACK_RATES[(index + 1) % PLAYBACK_RATES.length]
+        setRate(next)
+        onPlaybackRateChange?.(next)
     }
 
     const handleClose = () => {
@@ -408,6 +477,7 @@ export const AudioPlayer = ({
             <audio
                 ref={audioRef}
                 src={src}
+                loop={repeat}
                 onPlay={() => { setIsPlaying(true); setEnded(false) }}
                 onPause={() => setIsPlaying(false)}
                 onEnded={() => { setIsPlaying(false); setEnded(true) }}

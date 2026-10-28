@@ -5,7 +5,11 @@ import { toast } from "sonner"
 import { reportError } from "@/lib/report-error"
 import { isPortable } from "@/db/appPaths"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { getAlwaysOnTop, getCloseToTray, getRememberWindowState, saveAlwaysOnTop, saveCloseToTray, saveRememberWindowState } from "@/lib/store/preferences"
+import { relaunch } from "@tauri-apps/plugin-process"
+import {
+    flushPreferences, getAlwaysOnTop, getCloseToTray, getHardwareAcceleration, getRememberWindowState, saveAlwaysOnTop, saveCloseToTray, saveHardwareAcceleration,
+    saveRememberWindowState,
+} from "@/lib/store/preferences"
 import { notifyCloseToTrayChanged } from "@/lib/tray"
 import { getErrorMessage } from "@/lib/utils"
 import { SettingsCard, SettingsPanel, SettingsSwitchRow } from "./SettingsRow"
@@ -139,6 +143,52 @@ const AlwaysOnTopSetting = () => {
     )
 }
 
+/**
+ * Use the graphics card to draw the app. The Rust side reads the saved value (key "hardwareAcceleration" in settings.dat)
+ * when it creates the webview, so a change applies at the next start: the toast offers to restart now.
+ */
+const HardwareAccelerationSetting = () => {
+    const { t } = useTranslation()
+    const [checked, setChecked] = useState(true)
+
+    useEffect(() => {
+        let cancelled = false
+        void getHardwareAcceleration().then(value => { if (!cancelled) setChecked(value) }).catch(error => reportError(error))
+        return () => { cancelled = true }
+    }, [])
+
+    const restart = async () => {
+        try {
+            await flushPreferences()
+            await relaunch()
+        } catch (error) {
+            reportError(error, t("settings.system.hardwareAcceleration.restartError", { message: getErrorMessage(error) }))
+        }
+    }
+
+    const change = async (value: boolean) => {
+        setChecked(value)
+        try {
+            await saveHardwareAcceleration(value)
+            toast(t("settings.system.hardwareAcceleration.restartToast"), {
+                action: { label: t("settings.system.hardwareAcceleration.restartNow"), onClick: () => void restart() },
+            })
+        } catch (error) {
+            reportError(error)
+            setChecked(!value)
+        }
+    }
+
+    return (
+        <SettingsSwitchRow
+            label={t("settings.system.hardwareAcceleration.label")}
+            description={t("settings.system.hardwareAcceleration.description")}
+            checked={checked}
+            onCheckedChange={value => void change(value)}
+        />
+    )
+}
+
 /** Integration with the operating system: start with Windows, close to the notification area. */
 export const SystemSettings = () => {
     const { t } = useTranslation()
@@ -149,6 +199,7 @@ export const SystemSettings = () => {
                 <CloseToTraySetting />
                 <RememberWindowStateSetting />
                 <AlwaysOnTopSetting />
+                <HardwareAccelerationSetting />
             </SettingsCard>
         </SettingsPanel>
     )

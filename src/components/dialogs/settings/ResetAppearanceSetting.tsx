@@ -6,12 +6,12 @@ import { useTheme } from "@/components/use-theme"
 import { usePreferences } from "@/contexts/use-preferences"
 import { DEFAULT_LANGUAGE_PREFERENCE } from "@/i18n"
 import { DEFAULT_COLOR_INTENSITY } from "@/lib/color-intensity"
-import { DEFAULT_ANIMATION_SPEED, DEFAULT_PRIMARY_COLOR } from "@/lib/store/preferences"
+import { DEFAULT_ANIMATION_SPEED, DEFAULT_FONT_FAMILY, DEFAULT_PRIMARY_COLOR, DEFAULT_TEXT_ZOOM } from "@/lib/store/preferences"
 import { SectionResetButton } from "./SectionResetButton"
 
 /**
  * "Ripristina tutto" of the Appearance page (the `action` of its panel): puts every control of the Appearance page back to its default (theme, accent color, language,
- * size of folders and notes, color intensity, speed of the animations). It asks for confirmation, and it is disabled while everything is already default.
+ * app size, size of folders and notes, color intensity, speed of the animations). It asks for confirmation, and it is disabled while everything is already default.
  */
 export const ResetAppearanceSetting = () => {
     const { t } = useTranslation()
@@ -19,6 +19,8 @@ export const ResetAppearanceSetting = () => {
     const {
         primaryColor, setPrimaryColor,
         language, setLanguage,
+        fontFamily, setFontFamily,
+        textZoom, setTextZoom,
         sidebarItemSize, setSidebarItemSize,
         colorIntensity, setColorIntensity,
         animationSpeed, setAnimationSpeed,
@@ -28,6 +30,8 @@ export const ResetAppearanceSetting = () => {
     const isDefault = theme === "system"
         && primaryColor.toLowerCase() === DEFAULT_PRIMARY_COLOR
         && language === DEFAULT_LANGUAGE_PREFERENCE
+        && fontFamily === DEFAULT_FONT_FAMILY
+        && textZoom === DEFAULT_TEXT_ZOOM
         && sidebarItemSize === "normal"
         && colorIntensity === DEFAULT_COLOR_INTENSITY
         && animationSpeed === DEFAULT_ANIMATION_SPEED
@@ -36,6 +40,8 @@ export const ResetAppearanceSetting = () => {
         setTheme("system")
         setPrimaryColor(DEFAULT_PRIMARY_COLOR)
         setLanguage(DEFAULT_LANGUAGE_PREFERENCE)
+        setFontFamily(DEFAULT_FONT_FAMILY)
+        setTextZoom(DEFAULT_TEXT_ZOOM)
         setSidebarItemSize("normal")
         setColorIntensity(DEFAULT_COLOR_INTENSITY)
         setAnimationSpeed(DEFAULT_ANIMATION_SPEED)

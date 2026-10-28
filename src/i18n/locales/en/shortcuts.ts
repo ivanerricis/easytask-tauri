@@ -11,6 +11,10 @@ export const shortcuts: Translation["shortcuts"] = {
     items: {
         "show-shortcuts": "Show shortcuts",
         "open-docs": "Open the documentation",
+        "text-zoom-in": "Make the app text bigger",
+        "text-zoom-in-alt": "Make the app text bigger (alternative)",
+        "text-zoom-out": "Make the app text smaller",
+        "text-zoom-reset": "Back to the normal app text size",
         "go-home": "Back to home",
         "undo": "Undo the last action",
         "redo": "Redo the undone action",
