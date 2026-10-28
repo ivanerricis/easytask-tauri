@@ -22,6 +22,13 @@ describe("OptionalColorField", () => {
         expect(screen.queryByRole("radio", { name: "Colore Blu" })).not.toBeInTheDocument()
     })
 
+    it("draws the icon in the color that contrasts with the chosen one", () => {
+        const { rerender } = render(<OptionalColorField value="#000075" onChange={vi.fn()} />)
+        expect(screen.getByRole("button", { name: "Cambia colore" }).querySelector("svg")).toHaveStyle({ color: "oklch(1 0 0)" })
+        rerender(<OptionalColorField value="#d9bf01" onChange={vi.fn()} />)
+        expect(screen.getByRole("button", { name: "Cambia colore" }).querySelector("svg")).toHaveStyle({ color: "oklch(0.215 0 0)" })
+    })
+
     it("paints the button with the chosen color and marks it in the palette", async () => {
         render(<OptionalColorField value="#4363d8" onChange={vi.fn()} />)
         const button = screen.getByRole("button", { name: "Cambia colore" })
