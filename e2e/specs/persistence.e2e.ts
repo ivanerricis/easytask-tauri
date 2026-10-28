@@ -108,7 +108,7 @@ describe("Settings and data survive an app restart", () => {
             const hide = await hideCompletedSwitch()
             if ((await hide.getAttribute("aria-checked")) === "true") await domClick(hide)
             await byText(await tr("settings.categories.appearance"), dialog).click()
-            const reset = $(`[title=${JSON.stringify(await tr("settings.appearance.reset.description"))}]`)
+            const reset = byText(await tr("settings.resetAll"), dialog)
             if (await reset.isEnabled()) {
                 await domClick(reset)
                 const confirm = await topDialog()

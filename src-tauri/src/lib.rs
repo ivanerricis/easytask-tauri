@@ -25,6 +25,8 @@ const BACKUP_FOLDER_KEY: &str = "backupFolder";
 /// keep the names identical on both sides.
 const REMEMBER_WINDOW_STATE_KEY: &str = "rememberWindowState";
 const ALWAYS_ON_TOP_KEY: &str = "alwaysOnTop";
+// Only the Windows webview (WebView2) takes browser arguments
+#[cfg(windows)]
 const HARDWARE_ACCELERATION_KEY: &str = "hardwareAcceleration";
 
 /// Where the app keeps its data and whether it runs in portable mode.
