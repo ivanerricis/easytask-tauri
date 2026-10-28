@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef } from "react"
 import { useDraggable } from "@dnd-kit/core"
-import { CSS } from "@dnd-kit/utilities"
 import { AudioPlayer } from "./audio-player"
 import { useAudio } from "@/contexts/use-audio"
 import { usePreferences } from "@/contexts/use-preferences"
@@ -42,11 +41,14 @@ export const DraggableAudioPlayer = ({ position }: Props) => {
     // Play / pause from anywhere in the workspace while the player is open
     useShortcut("toggle-audio", togglePlayback, { enabled: visible })
 
+    // Only the transform places the box (top/left stay 0): at the drop nothing is promoted to or demoted from a compositor layer
+    // and no layout property changes, so the box cannot show one frame at the old position
     const style = {
         position: "absolute" as const,
-        top: position.y,
-        left: position.x,
-        transform: CSS.Translate.toString(transform),
+        top: 0,
+        left: 0,
+        transform: `translate3d(${position.x + (transform?.x ?? 0)}px, ${position.y + (transform?.y ?? 0)}px, 0)`,
+        willChange: "transform" as const,
         zIndex: 50,
     }
 
