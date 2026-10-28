@@ -1,3 +1,4 @@
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -46,6 +47,12 @@ describe("SectionHeader keyboard", () => {
     it("names the title button after its action, with the title in it", () => {
         render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Spesa" })} />)
         expect(screen.getByRole("button", { name: "Titolo sezione: Spesa, premi Invio per rinominare" })).toHaveTextContent("Spesa")
+    })
+
+    it("limits the title typed in the rename field", async () => {
+        render(<SectionHeader isOpen onOpenChange={vi.fn()} section={makeSection({ title: "Titolo" })} />)
+        await userEvent.click(screen.getByText("Titolo"))
+        expect(screen.getByRole("textbox")).toHaveAttribute("maxlength", String(MAX_NAME_LENGTH))
     })
 
     it("starts editing the title with Enter", async () => {

@@ -1,3 +1,4 @@
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
@@ -107,6 +108,12 @@ describe("GroupHeader unnamed label and rename on click", () => {
         screen.getByRole("button", { name: "Nome gruppo: Da fare, premi Invio per rinominare" }).focus()
         await user.keyboard("{Enter}")
         expect(screen.getByRole("textbox")).toBeInTheDocument()
+    })
+
+    it("limits the name typed in the rename field", async () => {
+        render(<GroupHeader group={makeGroup({ name: "Da fare" })} />)
+        await userEvent.click(screen.getByText("Da fare"))
+        expect(screen.getByRole("textbox")).toHaveAttribute("maxlength", String(MAX_NAME_LENGTH))
     })
 
     it("starts the rename on click by default", async () => {

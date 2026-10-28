@@ -1,3 +1,4 @@
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
 import { usePreferences } from "@/contexts/use-preferences"
@@ -110,6 +111,7 @@ export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0, 
                         type="text"
                         placeholder={label}
                         aria-label={t("groups.nameLabel")}
+                        maxLength={MAX_NAME_LENGTH}
                         className="h-6 min-w-0 flex-1 mr-1 px-1 py-0 text-sm font-semibold md:text-sm border-primary"
                     />
                 </InlineErrorTooltip>}

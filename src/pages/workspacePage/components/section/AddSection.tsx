@@ -1,3 +1,4 @@
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { useTranslation } from "react-i18next"
 import { Input } from "@/components/ui/input"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -131,6 +132,7 @@ export const AddSection = ({ inGroup, groupId, open, onClose }: AddSectionFormPr
                     placeholder={inGroup ? t("sections.titlePlaceholder") : t("groups.namePlaceholder")}
                     aria-label={inGroup ? t("sections.titleLabel") : t("groups.nameLabel")}
                     autoFocus
+                    maxLength={MAX_NAME_LENGTH}
                     readOnly={saving}
                     className={`rounded-none border-none text-sm ${inGroup ? 'flex-1' : 'w-fit'}`}
                 />

@@ -1,3 +1,4 @@
+import { MAX_NAME_LENGTH } from "@/lib/names"
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
 import { Progress } from "@/components/ui/progress"
@@ -110,6 +111,7 @@ export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }:
                                 type="text"
                                 placeholder={t("sections.untitled")}
                                 aria-label={t("sections.titleLabel")}
+                                maxLength={MAX_NAME_LENGTH}
                                 className="h-6 min-w-0 flex-1 px-1 py-0 ml-1 text-sm md:text-sm border-primary"
                             />
                         </InlineErrorTooltip>}
