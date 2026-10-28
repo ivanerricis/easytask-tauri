@@ -67,6 +67,10 @@ jobs:
         working-directory: src-tauri
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The package index of the runner image can be stale (the cached .deb versions would 404)
+      - name: Update the apt package index
+        if: runner.os == 'Linux'
+        run: sudo apt-get update
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         timeout-minutes: 10
@@ -144,6 +148,10 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The package index of the runner image can be stale (the cached .deb versions would 404)
+      - name: Update the apt package index
+        if: runner.os == 'Linux'
+        run: sudo apt-get update
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         timeout-minutes: 10
