@@ -1,10 +1,7 @@
 import { useEffect, useRef, useState } from "react"
 import type { FormEvent } from "react"
 import { useTranslation } from "react-i18next"
-import { Check, Loader2, X } from "lucide-react"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
@@ -12,7 +9,6 @@ import { usePreferences } from "@/contexts/use-preferences"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { useAutomations } from "@/hooks/use-automations"
 import { reportError } from "@/lib/report-error"
-import { keyLabel } from "@/lib/shortcuts"
 import { cn, getErrorMessage } from "@/lib/utils"
 import { TASK_DENSITIES, useTaskDensity } from "./task-density"
 import { useInsertSlot, useTaskInsertStore, type InsertSlot } from "./task-insert-state"
@@ -80,12 +76,13 @@ function InsertTaskForm({ listKey, afterTaskId, parent, depth = 0 }: InsertTaskI
                         placeholder={t("tasks.insertLine.placeholder")}
                         aria-label={t("tasks.insertLine.label")}
                         autoComplete="off"
+                        aria-description={t("tasks.inputHint")}
                         readOnly={saving}
                         aria-busy={saving}
                         onKeyDown={event => {
                             if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); store.close() }
                             else if (event.key === "Enter" && event.nativeEvent.isComposing) event.preventDefault()
-                            // Enter on the empty field ends the series (the disabled submit button blocks the form there)
+                            // Enter on the empty field ends the series (there is nothing to submit)
                             else if (event.key === "Enter" && keepAddingTasks && !text.trim() && !saving) { event.preventDefault(); store.close() }
                         }}
                         onBlur={() => {
@@ -93,32 +90,6 @@ function InsertTaskForm({ listKey, afterTaskId, parent, depth = 0 }: InsertTaskI
                         }}
                         className={cn("flex-1 px-1 py-0 shadow-none", sizes.input, saving && "opacity-60")}
                     />
-                    <div className="flex items-center gap-0.5 shrink-0">
-                        <TooltipCustom text={t("common.add")} shortcut={keyLabel("enter")}>
-                            <Button
-                                type="submit"
-                                variant="ghost"
-                                size="icon"
-                                aria-label={t("tasks.add")}
-                                disabled={!text.trim() || saving}
-                                className="size-6 text-muted-foreground hover:text-foreground"
-                            >
-                                {saving ? <Loader2 className="animate-spin" /> : <Check />}
-                            </Button>
-                        </TooltipCustom>
-                        <TooltipCustom text={t("common.close")} shortcut={keyLabel("escape")}>
-                            <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                aria-label={t("common.close")}
-                                onClick={() => store.close()}
-                                className="size-6 text-muted-foreground hover:text-foreground"
-                            >
-                                <X />
-                            </Button>
-                        </TooltipCustom>
-                    </div>
                 </div>
             </div>
         </form>
@@ -127,7 +98,7 @@ function InsertTaskForm({ listKey, afterTaskId, parent, depth = 0 }: InsertTaskI
 
 /**
  * The field of a new task opened by a "+" line, laid out like a task row. Enter inserts the task right there (one undo step);
- * with keepAddingTasks the field moves under the new task and stays focused, otherwise it closes. Esc or X close it
+ * with keepAddingTasks the field moves under the new task and stays focused, otherwise it closes. Esc closes it
  * discarding the text; blur closes it only when empty. It is shown only while the open slot is this one: opening another
  * field elsewhere removes it.
  */

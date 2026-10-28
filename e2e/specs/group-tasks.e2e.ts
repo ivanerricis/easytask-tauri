@@ -1,8 +1,7 @@
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    addTaskButton, addTaskToGroup, byLabel, byText, createFromSidebar, createWorkspace, directTasks, groupAddTaskButton, groupCard,
+    addTaskToSection, addTaskToGroup, byLabel, byText, createFromSidebar, createWorkspace, directTasks, groupAddTaskButton, groupCard,
     menuButton, menuButtonPredicate, newSectionInGroup, openMenuWithButton, openSubmenu, openWorkspace, sectionCard, tr, treeRow, typeInto, waitForApp,
-    closeTaskInput,
 } from "../helpers"
 
 const WORKSPACE = "Direct Tasks Workspace"
@@ -97,11 +96,7 @@ describe("Tasks directly in a group", () => {
     })
 
     it("creates a task in the section", async () => {
-        await (await addTaskButton(sectionCard(SECTION))).click()
-        await typeInto(sectionCard(SECTION).$("input"), SECTION_TASK)
-        await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
-        // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
-        await closeTaskInput()
+        await addTaskToSection(sectionCard(SECTION), SECTION_TASK)
         await browser.waitUntil(async () => (await valuesIn(sectionCard(SECTION))).includes(SECTION_TASK), { timeoutMsg: "the section task was not created" })
     })
 

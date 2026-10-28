@@ -1,6 +1,6 @@
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    addTaskButton, byLabel, byText, closeTaskInput, createFromSidebar, createWorkspace, groupCard, newSectionInGroup, openWorkspace,
+    addTaskToSection, byLabel, byText, createFromSidebar, createWorkspace, groupCard, newSectionInGroup, openWorkspace,
     sectionCard, tr, treeRow, typeInto, waitForApp,
 } from "../helpers"
 
@@ -37,11 +37,7 @@ describe("Search in a note", () => {
         await newSectionInGroup(groupCard(GROUP), SECTION)
 
         for (const text of TASKS) {
-            await (await addTaskButton(sectionCard(SECTION))).click()
-            await typeInto(sectionCard(SECTION).$("input"), text)
-            await sectionCard(SECTION).$(`[aria-label="${await tr("common.add")}"]`).click()
-            // The field stays open for the next task (preference "keep adding tasks"): wait for the saved task, then Esc closes it
-            await closeTaskInput()
+            await addTaskToSection(sectionCard(SECTION), text)
             await browser.waitUntil(async () => (await $$("[data-task-id]").length) >= TASKS.indexOf(text) + 1, { timeoutMsg: `task "${text}" not created` })
         }
     })
