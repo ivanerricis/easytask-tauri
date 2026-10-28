@@ -161,6 +161,14 @@ jobs:
           packages: libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
           version: 1
           execute_install_scripts: true
+      # Restoring the .deb cache does not run the dpkg triggers: without them the app aborts at start
+      # ("GLib-GIO-ERROR: Settings schema 'org.gnome.system.proxy' is not installed")
+      - name: Run the dpkg triggers of the cached packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo glib-compile-schemas /usr/share/glib-2.0/schemas
+          sudo gio-querymodules /usr/lib/x86_64-linux-gnu/gio/modules
+          sudo /usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders --update-cache
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
