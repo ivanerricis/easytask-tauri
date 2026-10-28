@@ -24,7 +24,7 @@ export const ItemRow = ({ icon: Icon, name, details, children }: ItemRowProps) =
         <div className="flex flex-col min-w-0 flex-1">
             <span className="truncate text-sm" title={name}>{name}</span>
             {(typeof details === "string" ? [details] : details).map((line, index) => (
-                <span key={index} className="truncate text-xs text-muted-foreground" title={line}>
+                <span key={index} className="truncate text-sm text-muted-foreground" title={line}>
                     {line}
                 </span>
             ))}

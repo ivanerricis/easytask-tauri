@@ -75,6 +75,14 @@ describe("DialogAutomations", () => {
         expect(screen.getAllByRole("button", { name: "Nuova automazione" })).toHaveLength(1)
     })
 
+    it("scrive la descrizione della regola in text-sm (non più piccola)", async () => {
+        mocked(getDBAutomations).mockResolvedValue([rule()])
+        renderDialog()
+        const description = await screen.findByText("Quando un task viene completato in \"Doing\", sposta in fondo a \"Done\"")
+        expect(description).toHaveClass("text-sm")
+        expect(description).not.toHaveClass("text-xs")
+    })
+
     it("creates a rule from the editor", async () => {
         const user = userEvent.setup()
         renderDialog()

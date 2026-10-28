@@ -302,11 +302,11 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                                         />
                                         <div className={cn("flex flex-col min-w-0 flex-1", !rule.enabled && "opacity-60")}>
                                             {rule.name && <span className="text-sm font-medium truncate">{rule.name}</span>}
-                                            <span className={cn("break-words", rule.name ? "text-xs text-muted-foreground" : "text-sm")}>
+                                            <span className={cn("break-words", rule.name ? "text-sm text-muted-foreground" : "text-sm")}>
                                                 {describeAutomation(rule, titleOf, groupLabelOf)}
                                             </span>
                                             {pausedKey && (
-                                                <span className="flex items-start gap-1 text-xs text-destructive break-words">
+                                                <span className="flex items-start gap-1 text-sm text-destructive break-words">
                                                     <TriangleAlert className="size-3.5 shrink-0" aria-hidden />
                                                     {t(pausedKey)}
                                                 </span>
