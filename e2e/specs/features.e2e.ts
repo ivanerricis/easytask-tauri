@@ -231,6 +231,47 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         await waitForTasks(SECTIONS[0], TASKS)
     })
 
+    it("shows the completed tasks last from the settings without changing the saved order", async () => {
+        const toggleCompletedLast = async () => {
+            await byLabel(await tr("settings.title")).click()
+            await $('[role="dialog"]').waitForDisplayed()
+            const nav = $(`[role="tablist"][aria-label="${await tr("settings.nav")}"]`)
+            await byText(await tr("settings.categories.notes"), nav).click()
+            await $(`//*[@role="dialog"]//*[@role="switch"][@id=//label[normalize-space()=${xpathString(await tr("settings.notes.completedLast.label"))}]/@for]`).click()
+            await browser.keys("Escape")
+            await $('[role="dialog"]').waitForExist({ reverse: true })
+        }
+        const toggleFirstTask = async () => {
+            const areas = await $$(`[aria-label="${await tr("tasks.editText")}"]`)
+            for (const area of areas) {
+                if ((await area.getValue()) !== TASKS[0]) continue
+                const row = await area.$("./ancestor::div[@data-task-id][1]")
+                await domClick(row.$('[role="checkbox"]'))
+                return
+            }
+            throw new Error(`task "${TASKS[0]}" not found`)
+        }
+
+        await toggleFirstTask()
+        // Off by default: the completed task keeps its place
+        await waitForTasks(SECTIONS[0], TASKS)
+        await toggleCompletedLast()
+        // Shown last, while the saved order is still the original one
+        await browser.waitUntil(async () => JSON.stringify(await taskValues(SECTIONS[0])) === JSON.stringify([TASKS[1], TASKS[2], TASKS[0]]), {
+            timeoutMsg: "the completed task is not shown last",
+        })
+        expect(await savedOrder("task", "text", TASKS)).toEqual(TASKS)
+        // The completed task cannot move up over the open ones
+        const menu = await openTaskMenu(TASKS[0])
+        await expect(byText(await tr("menu.moveUp"), menu)).toHaveAttribute("aria-disabled", "true")
+        await browser.keys("Escape")
+
+        // Back to the original state for the next tests
+        await toggleCompletedLast()
+        await waitForTasks(SECTIONS[0], TASKS)
+        await toggleFirstTask()
+    })
+
     it("moves a section down from its menu, then undoes and redoes", async () => {
         let menu = await openSectionMenu(SECTIONS[0])
         // The first section can still go up: the list of the direct tasks of the group sits above it
