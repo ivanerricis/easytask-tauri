@@ -98,7 +98,7 @@ If no run appears after the tag push (this happened on 0.10.1), start it on the 
 ```
 gh workflow run release.yml --ref vX.Y.Z
 ```
-It only works on `v*` tags (not branches). Jobs: `verify` (Linux checks plus notes extraction), `release` (Windows + Linux, draft), `portable` (zip). On failure read `gh run view <id> --log-failed`, fix via a new PR; to redo a wrong tag: `git tag -d vX.Y.Z` and `git push origin :refs/tags/vX.Y.Z`, delete the draft, then re-tag.
+It only works on `v*` tags (not branches). Jobs: `prepare` (tag, versions, notes extraction, seconds), then `release` (Windows + Linux, draft, the Windows leg also uploads the portable zip) and `verify` (Linux checks) at the same time. The builds do not wait for `verify`, so the draft can exist while `verify` is red: the whole run must be green (`gh run view <id>`) before the draft is published. On failure read `gh run view <id> --log-failed`, fix via a new PR; to redo a wrong tag: `git tag -d vX.Y.Z` and `git push origin :refs/tags/vX.Y.Z`, delete the draft, then re-tag.
 
 ## 9. Verify the draft (do not publish yet)
 
@@ -106,7 +106,7 @@ It only works on `v*` tags (not branches). Jobs: `verify` (Linux checks plus not
 gh release view vX.Y.Z
 gh release view vX.Y.Z --json isDraft,assets -q '{draft: .isDraft, assets: [.assets[].name]}'
 ```
-Expect `isDraft: true` and: NSIS `EasyTask_X.Y.Z_x64-setup.exe` + `.sig`, `.deb`, `.AppImage` + `.sig`, `latest.json`, `EasyTask_X.Y.Z_x64_portable.zip`. Check the body has `## English` and `## Italiano`. Check `latest.json` (`gh release download vX.Y.Z -p latest.json -D <scratch dir>`): `version` is X.Y.Z and the platforms carry `url` and `signature`. Report the result to the user and wait.
+First confirm the Release run finished green, `verify` included (`gh run list --workflow release.yml -L 1 --json conclusion`). Expect `isDraft: true` and: NSIS `EasyTask_X.Y.Z_x64-setup.exe` + `.sig`, `.deb`, `.AppImage` + `.sig`, `latest.json`, `EasyTask_X.Y.Z_x64_portable.zip`. Check the body has `## English` and `## Italiano`. Check `latest.json` (`gh release download vX.Y.Z -p latest.json -D <scratch dir>`): `version` is X.Y.Z and the platforms carry `url` and `signature`. Report the result to the user and wait.
 
 ## 10. Publish
 
