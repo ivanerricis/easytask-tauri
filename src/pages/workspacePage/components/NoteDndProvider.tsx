@@ -169,7 +169,9 @@ export const NoteDndProvider = ({ children }: { children: ReactNode }) => {
         else await moveTaskTo(pending.id, pending.target)
     }
 
-    useGrabbingCursor(active !== null)
+    // Over nothing valid (no droppable, or a no-op target such as a task under itself) the cursor says the drop does nothing
+    const noTarget = useSyncExternalStore(store.subscribe, () => store.getState().hover.overKey === null)
+    useGrabbingCursor(active !== null, noTarget)
 
     const preview = useMemo(() => {
         if (!active || !noteDataTree) return null
