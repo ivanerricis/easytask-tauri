@@ -130,10 +130,12 @@ Every list of tasks is a tree for the keyboard and for screen readers: `Tab` ent
 - `Space` completes or reopens the task, `Enter` edits its text, `Shift+F10` (or the menu key) opens its menu.
 - `Alt+↑` and `Alt+↓` move the task one step among its siblings, like **Move up** and **Move down** in the menu. The focus stays on the task and a screen reader announces "Moved to position N of M" (or that it cannot move any further).
 
-The task that takes the focus becomes the selected one, as when you click it. When you delete, archive or move the focused task away, the focus passes to the next task (or the previous one) so you can go on. The selection with the keyboard is not available yet. All the keys are listed in [Keyboard shortcuts](./shortcuts.md#tasks-with-the-keyboard).
+The task that takes the focus becomes the selected one, as when you click it. When you delete, archive or move the focused task away, the focus passes to the next task (or the previous one) so you can go on. To select several tasks with the keyboard, see [Select several tasks](#select-several-tasks). All the keys are listed in [Keyboard shortcuts](./shortcuts.md#tasks-with-the-keyboard).
 ### Select several tasks
 
 Hold **Ctrl** (**Cmd** on macOS) and click to add a task to the selection or remove it. Click a task with **Shift** to select every visible task between the last one you clicked and this one, across sections and groups. **Esc** clears the selection, and so does a plain click.
+
+With the keyboard, focus a task and press **Shift+Down** or **Shift+Up** to extend the selection one task at a time (**Shift+End** and **Shift+Home** go to the last and first task of the list); going back toward the first task shrinks it again. **Ctrl+Space** (**Cmd+Space** on macOS) adds the focused task to the selection or removes it, so you can pick tasks that are not next to each other: move with the plain arrows, which keep the selection, and press it on each one. These keys do not change the task shown in the details panel. When the selection shrinks to one task or to none, a screen reader announces it; with two or more, it reads the counter.
 
 Right click a selected task (or open its menu) to act on all of them at once: **Delete**, **Archive**, **Color** and **Move to…** (the end of a section, or the tasks directly in a group). A selected task stands for its subtasks too, so they are deleted, archived and moved with it. Each action is a single step in the [undo history](./undo-and-history.md). Dragging still moves one task at a time.
 
