@@ -155,7 +155,8 @@ export const crash = {
 
 export const errorPage = {
     title: "Si è verificato un errore",
-    description: "Descrizione dell'errore",
+    description: "L'operazione non è riuscita. Puoi riprovare; se il problema si ripete, copia i dettagli e segnalali.",
+    details: "Dettagli tecnici",
     home: "Torna alla home",
     retry: "Riprova",
 }
