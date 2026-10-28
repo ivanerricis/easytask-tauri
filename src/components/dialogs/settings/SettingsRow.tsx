@@ -19,7 +19,7 @@ type SettingsRowProps = {
     description?: string
     /** The control; as a function it receives the ids that tie it to the label and the description. */
     children: ReactNode | ((props: SettingsControlProps) => ReactNode)
-    /** Row-level reset (a RowResetButton), rendered only when the value differs from the default. */
+    /** Row-level reset (a RowResetButton), rendered before the control only when the value differs from the default. */
     reset?: ReactNode
 }
 
@@ -30,17 +30,18 @@ export const SettingsRow = ({ label, description, children, reset }: SettingsRow
     if (query && !scopeMatches && !matchesSearch(query, label, description)) return null
     const ids: SettingsControlProps = { id: `${base}-control`, labelId: `${base}-label`, descriptionId: description ? `${base}-description` : undefined }
     return (
-        <div data-settings-row className="flex items-center justify-between gap-4 w-full">
-            <div className="min-w-0">
+        <div data-settings-row className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 w-full">
+            {/* Below ~12rem the control drops under the text instead of squeezing it (narrow window, big app zoom) */}
+            <div className="min-w-48 flex-1">
                 <Label id={ids.labelId} htmlFor={ids.id} className="font-normal">{label}</Label>
                 {description && (
                     <p id={ids.descriptionId} className="text-xs text-muted-foreground">{description}</p>
                 )}
             </div>
             <div className="shrink-0 flex items-center gap-2">
+                {/* The reset button comes before the control, so the controls end at the right edge of every row */}
+                {reset}
                 {typeof children === "function" ? children(ids) : children}
-                {/* Reserved even when empty, so the controls line up across rows */}
-                <div className="size-8 shrink-0">{reset}</div>
             </div>
         </div>
     )

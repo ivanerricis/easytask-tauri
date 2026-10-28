@@ -15,6 +15,9 @@ const audioPrefs = {
     setAudioPlayerVisible: vi.fn(),
     setAudioPlayerScale: vi.fn(),
     setAudioPlayerOpacity: vi.fn(),
+    setAudioPlayerPinned: vi.fn(),
+    setAudioRepeat: vi.fn(),
+    setAudioResume: vi.fn(),
     resetAudioSettings: vi.fn(),
 }
 import { DialogSettings } from "./dialog-settings"
@@ -31,6 +34,7 @@ vi.mock("@/db/appPaths", () => ({
     isPortable: vi.fn().mockResolvedValue(false),
 }))
 vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn().mockResolvedValue(null) }))
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: null, workspaces: [] }) }))
 vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: vi.fn() }))
 vi.mock("@/components/mode-toggle", () => ({ ModeToggle: () => <div>mode-toggle</div> }))
 vi.mock("@/contexts/use-preferences", () => ({
@@ -52,13 +56,19 @@ vi.mock("@/contexts/use-preferences", () => ({
         completedTasksLast: false, setCompletedTasksLast: (value: boolean) => setCompletedTasksLast(value),
         reopenNotes: true, setReopenNotes: vi.fn(),
         reopenLastWorkspace: false, setReopenLastWorkspace: vi.fn(),
+        startupWorkspaceId: null, setStartupWorkspaceId: vi.fn(),
         resetPlayerPosition: vi.fn(),
         audioVolume: 0.5, setAudioVolume: (value: number) => audioPrefs.setAudioVolume(value),
         audioPlayerVisible: true, setAudioPlayerVisible: (value: boolean) => audioPrefs.setAudioPlayerVisible(value),
         audioPlayerScale: 1, setAudioPlayerScale: (value: number) => audioPrefs.setAudioPlayerScale(value),
         audioPlayerOpacity: 0.8, setAudioPlayerOpacity: (value: number) => audioPrefs.setAudioPlayerOpacity(value),
+        audioPlayerPinned: false, setAudioPlayerPinned: (value: boolean) => audioPrefs.setAudioPlayerPinned(value),
+        audioRepeat: false, setAudioRepeat: (value: boolean) => audioPrefs.setAudioRepeat(value),
+        audioResume: false, setAudioResume: (value: boolean) => audioPrefs.setAudioResume(value),
         resetAudioSettings: () => audioPrefs.resetAudioSettings(),
         colorIntensity: colorPrefs.colorIntensity, setColorIntensity: (value: number) => setColorIntensity(value),
+        textZoom: 1, setTextZoom: vi.fn(),
+        fontFamily: "system", setFontFamily: vi.fn(),
         sidebarItemSize: "normal", setSidebarItemSize: (value: string) => setSidebarItemSize(value),
         newTaskPosition: "bottom", setNewTaskPosition: vi.fn(),
         taskDensity: "normal", setTaskDensity: vi.fn(),
@@ -99,7 +109,7 @@ describe("DialogSettings", () => {
         await user.click(screen.getByRole("tab", { name: "Note e sezioni" }))
         expect(screen.getByRole("heading", { name: "Note e sezioni" })).toBeInTheDocument()
         expect(screen.getByLabelText("Mostra numero di task")).toBeInTheDocument()
-        expect(screen.getAllByRole("switch")).toHaveLength(18)
+        expect(screen.getAllByRole("switch")).toHaveLength(17)
         expect(screen.getByRole("switch", { name: "Nascondi task completati" })).not.toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra barra d'avanzamento nei gruppi" })).toBeChecked()
         expect(screen.getByRole("switch", { name: "Mostra il nome dei gruppi e delle sezioni senza nome" })).not.toBeChecked()
@@ -165,6 +175,21 @@ describe("DialogSettings", () => {
         expect(visible).toBeChecked()
         await user.click(visible)
         expect(audioPrefs.setAudioPlayerVisible).toHaveBeenCalledWith(false)
+
+        const pinned = screen.getByRole("switch", { name: "Fissa il player" })
+        expect(pinned).not.toBeChecked()
+        await user.click(pinned)
+        expect(audioPrefs.setAudioPlayerPinned).toHaveBeenCalledWith(true)
+
+        const repeat = screen.getByRole("switch", { name: "Ripeti il brano" })
+        expect(repeat).not.toBeChecked()
+        await user.click(repeat)
+        expect(audioPrefs.setAudioRepeat).toHaveBeenCalledWith(true)
+
+        const resume = screen.getByRole("switch", { name: "Riprendi da dove eri" })
+        expect(resume).not.toBeChecked()
+        await user.click(resume)
+        expect(audioPrefs.setAudioResume).toHaveBeenCalledWith(true)
 
         const size = screen.getByRole("radiogroup", { name: "Dimensione del player" })
         expect(within(size).getByRole("radio", { name: "Normale" })).toBeChecked()

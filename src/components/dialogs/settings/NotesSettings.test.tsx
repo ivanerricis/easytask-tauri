@@ -3,15 +3,18 @@ import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { NotesSettings } from "./NotesSettings"
 
-const setters = { setTaskDensity: vi.fn(), setNewTaskPosition: vi.fn(), setSpellcheck: vi.fn(), setConfirmDeleteWithContent: vi.fn(), setKeepAddingTasks: vi.fn(), setShowTaskInsertLine: vi.fn() }
+const setters = { setTaskDensity: vi.fn(), setNewTaskPosition: vi.fn(), setSpellcheck: vi.fn(), setConfirmDeleteWithContent: vi.fn(), setKeepAddingTasks: vi.fn(), setShowTaskInsertLine: vi.fn(), setReopenLastWorkspace: vi.fn(), setStartupWorkspaceId: vi.fn() }
 let prefs: Record<string, unknown>
+const workspaces = [{ id: 1, name: "Alpha" }, { id: 2, name: "Beta" }]
+
+vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ workspaces }) }))
 
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ ...prefs, ...setters }) }))
 
 describe("NotesSettings", () => {
     beforeEach(() => {
         vi.clearAllMocks()
-        prefs = { taskDensity: "normal", newTaskPosition: "bottom", spellcheck: true }
+        prefs = { taskDensity: "normal", newTaskPosition: "bottom", spellcheck: true, reopenLastWorkspace: false, startupWorkspaceId: null }
     })
 
     it("changes the task density", async () => {
@@ -59,5 +62,39 @@ describe("NotesSettings", () => {
         expect(toggle).toBeChecked()
         await userEvent.click(toggle)
         expect(setters.setSpellcheck).toHaveBeenCalledWith(false)
+    })
+
+    it("chooses what the app opens at startup", async () => {
+        const user = userEvent.setup()
+        const { rerender } = render(<NotesSettings />)
+        const select = screen.getByRole("combobox", { name: "Apri all'avvio" })
+        expect(select).toHaveTextContent("Pagina iniziale")
+
+        await user.click(select)
+        await user.click(await screen.findByRole("option", { name: "Ultimo workspace usato" }))
+        expect(setters.setReopenLastWorkspace).toHaveBeenLastCalledWith(true)
+        expect(setters.setStartupWorkspaceId).toHaveBeenLastCalledWith(null)
+
+        await user.click(select)
+        await user.click(await screen.findByRole("option", { name: "Beta" }))
+        expect(setters.setReopenLastWorkspace).toHaveBeenLastCalledWith(true)
+        expect(setters.setStartupWorkspaceId).toHaveBeenLastCalledWith(2)
+
+        // The preferences are mocked: show the stored state the user would now see
+        prefs = { ...prefs, reopenLastWorkspace: true, startupWorkspaceId: 2 }
+        rerender(<NotesSettings />)
+        await user.click(select)
+        await user.click(await screen.findByRole("option", { name: "Pagina iniziale" }))
+        expect(setters.setReopenLastWorkspace).toHaveBeenLastCalledWith(false)
+    })
+
+    it("shows the fixed workspace, or the last one when it was deleted", () => {
+        prefs = { ...prefs, reopenLastWorkspace: true, startupWorkspaceId: 1 }
+        const { unmount } = render(<NotesSettings />)
+        expect(screen.getByRole("combobox", { name: "Apri all'avvio" })).toHaveTextContent("Alpha")
+        unmount()
+        prefs = { ...prefs, startupWorkspaceId: 99 }
+        render(<NotesSettings />)
+        expect(screen.getByRole("combobox", { name: "Apri all'avvio" })).toHaveTextContent("Ultimo workspace usato")
     })
 })

@@ -2,6 +2,7 @@ import { useTranslation } from "react-i18next"
 import { usePreferences } from "@/contexts/use-preferences"
 import { SegmentedSetting } from "./SegmentedSetting"
 import { SettingsPanel, SettingsSubsection, SettingsSwitchRow } from "./SettingsRow"
+import { StartupWorkspaceSetting } from "./StartupWorkspaceSetting"
 
 const TASK_DENSITY_OPTIONS = ["compact", "normal", "large"] as const
 const NEW_TASK_POSITION_OPTIONS = ["bottom", "top"] as const
@@ -28,7 +29,6 @@ export const NotesSettings = () => {
         hideCompletedTasks, setHideCompletedTasks,
         completedTasksLast, setCompletedTasksLast,
         reopenNotes, setReopenNotes,
-        reopenLastWorkspace, setReopenLastWorkspace,
     } = usePreferences()
 
     return (
@@ -72,7 +72,7 @@ export const NotesSettings = () => {
                 <SettingsSwitchRow label={t("settings.notes.confirmDelete.label")} description={t("settings.notes.confirmDelete.description")} checked={confirmDeleteWithContent} onCheckedChange={setConfirmDeleteWithContent} />
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.notes.sections.startup")}>
-                <SettingsSwitchRow label={t("settings.notes.reopenWorkspace.label")} description={t("settings.notes.reopenWorkspace.description")} checked={reopenLastWorkspace} onCheckedChange={setReopenLastWorkspace} />
+                <StartupWorkspaceSetting />
                 <SettingsSwitchRow label={t("settings.notes.reopenNotes.label")} description={t("settings.notes.reopenNotes.description")} checked={reopenNotes} onCheckedChange={setReopenNotes} />
             </SettingsSubsection>
         </SettingsPanel>

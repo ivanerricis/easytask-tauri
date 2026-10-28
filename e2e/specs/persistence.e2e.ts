@@ -3,8 +3,8 @@ import fs from "node:fs"
 import path from "node:path"
 import { $, $$, browser, expect } from "@wdio/globals"
 import {
-    addTaskToSection, byLabel, byText, createFromSidebar, createWorkspace, currentLang, dataDir, domClick, openWorkspace, sectionCard, topDialog, tr, trIn,
-    treeRow, typeInto, waitForApp,
+    addTaskToSection, byLabel, byText, chooseLanguage, createFromSidebar, createWorkspace, currentLang, dataDir, domClick, openWorkspace, sectionCard, topDialog, tr, trIn,
+    selectedLanguage, treeRow, typeInto, waitForApp,
     groupCard, newSectionInGroup,
 } from "../helpers"
 
@@ -45,7 +45,6 @@ const appPids = (): string[] => {
 /** The preferences file of the app (the store plugin writes it with a debounce: the specs wait for it). */
 const settingsFile = async () => path.join(await dataDir(), "settings.dat")
 
-const languageRadio = (label: string) => $(`//*[@role='radiogroup']//*[@role='radio'][normalize-space()='${label}']`)
 
 /** Opens the settings on a category and returns the dialog. */
 const openSettings = async (category: "appearance" | "notes") => {
@@ -109,14 +108,13 @@ describe("Settings and data survive an app restart", () => {
             const hide = await hideCompletedSwitch()
             if ((await hide.getAttribute("aria-checked")) === "true") await domClick(hide)
             await byText(await tr("settings.categories.appearance"), dialog).click()
-            const reset = $(`[title=${JSON.stringify(await tr("settings.appearance.reset.description"))}]`)
+            const reset = byText(await tr("settings.resetAll"), dialog)
             if (await reset.isEnabled()) {
                 await domClick(reset)
                 const confirm = await topDialog()
                 await domClick(byText(await tr("settings.appearance.reset.confirm"), confirm))
             }
-            const system = languageRadio(trIn(await currentLang(), "common.system"))
-            await expect(system).toHaveAttribute("aria-checked", "true")
+            expect(await selectedLanguage()).toBe(trIn(await currentLang(), "common.system"))
             await closeSettings()
         } catch (error) {
             console.log("[e2e] could not restore the default settings:", error)
@@ -157,7 +155,7 @@ describe("Settings and data survive an app restart", () => {
         }, element, ACCENT)
         await browser.waitUntil(async () => (await accent.getValue()) === ACCENT, { timeoutMsg: "the accent color was not set" })
 
-        await languageRadio(languageChosen === "it" ? "Italiano" : "English").click()
+        await chooseLanguage(languageChosen === "it" ? "Italiano" : "English")
         await browser.waitUntil(async () => (await currentLang()) === languageChosen, { timeoutMsg: "the language did not change" })
         await closeSettings()
 
@@ -190,7 +188,7 @@ describe("Settings and data survive an app restart", () => {
         expect(await currentLang()).toBe(languageChosen)
 
         const dialog = await openSettings("appearance")
-        await expect(languageRadio(languageChosen === "it" ? "Italiano" : "English")).toHaveAttribute("aria-checked", "true")
+        expect(await selectedLanguage()).toBe(languageChosen === "it" ? "Italiano" : "English")
         const accent = await accentInput()
         await accent.waitForExist()
         expect(await accent.getValue()).toBe(ACCENT)

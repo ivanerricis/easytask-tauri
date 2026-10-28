@@ -441,6 +441,41 @@ describe("audio file count and section separators preferences", () => {
         expect(await getPref("audioPlayerPinned")).toBe(true)
     })
 
+    it("remembers the playback speed only when it is one of the speeds of the player", async () => {
+        for (const rate of [0.75, 1, 1.25, 1.5, 2]) expect(normalizePref("audioPlaybackRate", rate)).toBe(rate)
+        for (const garbage of [0, 3, -1, 1.1, "2", null, undefined, NaN, {}]) expect(normalizePref("audioPlaybackRate", garbage)).toBe(1)
+    })
+
+    it("repeats and resumes only when turned on", () => {
+        for (const name of ["audioRepeat", "audioResume"] as const) {
+            expect(normalizePref(name, undefined)).toBe(false)
+            expect(normalizePref(name, "yes")).toBe(false)
+            expect(normalizePref(name, 1)).toBe(false)
+            expect(normalizePref(name, true)).toBe(true)
+        }
+    })
+
+    it("keeps the valid audio positions and at most 200, dropping the oldest", () => {
+        expect(normalizePref("audioPositions", undefined)).toEqual({})
+        expect(normalizePref("audioPositions", [1, 2])).toEqual({})
+        expect(normalizePref("audioPositions", "x")).toEqual({})
+        expect(normalizePref("audioPositions", {
+            "1": { position: 10, updatedAt: 5 },
+            "2": 20,
+            "3": { position: -1, updatedAt: 5 },
+            "4": { position: "x", updatedAt: 5 },
+            "5": null,
+            "abc": { position: 3, updatedAt: 5 },
+            "6": { position: 7, updatedAt: "late" },
+        })).toEqual({ "1": { position: 10, updatedAt: 5 }, "2": { position: 20, updatedAt: 0 }, "6": { position: 7, updatedAt: 0 } })
+        const many = Object.fromEntries(Array.from({ length: 250 }, (_, i) => [String(i + 1), { position: 10, updatedAt: i + 1 }]))
+        const kept = normalizePref("audioPositions", many)
+        expect(Object.keys(kept)).toHaveLength(200)
+        expect(kept["250"]).toBeDefined()
+        expect(kept["51"]).toBeDefined()
+        expect(kept["50"]).toBeUndefined()
+    })
+
     it("saves the separators", async () => {
         const p = savePref("showGroupSeparators", true)
         await vi.runAllTimersAsync()
@@ -496,12 +531,12 @@ describe("preference table", () => {
 
     it("keeps the keys saved on disk", () => {
         expect(Object.values(all).map(definition => definition.key).sort()).toEqual([
-            "alwaysOnTop", "animationSpeed", "audioPlayerOpacity", "audioPlayerPinned", "audioPlayerScale", "audioPlayerVisible", "audioVolume", "autoBackup", "backupFolder",
-            "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "completedTasksLast", "confirmDeleteWithContent", "hideCompletedTasks", "keepAddingTasks", "language",
+            "alwaysOnTop", "animationSpeed", "audioPlaybackRate", "audioPlayerOpacity", "audioPlayerPinned", "audioPlayerScale", "audioPlayerVisible", "audioPositions", "audioRepeat", "audioResume", "audioVolume", "autoBackup", "backupFolder",
+            "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "completedTasksLast", "confirmDeleteWithContent", "fontFamily", "hardwareAcceleration", "hideCompletedTasks", "keepAddingTasks", "language",
             "lastWorkspaceId", "newTaskPosition", "rememberWindowState", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
             "showGroupProgressBar", "showGroupSeparators", "showProgressBar", "showSectionCount", "showSubtaskCount", "showTaskCount",
             "showTaskInsertLine", "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth", "sidebarRightOpen", "sidebarRightWidth",
-            "skippedUpdateVersion", "spellcheck", "taskBackground", "taskDensity", "trashAutoEmptyDays", "undoLimit", "workspaceSort", "workspaceView",
+            "skippedUpdateVersion", "spellcheck", "startupWorkspaceId", "taskBackground", "taskDensity", "textZoom", "trashAutoEmptyDays", "undoLimit", "workspaceSort", "workspaceView",
         ])
     })
 
@@ -562,12 +597,13 @@ describe("delete confirmation and window preferences", () => {
         ["confirmDeleteWithContent", true],
         ["rememberWindowState", true],
         ["alwaysOnTop", false],
+        ["hardwareAcceleration", true],
     ] as const)("%s defaults to %s", async (name, expected) => {
         vi.mocked(store.get).mockResolvedValue(undefined)
         expect(await getPref(name)).toBe(expected)
     })
 
-    it.each(["confirmDeleteWithContent", "rememberWindowState"] as const)("%s is on unless stored as false", (name) => {
+    it.each(["confirmDeleteWithContent", "rememberWindowState", "hardwareAcceleration"] as const)("%s is on unless stored as false", (name) => {
         expect(normalizePref(name, false)).toBe(false)
         expect(normalizePref(name, "x")).toBe(true)
         expect(normalizePref(name, null)).toBe(true)
@@ -577,5 +613,20 @@ describe("delete confirmation and window preferences", () => {
         expect(normalizePref("alwaysOnTop", true)).toBe(true)
         expect(normalizePref("alwaysOnTop", "yes")).toBe(false)
         expect(normalizePref("alwaysOnTop", 1)).toBe(false)
+    })
+})
+
+describe("text zoom preference", () => {
+    it("is stored as a zoom of whole px of text (16 px = 1)", () => {
+        expect(normalizePref("textZoom", 1)).toBe(1)
+        expect(normalizePref("textZoom", 20 / 16)).toBe(1.25)
+        expect(normalizePref("textZoom", 1.0001)).toBe(1)
+    })
+
+    it("is kept between 12 and 24 px; anything else gives 1", () => {
+        expect(normalizePref("textZoom", 0.1)).toBe(12 / 16)
+        expect(normalizePref("textZoom", 9)).toBe(24 / 16)
+        expect(normalizePref("textZoom", "big")).toBe(1)
+        expect(normalizePref("textZoom", Number.NaN)).toBe(1)
     })
 })

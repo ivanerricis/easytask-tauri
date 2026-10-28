@@ -25,6 +25,9 @@ const BACKUP_FOLDER_KEY: &str = "backupFolder";
 /// keep the names identical on both sides.
 const REMEMBER_WINDOW_STATE_KEY: &str = "rememberWindowState";
 const ALWAYS_ON_TOP_KEY: &str = "alwaysOnTop";
+// Only the Windows webview (WebView2) takes browser arguments
+#[cfg(windows)]
+const HARDWARE_ACCELERATION_KEY: &str = "hardwareAcceleration";
 
 /// Where the app keeps its data and whether it runs in portable mode.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -132,6 +135,21 @@ fn setting_bool(data_dir: &Path, key: &str, default: bool) -> bool {
     read_settings(data_dir)
         .and_then(|settings| settings.get(key)?.as_bool())
         .unwrap_or(default)
+}
+
+/// The arguments of the WebView2 browser process. The media session of WebView2 belongs to msedgewebview2.exe, which
+/// Windows shows as "Unknown app": it is turned off (HardwareMediaKeyHandling) and the app publishes its own one
+/// (media_session.rs). The other features are the defaults of wry, which this list replaces. Without hardware
+/// acceleration (setting of the user, for graphics problems) the GPU is not used.
+#[cfg(windows)]
+fn webview_browser_args(hardware_acceleration: bool) -> String {
+    let mut args = String::from(
+        "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,HardwareMediaKeyHandling",
+    );
+    if !hardware_acceleration {
+        args.push_str(" --disable-gpu");
+    }
+    args
 }
 
 /// The custom backup folder chosen in the settings, read from the settings file of the data folder. None when
@@ -567,14 +585,15 @@ pub fn run() {
                 .ok_or("no window configured")?;
             #[allow(unused_mut)]
             let mut window = tauri::WebviewWindowBuilder::from_config(app.handle(), &config)?;
-            // The media session of WebView2 belongs to msedgewebview2.exe, which Windows shows as "Unknown app": it is
-            // turned off (HardwareMediaKeyHandling) and the app publishes its own one (media_session.rs). The other
-            // features are the defaults of wry, which this list replaces
+            // The arguments of WebView2 are read when the webview is created: the hardware acceleration setting
+            // applies at the next start
             #[cfg(windows)]
             {
-                window = window.additional_browser_args(
-                    "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,HardwareMediaKeyHandling",
-                );
+                window = window.additional_browser_args(&webview_browser_args(setting_bool(
+                    &info.path,
+                    HARDWARE_ACCELERATION_KEY,
+                    true,
+                )));
             }
             #[cfg(windows)]
             if info.portable {
@@ -584,8 +603,8 @@ pub fn run() {
                 window = window.always_on_top(true);
             }
             // Without the plugin (portable mode) there is no state to restore
-            let restore_state = !info.portable
-                && setting_bool(&info.path, REMEMBER_WINDOW_STATE_KEY, true);
+            let restore_state =
+                !info.portable && setting_bool(&info.path, REMEMBER_WINDOW_STATE_KEY, true);
             if restore_state {
                 // Hidden until the saved position and size are applied, or it would flash at the default place
                 window = window.visible(false);
@@ -879,6 +898,14 @@ mod tests {
         assert_eq!(custom_backup_folder(&data), None);
         std::fs::write(data.join(SETTINGS_FILE), b"not json").unwrap();
         assert_eq!(custom_backup_folder(&data), None);
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn webview_args_turn_the_gpu_off_only_without_hardware_acceleration() {
+        assert!(!webview_browser_args(true).contains("--disable-gpu"));
+        assert!(webview_browser_args(false).contains("--disable-gpu"));
+        assert!(webview_browser_args(false).contains("HardwareMediaKeyHandling"));
     }
 
     #[test]

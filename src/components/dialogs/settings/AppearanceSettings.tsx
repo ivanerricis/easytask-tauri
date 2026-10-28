@@ -7,6 +7,8 @@ import { DEFAULT_PRIMARY_COLOR, applyAccentColor } from "@/lib/accent-color"
 import { SettingsCard, SettingsPanel, SettingsRow } from "./SettingsRow"
 import { AccentContrastHint } from "./AccentContrastHint"
 import { LanguageSetting } from "./LanguageSetting"
+import { TextZoomSetting } from "./TextZoomSetting"
+import { FontFamilySetting } from "./FontFamilySetting"
 import { SidebarItemSizeSetting } from "./SidebarItemSizeSetting"
 import { ColorIntensitySetting } from "./ColorIntensitySetting"
 import { AnimationSpeedSetting } from "./AnimationSpeedSetting"
@@ -102,6 +104,8 @@ export const AppearanceSettings = () => {
                     <AccentContrastHint />
                 </div>
                 <LanguageSetting />
+                <FontFamilySetting />
+                <TextZoomSetting />
                 <SidebarItemSizeSetting />
                 <ColorIntensitySetting />
                 <AnimationSpeedSetting />

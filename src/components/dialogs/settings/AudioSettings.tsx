@@ -44,6 +44,9 @@ export const AudioSettings = () => {
         resetPlayerPosition, resetAudioSettings,
         audioVolume, setAudioVolume,
         audioPlayerVisible, setAudioPlayerVisible,
+        audioPlayerPinned, setAudioPlayerPinned,
+        audioRepeat, setAudioRepeat,
+        audioResume, setAudioResume,
         audioPlayerScale, setAudioPlayerScale,
         audioPlayerOpacity, setAudioPlayerOpacity,
     } = usePreferences()
@@ -63,6 +66,12 @@ export const AudioSettings = () => {
                     checked={audioPlayerVisible}
                     onCheckedChange={setAudioPlayerVisible}
                 />
+                <SettingsSwitchRow
+                    label={t("settings.audio.playerPinned.label")}
+                    description={t("settings.audio.playerPinned.description")}
+                    checked={audioPlayerPinned}
+                    onCheckedChange={setAudioPlayerPinned}
+                />
                 <SegmentedSetting
                     label={t("settings.audio.playerSize.label")}
                     description={t("settings.audio.playerSize.description")}
@@ -74,6 +83,18 @@ export const AudioSettings = () => {
                 <SettingsRow label={t("settings.audio.playerOpacity.label")} description={t("settings.audio.playerOpacity.description")}>
                     <PercentRange label={t("settings.audio.playerOpacity.label")} value={audioPlayerOpacity} min={MIN_AUDIO_PLAYER_OPACITY} onChange={setAudioPlayerOpacity} />
                 </SettingsRow>
+                <SettingsSwitchRow
+                    label={t("settings.audio.repeat.label")}
+                    description={t("settings.audio.repeat.description")}
+                    checked={audioRepeat}
+                    onCheckedChange={setAudioRepeat}
+                />
+                <SettingsSwitchRow
+                    label={t("settings.audio.resume.label")}
+                    description={t("settings.audio.resume.description")}
+                    checked={audioResume}
+                    onCheckedChange={setAudioResume}
+                />
                 <SettingsRow label={t("settings.audio.resetPlayer.label")} description={t("settings.audio.resetPlayer.description")}>
                     <Button variant="outline" size="sm" onClick={resetPlayerPosition}>
                         <RotateCcw />

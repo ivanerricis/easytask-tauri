@@ -11,7 +11,7 @@ type TaskInsertLineProps = {
     listKey: string
     /** The task above the line (null = the line at the top of the list). */
     afterTaskId: number | null
-    /** The first line of a container that clips its content: the zone does not stick out above. */
+    /** The first line of a container: the zone does not stick out above it (the "+" is centered on the border and sticks out, so the container must not clip it). */
     first?: boolean
 }
 
@@ -47,9 +47,9 @@ export const TaskInsertLine = memo(function TaskInsertLine({ listKey, afterTaskI
                     onPointerDown={event => event.stopPropagation()}
                     onMouseDown={event => event.preventDefault()}
                     onClick={open}
-                    className="absolute left-1/2 top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 group-hover/insert:opacity-100"
+                    className="absolute left-1/2 top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full opacity-0 group-hover/insert:opacity-100 [&_svg]:!h-3 [&_svg]:!w-3"
                 >
-                    <Plus className="size-3" />
+                    <Plus strokeWidth={3} />
                 </Button>
             </div>
         </div>

@@ -14,9 +14,9 @@ export const settings: Translation["settings"] = {
         },
         title: "Appearance",
         reset: {
-            description: "Puts theme, accent color, language, size of folders and notes and color intensity back to their defaults.",
+            description: "Puts theme, accent color, language, app size, size of folders and notes and color intensity back to their defaults.",
             confirmTitle: "Reset the appearance?",
-            confirmDescription: "Theme, accent color, language, size of folders and notes and color intensity go back to their defaults. Your data is not touched.",
+            confirmDescription: "Theme, accent color, language, app size, size of folders and notes and color intensity go back to their defaults. Your data is not touched.",
             confirm: "Reset",
         },
         theme: {
@@ -37,6 +37,26 @@ export const settings: Translation["settings"] = {
                 },
                 use: "Use {{color}} ({{ratio}}:1)",
             },
+        },
+        fontFamily: {
+            label: "Font",
+            description: "The font of the whole app. \"Default\" is the one used so far; the others are bundled with the app.",
+            options: {
+                system: "Default",
+                inter: "Inter",
+                lora: "Lora (serif)",
+                "jetbrains-mono": "JetBrains Mono (monospace)",
+                atkinson: "Atkinson Hyperlegible (high legibility)",
+                opendyslexic: "OpenDyslexic (for dyslexia)",
+            },
+        },
+        textZoom: {
+            label: "Text size",
+            description: "Makes the whole app (text, icons and spaces) bigger or smaller, set by the size of the text: 16 px is the normal one. Shortcuts: Ctrl+Plus, Ctrl+Minus, Ctrl+0.",
+            unit: "px",
+            decrease: "Make the text 1 px smaller",
+            increase: "Make the text 1 px bigger",
+            reset: "Back to 16 px",
         },
         sidebarSize: {
             label: "Size of folders and notes",
@@ -277,9 +297,12 @@ export const settings: Translation["settings"] = {
             label: "Show completed subtasks",
             description: "A task with subtasks shows how many of them are completed (e.g. 1/3).",
         },
-        reopenWorkspace: {
-            label: "Reopen the last workspace at startup",
-            description: "If you close the app inside a workspace, it is reopened at the next startup.",
+        startupWorkspace: {
+            label: "Open at startup",
+            description: "What the app shows when it starts: the home page, the last workspace used, or always the same workspace.",
+            home: "Home page",
+            last: "Last workspace used",
+            always: "Always open",
         },
         hideCompleted: {
             label: "Hide completed tasks",
@@ -330,6 +353,18 @@ export const settings: Translation["settings"] = {
             label: "Show the floating player",
             description: "When off, audio files are not played because the player holds the controls.",
         },
+        playerPinned: {
+            label: "Pin the player",
+            description: "While pinned, the player cannot be dragged.",
+        },
+        repeat: {
+            label: "Repeat the track",
+            description: "When a track ends, it starts over.",
+        },
+        resume: {
+            label: "Resume where you left off",
+            description: "Each track starts again from where you left it.",
+        },
         playerSize: {
             label: "Player size",
             description: "Makes the floating player bigger or smaller.",
@@ -342,7 +377,7 @@ export const settings: Translation["settings"] = {
             description: "Makes the player more or less transparent (at least 40% opaque).",
         },
         resetAll: {
-            description: "Volume, visibility, size and transparency go back to their defaults.",
+            description: "Volume, visibility, pinning, size, transparency, speed, repeat and resume go back to their defaults.",
         },
     },
     search: {
@@ -371,6 +406,13 @@ export const settings: Translation["settings"] = {
             label: "Keep the window on top",
             description: "EasyTask stays above the other windows. Applies at once and is remembered at startup.",
             error: "Cannot change the always on top setting: {{message}}",
+        },
+        hardwareAcceleration: {
+            label: "Hardware acceleration",
+            description: "Uses the graphics card to draw the app. Turn it off only if you see graphics problems (black screen, flicker). Applies at the next start.",
+            restartToast: "Hardware acceleration changes at the next start.",
+            restartNow: "Restart now",
+            restartError: "Cannot restart the app: {{message}}",
         },
         tray: {
             tooltip: "EasyTask",

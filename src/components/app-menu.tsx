@@ -26,6 +26,9 @@ import { OPEN_SETTINGS_EVENT, openReleasesPage, requestOpenSettings } from "@/li
 import { reportError } from "@/lib/report-error"
 import { openDocs } from "@/lib/docs"
 import { useShortcut } from "@/hooks/use-shortcut"
+import { usePreferences } from "@/contexts/use-preferences"
+import { DEFAULT_TEXT_ZOOM } from "@/lib/store/preferences"
+import { stepTextZoom } from "@/lib/text-zoom"
 
 type AppMenuProps = {
     // The home page has no notes: only the entries that make sense there are shown
@@ -119,6 +122,13 @@ export const AppMenu = ({ page }: AppMenuProps) => {
     const docs = () => { openDocs(i18n.language).catch(error => reportError(error)) }
 
     useShortcut("open-docs", docs, { allowInInputs: true })
+
+    const { textZoom, setTextZoom } = usePreferences()
+    const zoomIn = () => setTextZoom(stepTextZoom(textZoom, 1))
+    useShortcut("text-zoom-in", zoomIn, { allowInInputs: true })
+    useShortcut("text-zoom-in-alt", zoomIn, { allowInInputs: true })
+    useShortcut("text-zoom-out", () => setTextZoom(stepTextZoom(textZoom, -1)), { allowInInputs: true })
+    useShortcut("text-zoom-reset", () => setTextZoom(DEFAULT_TEXT_ZOOM), { allowInInputs: true })
 
     return (
         <Menubar ref={rootRef} aria-label={t("appMenu.label")} className="pl-1">

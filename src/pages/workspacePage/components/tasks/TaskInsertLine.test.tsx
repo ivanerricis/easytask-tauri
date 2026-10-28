@@ -56,6 +56,18 @@ describe("TaskInsertLine", () => {
         expect(screen.getByTestId("task-insert-zone")).toHaveClass("top-0")
     })
 
+    it("the \"+\" of the first line is centered on the border like the others", () => {
+        setup(<TaskInsertLine listKey="s1" afterTaskId={null} first />)
+        const firstButton = screen.getByTestId("task-insert-zone").querySelector("button")!
+        expect(firstButton).toHaveClass("top-1/2", "-translate-y-1/2")
+    })
+
+    it("the \"+\" of a line between two tasks is centered on the border", () => {
+        setup()
+        const button = screen.getByTestId("task-insert-zone").querySelector("button")!
+        expect(button).toHaveClass("top-1/2", "-translate-y-1/2")
+    })
+
     it("renders nothing when the preference is off", () => {
         prefs = { showTaskInsertLine: false }
         setup()

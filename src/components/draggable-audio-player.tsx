@@ -11,7 +11,7 @@ type Props = {
 
 export const DraggableAudioPlayer = ({ position }: Props) => {
     const { track, closePlayer, reportPlaybackError, toggleSeq, setPlaybackState, togglePlayback } = useAudio()
-    const { audioVolume, setAudioVolume, audioPlayerVisible, audioPlayerPinned, setAudioPlayerPinned, audioPlayerScale, audioPlayerOpacity, reportAudioPlayerSize } = usePreferences()
+    const { audioVolume, setAudioVolume, audioPlayerVisible, audioPlayerPinned, setAudioPlayerPinned, audioPlayerScale, audioPlayerOpacity, reportAudioPlayerSize, audioPlaybackRate, setAudioPlaybackRate, audioRepeat, audioResume } = usePreferences()
     const { attributes, listeners, setNodeRef, transform } = useDraggable({
         id: "audio-player",
         disabled: audioPlayerPinned,
@@ -73,6 +73,11 @@ export const DraggableAudioPlayer = ({ position }: Props) => {
                     onVolumeChange={setAudioVolume}
                     pinned={audioPlayerPinned}
                     onPinnedChange={setAudioPlayerPinned}
+                    playbackRate={audioPlaybackRate}
+                    onPlaybackRateChange={setAudioPlaybackRate}
+                    repeat={audioRepeat}
+                    audioId={track.audioId}
+                    resume={audioResume}
                 />
             </div>
         </div>

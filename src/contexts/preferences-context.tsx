@@ -13,6 +13,7 @@ import {
     DEFAULT_AUDIO_VOLUME,
     DEFAULT_AUDIO_PLAYER_SCALE,
     DEFAULT_AUDIO_PLAYER_OPACITY,
+    DEFAULT_AUDIO_PLAYBACK_RATE,
     type AudioPlayerScale,
     type PrefValue,
     type UiPrefName
@@ -20,6 +21,8 @@ import {
 import { reportError } from "@/lib/report-error"
 import { applyLanguagePreference } from "@/i18n"
 import { applyAnimationSpeed } from "@/lib/animation-speed"
+import { applyTextZoom } from "@/lib/text-zoom"
+import { applyFontFamily } from "@/lib/font-family"
 import type { AudioPlayerPosition } from "@/types/types"
 import { PreferencesContext, type PreferencesContextType, type PrefSetterName } from "./preferences-context-object"
 
@@ -44,6 +47,8 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
     const [prefs, setPrefs] = useState<PrefValues>(DEFAULT_PREFS)
     const [primaryColor, setPrimaryColorState] = useState(DEFAULT_PRIMARY_COLOR)
     useEffect(() => applyAnimationSpeed(prefs.animationSpeed), [prefs.animationSpeed])
+    useEffect(() => applyTextZoom(prefs.textZoom), [prefs.textZoom])
+    useEffect(() => applyFontFamily(prefs.fontFamily), [prefs.fontFamily])
     // The spellcheck attribute is inherited: on the root it covers every text field of the app
     useEffect(() => { document.documentElement.spellcheck = prefs.spellcheck }, [prefs.spellcheck])
     const [audioPlayerPosition, setAudioPlayerPositionState] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 })
@@ -158,6 +163,9 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             setters.setAudioPlayerPinned(false)
             setAudioPlayerScale(DEFAULT_AUDIO_PLAYER_SCALE)
             setters.setAudioPlayerOpacity(DEFAULT_AUDIO_PLAYER_OPACITY)
+            setters.setAudioPlaybackRate(DEFAULT_AUDIO_PLAYBACK_RATE)
+            setters.setAudioRepeat(false)
+            setters.setAudioResume(false)
         }
 
         const resetPlayerPosition = () => {

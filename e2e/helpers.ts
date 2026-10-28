@@ -30,6 +30,55 @@ const xpathString = (value: string) =>
 export const byLabel = (label: string) => $(`[aria-label=${cssString(label)}]`)
 export const allByLabel = (label: string) => $$(`[aria-label=${cssString(label)}]`)
 
+/** The language select of Settings > Appearance: a combobox tied (label for=id) to the label of its row, in the current language. */
+export const languageSelect = async () =>
+    $(`//button[@role='combobox'][@id=//label[normalize-space()=${xpathString(await tr("settings.appearance.language.label"))}]/@for]`)
+
+/**
+ * The label of the language selected in the select of Settings > Appearance. It opens the list and reads the checked option
+ * (the text shown by the closed select is empty for the WebKitGTK driver), then closes the list.
+ */
+export const selectedLanguage = async (): Promise<string> => {
+    await (await languageSelect()).click()
+    const listbox = $("[role='listbox']")
+    await listbox.waitForDisplayed({ timeoutMsg: "the language list did not open" })
+    const label: string = await browser.execute(() =>
+        (Array.from(document.querySelectorAll("[role='option']")).find(option => option.getAttribute("data-state") === "checked")?.textContent ?? "").trim(),
+    )
+    await browser.keys("Escape")
+    await listbox.waitForExist({ reverse: true, timeoutMsg: "the language list did not close" })
+    return label
+}
+
+/**
+ * Picks a language in the select of Settings > Appearance, by the label of its option ("Italiano", "English", the translated
+ * "System"). It moves with the keyboard (the highlighted option starts on the selected one): a click on an option is not
+ * reliable on WebKitGTK, where the pointer events of the list differ.
+ */
+export const chooseLanguage = async (label: string) => {
+    await (await languageSelect()).click()
+    const listbox = $("[role='listbox']")
+    await listbox.waitForDisplayed({ timeoutMsg: "the language list did not open" })
+    // The keys go to the list only once an option has the focus (Radix marks it with data-highlighted)
+    await browser.waitUntil(
+        async () => await browser.execute(() => document.querySelector("[role='option'][data-highlighted]") !== null),
+        { timeoutMsg: "no language option got the focus" },
+    )
+    const labels: string[] = await browser.execute(() =>
+        Array.from(document.querySelectorAll("[role='option']")).map(option => (option.textContent ?? "").trim()),
+    )
+    const selected: number = await browser.execute(() =>
+        Array.from(document.querySelectorAll("[role='option']")).findIndex(option => option.getAttribute("data-state") === "checked"),
+    )
+    const target = labels.indexOf(label)
+    if (target < 0) throw new Error(`No language option "${label}" (found: ${labels.join(", ")})`)
+    const key = target > selected ? "ArrowDown" : "ArrowUp"
+    for (let step = 0; step < Math.abs(target - selected); step++) await browser.keys(key)
+    await browser.keys("Enter")
+    // The list closes with an animation: an Escape pressed before it is gone would only close the list
+    await listbox.waitForExist({ reverse: true, timeoutMsg: "the language list did not close" })
+}
+
 /** Button (or any element) whose visible text is exactly `text`, optionally inside `scope`. */
 export const byText = (text: string, scope?: ChainablePromiseElement | WebdriverIO.Element) =>
     (scope ?? $("body")).$(`.//*[self::button or @role='button' or @role='radio' or @role='menuitem' or @role='menuitemradio' or @role='tab'][normalize-space()=${xpathString(text)}]`)

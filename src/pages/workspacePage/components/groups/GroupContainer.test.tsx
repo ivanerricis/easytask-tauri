@@ -191,13 +191,12 @@ describe("GroupContainer reorder", () => {
             expect(screen.queryByRole("menuitem", { name: /Nuovo gruppo/ })).toBeNull()
         })
 
-        it("makes the horizontal scrollbar of the groups taller", async () => {
+        it("scrolls the groups sideways with the global scrollbar (no scrollbar styles of its own)", async () => {
             await renderLoaded()
             // Whole classes: two of them glued together by a missing space are no class at all
             const classes = emptyArea().className.split(/\s+/)
-            expect(classes).toContain("[&::-webkit-scrollbar]:h-3.5!")
-            expect(classes).toContain("[&::-webkit-scrollbar-thumb]:rounded-full")
-            expect(classes).toContain("[&::-webkit-scrollbar-thumb]:border-[3px]")
+            expect(classes).toContain("overflow-x-auto")
+            expect(classes.some(name => name.includes("scrollbar"))).toBe(false)
         })
     })
 })
