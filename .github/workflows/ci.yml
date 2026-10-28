@@ -185,7 +185,8 @@ jobs:
         if: runner.os == 'Linux'
         env:
           E2E_SHARD: ${{ matrix.shard }}
-        run: xvfb-run --auto-servernum npm run e2e
+        # dbus-run-session: without a session bus every app start waited ~30 s (a D-Bus timeout) before the window opened
+        run: xvfb-run --auto-servernum dbus-run-session -- npm run e2e
       - name: Build the debug app (Windows)
         if: runner.os == 'Windows'
         run: npm run tauri -- build --debug --no-bundle
