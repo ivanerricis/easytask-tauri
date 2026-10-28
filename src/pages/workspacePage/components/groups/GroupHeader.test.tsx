@@ -71,15 +71,20 @@ describe("GroupHeader color", () => {
 describe("GroupHeader unnamed label and rename on click", () => {
     it("shows no text for an unnamed group by default", () => {
         render(<GroupHeader group={makeGroup({ name: null })} index={2} />)
-        expect(screen.getByRole("button", { name: "Gruppo 3" })).toBeEmptyDOMElement()
+        expect(screen.getByRole("button", { name: "Nome gruppo: Gruppo 3, premi Invio per rinominare" })).toBeEmptyDOMElement()
     })
 
     it("shows the fallback label in muted text when the preference is on", () => {
         prefs.showUnnamedLabels = true
         render(<GroupHeader group={makeGroup({ name: null })} index={2} />)
-        const name = screen.getByRole("button", { name: "Gruppo 3" })
+        const name = screen.getByRole("button", { name: "Nome gruppo: Gruppo 3, premi Invio per rinominare" })
         expect(name).toHaveTextContent("Gruppo 3")
         expect(name).toHaveClass("text-muted-foreground")
+    })
+
+    it("names the button after its action, with the group name in it", () => {
+        render(<GroupHeader group={makeGroup({ name: "Da fare" })} />)
+        expect(screen.getByRole("button", { name: "Nome gruppo: Da fare, premi Invio per rinominare" })).toHaveTextContent("Da fare")
     })
 
     it("does not mute the label of a named group", () => {
@@ -99,7 +104,7 @@ describe("GroupHeader unnamed label and rename on click", () => {
         prefs.renameOnClick = false
         const user = userEvent.setup()
         render(<GroupHeader group={makeGroup({ name: "Da fare" })} />)
-        screen.getByRole("button", { name: "Da fare" }).focus()
+        screen.getByRole("button", { name: "Nome gruppo: Da fare, premi Invio per rinominare" }).focus()
         await user.keyboard("{Enter}")
         expect(screen.getByRole("textbox")).toBeInTheDocument()
     })
@@ -132,7 +137,7 @@ describe("GroupHeader name", () => {
 
     it("shows no text when unnamed: the empty button keeps its width and is named 'Gruppo N' for the screen readers", () => {
         render(<GroupHeader group={makeGroup({ name: null })} index={2} />)
-        const button = screen.getByRole("button", { name: "Gruppo 3" })
+        const button = screen.getByRole("button", { name: "Nome gruppo: Gruppo 3, premi Invio per rinominare" })
         expect(button).toBeEmptyDOMElement()
         expect(button).toHaveClass("flex-1")
         expect(button).not.toHaveAttribute("title")
@@ -141,7 +146,7 @@ describe("GroupHeader name", () => {
     it("renames inline on Enter and patches the note without reloading it", async () => {
         const user = userEvent.setup()
         render(<GroupHeader group={makeGroup({ id: 7, name: null })} index={0} />)
-        await user.click(screen.getByRole("button", { name: "Gruppo 1" }))
+        await user.click(screen.getByRole("button", { name: "Nome gruppo: Gruppo 1, premi Invio per rinominare" }))
         await user.type(screen.getByLabelText("Nome del gruppo"), "Idee{Enter}")
         expect(patchGroup).toHaveBeenCalledWith(7, { name: "Idee" })
         expect(renameItem).toHaveBeenCalledWith("section_group", 7, "Idee")

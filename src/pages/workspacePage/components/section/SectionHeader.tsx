@@ -98,7 +98,8 @@ export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }:
                             onKeyDown={e => { if (!renameOnClick && e.key === "Enter") { e.preventDefault(); startEdit() } }}
                             title={section.title ? section.title : undefined}
                             // An untitled section shows no text unless the preference asks for the fallback label
-                            aria-label={getSectionLabel(section)}
+                            // and says what the button does (Enter renames), not only what it is called
+                            aria-label={t("sections.renameAria", { name: getSectionLabel(section) })}
                             className={`text-sm ml-1 min-w-0 flex-1 h-6 truncate text-left rounded-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${renameOnClick ? "cursor-text" : ""} ${!section.title ? "text-muted-foreground" : ""}`}>
                             {search.query ? <Highlight text={section.title} query={search.query} active={search.active} /> : section.title || (showUnnamedLabels ? getSectionLabel(section) : "")}
                         </button>}
