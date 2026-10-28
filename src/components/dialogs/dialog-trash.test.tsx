@@ -107,6 +107,14 @@ describe("DialogTrash", () => {
         expect(screen.getByText("Nota B › Sezione 1 · Vuoto · Eliminato il 03-09-2026 12:00")).toBeInTheDocument()
     })
 
+    it("nel piè di pagina Chiudi sta a sinistra e Svuota cestino (l'azione) a destra", async () => {
+        render(<DialogTrash isOpen onOpenChange={vi.fn()} />)
+        const empty = await screen.findByRole("button", { name: "Svuota cestino" })
+        const footer = empty.closest("[data-slot=dialog-footer]") as HTMLElement
+        const close = within(footer).getByRole("button", { name: "Chiudi" })
+        expect(close.compareDocumentPosition(empty) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    })
+
     it("shows the empty state and disables emptying", async () => {
         data.getTrash.mockResolvedValue([])
         render(<DialogTrash isOpen onOpenChange={vi.fn()} />)

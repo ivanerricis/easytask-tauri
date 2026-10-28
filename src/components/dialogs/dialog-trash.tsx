@@ -145,6 +145,9 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
             <FormError>{error}</FormError>
             {/* mt-auto: with few or no items the buttons stay at the bottom of the (fixed height) dialog */}
             <DialogFooter className="mt-auto">
+                <Button variant="outline" onClick={() => onOpenChange(false)}>
+                    {t("common.close")}
+                </Button>
                 <Button
                     variant="destructive"
                     disabled={busy || isLoading || items.length === 0}
@@ -152,9 +155,6 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                 >
                     <Trash2 />
                     {t("trash.empty")}
-                </Button>
-                <Button variant="outline" onClick={() => onOpenChange(false)}>
-                    {t("common.close")}
                 </Button>
             </DialogFooter>
         </>
