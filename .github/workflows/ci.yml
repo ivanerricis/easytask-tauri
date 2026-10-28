@@ -185,10 +185,13 @@ jobs:
         if: runner.os == 'Linux'
         env:
           E2E_SHARD: ${{ matrix.shard }}
-          # No session bus on the runner: without these the app waits ~30 s for the accessibility bus at every start
-          NO_AT_BRIDGE: "1"
-          GTK_A11Y: none
-        run: xvfb-run --auto-servernum npm run e2e
+        # EXPERIMENT (temporary): one idea per shard to find what makes the app start in 31 s instead of 1-2 s
+        run: |
+          case "${{ matrix.shard }}" in
+            1/3) xvfb-run --auto-servernum dbus-run-session -- npm run e2e ;;
+            2/3) WEBKIT_DISABLE_COMPOSITING_MODE=1 xvfb-run --auto-servernum npm run e2e ;;
+            3/3) LIBGL_ALWAYS_SOFTWARE=1 WEBKIT_DISABLE_DMABUF_RENDERER=1 xvfb-run --auto-servernum npm run e2e ;;
+          esac
       - name: Build the debug app (Windows)
         if: runner.os == 'Windows'
         run: npm run tauri -- build --debug --no-bundle
