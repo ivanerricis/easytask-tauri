@@ -35,6 +35,8 @@ export const shortcuts = {
         "task-toggle": "Completa o riapri il task",
         "task-rename": "Modifica il testo del task",
         "task-menu": "Apri il menu del task",
+        "task-extend-selection": "Estendi la selezione ai task vicini, al primo o all'ultimo",
+        "task-toggle-selection": "Aggiungi o togli il task dalla selezione",
         "toggle-sidebar": "Mostra o nascondi la barra laterale",
         "toggle-right-sidebar": "Mostra o nascondi il pannello dei dettagli e della cronologia",
         "new-workspace": "Nuovo workspace",
