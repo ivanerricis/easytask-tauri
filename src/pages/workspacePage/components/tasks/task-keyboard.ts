@@ -10,7 +10,7 @@ export type TaskKeyRow = {
 export type TaskKeyEvent = { key: string, altKey: boolean, shiftKey: boolean, ctrlKey: boolean, metaKey: boolean }
 
 /** What a key does on a task row. For the focus actions `key` is the row to focus; for expand / collapse it is the current row. */
-export type TaskKeyAction =
+type TaskKeyAction =
     | { type: "focus", key: string }
     | { type: "expand", key: string }
     | { type: "collapse", key: string }

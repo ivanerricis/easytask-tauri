@@ -5,7 +5,7 @@ import { createExternalStore, useStoreSelector, type ExternalStore } from "@/lib
  * Roving tabindex of a task list: the id of the one task that is in the tab order (the last one that had the focus), the
  * others are reached with the arrows. In a store, so that moving the focus re-renders only the two rows concerned.
  */
-export type TaskTabStopStore = ExternalStore<number | null>
+type TaskTabStopStore = ExternalStore<number | null>
 export const createTaskTabStopStore = (): TaskTabStopStore => createExternalStore<number | null>(null)
 
 type TaskTabStopValue = { listKey: string, store: TaskTabStopStore }

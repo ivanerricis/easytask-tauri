@@ -4,7 +4,7 @@ import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { usePreference } from "@/contexts/use-preference"
 import { useNoteDndSelector } from "../note-dnd-state"
-import { useHasTaskSelection } from "./task-selection-context"
+import { useHasTaskSelection } from "./use-task-selection"
 import { useTaskInsertStore } from "./task-insert-state"
 
 type TaskInsertLineProps = {

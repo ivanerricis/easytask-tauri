@@ -16,7 +16,7 @@ import {
     computeDropZone, computeGroupDropZone, computeGroupTarget, computeSectionTarget, findGroup, computeTaskTarget, findSection, findTask,
     type DropZone, type NoteDragKind, type NoteDragRef, type NoteOverKind, type NoteOverRef, type SectionTarget, type TaskTarget,
 } from "./note-dnd"
-import { useTaskSelectionStore } from "./tasks/task-selection-context"
+import { useTaskSelectionStore } from "./tasks/use-task-selection"
 import { taskKey } from "./tasks/task-selection"
 import { announce } from "./tasks/note-announcer-store"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"

@@ -3,7 +3,7 @@ import type { ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { NoteDndProvider } from "./NoteDndProvider"
 import { createSelectionStore } from "./sidebar/selection"
-import { TaskSelectionContext } from "./tasks/task-selection-context"
+import { TaskSelectionContext } from "./tasks/use-task-selection"
 import { taskKey } from "./tasks/task-selection"
 import { announce } from "./tasks/note-announcer-store"
 

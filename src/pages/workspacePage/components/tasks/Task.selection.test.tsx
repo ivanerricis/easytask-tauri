@@ -9,7 +9,7 @@ import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { NoteDataTree } from "@/types/types"
 import { createSelectionStore } from "../sidebar/selection"
 import { PreferencesContext } from "@/contexts/preferences-context-object"
-import { TaskSelectionContext } from "./task-selection-context"
+import { TaskSelectionContext } from "./use-task-selection"
 import { TaskSelectionActionsProvider } from "./task-selection-actions"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))

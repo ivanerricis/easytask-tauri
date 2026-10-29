@@ -2,7 +2,6 @@ import { useTranslation } from "react-i18next"
 import { Checkbox } from "@/components/ui/checkbox"
 import type { Task as TaskType } from "@/types/types"
 import { ButtonMenuTask } from "./ButtonMenuTask"
-import { ItemMenuButton } from "@/components/item-menu"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
@@ -13,38 +12,27 @@ import { useAutomations } from "@/hooks/use-automations"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { cn, getErrorMessage, hexToRgba } from "@/lib/utils"
 import React, { useCallback, useEffect, useRef, useState, type HTMLAttributes } from "react"
-import { AutoTextarea } from "@/components/auto-textarea"
-import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
-import { AlignLeft, Flag, ListTree, Plus } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { TooltipCustom } from "@/components/tooltip-custom"
 import { AddTask } from "./AddTask"
 import { taskRowsWithInsert } from "./task-insert-rows"
 import { useTaskInsertStore } from "./task-insert-state"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { useNoteDrag, useNoteDrop } from "../note-dnd-state"
 import type { DropZone } from "../note-dnd"
-import { useIsTaskSelected, useSelectTask, useSubtasksOpen } from "@/contexts/use-tabs"
+import { useIsTaskSelected, useSubtasksOpen } from "@/contexts/use-tabs"
 import { orderedVisibleTasks } from "../section/hide-completed"
 import { DropLine } from "../sidebar/DropLine"
 import type { TaskDensity } from "@/lib/store/preferences"
 import { TASK_DENSITIES } from "./task-density"
 import { SelectionMark } from "../sidebar/SelectionMark"
-import { handleSelectionClick } from "../sidebar/selection"
-import { useIsTaskMultiSelected, useTaskSelectionStore } from "./task-selection-context"
-import { taskKey } from "./task-selection"
+import { useIsTaskMultiSelected } from "./use-task-selection"
 import { useSearchHighlight } from "../note-search-context"
-import { SearchedTaskText } from "./SearchedTaskText"
-import { useIsTaskTabStop, useTaskTabStopStore } from "./task-tab-stop"
+import { useIsTaskTabStop } from "./task-tab-stop"
 import { useTaskRowKeys } from "./use-task-row-keys"
-import { isFocusKeepingDetails } from "./task-focus-intent"
-
-// Classes of the text of a task: wrapping at any character; the textarea (read-only or editing) also grows with its content
-const TASK_TEXT_WRAP = "w-full min-w-0 text-wrap break-words [overflow-wrap:anywhere]"
-const TASK_TEXT_CLASS = `${TASK_TEXT_WRAP} max-h-auto whitespace-normal resize-none`
-
-// Clicks on these keep their own action (checkbox, buttons) and do not select the row
-const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
+import { useTaskRowPointer } from "./use-task-row-pointer"
+import { TaskConnectors, TaskConnectorTick, TaskChildrenLine } from "./TaskConnectors"
+import { TaskRowText } from "./TaskRowText"
+import { TaskRowBadges } from "./TaskRowBadges"
+import { TaskRowToolbar } from "./TaskRowToolbar"
 
 type TaskProps = {
     task: TaskType
@@ -116,13 +104,11 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
     })
     const selected = useIsTaskSelected(task.id)
     const search = useSearchHighlight("task", task.id)
-    const selectTask = useSelectTask()
-    const selectionStore = useTaskSelectionStore()
     const insertStore = useTaskInsertStore()
     const multiSelected = useIsTaskMultiSelected(task.id)
+    const pointer = useTaskRowPointer(task.id)
     // Roving tabindex of the list: one task is in the tab order, the others are reached with the arrows
     const tabStop = useIsTaskTabStop(treeKey, task.id, isFirst)
-    const tabStopStore = useTaskTabStopStore()
     // Only the tab stop of the list has its controls in the tab order: the other rows are reached with the arrows
     const inner = tabStop ? undefined : -1
     // Enter / Escape in the rename field give the focus back to the row (the field is removed, the focus would be lost)
@@ -132,27 +118,21 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
         rowElement.current = node
         setRowRef(node)
     }, [setRowRef])
+    const requestRefocus = useCallback(() => { refocusRow.current = true }, [])
     useEffect(() => {
         if (isTextAreaOpen || !refocusRow.current) return
         refocusRow.current = false
         if (!document.activeElement || document.activeElement === document.body) rowElement.current?.focus()
     }, [isTextAreaOpen])
-    // The press that is going to focus the row carried Ctrl/Cmd/Shift: it is a selection gesture, not a single selection
-    const gestureDown = useRef(false)
     // Closed: the subtasks are not drawn (they stay in the note: counts, progress and "hide completed" still see them)
     const [subtasksOpen, toggleSubtasks] = useSubtasksOpen(task.id)
     const hasSubtasks = task.subtasks.length > 0
     const subtasksHidden = hasSubtasks && !subtasksOpen
     const isSubtask = depth > 0
     const sizes = TASK_DENSITIES[density]
-    // The line of a subtask runs under the checkbox of its parent: the checkbox of a subtask is 2px narrower than the one
-    // of a task, so under a subtask (depth 2+) the line sits 1px to the left (and the tick is 1px longer to reach the checkbox). Both ends of a line keep 3px from the checkboxes
-    const nestedSubtask = depth > 1
-    // The checkbox of a subtask starts where the text of its parent starts (the subtasks are indented by the checkbox of the
-    // parent, 16px, or 14px when the parent is a subtask, plus the gap), so the tree connector sits at 3px (4px) from the row
-    const lineLeft = nestedSubtask ? "left-[4px]" : "left-[3px]"
     const doneSubtasks = task.subtasks.filter(subtask => subtask.completed).length
     const hasDescription = !!task.description?.trim()
+    const showChildren = (hasSubtasks && subtasksOpen) || isAddingSubtask
 
     // A new subtask of a closed task opens it first, so that the new subtask is seen
     const startAddSubtask = () => {
@@ -186,15 +166,12 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
             isSubtask ? "group/subtask subtask" : "border-b-border",
             isTextAreaOpen && (error ? "border border-destructive rounded-xs" : "border border-primary rounded-xs")
         )}>
-            {/* Tree connectors: the line of the parent goes on past every subtask but the last, where it turns into its tick (└). Only the direct child of the last subtask counts (a plain descendant selector would hide the lines of every deeper level) */}
-            {isSubtask && <>
-                <span aria-hidden className={cn("pointer-events-none absolute -top-px -bottom-px w-px bg-muted-foreground/45 [.subtask:last-child>&]:hidden", lineLeft)} />
-                <span aria-hidden className={cn("pointer-events-none absolute -top-px w-px [.subtask:last-child>&]:bg-muted-foreground/45", sizes.tickHeight, lineLeft)} />
-            </>}
+            {isSubtask && <TaskConnectors depth={depth} sizes={sizes} />}
             <ButtonMenuTask task={task} onAddSubtask={startAddSubtask} onRename={startEdit} onEditDescription={openDescription} subtasksOpen={subtasksOpen} onToggleSubtasks={toggleSubtasks}>
                 <div
                     ref={setRef}
                     {...dragProps}
+                    {...pointer}
                     role="treeitem"
                     aria-level={depth + 1}
                     aria-expanded={hasSubtasks ? subtasksOpen : undefined}
@@ -207,30 +184,6 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     data-selected={selected ? "true" : undefined}
                     aria-current={selected ? "true" : undefined}
                     data-multi-selected={multiSelected ? "true" : undefined}
-                    // Capture phase: a selection gesture must not reach the text (rename) or the other handlers of the row
-                    onClickCapture={e => {
-                        gestureDown.current = false
-                        if ((e.target as HTMLElement).closest(SELECTION_IGNORED)) return
-                        if (handleSelectionClick(selectionStore, taskKey(task.id), e)) {
-                            e.preventDefault()
-                            e.stopPropagation()
-                        }
-                    }}
-                    onMouseDown={e => {
-                        gestureDown.current = !!selectionStore && (e.shiftKey || e.ctrlKey || e.metaKey)
-                        // No text selection while extending a range with Shift
-                        if (selectionStore && e.shiftKey) e.preventDefault()
-                    }}
-                    onClick={e => {
-                        if (!(e.target as HTMLElement).closest(SELECTION_IGNORED)) selectTask(task.id)
-                    }}
-                    onFocus={e => {
-                        tabStopStore?.set(task.id)
-                        const gesture = gestureDown.current
-                        gestureDown.current = false
-                        // A row focused by Shift+arrows / Ctrl+Space is part of a selection: the details stay as they are
-                        if (!gesture && !isFocusKeepingDetails(e.currentTarget)) selectTask(task.id)
-                    }}
                     className={cn(
                         "peer/row relative flex flex-col items-center w-full touch-none cursor-grab active:cursor-grabbing focus-visible:outline-3 focus-visible:outline-offset-[-2px]",
                         // Selected: a 2px bar in the primary colour on the left and a tint stronger than the hover one
@@ -241,22 +194,13 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                 >
                     <DropLine zone={dropZone} outside />
                     <SelectionMark selected={multiSelected} />
-                    {/* The line of the subtasks starts under the checkbox: with a long text the row is tall, so it runs down to the bottom of the row where the line of the first subtask goes on */}
-                    {((hasSubtasks && subtasksOpen) || isAddingSubtask) &&
-                        <span aria-hidden className={cn(
-                            "pointer-events-none absolute bottom-0 w-px bg-muted-foreground/45",
-                            isSubtask ? ["left-[27px]", sizes.lineTop.subtask] : ["left-[28px]", sizes.lineTop.task],
-                        )} />}
+                    {showChildren && <TaskChildrenLine isSubtask={isSubtask} sizes={sizes} />}
                     <div className="flex flex-col w-full">
-                        {/* Color Container */}
                         {/* The color tints the whole row (light) besides the side bar (full color) */}
                         {task.color && colorAlpha.taskBackground && <div aria-hidden className="pointer-events-none absolute inset-0" style={{ backgroundColor: hexToRgba(colorAlpha.task(), task.color) }}></div>}
                         {task.color && <div className="w-1 absolute left-0 top-0 h-full self-stretch" style={{ backgroundColor: task.color }}></div>}
 
-                        {/* Task items container */}
                         <div className={cn("relative group flex min-w-0 items-start justify-between w-full px-1", sizes.padding)}>
-
-                            {/* Checkbox && text container */}
                             <div className="flex min-w-0 items-start justify-between gap-2 ml-4 w-full">
                                 <Checkbox
                                     checked={!!task.completed}
@@ -265,128 +209,39 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                     aria-label={t("tasks.toggleCompleted", { text: task.text })}
                                     className={isSubtask ? cn("size-3.5", sizes.subtaskCheckbox) : sizes.checkbox}
                                 />
-                                {!isTextAreaOpen && search.query && <SearchedTaskText
+                                <TaskRowText
                                     text={task.text}
-                                    query={search.query}
-                                    active={search.active}
-                                    label={t("tasks.editText")}
-                                    tabIndex={inner ?? 0}
-                                    onClick={renameOnClick ? startEdit : undefined}
-                                    onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); startEdit() } }}
-                                    className={cn(
-                                        TASK_TEXT_WRAP, sizes.text,
-                                        !renameOnClick && "cursor-default",
-                                        task.completed && "line-through text-muted-foreground"
-                                    )}
-                                />}
-                                {!isTextAreaOpen && !search.query && <AutoTextarea
-                                    onClick={renameOnClick ? startEdit : undefined}
-                                    onKeyDown={e => {
-                                        // Enter always renames (the way for the keyboard when the click does not)
-                                        if (e.key === "Enter" && !e.shiftKey) {
-                                            e.preventDefault()
-                                            startEdit()
-                                        }
-                                    }}
-                                    aria-label={t("tasks.editText")}
-                                    tabIndex={inner}
-                                    value={task.text}
-                                    // Read only until the click opens the editing: a right click here opens the menu of the task, not the one of a text field
-                                    readOnly
-                                    className={cn(
-                                        TASK_TEXT_CLASS, sizes.text,
-                                        !renameOnClick && "cursor-default",
-                                        task.completed && "line-through text-muted-foreground"
-                                    )}
-                                />}
-                                {isTextAreaOpen && <InlineErrorTooltip message={error}><AutoTextarea
-                                    {...inputProps}
-                                    onKeyDown={e => {
-                                        if ((e.key === "Enter" && !e.shiftKey) || e.key === "Escape") refocusRow.current = true
-                                        inputProps.onKeyDown(e)
-                                    }}
-                                    onPointerDown={e => e.stopPropagation()}
-                                    minRows={1}
-                                    className={cn(TASK_TEXT_CLASS, sizes.text)}
-                                /></InlineErrorTooltip>}
+                                    completed={!!task.completed}
+                                    textClass={sizes.text}
+                                    editing={isTextAreaOpen}
+                                    error={error}
+                                    inputProps={inputProps}
+                                    searchQuery={search.query}
+                                    searchActive={search.active}
+                                    renameOnClick={renameOnClick}
+                                    startEdit={startEdit}
+                                    inner={inner}
+                                    onEditEnd={requestRefocus}
+                                />
                             </div>
-
-                            {/* What the task has besides its text: a description (click to read it) and its subtasks (done / total) */}
-                            {(hasDescription || ((showSubtaskCount || subtasksHidden) && hasSubtasks)) &&
-                                <div className="flex shrink-0 items-center gap-1.5 mt-0.5 ml-1 text-xs">
-                                    {hasDescription &&
-                                        // The toolbar that shows on hover covers this one and has the same button: this copy is out of the
-                                        // tab order and of the accessibility tree
-                                        <TooltipCustom text={t("tasks.showDescription")}>
-                                            <span
-                                                aria-hidden
-                                                data-testid="description-indicator"
-                                                onClick={e => { e.stopPropagation(); setDescriptionOpen(true) }}
-                                                className="flex size-6 -m-1 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground">
-                                                <AlignLeft className="size-3.5" />
-                                            </span>
-                                        </TooltipCustom>}
-                                    {/* Hidden subtasks always show their count (also with the preference off): it is the sign that there are some */}
-                                    {(showSubtaskCount || subtasksHidden) && hasSubtasks &&
-                                        <span
-                                            data-testid="subtask-count"
-                                            data-subtasks-hidden={subtasksHidden ? "true" : undefined}
-                                            title={t(subtasksHidden ? "tasks.subtaskProgressHidden" : "tasks.subtaskProgress", { done: doneSubtasks, total: task.subtasks.length })}
-                                            className={cn(
-                                                "flex items-center gap-0.5 tabular-nums",
-                                                // All done: full-contrast text (the accent color is chosen by the user and can be unreadable as text)
-                                                doneSubtasks === task.subtasks.length ? "font-medium text-foreground" : "text-muted-foreground",
-                                            )}>
-                                            <ListTree className="size-3.5" />
-                                            {doneSubtasks}/{task.subtasks.length}
-                                        </span>}
-                                </div>}
-
-                            {/* Priority: a flag (not just a color) */}
-                            {!!task.priority &&
-                                <TooltipCustom text={t("details.priority")}>
-                                    <span role="img" aria-label={t("details.priority")} className="flex shrink-0 mx-2 mt-1 text-priority">
-                                        <Flag className="size-3.5 fill-current" />
-                                    </span>
-                                </TooltipCustom>}
-
-                            {/* ButtonMenu */}
-                            <div className="flex items-center opacity-0 group-hover:opacity-100 focus-within:opacity-100 absolute top-1 right-1 rounded-xs bg-secondary">
-                                {hasDescription &&
-                                    <TooltipCustom text={t("tasks.showDescription")}>
-                                        <Button
-                                            type="button"
-                                            variant="ghost"
-                                            size="icon"
-                                            aria-label={t("tasks.showDescription")}
-                                            tabIndex={inner}
-                                            onClick={() => { setDescriptionOpen(true) }}
-                                            className="size-6">
-                                            <AlignLeft />
-                                        </Button>
-                                    </TooltipCustom>}
-                                <TooltipCustom text={t("tasks.addSubtask")}>
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        aria-label={t("tasks.addSubtask")}
-                                        tabIndex={inner}
-                                        onClick={startAddSubtask}
-                                        className="size-6">
-                                        <Plus />
-                                    </Button>
-                                </TooltipCustom>
-                                <ItemMenuButton name={task.text} tabIndex={inner} />
-                            </div>
+                            <TaskRowBadges
+                                hasDescription={hasDescription}
+                                showSubtaskCount={showSubtaskCount}
+                                subtasksHidden={subtasksHidden}
+                                doneSubtasks={doneSubtasks}
+                                totalSubtasks={task.subtasks.length}
+                                priority={!!task.priority}
+                                onOpenDescription={openDescription}
+                            />
+                            <TaskRowToolbar taskText={task.text} hasDescription={hasDescription} inner={inner} onOpenDescription={openDescription} onAddSubtask={startAddSubtask} />
                         </div>
                     </div>
                     {descriptionOpen && <DialogTaskDescription task={task} open={descriptionOpen} onOpenChange={setDescriptionOpen} />}
                 </div>
             </ButtonMenuTask>
-            {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute h-px bg-muted-foreground/45", sizes.tickTop, lineLeft, nestedSubtask ? "w-[13px]" : "w-[14px]")} />}
+            {isSubtask && <TaskConnectorTick depth={depth} sizes={sizes} />}
             {/* Subtasks hang from the checkbox of their parent (see the tree connectors above) */}
-            {((hasSubtasks && subtasksOpen) || isAddingSubtask) && <div role="group" className={cn("flex flex-col self-stretch", sizes.subtasks, isSubtask ? "ml-[22px]" : "ml-6")}>
+            {showChildren && <div role="group" className={cn("flex flex-col self-stretch", sizes.subtasks, isSubtask ? "ml-[22px]" : "ml-6")}>
                 {taskRowsWithInsert({
                     all: task.subtasks,
                     visible: orderedVisibleTasks(task.subtasks, { hideCompleted, completedLast }),

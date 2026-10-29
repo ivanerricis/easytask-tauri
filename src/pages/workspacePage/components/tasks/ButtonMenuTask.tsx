@@ -21,7 +21,7 @@ import { TaskStepMoves } from "../NoteStepMoves"
 import { useShowTaskDetails } from "../rightbar/use-right-panel"
 import { useActiveNoteId, useSelectTask } from "@/contexts/use-tabs"
 import { useIsActiveDraft } from "@/contexts/use-template-drafts"
-import { useIsInTaskMultiSelection } from "./task-selection-context"
+import { useIsInTaskMultiSelection } from "./use-task-selection"
 import { TaskSelectionMenuItems } from "./TaskSelectionMenu"
 
 type ButtonMenuTaskProps = {

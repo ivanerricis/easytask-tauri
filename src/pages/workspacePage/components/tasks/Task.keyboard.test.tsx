@@ -10,7 +10,7 @@ import type { NoteDataTree, Task as TaskType } from "@/types/types"
 import { TaskList } from "./TaskList"
 import { NoteAnnouncer } from "./NoteAnnouncer"
 import { createSelectionStore } from "../sidebar/selection"
-import { TaskSelectionContext } from "./task-selection-context"
+import { TaskSelectionContext } from "./use-task-selection"
 import { useSelectedTask } from "@/contexts/use-tabs"
 
 vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))

@@ -3,9 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { PaneContext } from "@/contexts/layout-context-object"
 import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { NoteDataTree } from "@/types/types"
-import {
-    TaskSelectionProvider, useIsInTaskMultiSelection, useIsTaskMultiSelected, useSelectedTaskKeys, useTaskSelectionStore,
-} from "./task-selection-context"
+import { TaskSelectionProvider } from "./task-selection-context"
+import { useIsInTaskMultiSelection, useIsTaskMultiSelected, useSelectedTaskKeys, useTaskSelectionStore } from "./use-task-selection"
 
 let activeId: number | null = 1
 let hideCompleted = false

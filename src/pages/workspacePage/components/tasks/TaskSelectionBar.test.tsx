@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react"
 import { beforeEach, describe, expect, it } from "vitest"
 import { createSelectionStore } from "../sidebar/selection"
-import { TaskSelectionContext } from "./task-selection-context"
+import { TaskSelectionContext } from "./use-task-selection"
 import { SelectionBarInset, TaskSelectionBar } from "./TaskSelectionBar"
 
 let store: ReturnType<typeof createSelectionStore>

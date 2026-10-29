@@ -1,5 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState, useSyncExternalStore, type ReactNode } from "react"
+import { useEffect, useState, type ReactNode } from "react"
 import { useActiveNote } from "@/contexts/use-active-note"
 import { usePaneFocusGetter } from "@/contexts/use-layout"
 import { useActiveNoteId, useTabUiStore } from "@/contexts/use-tabs"
@@ -7,8 +6,7 @@ import { usePreferences } from "@/contexts/use-preferences"
 import { collapsedIds } from "@/lib/collapsed"
 import { createSelectionStore, type SelectionStore } from "../sidebar/selection"
 import { flattenVisibleTasks, taskKey } from "./task-selection"
-
-export const TaskSelectionContext = createContext<SelectionStore | null>(null)
+import { TaskSelectionContext } from "./use-task-selection"
 
 /** True when the focus is somewhere Esc has its own meaning (a field, a dialog, a menu). */
 const escapeIsTaken = (target: EventTarget | null) =>
@@ -74,37 +72,4 @@ export function TaskSelectionProvider({ children }: { children: ReactNode }) {
             {children}
         </TaskSelectionContext.Provider>
     )
-}
-
-/** The task selection store (null outside a TaskSelectionProvider: rows then behave as without multi-selection). */
-export const useTaskSelectionStore = () => useContext(TaskSelectionContext)
-
-const NEVER = () => () => {}
-
-/** Whether a task is part of the multi-selection; only the rows whose state changes re-render. */
-export function useIsTaskMultiSelected(id: number): boolean {
-    const store = useTaskSelectionStore()
-    const key = taskKey(id)
-    return useSyncExternalStore(store?.subscribe ?? NEVER, () => store?.has(key) ?? false)
-}
-
-/** Whether a task is selected together with at least another one: its menu then acts on the whole selection. */
-export function useIsInTaskMultiSelection(id: number): boolean {
-    const store = useTaskSelectionStore()
-    const key = taskKey(id)
-    return useSyncExternalStore(store?.subscribe ?? NEVER, () => !!store && store.has(key) && store.getSelected().size >= 2)
-}
-
-const EMPTY: ReadonlySet<string> = new Set()
-
-/** The selected task keys (a new set on every change). */
-export function useSelectedTaskKeys(): ReadonlySet<string> {
-    const store = useTaskSelectionStore()
-    return useSyncExternalStore(store?.subscribe ?? NEVER, () => store?.getSelected() ?? EMPTY)
-}
-
-/** Whether any task is selected (a boolean, so the subscriber re-renders only when the selection starts or ends). */
-export function useHasTaskSelection(): boolean {
-    const store = useTaskSelectionStore()
-    return useSyncExternalStore(store?.subscribe ?? NEVER, () => (store?.getSelected().size ?? 0) > 0)
 }
