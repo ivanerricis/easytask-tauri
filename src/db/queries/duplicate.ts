@@ -73,7 +73,7 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
         const results = await tx.run()
         return results[note].lastInsertId
     } catch (error: unknown) {
-        rethrowTxError(error, note, "NOTE", { UNIQUE: i18n.t("errors.template.noteUnique"), CHECK: i18n.t("errors.template.noteCheck") })
+        rethrowTxError(error, note, "NOTE", { UNIQUE: i18n.t("errors.template.noteUnique"), CHECK: i18n.t("errors.note.check") })
         throw createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.apply", { message: getErrorMessage(error) }))
     }
 }

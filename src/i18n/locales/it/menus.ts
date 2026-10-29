@@ -77,10 +77,6 @@ export const menu = {
     duplicate: "Duplica",
     archive: "Archivia",
     selection: {
-        delete_one: "Elimina {{count}} elemento",
-        delete_other: "Elimina {{count}} elementi",
-        archive_one: "Archivia {{count}} elemento",
-        archive_other: "Archivia {{count}} elementi",
         move: "Sposta",
         color: "Colore",
         export: "Esporta",

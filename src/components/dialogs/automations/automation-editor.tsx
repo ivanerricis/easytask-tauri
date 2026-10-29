@@ -125,7 +125,7 @@ export const AutomationEditor = ({ step, draft, groups, sections, titleOf, group
                 <div className="grid gap-2">
                     <p className="text-sm text-muted-foreground">{t("automations.whenHint")}</p>
                     <div className="grid gap-3">
-                        <ChoiceSelect label={t("automations.when")} value={trigger.type}
+                        <ChoiceSelect label={t("automations.steps.when")} value={trigger.type}
                             options={TRIGGER_TYPES.map(type => ({ value: type, label: triggerLabel(type) }))}
                             onChange={type => {
                                 // A state trigger starts on the section / group the dialog was opened for
@@ -230,7 +230,7 @@ const ActionParams = ({ action, groups, sections, onChange }: {
                     <SectionSelect label={label} value={action.sectionId} groups={groups} sections={sections}
                         onChange={id => { if (id !== null) onChange({ ...action, sectionId: id }) }} />
                     <ChoiceSelect label={t("automations.position")} value={action.at}
-                        options={[{ value: "top", label: t("automations.values.top") }, { value: "bottom", label: t("automations.values.bottom") }]}
+                        options={[{ value: "top", label: t("settings.notes.newTaskPosition.top") }, { value: "bottom", label: t("settings.notes.newTaskPosition.bottom") }]}
                         onChange={at => onChange({ ...action, at })} />
                 </div>
             )
@@ -243,7 +243,7 @@ const ActionParams = ({ action, groups, sections, onChange }: {
         case "setPriority":
             return (
                 <ChoiceSelect label={label} value={String(action.value)}
-                    options={[{ value: "true", label: t("automations.values.add") }, { value: "false", label: t("automations.values.remove") }]}
+                    options={[{ value: "true", label: t("tasks.menu.addPriority") }, { value: "false", label: t("tasks.menu.removePriority") }]}
                     onChange={value => onChange({ ...action, value: value === "true" })} />
             )
         case "setColor": {
@@ -263,7 +263,7 @@ const ActionParams = ({ action, groups, sections, onChange }: {
         case "moveGroup":
             return (
                 <ChoiceSelect label={label} value={action.at}
-                    options={[{ value: "top", label: t("automations.values.top") }, { value: "bottom", label: t("automations.values.bottom") }]}
+                    options={[{ value: "top", label: t("settings.notes.newTaskPosition.top") }, { value: "bottom", label: t("settings.notes.newTaskPosition.bottom") }]}
                     onChange={at => onChange({ ...action, at })} />
             )
         case "completeSubtasks":

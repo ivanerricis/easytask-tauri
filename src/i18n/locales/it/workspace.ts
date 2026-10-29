@@ -24,10 +24,7 @@ export const home = {
     },
     workspace: {
         open: "Apri il workspace {{name}}",
-        createdOn: "Creato il {{date}} alle {{time}}",
-        editedOn: "Modificato il {{date}} alle {{time}}",
     },
-    noWorkspaces: "Nessun workspace trovato.",
     noWorkspacesHint: "Crea il tuo primo workspace per iniziare.",
 }
 
@@ -76,7 +73,6 @@ export const notes = {
         inNote: "Cerca nella nota",
         placeholder: "Cerca nella nota…",
         counter: "{{current}} di {{total}}",
-        noResults: "Nessun risultato",
         next: "Risultato successivo",
         previous: "Risultato precedente",
         close: "Chiudi la ricerca",

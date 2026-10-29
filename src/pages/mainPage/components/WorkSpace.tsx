@@ -64,11 +64,11 @@ export const WorkSpaceItem = React.memo(({ workspace, view = "grid" }: WorkSpace
                             {workspace.name}
                         </span>}
                         <div className="flex flex-col items-start gap-1 w-full">
-                            <span className="text-muted-foreground text-sm max-w-full truncate" title={t("home.workspace.createdOn", { date: formattedCreationDate, time: workspace.creation_time })}>
-                                {t("home.workspace.createdOn", { date: formattedCreationDate, time: workspace.creation_time })}
+                            <span className="text-muted-foreground text-sm max-w-full truncate" title={t("common.creationDate", { date: formattedCreationDate, time: workspace.creation_time })}>
+                                {t("common.creationDate", { date: formattedCreationDate, time: workspace.creation_time })}
                             </span>
-                            <span className="text-muted-foreground text-sm max-w-full truncate" title={t("home.workspace.editedOn", { date: formattedEditDate, time: workspace.edit_time })}>
-                                {t("home.workspace.editedOn", { date: formattedEditDate, time: workspace.edit_time })}
+                            <span className="text-muted-foreground text-sm max-w-full truncate" title={t("common.editDate", { date: formattedEditDate, time: workspace.edit_time })}>
+                                {t("common.editDate", { date: formattedEditDate, time: workspace.edit_time })}
                             </span>
                         </div>
                     </div>

@@ -420,13 +420,4 @@ export const settings: Translation["settings"] = {
     },
     nav: "Settings categories",
     pressKeysEsc: "Press the keys, Esc to cancel",
-    categories: {
-        appearance: "Appearance",
-        notes: "Notes and sections",
-        audio: "Audio",
-        shortcuts: "Shortcuts",
-        data: "Data",
-        system: "System",
-        about: "About",
-    },
 }

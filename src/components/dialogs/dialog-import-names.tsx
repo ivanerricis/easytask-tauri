@@ -33,7 +33,7 @@ export const DialogImportNames = ({ proposed, onSubmit, onCancel }: DialogImport
         await onSubmit(names)
     })
     const blank = names.some(name => !name.trim())
-    const message = error ?? (blank ? t("errors.transfer.nameEmpty") : null)
+    const message = error ?? (blank ? t("errors.nameEmpty") : null)
 
     return (
         <Dialog open onOpenChange={open => { if (!open && !saving) onCancel() }}>

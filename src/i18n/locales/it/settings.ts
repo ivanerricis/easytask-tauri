@@ -418,13 +418,4 @@ export const settings = {
     },
     nav: "Categorie impostazioni",
     pressKeysEsc: "Premi i tasti, Esc per annullare",
-    categories: {
-        appearance: "Aspetto",
-        notes: "Note e sezioni",
-        audio: "Audio",
-        shortcuts: "Scorciatoie",
-        data: "Dati",
-        system: "Sistema",
-        about: "Informazioni",
-    },
 }

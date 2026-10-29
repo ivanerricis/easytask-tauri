@@ -60,7 +60,7 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
             await deleteItem(item.type, item.id)
             recorder.remove(item.type, item.id, item.name)
             await refresh()
-        }, t("archive.trashed"))
+        }, t("dialogs.delete.done", { count: 1 }))
     }
 
     const active = selected ?? TYPES[0]
@@ -125,7 +125,7 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
                                     <ItemRowActions
                                         disabled={busy}
                                         restore={{ icon: ArchiveRestore, tooltip: t("archive.restore"), ariaLabel: t("archive.restoreAria", { name: item.name }), onClick: () => void handleRestore(item) }}
-                                        remove={{ icon: Trash2, tooltip: t("archive.trash"), ariaLabel: t("archive.trashAria", { name: item.name }), onClick: () => setToTrash(item) }}
+                                        remove={{ icon: Trash2, tooltip: t("dialogs.delete.confirm"), ariaLabel: t("archive.trashAria", { name: item.name }), onClick: () => setToTrash(item) }}
                                     />
                                 </ItemRow>
                             ))}
@@ -138,9 +138,9 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
                 onOpenChange={(open) => { if (!open) setToTrash(null) }}
                 destructive
                 initialFocus="cancel"
-                title={t("archive.trashTitle")}
-                description={t("archive.trashDescription")}
-                confirm={{ label: t("archive.confirmTrash"), icon: Trash2, onClick: handleTrash }}
+                title={t("dialogs.delete.title")}
+                description={t("dialogs.delete.description")}
+                confirm={{ label: t("dialogs.delete.confirm"), icon: Trash2, onClick: handleTrash }}
             />
         </>
     )

@@ -25,7 +25,7 @@ export const NoteSearchField = ({ store, inputRef }: NoteSearchFieldProps) => {
         inputRef.current?.focus()
     }, [inputRef])
 
-    const counter = !query.trim() ? "" : total === 0 ? t("notes.noteSearch.noResults") : t("notes.noteSearch.counter", { current: activeIndex + 1, total })
+    const counter = !query.trim() ? "" : total === 0 ? t("common.noResults") : t("notes.noteSearch.counter", { current: activeIndex + 1, total })
 
     return (
         <div role="search" className="flex items-center gap-1">

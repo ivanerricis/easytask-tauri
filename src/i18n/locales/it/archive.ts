@@ -71,12 +71,7 @@ export const archive = {
     restore: "Ripristina",
     restoreAria: "Ripristina {{name}}",
     restored: "Elemento ripristinato dall'archivio",
-    trash: "Sposta nel cestino",
     trashAria: "Sposta {{name}} nel cestino",
-    trashed: "Elemento spostato nel cestino",
-    trashTitle: "Spostare nel cestino?",
-    trashDescription: "L'elemento verrà spostato nel cestino. Potrai ripristinarlo in seguito.",
-    confirmTrash: "Sposta nel cestino",
 }
 
 export const trash = {
@@ -116,12 +111,6 @@ export const trash = {
         folders_other: "{{count}} cartelle",
         notes_one: "{{count}} nota",
         notes_other: "{{count}} note",
-        groups_one: "{{count}} gruppo",
-        groups_other: "{{count}} gruppi",
-        sections_one: "{{count}} sezione",
-        sections_other: "{{count}} sezioni",
-        tasks_one: "{{count}} task",
-        tasks_other: "{{count}} task",
         audio_one: "{{count}} audio",
         audio_other: "{{count}} audio",
         subfolders_one: "{{count}} sottocartella",

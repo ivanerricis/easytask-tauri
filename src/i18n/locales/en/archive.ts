@@ -73,12 +73,7 @@ export const archive: Translation["archive"] = {
     restore: "Restore",
     restoreAria: "Restore {{name}}",
     restored: "Item restored from the archive",
-    trash: "Move to trash",
     trashAria: "Move {{name}} to the trash",
-    trashed: "Item moved to the trash",
-    trashTitle: "Move to trash?",
-    trashDescription: "The item will be moved to the trash. You can restore it later.",
-    confirmTrash: "Move to trash",
 }
 
 export const trash: Translation["trash"] = {
@@ -118,12 +113,6 @@ export const trash: Translation["trash"] = {
         folders_other: "{{count}} folders",
         notes_one: "{{count}} note",
         notes_other: "{{count}} notes",
-        groups_one: "{{count}} group",
-        groups_other: "{{count}} groups",
-        sections_one: "{{count}} section",
-        sections_other: "{{count}} sections",
-        tasks_one: "{{count}} task",
-        tasks_other: "{{count}} tasks",
         audio_one: "{{count}} audio file",
         audio_other: "{{count}} audio files",
         subfolders_one: "{{count}} subfolder",

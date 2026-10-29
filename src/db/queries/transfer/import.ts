@@ -270,7 +270,7 @@ export async function importDBItems(
                 const suggested = top.suggestions[index++].name
                 if (chosen === undefined) item.name = suggested
                 else {
-                    if (!chosen) throw createError("TRANSFER_NAME_EMPTY", i18n.t("errors.transfer.nameEmpty"))
+                    if (!chosen) throw createError("TRANSFER_NAME_EMPTY", i18n.t("errors.nameEmpty"))
                     if (used.has(chosen)) throw createError("TRANSFER_NAME_TAKEN", i18n.t("errors.transfer.nameTaken", { name: chosen }))
                     item.name = chosen
                 }

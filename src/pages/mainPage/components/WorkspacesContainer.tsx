@@ -61,7 +61,7 @@ export const WorkspacesContainer = ({ workspaces, view = "grid", sort = DEFAULT_
                 <Empty className="col-span-full">
                     <EmptyHeader>
                         <EmptyMedia variant="icon"><FolderOpen /></EmptyMedia>
-                        <EmptyTitle>{t("home.noWorkspaces")}</EmptyTitle>
+                        <EmptyTitle>{t("workspace.combobox.empty")}</EmptyTitle>
                         <EmptyDescription>{t("home.noWorkspacesHint")}</EmptyDescription>
                     </EmptyHeader>
                 </Empty>

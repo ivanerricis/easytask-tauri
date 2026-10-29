@@ -33,6 +33,13 @@ const SUBITEM_KEYS: Partial<Record<DBItemType, Partial<Record<keyof TrashCounts,
     task: { tasks: "subtasks" },
 }
 
+// Counters that reuse the shared plural keys; the others have their own "trash.summary" key
+const SHARED_COUNT_KEYS: Partial<Record<keyof TrashCounts, "common.counts.group" | "common.counts.section" | "common.counts.task">> = {
+    groups: "common.counts.group",
+    sections: "common.counts.section",
+    tasks: "common.counts.task",
+}
+
 /**
  * Describes what a trashed item contained, e.g. "2 gruppi · 3 sezioni · 5 task".
  * Zero counts are omitted, "Vuoto" (translated) is returned when nothing is left, and audio files (no content) give "".
@@ -45,7 +52,11 @@ export function formatTrashSummary(type: DBItemType, counts: TrashCounts): strin
     if (!fields) return ""
     const parts = fields
         .filter(field => (counts[field] ?? 0) > 0)
-        .map(field => i18n.t(`trash.summary.${SUBITEM_KEYS[type]?.[field] ?? field}`, { count: counts[field]! }))
+        .map(field => {
+            const shared = SHARED_COUNT_KEYS[field]
+            const own = (SUBITEM_KEYS[type]?.[field] ?? field) as "folders" | "notes" | "audio" | "subfolders" | "subtasks"
+            return i18n.t(shared && !SUBITEM_KEYS[type]?.[field] ? shared : `trash.summary.${own}`, { count: counts[field]! })
+        })
     return parts.length > 0 ? parts.join(" · ") : i18n.t("trash.summary.empty")
 }
 

@@ -70,13 +70,13 @@ export const SelectionMenuItems = ({ menu }: { menu: ItemMenuState }) => {
                 onClick={() => { menu.close(); void actions.exportSelection() }}
             />
             <ButtonInPopover
-                text={t("menu.selection.archive", { count: targets.length })}
+                text={t("undo.labels.archiveMany", { count: targets.length })}
                 type="archive"
                 onClick={() => { menu.close(); void actions.archiveSelection() }}
             />
             <Separator />
             <ButtonInPopover
-                text={t("menu.selection.delete", { count: targets.length })}
+                text={t("undo.labels.deleteMany", { count: targets.length })}
                 type="delete"
                 destructive
                 onClick={() => { menu.close(); actions.requestDelete() }}

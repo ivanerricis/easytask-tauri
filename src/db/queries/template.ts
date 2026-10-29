@@ -12,7 +12,7 @@ import { nextPositionSql } from "./sql";
 const TEMPLATE_UNIQUE_MESSAGE = () => i18n.t("errors.template.unique")
 const TEMPLATE_CHECK_MESSAGE = () => i18n.t("errors.template.check")
 const NOTE_UNIQUE_MESSAGE = () => i18n.t("errors.template.noteUnique")
-const NOTE_CHECK_MESSAGE = () => i18n.t("errors.template.noteCheck")
+const NOTE_CHECK_MESSAGE = () => i18n.t("errors.note.check")
 const SOURCE_MISSING_MESSAGE = () => i18n.t("errors.template.sourceMissing")
 
 type TemplateRow = Omit<NoteTemplate, "content"> & { content: string }

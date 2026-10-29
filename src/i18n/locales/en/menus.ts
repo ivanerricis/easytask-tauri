@@ -79,10 +79,6 @@ export const menu: Translation["menu"] = {
     duplicate: "Duplicate",
     archive: "Archive",
     selection: {
-        delete_one: "Delete {{count}} item",
-        delete_other: "Delete {{count}} items",
-        archive_one: "Archive {{count}} item",
-        archive_other: "Archive {{count}} items",
         move: "Move",
         color: "Color",
         export: "Export",

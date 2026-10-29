@@ -142,7 +142,7 @@ export const DialogAutomations = ({ noteId, isOpen, onOpenChange, sectionId, gro
                     <DialogHeader>
                         <DialogTitle className="flex items-center gap-2">
                             <Zap className="size-4" />
-                            {editing ? t(editing.id === null ? "automations.newTitle" : "automations.editTitle") : t("automations.title")}
+                            {editing ? t(editing.id === null ? "automations.add" : "automations.editTitle") : t("automations.title")}
                         </DialogTitle>
                         <DialogDescription>{t("automations.description")}</DialogDescription>
                     </DialogHeader>

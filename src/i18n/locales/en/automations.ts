@@ -8,7 +8,6 @@ export const automations: Translation["automations"] = {
     emptyExample: "For example: when a task is completed, move it to Done.",
     noSections: "Add at least one section to the note to create an automation.",
     add: "New automation",
-    newTitle: "New automation",
     editTitle: "Edit automation",
     edit: "Edit",
     saved: "Automation saved",
@@ -16,7 +15,6 @@ export const automations: Translation["automations"] = {
     delete: "Delete",
     enabled: "Rule enabled",
     name: "Name (optional)",
-    when: "When",
     where: "In which section",
     whenHint: "Choose what starts the rule.",
     thenHint: "Choose what should happen.",
@@ -77,12 +75,8 @@ export const automations: Translation["automations"] = {
         archiveGroup: "Archive the group",
     },
     values: {
-        top: "At the top",
-        bottom: "At the bottom",
         completed: "Completed",
         open: "To do",
-        add: "Add priority",
-        remove: "Remove priority",
         noColor: "No color",
     },
     describe: {
