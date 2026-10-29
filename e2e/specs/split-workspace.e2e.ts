@@ -109,13 +109,16 @@ describe("Split workspace", () => {
     it("moves note B back to the left; the empty right pane closes by itself", async () => {
         await moveFromSidebar(NOTE_B, "menu.openLeft")
         await rightGone("the right pane did not close when it became empty")
-        await paneTab(0, NOTE_B).waitForDisplayed({ timeoutMsg: "note B is not in the left pane" })
-        await expect(paneTab(0, NOTE_A)).toBeDisplayed()
+        // One pane again: its tabs carry no data-pane
+        await $(`[role="tab"][title=${JSON.stringify(NOTE_B)}]`).waitForDisplayed({ timeoutMsg: "note B is not in the left pane" })
+        await expect($(`[role="tab"][title=${JSON.stringify(NOTE_A)}]`)).toBeDisplayed()
         // One pane again: the tab bar is the plain one
         await expect(byLabel(await tr("notes.openTabs"))).toBeDisplayed()
     })
 
-    it("drags a tab from the left tab bar to the right one", async () => {
+    // The WebKitGTK driver of the Linux CI does not deliver the pointer events of a drag: it runs on Windows
+    it("drags a tab from the left tab bar to the right one", async function () {
+        if (process.platform === "linux") return this.skip()
         await domClick(byLabel(await tr("notes.split.split")))
         await $('[data-pane="1"]').waitForDisplayed({ timeoutMsg: "the right pane did not appear" })
         await dragBetween(paneTab(0, NOTE_B), pane(1).$('[role="tablist"]'))
@@ -126,6 +129,12 @@ describe("Split workspace", () => {
     })
 
     it("closing the split closes the tabs of the right pane", async () => {
+        if (!(await $('[data-pane="1"]').isExisting())) {
+            await domClick(byLabel(await tr("notes.split.split")))
+            await $('[data-pane="1"]').waitForDisplayed({ timeoutMsg: "the right pane did not appear" })
+            await moveFromSidebar(NOTE_B, "menu.openRight")
+            await paneTab(1, NOTE_B).waitForDisplayed({ timeoutMsg: "note B did not open in the right pane" })
+        }
         await domClick(await closeSplitButton(0))
         await rightGone("the right pane did not close")
         await $(`[role="tab"][title=${JSON.stringify(NOTE_A)}]`).waitForDisplayed({ timeoutMsg: "the tab of note A is gone" })
