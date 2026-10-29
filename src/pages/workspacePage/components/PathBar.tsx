@@ -14,7 +14,7 @@ import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useDraftOfNote, useDraftSaveStatus, useTemplateDraftActions } from "@/contexts/use-template-drafts"
 import { useShortcut } from "@/hooks/use-shortcut"
-import { focusRing } from "@/lib/a11y"
+import { focusRing, ghostIconButtonClass } from "@/lib/a11y"
 import { requestAppCommand } from "@/lib/app-commands"
 import { requestTreeReveal } from "@/lib/tree-reveal"
 import { cn } from "@/lib/utils"
@@ -114,7 +114,7 @@ export const PathBar = () => {
             <div className="ml-auto flex shrink-0 items-center gap-1">
                 {draft && activeId !== null && <DraftSaveStatus status={draftStatus} onRetry={() => { void retrySave(activeId) }} />}
                 <TooltipCustom text={t("menu.newGroup")} shortcut={newGroupLabel}>
-                    <Button type="button" variant="ghost" size="icon" className="relative size-7 after:absolute after:-inset-0.5 after:content-[''] [&_svg]:!size-4"
+                    <Button type="button" variant="ghost" size="icon" className={cn(ghostIconButtonClass, "[&_svg]:!size-4")}
                         aria-label={t("menu.newGroup")} onClick={() => requestAppCommand("new-group")}>
                         <CirclePlus />
                     </Button>
@@ -122,13 +122,13 @@ export const PathBar = () => {
                 {search && (searchOpen
                     ? <NoteSearchField store={search} inputRef={searchInputRef} />
                     : <TooltipCustom text={t("notes.noteSearch.inNote")} shortcut={searchLabel}>
-                        <Button type="button" variant="ghost" size="icon" className="relative size-7 after:absolute after:-inset-0.5 after:content-[''] [&_svg]:!size-4"
+                        <Button type="button" variant="ghost" size="icon" className={cn(ghostIconButtonClass, "[&_svg]:!size-4")}
                             aria-label={t("notes.noteSearch.inNote")} onClick={() => search.open()}>
                             <Search />
                         </Button>
                     </TooltipCustom>)}
                 <TooltipCustom text={splitText} shortcut={splitLabel}>
-                    <Button type="button" variant="ghost" size="icon" className="relative size-7 after:absolute after:-inset-0.5 after:content-[''] [&_svg]:!size-4"
+                    <Button type="button" variant="ghost" size="icon" className={cn(ghostIconButtonClass, "[&_svg]:!size-4")}
                         aria-label={splitText} onClick={toggleSplit}>
                         <Columns2 />
                     </Button>
@@ -138,7 +138,7 @@ export const PathBar = () => {
                         aria-label={t("notes.hideCompleted")}
                         pressed={hideCompletedTasks}
                         onPressedChange={setHideCompletedTasks}
-                        className="relative size-7 min-w-7 p-0 after:absolute after:-inset-0.5 after:content-['']"
+                        className={cn(ghostIconButtonClass, "min-w-7 p-0")}
                     >
                         {hideCompletedTasks ? <EyeOff /> : <Eye />}
                     </Toggle>

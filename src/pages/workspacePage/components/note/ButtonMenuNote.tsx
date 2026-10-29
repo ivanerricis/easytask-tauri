@@ -66,9 +66,9 @@ const TabMoveItems = ({ noteId, onDone }: { noteId: number, onDone: () => void }
 }
 type ButtonMenuNoteProps = {
     note: Note
-    /** The note row or tab: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
     /** Starts the inline edit of the name (once the menu has given the focus back). */
     onRename?: () => void
+    /** The note row or tab: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
     children: ReactElement
 }
 
@@ -91,31 +91,31 @@ export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps
         openDialog: () => setDeleteOpen(true),
     })
 
-    // The copy is added to the tree by the context: open it in a tab and make the creation undoable
-    const handleDuplicate = async () => {
+    // Closes the menu, runs the action and reports a failure
+    const runAction = async (action: () => Promise<void>) => {
         menu.close()
         try {
-            const id = await duplicateNote(note.id)
-            recorder.create("note", id, null)
-            openNote(id)
-            toast.success(t("duplicate.noteDone"))
+            await action()
         } catch (error) {
             reportError(error, getErrorMessage(error))
         }
     }
+
+    // The copy is added to the tree by the context: open it in a tab and make the creation undoable
+    const handleDuplicate = () => runAction(async () => {
+        const id = await duplicateNote(note.id)
+        recorder.create("note", id, null)
+        openNote(id)
+        toast.success(t("duplicate.noteDone"))
+    })
 
     // No confirmation: the note leaves the sidebar and the archive dialog (or undo) brings it back
-    const handleArchive = async () => {
-        menu.close()
-        try {
-            await archiveItem("note", note.id)
-            recorder.archive("note", note.id, note.name)
-        } catch (error) {
-            reportError(error, getErrorMessage(error))
-        }
-    }
+    const handleArchive = () => runAction(async () => {
+        await archiveItem("note", note.id)
+        recorder.archive("note", note.id, note.name)
+    })
 
-    const singleItems = (
+    const singleItems = () => (
         <MenuGroup className="flex flex-col gap-1">
             <ButtonInPopover
                 text={t("menu.open")}
@@ -179,7 +179,7 @@ export const ButtonMenuNote = ({ note, onRename, children }: ButtonMenuNoteProps
     )
 
     // A selected row of a multi-selection acts on the whole selection
-    const items = multi ? <SelectionMenuItems menu={menu} /> : singleItems
+    const items = multi ? () => <SelectionMenuItems menu={menu} /> : singleItems
 
     const dialogs = (
         <>

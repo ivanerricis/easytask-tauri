@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef } from "react"
+import { useCallback, useEffect, useRef } from "react"
 import { useIsSplit } from "@/contexts/use-layout"
 import { usePreference } from "@/contexts/use-preference"
 import { COMPACT_BREAKPOINT, sidebarsToClose } from "@/lib/sidebar-layout"

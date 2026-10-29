@@ -1,10 +1,11 @@
+import { halfZone } from "@/lib/drop-zone"
 import type { PaneIndex } from "@/contexts/layout-reducer"
 
 export type TabZone = "before" | "after"
 
 /** Left half of a tab = before, right half = after. */
 export const computeTabZone = (rect: { left: number, width: number }, pointerX: number): TabZone =>
-    (pointerX - rect.left) / (rect.width || 1) < 0.5 ? "before" : "after"
+    halfZone(rect, pointerX)
 
 /**
  * Computes the `reorderTabs(from, to)` arguments for a tab dropped before/after another one

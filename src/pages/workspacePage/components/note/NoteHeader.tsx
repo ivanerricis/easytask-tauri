@@ -7,7 +7,7 @@ import { X } from "lucide-react"
 import React from "react"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import { Button } from "@/components/ui/button"
-import { focusRing } from "@/lib/a11y"
+import { focusRing, ghostIconButtonClass } from "@/lib/a11y"
 import { cn } from "@/lib/utils"
 import { useInlineRename } from "@/hooks/use-inline-rename"
 import { InlineNameInput } from "@/components/inline-name-input"
@@ -81,7 +81,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                         size="icon"
                         aria-label={isActive ? t("notes.closeCurrent") : t("notes.close")}
                         onClick={handleCloseHeader}
-                        className={cn("relative size-7 after:absolute after:-inset-0.5 after:content-['']", isActive ? "text-foreground" : "text-muted-foreground opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100")}
+                        className={cn(ghostIconButtonClass, isActive ? "text-foreground" : "text-muted-foreground opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100")}
                     >
                         <X />
                     </Button>

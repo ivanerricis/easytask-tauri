@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useMemo, type ReactNode } from "react"
+import { useCallback, useEffect, useMemo, type ReactNode } from "react"
 import { CenterContainer } from "./CenterContainer"
 import { SideBarLeft } from "./sidebar/SideBarLeft"
 import { SideBarRight } from "./rightbar/SideBarRight"

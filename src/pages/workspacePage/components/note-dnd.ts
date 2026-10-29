@@ -1,6 +1,7 @@
 import { getSectionLabel } from "./section/section-label"
 import { getGroupLabel } from "./groups/group-label"
 import type { Group, NoteDataTree, Section, Task } from "@/types/types"
+import { halfZone } from "@/lib/drop-zone"
 import i18n from "@/i18n"
 import { directIndexOf, isDefaultSection, orderedItems, taskSections } from "@/lib/group-sections"
 
@@ -84,7 +85,7 @@ export function computeDropZone(
  * @category Note DnD
  */
 export function computeGroupDropZone(rect: { left: number, width: number }, pointerX: number): DropZone {
-    return (pointerX - rect.left) / (rect.width || 1) < 0.5 ? "before" : "after"
+    return halfZone(rect, pointerX)
 }
 
 type TaskInfo = { task: Task, sectionId: number, parentId: number | null }
@@ -323,7 +324,7 @@ export function computeGroupTarget(tree: NoteDataTree, activeId: number, over: N
     return index === activeIndex ? null : { index }
 }
 
-export type SectionMoveDestinations = {
+type SectionMoveDestinations = {
     /** Other groups of the note, with a readable label and the titles of their sections. */
     groups: { id: number, label: string, hint: string }[]
     /** Whether "Nuovo gruppo" is offered (not for the only section of a group, that would only reorder groups). */
@@ -351,7 +352,7 @@ export function getSectionMoveDestinations(tree: NoteDataTree, sectionId: number
     }
 }
 
-export type TaskMoveDestination = {
+type TaskMoveDestination = {
     key: string
     /** "section": as top level task of the section; "task": as a subtask of the task. */
     type: "section" | "task"
