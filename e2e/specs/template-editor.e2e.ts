@@ -58,7 +58,7 @@ const setReopenNotes = async (on: boolean) => {
     await domClick(byLabel(await tr("settings.title")))
     const dialog = $('[role="dialog"]')
     await dialog.waitForDisplayed()
-    await byText(await tr("settings.categories.notes"), dialog).click()
+    await byText(await tr("settings.notes.title"), dialog).click()
     const label = xpathString(await tr("settings.notes.reopenNotes.label"))
     const toggle = $(`//*[@role="dialog"]//*[@role="switch"][@id=//label[normalize-space()=${label}]/@for]`)
     await domClick(toggle)

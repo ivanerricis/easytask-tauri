@@ -176,7 +176,7 @@ const waitForColor = (title: string, color: string) =>
 const createStateRule = async (dialog: Chainable, trigger: string, colorKey: string) => {
     await byText(await tr("automations.add"), dialog).click()
     await currentStep(dialog, 0)
-    await choose(dialog, await tr("automations.when"), await tr(`automations.triggers.${trigger}`))
+    await choose(dialog, await tr("automations.steps.when"), await tr(`automations.triggers.${trigger}`))
     await next(dialog, 1)
     // A state trigger only has the color action
     expect(await dialog.$$(`[aria-label=${JSON.stringify(await tr("automations.actionType"))}]`)).toHaveLength(1)
@@ -218,12 +218,12 @@ describe("Automations", () => {
         await expect(dialog.$(`p=${await tr("automations.empty")}`)).toBeDisplayed()
 
         await byText(await tr("automations.add"), dialog).click()
-        await expect(dialog.$(`h2=${await tr("automations.newTitle")}`)).toBeDisplayed()
+        await expect(dialog.$(`h2=${await tr("automations.add")}`)).toBeDisplayed()
 
         // "Italian: sottotask" is checked on the real options of the trigger and of the action selects
         const lang = await currentLang()
         const optionTexts = async () => browser.execute(() => Array.from(document.querySelectorAll('[role="option"]')).map((o) => (o.textContent ?? "").trim()))
-        await domClick((await dialog.$$(`[aria-label=${JSON.stringify(await tr("automations.when"))}]`))[0] as unknown as Chainable)
+        await domClick((await dialog.$$(`[aria-label=${JSON.stringify(await tr("automations.steps.when"))}]`))[0] as unknown as Chainable)
         await $("[role='option']").waitForDisplayed()
         const triggers = await optionTexts()
         expect(triggers).toContain(await tr("automations.triggers.subtasksCompleted"))
@@ -502,13 +502,13 @@ describe("Automations", () => {
             await showSidebar()
             const dialog = await openAutomations(LONG_NOTE)
             await byText(await tr("automations.add"), dialog).click()
-            await expect(dialog.$(`h2=${await tr("automations.newTitle")}`)).toBeDisplayed()
+            await expect(dialog.$(`h2=${await tr("automations.add")}`)).toBeDisplayed()
             expect(await overflows()).toEqual([])
 
             // Step 1: every trigger type, with the long section chosen
             await currentStep(dialog, 0)
             for (const type of ["taskCompleted", "taskReopened", "taskCreated", "taskMovedInto", "subtasksCompleted"]) {
-                await choose(dialog, await tr("automations.when"), await tr(`automations.triggers.${type}`))
+                await choose(dialog, await tr("automations.steps.when"), await tr(`automations.triggers.${type}`))
                 await choose(dialog, await tr("automations.where"), LONG_A)
                 expect({ trigger: type, problems: await overflows() }).toEqual({ trigger: type, problems: [] })
             }

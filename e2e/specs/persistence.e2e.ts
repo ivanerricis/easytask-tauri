@@ -52,7 +52,7 @@ const openSettings = async (category: "appearance" | "notes") => {
     const dialog = $('[role="dialog"]')
     await dialog.waitForDisplayed()
     // A real click: Radix tabs activate on mouse down, which the DOM click of domClick does not dispatch
-    await byText(await tr(`settings.categories.${category}`), dialog).click()
+    await byText(await tr(`settings.${category}.title`), dialog).click()
     return dialog
 }
 
@@ -107,7 +107,7 @@ describe("Settings and data survive an app restart", () => {
             const dialog = await openSettings("notes")
             const hide = await hideCompletedSwitch()
             if ((await hide.getAttribute("aria-checked")) === "true") await domClick(hide)
-            await byText(await tr("settings.categories.appearance"), dialog).click()
+            await byText(await tr("settings.appearance.title"), dialog).click()
             const reset = byText(await tr("settings.resetAll"), dialog)
             if (await reset.isEnabled()) {
                 await domClick(reset)
@@ -144,7 +144,7 @@ describe("Settings and data survive an app restart", () => {
         await domClick(hide)
         await expect(hide).toHaveAttribute("aria-checked", "true")
 
-        await byText(await tr("settings.categories.appearance"), dialog).click()
+        await byText(await tr("settings.appearance.title"), dialog).click()
         const accent = await accentInput()
         await accent.waitForExist()
         const element = (await accent.getElement()) as unknown as HTMLInputElement
@@ -193,7 +193,7 @@ describe("Settings and data survive an app restart", () => {
         await accent.waitForExist()
         expect(await accent.getValue()).toBe(ACCENT)
 
-        await byText(await tr("settings.categories.notes"), dialog).click()
+        await byText(await tr("settings.notes.title"), dialog).click()
         await expect(await hideCompletedSwitch()).toHaveAttribute("aria-checked", "true")
         await closeSettings()
     })

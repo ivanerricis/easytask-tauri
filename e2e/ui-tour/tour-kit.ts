@@ -31,7 +31,7 @@ export const openSettings = async () => {
 
 export const goCategory = async (id: string) => {
     const nav = $(`[role="tablist"][aria-label=${JSON.stringify(await tr("settings.nav"))}]`)
-    await byText(await tr(`settings.categories.${id}`), nav).click()
+    await byText(await tr(`settings.${id}.title`), nav).click()
     await settle(500)
 }
 

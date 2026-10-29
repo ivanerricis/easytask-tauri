@@ -463,7 +463,7 @@ export const openSettingsOn = async (category: "appearance" | "notes") => {
     const dialog = $('[role="dialog"]')
     await dialog.waitForDisplayed({ timeoutMsg: "the settings dialog did not open" })
     // A real click: Radix tabs activate on mouse down, which the DOM click of domClick does not dispatch
-    await byText(await tr(`settings.categories.${category}`), dialog).click()
+    await byText(await tr(`settings.${category}.title`), dialog).click()
     return dialog
 }
 
