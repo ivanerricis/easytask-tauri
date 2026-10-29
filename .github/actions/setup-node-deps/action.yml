@@ -1,0 +1,15 @@
+name: Set up Node and install dependencies
+description: Node 24 with the npm cache, then `npm ci` at the root of the repository. Run actions/checkout first.
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+      with:
+        node-version: 24
+        cache: npm
+    # Explicit folder: the `defaults.run.working-directory` of a job (src-tauri in the backend job) must not apply here
+    - name: npm ci
+      shell: bash
+      working-directory: ${{ github.workspace }}
+      run: npm ci

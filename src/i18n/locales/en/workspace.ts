@@ -58,7 +58,7 @@ export const notes: Translation["notes"] = {
     },
     closeAll: "Close all notes",
     split: {
-        split: "Split the workspace",
+        split: "Split into two areas",
         close: "Close the split",
         divider: "Resize the two areas",
         dividerValue: "{{percent}}% left",

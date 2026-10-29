@@ -19,6 +19,8 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}", "scripts/**/*.test.mjs"],
     coverage: {
       provider: "v8",
+      // clover.xml feeds Codecov (ci.yml); lcov for editors/other tools; html + json are the vitest defaults
+      reporter: ["text", "text-summary", "html", "lcov", "clover", "json"],
       include: ["src/**/*.{ts,tsx}"],
       exclude: ["src/**/*.test.{ts,tsx}", "src/test/**", "src/components/ui/**", "src/main.tsx"],
       // Regression gate: `npm run test:coverage` (and the CI) fails if coverage drops below these values.

@@ -218,8 +218,4 @@ describe("Settings and data survive an app restart", () => {
         await browser.waitUntil(async () => (await taskValues(SECTION)).includes(TASK), { timeoutMsg: "the task was lost" })
         await expect(sectionCard(SECTION).$('[role="checkbox"]')).toHaveAttribute("aria-checked", "true")
     })
-
-    // The theme is kept in the localStorage of the webview, which tauri-driver does not share between sessions (see the
-    // notes at the top): it cannot be checked after a restart through the driver.
-    it.skip("keeps the theme", () => undefined)
 })

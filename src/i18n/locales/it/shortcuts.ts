@@ -1,7 +1,7 @@
 export const shortcuts = {
     categories: {
         general: "Generale",
-        notes: "Note e schede",
+        notes: "Note e tab",
         groups: "Gruppi, sezioni e task",
         tasks: "Task da tastiera",
         home: "Pagina iniziale",
@@ -29,7 +29,7 @@ export const shortcuts = {
         "previous-note-alt": "Vai alla nota aperta precedente (alternativa)",
         "toggle-hide-completed": "Nascondi o mostra task completati",
         "toggle-audio": "Riproduci o metti in pausa l'audio",
-        "toggle-split": "Dividi lo spazio di lavoro o chiudi la divisione",
+        "toggle-split": "Dividi in due aree o chiudi la divisione",
         "move-note-to-other-pane": "Sposta la nota attiva nell'altra area",
         "move-note-to-other-pane-alt": "Sposta la nota attiva nell'altra area (alternativa)",
         "focus-other-pane": "Passa all'altra area",
@@ -44,7 +44,7 @@ export const shortcuts = {
         "task-rename": "Modifica il testo del task",
         "task-menu": "Apri il menu del task",
         "task-extend-selection": "Estendi la selezione ai task vicini, al primo o all'ultimo",
-        "task-toggle-selection": "Aggiungi o togli il task dalla selezione",
+        "task-toggle-selection": "Aggiungi o rimuovi il task dalla selezione",
         "toggle-sidebar": "Mostra o nascondi la barra laterale",
         "toggle-right-sidebar": "Mostra o nascondi il pannello dei dettagli e della cronologia",
         "new-workspace": "Nuovo workspace",

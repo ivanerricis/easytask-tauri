@@ -56,7 +56,7 @@ export const notes = {
     },
     closeAll: "Chiudi tutte le note",
     split: {
-        split: "Dividi lo spazio",
+        split: "Dividi in due aree",
         close: "Chiudi la divisione",
         divider: "Ridimensiona le due aree",
         dividerValue: "{{percent}}% a sinistra",

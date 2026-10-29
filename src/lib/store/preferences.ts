@@ -1,5 +1,6 @@
 import type { AudioPlayerPosition } from "@/types/types"
 import { store } from "./initStore"
+import { flushStore, saveStoreSoon } from "./save-soon"
 import { DEFAULT_PRIMARY_COLOR } from "@/lib/accent-color"
 import { SIDEBAR_DEFAULT_WIDTH, clampSidebarWidth } from "@/lib/sidebar-layout"
 import { DEFAULT_SPLIT_RATIO, clampRatio } from "@/lib/split-layout"
@@ -11,44 +12,16 @@ const PRIMARY_COLOR_KEY = "primaryColor"
 const AUDIOPLAYER_POSITION_KEY = "audioPlayerPosition"
 export { DEFAULT_PRIMARY_COLOR }
 
-const SAVE_DEBOUNCE_MS = 500
-
-let saveTimer: ReturnType<typeof setTimeout> | null = null
-let pendingResolvers: { resolve: () => void; reject: (e: unknown) => void }[] = []
-
-const runSave = async (): Promise<void> => {
-    if (saveTimer) clearTimeout(saveTimer)
-    saveTimer = null
-    const waiting = pendingResolvers
-    pendingResolvers = []
-    try {
-        await store.save()
-        waiting.forEach(w => w.resolve())
-    } catch (e) {
-        waiting.forEach(w => w.reject(e))
-    }
-}
+// One debounced save for the whole store (shared with tabs and shortcuts, see save-soon.ts)
+const persist = saveStoreSoon
 
 /**
- * Schedules a debounced save of the store; values already set stay in memory immediately.
- * @returns A promise that resolves when the save has actually happened.
- * @category Store
- */
-const persist = (): Promise<void> =>
-    new Promise<void>((resolve, reject) => {
-        pendingResolvers.push({ resolve, reject })
-        if (saveTimer) clearTimeout(saveTimer)
-        saveTimer = setTimeout(() => { void runSave() }, SAVE_DEBOUNCE_MS)
-    })
-
-/**
- * Saves immediately any pending preference change (call before the app closes).
+ * Saves immediately any pending store change (call before the app closes).
+ * Same as `flushStore`: preferences share its single debounce timer.
  * @returns A promise that resolves when nothing is left to save.
  * @category Store
  */
-export const flushPreferences = async (): Promise<void> => {
-    if (saveTimer) await runSave()
-}
+export const flushPreferences = flushStore
 
 export const DEFAULT_AUDIO_VOLUME = 1
 export const AUDIO_PLAYER_SCALES = [0.85, 1, 1.2] as const

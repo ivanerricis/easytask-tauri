@@ -75,7 +75,11 @@ const dragAndMeasure = async (
         })
     }
     await pointer.perform(true)
-    await browser.pause(300)
+    // The feedback (line or ring) is drawn on the next dragover: wait for it; a missing one is reported by the sample below
+    await browser.waitUntil(
+        async () => browser.execute((group: HTMLElement) => group.querySelector("[data-section-card].ring-primary, [data-direct-tasks].ring-primary, [data-section-card] > div.bg-primary, [data-direct-tasks] > div.bg-primary") !== null, (await groupCard(GROUP).getElement()) as unknown as HTMLElement),
+        { timeout: 3_000 },
+    ).catch(() => undefined)
 
     const sample = await browser.execute((group: HTMLElement, kind: string): Sample => {
         const nodes = kind === "line"

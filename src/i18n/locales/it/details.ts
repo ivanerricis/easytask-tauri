@@ -56,7 +56,7 @@ export const rightPanel = {
     toggle: "Mostra o nascondi il pannello dei dettagli",
     show: "Mostra il pannello dei dettagli",
     hide: "Nascondi il pannello dei dettagli",
-    tabs: "Schede del pannello",
+    tabs: "Tab del pannello",
     details: "Dettagli",
     history: "Cronologia",
 }

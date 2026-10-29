@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
-import type { Section as SectionType, Task } from "@/types/types"
+import type { Section as SectionType } from "@/types/types"
 import { ChevronDown } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 import { ItemMenuButton } from "@/components/item-menu"
@@ -17,6 +17,7 @@ import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { withRollback } from "@/contexts/with-rollback"
 import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { getSectionLabel } from "./section-label"
+import { getSectionCompletionPercent } from "./section-progress"
 import { Highlight } from "@/components/highlight"
 import { useSearchHighlight } from "../note-search-context"
 import { usePreferences } from "@/contexts/use-preferences"
@@ -28,19 +29,6 @@ type SectionHeaderProps = {
     section: SectionType
     /** Starts the drag of the section from the whole header (drag & drop inside the open note); omitted when not draggable. */
     dragProps?: HTMLAttributes<HTMLElement>
-}
-
-const calculateCompletionPercentage = (tasks: Task[]): number => {
-    const totalTasks = tasks.length
-    if (totalTasks === 0) return 100
-
-    const completedTasks = tasks.reduce((acc, task) => {
-        const isTaskCompleted = task.completed ||
-            (task.subtasks.length > 0 && task.subtasks.every(subtask => subtask.completed))
-        return acc + (isTaskCompleted ? 1 : 0)
-    }, 0)
-
-    return (completedTasks / totalTasks) * 100
 }
 
 export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }: SectionHeaderProps) => {
@@ -67,7 +55,7 @@ export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }:
         onOpenChange(!isOpen)
     }
 
-    const completionPercentage = calculateCompletionPercentage(section.tasks)
+    const completionPercentage = getSectionCompletionPercent(section.tasks)
 
     return (
         <div className="relative flex flex-col items-center justify-center">

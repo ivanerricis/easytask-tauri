@@ -63,10 +63,15 @@ export const AddSection = ({ inGroup, groupId, open, onClose }: AddSectionFormPr
         formRef.current?.scrollIntoView(controlled ? { block: "nearest" } : { inline: "end", block: "nearest" })
     }, [isOpen, controlled])
 
+    // The listener reads the name through a ref, so it is not registered again at every keystroke
+    const nameRef = useRef(name)
+    useEffect(() => { nameRef.current = name }, [name])
+
     useEffect(() => {
+        if (!isOpen) return
         const handleClickOutside = (event: MouseEvent) => {
             // Typed text is never lost with a click elsewhere: only an empty field closes
-            if (formRef.current && !formRef.current.contains(event.target as Node) && !name.trim()) {
+            if (formRef.current && !formRef.current.contains(event.target as Node) && !nameRef.current.trim()) {
                 setOpen(false)
                 setName("")
             }
@@ -74,7 +79,7 @@ export const AddSection = ({ inGroup, groupId, open, onClose }: AddSectionFormPr
 
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
-    }, [setOpen, name])
+    }, [isOpen, setOpen])
 
     // Escape closes the form and discards the text, like a click outside
     const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {

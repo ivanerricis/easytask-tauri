@@ -315,13 +315,13 @@ describe("PathBar split button", () => {
 
     it("offers to split the workspace and toggles the split on click", async () => {
         const toggleSplit = await renderWithLayout(false)
-        await userEvent.click(screen.getByRole("button", { name: "Dividi lo spazio" }))
+        await userEvent.click(screen.getByRole("button", { name: "Dividi in due aree" }))
         expect(toggleSplit).toHaveBeenCalledTimes(1)
     })
 
     it("offers to close the split when the workspace is split", async () => {
         const toggleSplit = await renderWithLayout(true)
-        expect(screen.queryByRole("button", { name: "Dividi lo spazio" })).not.toBeInTheDocument()
+        expect(screen.queryByRole("button", { name: "Dividi in due aree" })).not.toBeInTheDocument()
         await userEvent.click(screen.getByRole("button", { name: "Chiudi la divisione" }))
         expect(toggleSplit).toHaveBeenCalledTimes(1)
     })

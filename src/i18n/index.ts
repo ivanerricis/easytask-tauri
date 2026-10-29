@@ -3,14 +3,15 @@ import { initReactI18next } from "react-i18next"
 import { it } from "./locales/it"
 import { en } from "./locales/en"
 
-export type Language = "it" | "en"
+const SUPPORTED_LANGUAGES = ["it", "en"] as const
+
+export type Language = (typeof SUPPORTED_LANGUAGES)[number]
 export type LanguagePreference = "system" | Language
 
-const SUPPORTED_LANGUAGES: Language[] = ["it", "en"]
 export const DEFAULT_LANGUAGE_PREFERENCE: LanguagePreference = "system"
 
 export const isLanguagePreference = (value: unknown): value is LanguagePreference =>
-    value === "system" || value === "it" || value === "en"
+    value === "system" || (SUPPORTED_LANGUAGES as readonly unknown[]).includes(value)
 
 /** Maps a BCP 47 tag ("it-IT", "en-US", ...) to a supported language: Italian for "it*", English otherwise. */
 export const languageFromLocale = (locale: string | undefined | null): Language =>
@@ -39,7 +40,7 @@ export const initI18n = (preference: LanguagePreference = DEFAULT_LANGUAGE_PREFE
             resources: { it: { translation: it }, en: { translation: en } },
             lng,
             fallbackLng: "en",
-            supportedLngs: SUPPORTED_LANGUAGES,
+            supportedLngs: [...SUPPORTED_LANGUAGES],
             interpolation: { escapeValue: false },
             react: { useSuspense: false },
             initAsync: false,

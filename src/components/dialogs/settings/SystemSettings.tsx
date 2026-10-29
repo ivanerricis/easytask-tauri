@@ -7,9 +7,10 @@ import { isPortable } from "@/db/appPaths"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { relaunch } from "@tauri-apps/plugin-process"
 import {
-    flushPreferences, getAlwaysOnTop, getCloseToTray, getHardwareAcceleration, getRememberWindowState, saveAlwaysOnTop, saveCloseToTray, saveHardwareAcceleration,
+    getAlwaysOnTop, getCloseToTray, getHardwareAcceleration, getRememberWindowState, saveAlwaysOnTop, saveCloseToTray, saveHardwareAcceleration,
     saveRememberWindowState,
 } from "@/lib/store/preferences"
+import { flushStore } from "@/lib/store/save-soon"
 import { notifyCloseToTrayChanged } from "@/lib/tray"
 import { getErrorMessage } from "@/lib/utils"
 import { SettingsCard, SettingsPanel, SettingsSwitchRow } from "./SettingsRow"
@@ -159,7 +160,7 @@ const HardwareAccelerationSetting = () => {
 
     const restart = async () => {
         try {
-            await flushPreferences()
+            await flushStore()
             await relaunch()
         } catch (error) {
             reportError(error, t("settings.system.hardwareAcceleration.restartError", { message: getErrorMessage(error) }))

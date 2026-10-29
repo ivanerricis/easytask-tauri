@@ -19,7 +19,7 @@ Inside a text field, `Ctrl+Z` and `Ctrl+Y` undo and redo the text you are typing
 
 You can change `Ctrl+Z` and `Ctrl+Y` in **Settings > Shortcuts**. `Ctrl+Shift+Z` is fixed. See [Keyboard shortcuts](./shortcuts).
 
-With the [workspace split](./folders-and-notes#split-the-workspace) in two areas there is still one history for the whole workspace. If you undo or redo an action done on the note of the other area, that note is refreshed too.
+With the [split view](./folders-and-notes#split-into-two-areas) in two areas there is still one history for the whole workspace. If you undo or redo an action done on the note of the other area, that note is refreshed too.
 
 ## What you can undo
 

@@ -15,7 +15,11 @@ export const countTasks = (tasks: Task[]): { done: number, total: number } => {
     return { done, total }
 }
 
-/** Completion of a group: every task and every subtask counts as one unit (the tasks directly in the group included). */
+/**
+ * Completion of a group: every task and every subtask counts as one unit (the tasks directly in the group included); no tasks = 0%.
+ * Not the same definition as the progress bar of a section (see `getSectionCompletionPercent`): there only top-level tasks count,
+ * a task with all subtasks done counts as done, and an empty section is 100%.
+ */
 export const getGroupProgress = (group: Group): { done: number, total: number, percent: number } => {
     let done = 0
     let total = 0

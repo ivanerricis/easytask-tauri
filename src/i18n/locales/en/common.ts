@@ -26,10 +26,8 @@ export const common: Translation["common"] = {
     workspaceRoot: "Workspace root",
     name: "Name",
     addColor: "Add color",
-    closePalette: "Close the palette",
     creationDate: "Created on {{date}} at {{time}}",
     editDate: "Modified on {{date}} at {{time}}",
-    add: "Add",
     colors: {
         c1: "Red",
         c2: "Green",

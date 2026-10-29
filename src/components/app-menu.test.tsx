@@ -149,7 +149,7 @@ describe("AppMenu", () => {
             </ShortcutsProvider>,
         )
         await openMenu(user, "Visualizza")
-        await user.click(await screen.findByRole("menuitem", { name: /Dividi o unisci lo spazio di lavoro\s*Ctrl\+\\/ }))
+        await user.click(await screen.findByRole("menuitem", { name: /Dividi in due aree o chiudi la divisione\s*Ctrl\+\\/ }))
         await waitFor(() => expect(toggleSplit).toHaveBeenCalledTimes(1))
         await openMenu(user, "Visualizza")
         await user.click(await screen.findByRole("menuitem", { name: /Sposta la nota nell'altra area/ }))

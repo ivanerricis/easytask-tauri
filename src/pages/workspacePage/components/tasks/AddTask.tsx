@@ -7,7 +7,7 @@ import { usePreferences } from "@/contexts/use-preferences"
 import { cn, getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import type { FormEvent, KeyboardEvent } from "react"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { useAutomations } from "@/hooks/use-automations"
@@ -132,27 +132,31 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
     const insertStore = useTaskInsertStore()
     const listKey = `s-${sectionId}`
 
-    const closeField = () => {
+    const closeField = useCallback(() => {
         insertStore.releaseEnd(listKey)
         setOpen(false)
         setText("")
-    }
+    }, [insertStore, listKey])
     // Only one field of a new task is open at a time: a "+" line (or another bottom field) opened elsewhere closes this one, text discarded
     useEffect(() => insertStore.subscribe(() => {
         const slot = insertStore.getState()
         if (slot && !(slot.end && slot.listKey === listKey)) { setOpen(false); setText("") }
     }), [insertStore, listKey])
 
+    // The listener reads the text through a ref, so it is not registered again at every keystroke
+    const textRef = useRef(text)
+    useEffect(() => { textRef.current = text }, [text])
+
     useEffect(() => {
+        if (!isOpen) return
         const handleClickOutside = (event: MouseEvent) => {
             // Typed text is never lost with a click elsewhere: only an empty field closes
-            if (formRef.current && !formRef.current.contains(event.target as Node) && !text.trim()) closeField()
+            if (formRef.current && !formRef.current.contains(event.target as Node) && !textRef.current.trim()) closeField()
         }
 
         document.addEventListener("mousedown", handleClickOutside)
         return () => document.removeEventListener("mousedown", handleClickOutside)
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- closeField only uses stable values
-    }, [text])
+    }, [isOpen, closeField])
 
     const handleOpen = () => {
         if (isOpen) { closeField(); return }

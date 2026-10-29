@@ -120,7 +120,7 @@ describe("split workspace (real providers)", () => {
     it("2. the split button adds an empty right pane and keeps the left one", async () => {
         const user = userEvent.setup()
         await setup()
-        await user.click(screen.getByRole("button", { name: "Dividi lo spazio" }))
+        await user.click(screen.getByRole("button", { name: "Dividi in due aree" }))
 
         const right = screen.getByRole("region", { name: "Area destra" })
         expect(right).toHaveAttribute("data-pane", "1")
@@ -135,7 +135,7 @@ describe("split workspace (real providers)", () => {
         await setup()
         act(() => api.tabs.openNote(NOTE_B))
         await screen.findByText("Beta uno")
-        await user.click(screen.getByRole("button", { name: "Dividi lo spazio" }))
+        await user.click(screen.getByRole("button", { name: "Dividi in due aree" }))
 
         fireEvent.contextMenu(within(pane(0)!).getByRole("tab", { name: "Nota B" }))
         await user.click(await screen.findByRole("menuitem", { name: "Apri a destra" }))

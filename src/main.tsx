@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { getCurrentWindow } from '@tauri-apps/api/window'
 import './index.css'
 import App from './App.tsx'
-import { flushPreferences, getLanguage } from './lib/store/preferences'
+import { getLanguage } from './lib/store/preferences'
 import { flushStore } from './lib/store/save-soon'
 import { runBeforeClose } from './lib/before-close'
 import { isCloseToTrayActive } from './lib/tray'
@@ -18,11 +18,10 @@ import { ErrorBoundary } from './components/error-boundary'
 installGlobalErrorHandlers()
 
 // Debounced preference saves must not be lost when the app closes
-window.addEventListener('beforeunload', () => { void runBeforeClose(); void flushPreferences(); void flushStore().catch(() => {}) })
+window.addEventListener('beforeunload', () => { void runBeforeClose(); void flushStore().catch(() => {}) })
 try {
   void getCurrentWindow().onCloseRequested(async (event) => {
     await runBeforeClose(error => reportError(error))
-    await flushPreferences().catch(error => reportError(error))
     await flushStore().catch(error => reportError(error))
     // Close to the notification area: the window is hidden by useCloseToTray (src/lib/use-close-to-tray.ts), not destroyed
     if (isCloseToTrayActive()) event.preventDefault()

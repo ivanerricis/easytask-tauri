@@ -1,0 +1,24 @@
+name: Linux dependencies of Tauri
+description: >-
+  Refreshes the apt index and installs (with a cache of the .deb files) the packages Tauri needs on Ubuntu. Callers guard it with `if: runner.os == 'Linux'` and may set `timeout-minutes` on the step.
+
+inputs:
+  extra-packages:
+    description: Space separated apt packages to install besides the Tauri ones
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    # The package index of the runner image can be stale (the cached .deb versions would 404)
+    - name: Update the apt package index
+      shell: bash
+      run: sudo apt-get update
+    - name: Install Linux dependencies
+      uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+      with:
+        # The Azure mirror sometimes crawls (a run once spent 27 min on the download): the .deb files are cached
+        packages: libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf ${{ inputs.extra-packages }}
+        version: 1
+        execute_install_scripts: true

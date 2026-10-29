@@ -31,7 +31,7 @@ export const shortcuts: Translation["shortcuts"] = {
         "previous-note-alt": "Go to the previous open note (alternative)",
         "toggle-hide-completed": "Hide or show completed tasks",
         "toggle-audio": "Play or pause the audio",
-        "toggle-split": "Split the workspace or close the split",
+        "toggle-split": "Split into two areas or close the split",
         "move-note-to-other-pane": "Move the active note to the other area",
         "move-note-to-other-pane-alt": "Move the active note to the other area (alternative)",
         "focus-other-pane": "Switch to the other area",

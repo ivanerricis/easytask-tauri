@@ -54,7 +54,7 @@ Fai clic sul pulsante del menu di una riga (compare quando ci passi sopra) oppur
 | -------------------- | :------: | :--: | ------------------------------------------------------------------------------ |
 | **Nuova nota**, **Nuova cartella** | sì |  | Crea l'elemento dentro la cartella.                                          |
 | **Apri**             |          | sì   | Apre la nota in una scheda.                                                    |
-| **Apri a destra**    |          | sì   | Apre la nota nell'area destra, creando la divisione se serve. Vedi [Dividere lo spazio di lavoro](#dividere-lo-spazio-di-lavoro). |
+| **Apri a destra**    |          | sì   | Apre la nota nell'area destra, creando la divisione se serve. Vedi [Dividere in due aree](#dividere-in-due-aree). |
 | **Apri a sinistra**  |          | sì   | Sposta una nota dell'area destra in quella sinistra (solo se la nota è aperta a destra). |
 | **Rinomina**         | sì       | sì   | Il nome diventa un campo di testo sul posto. `Invio` salva, `Esc` annulla.     |
 | **Duplica**          |          | sì   | Crea una copia chiamata per esempio `Roadmap (copia)` e la apre.               |
@@ -103,15 +103,15 @@ Fai clic su una nota nella barra laterale per aprirla. Le note aperte compaiono 
 | Chiudere la nota attiva    | `Ctrl+L`, o il pulsante **Chiudi nota corrente** sulla scheda     |
 | Chiudere tutte le note     | `Ctrl+T`, o il pulsante **Chiudi tutte le note** nella barra laterale |
 | Riordinare le schede       | Trascina una scheda, oppure usa **Sposta tab a sinistra** / **Sposta tab a destra** |
-| Dividere lo spazio         | `Ctrl+\` (`Cmd+\` su macOS), o il pulsante **Dividi lo spazio**    |
+| Dividere in due aree       | `Ctrl+\` (`Cmd+\` su macOS), o il pulsante **Dividi in due aree**    |
 
 Puoi cambiare ogni scorciatoia modificabile in **Impostazioni > Scorciatoie**. Vedi [Scorciatoie da tastiera](./shortcuts).
 
-### Dividere lo spazio di lavoro
+### Dividere in due aree
 
 Puoi tenere due note affiancate. Ogni area ha la sua barra di schede e la sua nota aperta.
 
-- Fai clic su **Dividi lo spazio** a destra della barra del percorso, oppure premi `Ctrl+\` (`Cmd+\` su macOS). A destra compare un'area vuota. Fai clic su **Chiudi la divisione** (o premi la stessa scorciatoia) per tornare a una sola area: questo chiude le schede dell'area destra.
+- Fai clic su **Dividi in due aree** a destra della barra del percorso, oppure premi `Ctrl+\` (`Cmd+\` su macOS). A destra compare un'area vuota. Fai clic su **Chiudi la divisione** (o premi la stessa scorciatoia) per tornare a una sola area: questo chiude i tab dell'area destra.
 - Una nota è aperta in una sola area alla volta. Se apri una nota già aperta nell'altra area, EasyTask passa a quella.
 - Per spostare una nota, trascina la sua scheda nell'altra barra di schede (o rilasciala nella barra vuota). Senza il mouse, usa **Apri a destra** / **Apri a sinistra** nel menu della nota o della sua scheda, oppure premi `Ctrl+Alt+→` (anche `Ctrl+Alt+←`) per spostare la nota attiva nell'altra area. **Apri a destra** crea la divisione se non c'è.
 - `Ctrl+Alt+\` sposta il focus sull'altra area.
@@ -124,7 +124,7 @@ Le tre scorciatoie della divisione si possono cambiare in **Impostazioni > Scorc
 
 ### La barra del percorso
 
-Sotto le schede, una barra sottile mostra il percorso della nota aperta, ad esempio `Lavoro > Progetti > Piano`. Fai clic su una cartella o sulla nota nel percorso per mostrarla nella barra laterale: la barra si apre se era chiusa, le cartelle sopra si espandono e l'elemento viene selezionato. Un percorso lungo mantiene la prima cartella e gli ultimi due elementi. A destra della stessa barra ci sono il pulsante **Nascondi task completati** e il pulsante **Dividi lo spazio** (diventa **Chiudi la divisione** quando lo spazio è diviso).
+Sotto i tab, una barra sottile mostra il percorso della nota aperta, ad esempio `Lavoro > Progetti > Piano`. Fai clic su una cartella o sulla nota nel percorso per mostrarla nella barra laterale: la barra si apre se era chiusa, le cartelle sopra si espandono e l'elemento viene selezionato. Un percorso lungo mantiene la prima cartella e gli ultimi due elementi. A destra della stessa barra ci sono il pulsante **Nascondi task completati** e il pulsante **Dividi in due aree** (diventa **Chiudi la divisione** quando la vista è divisa).
 
 ![La barra del percorso](../../screenshots/it/path-bar-light.png)
 

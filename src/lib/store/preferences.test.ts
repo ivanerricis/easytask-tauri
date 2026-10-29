@@ -149,6 +149,16 @@ describe("batched saves", () => {
         expect(store.save).toHaveBeenCalledTimes(1)
     })
 
+    it("shares the debounce with the other stores: one save for a preference and a saveStoreSoon", async () => {
+        const { saveStoreSoon } = await import("./save-soon")
+        const p1 = savePref("sidebarItemSize", "large")
+        await vi.advanceTimersByTimeAsync(0)
+        const p2 = saveStoreSoon()
+        await vi.advanceTimersByTimeAsync(500)
+        await Promise.all([p1, p2])
+        expect(store.save).toHaveBeenCalledTimes(1)
+    })
+
     it("flushPreferences does nothing when nothing is pending", async () => {
         await flushPreferences()
         expect(store.save).not.toHaveBeenCalled()

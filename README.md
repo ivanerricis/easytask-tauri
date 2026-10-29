@@ -54,7 +54,7 @@ Default shortcuts (all but the fixed ones can be changed in Settings > Shortcuts
 | `Ctrl+K` | Search notes |
 | `Ctrl+L` / `Ctrl+T` | Close the current note / close all notes |
 | `Ctrl+PageDown` / `Ctrl+PageUp` | Next / previous open note (also `Ctrl+Tab` / `Ctrl+Shift+Tab`) |
-| `Ctrl+\` | Split the workspace in two areas / close the split |
+| `Ctrl+\` | Split into two areas / close the split |
 | `Ctrl+Alt+→` (also `Ctrl+Alt+←`) | Move the active note to the other area |
 | `Ctrl+Alt+\` | Move the focus to the other area |
 | `Ctrl+Plus` / `Ctrl+Minus` / `Ctrl+0` | Make the text bigger / smaller / back to the normal size |

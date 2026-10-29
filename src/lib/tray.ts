@@ -2,7 +2,6 @@ import { defaultWindowIcon } from "@tauri-apps/api/app"
 import { Menu } from "@tauri-apps/api/menu"
 import { TrayIcon } from "@tauri-apps/api/tray"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { flushPreferences } from "@/lib/store/preferences"
 import { flushStore } from "@/lib/store/save-soon"
 import { reportError } from "@/lib/report-error"
 
@@ -44,9 +43,8 @@ export async function hideMainWindow(): Promise<void> {
     await getCurrentWindow().hide()
 }
 
-/** Really quits: pending preferences, tabs and shortcuts are saved first, then the window is destroyed (the last window ends the app). */
+/** Really quits: pending store changes (preferences, tabs, shortcuts) are saved first, then the window is destroyed (the last window ends the app). */
 export async function quitApp(): Promise<void> {
-    await flushPreferences().catch(error => reportError(error))
     await flushStore().catch(error => reportError(error))
     await getCurrentWindow().destroy()
 }

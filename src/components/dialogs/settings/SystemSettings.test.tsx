@@ -34,10 +34,10 @@ vi.mock("@/lib/store/preferences", () => ({
     saveAlwaysOnTop: (...a: unknown[]) => saveAlwaysOnTop(...a),
     getHardwareAcceleration: async () => hardwareAcceleration,
     saveHardwareAcceleration: (...a: unknown[]) => saveHardwareAcceleration(...a),
-    flushPreferences: () => flushPreferences(),
     getRememberWindowState: async () => rememberWindowState,
     saveRememberWindowState: (...a: unknown[]) => saveRememberWindowState(...a),
 }))
+vi.mock("@/lib/store/save-soon", () => ({ flushStore: () => flushPreferences() }))
 vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: () => relaunch() }))
 vi.mock("@tauri-apps/api/window", () => ({ getCurrentWindow: () => ({ setAlwaysOnTop: (...a: unknown[]) => setAlwaysOnTop(...a) }) }))
 vi.mock("@/db/appPaths", () => ({ isPortable: () => isPortable() }))

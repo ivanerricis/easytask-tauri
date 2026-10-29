@@ -6,7 +6,7 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ### Aggiunto
 
-- Spazio di lavoro diviso: il pulsante **Dividi lo spazio** a destra della barra del percorso (o Ctrl+\) mostra due note affiancate. Ogni area ha le sue schede e la sua nota aperta, e **Chiudi la divisione** chiude le schede dell'area destra. Una nota è aperta in una sola area alla volta, il divisore tra le aree si può trascinare (o spostare con le frecce, doppio clic per il 50%), e la divisione con le sue schede viene riaperta al prossimo avvio se "Riapri le note all'avvio" è attivo.
+- Vista divisa in due aree: il pulsante **Dividi in due aree** a destra della barra del percorso (o Ctrl+\) mostra due note affiancate. Ogni area ha i suoi tab e la sua nota aperta, e **Chiudi la divisione** chiude i tab dell'area destra. Una nota è aperta in una sola area alla volta, il divisore tra le aree si può trascinare (o spostare con le frecce, doppio clic per il 50%), e la divisione con i suoi tab viene riaperta al prossimo avvio se "Riapri le note all'avvio" è attivo.
 - Puoi trascinare una scheda da una barra di schede all'altra (o nella barra vuota) per spostare la nota nell'altra area.
 - Nuove voci "Apri a destra" e "Apri a sinistra" nel menu di una nota e della sua scheda: la prima crea la divisione se serve.
 - Nuove scorciatoie: Ctrl+\ divide lo spazio o chiude la divisione, Ctrl+Alt+→ (anche Ctrl+Alt+←) sposta la nota attiva nell'altra area, e Ctrl+Alt+\ sposta il focus sull'altra area. Si possono cambiare in Impostazioni > Scorciatoie (tranne Ctrl+Alt+←).

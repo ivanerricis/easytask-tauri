@@ -34,7 +34,7 @@ export const appMenu: Translation["appMenu"] = {
     leftSidebar: "Sidebar",
     rightSidebar: "Details panel",
     hideCompleted: "Hide completed tasks",
-    toggleSplit: "Split or unsplit the workspace",
+    toggleSplit: "Split into two areas or close the split",
     moveNoteToOtherPane: "Move note to the other area",
     nextNote: "Next note",
     previousNote: "Previous note",

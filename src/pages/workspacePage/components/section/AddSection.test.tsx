@@ -46,6 +46,19 @@ describe("AddSection", () => {
         ctx.activeId = 20
     })
 
+    it("registers no mousedown listener while closed, one when open, and does not re-register while typing", async () => {
+        const user = userEvent.setup()
+        const spy = vi.spyOn(document, "addEventListener")
+        const mousedowns = () => spy.mock.calls.filter(([type]) => type === "mousedown").length
+        render(<AddSection inGroup groupId={7} />)
+        expect(mousedowns()).toBe(0)
+        const input = await openSectionForm(user)
+        expect(mousedowns()).toBe(1)
+        await user.type(input, "abc")
+        expect(mousedowns()).toBe(1)
+        spy.mockRestore()
+    })
+
     it("outside a group creates a named group, not a section", async () => {
         const user = userEvent.setup()
         render(<AddSection />)

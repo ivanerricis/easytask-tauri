@@ -33,6 +33,19 @@ describe("AddTask", () => {
         ctx.createSubTask.mockResolvedValue(60)
     })
 
+    it("registers no mousedown listener while closed, one when open, and does not re-register while typing", async () => {
+        const user = userEvent.setup()
+        const spy = vi.spyOn(document, "addEventListener")
+        const mousedowns = () => spy.mock.calls.filter(([type]) => type === "mousedown").length
+        render(<AddTask sectionId={3} />)
+        expect(mousedowns()).toBe(0)
+        const input = await open(user)
+        expect(mousedowns()).toBe(1)
+        await user.type(input, "abc")
+        expect(mousedowns()).toBe(1)
+        spy.mockRestore()
+    })
+
     it("starts collapsed and opens the input on click", async () => {
         const user = userEvent.setup()
         render(<AddTask sectionId={3} />)
