@@ -8,9 +8,9 @@ import { makeWorkspace } from "@/test/ui-fixtures"
 
 const data = {
     getArchiveCount: vi.fn(),
-    archiveVersion: 0,
+    version: 0,
 }
-vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => data }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => data, useWorkspaceVersion: () => data.version }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
 vi.mock("@/components/dialogs/dialog-archive", () => ({
     DialogArchive: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div>Dialogo archivio</div> : null,
@@ -21,7 +21,7 @@ const Harness = () => {
     const [, setTick] = useState(0)
     return (
         <>
-            <button onClick={() => { data.archiveVersion += 1; setTick(t => t + 1) }}>simulate-archive</button>
+            <button onClick={() => { data.version += 1; setTick(t => t + 1) }}>simulate-archive</button>
             <ButtonArchive />
         </>
     )
@@ -30,7 +30,7 @@ const Harness = () => {
 describe("ButtonArchive", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        data.archiveVersion = 0
+        data.version = 0
     })
 
     it("shows the number of archived items", async () => {

@@ -21,8 +21,8 @@ export function flattenTree(tree: TreeData, collapsedIds: Set<number>): FlatRow[
         for (const folder of folders) {
             rows.push({ kind: "folder", key: treeRowKey("folder", folder.id), item: folder, depth })
             if (collapsedIds.has(folder.id)) continue
-            visit(folder.subfolders ?? [], depth + 1)
-            for (const note of folder.notes ?? []) noteRow(note, depth + 1)
+            visit(folder.subfolders, depth + 1)
+            for (const note of folder.notes) noteRow(note, depth + 1)
         }
     }
     visit(tree.rootFolders, 0)

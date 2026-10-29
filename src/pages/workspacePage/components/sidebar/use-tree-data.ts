@@ -11,7 +11,7 @@ const EMPTY: TreeData = { rootFolders: [], rootNotes: [] }
 export const useTreeData = (): TreeData => {
     const { workspaceDataTree } = useWorkspaceData()
     return useMemo(
-        () => workspaceDataTree ? { rootFolders: workspaceDataTree.rootFolders ?? [], rootNotes: workspaceDataTree.rootNotes ?? [] } : EMPTY,
+        () => workspaceDataTree ? { rootFolders: workspaceDataTree.rootFolders, rootNotes: workspaceDataTree.rootNotes } : EMPTY,
         [workspaceDataTree],
     )
 }

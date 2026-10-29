@@ -1,16 +1,16 @@
 import type { Note } from "@/types/types"
 import { useActiveNoteSelector, useTabsActions } from "@/contexts/use-tabs"
 import { ButtonMenuNote } from "./ButtonMenuNote"
-import { ItemMenuButton } from "@/components/item-menu"
-import React, { useCallback, useState } from "react"
+import React, { useState } from "react"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { hexToRgba } from "@/lib/utils"
 import { useItemSize } from "../sidebar/item-size"
 import { DropLine } from "../sidebar/DropLine"
-import { openOnKeyboardFocus, stopDragActivation, useIsTreeTabStop, treeRowKey, treeRowKeyDown, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { openOnKeyboardFocus, useIsTreeTabStop, treeRowKey, treeRowKeyDown, useTreeDropZone, useTreeRow } from "../sidebar/tree-row"
 import { SelectionMark } from "../sidebar/SelectionMark"
-import { handleSelectionClick } from "../sidebar/selection"
-import { useIsSelected, useSelectionStore } from "../sidebar/selection-context"
+import { useIsSelected } from "../sidebar/selection-context"
+import { useTreeRowHandlers } from "../sidebar/use-tree-row-handlers"
+import { TreeRowMenu } from "../sidebar/TreeRowMenu"
 import type { DropZone } from "../sidebar/tree-dnd"
 import { focusRing } from "@/lib/a11y"
 import { TooltipTrigger } from "@/components/ui/tooltip"
@@ -45,7 +45,6 @@ const NoteRow = React.memo(({ note, dropZone, level = 1, dndRef, attributes, lis
     const size = useItemSize()
     const colorAlpha = useColorAlpha()
     const { openNote } = useTabsActions()
-    const store = useSelectionStore()
     const selected = useIsSelected("note", note.id)
     // The note open in the active tab
     const isActive = useActiveNoteSelector(activeId => activeId === note.id)
@@ -53,17 +52,7 @@ const NoteRow = React.memo(({ note, dropZone, level = 1, dndRef, attributes, lis
     const tabStop = useIsTreeTabStop("note", note.id)
 
     // Ctrl/Cmd+click and Shift+click only select; a plain click opens the note and clears the selection
-    const handleOpenFile = useCallback((e: React.MouseEvent) => {
-        e.stopPropagation()
-        if (wasTreeJustDragged()) return
-        if (handleSelectionClick(store, treeRowKey("note", note.id), e)) return
-        openNote(note.id)
-    }, [note.id, openNote, store])
-
-    const handleActivate = () => {
-        store?.reset(treeRowKey("note", note.id))
-        openNote(note.id)
-    }
+    const { handleClick, handleActivate } = useTreeRowHandlers("note", note.id, () => openNote(note.id))
 
     return (
         <TreeRowTooltip
@@ -84,7 +73,7 @@ const NoteRow = React.memo(({ note, dropZone, level = 1, dndRef, attributes, lis
                         data-row-key={treeRowKey("note", note.id)}
                         aria-level={level}
                         tabIndex={tabStop ? 0 : -1}
-                        onClick={handleOpenFile}
+                        onClick={(e) => { e.stopPropagation(); handleClick(e) }}
                         aria-selected={selected}
                         aria-current={isActive ? "true" : undefined}
                         onKeyDown={treeRowKeyDown(listeners, handleActivate)}
@@ -103,9 +92,7 @@ const NoteRow = React.memo(({ note, dropZone, level = 1, dndRef, attributes, lis
                                     {note.name}
                                 </span>}
                         </div>
-                        <div className={`flex items-center leading-none shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
-                            <ItemMenuButton name={note.name} tabIndex={tabStop ? undefined : -1} />
-                        </div>
+                        <TreeRowMenu name={note.name} tabStop={tabStop} />
                     </div>
                 </TooltipTrigger>
             </ButtonMenuNote>

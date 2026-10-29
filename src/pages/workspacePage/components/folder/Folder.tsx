@@ -1,15 +1,15 @@
-import { useActiveNoteSelector } from "@/contexts/use-tabs"
 import { ChevronDown } from "lucide-react"
 import React, { useId, useState } from "react"
 import { DropLine } from "../sidebar/DropLine"
 import { useItemSize } from "../sidebar/item-size"
-import { isInsideZone, openOnKeyboardFocus, stopDragActivation, treeRowKey, treeRowKeyDown, useIsTreeTabStop, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { isInsideZone, openOnKeyboardFocus, treeRowKey, treeRowKeyDown, useIsTreeTabStop, useTreeDropZone, useTreeRow } from "../sidebar/tree-row"
 import { SelectionMark } from "../sidebar/SelectionMark"
-import { handleSelectionClick } from "../sidebar/selection"
-import { useIsSelected, useSelectionStore } from "../sidebar/selection-context"
+import { useFolderHoldsActiveNote } from "../sidebar/active-ancestors"
+import { useIsSelected } from "../sidebar/selection-context"
+import { useTreeRowHandlers } from "../sidebar/use-tree-row-handlers"
+import { TreeRowMenu } from "../sidebar/TreeRowMenu"
 import type { DropZone } from "../sidebar/tree-dnd"
 import { ButtonMenuFolder } from "./ButtonMenuFolder"
-import { ItemMenuButton } from "@/components/item-menu"
 import type { Folder } from "@/types/types"
 import { focusRing } from "@/lib/a11y"
 import { TooltipTrigger } from "@/components/ui/tooltip"
@@ -20,23 +20,6 @@ import { useTranslation } from "react-i18next"
 import { useInlineRename } from "@/hooks/use-inline-rename"
 import { InlineNameInput } from "@/components/inline-name-input"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
-
-// Ids of every note inside a folder (subfolders included), computed once per folder object: the tree is immutable
-// (a change builds new objects only along the changed path), so an active-tab change is a set lookup per collapsed folder.
-const noteIdsCache = new WeakMap<Folder, Set<number>>()
-const noteIdsOf = (folder: Folder): Set<number> => {
-    let ids = noteIdsCache.get(folder)
-    if (!ids) {
-        ids = new Set<number>()
-        for (const note of folder.notes ?? []) ids.add(note.id)
-        for (const sub of folder.subfolders ?? []) for (const id of noteIdsOf(sub)) ids.add(id)
-        noteIdsCache.set(folder, ids)
-    }
-    return ids
-}
-
-/** Whether the note is anywhere inside the folder (subfolders included). */
-const holdsNote = (folder: Folder, noteId: number): boolean => noteIdsOf(folder).has(noteId)
 
 type ItemFolderProps = {
     folder: Folder
@@ -68,25 +51,16 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone, le
     const size = useItemSize()
     const colorAlpha = useColorAlpha()
     const hasContent = React.Children.count(children) > 0
-    const store = useSelectionStore()
     const selected = useIsSelected("folder", folder.id)
     // A collapsed folder hides the open note: it gets a discreet mark so that the note can be found again
-    // (selector: a tab switch re-renders only the collapsed folders whose answer changes)
-    const holdsActiveNote = useActiveNoteSelector(activeId => !isOpen && activeId !== null && holdsNote(folder, activeId))
+    // (the ancestors of the open note are computed once, see ActiveAncestorsProvider)
+    const holdsActiveNote = useFolderHoldsActiveNote(folder.id, isOpen)
     const holdsNoteId = useId()
     // Roving tabindex: one row of the tree is in the tab order, the others are reached with the arrows
     const tabStop = useIsTreeTabStop("folder", folder.id)
 
     // Ctrl/Cmd+click and Shift+click only select; a plain click toggles the folder and clears the selection
-    const handleClick = (e: React.MouseEvent) => {
-        if (wasTreeJustDragged()) return
-        if (handleSelectionClick(store, treeRowKey("folder", folder.id), e)) return
-        onToggle(folder.id)
-    }
-    const handleActivate = () => {
-        store?.reset(treeRowKey("folder", folder.id))
-        onToggle(folder.id)
-    }
+    const { handleClick, handleActivate } = useTreeRowHandlers("folder", folder.id, () => onToggle(folder.id))
 
     return (
         <Collapsible open={isOpen && hasContent} className="relative flex flex-col w-full">
@@ -136,9 +110,7 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone, le
                                     <span id={holdsNoteId} className="sr-only">{t("sidebar.holdsOpenNote")}</span>
                                 </>}
                             </div>
-                            <div className={`flex items-center leading-none shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
-                                <ItemMenuButton name={folder.name} tabIndex={tabStop ? undefined : -1} />
-                            </div>
+                            <TreeRowMenu name={folder.name} tabStop={tabStop} />
                         </div>
                     </TooltipTrigger>
                 </ButtonMenuFolder>

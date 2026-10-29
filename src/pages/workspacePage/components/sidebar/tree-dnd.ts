@@ -46,8 +46,8 @@ export const listTreeItems = (tree: TreeData): TreeIndex => {
     const walkFolders = (items: Folder[]) => {
         for (const folder of items) {
             folders.set(folder.id, folder)
-            walkFolders(folder.subfolders ?? [])
-            for (const note of folder.notes ?? []) notes.set(note.id, note)
+            walkFolders(folder.subfolders)
+            for (const note of folder.notes) notes.set(note.id, note)
         }
     }
     walkFolders(tree.rootFolders)
@@ -76,7 +76,7 @@ export function getFolderSubtreeIds(tree: TreeData, folderId: number): Set<numbe
     const result = new Set<number>()
     const visit = (id: number) => {
         result.add(id)
-        folders.get(id)?.subfolders?.forEach(child => visit(child.id))
+        folders.get(id)?.subfolders.forEach(child => visit(child.id))
     }
     visit(folderId)
     entry.ids.set(folderId, result)
@@ -151,18 +151,19 @@ export function computeDropTarget(
 export type MoveDestination = { id: number | null, name: string | null, depth: number }
 
 /**
- * Destinations offered by the "Sposta in…" menu: the workspace root followed by every folder
- * (depth-first, with its depth), excluding the current parent and, for folders, itself and its descendants.
+ * Every folder of the tree, depth-first, with its depth. `skip` leaves out a folder with all its descendants;
+ * `include` leaves out only the folder itself (its subfolders are still visited).
  */
-export function getMoveDestinations(tree: TreeData, item: TreeRef & { folderID: number | null }): MoveDestination[] {
-    const excluded = item.type === "folder" ? getFolderSubtreeIds(tree, item.id) : new Set<number>()
+export function walkFolderDestinations(
+    tree: TreeData,
+    { skip, include }: { skip?: (folder: Folder) => boolean, include?: (folder: Folder) => boolean } = {},
+): MoveDestination[] {
     const result: MoveDestination[] = []
-    if (item.folderID != null) result.push({ id: null, name: null, depth: 0 })
     const visit = (items: Folder[], depth: number) => {
         for (const folder of items) {
-            if (excluded.has(folder.id)) continue
-            if (folder.id !== item.folderID) result.push({ id: folder.id, name: folder.name, depth })
-            visit(folder.subfolders ?? [], depth + 1)
+            if (skip?.(folder)) continue
+            if (!include || include(folder)) result.push({ id: folder.id, name: folder.name, depth })
+            visit(folder.subfolders, depth + 1)
         }
     }
     visit(tree.rootFolders, 0)
@@ -170,18 +171,22 @@ export function getMoveDestinations(tree: TreeData, item: TreeRef & { folderID: 
 }
 
 /**
+ * Destinations offered by the "Sposta in…" menu: the workspace root followed by every folder
+ * (depth-first, with its depth), excluding the current parent and, for folders, itself and its descendants.
+ */
+export function getMoveDestinations(tree: TreeData, item: TreeRef & { folderID: number | null }): MoveDestination[] {
+    const excluded = item.type === "folder" ? getFolderSubtreeIds(tree, item.id) : new Set<number>()
+    return [
+        ...(item.folderID != null ? [{ id: null, name: null, depth: 0 }] : []),
+        ...walkFolderDestinations(tree, { skip: folder => excluded.has(folder.id), include: folder => folder.id !== item.folderID }),
+    ]
+}
+
+/**
  * Every possible destination of a new note: the workspace root followed by every folder (depth-first, with its depth).
  */
 export function getFolderDestinations(tree: TreeData): MoveDestination[] {
-    const result: MoveDestination[] = [{ id: null, name: null, depth: 0 }]
-    const visit = (items: Folder[], depth: number) => {
-        for (const folder of items) {
-            result.push({ id: folder.id, name: folder.name, depth })
-            visit(folder.subfolders ?? [], depth + 1)
-        }
-    }
-    visit(tree.rootFolders, 0)
-    return result
+    return [{ id: null, name: null, depth: 0 }, ...walkFolderDestinations(tree)]
 }
 
 /** Finds a folder or note in the tree. */

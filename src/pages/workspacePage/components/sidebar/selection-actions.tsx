@@ -1,7 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
-import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import type { ColorChange, TreeItemRef, TreeMoveStep } from "@/contexts/undo/commands"
@@ -13,6 +12,7 @@ import { getTopMostItems } from "./selection"
 import { useSelectionStore } from "./selection-context"
 import { listTreeItems, type DropZone, type TreeData, type TreeRef } from "./tree-dnd"
 import { useTreeData } from "./use-tree-data"
+import { useRefreshTree } from "./use-move-tree-item"
 import { planMultiMove, type PlannedMove } from "./tree-multi-move"
 
 export type SelectionActions = {
@@ -54,13 +54,13 @@ const describe = (tree: TreeData, refs: TreeRef[]): TreeItemRef[] => {
 export function SelectionActionsProvider({ children }: { children: ReactNode }) {
     const { t } = useTranslation()
     const store = useSelectionStore()
-    const { currentWorkspace } = useWorkspace()
-    const { updateItemColor, moveTreeItem, getWorkspaceData, archiveItem } = useWorkspaceData()
+    const { updateItemColor, moveTreeItem, archiveItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
     const { exportItems } = useItemTransfer()
     const [deleting, setDeleting] = useState<{ items: TreeItemRef[], open: boolean }>({ items: [], open: false })
 
     const tree = useTreeData()
+    const refreshTree = useRefreshTree()
 
     const getTargets = useCallback(
         () => describe(tree, getTopMostItems(tree, store?.getRefs() ?? [])),
@@ -114,14 +114,8 @@ export function SelectionActionsProvider({ children }: { children: ReactNode }) 
             reportError(error, getErrorMessage(error))
         }
         if (done.length > 0) recorder.treeMoveMany(done)
-        if (currentWorkspace) {
-            try {
-                await getWorkspaceData(currentWorkspace.id)
-            } catch (error) {
-                reportError(error, t("errors.refreshTree"))
-            }
-        }
-    }, [moveTreeItem, recorder, currentWorkspace, getWorkspaceData, t])
+        await refreshTree()
+    }, [moveTreeItem, recorder, refreshTree])
 
     const planDrop = useCallback((over: TreeRef | null, zone: DropZone, targets?: TreeRef[]) =>
         planMultiMove(tree, targets ?? getTargets().map(item => ({ type: item.itemType, id: item.id })), over, zone),
