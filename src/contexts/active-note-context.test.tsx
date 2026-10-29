@@ -237,6 +237,16 @@ describe("ActiveNoteProvider", () => {
             expect(latest.current[key]).toBe(before[key])
     })
 
+    it("writes the cache entry of the note given to setNoteDataTree, not the active one", async () => {
+        const latest = setup()
+        act(() => latest.current.openNote(1))
+        await waitFor(() => expect(shownGroup(latest)).toBe(10))
+        const tree = { groups: [makeGroup({ id: 77 })] }
+        act(() => latest.current.setNoteDataTree(tree, 1))
+        expect(latest.current.getCachedNoteTree(1)).toBe(tree)
+        expect(shownGroup(latest)).toBe(77)
+    })
+
     it("lets a row read one value of the cached tree and hear about its changes", async () => {
         const latest = setup()
         expect(latest.current.getCachedNoteTree(1)).toBeNull()

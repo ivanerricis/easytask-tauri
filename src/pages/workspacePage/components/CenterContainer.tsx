@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { useActiveNoteId } from "@/contexts/use-tabs"
-import { useLayout } from "@/contexts/use-layout"
+import { useIsSplit } from "@/contexts/use-layout"
 import { PaneProvider } from "@/contexts/pane-provider"
 import { DEFAULT_SPLIT_RATIO, clampRatio } from "@/lib/split-layout"
 import { getSplitRatio, saveSplitRatio } from "@/lib/store/split"
@@ -45,10 +45,12 @@ const SplitPanes = () => {
     useEffect(() => {
         const element = containerRef.current
         if (!element) return
-        const measure = () => setWidth(element.getBoundingClientRect().width)
-        measure()
+        setWidth(element.getBoundingClientRect().width)
         if (typeof ResizeObserver === "undefined") return
-        const observer = new ResizeObserver(measure)
+        const observer = new ResizeObserver(([entry]) => {
+            const next = entry.contentRect.width
+            setWidth(current => current === next ? current : next)
+        })
         observer.observe(element)
         return () => observer.disconnect()
     }, [])
@@ -60,7 +62,7 @@ const SplitPanes = () => {
     return (
         <div ref={containerRef} className="flex w-full min-w-0 overflow-hidden">
             <PaneProvider pane={0}><SplitPane pane={0} share={effective} /></PaneProvider>
-            <PaneDivider ratio={effective} containerRef={containerRef} containerWidth={width} onRatioChange={change} onRatioCommit={commit} />
+            <PaneDivider ratio={effective} containerRef={containerRef} containerWidth={width ?? Infinity} onRatioChange={change} onRatioCommit={commit} />
             <PaneProvider pane={1}><SplitPane pane={1} share={1 - effective} /></PaneProvider>
         </div>
     )
@@ -68,7 +70,7 @@ const SplitPanes = () => {
 
 /** The centre of the workspace: one pane, or two side by side (with their divider) when the workspace is split. */
 export const CenterContainer = () => {
-    const { isSplit } = useLayout()
+    const isSplit = useIsSplit()
 
     if (!isSplit) return <PaneProvider pane={0}><SinglePane /></PaneProvider>
     return <TabsDndProvider><SplitPanes /></TabsDndProvider>

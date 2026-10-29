@@ -1,4 +1,4 @@
-import { useCallback, useContext, useMemo, useRef, useSyncExternalStore, type ReactNode } from "react"
+import { useCallback, useContext, useMemo, useRef, type ReactNode } from "react"
 import { ActiveNoteActionsContext, ActiveNoteContext } from "./active-note-context-object"
 import { ActiveIdContext, ActiveIdStoreContext, TabsActionsContext, TabsContext } from "./tabs-context-object"
 import {
@@ -10,6 +10,7 @@ import {
     type PaneContextType,
 } from "./layout-context-object"
 import type { PaneIndex } from "./layout-reducer"
+import { useStoreSelector } from "@/lib/external-store"
 
 /**
  * Makes the hooks of the tabs and of the active note (`useTabs`, `useTabsActions`, `useActiveNoteId`, `useActiveNote`,
@@ -24,7 +25,7 @@ export function PaneProvider({ pane, children }: { pane: PaneIndex, children: Re
     const paneActions = useContext(PaneNoteActionsContext)
     const focusStore = useContext(FocusedPaneStoreContext)
     const rootRef = useRef<HTMLDivElement | null>(null)
-    const focused = useSyncExternalStore(focusStore.subscribe, () => focusStore.getState() === pane)
+    const focused = useStoreSelector(focusStore, s => s === pane)
 
     const isFocused = useCallback(() => focusStore.getState() === pane, [focusStore, pane])
     const paneContext = useMemo<PaneContextType>(() => ({ pane, focused, isFocused, rootRef }), [pane, focused, isFocused])

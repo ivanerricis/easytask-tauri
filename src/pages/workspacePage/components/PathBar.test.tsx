@@ -9,6 +9,7 @@ import { TREE_REVEAL_EVENT } from "@/lib/tree-reveal"
 import { APP_COMMAND_EVENT } from "@/lib/app-commands"
 import type { Folder, Note } from "@/types/types"
 import { makeNote } from "@/test/ui-fixtures"
+import { IsSplitProvider } from "@/test/split-harness"
 import { TemplateDraftsActionsContext, TemplateDraftsContext, type TemplateDraftsActionsType } from "@/contexts/template-drafts-context-object"
 import type { DraftSaveStatus } from "@/lib/template-draft"
 import type { TreeData } from "./sidebar/tree-dnd"
@@ -298,10 +299,12 @@ describe("PathBar split button", () => {
             <ShortcutsProvider>
                 <TabsProvider notes={notes} workspaceId={null}>
                     <LayoutContext.Provider value={{ left: { openIds: [1], activeId: 1 }, right: isSplit ? { openIds: [], activeId: null } : null, focused: 0, isSplit }}>
-                        <LayoutActionsContext.Provider value={layoutActions}>
-                            <Opener ids={[1]} />
-                            <PathBar />
-                        </LayoutActionsContext.Provider>
+                        <IsSplitProvider isSplit={isSplit}>
+                            <LayoutActionsContext.Provider value={layoutActions}>
+                                <Opener ids={[1]} />
+                                <PathBar />
+                            </LayoutActionsContext.Provider>
+                        </IsSplitProvider>
                     </LayoutContext.Provider>
                 </TabsProvider>
             </ShortcutsProvider>,

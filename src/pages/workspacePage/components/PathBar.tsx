@@ -8,7 +8,7 @@ import {
     Breadcrumb, BreadcrumbEllipsis, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { useActiveNoteId } from "@/contexts/use-tabs"
-import { useLayout, useLayoutActions } from "@/contexts/use-layout"
+import { useIsSplit, useLayoutActions } from "@/contexts/use-layout"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { useWorkspaceData } from "@/contexts/workspace-data"
@@ -44,7 +44,7 @@ export const PathBar = () => {
     const newGroupLabel = useShortcutLabel("new-group")
     const searchLabel = useShortcutLabel("search-in-note")
     const splitLabel = useShortcutLabel("toggle-split")
-    const { isSplit } = useLayout()
+    const isSplit = useIsSplit()
     const { toggleSplit } = useLayoutActions()
     const splitText = isSplit ? t("notes.split.close") : t("notes.split.split")
     const draft = useDraftOfNote(activeId)

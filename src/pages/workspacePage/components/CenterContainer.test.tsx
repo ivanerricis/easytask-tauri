@@ -1,7 +1,6 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { LayoutContext } from "@/contexts/layout-context-object"
-import { SplitHarness } from "@/test/split-harness"
+import { IsSplitProvider, SplitHarness } from "@/test/split-harness"
 import type { SplitState } from "@/test/split-fixtures"
 import { CenterContainer } from "./CenterContainer"
 import { getSplitRatio, saveSplitRatio } from "@/lib/store/split"
@@ -14,8 +13,6 @@ vi.mock("./note/TabsDndProvider", () => ({ TabsDndProvider: ({ children }: { chi
 vi.mock("./note-search-context", () => ({ NoteSearchProvider: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
 vi.mock("@/lib/store/split", () => ({ getSplitRatio: vi.fn(), saveSplitRatio: vi.fn() }))
 
-const tabs = { openIds: [1], activeId: 1 }
-const layout = (isSplit: boolean) => ({ left: tabs, right: isSplit ? { openIds: [], activeId: null } : null, focused: 0 as const, isSplit })
 const state: SplitState = { open0: [1], active0: 1, open1: [], active1: null, focused: 0 }
 
 describe("CenterContainer", () => {
@@ -33,9 +30,9 @@ describe("CenterContainer", () => {
 
     it("renders the note list, the path bar and the groups with no divider when not split", () => {
         render(
-            <LayoutContext.Provider value={layout(false)}>
+            <IsSplitProvider isSplit={false}>
                 <SplitHarness state={state}><CenterContainer /></SplitHarness>
-            </LayoutContext.Provider>,
+            </IsSplitProvider>,
         )
         expect(screen.getByTestId("note-list")).toBeInTheDocument()
         expect(screen.getByTestId("path-bar")).toBeInTheDocument()
@@ -47,9 +44,9 @@ describe("CenterContainer", () => {
 
     it("renders two panes and a divider inside the tabs drag and drop context when split", async () => {
         render(
-            <LayoutContext.Provider value={layout(true)}>
+            <IsSplitProvider isSplit={true}>
                 <SplitHarness state={state}><CenterContainer /></SplitHarness>
-            </LayoutContext.Provider>,
+            </IsSplitProvider>,
         )
         const tabsDnd = screen.getByTestId("tabs-dnd")
         expect(tabsDnd).toContainElement(screen.getByRole("separator"))
@@ -61,9 +58,9 @@ describe("CenterContainer", () => {
     it("applies the saved ratio and saves a new one when the divider moves", async () => {
         vi.mocked(getSplitRatio).mockResolvedValue(0.4)
         render(
-            <LayoutContext.Provider value={layout(true)}>
+            <IsSplitProvider isSplit={true}>
                 <SplitHarness state={state}><CenterContainer /></SplitHarness>
-            </LayoutContext.Provider>,
+            </IsSplitProvider>,
         )
         const separator = screen.getByRole("separator")
         await waitFor(() => expect(separator).toHaveAttribute("aria-valuenow", "40"))

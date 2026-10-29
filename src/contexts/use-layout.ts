@@ -8,7 +8,7 @@ import {
     type LayoutContextType,
     type PaneContextType,
 } from "./layout-context-object"
-import type { PaneIndex } from "./layout-reducer"
+import { findPane, type PaneIndex } from "./layout-reducer"
 import { useStoreSelector } from "@/lib/external-store"
 
 const ALWAYS_FOCUSED = () => true
@@ -35,9 +35,7 @@ export const usePaneFocusGetter = (): (() => boolean) => useContext(PaneContext)
 
 /** The pane that holds a note, null if the note is not open. */
 export const usePaneOfNote = (noteId: number): PaneIndex | null => {
-    const { left, right } = useLayout()
-    if (left.openIds.includes(noteId)) return 0
-    return right?.openIds.includes(noteId) ? 1 : null
+    return findPane(useLayout(), noteId)
 }
 
 /** A function returning the root element of the pane to query within (the document outside the panes). */

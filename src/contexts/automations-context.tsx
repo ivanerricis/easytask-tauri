@@ -94,20 +94,19 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
     }, [activeId])
 
     const { noteDataTree } = useActiveNote()
-    const { getCachedNoteTree, getNoteData, setNoteDataTree, refreshActiveNote } = useActiveNoteActions()
+    const { getCachedNoteTree, getNoteData, setNoteDataTree } = useActiveNoteActions()
     const { notifyArchiveChanged } = useWorkspaceActions()
-    // The cached notes are read by id (a note open in a pane without the focus has its own entry). The focused note is also
-    // written optimistically (`setNoteDataTree` acts on it); any other open note is reloaded once the write is done.
-    const reload = useCallback((noteId: number) => noteId === activeIdRef.current ? refreshActiveNote() : getNoteData(noteId), [refreshActiveNote, getNoteData])
-    // An automation is applied to the cached note first: when the write fails the note is reloaded and the error goes on
+    // The cached notes are read and written by id (a note open in a pane without the focus has its own entry), so no
+    // path depends on which note has the focus. An automation is applied to the cached note first: when the write fails
+    // the note is reloaded and the error goes on
     const applyOrRefresh = useCallback(async (noteId: number, write: () => Promise<void>) => {
         try {
             await write()
         } catch (error) {
-            await reload(noteId).catch(() => {})
+            await getNoteData(noteId).catch(() => {})
             throw error
         }
-    }, [reload])
+    }, [getNoteData])
     const recorder = useUndoRecorder()
     const undoContext = useOptionalUndo()
     const undoRef = useRef(undoContext?.undo)
@@ -123,22 +122,18 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         noteId: number, source: Side, other: Side, tasks: TaskChange[], groups: GroupChange[],
     ) => {
         const cached = getCachedNoteTree(noteId)
-        const focused = activeIdRef.current === noteId
         const base = cached ?? await fetchNoteTree(noteId)
         const next = restoreTasks(restoreGroups(base, source.tree, groups), source.full, tasks)
-        if (cached && focused) setNoteDataTree(next)
+        if (cached) setNoteDataTree(next, noteId)
         // The tasks of an archived group are compared with what the database holds: `other.full` has the groups as they
         // were before this restore, `source.full` as they are after it
         const write = () => applyDBAutomationChanges([
             ...diffGroupStatements(base, next),
             ...diffTaskStatements(withGroups(base, other.full.groups), withGroups(next, source.full.groups)),
         ])
-        if (cached && focused) await applyOrRefresh(noteId, write)
-        else await write()
-        // A note open in another pane is reloaded from what was written
-        if (cached && !focused) await getNoteData(noteId).catch(error => reportError(error))
+        await applyOrRefresh(noteId, write)
         if (groups.some(change => change.archived)) notifyArchiveChanged()
-    }, [getCachedNoteTree, getNoteData, setNoteDataTree, applyOrRefresh, notifyArchiveChanged])
+    }, [getCachedNoteTree, setNoteDataTree, applyOrRefresh, notifyArchiveChanged])
 
     const run = useCallback(async (event: AutomationEvent, target?: number | null) => {
         const noteId = target ?? activeIdRef.current
@@ -148,17 +143,15 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         // Read after the await: the note may have changed (or been closed) while the rules were loading
         const before = getCachedNoteTree(noteId)
         if (!before) return
-        const focused = activeIdRef.current === noteId
 
         const { tree: after, applied, touched, touchedGroups, archivedGroups } = runAutomations(before, rules, event)
         if (applied.length === 0 || after === before) return
 
         // `after` plus the archived groups as they ended up: their tasks may have been changed before the archive
         const fullAfter = withGroups(after, archivedGroups)
-        if (focused) setNoteDataTree(after)
+        setNoteDataTree(after, noteId)
         // Groups first (archive, color, order), then the tasks: the tasks of an archived group are not in `after`
         await applyOrRefresh(noteId, () => applyDBAutomationChanges([...diffGroupStatements(before, after), ...diffTaskStatements(before, fullAfter)]))
-        if (!focused) await getNoteData(noteId).catch(error => reportError(error))
 
         const tasks = taskChanges(before, fullAfter, touched)
         const groups = groupChanges(before, after, touchedGroups)
@@ -195,7 +188,7 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
                 ...(undo ? { action: { label: i18n.t("undo.undo"), onClick: undoAutomation } } : {}),
             },
         )
-    }, [getRules, getCachedNoteTree, getNoteData, setNoteDataTree, applyOrRefresh, notifyArchiveChanged, recorder, restore])
+    }, [getRules, getCachedNoteTree, setNoteDataTree, applyOrRefresh, notifyArchiveChanged, recorder, restore])
 
     /** Runs the rules for an event (never rejects: a failure is reported). An undo asked meanwhile waits for it. */
     const dispatch = useCallback((event: AutomationEvent, noteId?: number | null) => recorder.track(run(event, noteId).catch(error => {
@@ -216,13 +209,11 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         if (!before) return
         const { tree: after } = syncStateRules(before, rules)
         if (after === before) return
-        const focused = activeIdRef.current === noteId
-        if (focused) setNoteDataTree(after)
+        setNoteDataTree(after, noteId)
         await applyOrRefresh(noteId, () => applyDBAutomationChanges([...diffGroupStatements(before, after), ...diffSectionStatements(before, after)]))
-        if (!focused) await getNoteData(noteId).catch(error => reportError(error))
     })().catch(error => {
         reportError(error, getErrorMessage(error))
-    })), [recorder, getRules, getCachedNoteTree, getNoteData, setNoteDataTree, applyOrRefresh])
+    })), [recorder, getRules, getCachedNoteTree, setNoteDataTree, applyOrRefresh])
 
     /** The public `sync`: whoever asks from outside has just changed the rules (the automations dialog), so they are read again. */
     const sync = useCallback((noteId?: number | null) => {

@@ -154,8 +154,8 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
             const id = getActiveId()
             if (id !== null) await loadNote(id)
         }
-        const setNoteDataTree = (tree: NoteDataTree | null) => {
-            const id = getActiveId()
+        const setNoteDataTree = (tree: NoteDataTree | null, noteId?: number) => {
+            const id = noteId ?? getActiveId()
             if (id === null || !tree) return
             commit(id, tree)
         }

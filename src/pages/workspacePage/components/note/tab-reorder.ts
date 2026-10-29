@@ -1,3 +1,5 @@
+import type { PaneIndex } from "@/contexts/layout-reducer"
+
 export type TabZone = "before" | "after"
 
 /** Left half of a tab = before, right half = after. */
@@ -30,25 +32,22 @@ export function pickTabByX<T extends string | number>(tabs: { id: T, left: numbe
     return tabs.reduce((a, b) => b.right > a.right ? b : a).id
 }
 
-/** Index of a pane of the split workspace (0 = left, 1 = right). */
-export type TabPane = 0 | 1
-
 /** The id of a tab (draggable and droppable) in the dnd context shared by the two bars: `tab:<pane>:<noteId>`. */
-export const tabDndId = (pane: TabPane, noteId: number): string => `tab:${pane}:${noteId}`
+export const tabDndId = (pane: PaneIndex, noteId: number): string => `tab:${pane}:${noteId}`
 
 /** The id of the droppable covering the whole tab bar of a pane: `bar:<pane>`. */
-export const barDndId = (pane: TabPane): string => `bar:${pane}`
+export const barDndId = (pane: PaneIndex): string => `bar:${pane}`
 
 /** Parses a `tab:<pane>:<noteId>` id; null for any other id. */
-export function parseTabDndId(id: string | number): { pane: TabPane, noteId: number } | null {
+export function parseTabDndId(id: string | number): { pane: PaneIndex, noteId: number } | null {
     const match = /^tab:([01]):(\d+)$/.exec(String(id))
-    return match ? { pane: Number(match[1]) as TabPane, noteId: Number(match[2]) } : null
+    return match ? { pane: Number(match[1]) as PaneIndex, noteId: Number(match[2]) } : null
 }
 
 /** Parses a `bar:<pane>` id; returns the pane, or null for any other id. */
-export function parseBarDndId(id: string | number): TabPane | null {
+export function parseBarDndId(id: string | number): PaneIndex | null {
     const match = /^bar:([01])$/.exec(String(id))
-    return match ? Number(match[1]) as TabPane : null
+    return match ? Number(match[1]) as PaneIndex : null
 }
 
 /** The bar whose rectangle contains the point (edges included), null when the point is over no bar. */
@@ -72,12 +71,12 @@ export function computeCrossPaneIndex(targetIds: readonly number[], overId: numb
 }
 
 /** Where a dragged tab hovers: a tab of a bar (`overId`) or the bar itself (`overId` null). */
-export type TabHover = { pane: TabPane, overId: number | null, zone: TabZone }
+export type TabHover = { pane: PaneIndex, overId: number | null, zone: TabZone }
 
 /** What a drop does: reorder the tabs of one pane, or move the note to the other pane. */
 export type TabDrop =
-    | { kind: "reorder", pane: TabPane, from: number, to: number }
-    | { kind: "move", noteId: number, fromPane: TabPane, toPane: TabPane, index: number }
+    | { kind: "reorder", pane: PaneIndex, from: number, to: number }
+    | { kind: "move", noteId: number, fromPane: PaneIndex, toPane: PaneIndex, index: number }
 
 /**
  * Resolves a drop of the tab `noteId` (dragged from `fromPane`) on `hover` into the action to run.
@@ -86,7 +85,7 @@ export type TabDrop =
  */
 export function resolveTabDrop(
     idsByPane: readonly [readonly number[], readonly number[]],
-    fromPane: TabPane,
+    fromPane: PaneIndex,
     noteId: number,
     hover: TabHover | null,
 ): TabDrop | null {

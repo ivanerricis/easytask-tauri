@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react"
-import type { MutableRefObject } from "react"
+import type { Dispatch, MutableRefObject } from "react"
 import type { Note } from "@/types/types"
 import type { TabsBridge } from "./workspace-data/types"
 import {
@@ -7,8 +7,8 @@ import {
     type LayoutActionsType, type LayoutContextType, type PaneTabsValue,
 } from "./layout-context-object"
 import {
-    focusedPane, initialLayoutState, layoutReducer, normalizeLayout, unionOpenIds,
-    type LayoutState, type PaneIndex,
+    focusedPane, initialLayoutState, layoutReducer, normalizeLayout, paneOf, unionOpenIds,
+    type LayoutAction, type LayoutState, type PaneIndex,
 } from "./layout-reducer"
 import {
     ActiveIdContext, ActiveIdStoreContext, TabUiContext, TabsActionsContext, TabsContext,
@@ -96,6 +96,10 @@ function filterPane(tabs: TabsState, existing: ReadonlySet<number>): TabsState {
     return { openIds, activeId }
 }
 
+/** A cheap serialization of what is persisted of the layout, to skip saving an unchanged one. */
+const layoutKey = (workspaceId: number, { left, right, focused }: LayoutState): string =>
+    JSON.stringify([workspaceId, left.openIds, left.activeId, right && [right.openIds, right.activeId], focused])
+
 /** The value of the tabs context for a pane (an absent pane is the empty state). */
 function paneTabsValue(tabs: TabsState | null, byId: ReadonlyMap<number, Note>, restored: boolean): TabsContextType {
     const state = tabs ?? initialTabsState
@@ -105,6 +109,36 @@ function paneTabsValue(tabs: TabsState | null, byId: ReadonlyMap<number, Note>, 
         tabs: state.openIds.flatMap(id => byId.get(id) ?? []),
         currentNote: state.activeId !== null ? byId.get(state.activeId) ?? null : null,
         restored,
+    }
+}
+
+type PaneAction = Extract<LayoutAction, { type: "pane" }>["action"]
+
+/**
+ * The tab actions bound to a pane. `getPane` gives the pane they act on (the focused one for the top-level actions).
+ * Scoped (pane-bound) actions open, close the active tab of, activate in and cycle within that pane, and close only its
+ * tabs for "close all"; the top-level ones act on the whole layout. Closing and reordering are the same for both.
+ */
+function buildTabsActions(
+    dispatch: Dispatch<LayoutAction>,
+    getState: () => LayoutState,
+    getPane: () => PaneIndex,
+    scoped: boolean,
+): TabsActionsType {
+    const inPane = (action: PaneAction) => dispatch({ type: "pane", pane: getPane(), action })
+    return {
+        openNote: id => scoped ? inPane({ type: "open", id }) : dispatch({ type: "open", id }),
+        closeNote: id => dispatch({ type: "close", id }),
+        closeNotes: ids => dispatch({ type: "closeMany", ids }),
+        closeActiveNote: () => scoped ? inPane({ type: "closeActive" }) : dispatch({ type: "closeActive" }),
+        closeAllNotes: () => {
+            if (!scoped) return dispatch({ type: "closeAll" })
+            const ids = paneOf(getState(), getPane())?.openIds
+            if (ids?.length) dispatch({ type: "closeMany", ids })
+        },
+        reorderTabs: (from, to) => inPane({ type: "reorder", from, to }),
+        activateNote: id => scoped ? inPane({ type: "activate", id }) : dispatch({ type: "activate", id }),
+        cycleNote: direction => scoped ? inPane({ type: "cycle", direction }) : dispatch({ type: "cycle", direction }),
     }
 }
 
@@ -130,13 +164,14 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
     const restoreToken = useRef(0)
     const lastWorkspaceId = useRef<number | null>(null)
     const notesSeen = useRef(false)
+    const lastSavedKey = useRef<string | null>(null)
 
     const stateRef = useRef<LayoutState>(state)
 
     const { left, right, focused } = state
     const isSplit = right !== null
     const active = focusedPane(state).activeId
-    const openIds = useMemo(() => unionOpenIds({ left, right, focused }), [left, right, focused])
+    const openIds = useMemo(() => unionOpenIds({ left, right, focused: 0 }), [left, right])
 
     useEffect(() => {
         notesRef.current = notes
@@ -216,8 +251,14 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
     // Persist the layout of the workspace (only once the saved one has been read, or it would be overwritten)
     useEffect(() => {
         if (workspaceId === null || !restoredRef.current) return
+        const key = layoutKey(workspaceId, state)
+        if (key === lastSavedKey.current) return
+        lastSavedKey.current = key
         saveWorkspaceTabs(workspaceId, state)
-            .catch(error => reportError(error))
+            .catch(error => {
+                lastSavedKey.current = null
+                reportError(error)
+            })
     }, [state, workspaceId, restoredTick])
 
     // The UI state of closed tabs is dropped (a note open in either pane keeps its state)
@@ -225,16 +266,9 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
         uiStore.retain(openIds)
     }, [uiStore, openIds])
 
-    const actions = useMemo<TabsActionsType>(() => ({
-        openNote: id => dispatch({ type: "open", id }),
-        closeNote: id => dispatch({ type: "close", id }),
-        closeNotes: ids => dispatch({ type: "closeMany", ids }),
-        closeActiveNote: () => dispatch({ type: "closeActive" }),
-        closeAllNotes: () => dispatch({ type: "closeAll" }),
-        reorderTabs: (from, to) => dispatch({ type: "pane", pane: stateRef.current.focused, action: { type: "reorder", from, to } }),
-        activateNote: id => dispatch({ type: "activate", id }),
-        cycleNote: direction => dispatch({ type: "cycle", direction }),
-    }), [])
+    // The actions only read the ref when they run (never during render)
+    /* eslint-disable react-hooks/refs */
+    const actions = useMemo(() => buildTabsActions(dispatch, () => stateRef.current, () => stateRef.current.focused, false), [])
 
     const layoutActions = useMemo<LayoutActionsType>(() => ({
         split: () => dispatch({ type: "split" }),
@@ -249,20 +283,11 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
         },
     }), [])
 
-    const paneActions = useMemo(() => ([0, 1] as const).map((pane): TabsActionsType => ({
-        openNote: id => dispatch({ type: "pane", pane, action: { type: "open", id } }),
-        closeNote: id => dispatch({ type: "close", id }),
-        closeNotes: ids => dispatch({ type: "closeMany", ids }),
-        closeActiveNote: () => dispatch({ type: "pane", pane, action: { type: "closeActive" } }),
-        closeAllNotes: () => {
-            const current = stateRef.current
-            const ids = (pane === 0 ? current.left : current.right)?.openIds
-            if (ids?.length) dispatch({ type: "closeMany", ids })
-        },
-        reorderTabs: (from, to) => dispatch({ type: "pane", pane, action: { type: "reorder", from, to } }),
-        activateNote: id => dispatch({ type: "pane", pane, action: { type: "activate", id } }),
-        cycleNote: direction => dispatch({ type: "pane", pane, action: { type: "cycle", direction } }),
-    })), [])
+    const paneActions = useMemo(
+        () => ([0, 1] as const).map(pane => buildTabsActions(dispatch, () => stateRef.current, () => pane, true)),
+        [],
+    )
+    /* eslint-enable react-hooks/refs */
 
     const restored = workspaceId !== null && restoredFor === workspaceId
     const byId = useMemo(() => new Map(notes.map(note => [note.id, note])), [notes])
@@ -271,7 +296,7 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
     const rightValue = useMemo(() => paneTabsValue(right, byId, restored), [right, byId, restored])
 
     const value = useMemo<TabsContextType>(() => {
-        if (!right) return { ...leftValue }
+        if (!right) return leftValue
         const focusedValue = focused === 0 ? leftValue : rightValue
         return {
             openIds,

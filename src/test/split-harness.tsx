@@ -1,7 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react"
 import { createExternalStore } from "@/lib/external-store"
 import { TabsActionsContext, TabsContext, ActiveIdContext, ActiveIdStoreContext, type TabsActionsType } from "@/contexts/tabs-context-object"
-import { FocusedPaneStoreContext, PaneTabsContext, type PaneTabsValue } from "@/contexts/layout-context-object"
+import { FocusedPaneStoreContext, IsSplitStoreContext, PaneTabsContext, type PaneTabsValue } from "@/contexts/layout-context-object"
 import type { PaneIndex } from "@/contexts/layout-reducer"
 import type { SplitState } from "@/test/split-fixtures"
 import { noopActions, tabsValue } from "@/test/split-fixtures"
@@ -37,4 +37,11 @@ export function SplitHarness({ state, actions0 = noopActions, actions1 = noopAct
             </PaneTabsContext.Provider>
         </FocusedPaneStoreContext.Provider>
     )
+}
+
+/** Test harness: supplies the "is split" store read by `useIsSplit` (what the TabsProvider provides). */
+export function IsSplitProvider({ isSplit, children }: { isSplit: boolean, children: ReactNode }) {
+    const [store] = useState(() => createExternalStore(isSplit))
+    store.set(isSplit)
+    return <IsSplitStoreContext.Provider value={store}>{children}</IsSplitStoreContext.Provider>
 }

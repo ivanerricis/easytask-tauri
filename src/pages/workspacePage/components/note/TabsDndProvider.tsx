@@ -5,17 +5,18 @@ import {
 } from "@dnd-kit/core"
 import { useTranslation } from "react-i18next"
 import { PaneTabsContext } from "@/contexts/layout-context-object"
+import type { PaneIndex } from "@/contexts/layout-reducer"
 import { useLayoutActions } from "@/contexts/use-layout"
 import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { useGrabbingCursor } from "@/hooks/use-grabbing-cursor"
 import { announce } from "../tasks/note-announcer-store"
 import {
     barDndId, computeTabZone, parseBarDndId, parseTabDndId, pickBarByPoint, pickTabByX, resolveTabDrop,
-    type TabHover, type TabPane,
+    type TabHover,
 } from "./tab-reorder"
 import { TabsDndContext, type TabsDndContextType } from "./tabs-dnd-context-object"
 
-type Dragging = { pane: TabPane, noteId: number }
+type Dragging = { pane: PaneIndex, noteId: number }
 
 /**
  * First the bar under the pointer (both axes), then inside it the tab under the pointer's x (the first / last one past either end,
@@ -24,8 +25,8 @@ type Dragging = { pane: TabPane, noteId: number }
 const collisionDetection: CollisionDetection = ({ droppableContainers, droppableRects, pointerCoordinates }) => {
     if (!pointerCoordinates) return []
     const { x, y } = pointerCoordinates
-    const bars: { id: TabPane, left: number, right: number, top: number, bottom: number }[] = []
-    const tabs: { id: string, pane: TabPane, left: number, right: number }[] = []
+    const bars: { id: PaneIndex, left: number, right: number, top: number, bottom: number }[] = []
+    const tabs: { id: string, pane: PaneIndex, left: number, right: number }[] = []
     for (const container of droppableContainers) {
         const rect = droppableRects.get(container.id)
         if (!rect) continue
@@ -57,8 +58,8 @@ export function TabsDndProvider({ children }: { children: ReactNode }) {
     // A small distance keeps plain clicks (open / close tab) working
     const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
 
-    const paneLabel = useCallback((pane: TabPane) => t(pane === 0 ? "notes.split.leftPane" : "notes.split.rightPane"), [t])
-    const noteName = useCallback((pane: TabPane, noteId: number) =>
+    const paneLabel = useCallback((pane: PaneIndex) => t(pane === 0 ? "notes.split.leftPane" : "notes.split.rightPane"), [t])
+    const noteName = useCallback((pane: PaneIndex, noteId: number) =>
         paneTabs?.[pane].tabs.tabs.find(note => note.id === noteId)?.name, [paneTabs])
 
     const accessibility = buildDndAccessibility(entry => {

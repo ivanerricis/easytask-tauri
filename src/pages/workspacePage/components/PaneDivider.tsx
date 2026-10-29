@@ -1,7 +1,7 @@
 import { useRef, useState, type KeyboardEvent, type PointerEvent, type RefObject } from "react"
 import { useTranslation } from "react-i18next"
 import { focusRing } from "@/lib/a11y"
-import { DEFAULT_SPLIT_RATIO, MIN_PANE_WIDTH, clampRatio, ratioForKey } from "@/lib/split-layout"
+import { DEFAULT_SPLIT_RATIO, clampRatio, ratioForKey } from "@/lib/split-layout"
 import { cn } from "@/lib/utils"
 
 type PaneDividerProps = {
@@ -9,8 +9,8 @@ type PaneDividerProps = {
     ratio: number
     /** The element that holds the two panes (its box is what the ratio refers to). */
     containerRef: RefObject<HTMLElement | null>
-    /** Width in pixels of the container when measured (it sets the range exposed to assistive technologies). */
-    containerWidth?: number | null
+    /** Width in pixels of the container (Infinity until measured): it sets the range exposed to assistive technologies and the keyboard limits. */
+    containerWidth: number
     /** Called with every new ratio (while dragging too). */
     onRatioChange: (ratio: number) => void
     /** Called with the final ratio when a change is over (end of a drag, key press, reset): the moment to save it. */
@@ -18,12 +18,11 @@ type PaneDividerProps = {
 }
 
 /** The resizable divider between the two panes: pointer drag, arrow keys (Shift = larger step), Home/End, double click to reset. */
-export const PaneDivider = ({ ratio, containerRef, containerWidth: measuredWidth = null, onRatioChange, onRatioCommit }: PaneDividerProps) => {
+export const PaneDivider = ({ ratio, containerRef, containerWidth, onRatioChange, onRatioCommit }: PaneDividerProps) => {
     const { t } = useTranslation()
     const [dragging, setDragging] = useState(false)
     const dragRatioRef = useRef<number | null>(null)
 
-    const currentWidth = () => containerRef.current?.getBoundingClientRect().width ?? Infinity
     const percent = Math.round(ratio * 100)
 
     // The divider captures the pointer, so move and up events keep coming to it even outside its few pixels
@@ -53,7 +52,7 @@ export const PaneDivider = ({ ratio, containerRef, containerWidth: measuredWidth
     }
 
     const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-        const next = ratioForKey(e.key, ratio, currentWidth(), e.shiftKey)
+        const next = ratioForKey(e.key, ratio, containerWidth, e.shiftKey)
         if (next === null) return
         e.preventDefault()
         if (next === ratio) return
@@ -66,7 +65,7 @@ export const PaneDivider = ({ ratio, containerRef, containerWidth: measuredWidth
         onRatioCommit(DEFAULT_SPLIT_RATIO)
     }
 
-    const min = Math.round(clampRatio(0, measuredWidth ?? Infinity) * 100)
+    const min = Math.round(clampRatio(0, containerWidth) * 100)
 
     return (
         <div
@@ -77,7 +76,6 @@ export const PaneDivider = ({ ratio, containerRef, containerWidth: measuredWidth
             aria-valuemax={100 - min}
             aria-valuenow={percent}
             aria-valuetext={t("notes.split.dividerValue", { percent })}
-            data-min-pane-width={MIN_PANE_WIDTH}
             tabIndex={0}
             className={cn(
                 focusRing, "focus-visible:ring-inset relative w-1.5 shrink-0 cursor-col-resize touch-none border-x bg-border/40",
