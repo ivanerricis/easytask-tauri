@@ -1,4 +1,5 @@
 import { useContext } from "react"
+import { createRequiredContextHook } from "@/lib/required-context"
 import { NOOP_RECORDER, type UndoRecorder } from "./commands"
 import { UndoContext } from "./context"
 
@@ -6,11 +7,7 @@ import { UndoContext } from "./context"
  * The undo/redo history of the open workspace: state (can undo/redo and their labels) and the undo/redo actions.
  * @category Undo
  */
-export const useUndo = () => {
-    const context = useContext(UndoContext)
-    if (!context) throw new Error("useUndo must be used within an UndoProvider")
-    return context
-}
+export const useUndo = createRequiredContextHook(UndoContext, "useUndo", "UndoProvider")
 
 /** Like useUndo, but null outside an UndoProvider (menus then simply do not offer undo/redo). */
 export const useOptionalUndo = () => useContext(UndoContext)

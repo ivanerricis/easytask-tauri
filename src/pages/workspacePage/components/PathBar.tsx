@@ -1,6 +1,6 @@
 import { Fragment, useMemo, useRef, useSyncExternalStore } from "react"
 import { useTranslation } from "react-i18next"
-import { CirclePlus, Eye, EyeOff, Search } from "lucide-react"
+import { CirclePlus, Columns2, Eye, EyeOff, Search } from "lucide-react"
 import { TooltipCustom } from "@/components/tooltip-custom"
 import { Button } from "@/components/ui/button"
 import { Toggle } from "@/components/ui/toggle"
@@ -8,12 +8,13 @@ import {
     Breadcrumb, BreadcrumbEllipsis, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
 import { useActiveNoteId } from "@/contexts/use-tabs"
+import { useIsSplit, useLayoutActions } from "@/contexts/use-layout"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useDraftOfNote, useDraftSaveStatus, useTemplateDraftActions } from "@/contexts/use-template-drafts"
 import { useShortcut } from "@/hooks/use-shortcut"
-import { focusRing } from "@/lib/a11y"
+import { focusRing, ghostIconButtonClass } from "@/lib/a11y"
 import { requestAppCommand } from "@/lib/app-commands"
 import { requestTreeReveal } from "@/lib/tree-reveal"
 import { cn } from "@/lib/utils"
@@ -42,6 +43,10 @@ export const PathBar = () => {
     const hideLabel = useShortcutLabel("toggle-hide-completed")
     const newGroupLabel = useShortcutLabel("new-group")
     const searchLabel = useShortcutLabel("search-in-note")
+    const splitLabel = useShortcutLabel("toggle-split")
+    const isSplit = useIsSplit()
+    const { toggleSplit } = useLayoutActions()
+    const splitText = isSplit ? t("notes.split.close") : t("notes.split.split")
     const draft = useDraftOfNote(activeId)
     const draftStatus = useDraftSaveStatus(activeId)
     const { retrySave } = useTemplateDraftActions()
@@ -109,7 +114,7 @@ export const PathBar = () => {
             <div className="ml-auto flex shrink-0 items-center gap-1">
                 {draft && activeId !== null && <DraftSaveStatus status={draftStatus} onRetry={() => { void retrySave(activeId) }} />}
                 <TooltipCustom text={t("menu.newGroup")} shortcut={newGroupLabel}>
-                    <Button type="button" variant="ghost" size="icon" className="relative size-7 after:absolute after:-inset-0.5 after:content-[''] [&_svg]:!size-4"
+                    <Button type="button" variant="ghost" size="icon" className={cn(ghostIconButtonClass, "[&_svg]:!size-4")}
                         aria-label={t("menu.newGroup")} onClick={() => requestAppCommand("new-group")}>
                         <CirclePlus />
                     </Button>
@@ -117,17 +122,23 @@ export const PathBar = () => {
                 {search && (searchOpen
                     ? <NoteSearchField store={search} inputRef={searchInputRef} />
                     : <TooltipCustom text={t("notes.noteSearch.inNote")} shortcut={searchLabel}>
-                        <Button type="button" variant="ghost" size="icon" className="relative size-7 after:absolute after:-inset-0.5 after:content-[''] [&_svg]:!size-4"
+                        <Button type="button" variant="ghost" size="icon" className={cn(ghostIconButtonClass, "[&_svg]:!size-4")}
                             aria-label={t("notes.noteSearch.inNote")} onClick={() => search.open()}>
                             <Search />
                         </Button>
                     </TooltipCustom>)}
+                <TooltipCustom text={splitText} shortcut={splitLabel}>
+                    <Button type="button" variant="ghost" size="icon" className={cn(ghostIconButtonClass, "[&_svg]:!size-4")}
+                        aria-label={splitText} onClick={toggleSplit}>
+                        <Columns2 />
+                    </Button>
+                </TooltipCustom>
                 <TooltipCustom text={t("notes.hideCompleted")} shortcut={hideLabel}>
                     <Toggle
                         aria-label={t("notes.hideCompleted")}
                         pressed={hideCompletedTasks}
                         onPressedChange={setHideCompletedTasks}
-                        className="relative size-7 min-w-7 p-0 after:absolute after:-inset-0.5 after:content-['']"
+                        className={cn(ghostIconButtonClass, "min-w-7 p-0")}
                     >
                         {hideCompletedTasks ? <EyeOff /> : <Eye />}
                     </Toggle>

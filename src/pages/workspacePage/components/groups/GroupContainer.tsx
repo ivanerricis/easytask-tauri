@@ -1,21 +1,18 @@
 import { AddSection } from "../section/AddSection"
-import { useLayoutEffect, useRef } from "react"
+import { useLayoutEffect, useMemo, useRef } from "react"
 import { Group } from "./Group"
 import { useActiveNote } from "@/contexts/use-active-note"
 import { useActiveNoteId, useTabUiStore } from "@/contexts/use-tabs"
-import { NoteDndProvider } from "../NoteDndProvider"
 import { NewGroupEnd, NewGroupSlot } from "./NewGroupSlot"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useNoteAudioCounts } from "@/contexts/use-audio"
 import { EmptyNoteHints } from "../EmptyNoteHints"
 import { NoteSkeleton } from "./NoteSkeleton"
-import { NoteBackgroundMenu } from "./NoteBackgroundMenu"
-import { TaskSelectionProvider } from "../tasks/task-selection-context"
-import { TaskInsertProvider } from "../tasks/task-insert-state"
+import { NoteProviders } from "./NoteProviders"
 import { SelectionBarInset, TaskSelectionBar } from "../tasks/TaskSelectionBar"
 import { NoteAnnouncer } from "../tasks/NoteAnnouncer"
-import { TaskSelectionActionsProvider } from "../tasks/task-selection-actions"
 import { cn } from "@/lib/utils"
+import { groupsByPosition } from "@/lib/group-sections"
 
 export const GroupContainer = () => {
     const { noteDataTree } = useActiveNote()
@@ -27,6 +24,7 @@ export const GroupContainer = () => {
     const groups = noteDataTree?.groups
     const audioCounts = useNoteAudioCounts(activeId, showAudioFileCount)
     const hasData = groups !== undefined
+    const orderedGroups = useMemo(() => Array.isArray(groups) ? groupsByPosition(groups) : [], [groups])
     // A note opened for the first time has no data yet: its skeleton instead of an empty note with only "Nuovo gruppo"
     const isLoadingNote = activeId !== null && !hasData
 
@@ -52,44 +50,35 @@ export const GroupContainer = () => {
     )
 
     return (
-        <TaskSelectionProvider>
-        <NoteDndProvider>
-        <TaskInsertProvider>
-        <TaskSelectionActionsProvider>
-        {/* flex-1 + min-h-0: a tall note must scroll here instead of squeezing the tab bar above */}
-        <NoteBackgroundMenu>
-        <div className="relative flex-1 min-h-0 w-full">
-        {hasData && groups.length === 0 && <EmptyNoteHints />}
-        <SelectionBarInset
-            ref={scrollRef}
-            data-testid="group-scroll"
-            className={cn(
-                "flex w-full h-full items-start p-2 space-x-2 overflow-x-auto",
-            )}
-        >
-            {Array.isArray(groups) && groups.length > 0 &&
-                [...groups]
-                    .sort((a, b) => a.position - b.position)
-                    .map((group, index) => (
-                        <div key={group.id} className={cn("relative h-full w-fit", group.width ? "shrink-0" : "max-w-full")}>
-                            {/* Vertical guide line centered in the gap (space-x-2) before every group but the first */}
-                            {showGroupSeparators && index > 0 &&
-                                <div data-testid="group-separator" aria-hidden className="pointer-events-none absolute -left-1 top-0 h-full w-px -translate-x-1/2 bg-border" />}
-                            <NewGroupSlot index={index} />
-                            <Group group={group} index={index} audioCount={audioCounts[group.id] ?? 0} />
-                        </div>
-                    ))}
-            <NewGroupEnd index={groups?.length ?? 0}>
-                <AddSection />
-            </NewGroupEnd>
-        </SelectionBarInset>
-        <TaskSelectionBar />
-        <NoteAnnouncer />
-        </div>
-        </NoteBackgroundMenu>
-        </TaskSelectionActionsProvider>
-        </TaskInsertProvider>
-        </NoteDndProvider>
-        </TaskSelectionProvider>
+        <NoteProviders>
+            {/* flex-1 + min-h-0: a tall note must scroll here instead of squeezing the tab bar above */}
+            <div className="relative flex-1 min-h-0 w-full">
+            {hasData && groups.length === 0 && <EmptyNoteHints />}
+            <SelectionBarInset
+                ref={scrollRef}
+                data-testid="group-scroll"
+                className={cn(
+                    "flex w-full h-full items-start p-2 space-x-2 overflow-x-auto",
+                )}
+            >
+                {orderedGroups.length > 0 &&
+                    orderedGroups
+                        .map((group, index) => (
+                            <div key={group.id} className={cn("relative h-full w-fit", group.width ? "shrink-0" : "max-w-full")}>
+                                {/* Vertical guide line centered in the gap (space-x-2) before every group but the first */}
+                                {showGroupSeparators && index > 0 &&
+                                    <div data-testid="group-separator" aria-hidden className="pointer-events-none absolute -left-1 top-0 h-full w-px -translate-x-1/2 bg-border" />}
+                                <NewGroupSlot index={index} />
+                                <Group group={group} index={index} audioCount={audioCounts[group.id] ?? 0} />
+                            </div>
+                        ))}
+                <NewGroupEnd index={groups?.length ?? 0}>
+                    <AddSection />
+                </NewGroupEnd>
+            </SelectionBarInset>
+            <TaskSelectionBar />
+            <NoteAnnouncer />
+            </div>
+        </NoteProviders>
     )
 }

@@ -2,19 +2,21 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { toast } from "sonner"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 import { ItemMenuButton } from "@/components/item-menu"
 import { makeSection } from "@/test/ui-fixtures"
 // The request to delete is tested with its hook (use-delete-request.test.tsx): here it opens the dialog
 vi.mock("@/components/dialogs/use-delete-item", () => ({ useDeleteRequest: ({ openDialog }: { openDialog: () => void }) => ({ request: openDialog }) }))
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const duplicateSection = vi.fn()
 const refreshActiveNote = vi.fn()
 const create = vi.fn()
 const archive = vi.fn()
 const archiveItem = vi.fn()
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create, archive }) }))
+const recorder = makeUndoRecorderMock({ create, archive })
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
 const updateItemColor = vi.fn()
 const patchSection = vi.fn()
 const removeSection = vi.fn()

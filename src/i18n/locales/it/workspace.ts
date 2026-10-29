@@ -24,10 +24,7 @@ export const home = {
     },
     workspace: {
         open: "Apri il workspace {{name}}",
-        createdOn: "Creato il {{date}} alle {{time}}",
-        editedOn: "Modificato il {{date}} alle {{time}}",
     },
-    noWorkspaces: "Nessun workspace trovato.",
     noWorkspacesHint: "Crea il tuo primo workspace per iniziare.",
 }
 
@@ -55,6 +52,17 @@ export const notes = {
         title: "Nota vuota",
     },
     closeAll: "Chiudi tutte le note",
+    split: {
+        split: "Dividi in due aree",
+        close: "Chiudi la divisione",
+        divider: "Ridimensiona le due aree",
+        dividerValue: "{{percent}}% a sinistra",
+        emptyTitle: "Area vuota",
+        emptyHint: "Trascina qui un tab oppure usa \"Apri a destra\" dal menu di una nota.",
+        leftPane: "Area sinistra",
+        rightPane: "Area destra",
+        openTabsPane: "Note aperte, {{pane}}",
+    },
     search: {
         placeholder: "Cerca una nota…",
         empty: "Nessun risultato.",
@@ -65,7 +73,6 @@ export const notes = {
         inNote: "Cerca nella nota",
         placeholder: "Cerca nella nota…",
         counter: "{{current}} di {{total}}",
-        noResults: "Nessun risultato",
         next: "Risultato successivo",
         previous: "Risultato precedente",
         close: "Chiudi la ricerca",

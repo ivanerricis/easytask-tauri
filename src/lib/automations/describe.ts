@@ -26,10 +26,10 @@ export const actionLabel = (type: AutomationActionType) => i18n.t(`automations.a
 export type SectionName = string | { group: string }
 
 /** Name of a section of the note, undefined when it no longer exists. */
-export type SectionTitleOf = (sectionId: number) => SectionName | undefined
+type SectionTitleOf = (sectionId: number) => SectionName | undefined
 
 /** Label of a group of the note (its name or "Group N"), undefined when it no longer exists. */
-export type GroupLabelOf = (groupId: number) => string | undefined
+type GroupLabelOf = (groupId: number) => string | undefined
 
 const groupName = (labelOf: GroupLabelOf | undefined, id: number) => labelOf?.(id) ?? i18n.t("automations.describe.missingGroup")
 

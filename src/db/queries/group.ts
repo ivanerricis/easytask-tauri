@@ -3,7 +3,7 @@ import type { Group } from "@/types/types";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
 import { addPositions } from "./ordering";
-import { DEFAULT_SECTION_SQL } from "./sql";
+import { DEFAULT_SECTION_SQL, nextPositionSql } from "./sql";
 import { createError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -20,7 +20,7 @@ export async function createDBGroup(noteId: number, name: string) {
         const tx = new Transaction()
         const group = tx.add(
             `INSERT INTO section_group (noteID, name, position)
-             SELECT ?, ?, COALESCE(MAX(position) + 1, 0) FROM section_group WHERE noteID = ? AND deleted_at IS NULL`,
+             SELECT ?, ?, ${nextPositionSql("section_group", "noteID = ? AND deleted_at IS NULL")}`,
             [noteId, name.trim() || null, noteId])
         const section = tx.add(DEFAULT_SECTION_SQL, [tx.idOf(group)])
         const results = await tx.run()

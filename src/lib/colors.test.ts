@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { COLOR_ALPHA_BASE } from "./color-intensity"
-import { PALETTE_COLORS, isPaletteColor } from "./colors"
+import { PALETTE_COLORS, isHexColor, isPaletteColor, parseHex } from "./colors"
 
 /** sRGB of a gray `oklch(L 0 0)` (the grays of the themes, see index.css). */
 const gray = (lightness: number) => {
@@ -58,4 +58,19 @@ describe("palette", () => {
             })
         }
     }
+})
+
+describe("parseHex / isHexColor", () => {
+    it.each([["#fff", [255, 255, 255]], ["#C2410C", [194, 65, 12]], ["c2410c", [194, 65, 12]], [" #0a0 ", [0, 170, 0]]])("parses %s", (hex, rgb) => {
+        expect(parseHex(hex)).toEqual(rgb)
+    })
+
+    it.each(["", "red", "#12", "#12345g", "#1234567", "url(x)"])("returns null for %j", (hex) => {
+        expect(parseHex(hex)).toBeNull()
+    })
+
+    it("isHexColor requires exactly #rgb or #rrggbb", () => {
+        expect(["#fff", "#FFB375"].every(isHexColor)).toBe(true)
+        expect(["fff", " #fff", "#ffff", "red", 3, null, undefined].some(isHexColor)).toBe(false)
+    })
 })

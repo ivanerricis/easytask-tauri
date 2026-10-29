@@ -12,8 +12,7 @@ import { DialogRenameItem } from "./dialog-rename"
 const deleteItem = vi.fn()
 const renameItem = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => ({ renameItem }), useWorkspaceActions: () => ({ deleteItem, renameItem }) }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const recorder = { rename: vi.fn(), color: vi.fn(), remove: vi.fn() }
 const undo = vi.fn()
 const withUndo = (ui: ReactNode) => (

@@ -61,7 +61,7 @@ beforeEach(() => {
     vi.resetAllMocks()
     vi.spyOn(console, "error").mockImplementation(() => {})
     vi.mocked(getReopenNotes).mockResolvedValue(true)
-    vi.mocked(getWorkspaceTabs).mockResolvedValue({ openIds: [], activeId: null })
+    vi.mocked(getWorkspaceTabs).mockResolvedValue({ left: { openIds: [], activeId: null }, right: null, focused: 0 })
     vi.mocked(saveWorkspaceTabs).mockResolvedValue(undefined)
     setCollapsed.mockResolvedValue(undefined)
     trees.clear()

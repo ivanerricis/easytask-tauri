@@ -19,7 +19,7 @@ Le scorciatoie funzionano quando non stai scrivendo, con alcune eccezioni: quell
 | Ripeti l'azione annullata | `Ctrl+Y` | Sì |
 | Ripeti l'azione annullata (alternativa) | `Ctrl+Maiusc+Z` | No |
 
-## Note e schede
+## Note e tab
 
 | Azione | Scorciatoia | Modificabile |
 | --- | --- | --- |
@@ -35,6 +35,10 @@ Le scorciatoie funzionano quando non stai scrivendo, con alcune eccezioni: quell
 | Vai alla nota aperta precedente (alternativa) | `Ctrl+Maiusc+Tab` | No |
 | Nascondi o mostra task completati | `Ctrl+Maiusc+H` | Sì |
 | Riproduci o metti in pausa l'audio | `Alt+P` | Sì |
+| Dividi in due aree o chiudi la divisione | `Ctrl+\` | Sì |
+| Sposta la nota attiva nell'altra area | `Ctrl+Alt+→` | Sì |
+| Sposta la nota attiva nell'altra area (alternativa) | `Ctrl+Alt+←` | No |
+| Passa all'altra area | `Ctrl+Alt+\` | Sì |
 
 ## Gruppi, sezioni e task
 

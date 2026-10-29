@@ -26,10 +26,9 @@ export const useStartupRestore = (loaded: boolean): { pending: boolean } => {
         if (!loaded || startupHandled) return
         startupHandled = true
         const restore = async () => {
-            if (!await getReopenLastWorkspace()) return
+            const [reopen, fixedId, lastId] = await Promise.all([getReopenLastWorkspace(), getStartupWorkspaceId(), getLastWorkspaceId()])
+            if (!reopen) return
             // A fixed workspace wins; when it does not exist any more (deleted) the last one used is opened
-            const fixedId = await getStartupWorkspaceId()
-            const lastId = await getLastWorkspaceId()
             const ws = workspaces.find(w => w.id === fixedId) ?? workspaces.find(w => w.id === lastId)
             if (!ws) return
             setCurrentWorkspace(ws)

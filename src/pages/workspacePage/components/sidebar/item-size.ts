@@ -1,4 +1,4 @@
-import { usePreferences } from "@/contexts/use-preferences"
+import { usePreference } from "@/contexts/use-preference"
 import type { SidebarItemSize } from "@/lib/store/preferences"
 
 /**
@@ -64,4 +64,4 @@ export const ITEM_SIZES: Record<SidebarItemSize, ItemSizeClasses> = {
 }
 
 /** Size classes for the size chosen in the settings. */
-export const useItemSize = (): ItemSizeClasses => ITEM_SIZES[usePreferences().sidebarItemSize]
+export const useItemSize = (): ItemSizeClasses => ITEM_SIZES[usePreference(p => p.sidebarItemSize) ?? "normal"]

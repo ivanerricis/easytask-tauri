@@ -35,6 +35,10 @@ The shortcuts work when you are not typing, with a few exceptions: the shortcuts
 | Go to the previous open note (alternative) | `Ctrl+Shift+Tab` | No |
 | Hide or show completed tasks | `Ctrl+Shift+H` | Yes |
 | Play or pause the audio | `Alt+P` | Yes |
+| Split into two areas, or close the split | `Ctrl+\` | Yes |
+| Move the active note to the other area | `Ctrl+Alt+→` | Yes |
+| Move the active note to the other area (alternative) | `Ctrl+Alt+←` | No |
+| Switch to the other area | `Ctrl+Alt+\` | Yes |
 
 ## Groups, sections and tasks
 

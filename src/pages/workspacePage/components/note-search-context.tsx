@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react"
 import { useActiveNote } from "@/contexts/use-active-note"
+import { usePaneRoot } from "@/contexts/use-layout"
 import { useActiveNoteId, useTabUiStore } from "@/contexts/use-tabs"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useStoreSelector } from "@/lib/external-store"
@@ -37,6 +38,7 @@ function NoteSearchEngine({ store }: { store: NoteSearchStore }) {
     const noteId = useActiveNoteId()
     const uiStore = useTabUiStore()
     const { hideCompletedTasks, completedTasksLast } = usePreferences()
+    const paneRoot = usePaneRoot()
     const open = useStoreSelector(store, s => s.open)
     const query = useStoreSelector(store, s => s.query)
     const revealTick = useStoreSelector(store, s => s.revealTick)
@@ -72,7 +74,7 @@ function NoteSearchEngine({ store }: { store: NoteSearchStore }) {
         let attempts = 0
         // The ancestors are drawn on the next frames: look for the current mark until it exists
         const seek = () => {
-            const mark = document.querySelector("mark[data-active]")
+            const mark = paneRoot().querySelector("mark[data-active]")
             if (mark) {
                 mark.scrollIntoView?.({ block: "nearest", inline: "nearest" })
                 return
@@ -81,7 +83,7 @@ function NoteSearchEngine({ store }: { store: NoteSearchStore }) {
         }
         frame = requestAnimationFrame(seek)
         return () => cancelAnimationFrame(frame)
-    }, [revealTick, noteId, store, uiStore])
+    }, [revealTick, noteId, store, uiStore, paneRoot])
 
     return null
 }

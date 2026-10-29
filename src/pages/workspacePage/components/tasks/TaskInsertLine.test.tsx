@@ -3,7 +3,7 @@ import { useEffect, type ReactNode } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import { NoteDndStoreContext, createNoteDndStore } from "../note-dnd-state"
 import { createSelectionStore } from "../sidebar/selection"
-import { TaskSelectionContext } from "./task-selection-context"
+import { TaskSelectionContext } from "./use-task-selection"
 import { TaskInsertProvider, useTaskInsertStore } from "./task-insert-state"
 import { TaskInsertLine } from "./TaskInsertLine"
 

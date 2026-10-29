@@ -1,6 +1,6 @@
 import { treeRowKey } from "./tree-row"
 import {
-    childFolders, childNotes, getFolderSubtreeIds, listTreeItems,
+    childFolders, childNotes, getFolderSubtreeIds, listTreeItems, walkFolderDestinations,
     type DropTarget, type DropZone, type MoveDestination, type TreeData, type TreeItemType, type TreeRef,
 } from "./tree-dnd"
 
@@ -111,16 +111,8 @@ export function getMultiMoveDestinations(tree: TreeData, items: TreeRef[]): Move
     // A folder that already holds every item is not a destination
     const offered = (id: number | null) => !parents.every(parent => parent === id) &&
         planMultiMove(tree, items, id === null ? null : { type: "folder", id }, "inside") !== null
-    const result: MoveDestination[] = []
-    if (offered(null)) result.push({ id: null, name: null, depth: 0 })
-    const visit = (folders: TreeData["rootFolders"], depth: number) => {
-        for (const folder of folders) {
-            if (excluded.has(folder.id)) continue
-            if (offered(folder.id))
-                result.push({ id: folder.id, name: folder.name, depth })
-            visit(folder.subfolders ?? [], depth + 1)
-        }
-    }
-    visit(tree.rootFolders, 0)
-    return result
+    return [
+        ...(offered(null) ? [{ id: null, name: null, depth: 0 }] : []),
+        ...walkFolderDestinations(tree, { skip: folder => excluded.has(folder.id), include: folder => offered(folder.id) }),
+    ]
 }

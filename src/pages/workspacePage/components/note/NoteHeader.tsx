@@ -1,13 +1,13 @@
 import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { useActiveNoteId, useTabsActions } from "@/contexts/use-tabs"
+import { useActiveNoteSelector, useTabsActions } from "@/contexts/use-tabs"
 import type { Note } from "@/types/types"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { X } from "lucide-react"
 import React from "react"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import { Button } from "@/components/ui/button"
-import { focusRing } from "@/lib/a11y"
+import { focusRing, ghostIconButtonClass } from "@/lib/a11y"
 import { cn } from "@/lib/utils"
 import { useInlineRename } from "@/hooks/use-inline-rename"
 import { InlineNameInput } from "@/components/inline-name-input"
@@ -26,9 +26,8 @@ type NoteHeaderProps = {
 export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
     const { t } = useTranslation()
 
-    const activeId = useActiveNoteId()
     const { closeNote, activateNote } = useTabsActions()
-    const isActive = activeId === note.id
+    const isActive = useActiveNoteSelector(activeId => activeId === note.id)
     // A template editor: its tab shows the template (badge, name, color) and has its own menu
     const draft = useDraftOfNote(note.id)
     const color = draft ? draft.color : note.color
@@ -82,7 +81,7 @@ export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
                         size="icon"
                         aria-label={isActive ? t("notes.closeCurrent") : t("notes.close")}
                         onClick={handleCloseHeader}
-                        className={cn("relative size-7 after:absolute after:-inset-0.5 after:content-['']", isActive ? "text-foreground" : "text-muted-foreground opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100")}
+                        className={cn(ghostIconButtonClass, isActive ? "text-foreground" : "text-muted-foreground opacity-0 group-hover/tab:opacity-100 focus-visible:opacity-100")}
                     >
                         <X />
                     </Button>

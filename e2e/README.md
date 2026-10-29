@@ -23,6 +23,7 @@ npm run e2e:typecheck
 | `features` | move up/down with undo/redo, trash (restore, delete forever, empty), templates, appearance settings reset, shape of every confirmation dialog |
 | `audio` | the audio player: play/pause/resume, skip, seek keys, speed, mute, row icon, missing file dialog |
 | `persistence` | language, accent color, hide-completed and data survive an app restart. The theme is not checked: the driver does not share the webview profile between sessions (localStorage is lost), so it is on the manual list |
+| `split-workspace` | split workspace: split button, empty right pane, "Open on the right/left" from the sidebar menu, one note per pane, drag of a tab between the two tab bars, close the split (closes the right tabs), Ctrl+\\. Persistence of the layout is not checked (it needs an app restart and the layout lives in settings.dat) |
 | `ui-tour/` | screenshots tour (`npm run ui-tour`), not part of the regular run |
 | `docs-shots/` | screenshots of the documentation site in English and Italian, light and dark (`npm run docs:screenshots`, writes `docs/screenshots/`), not part of the regular run |
 

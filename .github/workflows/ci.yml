@@ -38,13 +38,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
-      - run: npx eslint .
-      - run: npx tsc -b
+      - uses: ./.github/actions/setup-node-deps
+      - run: npm run lint
+      # `npm run build` below runs `tsc -b` before vite
       - run: npm run e2e:typecheck
       # Runs the whole suite with coverage (no separate `npm test`)
       - run: npm run test:coverage
@@ -73,23 +69,11 @@ jobs:
         working-directory: src-tauri
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The package index of the runner image can be stale (the cached .deb versions would 404)
-      - name: Update the apt package index
-        if: runner.os == 'Linux'
-        run: sudo apt-get update
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         timeout-minutes: 10
-        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
-        with:
-          # The Azure mirror sometimes crawls (a run once spent 27 min on the download): the .deb files are cached
-          packages: libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-          version: 1
-          execute_install_scripts: true
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
+        uses: ./.github/actions/linux-tauri-deps
+      - uses: ./.github/actions/setup-node-deps
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: clippy, rustfmt
@@ -99,9 +83,7 @@ jobs:
       # tauri.conf.json frontendDist points to ../dist
       - name: Build frontend
         working-directory: .
-        run: |
-          npm ci
-          npm run build
+        run: npm run build
       - run: cargo fmt --check
       - run: cargo clippy -- -D warnings
       - run: cargo test
@@ -114,11 +96,7 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
-      - run: npm ci
+      - uses: ./.github/actions/setup-node-deps
       - name: npm audit (production dependencies, high and critical)
         run: npm audit --omit=dev --audit-level=high
       - uses: taiki-e/install-action@1168f6810a3cb30a3514bf5756a3b7f0422c6df8 # v2.87.28
@@ -154,19 +132,12 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The package index of the runner image can be stale (the cached .deb versions would 404)
-      - name: Update the apt package index
-        if: runner.os == 'Linux'
-        run: sudo apt-get update
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         timeout-minutes: 10
-        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        uses: ./.github/actions/linux-tauri-deps
         with:
-          # The Azure mirror sometimes crawls (a run once spent 27 min on the download): the .deb files are cached
-          packages: libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf webkit2gtk-driver xvfb
-          version: 1
-          execute_install_scripts: true
+          extra-packages: webkit2gtk-driver xvfb
       # Restoring the .deb cache does not run the dpkg triggers: without them the app aborts at start
       # ("GLib-GIO-ERROR: Settings schema 'org.gnome.system.proxy' is not installed")
       - name: Run the dpkg triggers of the cached packages
@@ -175,17 +146,13 @@ jobs:
           sudo glib-compile-schemas /usr/share/glib-2.0/schemas
           sudo gio-querymodules /usr/lib/x86_64-linux-gnu/gio/modules
           sudo /usr/lib/x86_64-linux-gnu/gdk-pixbuf-2.0/gdk-pixbuf-query-loaders --update-cache
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
+      - uses: ./.github/actions/setup-node-deps
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri -> target
       - name: Install tauri-driver
         run: cargo install tauri-driver --locked
-      - run: npm ci
       # The WebView2 driver (msedgedriver) matching the installed Edge is downloaded by e2e/wdio.conf.ts on Windows.
       - name: Run e2e (Linux, virtual display)
         if: runner.os == 'Linux'

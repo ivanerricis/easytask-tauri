@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, act } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import type { Folder, Note } from "@/types/types"
 import { ItemMenuButton } from "@/components/item-menu"
 import { ButtonMenuFolder } from "../folder/ButtonMenuFolder"
@@ -9,8 +10,7 @@ import { SelectionContext } from "./selection-context"
 import { SelectionActionsProvider } from "./selection-actions"
 import { createSelectionStore } from "./selection"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const note = (id: number, name: string, folderID: number | null = null, color: string | null = null): Note =>
     ({ id, name, folderID, color, workspaceID: 1, position: 0 }) as unknown as Note
 const folder = (id: number, name: string, subfolders: Folder[] = [], notes: Note[] = [], color: string | null = null): Folder =>
@@ -38,7 +38,7 @@ vi.mock("@/contexts/workspace-data", () => ({
 }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
 vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => null, useTabsActions: () => ({ openNote: vi.fn(), reorderTabs: vi.fn() }), useTabs: () => ({ tabs: [] }) }))
-const recorder = { removeMany: vi.fn(), archiveMany: vi.fn(), colorMany: vi.fn(), treeMoveMany: vi.fn(), create: vi.fn() }
+const recorder = makeUndoRecorderMock()
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder, useOptionalUndo: () => null }))
 const exportItem = vi.fn()
 const exportItems = vi.fn()

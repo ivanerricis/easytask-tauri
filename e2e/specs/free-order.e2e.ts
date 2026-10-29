@@ -96,7 +96,11 @@ const dragSectionOverList = async (title: string, half: "top" | "bottom") => {
         })
     }
     await pointer.perform(true)
-    await browser.pause(300)
+    // The insertion line is drawn on the next dragover: wait for it; a missing one is reported by the sample below
+    await browser.waitUntil(
+        async () => browser.execute((group: HTMLElement) => group.querySelector("[data-direct-tasks] > div.bg-primary") !== null, (await groupCard(GROUP).getElement()) as unknown as HTMLElement),
+        { timeout: 3_000 },
+    ).catch(() => undefined)
 
     const sample = await browser.execute((group: HTMLElement) => {
         const line = group.querySelector<HTMLElement>("[data-direct-tasks] > div.bg-primary")

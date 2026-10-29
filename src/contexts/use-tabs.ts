@@ -1,6 +1,7 @@
 import { useCallback, useContext, useSyncExternalStore } from "react"
 import { collapsedIds } from "@/lib/collapsed"
 import { useStoreSelector } from "@/lib/external-store"
+import { createRequiredContextHook } from "@/lib/required-context"
 import { reportError } from "@/lib/report-error"
 import { getErrorMessage } from "@/lib/utils"
 import { useActiveNoteActions } from "./use-active-note"
@@ -12,21 +13,13 @@ import { ActiveIdContext, ActiveIdStoreContext, TabUiContext, TabsActionsContext
  * The open tabs, the active one and the derived Note objects. Re-renders when tabs or notes change.
  * @category Tabs
  */
-export const useTabs = () => {
-    const context = useContext(TabsContext)
-    if (!context) throw new Error("useTabs must be used within a TabsProvider")
-    return context
-}
+export const useTabs = createRequiredContextHook(TabsContext, "useTabs", "TabsProvider")
 
 /**
  * The stable tab actions (their identity never changes).
  * @category Tabs
  */
-export const useTabsActions = () => {
-    const context = useContext(TabsActionsContext)
-    if (!context) throw new Error("useTabsActions must be used within a TabsProvider")
-    return context
-}
+export const useTabsActions = createRequiredContextHook(TabsActionsContext, "useTabsActions", "TabsProvider")
 
 /**
  * The id of the active note only: re-renders just when the active tab changes.
@@ -46,11 +39,7 @@ export const useActiveNoteSelector = <S,>(selector: (activeId: number | null) =>
  * The store of the per-note UI state.
  * @category Tabs
  */
-export const useTabUiStore = () => {
-    const context = useContext(TabUiContext)
-    if (!context) throw new Error("useTabUiStore must be used within a TabsProvider")
-    return context
-}
+export const useTabUiStore = createRequiredContextHook(TabUiContext, "useTabUiStore", "TabsProvider")
 
 const COLLAPSED_SET = { group: "groups", section: "sections", task: "tasks" } as const
 
@@ -119,6 +108,22 @@ export const useGroupOpen = (groupId: number): [boolean, () => void] => useOpenS
  */
 export const useSubtasksOpen = (taskId: number): [boolean, () => void] => useOpenState("task", taskId)
 
+type TabUiStore = ReturnType<typeof useTabUiStore>
+
+/** The id of the task selected in a note (null when nothing, or something that is not a task, is selected). */
+const readSelectedTaskId = (store: TabUiStore, noteId: number | null): number | null => {
+    const item = noteId === null ? null : store.getSelectedItem(noteId)
+    return item?.type === "task" ? item.id : null
+}
+
+/** A stable function that selects a task of a note (null clears the selection; nothing happens without a note). */
+const useSelectTaskOf = (noteId: number | null) => {
+    const store = useTabUiStore()
+    return useCallback((taskId: number | null) => {
+        if (noteId !== null) store.setSelectedItem(noteId, taskId === null ? null : { type: "task", id: taskId })
+    }, [store, noteId])
+}
+
 /**
  * The id of the task selected in a note (the selection is kept per note), and a setter.
  * @param noteId The ID of the note (null without a note: nothing is selected).
@@ -126,17 +131,8 @@ export const useSubtasksOpen = (taskId: number): [boolean, () => void] => useOpe
  */
 export function useSelectedTask(noteId: number | null): [number | null, (taskId: number | null) => void] {
     const store = useTabUiStore()
-    const selectedId = useSyncExternalStore(
-        store.subscribe,
-        () => {
-            const item = noteId === null ? null : store.getSelectedItem(noteId)
-            return item?.type === "task" ? item.id : null
-        },
-    )
-    const select = useCallback((taskId: number | null) => {
-        if (noteId !== null) store.setSelectedItem(noteId, taskId === null ? null : { type: "task", id: taskId })
-    }, [store, noteId])
-    return [selectedId, select]
+    const selectedId = useSyncExternalStore(store.subscribe, () => readSelectedTaskId(store, noteId))
+    return [selectedId, useSelectTaskOf(noteId)]
 }
 
 /**
@@ -147,13 +143,7 @@ export function useSelectedTask(noteId: number | null): [number | null, (taskId:
 export function useIsTaskSelected(taskId: number): boolean {
     const store = useTabUiStore()
     const noteId = useActiveNoteId()
-    return useSyncExternalStore(
-        store.subscribe,
-        () => {
-            const item = noteId === null ? null : store.getSelectedItem(noteId)
-            return item?.type === "task" && item.id === taskId
-        },
-    )
+    return useSyncExternalStore(store.subscribe, () => readSelectedTaskId(store, noteId) === taskId)
 }
 
 /**
@@ -161,9 +151,5 @@ export function useIsTaskSelected(taskId: number): boolean {
  * @category Tabs
  */
 export function useSelectTask(): (taskId: number | null) => void {
-    const store = useTabUiStore()
-    const noteId = useActiveNoteId()
-    return useCallback((taskId: number | null) => {
-        if (noteId !== null) store.setSelectedItem(noteId, taskId === null ? null : { type: "task", id: taskId })
-    }, [store, noteId])
+    return useSelectTaskOf(useActiveNoteId())
 }

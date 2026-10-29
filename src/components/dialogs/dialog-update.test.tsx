@@ -14,8 +14,7 @@ vi.mock("@tauri-apps/plugin-updater", () => ({ check: vi.fn() }))
 vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: () => relaunch() }))
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: (...a: unknown[]) => openUrl(...a) }))
 vi.mock("@/db/appPaths", () => ({ isPortable: vi.fn() }))
-vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const NOTES = "### Added\n\n- Hide completed tasks (`Ctrl+Shift+H`).\n- Duplicate notes.\n\n### Fixed\n\n- A bug."
 
 const fakeUpdate = (downloadAndInstall = vi.fn().mockResolvedValue(undefined)) => ({
@@ -165,6 +164,7 @@ describe("DialogUpdate", () => {
         document.body.appendChild(other)
         render(<DialogUpdate />)
         announce()
+        // A real wait on purpose: it asserts that the dialog stays hidden, so there is no condition to wait for
         await new Promise(resolve => setTimeout(resolve, 20))
         expect(screen.queryByText("Aggiornamento disponibile")).not.toBeInTheDocument()
         act(() => other.remove())

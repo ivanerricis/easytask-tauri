@@ -27,6 +27,13 @@ export default defineConfig([
     },
   },
   {
+    // Test helpers export components next to plain functions
+    files: ['src/test/**/*.{ts,tsx}'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
     files: ['scripts/**/*.mjs'],
     extends: [js.configs.recommended],
     languageOptions: {

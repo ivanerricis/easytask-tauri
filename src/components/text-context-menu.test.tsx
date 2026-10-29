@@ -5,8 +5,7 @@ import { toast } from "sonner"
 
 const clipboard = vi.hoisted(() => ({ readText: vi.fn(), writeText: vi.fn() }))
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => clipboard)
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 import { TextContextMenu } from "./text-context-menu"
 
 function Controlled() {

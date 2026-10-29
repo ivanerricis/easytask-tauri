@@ -6,7 +6,7 @@ import { useTheme } from "@/components/use-theme"
 import { usePreferences } from "@/contexts/use-preferences"
 import { ACCENT_MIN_CONTRAST, accentContrast, applyAccentColor, suggestAccentColor, type AccentTheme } from "@/lib/accent-color"
 
-/** The theme actually shown ("system" follows the operating system). */
+/** Fallback when the context gives no resolvedTheme: the theme actually shown ("system" follows the operating system). */
 const resolveTheme = (theme: "light" | "dark" | "system"): AccentTheme =>
     theme === "system" ? (window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme
 
@@ -18,9 +18,9 @@ const format = (ratio: number) => ratio.toFixed(1)
  */
 export const AccentContrastHint = () => {
     const { t } = useTranslation()
-    const { theme } = useTheme()
+    const { theme, resolvedTheme } = useTheme()
     const { primaryColor, setPrimaryColor } = usePreferences()
-    const shownTheme = resolveTheme(theme)
+    const shownTheme: AccentTheme = resolvedTheme ?? resolveTheme(theme)
     const ratio = accentContrast(primaryColor, shownTheme)
     const suggestion = suggestAccentColor(primaryColor, shownTheme)
     if (ratio === null || suggestion === null) return null

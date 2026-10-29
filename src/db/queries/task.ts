@@ -1,21 +1,12 @@
 import i18n from "@/i18n"
 import { createError, handleDBError, toAppError } from "@/types/error"
 import { getDB } from "../dbManager"
+import { withDBErrors, SECTION_MESSAGES, TASK_MESSAGES } from "./errors"
 import { getErrorMessage } from "@/lib/utils"
-import { DEFAULT_SECTION_SQL } from "./sql"
+import { DEFAULT_SECTION_SQL, newPositionSql } from "./sql"
 import type { NewTaskPosition } from "@/lib/store/preferences"
 import { Transaction, type TxRef } from "../transaction"
 import { addPositions, siblingIds } from "./ordering"
-
-/**
- * SQL of the position of a new row among its siblings: after the last one, or before the first one ("top": one below the
- * lowest position, so the siblings are not renumbered and the order stays valid for restore from the trash and for the
- * moves, which renumber the whole list anyway). The siblings are selected by `where`, an empty list starts at 0.
- */
-const newPositionSql = (position: NewTaskPosition, from: string, where: string) =>
-    position === "top"
-        ? `COALESCE((SELECT MIN(position) - 1 FROM ${from} WHERE ${where}), 0)`
-        : `COALESCE((SELECT MAX(position) + 1 FROM ${from} WHERE ${where}), 0)`
 
 /**
  * Creates a new top level task in a section, after its siblings or before them.
@@ -25,19 +16,14 @@ const newPositionSql = (position: NewTaskPosition, from: string, where: string) 
  * @category Database
  */
 export async function createDBTask(sectionId: number, text: string, position: NewTaskPosition = "bottom") {
-    try {
+    return withDBErrors("TASK", TASK_MESSAGES, async () => {
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO task (sectionID, text, position)
              SELECT ?, ?, ${newPositionSql(position, "task", "sectionID = ? AND taskID IS NULL AND deleted_at IS NULL")}`,
             [sectionId, text, sectionId])
         return result.lastInsertId as number
-    } catch (error: unknown) {
-        handleDBError(error, "TASK", {
-            UNIQUE: i18n.t("errors.task.unique"),
-            CHECK: i18n.t("errors.task.check"),
-        })
-    }
+    })
 }
 
 /**
@@ -47,18 +33,13 @@ export async function createDBTask(sectionId: number, text: string, position: Ne
  * @category Database
  */
 export async function ensureDBDefaultSection(groupId: number): Promise<number> {
-    try {
+    return withDBErrors("SECTION", SECTION_MESSAGES, async () => {
         const db = await getDB()
         const existing = await db.select<{ id: number }[]>('SELECT id FROM section WHERE groupID = ? AND is_default = 1', [groupId])
         if (existing[0]) return existing[0].id
         const result = await db.execute(DEFAULT_SECTION_SQL, [groupId])
         return result.lastInsertId as number
-    } catch (error: unknown) {
-        handleDBError(error, "SECTION", {
-            UNIQUE: i18n.t("errors.section.unique"),
-            CHECK: i18n.t("errors.section.check"),
-        })
-    }
+    })
 }
 
 /**
@@ -144,15 +125,10 @@ export async function insertDBTaskAfter(
  * @category Database
  */
 export async function updateDBTaskPriority(taskId: number, priority: boolean) {
-    try {
+    return withDBErrors("TASK", TASK_MESSAGES, async () => {
         const db = await getDB()
         await db.execute('UPDATE task SET priority=? WHERE id=?', [priority ? 1 : 0, taskId])
-    } catch (error: unknown) {
-        handleDBError(error, "TASK", {
-            UNIQUE: i18n.t("errors.task.unique"),
-            CHECK: i18n.t("errors.task.check"),
-        })
-    }
+    })
 }
 
 /**
@@ -162,15 +138,10 @@ export async function updateDBTaskPriority(taskId: number, priority: boolean) {
  * @category Database
  */
 export async function updateDBTaskCompletion(taskId: number, isCompleted: boolean) {
-    try {
+    return withDBErrors("TASK", TASK_MESSAGES, async () => {
         const db = await getDB()
         await db.execute('UPDATE task SET completed=? WHERE id=?', [isCompleted ? 1 : 0, taskId])
-    } catch (error: unknown) {
-        handleDBError(error, "TASK", {
-            UNIQUE: i18n.t("errors.task.unique"),
-            CHECK: i18n.t("errors.task.check"),
-        })
-    }
+    })
 }
 
 /**

@@ -2,13 +2,13 @@ import { createContext } from "react"
 import type { TemplateDraft } from "@/db/queries/template-draft"
 import type { DraftSaveStatus } from "@/lib/template-draft"
 
-export type TemplateDraftsContextType = {
+type TemplateDraftsContextType = {
     /** The drafts of the loaded workspace whose template is not deleted (the ones that have a tab or can have one). */
     drafts: TemplateDraft[]
 }
 
 /** The save state of the drafts as a store: a tab reads only the state of its own draft. */
-export type DraftStatusStore = {
+type DraftStatusStore = {
     subscribe: (listener: () => void) => () => void
     getStatus: (noteId: number) => DraftSaveStatus
 }

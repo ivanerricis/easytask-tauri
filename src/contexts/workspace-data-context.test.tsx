@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
-import { act, renderHook, waitFor } from "@testing-library/react"
+import { act, render, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { WorkspaceDataProvider, useWorkspaceData, useWorkspaceLoading } from "./workspace-data"
+import { WorkspaceDataProvider, useWorkspaceActions, useWorkspaceLoading, useWorkspaceState, useWorkspaceVersion } from "./workspace-data"
 import { useActiveNote, useActiveNoteActions } from "./use-active-note"
 import { useTabs, useTabsActions } from "./use-tabs"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
@@ -15,6 +15,7 @@ import { createDBNoteInFolder, createDBWorkspaceNote } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder"
 import { moveDBTreeItem } from "@/db/queries/tree"
 import { moveDBSection, moveDBSectionToNewGroup, moveDBTask } from "@/db/queries/move"
+import { getDBTemplateDrafts } from "@/db/queries/template-draft"
 import { emptyDBTrash, getDBTrash, getDBTrashCount, purgeDBItem, restoreDBItem } from "@/db/queries/trash"
 import { createDBNoteFromTemplate } from "@/db/queries/template"
 import { archiveDBItem, getDBArchive, getDBArchiveCount, unarchiveDBItem } from "@/db/queries/archive"
@@ -22,8 +23,7 @@ import { deferred } from "@/test/ui-render"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { Folder } from "@/types/types"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/db/queries/workspace", () => ({ getDBWorkspaceData: vi.fn() }))
 vi.mock("@/db/queries/note", () => ({
     createDBNoteInFolder: vi.fn(),
@@ -81,7 +81,12 @@ const wrapper = ({ children }: { children: ReactNode }) => <WorkspaceDataProvide
 
 /** Every context of the provider tree in one object, like the old single context. */
 const useAll = () => ({
-    ...useWorkspaceData(),
+    ...useWorkspaceState(),
+    ...useWorkspaceActions(),
+    trashVersion: useWorkspaceVersion("trash"),
+    archiveVersion: useWorkspaceVersion("archive"),
+    audioVersion: useWorkspaceVersion("audio"),
+    templatesVersion: useWorkspaceVersion("templates"),
     isLoading: useWorkspaceLoading(),
     ...useTabs(),
     ...useTabsActions(),
@@ -113,6 +118,26 @@ describe("WorkspaceDataContext", () => {
         const spy = vi.spyOn(console, "error").mockImplementation(() => {})
         expect(() => renderHook(() => useAll())).toThrow(/WorkspaceDataProvider/)
         spy.mockRestore()
+    })
+
+    describe("version counters", () => {
+        it("re-renders only the readers of a counter when it is bumped, not the consumers of the tree", async () => {
+            vi.mocked(restoreDBItem).mockResolvedValue(undefined as never)
+            const onTree = vi.fn(), onTrash = vi.fn(), onTemplates = vi.fn(), onActions = vi.fn()
+            function Tree() { useWorkspaceState(); onTree(); return null }
+            function Trash() { onTrash(useWorkspaceVersion("trash")); return null }
+            function Templates() { useWorkspaceVersion("templates"); onTemplates(); return null }
+            function Grab() { onActions(useWorkspaceActions()); return null }
+            render(<WorkspaceDataProvider><Grab /><Tree /><Trash /><Templates /></WorkspaceDataProvider>)
+            const before = { tree: onTree.mock.calls.length, trash: onTrash.mock.calls.length, templates: onTemplates.mock.calls.length }
+
+            await act(() => onActions.mock.lastCall![0].restoreItem("task", 1))
+
+            expect(onTrash).toHaveBeenLastCalledWith(1)
+            expect(onTrash.mock.calls.length).toBe(before.trash + 1)
+            expect(onTree.mock.calls.length).toBe(before.tree)
+            expect(onTemplates.mock.calls.length).toBe(before.templates)
+        })
     })
 
     describe("getWorkspaceData", () => {
@@ -325,7 +350,7 @@ describe("WorkspaceDataContext", () => {
             await act(() => result.current.moveTask(9, { sectionId: 4, parentTaskId: null }, 0))
             await act(() => result.current.moveSection(4, 2, 1))
             expect(result.current.audioVersion).toBe(0)
-            expect(result.current.trashVersion).toBe(3)
+            expect(result.current.trashVersion).toBe(1)
 
             let expected = 0
             const ops: Array<() => Promise<unknown>> = [
@@ -340,6 +365,19 @@ describe("WorkspaceDataContext", () => {
                 expected += 1
                 expect(result.current.audioVersion).toBe(expected)
             }
+        })
+
+        it("a task or section move bumps no version and reads no template draft", async () => {
+            vi.mocked(getDBWorkspaceData).mockResolvedValue({ folders: [], notes: [] } as never)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await act(() => result.current.getWorkspaceData(1))
+            vi.mocked(getDBTemplateDrafts).mockClear()
+            const before = [result.current.trashVersion, result.current.archiveVersion, result.current.audioVersion, result.current.templatesVersion]
+            await act(() => result.current.moveTask(9, { sectionId: 4, parentTaskId: null }, 0))
+            await act(() => result.current.moveSection(4, 2, 1))
+            await act(() => result.current.moveSectionToNewGroup(4, 0))
+            expect([result.current.trashVersion, result.current.archiveVersion, result.current.audioVersion, result.current.templatesVersion]).toEqual(before)
+            expect(getDBTemplateDrafts).not.toHaveBeenCalled()
         })
 
         it("does not bump audioVersion when the delete fails", async () => {
@@ -728,9 +766,6 @@ describe("WorkspaceDataContext", () => {
                 () => result.current.restoreItem("note", 1),
                 () => result.current.purgeItem("folder", 2),
                 () => result.current.emptyTrash(4),
-                () => result.current.moveSection(4, 2, 1),
-                () => result.current.moveSectionToNewGroup(4, 0),
-                () => result.current.moveTask(9, { sectionId: 4, parentTaskId: null }, 0),
             ]
             for (const op of ops) {
                 await act(() => op())

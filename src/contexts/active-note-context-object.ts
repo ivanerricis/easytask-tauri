@@ -2,7 +2,7 @@ import { createContext } from "react"
 import type { NoteDataTree } from "@/types/types"
 import type { NoteOptimisticActions } from "./note-optimistic"
 
-export type ActiveNoteContextType = {
+type ActiveNoteContextType = {
     /** Data of the active note (null while it is loaded for the first time, or without active note). */
     noteDataTree: NoteDataTree | null
 }
@@ -12,8 +12,11 @@ export type ActiveNoteActionsType = NoteOptimisticActions & {
     refreshActiveNote: () => Promise<void>
     /** Reloads the data of an open note from the database and updates its cache entry (rejects if the query fails). */
     getNoteData: (noteId: number) => Promise<void>
-    /** Replaces the cached data of the active note (optimistic updates). */
-    setNoteDataTree: (tree: NoteDataTree | null) => void
+    /**
+     * Replaces the cached data of a note (optimistic updates): the active one of this instance unless `noteId` is given,
+     * which lets a caller that holds a note id write it whichever note has the focus by the time it runs.
+     */
+    setNoteDataTree: (tree: NoteDataTree | null, noteId?: number) => void
     /** The cached data of the active note right now (not the render snapshot), null without active note or cached data. */
     getNoteTree: () => NoteDataTree | null
     /** The cached data of an open note (null when not cached): unlike getNoteTree it follows the id the caller renders with, never the one of the previous commit. */

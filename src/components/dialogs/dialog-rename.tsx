@@ -1,18 +1,14 @@
 import { Check } from "lucide-react"
 import { useTranslation } from "react-i18next"
-import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { FormError } from "@/components/form-error"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { FormFooter } from "@/components/form-footer"
+import { NameField } from "@/components/name-field"
+import { useFormSubmit } from "@/components/use-form-submit"
 import { useWorkspaceData } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { isUndoableType } from "@/contexts/undo/commands"
-import React, { useId, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import type { DBItemType } from "@/db/queries/shared_queries"
-import { getErrorMessage } from "@/lib/utils"
-import { MAX_NAME_LENGTH } from "@/lib/names"
-import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 type DialogRenameProps<T> = {
     item: T
@@ -36,37 +32,29 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
     const { t } = useTranslation()
     const currentName = item.name ?? item.title ?? ""
     const [value, setValue] = useState(currentName)
-    const nameId = useId()
-    const errorId = useId()
     const inputRef = useRef<HTMLInputElement>(null)
-    const { saving, run } = useSubmitOnce()
     const { renameItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
-    const [error, setError] = useState<string | null>(null)
     // A group may be unnamed: saving an empty name clears it
     const allowEmpty = itemType === "section_group"
 
-    const handleEdit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        await run(async () => {
-            let rollback: (() => void) | undefined
-            try {
-                if ((allowEmpty || value.trim()) && value.trim() !== currentName) {
-                    rollback = optimistic?.(value.trim())
-                    await renameItem(itemType, item.id, value.trim())
-                    if (isUndoableType(itemType)) recorder.rename(itemType, item.id, currentName, value.trim())
-                }
-                if (typeof getItemId === "number") {
-                    await getItemData?.(getItemId)
-                }
-                setError(null)
-                onOpenChange(false)
-            } catch (err) {
-                rollback?.()
-                setError(getErrorMessage(err))
+    const { busy: saving, error, setError, submit } = useFormSubmit(async () => {
+        let rollback: (() => void) | undefined
+        try {
+            if ((allowEmpty || value.trim()) && value.trim() !== currentName) {
+                rollback = optimistic?.(value.trim())
+                await renameItem(itemType, item.id, value.trim())
+                if (isUndoableType(itemType)) recorder.rename(itemType, item.id, currentName, value.trim())
             }
-        })
-    }
+            if (typeof getItemId === "number") {
+                await getItemData?.(getItemId)
+            }
+        } catch (err) {
+            rollback?.()
+            throw err
+        }
+        onOpenChange(false)
+    })
 
     // Every way of closing (Cancel, Escape, click outside) drops the typed value and the error
     const handleOpenChange = (open: boolean) => {
@@ -94,41 +82,25 @@ export const DialogRenameItem = <T extends defaultItemType>({ item, itemType, is
                 <DialogHeader>
                     <DialogTitle>{t("common.rename")}</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleEdit}>
+                <form onSubmit={submit}>
                     <div className="grid gap-3">
-                        <Label htmlFor={nameId} className="sr-only">{t("common.name")}</Label>
-                        <Input
-                            id={nameId}
+                        <NameField
                             ref={inputRef}
-                            name="name"
-                            maxLength={MAX_NAME_LENGTH}
+                            label={t("common.name")}
+                            hideLabel
                             value={value}
                             readOnly={saving}
-                            aria-invalid={error ? true : undefined}
-                            aria-describedby={error ? errorId : undefined}
-                            onChange={e => {
+                            error={error}
+                            onChange={next => {
                                 setError(null)
-                                setValue(e.target.value)
+                                setValue(next)
                             }}
                         />
-                        <FormError id={errorId}>{error}</FormError>
                     </div>
-                    <DialogFooter className="mt-4">
-                        <Button
-                            variant="outline"
-                            type="button"
-                            onClick={handleCancel}
-                        >
-                            {t("common.cancel")}
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={(!allowEmpty && !value.trim()) || saving}
-                        >
-                            <Check />
-                            {t("common.save")}
-                        </Button>
-                    </DialogFooter>
+                    <FormFooter onCancel={handleCancel} disabled={(!allowEmpty && !value.trim()) || saving}>
+                        <Check />
+                        {t("common.save")}
+                    </FormFooter>
                 </form>
             </DialogContent>
         </Dialog>

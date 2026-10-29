@@ -22,8 +22,6 @@ export const audio = {
     ended: "Terminato",
     add: "Aggiungi file audio",
     updatePath: "Aggiorna percorso",
-    fileMenu: "Menu file audio",
-    info: "Informazioni",
     files: "File audio",
     dialogFilter: "File audio",
     added_one: "File audio aggiunto",

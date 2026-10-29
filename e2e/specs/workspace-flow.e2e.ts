@@ -122,8 +122,13 @@ describe("Workspace, folders, notes, groups, sections and tasks", () => {
     it("deletes the task to the trash and restores it", async () => {
         const menu = await openTaskMenu(TASK)
         await byText(await tr("common.delete"), menu).click()
-        const confirm = await topDialog()
-        await byText(await tr("dialogs.delete.confirm"), confirm).click()
+        const confirmLabel = await tr("dialogs.delete.confirm")
+        // The dialog opens once the menu has closed: wait for its button instead of reading the top dialog at once
+        await browser.waitUntil(async () => {
+            const dialog = await topDialog()
+            return dialog !== undefined && (await byText(confirmLabel, dialog).isExisting())
+        }, { timeoutMsg: "the delete confirmation did not open" })
+        await byText(confirmLabel, await topDialog()).click()
         await browser.waitUntil(async () => !(await taskValues(SECTION_B)).includes(TASK), { timeoutMsg: "task not deleted" })
 
         await $(`//button[.//span[normalize-space()='${await tr("trash.title")}']]`).click()

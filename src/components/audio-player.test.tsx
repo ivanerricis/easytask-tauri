@@ -183,11 +183,6 @@ describe("AudioPlayer", () => {
         expect(onClose).toHaveBeenCalledTimes(1)
     })
 
-    it("is hidden when open is false", () => {
-        const { container } = render(<AudioPlayer src="a.mp3" listenersHandle={undefined} attributesHandle={attributes} open={false} />)
-        expect(container.firstElementChild).toHaveClass("hidden")
-    })
-
     it("starts from the beginning when autoPlayKey changes, not otherwise", () => {
         const props = { src: "a.mp3", listenersHandle: undefined, attributesHandle: attributes } as const
         const { rerender } = render(<AudioPlayer {...props} />)

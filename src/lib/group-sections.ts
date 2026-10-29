@@ -1,4 +1,5 @@
 import type { Group, Section } from "@/types/types"
+import { clampIndex } from "@/lib/number"
 
 /**
  * True for the hidden default section of a group (the one holding the tasks created directly in the group).
@@ -15,7 +16,7 @@ export function isDefaultSection(section: Pick<Section, "is_default"> | null | u
  * @category Lib
  */
 export function directIndexOf(group: Pick<Group, "defaultIndex" | "sections">): number {
-    return Math.max(0, Math.min(Math.trunc(group.defaultIndex ?? 0) || 0, group.sections.length))
+    return clampIndex(group.defaultIndex ?? 0, group.sections.length)
 }
 
 /**
@@ -46,4 +47,12 @@ export function taskSections(group: Pick<Group, "defaultSection" | "defaultIndex
 export function defaultIndexAfterInsert(defaultIndex: number, index: number, beforeList = false): number {
     const at = Math.max(0, Math.trunc(index) || 0)
     return at < defaultIndex || (beforeList && at === defaultIndex) ? defaultIndex + 1 : defaultIndex
+}
+
+/**
+ * The groups of a note in display order (by `position`), as a new array.
+ * @category Lib
+ */
+export function groupsByPosition<T extends Pick<Group, "position">>(groups: readonly T[]): T[] {
+    return [...groups].sort((a, b) => a.position - b.position)
 }

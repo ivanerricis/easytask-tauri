@@ -7,8 +7,7 @@ const deleteItem = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ deleteItem }),
 }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const setup = (over: Partial<Parameters<typeof DialogDeleteItem>[0]> = {}) => {
     const onOpenChange = vi.fn()
     const getItemData = vi.fn().mockResolvedValue(undefined)

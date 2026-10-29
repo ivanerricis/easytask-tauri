@@ -4,14 +4,15 @@ import type { Group, Section, Task } from "@/types/types";
 import { createError, handleDBError, toAppError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
-import { Transaction, TransactionError, type TxRef } from "../transaction";
+import { rethrowTxError, Transaction, type TxRef } from "../transaction";
 import { getDBNoteData, getDBNotesData, type NoteData } from "./note";
 import { isDefaultSection } from "@/lib/group-sections";
+import { nextPositionSql } from "./sql";
 
 const TEMPLATE_UNIQUE_MESSAGE = () => i18n.t("errors.template.unique")
 const TEMPLATE_CHECK_MESSAGE = () => i18n.t("errors.template.check")
 const NOTE_UNIQUE_MESSAGE = () => i18n.t("errors.template.noteUnique")
-const NOTE_CHECK_MESSAGE = () => i18n.t("errors.template.noteCheck")
+const NOTE_CHECK_MESSAGE = () => i18n.t("errors.note.check")
 const SOURCE_MISSING_MESSAGE = () => i18n.t("errors.template.sourceMissing")
 
 type TemplateRow = Omit<NoteTemplate, "content"> & { content: string }
@@ -365,13 +366,11 @@ export async function createDBNoteFromTemplate(templateId: number, workspaceId: 
     const note = folderId === null
         ? tx.add(
             `INSERT INTO note (workspaceID, name, color, position)
-             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
-             WHERE workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL`,
+             SELECT ?, ?, ?, ${nextPositionSql("note", "workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL")}`,
             [workspaceId, name.trim(), template.color, workspaceId])
         : tx.add(
             `INSERT INTO note (workspaceID, folderID, name, color, position)
-             SELECT ?, ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
-             WHERE folderID = ? AND deleted_at IS NULL`,
+             SELECT ?, ?, ?, ?, ${nextPositionSql("note", "folderID = ? AND deleted_at IS NULL")}`,
             [workspaceId, folderId, name.trim(), template.color, folderId])
     addNoteContent(tx, tx.idOf(note), template.content)
 
@@ -380,8 +379,7 @@ export async function createDBNoteFromTemplate(templateId: number, workspaceId: 
         return results[note].lastInsertId
     } catch (error: unknown) {
         // Statement 0 is the note itself: its failures are name clashes / invalid names
-        if (error instanceof TransactionError && error.statementIndex === note)
-            handleDBError(error, "NOTE", { UNIQUE: NOTE_UNIQUE_MESSAGE(), CHECK: NOTE_CHECK_MESSAGE() })
+        rethrowTxError(error, note, "NOTE", { UNIQUE: NOTE_UNIQUE_MESSAGE(), CHECK: NOTE_CHECK_MESSAGE() })
         throw createError("TEMPLATE_APPLY_FAILED", i18n.t("errors.template.apply", { message: getErrorMessage(error) }))
     }
 }

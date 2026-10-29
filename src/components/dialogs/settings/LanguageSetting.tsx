@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SelectItem } from "@/components/ui/select"
 import { usePreferences } from "@/contexts/use-preferences"
 import type { LanguagePreference } from "@/i18n"
-import { SettingsRow } from "./SettingsRow"
+import { SettingsSelectRow } from "./SettingsRow"
 
 const VALUES: LanguagePreference[] = ["system", "it", "en"]
 
@@ -12,19 +12,16 @@ export const LanguageSetting = () => {
     const { language, setLanguage } = usePreferences()
 
     return (
-        <SettingsRow label={t("settings.appearance.language.label")} description={t("settings.appearance.language.description")}>
-            {({ id, descriptionId }) => (
-                <Select value={language} onValueChange={value => setLanguage(value as LanguagePreference)}>
-                    <SelectTrigger id={id} aria-describedby={descriptionId} size="sm" className="w-40">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {VALUES.map(value => (
-                            <SelectItem key={value} value={value}>{t(`settings.appearance.language.options.${value}`)}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            )}
-        </SettingsRow>
+        <SettingsSelectRow
+            label={t("settings.appearance.language.label")}
+            description={t("settings.appearance.language.description")}
+            value={language}
+            onValueChange={value => setLanguage(value as LanguagePreference)}
+            width="w-40"
+        >
+            {VALUES.map(value => (
+                <SelectItem key={value} value={value}>{t(`settings.appearance.language.options.${value}`)}</SelectItem>
+            ))}
+        </SettingsSelectRow>
     )
 }

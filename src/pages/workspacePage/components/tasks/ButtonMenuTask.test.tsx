@@ -2,11 +2,12 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { toast } from "sonner"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { ButtonMenuTask } from "./ButtonMenuTask"
 import { ItemMenuButton } from "@/components/item-menu"
 import { makeTask } from "@/test/ui-fixtures"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const updateTaskPriority = vi.fn()
 const updateTaskDescription = vi.fn()
 const updateItemColor = vi.fn()
@@ -19,9 +20,8 @@ vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ updateTaskPriority, updateTaskDescription, updateItemColor, archiveItem }),
 }))
 // Only the archive step is observed: every other recorder method is a no-op
-vi.mock("@/contexts/undo/use-undo", () => ({
-    useUndoRecorder: () => new Proxy({ archive }, { get: (target, key) => (target as Record<string | symbol, unknown>)[key] ?? (() => undefined) }),
-}))
+const recorder = makeUndoRecorderMock({ archive })
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
 let draftActive = false
 vi.mock("@/contexts/use-template-drafts", () => ({ useIsActiveDraft: () => draftActive }))
 const selectTask = vi.fn()
@@ -61,7 +61,7 @@ beforeEach(() => {
 describe("ButtonMenuTask in a template draft", () => {
     it("has no archive entry", async () => {
         draftActive = true
-        render(<ButtonMenuTask task={makeTask({ id: 5 })}><div data-testid="row">Task</div></ButtonMenuTask>)
+        render(<ButtonMenuTask onEditDescription={vi.fn()} task={makeTask({ id: 5 })}><div data-testid="row">Task</div></ButtonMenuTask>)
         fireEvent.contextMenu(screen.getByTestId("row"))
         expect(await screen.findByText("Elimina")).toBeInTheDocument()
         expect(screen.queryByText("Archivia")).not.toBeInTheDocument()
@@ -70,7 +70,7 @@ describe("ButtonMenuTask in a template draft", () => {
 
 describe("ButtonMenuTask optimistic updates", () => {
     const openMenu = async (task = makeTask({ id: 5 })) => {
-        render(<ButtonMenuTask task={task}><div data-testid="row">Task</div></ButtonMenuTask>)
+        render(<ButtonMenuTask onEditDescription={vi.fn()} task={task}><div data-testid="row">Task</div></ButtonMenuTask>)
         fireEvent.contextMenu(screen.getByTestId("row"))
     }
 
@@ -185,7 +185,7 @@ describe("ButtonMenuTask", () => {
         const user = userEvent.setup()
         const onAddSubtask = vi.fn()
         const { container } = render(
-            <ButtonMenuTask task={makeTask({ id: 5 })} onAddSubtask={onAddSubtask}>
+            <ButtonMenuTask onEditDescription={vi.fn()} task={makeTask({ id: 5 })} onAddSubtask={onAddSubtask}>
                 <div><ItemMenuButton /></div>
             </ButtonMenuTask>,
         )
@@ -201,7 +201,7 @@ describe("ButtonMenuTask", () => {
         const user = userEvent.setup()
         const onAddSubtask = vi.fn()
         render(
-            <ButtonMenuTask task={makeTask({ id: 5 })} onAddSubtask={onAddSubtask}>
+            <ButtonMenuTask onEditDescription={vi.fn()} task={makeTask({ id: 5 })} onAddSubtask={onAddSubtask}>
                 <div data-testid="row">Task</div>
             </ButtonMenuTask>,
         )

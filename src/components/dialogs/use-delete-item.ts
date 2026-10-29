@@ -11,7 +11,7 @@ import type { DBItemType } from "@/db/queries/shared_queries"
 import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import { toastTrashed } from "@/lib/toast-trashed"
 
-export type DeleteItemOptions<T extends { id: number }> = {
+type DeleteItemOptions<T extends { id: number }> = {
     item: T
     itemType: DBItemType
     /** Id passed to `getItemData` (the item id when missing). */
@@ -48,7 +48,7 @@ export const useDeleteItem = <T extends { id: number }>({ item, itemType, getIte
     }
 }
 
-export type DeleteRequestOptions<T extends { id: number }> = DeleteItemOptions<T> & {
+type DeleteRequestOptions<T extends { id: number }> = DeleteItemOptions<T> & {
     /** Tells whether the item holds something worth a confirmation (a rejection counts as yes). */
     hasContent: () => boolean | Promise<boolean>
     /** Opens the confirmation dialog. */

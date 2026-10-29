@@ -1,5 +1,6 @@
 import { Store } from "@tauri-apps/plugin-store"
 import { join } from "@tauri-apps/api/path"
+import { reportError } from "@/lib/report-error"
 import { ensureAppFolder, isPortable } from "@/db/appPaths"
 
 /**
@@ -17,7 +18,7 @@ async function loadStore(): Promise<Store> {
         if (portable) {
             throw new Error(`Unable to load the settings store from the portable data folder: ${String(err)}`, { cause: err })
         }
-        console.error("Unable to load settings from the EasyTask folder, using the app data folder", err)
+        reportError(err)
         try {
             return await Store.load("settings.dat")
         } catch (fallbackErr: unknown) {

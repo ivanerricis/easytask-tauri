@@ -8,14 +8,12 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { UpdateInstallProgress, UpdateNotesBox } from "@/components/update-parts"
 import { useUpdateInstall } from "@/hooks/use-update-install"
+import { isDialogOpen } from "@/components/dialog-open"
+import { useOpenReleasesPage } from "@/components/use-open-releases-page"
 import { reportError } from "@/lib/report-error"
 import { saveSkippedUpdateVersion } from "@/lib/store/preferences"
-import { openReleasesPage, UPDATE_AVAILABLE_EVENT, type UpdateAvailableDetail } from "@/lib/updater"
-import { getErrorMessage } from "@/lib/utils"
+import { UPDATE_AVAILABLE_EVENT, type UpdateAvailableDetail } from "@/lib/updater"
 import { FormError } from "@/components/form-error"
-
-/** True while another dialog (settings, confirmation...) is open: the update dialog waits for it to close. */
-const otherDialogOpen = () => document.querySelector('[role="dialog"]') !== null
 
 /**
  * Update dialog opened by the startup check ({@link UPDATE_AVAILABLE_EVENT}): what's new, then "Update now"
@@ -27,13 +25,14 @@ export const DialogUpdate = () => {
     const [pending, setPending] = useState<UpdateAvailableDetail | null>(null)
     const [open, setOpen] = useState(false)
     const { progress, percent, label, error: installError, install } = useUpdateInstall()
+    const openReleases = useOpenReleasesPage()
     const updateButton = useRef<HTMLButtonElement>(null)
     const installing = progress !== null
 
     useEffect(() => {
         const handler = (event: Event) => {
             setPending((event as CustomEvent<UpdateAvailableDetail>).detail)
-            if (!otherDialogOpen()) { setOpen(true); return }
+            if (!isDialogOpen()) { setOpen(true); return }
             // Another dialog is in front: the cue that something is waiting (the dialog also opens by itself once it closes)
             toast(t("settings.about.update.dialog.title"), {
                 duration: ACTION_TOAST_DURATION,
@@ -48,7 +47,7 @@ export const DialogUpdate = () => {
     useEffect(() => {
         if (!pending || open) return
         const tryOpen = () => {
-            if (otherDialogOpen()) return
+            if (isDialogOpen()) return
             observer.disconnect()
             setOpen(true)
         }
@@ -84,11 +83,7 @@ export const DialogUpdate = () => {
 
     const handleUpdate = async (target: Update) => {
         if (portable) {
-            try {
-                await openReleasesPage()
-            } catch (error) {
-                toast.error(t("settings.about.openError", { message: getErrorMessage(error) }))
-            }
+            await openReleases()
             return
         }
         await install(target)

@@ -54,6 +54,8 @@ Fai clic sul pulsante del menu di una riga (compare quando ci passi sopra) oppur
 | -------------------- | :------: | :--: | ------------------------------------------------------------------------------ |
 | **Nuova nota**, **Nuova cartella** | sì |  | Crea l'elemento dentro la cartella.                                          |
 | **Apri**             |          | sì   | Apre la nota in una scheda.                                                    |
+| **Apri a destra**    |          | sì   | Apre la nota nell'area destra, creando la divisione se serve. Vedi [Dividere in due aree](#dividere-in-due-aree). |
+| **Apri a sinistra**  |          | sì   | Sposta una nota dell'area destra in quella sinistra (solo se la nota è aperta a destra). |
 | **Rinomina**         | sì       | sì   | Il nome diventa un campo di testo sul posto. `Invio` salva, `Esc` annulla.     |
 | **Duplica**          |          | sì   | Crea una copia chiamata per esempio `Roadmap (copia)` e la apre.               |
 | **Colora contenuto** | sì       |      | Dà il colore della cartella a tutte le note e sottocartelle al suo interno.    |
@@ -101,18 +103,34 @@ Fai clic su una nota nella barra laterale per aprirla. Le note aperte compaiono 
 | Chiudere la nota attiva    | `Ctrl+L`, o il pulsante **Chiudi nota corrente** sulla scheda     |
 | Chiudere tutte le note     | `Ctrl+T`, o il pulsante **Chiudi tutte le note** nella barra laterale |
 | Riordinare le schede       | Trascina una scheda, oppure usa **Sposta tab a sinistra** / **Sposta tab a destra** |
+| Dividere in due aree       | `Ctrl+\` (`Cmd+\` su macOS), o il pulsante **Dividi in due aree**    |
 
 Puoi cambiare ogni scorciatoia modificabile in **Impostazioni > Scorciatoie**. Vedi [Scorciatoie da tastiera](./shortcuts).
 
+### Dividere in due aree
+
+Puoi tenere due note affiancate. Ogni area ha la sua barra di schede e la sua nota aperta.
+
+- Fai clic su **Dividi in due aree** a destra della barra del percorso, oppure premi `Ctrl+\` (`Cmd+\` su macOS). A destra compare un'area vuota. Fai clic su **Chiudi la divisione** (o premi la stessa scorciatoia) per tornare a una sola area: questo chiude i tab dell'area destra.
+- Una nota è aperta in una sola area alla volta. Se apri una nota già aperta nell'altra area, EasyTask passa a quella.
+- Per spostare una nota, trascina la sua scheda nell'altra barra di schede (o rilasciala nella barra vuota). Senza il mouse, usa **Apri a destra** / **Apri a sinistra** nel menu della nota o della sua scheda, oppure premi `Ctrl+Alt+→` (anche `Ctrl+Alt+←`) per spostare la nota attiva nell'altra area. **Apri a destra** crea la divisione se non c'è.
+- `Ctrl+Alt+\` sposta il focus sull'altra area.
+- L'area su cui hai fatto clic per ultima è quella con il focus. La barra laterale, il menu comandi, il pannello dettagli e le scorciatoie (chiudi la nota, nota successiva o precedente, cerca nella nota, nuovo gruppo, annulla e ripeti) agiscono su di essa.
+- Trascina il divisore tra le aree per ridimensionarle. Con il divisore selezionato, le frecce cambiano la dimensione (`Maiusc` per passi più grandi) e il doppio clic la riporta al 50%. Ogni area è larga almeno 320 pixel e le barre laterali si chiudono da sole quando manca lo spazio.
+
+La divisione e le schede di ogni workspace vengono riaperte al prossimo avvio se **Riapri le note all'avvio** è attivo. Le aree possono essere al massimo due.
+
+Le tre scorciatoie della divisione si possono cambiare in **Impostazioni > Scorciatoie**, tranne `Ctrl+Alt+←`.
+
 ### La barra del percorso
 
-Sotto le schede, una barra sottile mostra il percorso della nota aperta, ad esempio `Lavoro > Progetti > Piano`. Fai clic su una cartella o sulla nota nel percorso per mostrarla nella barra laterale: la barra si apre se era chiusa, le cartelle sopra si espandono e l'elemento viene selezionato. Un percorso lungo mantiene la prima cartella e gli ultimi due elementi. Il pulsante **Nascondi task completati** è a destra della stessa barra.
+Sotto i tab, una barra sottile mostra il percorso della nota aperta, ad esempio `Lavoro > Progetti > Piano`. Fai clic su una cartella o sulla nota nel percorso per mostrarla nella barra laterale: la barra si apre se era chiusa, le cartelle sopra si espandono e l'elemento viene selezionato. Un percorso lungo mantiene la prima cartella e gli ultimi due elementi. A destra della stessa barra ci sono il pulsante **Nascondi task completati** e il pulsante **Dividi in due aree** (diventa **Chiudi la divisione** quando la vista è divisa).
 
 ![La barra del percorso](../../screenshots/it/path-bar-light.png)
 
 ### Cosa si riapre all'avvio
 
-Quando apri un workspace, EasyTask riapre le note che erano aperte e quella attiva. Il salvataggio è per ogni workspace. Per disattivarlo vai in **Impostazioni > Note e sezioni** e spegni **Riapri le note all'avvio**. Nella stessa pagina c'è **Riapri l'ultimo workspace all'avvio**.
+Quando apri un workspace, EasyTask riapre le note che erano aperte, quella attiva e la divisione in due aree (se l'hai usata). Il salvataggio è per ogni workspace. Per disattivarlo vai in **Impostazioni > Note e sezioni** e spegni **Riapri le note all'avvio**. Nella stessa pagina c'è **Riapri l'ultimo workspace all'avvio**.
 
 ## Cercare una nota
 

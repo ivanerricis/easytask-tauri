@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest"
-import { computeTabMove, computeTabZone, pickTabByX } from "./tab-reorder"
+import {
+    barDndId, computeCrossPaneIndex, computeTabMove, computeTabZone, parseBarDndId, parseTabDndId, pickBarByPoint, pickTabByX, resolveTabDrop, tabDndId,
+} from "./tab-reorder"
 
 describe("computeTabZone", () => {
     it("splits a tab in before / after", () => {
@@ -40,5 +42,76 @@ describe("pickTabByX", () => {
     })
     it("picks nothing without tabs", () => {
         expect(pickTabByX([], 10)).toBeNull()
+    })
+})
+
+describe("tab dnd ids", () => {
+    it("builds and parses the namespaced ids", () => {
+        expect(tabDndId(1, 42)).toBe("tab:1:42")
+        expect(barDndId(0)).toBe("bar:0")
+        expect(parseTabDndId("tab:1:42")).toEqual({ pane: 1, noteId: 42 })
+        expect(parseTabDndId(tabDndId(0, 7))).toEqual({ pane: 0, noteId: 7 })
+        expect(parseBarDndId("bar:1")).toBe(1)
+        expect(parseBarDndId(barDndId(0))).toBe(0)
+    })
+    it("rejects every other id", () => {
+        for (const id of ["tab:2:1", "tab:0:x", "tab:0:1:2", "bar:0", "42", 42, "xtab:0:1"]) expect(parseTabDndId(id)).toBeNull()
+        for (const id of ["bar:2", "bar:", "tab:0:1", "bar:01", 0]) expect(parseBarDndId(id)).toBeNull()
+    })
+})
+
+describe("pickBarByPoint", () => {
+    const bars = [{ id: 0, left: 0, right: 300, top: 0, bottom: 42 }, { id: 1, left: 400, right: 700, top: 0, bottom: 42 }]
+    it("picks the bar that contains the point, edges included", () => {
+        expect(pickBarByPoint(bars, 10, 10)).toBe(0)
+        expect(pickBarByPoint(bars, 500, 42)).toBe(1)
+        expect(pickBarByPoint(bars, 300, 0)).toBe(0)
+    })
+    it("picks nothing between the bars, outside them or without bars", () => {
+        expect(pickBarByPoint(bars, 350, 10)).toBeNull()
+        expect(pickBarByPoint(bars, 10, 43)).toBeNull()
+        expect(pickBarByPoint(bars, 10, -1)).toBeNull()
+        expect(pickBarByPoint([], 1, 1)).toBeNull()
+    })
+})
+
+describe("computeCrossPaneIndex", () => {
+    it("inserts before or after the tab it is over", () => {
+        expect(computeCrossPaneIndex([5, 6, 7], 6, "before")).toBe(1)
+        expect(computeCrossPaneIndex([5, 6, 7], 6, "after")).toBe(2)
+        expect(computeCrossPaneIndex([5, 6, 7], 5, "before")).toBe(0)
+        expect(computeCrossPaneIndex([5, 6, 7], 7, "after")).toBe(3)
+    })
+    it("appends over the bar itself or over an unknown tab", () => {
+        expect(computeCrossPaneIndex([], null, "after")).toBe(0)
+        expect(computeCrossPaneIndex([5, 6], null, "before")).toBe(2)
+        expect(computeCrossPaneIndex([5, 6], 9, "before")).toBe(2)
+    })
+})
+
+describe("resolveTabDrop", () => {
+    const ids = [[1, 2, 3], [10, 11]] as const
+    it("does nothing without a target", () => {
+        expect(resolveTabDrop(ids, 0, 1, null)).toBeNull()
+    })
+    it("reorders inside the same bar", () => {
+        expect(resolveTabDrop(ids, 0, 1, { pane: 0, overId: 3, zone: "after" })).toEqual({ kind: "reorder", pane: 0, from: 0, to: 2 })
+        expect(resolveTabDrop(ids, 1, 11, { pane: 1, overId: 10, zone: "before" })).toEqual({ kind: "reorder", pane: 1, from: 1, to: 0 })
+    })
+    it("moves to the end over the bar itself, and does nothing if the tab is already last", () => {
+        expect(resolveTabDrop(ids, 0, 1, { pane: 0, overId: null, zone: "after" })).toEqual({ kind: "reorder", pane: 0, from: 0, to: 2 })
+        expect(resolveTabDrop(ids, 0, 3, { pane: 0, overId: null, zone: "after" })).toBeNull()
+        expect(resolveTabDrop([[], []], 0, 1, { pane: 0, overId: null, zone: "after" })).toBeNull()
+    })
+    it("does nothing when the tab would stay where it is", () => {
+        expect(resolveTabDrop(ids, 0, 2, { pane: 0, overId: 3, zone: "before" })).toBeNull()
+        expect(resolveTabDrop(ids, 0, 2, { pane: 0, overId: 2, zone: "before" })).toBeNull()
+    })
+    it("moves to the other pane at the drop position", () => {
+        expect(resolveTabDrop(ids, 0, 2, { pane: 1, overId: 11, zone: "before" })).toEqual({ kind: "move", noteId: 2, fromPane: 0, toPane: 1, index: 1 })
+        expect(resolveTabDrop(ids, 1, 10, { pane: 0, overId: 3, zone: "after" })).toEqual({ kind: "move", noteId: 10, fromPane: 1, toPane: 0, index: 3 })
+    })
+    it("moves to the end of an empty pane", () => {
+        expect(resolveTabDrop([[1], []], 0, 1, { pane: 1, overId: null, zone: "after" })).toEqual({ kind: "move", noteId: 1, fromPane: 0, toPane: 1, index: 0 })
     })
 })

@@ -28,6 +28,7 @@ Everything is stored locally on your computer.
 - **Duplicate** a note (with all its content, audio files excluded) or a section (with its tasks) from its menu; the copy is named "... (copy)" and undoable
 - **Audio**: attach audio files to a note and play them in the app; the player can be pinned, repeat a track, resume where you left off, and remembers the playback speed
 - **Undo / redo** with `Ctrl+Z` / `Ctrl+Y` (`Ctrl+Shift+Z` also redoes)
+- **Split workspace**: open two notes side by side, each area with its own tabs; drag a tab from one bar to the other, or use "Open on the right" / "Open on the left" in the note menu
 - **Search notes** with `Ctrl+K`
 - **Customizable keyboard shortcuts** (Settings > Shortcuts); press `?` to see the list
 - **Settings search**: type in the Settings dialog to find an option by its name
@@ -53,6 +54,9 @@ Default shortcuts (all but the fixed ones can be changed in Settings > Shortcuts
 | `Ctrl+K` | Search notes |
 | `Ctrl+L` / `Ctrl+T` | Close the current note / close all notes |
 | `Ctrl+PageDown` / `Ctrl+PageUp` | Next / previous open note (also `Ctrl+Tab` / `Ctrl+Shift+Tab`) |
+| `Ctrl+\` | Split into two areas / close the split |
+| `Ctrl+Alt+→` (also `Ctrl+Alt+←`) | Move the active note to the other area |
+| `Ctrl+Alt+\` | Move the focus to the other area |
 | `Ctrl+Plus` / `Ctrl+Minus` / `Ctrl+0` | Make the text bigger / smaller / back to the normal size |
 | `Ctrl+B` | Toggle the sidebar |
 | `Ctrl+Shift+B` | Toggle the right sidebar |

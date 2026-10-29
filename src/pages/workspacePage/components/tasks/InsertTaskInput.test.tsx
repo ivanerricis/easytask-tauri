@@ -2,18 +2,18 @@
 import userEvent from "@testing-library/user-event"
 import { useEffect } from "react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { toast } from "sonner"
 import { deferred } from "@/test/ui-render"
 import { TaskInsertProvider, useTaskInsertStore } from "./task-insert-state"
 import { InsertTaskInput } from "./InsertTaskInput"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const ctx = {
     insertTaskAfter: vi.fn(),
     appendTask: vi.fn(),
 }
-const recorder = { create: vi.fn() }
+const recorder = makeUndoRecorderMock()
 const dispatch = vi.fn()
 let prefs = { taskDensity: "normal", keepAddingTasks: false }
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))

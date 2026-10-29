@@ -1,20 +1,18 @@
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { ArchiveRestore, Trash2 } from "lucide-react"
-import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { FormError } from "@/components/form-error"
-import { TooltipCustom } from "@/components/tooltip-custom"
-import { ItemRow, ListError, TypeTabs, TypeTabsSkeleton } from "./item-list-parts"
+import { ItemRow, ItemRowActions, ListEmpty, ListError, TypeTabs, TypeTabsSkeleton } from "./item-list-parts"
+import { useOpenList } from "./use-open-list"
+import { useWorkspaceRefresh } from "./use-workspace-refresh"
 import { ITEM_ICONS, formatStoredDate } from "./item-list-utils"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
-import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import { getErrorMessage } from "@/lib/utils"
 import type { ArchiveItem, ArchiveItemType } from "@/types/types"
 
 /** The kinds of items that can be archived, in the order of the tabs. */
@@ -33,69 +31,20 @@ type DialogArchiveProps = {
 export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
-    const { getArchive, unarchiveItem, deleteItem, getWorkspaceData } = useWorkspaceActions()
-    const { refreshActiveNote } = useActiveNoteActions()
+    const { getArchive, unarchiveItem, deleteItem } = useWorkspaceActions()
     const recorder = useUndoRecorder()
     const workspaceID = currentWorkspace?.id
 
-    const [items, setItems] = useState<ArchiveItem[]>([])
-    const [loaded, setLoaded] = useState(false)
-    const [busy, setBusy] = useState(false)
-    // Error of an action (shown under the list) and error of the load (shown instead of the list)
-    const [error, setError] = useState<string | null>(null)
-    const [loadError, setLoadError] = useState<string | null>(null)
-    const [selected, setSelected] = useState<ArchiveItemType | null>(null)
     const [toTrash, setToTrash] = useState<ArchiveItem | null>(null)
-
-    // The handlers come from the context: keep the latest one without re-running the load effect
-    const loadRef = useRef<() => Promise<ArchiveItem[]>>(async () => [])
-    useEffect(() => {
-        loadRef.current = async () => workspaceID === undefined ? [] : getArchive(workspaceID)
+    const { items, isLoading, loadError, reload, run, busy, error, selected, setSelected } = useOpenList<ArchiveItem, ArchiveItemType>({
+        isOpen,
+        load: async () => workspaceID === undefined ? [] : getArchive(workspaceID),
+        // The first time: show the first type that has something in it
+        firstSelected: list => TYPES.find(type => list.some(i => i.type === type)) ?? TYPES[0],
     })
 
-    const reload = useCallback(async () => {
-        try {
-            const list = await loadRef.current()
-            setLoadError(null)
-            setItems(list)
-            // The first time: show the first type that has something in it
-            setSelected(current => current ?? TYPES.find(type => list.some(i => i.type === type)) ?? TYPES[0])
-        } catch (err) {
-            setLoadError(getErrorMessage(err))
-        }
-    }, [])
-
-    useEffect(() => {
-        if (!isOpen) return
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- load when the dialog opens
-        reload().finally(() => setLoaded(true))
-        return () => {
-            setLoaded(false)
-            setSelected(null)
-        }
-    }, [isOpen, reload])
-    const isLoading = isOpen && !loaded
-
     // Folders and notes live in the sidebar tree, groups, sections and tasks in the open note
-    const refresh = async () => {
-        if (workspaceID === undefined) return
-        await getWorkspaceData(workspaceID)
-        await refreshActiveNote()
-    }
-
-    const run = async (action: () => Promise<void>, successMessage: string) => {
-        setBusy(true)
-        setError(null)
-        try {
-            await action()
-            toast.success(successMessage)
-        } catch (err) {
-            setError(getErrorMessage(err))
-        } finally {
-            await reload()
-            setBusy(false)
-        }
-    }
+    const refresh = useWorkspaceRefresh()
 
     const handleRestore = (item: ArchiveItem) => run(async () => {
         await unarchiveItem(item.type, item.id)
@@ -111,7 +60,7 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
             await deleteItem(item.type, item.id)
             recorder.remove(item.type, item.id, item.name)
             await refresh()
-        }, t("archive.trashed"))
+        }, t("dialogs.delete.done", { count: 1 }))
     }
 
     const active = selected ?? TYPES[0]
@@ -151,7 +100,7 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
                             {loadError !== null ? (
                                 <ListError message={loadError} onRetry={() => void reload()} />
                             ) : (
-                                <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.isEmpty")}</p>
+                                <ListEmpty>{t("archive.isEmpty")}</ListEmpty>
                             )}
                             {footer}
                         </>
@@ -168,33 +117,16 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
                             footer={footer}
                         >
                             {items.length === 0 ? (
-                                <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.isEmpty")}</p>
+                                <ListEmpty>{t("archive.isEmpty")}</ListEmpty>
                             ) : activeItems.length === 0 ? (
-                                <p className="py-6 text-center text-muted-foreground text-sm">{t("archive.emptyType")}</p>
+                                <ListEmpty>{t("archive.emptyType")}</ListEmpty>
                             ) : activeItems.map(item => (
                                 <ItemRow key={`${item.type}-${item.id}`} icon={Icon} name={item.name} details={details(item)}>
-                                    <TooltipCustom text={t("archive.restore")}>
-                                        <Button
-                                            variant="outline"
-                                            size="icon"
-                                            aria-label={t("archive.restoreAria", { name: item.name })}
-                                            disabled={busy}
-                                            onClick={() => handleRestore(item)}
-                                        >
-                                            <ArchiveRestore />
-                                        </Button>
-                                    </TooltipCustom>
-                                    <TooltipCustom text={t("archive.trash")}>
-                                        <Button
-                                            variant="destructive"
-                                            size="icon"
-                                            aria-label={t("archive.trashAria", { name: item.name })}
-                                            disabled={busy}
-                                            onClick={() => setToTrash(item)}
-                                        >
-                                            <Trash2 />
-                                        </Button>
-                                    </TooltipCustom>
+                                    <ItemRowActions
+                                        disabled={busy}
+                                        restore={{ icon: ArchiveRestore, tooltip: t("archive.restore"), ariaLabel: t("archive.restoreAria", { name: item.name }), onClick: () => void handleRestore(item) }}
+                                        remove={{ icon: Trash2, tooltip: t("dialogs.delete.confirm"), ariaLabel: t("archive.trashAria", { name: item.name }), onClick: () => setToTrash(item) }}
+                                    />
                                 </ItemRow>
                             ))}
                         </TypeTabs>
@@ -206,9 +138,9 @@ export const DialogArchive = ({ isOpen, onOpenChange }: DialogArchiveProps) => {
                 onOpenChange={(open) => { if (!open) setToTrash(null) }}
                 destructive
                 initialFocus="cancel"
-                title={t("archive.trashTitle")}
-                description={t("archive.trashDescription")}
-                confirm={{ label: t("archive.confirmTrash"), icon: Trash2, onClick: handleTrash }}
+                title={t("dialogs.delete.title")}
+                description={t("dialogs.delete.description")}
+                confirm={{ label: t("dialogs.delete.confirm"), icon: Trash2, onClick: handleTrash }}
             />
         </>
     )

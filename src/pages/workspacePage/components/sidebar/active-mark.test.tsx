@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { Folder, Note } from "@/types/types"
 import { ItemFolder } from "../folder/Folder"
 import { ItemNote } from "../note/Note"
+import { ActiveAncestorsProvider } from "./active-ancestors"
 
 // The rename field needs the workspace data; the rows are tested without it
 vi.mock("@/hooks/use-inline-rename", () => ({
@@ -19,9 +20,9 @@ vi.mock("../folder/ButtonMenuFolder", () => ({ ButtonMenuFolder: ({ children }: 
 vi.mock("../note/ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: ReactNode }) => <>{children}</> }))
 vi.mock("@/components/tooltip-custom", () => ({ TooltipCustom: ({ children }: { children: ReactNode }) => <>{children}</> }))
 
-const note = (id: number, name: string) => ({ id, name, color: null }) as unknown as Note
-const folder = (id: number, name: string, notes: Note[], subfolders: Folder[] = []) =>
-    ({ id, name, color: null, notes, subfolders }) as unknown as Folder
+const note = (id: number, name: string, folderID: number | null = null) => ({ id, name, color: null, folderID }) as unknown as Note
+const folder = (id: number, name: string, notes: Note[], subfolders: Folder[] = [], folderID: number | null = null) =>
+    ({ id, name, color: null, notes, subfolders, folderID }) as unknown as Folder
 
 const renderIn = (ui: ReactNode) => render(<DndContext>{ui}</DndContext>)
 
@@ -53,11 +54,17 @@ describe("note open in the active tab", () => {
 })
 
 describe("collapsed folder holding the active note", () => {
-    const tree = folder(1, "Progetti", [note(9, "Altra")], [folder(2, "Interni", [note(5, "Retro")])])
+    const tree = folder(1, "Progetti", [note(9, "Altra", 1)], [folder(2, "Interni", [note(5, "Retro", 2)], [], 1)])
+    // The ancestors of the active note come from the provider, like in the sidebar
+    const renderFolder = (isOpen: boolean) => renderIn(
+        <ActiveAncestorsProvider tree={{ rootFolders: [tree], rootNotes: [] }}>
+            <ItemFolder folder={tree} isOpen={isOpen} onToggle={vi.fn()} />
+        </ActiveAncestorsProvider>,
+    )
 
     it("shows a discreet mark when it is collapsed, even for a note in a subfolder", () => {
         active.id = 5
-        renderIn(<ItemFolder folder={tree} isOpen={false} onToggle={vi.fn()} />)
+        renderFolder(false)
         const row = screen.getByRole("treeitem", { name: /Progetti/ })
         expect(row).toHaveAttribute("data-holds-active", "true")
         expect(row.className).toContain("border-primary/60")
@@ -65,13 +72,13 @@ describe("collapsed folder holding the active note", () => {
 
     it("shows nothing when it is expanded (the note itself is visible)", () => {
         active.id = 5
-        renderIn(<ItemFolder folder={tree} isOpen onToggle={vi.fn()} />)
+        renderFolder(true)
         expect(screen.getByRole("treeitem", { name: /Progetti/ })).not.toHaveAttribute("data-holds-active")
     })
 
     it("shows nothing when the active note is elsewhere", () => {
         active.id = 77
-        renderIn(<ItemFolder folder={tree} isOpen={false} onToggle={vi.fn()} />)
+        renderFolder(false)
         expect(screen.getByRole("treeitem", { name: /Progetti/ })).not.toHaveAttribute("data-holds-active")
     })
 })

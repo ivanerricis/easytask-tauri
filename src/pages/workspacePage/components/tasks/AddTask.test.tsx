@@ -7,8 +7,7 @@ import { toast } from "sonner"
 import { deferred } from "@/test/ui-render"
 import { TaskInsertProvider, useTaskInsertStore } from "./task-insert-state"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const ctx = {
     createTask: vi.fn(),
     createSubTask: vi.fn(),
@@ -31,6 +30,19 @@ describe("AddTask", () => {
         prefs = { newTaskPosition: "bottom", taskDensity: "normal", keepAddingTasks: false }
         ctx.createTask.mockResolvedValue(50)
         ctx.createSubTask.mockResolvedValue(60)
+    })
+
+    it("registers no mousedown listener while closed, one when open, and does not re-register while typing", async () => {
+        const user = userEvent.setup()
+        const spy = vi.spyOn(document, "addEventListener")
+        const mousedowns = () => spy.mock.calls.filter(([type]) => type === "mousedown").length
+        render(<AddTask sectionId={3} />)
+        expect(mousedowns()).toBe(0)
+        const input = await open(user)
+        expect(mousedowns()).toBe(1)
+        await user.type(input, "abc")
+        expect(mousedowns()).toBe(1)
+        spy.mockRestore()
     })
 
     it("starts collapsed and opens the input on click", async () => {

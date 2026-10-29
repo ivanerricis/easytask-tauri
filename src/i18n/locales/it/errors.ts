@@ -63,7 +63,6 @@ export const errors = {
         unique: "Esiste già un template con questo nome.",
         check: "Il nome del template non può essere vuoto.",
         noteUnique: "Esiste già una nota con questo nome nella cartella di destinazione.",
-        noteCheck: "Il nome della nota non può essere vuoto.",
         sourceMissing: "La nota di origine non esiste più.",
         notFound: "Il template non esiste più.",
         loadAll: "Impossibile caricare i template: {{message}}",
@@ -106,7 +105,6 @@ export const errors = {
         untitled: "(senza titolo)",
         invalidFolderTree: "La struttura delle cartelle del file non è valida.",
         suffix: "importato",
-        nameEmpty: "Il nome non può essere vuoto.",
         nameTaken: "Esiste già un elemento chiamato \"{{name}}\" in questa posizione.",
     },
     backup: {
@@ -141,7 +139,6 @@ export const errors = {
     loadAudio: "Impossibile caricare i file audio.",
     loadTemplates: "Impossibile caricare i template.",
     loadWorkspaceData: "Impossibile caricare i dati del workspace",
-    refreshWorkspaceData: "Impossibile aggiornare i dati del workspace. Riprova.",
 }
 
 export const crash = {

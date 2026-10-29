@@ -1,4 +1,4 @@
-import { useId, useState, type FormEvent } from "react"
+import { useId, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { Briefcase, Download, FileText, Folder, Loader2, type LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -6,8 +6,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { FormError } from "@/components/form-error"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useSubmitOnce } from "@/hooks/use-submit-once"
-import { getErrorMessage } from "@/lib/utils"
+import { useFormSubmit } from "@/components/use-form-submit"
 import type { ImportName } from "@/lib/workspace-transfer"
 
 const ICONS: Record<ImportName["type"], LucideIcon> = { workspace: Briefcase, folder: Folder, note: FileText }
@@ -29,28 +28,17 @@ export const DialogImportNames = ({ proposed, onSubmit, onCancel }: DialogImport
     const baseId = useId()
     const errorId = useId()
     const [names, setNames] = useState(() => proposed.map(item => item.name))
-    const [error, setError] = useState<string | null>(null)
-    const { saving, run } = useSubmitOnce()
+    const { busy: saving, error, setError, submit } = useFormSubmit(async () => {
+        if (names.some(name => !name.trim())) return
+        await onSubmit(names)
+    })
     const blank = names.some(name => !name.trim())
-    const message = error ?? (blank ? t("errors.transfer.nameEmpty") : null)
-
-    const handleSubmit = (e: FormEvent) => {
-        e.preventDefault()
-        if (blank) return
-        void run(async () => {
-            setError(null)
-            try {
-                await onSubmit(names)
-            } catch (err) {
-                setError(getErrorMessage(err))
-            }
-        })
-    }
+    const message = error ?? (blank ? t("errors.nameEmpty") : null)
 
     return (
         <Dialog open onOpenChange={open => { if (!open && !saving) onCancel() }}>
             <DialogContent className="sm:max-w-md">
-                <form onSubmit={handleSubmit} className="grid gap-4">
+                <form onSubmit={submit} className="grid gap-4">
                     <DialogHeader>
                         <DialogTitle>{t("transfer.namesTitle")}</DialogTitle>
                         <DialogDescription>{t("transfer.namesDescription")}</DialogDescription>

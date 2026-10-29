@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { ACTION_TOAST_DURATION, toastTrashed } from "./toast-trashed"
 
-vi.mock("sonner", () => ({ toast: { success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 describe("toastTrashed", () => {
     beforeEach(() => vi.clearAllMocks())
 

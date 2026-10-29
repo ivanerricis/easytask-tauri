@@ -1,12 +1,12 @@
 import type { ComponentProps } from "react"
 import { useTranslation } from "react-i18next"
-import { Archive, Download, LayoutTemplate, Trash2 } from "lucide-react"
+import { Archive, LayoutTemplate, Trash2 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-type IconType = 'trash' | 'archive' | 'download' | 'template'
+type IconType = 'trash' | 'archive' | 'template'
 
 type ItemFooterProps = {
     text: string
@@ -24,7 +24,6 @@ type ItemFooterProps = {
 const iconMap: Record<IconType, LucideIcon> = {
     trash: Trash2,
     archive: Archive,
-    download: Download,
     template: LayoutTemplate
 }
 

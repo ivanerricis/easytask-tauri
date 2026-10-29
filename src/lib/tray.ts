@@ -2,15 +2,17 @@ import { defaultWindowIcon } from "@tauri-apps/api/app"
 import { Menu } from "@tauri-apps/api/menu"
 import { TrayIcon } from "@tauri-apps/api/tray"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { flushPreferences } from "@/lib/store/preferences"
 import { flushStore } from "@/lib/store/save-soon"
 import { reportError } from "@/lib/report-error"
+import { createWindowEvent } from "@/lib/window-event"
 
 /** Texts of the notification area icon (translated by the caller). */
 export type TrayLabels = { tooltip: string, open: string, quit: string }
 
 /** Event fired on `window` when the "close to the notification area" setting changes. */
 export const CLOSE_TO_TRAY_EVENT = "easytask:close-to-tray"
+
+const closeToTrayEvent = createWindowEvent<boolean>(CLOSE_TO_TRAY_EVENT)
 
 let active = false
 
@@ -23,7 +25,7 @@ export const isCloseToTrayActive = (): boolean => active
  * @category Window
  */
 export function notifyCloseToTrayChanged(value: boolean): void {
-    window.dispatchEvent(new CustomEvent<boolean>(CLOSE_TO_TRAY_EVENT, { detail: value }))
+    closeToTrayEvent.emit(value)
 }
 
 /** Marks the setting as on or off (called by the hook, which owns the tray icon). */
@@ -32,7 +34,7 @@ export function setCloseToTrayActive(value: boolean): void {
 }
 
 /** Shows the main window again, restored and focused. */
-export async function showMainWindow(): Promise<void> {
+async function showMainWindow(): Promise<void> {
     const window = getCurrentWindow()
     await window.show()
     await window.unminimize()
@@ -44,9 +46,8 @@ export async function hideMainWindow(): Promise<void> {
     await getCurrentWindow().hide()
 }
 
-/** Really quits: pending preferences, tabs and shortcuts are saved first, then the window is destroyed (the last window ends the app). */
-export async function quitApp(): Promise<void> {
-    await flushPreferences().catch(error => reportError(error))
+/** Really quits: pending store changes (preferences, tabs, shortcuts) are saved first, then the window is destroyed (the last window ends the app). */
+async function quitApp(): Promise<void> {
     await flushStore().catch(error => reportError(error))
     await getCurrentWindow().destroy()
 }

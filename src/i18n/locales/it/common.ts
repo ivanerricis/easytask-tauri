@@ -24,10 +24,8 @@ export const common = {
     workspaceRoot: "Radice del workspace",
     name: "Nome",
     addColor: "Aggiungi colore",
-    closePalette: "Chiudi la tavolozza",
     creationDate: "Creato il {{date}} alle {{time}}",
     editDate: "Modificato il {{date}} alle {{time}}",
-    add: "Aggiungi",
     colors: {
         c1: "Rosso",
         c2: "Verde",
@@ -73,4 +71,5 @@ export const dnd = {
     endNone: "{{name}} è stato rilasciato fuori da una destinazione valida.",
     cancel: "Spostamento di {{name}} annullato.",
     audioPlayer: "Lettore audio",
+    tabMovedToPane: "{{name}} spostata in: {{pane}}.",
 }

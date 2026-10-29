@@ -58,7 +58,7 @@ const setReopenNotes = async (on: boolean) => {
     await domClick(byLabel(await tr("settings.title")))
     const dialog = $('[role="dialog"]')
     await dialog.waitForDisplayed()
-    await byText(await tr("settings.categories.notes"), dialog).click()
+    await byText(await tr("settings.notes.title"), dialog).click()
     const label = xpathString(await tr("settings.notes.reopenNotes.label"))
     const toggle = $(`//*[@role="dialog"]//*[@role="switch"][@id=//label[normalize-space()=${label}]/@for]`)
     await domClick(toggle)
@@ -161,8 +161,14 @@ describe("Template editor", () => {
         await addTaskToGroup(groupCard(GROUP), TASK_B)
         await (await savedStatus()).waitForDisplayed({ timeout: 15_000, timeoutMsg: "the second edit was not saved" })
         expect(await draftCount()).toBe(1)
-        // The open tabs are written to the preferences with a debounce
-        await browser.pause(2_000)
+        // The open tabs are written to the preferences with a debounce: wait until settings.dat lists the draft among the open tabs
+        const draftId = (await sql<{ id: number }[]>("select", "SELECT id FROM note WHERE templateID IS NOT NULL"))[0].id
+        const settingsFile = path.join(await dataDir(), "settings.dat")
+        const openTabsHaveDraft = new RegExp(`"openIds"\\s*:\\s*\\[[^\\]]*\\b${draftId}\\b`)
+        await browser.waitUntil(
+            () => { try { return openTabsHaveDraft.test(fs.readFileSync(settingsFile, "utf8")) } catch { return false } },
+            { timeout: 15_000, timeoutMsg: "settings.dat does not list the template tab among the open tabs" },
+        )
 
         await restart()
         await openWorkspace(WORKSPACE)

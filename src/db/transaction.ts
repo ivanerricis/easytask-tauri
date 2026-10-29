@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core"
+import { handleDBError } from "@/types/error"
 import { getDB } from "./dbManager"
 
 /**
@@ -18,7 +19,7 @@ export type TxStatement = { sql: string, params: unknown[] }
  * Outcome of one statement of a transaction (same fields as the plugin's QueryResult).
  * @category Database
  */
-export type TxResult = { rowsAffected: number, lastInsertId: number }
+type TxResult = { rowsAffected: number, lastInsertId: number }
 
 /**
  * Error of a failed transaction: nothing was written. `statementIndex` is the failing statement (null when unknown).
@@ -33,6 +34,17 @@ export class TransactionError extends Error {
         this.name = "TransactionError"
         this.statementIndex = statementIndex
     }
+}
+
+/**
+ * In the catch of `tx.run()`: when the failing statement is `statementIndex` (the row the user can get wrong, e.g. the
+ * note with a clashing name) translates the driver error into the usual `<codePrefix>_EXISTS` / `_CHECK_FAILED` / ... error
+ * and throws it; any other error returns, so the caller throws its own generic error.
+ * @category Database
+ */
+export function rethrowTxError(error: unknown, statementIndex: number, codePrefix: string, messages: Parameters<typeof handleDBError>[2] = {}): void {
+    if (error instanceof TransactionError && error.statementIndex === statementIndex)
+        handleDBError(error, codePrefix, messages)
 }
 
 // SQLite rows per multi-row INSERT (keeps the number of bound parameters far below the SQLite limit)

@@ -22,7 +22,11 @@ updates:
       cargo-minor-patch:
         update-types: [minor, patch]
   - package-ecosystem: github-actions
-    directory: /
+    # The composite actions pin their own action versions
+    directories:
+      - /
+      - /.github/actions/setup-node-deps
+      - /.github/actions/linux-tauri-deps
     schedule:
       interval: weekly
     groups:

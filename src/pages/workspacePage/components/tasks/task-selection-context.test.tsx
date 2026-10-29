@@ -1,10 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react"
+import { act, fireEvent, render, screen, within } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { PaneContext } from "@/contexts/layout-context-object"
 import { makeGroup, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { NoteDataTree } from "@/types/types"
-import {
-    TaskSelectionProvider, useIsInTaskMultiSelection, useIsTaskMultiSelected, useSelectedTaskKeys, useTaskSelectionStore,
-} from "./task-selection-context"
+import { TaskSelectionProvider } from "./task-selection-context"
+import { useIsInTaskMultiSelection, useIsTaskMultiSelected, useSelectedTaskKeys, useTaskSelectionStore } from "./use-task-selection"
 
 let activeId: number | null = 1
 let hideCompleted = false
@@ -165,5 +165,27 @@ describe("TaskSelectionProvider", () => {
         activeId = 2
         rerender(<TaskSelectionProvider><Probe /></TaskSelectionProvider>)
         expect(keys()).toBe("")
+    })
+})
+
+describe("TaskSelectionProvider in two panes", () => {
+    it("Esc clears only the selection of the pane that has the focus", () => {
+        const focus: { current: 0 | 1 } = { current: 1 }
+        const pane = (index: 0 | 1) => (
+            <PaneContext.Provider value={{ pane: index, focused: focus.current === index, isFocused: () => focus.current === index, rootRef: { current: null } }}>
+                <section aria-label={`area ${index}`}><TaskSelectionProvider><Probe /></TaskSelectionProvider></section>
+            </PaneContext.Provider>
+        )
+        render(<>{pane(0)}{pane(1)}</>)
+        const left = within(screen.getByLabelText("area 0"))
+        const right = within(screen.getByLabelText("area 1"))
+        fireEvent.click(left.getByText("t1"))
+        fireEvent.click(right.getByText("t1"))
+        fireEvent.keyDown(document.body, { key: "Escape" })
+        expect(left.getByTestId("keys")).toHaveTextContent("task-1")
+        expect(right.getByTestId("keys")).toHaveTextContent("")
+        focus.current = 0
+        fireEvent.keyDown(document.body, { key: "Escape" })
+        expect(left.getByTestId("keys")).toHaveTextContent("")
     })
 })

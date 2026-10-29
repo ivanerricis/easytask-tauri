@@ -6,7 +6,7 @@ import { ModeToggle } from "./mode-toggle"
 describe("ModeToggle", () => {
     it("has an accessible name that contains the visible theme and announces it", () => {
         render(
-            <ThemeProviderContext.Provider value={{ theme: "dark", setTheme: () => { } }}>
+            <ThemeProviderContext.Provider value={{ theme: "dark", resolvedTheme: "dark", setTheme: () => { } }}>
                 <ModeToggle />
             </ThemeProviderContext.Provider>
         )

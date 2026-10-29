@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { flushPreferences, getPref, savePref, normalizePref, UI_PREFS, APP_PREFS, clearLastWorkspaceId, getLastWorkspaceId, saveLastWorkspaceId, getReopenLastWorkspace, getRightPanelTab, getSidebarRightWidth, getPrimaryColor, getAudioPlayerPosition } from "./preferences"
+import { getAllPrefs, flushPreferences, getPref, savePref, normalizePref, UI_PREFS, APP_PREFS, clearLastWorkspaceId, getLastWorkspaceId, saveLastWorkspaceId, getReopenLastWorkspace, getRightPanelTab, getSidebarRightWidth, getPrimaryColor, getAudioPlayerPosition, savePrimaryColor, saveAudioPlayerPosition, resetAudioPlayerPosition } from "./preferences"
 
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn(), delete: vi.fn() },
@@ -146,6 +146,16 @@ describe("batched saves", () => {
         await p
         expect(store.save).toHaveBeenCalledTimes(1)
         await vi.advanceTimersByTimeAsync(1000)
+        expect(store.save).toHaveBeenCalledTimes(1)
+    })
+
+    it("shares the debounce with the other stores: one save for a preference and a saveStoreSoon", async () => {
+        const { saveStoreSoon } = await import("./save-soon")
+        const p1 = savePref("sidebarItemSize", "large")
+        await vi.advanceTimersByTimeAsync(0)
+        const p2 = saveStoreSoon()
+        await vi.advanceTimersByTimeAsync(500)
+        await Promise.all([p1, p2])
         expect(store.save).toHaveBeenCalledTimes(1)
     })
 
@@ -342,6 +352,39 @@ describe("primary color preference validation", () => {
     })
 })
 
+describe("primary color saving", () => {
+    beforeEach(() => vi.resetAllMocks())
+
+    it("stores a valid color as { hex }", async () => {
+        await savePrimaryColor("#fff")
+        expect(store.set).toHaveBeenCalledWith("primaryColor", { hex: "#fff" })
+    })
+
+    it("stores the default for an invalid color", async () => {
+        await savePrimaryColor("url(x)")
+        expect(store.set).toHaveBeenCalledWith("primaryColor", { hex: "#c2410c" })
+    })
+})
+
+describe("audio player position saving", () => {
+    beforeEach(() => vi.resetAllMocks())
+
+    it("stores a valid position", async () => {
+        await saveAudioPlayerPosition({ x: 3, y: 4, scaleX: 2, scaleY: 2 })
+        expect(store.set).toHaveBeenCalledWith("audioPlayerPosition", { x: 3, y: 4, scaleX: 2, scaleY: 2 })
+    })
+
+    it("stores the default position when the coordinates are not finite", async () => {
+        await saveAudioPlayerPosition({ x: Number.NaN, y: 4, scaleX: 1, scaleY: 1 })
+        expect(store.set).toHaveBeenCalledWith("audioPlayerPosition", { x: 0, y: 0, scaleX: 1, scaleY: 1 })
+    })
+
+    it("reset removes the key", async () => {
+        await resetAudioPlayerPosition()
+        expect(store.delete).toHaveBeenCalledWith("audioPlayerPosition")
+    })
+})
+
 describe("audio player position validation", () => {
     beforeEach(() => vi.resetAllMocks())
 
@@ -531,12 +574,12 @@ describe("preference table", () => {
 
     it("keeps the keys saved on disk", () => {
         expect(Object.values(all).map(definition => definition.key).sort()).toEqual([
-            "alwaysOnTop", "animationSpeed", "audioPlaybackRate", "audioPlayerOpacity", "audioPlayerPinned", "audioPlayerScale", "audioPlayerVisible", "audioPositions", "audioRepeat", "audioResume", "audioVolume", "autoBackup", "backupFolder",
+            "alwaysOnTop", "animationSpeed", "audioPlaybackRate", "audioPlayerOpacity", "audioPlayerPinned", "audioPlayerPosition", "audioPlayerScale", "audioPlayerVisible", "audioPositions", "audioRepeat", "audioResume", "audioVolume", "autoBackup", "backupFolder",
             "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "completedTasksLast", "confirmDeleteWithContent", "fontFamily", "hardwareAcceleration", "hideCompletedTasks", "keepAddingTasks", "language",
-            "lastWorkspaceId", "newTaskPosition", "rememberWindowState", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
+            "lastWorkspaceId", "newTaskPosition", "primaryColor", "rememberWindowState", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
             "showGroupProgressBar", "showGroupSeparators", "showProgressBar", "showSectionCount", "showSubtaskCount", "showTaskCount",
             "showTaskInsertLine", "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth", "sidebarRightOpen", "sidebarRightWidth",
-            "skippedUpdateVersion", "spellcheck", "startupWorkspaceId", "taskBackground", "taskDensity", "textZoom", "trashAutoEmptyDays", "undoLimit", "workspaceSort", "workspaceView",
+            "skippedUpdateVersion", "spellcheck", "splitRatio", "startupWorkspaceId", "taskBackground", "taskDensity", "textZoom", "trashAutoEmptyDays", "undoLimit", "workspaceSort", "workspaceView",
         ])
     })
 
@@ -628,5 +671,28 @@ describe("text zoom preference", () => {
         expect(normalizePref("textZoom", 9)).toBe(24 / 16)
         expect(normalizePref("textZoom", "big")).toBe(1)
         expect(normalizePref("textZoom", Number.NaN)).toBe(1)
+    })
+})
+
+describe("getAllPrefs", () => {
+    beforeEach(() => vi.resetAllMocks())
+
+    it("reads the store with one entries() call and normalizes each preference", async () => {
+        const entries = vi.fn().mockResolvedValue([["undoLimit", 200], ["sidebarItemSize", "huge"], ["unrelated", 1]])
+        Object.assign(store, { entries })
+        const all = await getAllPrefs()
+        delete (store as { entries?: unknown }).entries
+        expect(entries).toHaveBeenCalledTimes(1)
+        expect(store.get).not.toHaveBeenCalled()
+        expect(all.undoLimit).toBe(200)
+        expect(all.sidebarItemSize).toBe("normal")
+        expect(Object.keys(all).sort()).toEqual(Object.keys(UI_PREFS).sort())
+    })
+
+    it("falls back to one get per preference when the store has no entries()", async () => {
+        vi.mocked(store.get).mockImplementation(async (key: string) => key === "undoLimit" ? 200 : undefined)
+        const all = await getAllPrefs()
+        expect(all.undoLimit).toBe(200)
+        expect(all.showProgressBar).toBe(true)
     })
 })

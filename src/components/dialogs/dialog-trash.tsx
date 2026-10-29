@@ -1,19 +1,17 @@
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { RotateCcw, Trash2 } from "lucide-react"
-import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { FormError } from "@/components/form-error"
-import { TooltipCustom } from "@/components/tooltip-custom"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
-import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useOptionalUndo } from "@/contexts/undo/use-undo"
-import { getErrorMessage } from "@/lib/utils"
-import { ItemRow, ListError, TypeTabs, ListSkeleton, TypeTabsSkeleton } from "./item-list-parts"
+import { ItemRow, ItemRowActions, ListEmpty, ListError, TypeTabs, ListSkeleton, TypeTabsSkeleton } from "./item-list-parts"
+import { useOpenList } from "./use-open-list"
+import { useWorkspaceRefresh } from "./use-workspace-refresh"
 import { ITEM_ICONS, formatStoredDate } from "./item-list-utils"
 import type { TrashItem } from "@/types/types"
 
@@ -44,57 +42,13 @@ type DialogTrashViewProps = {
 
 const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps) => {
     const { t } = useTranslation()
-    const [items, setItems] = useState<TrashItem[]>([])
-    const [loaded, setLoaded] = useState(false)
-    const [busy, setBusy] = useState(false)
     const [confirm, setConfirm] = useState<Confirm>(null)
-    const [selected, setSelected] = useState<TrashItem["type"] | null>(null)
-    const sourceRef = useRef(source)
-    useEffect(() => { sourceRef.current = source })
-
-    // Error of an action (shown under the list) and error of the load (shown instead of the list)
-    const [error, setError] = useState<string | null>(null)
-    const [loadError, setLoadError] = useState<string | null>(null)
-
-    const reload = useCallback(async () => {
-        try {
-            const list = await sourceRef.current.load()
-            setLoadError(null)
-            setItems(list)
-            // The first time: show the first type that has something in it
-            const types = sourceRef.current.types
-            setSelected(current => current ?? types.find(type => list.some(i => i.type === type)) ?? types[0])
-        } catch (err) {
-            setLoadError(getErrorMessage(err))
-        }
-    }, [])
-
-    useEffect(() => {
-        if (!isOpen) return
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- load when the dialog opens
-        reload().finally(() => setLoaded(true))
-        return () => {
-            setLoaded(false)
-            setSelected(null)
-        }
-    }, [isOpen, reload])
-    const isLoading = isOpen && !loaded
-
-    const run = async (action: () => Promise<void>, successMessage: string): Promise<boolean> => {
-        setBusy(true)
-        setError(null)
-        try {
-            await action()
-            toast.success(successMessage)
-            return true
-        } catch (err) {
-            setError(getErrorMessage(err))
-            return false
-        } finally {
-            await reload()
-            setBusy(false)
-        }
-    }
+    const { items, isLoading, loadError, reload, run, busy, error, selected, setSelected } = useOpenList<TrashItem, TrashItem["type"]>({
+        isOpen,
+        load: source.load,
+        // The first time: show the first type that has something in it
+        firstSelected: list => source.types.find(type => list.some(i => i.type === type)) ?? source.types[0],
+    })
 
     const types = source.types
     const active = selected && types.includes(selected) ? selected : types[0]
@@ -104,33 +58,16 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
 
     // The rows of the selected kind of item
     const rows = items.length === 0 ? (
-                <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
+                <ListEmpty>{t("trash.isEmpty")}</ListEmpty>
             ) : activeItems.length === 0 ? (
-                <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.emptyType")}</p>
+                <ListEmpty>{t("trash.emptyType")}</ListEmpty>
             ) : activeItems.map(item => (
                 <ItemRow key={`${item.type}-${item.id}`} icon={Icon} name={item.name} details={details(item)}>
-                    <TooltipCustom text={t("trash.restore")}>
-                        <Button
-                            variant="outline"
-                            size="icon"
-                            aria-label={t("trash.restoreAria", { name: item.name })}
-                            disabled={busy}
-                            onClick={() => run(() => sourceRef.current.restore(item), t("trash.restored"))}
-                        >
-                            <RotateCcw />
-                        </Button>
-                    </TooltipCustom>
-                    <TooltipCustom text={t("trash.purge")}>
-                        <Button
-                            variant="destructive"
-                            size="icon"
-                            aria-label={t("trash.purgeAria", { name: item.name })}
-                            disabled={busy}
-                            onClick={() => setConfirm({ kind: "purge", item })}
-                        >
-                            <Trash2 />
-                        </Button>
-                    </TooltipCustom>
+                    <ItemRowActions
+                        disabled={busy}
+                        restore={{ icon: RotateCcw, tooltip: t("trash.restore"), ariaLabel: t("trash.restoreAria", { name: item.name }), onClick: () => void run(() => source.restore(item), t("trash.restored")) }}
+                        remove={{ icon: Trash2, tooltip: t("trash.purge"), ariaLabel: t("trash.purgeAria", { name: item.name }), onClick: () => setConfirm({ kind: "purge", item }) }}
+                    />
                 </ItemRow>
     ))
 
@@ -166,10 +103,10 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
         setConfirm(null)
         if (!current) return
         if (current.kind === "purge") {
-            await run(() => sourceRef.current.purge(current.item), t("trash.purged"))
+            await run(() => source.purge(current.item), t("trash.purged"))
         } else {
             // Emptied: nothing left to show, close the dialog (on failure it stays open with the error)
-            if (await run(() => sourceRef.current.empty(items), t("trash.emptied"))) onOpenChange(false)
+            if (await run(() => source.empty(items), t("trash.emptied"))) onOpenChange(false)
         }
     }
 
@@ -206,7 +143,7 @@ const DialogTrashView = ({ isOpen, onOpenChange, source }: DialogTrashViewProps)
                             ) : loadError !== null ? (
                                 <ListError message={loadError} onRetry={() => void reload()} />
                             ) : items.length === 0 ? (
-                                <p className="py-6 text-center text-muted-foreground text-sm">{t("trash.isEmpty")}</p>
+                                <ListEmpty>{t("trash.isEmpty")}</ListEmpty>
                             ) : (
                                 <div className="min-w-0 min-h-0 overflow-y-auto pr-1 flex flex-col gap-1">
                                     {rows}
@@ -239,16 +176,11 @@ type DialogTrashProps = {
 /** Trash of the current workspace (folders, notes, sections, tasks...). */
 export const DialogTrash = ({ isOpen, onOpenChange }: DialogTrashProps) => {
     const { currentWorkspace } = useWorkspace()
-    const { getTrash, restoreItem, purgeItem, emptyTrash, getWorkspaceData } = useWorkspaceActions()
-    const { refreshActiveNote } = useActiveNoteActions()
+    const { getTrash, restoreItem, purgeItem, emptyTrash } = useWorkspaceActions()
     const clearUndo = useOptionalUndo()?.clear
     const workspaceID = currentWorkspace?.id
 
-    const refresh = async () => {
-        if (workspaceID === undefined) return
-        await getWorkspaceData(workspaceID)
-        await refreshActiveNote()
-    }
+    const refresh = useWorkspaceRefresh()
 
     // Ids of purged rows can be reused by new ones (no AUTOINCREMENT): the undo history must not outlive a purge
     const source: TrashSource = {

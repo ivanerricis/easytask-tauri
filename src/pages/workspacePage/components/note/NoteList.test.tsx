@@ -63,3 +63,12 @@ describe("NoteList keyboard", () => {
         expect(event.defaultPrevented).toBe(false)
     })
 })
+
+describe("NoteList on its own", () => {
+    it("labels the bar without a pane and keeps its height to the tabs", () => {
+        render(<NoteList />)
+        const bar = screen.getByRole("tablist", { name: "Note aperte" })
+        expect(bar.className).not.toContain("min-h-")
+        expect(screen.queryByTestId("tab-drag-overlay")).toBeNull()
+    })
+})

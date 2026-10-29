@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { DialogTaskDescription } from "./DialogTaskDescription"
 import { makeTask } from "@/test/ui-fixtures"
 
@@ -9,10 +10,11 @@ const patchTask = vi.fn()
 const rollback = vi.fn()
 const taskDescription = vi.fn()
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateTaskDescription }) }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchTask }) }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ taskDescription }) }))
+const recorder = makeUndoRecorderMock({ taskDescription })
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
 
 const setup = (description = "") => {
     const onOpenChange = vi.fn()

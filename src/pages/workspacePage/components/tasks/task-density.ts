@@ -1,4 +1,4 @@
-import { usePreferences } from "@/contexts/use-preferences"
+import { usePreference } from "@/contexts/use-preference"
 import type { TaskDensity } from "@/lib/store/preferences"
 
 /**
@@ -65,4 +65,4 @@ export const TASK_DENSITIES: Record<TaskDensity, TaskDensityClasses> = {
 }
 
 /** Density chosen in the settings. */
-export const useTaskDensity = (): TaskDensity => usePreferences().taskDensity
+export const useTaskDensity = (): TaskDensity => usePreference(p => p.taskDensity) ?? "normal"

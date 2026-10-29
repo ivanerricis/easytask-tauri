@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 /** An action of a confirmation: its label, an icon and what it does. */
-export type ConfirmAction = {
+type ConfirmAction = {
     label: string
     icon?: LucideIcon
     onClick: () => void | Promise<void>

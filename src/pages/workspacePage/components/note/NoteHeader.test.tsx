@@ -17,7 +17,8 @@ vi.mock("@/hooks/use-inline-rename", () => ({
 
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn().mockResolvedValue(false) }))
 vi.mock("@/lib/store/tabs", () => ({ getWorkspaceTabs: vi.fn(), saveWorkspaceTabs: vi.fn() }))
-vi.mock("./ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => <>{children}</> }))
+const menuRenders = vi.hoisted(() => ({ count: 0 }))
+vi.mock("./ButtonMenuNote", () => ({ ButtonMenuNote: ({ children }: { children: React.ReactNode }) => { menuRenders.count++; return <>{children}</> } }))
 // Radix tooltips measure their arrow with a ResizeObserver, which jsdom lacks
 vi.stubGlobal("ResizeObserver", class { observe() { } unobserve() { } disconnect() { } })
 
@@ -128,5 +129,30 @@ describe("NoteHeader of a template editor", () => {
         const plain = screen.getByRole("tab", { name: "Uno" })
         expect(plain).toHaveAttribute("title", "Uno")
         expect(plain).not.toHaveTextContent("Template")
+    })
+})
+
+describe("NoteHeader renders", () => {
+    it("re-renders only the two tabs involved when the active tab changes", async () => {
+        const three = [makeNote({ id: 1, name: "Uno" }), makeNote({ id: 2, name: "Due" }), makeNote({ id: 3, name: "Tre" })]
+        const Open3 = () => {
+            const { openNote } = useTabsActions()
+            useEffect(() => { openNote(1); openNote(2); openNote(3) }, [openNote])
+            return null
+        }
+        render(
+            <ShortcutsProvider>
+                <TabsProvider notes={three} workspaceId={null}>
+                    <Open3 />
+                    {three.map(note => <NoteHeader key={note.id} note={note} />)}
+                </TabsProvider>
+            </ShortcutsProvider>,
+        )
+        await act(async () => { })
+        // "Tre" is active; moving to "Uno" touches "Uno" and "Tre" only, "Due" stays as it was
+        menuRenders.count = 0
+        await userEvent.click(screen.getByText("Uno"))
+        expect(screen.getByRole("tab", { name: "Uno" })).toHaveAttribute("aria-selected", "true")
+        expect(menuRenders.count).toBe(2)
     })
 })

@@ -1,8 +1,9 @@
-import React, { useCallback, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useMemo, useState } from 'react'
 import type { Workspace } from '@/types/types'
 import { getDBWorkspaces, createDBWorkspace } from '@/db/queries/workspace'
 import { getDBTrashedWorkspaces, purgeDBItem, restoreDBItem } from '@/db/queries/trash'
 import { getErrorMessage } from '@/lib/utils'
+import { usePendingCounter } from './use-pending-counter'
 import { WorkspaceContext } from './workspace-context-object'
 
 export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
@@ -11,27 +12,22 @@ export function WorkspaceProvider({ children }: { children: React.ReactNode }) {
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const pendingOps = useRef(0)
+    const { track } = usePendingCounter(useCallback((pending: number) => setIsLoading(pending > 0), []))
 
     /**
-     * Runs an async operation and keeps isLoading true while any operation is in flight.
+     * Runs an async operation and keeps isLoading true while any operation is in flight; its failure becomes `error`.
      * @param operation The operation to run.
      * @category Workspace Context
      */
-    const withLoading = useCallback(async <T,>(operation: () => Promise<T>): Promise<T> => {
-        pendingOps.current += 1
-        setIsLoading(true)
+    const withLoading = useCallback(<T,>(operation: () => Promise<T>): Promise<T> => track(async () => {
         setError(null)
         try {
             return await operation()
         } catch (err: unknown) {
             setError(getErrorMessage(err))
             throw err
-        } finally {
-            pendingOps.current -= 1
-            setIsLoading(pendingOps.current > 0)
         }
-    }, [])
+    }), [track])
 
     /**
      * Retrieves the list of workspaces.

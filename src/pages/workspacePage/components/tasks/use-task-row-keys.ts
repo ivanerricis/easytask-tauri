@@ -4,7 +4,7 @@ import type { Step } from "../note-steps"
 import { readTaskRows, siblingPosition } from "./task-key-rows"
 import { taskKeyAction } from "./task-keyboard"
 import { useTaskTree } from "./task-tree-context"
-import { useTaskSelectionStore } from "./task-selection-context"
+import { useTaskSelectionStore } from "./use-task-selection"
 import { taskKey } from "./task-selection"
 import { focusKeepingDetails } from "./task-focus-intent"
 import { announce } from "./note-announcer-store"
@@ -21,9 +21,13 @@ type RowKeysOptions = {
     onRename: () => void
 }
 
-const rowOf = (id: number | string) => document.querySelector<HTMLElement>(`[role='treeitem'][data-task-id="${id}"]`)
+/** A row by task id, looked up in the given list (the arrows never leave it) or, by default, in the whole document. */
+const rowOf = (id: number | string, scope: ParentNode = document) => scope.querySelector<HTMLElement>(`[role='treeitem'][data-task-id="${id}"]`)
 
-/** Focuses a row that may not be drawn yet (a moved task is drawn again in its new place) and tells where it ended up. */
+/**
+ * Focuses a row that may not be drawn yet (a moved task is drawn again in its new place) and tells where it ended up.
+ * The whole document is searched: the task can land in another list (section) than the one it came from.
+ */
 function focusMoved(taskId: number, announceMoved: (position: number, total: number) => void, triesLeft = 20) {
     const row = rowOf(taskId)
     const tree = row?.closest("[role='tree']")
@@ -61,16 +65,16 @@ export function useTaskRowKeys({ taskId, taskText, subtasksOpen, onToggleSubtask
             case "focus":
             case "focusFirstChild":
             case "focusParent":
-                rowOf(action.key)?.focus()
+                rowOf(action.key, list)?.focus()
                 break
             case "extend": {
                 // Without a selection store (no multi-selection) it is a plain arrow
                 if (!selection) {
-                    rowOf(action.key)?.focus()
+                    rowOf(action.key, list)?.focus()
                     break
                 }
                 selection.extend(taskKey(taskId), taskKey(Number(action.key)))
-                focusKeepingDetails(rowOf(action.key))
+                focusKeepingDetails(rowOf(action.key, list))
                 break
             }
             case "toggleSelect": {

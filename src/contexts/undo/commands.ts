@@ -27,7 +27,7 @@ export type UndoDeps = {
 }
 
 /** The types of item whose actions are undoable (folders and notes live in the sidebar tree, the others in the open note). */
-export type UndoItemType = "folder" | "note" | "section_group" | "section" | "task"
+type UndoItemType = "folder" | "note" | "section_group" | "section" | "task"
 
 const UNDOABLE: readonly DBItemType[] = ["folder", "note", "section_group", "section", "task"]
 
@@ -37,7 +37,7 @@ export const isUndoableType = (itemType: DBItemType): itemType is UndoItemType =
 const isTreeType = (itemType: UndoItemType): itemType is TreeItemType => itemType === "folder" || itemType === "note"
 
 /** Where a folder or a note sits: the parent folder (null = workspace root) and the index among its siblings of the same type. */
-export type TreePlace = { folderId: number | null, index: number }
+type TreePlace = { folderId: number | null, index: number }
 /** One item of a multi-selection action, with its name for the label. */
 export type TreeItemRef = { itemType: TreeItemType, id: number, name: string | null | undefined }
 /** One item of a multi-selection action on folders, notes or tasks (a task action reloads the open note, not the tree). */
@@ -53,9 +53,50 @@ export type TreeMoveStep = { itemType: TreeItemType, id: number, name: string, f
  * captured (how many sections come before it): a section index alone cannot tell on which side of the list the section was,
  * so undoing a move puts the list back too.
  */
-export type SectionPlace = { groupId: number, index: number, listIndex?: number, beforeList?: boolean }
+type SectionPlace = { groupId: number, index: number, listIndex?: number, beforeList?: boolean }
 /** Where a task sits in the open note: a section (top level, parentTaskId null; also the default section of a group) or under another task. */
-export type TaskPlace = { sectionId: number, parentTaskId: number | null, index: number }
+type TaskPlace = { sectionId: number, parentTaskId: number | null, index: number }
+
+/** Awaits `fn` on each item, one after the other: in order, or from the last to the first (the inverse of a sequence). */
+export async function eachInOrder<T>(items: readonly T[], reverse: boolean, fn: (item: T) => Promise<unknown>): Promise<void> {
+    for (const item of reverse ? [...items].reverse() : items) await fn(item)
+}
+
+type ManyCommandOptions<T> = {
+    label: string
+    items: readonly T[]
+    /** Inverts one item (the items are undone from the last to the first). */
+    undoEach: (item: T) => Promise<unknown>
+    /** Applies one item again (the items are redone in order). */
+    redoEach: (item: T) => Promise<unknown>
+    /** Runs once after all the items were undone / redone (omitted: nothing runs). */
+    reloadUndo?: () => Promise<unknown>
+    reloadRedo?: () => Promise<unknown>
+    /** Runs the reload also when an item failed (the items before it were applied: what changed must still be shown). */
+    reloadEvenOnFailure?: boolean
+}
+
+/** A command that applies the same step to several items as ONE history entry, with one reload at the end. */
+export function manyCommand<T>({ label, items, undoEach, redoEach, reloadUndo, reloadRedo, reloadEvenOnFailure = false }: ManyCommandOptions<T>): UndoCommand {
+    const run = async (reverse: boolean, each: (item: T) => Promise<unknown>, reload?: () => Promise<unknown>) => {
+        if (!reload) return eachInOrder(items, reverse, each)
+        if (!reloadEvenOnFailure) {
+            await eachInOrder(items, reverse, each)
+            await reload()
+            return
+        }
+        try {
+            await eachInOrder(items, reverse, each)
+        } finally {
+            await reload()
+        }
+    }
+    return {
+        label,
+        undo: () => run(true, undoEach, reloadUndo),
+        redo: () => run(false, redoEach, reloadRedo),
+    }
+}
 
 const NAME_MAX = 40
 
@@ -306,15 +347,12 @@ export function createUndoCommands(deps: UndoDeps) {
          * Move to the trash of several folders/notes as ONE step: undone by restoring them all (the tree is reloaded once),
          * redone by trashing them again in the same order.
          */
-        removeMany: (items: ManyItemRef[]): UndoCommand => ({
+        removeMany: (items: ManyItemRef[]): UndoCommand => manyCommand({
             label: manyLabel("deleteMany", items.length),
-            undo: async () => {
-                for (const item of [...items].reverse()) await workspace.restoreItem(item.itemType, item.id)
-                await reloadFor(items)
-            },
-            redo: async () => {
-                for (const item of items) await removeItem(item.itemType, item.id)
-            },
+            items,
+            undoEach: item => workspace.restoreItem(item.itemType, item.id),
+            redoEach: item => removeItem(item.itemType, item.id),
+            reloadUndo: () => reloadFor(items),
         }),
 
         /** Archive of a folder, note, group or section: undone by unarchiving it (same id, same position). */
@@ -335,26 +373,20 @@ export function createUndoCommands(deps: UndoDeps) {
          * Archive of several folders/notes as ONE step: undone by unarchiving them all (the tree is reloaded once),
          * redone by archiving them again in the same order.
          */
-        archiveMany: (items: ManyItemRef[]): UndoCommand => ({
+        archiveMany: (items: ManyItemRef[]): UndoCommand => manyCommand({
             label: manyLabel("archiveMany", items.length),
-            undo: async () => {
-                for (const item of [...items].reverse()) await workspace.unarchiveItem(item.itemType, item.id)
-                await reloadFor(items)
-            },
-            redo: async () => {
-                for (const item of items) await archiveOne(item.itemType, item.id)
-            },
+            items,
+            undoEach: item => workspace.unarchiveItem(item.itemType, item.id),
+            redoEach: item => archiveOne(item.itemType, item.id),
+            reloadUndo: () => reloadFor(items),
         }),
 
         /** Color change of several folders/notes as ONE step (null = no color). */
-        colorMany: (changes: ColorChange[]): UndoCommand => ({
+        colorMany: (changes: ColorChange[]): UndoCommand => manyCommand({
             label: manyLabel("colorMany", changes.length),
-            undo: async () => {
-                for (const change of [...changes].reverse()) await setColor(change.itemType, change.id)(change.before ?? null)
-            },
-            redo: async () => {
-                for (const change of changes) await setColor(change.itemType, change.id)(change.after ?? null)
-            },
+            items: changes,
+            undoEach: change => setColor(change.itemType, change.id)(change.before ?? null),
+            redoEach: change => setColor(change.itemType, change.id)(change.after ?? null),
         }),
 
         /**
@@ -364,9 +396,7 @@ export function createUndoCommands(deps: UndoDeps) {
          */
         colorContent: (folderId: number, name: string | null | undefined, color: string | null | undefined, previous: PreviousColor[]): UndoCommand => ({
             label: makeLabel("colorContent", "folder", name),
-            undo: async () => {
-                for (const item of [...previous].reverse()) await setColor(item.itemType, item.id)(item.before ?? null)
-            },
+            undo: () => eachInOrder(previous, true, item => setColor(item.itemType, item.id)(item.before ?? null)),
             redo: () => workspace.updateFolderColorContent(folderId, color ?? undefined).then(() => undefined),
         }),
 
@@ -374,22 +404,14 @@ export function createUndoCommands(deps: UndoDeps) {
          * Move of several folders/notes as ONE step. `steps` are in the order they were run, each with the place the item
          * had right before its step: undone by running them backwards (one reload), redone in order.
          */
-        treeMoveMany: (steps: TreeMoveStep[]): UndoCommand => ({
+        treeMoveMany: (steps: TreeMoveStep[]): UndoCommand => manyCommand({
             label: manyLabel("moveMany", steps.length),
-            undo: async () => {
-                try {
-                    for (const step of [...steps].reverse()) await workspace.moveTreeItem(step.itemType, step.id, step.from.folderId, step.from.index)
-                } finally {
-                    await reloadTree()
-                }
-            },
-            redo: async () => {
-                try {
-                    for (const step of steps) await workspace.moveTreeItem(step.itemType, step.id, step.to.folderId, step.to.index)
-                } finally {
-                    await reloadTree()
-                }
-            },
+            items: steps,
+            undoEach: step => workspace.moveTreeItem(step.itemType, step.id, step.from.folderId, step.from.index),
+            redoEach: step => workspace.moveTreeItem(step.itemType, step.id, step.to.folderId, step.to.index),
+            reloadUndo: reloadTree,
+            reloadRedo: reloadTree,
+            reloadEvenOnFailure: true,
         }),
 
         /** Move of a section into another group (or elsewhere in its group). */
@@ -427,22 +449,14 @@ export function createUndoCommands(deps: UndoDeps) {
          * Move of several tasks as ONE step. `steps` are in the order they were run, each with the place the task had right
          * before its step: undone by running them backwards, redone in order (the open note is reloaded once at the end).
          */
-        taskMoveMany: (steps: TaskMoveStep[]): UndoCommand => ({
+        taskMoveMany: (steps: TaskMoveStep[]): UndoCommand => manyCommand({
             label: manyLabel("moveMany", steps.length),
-            undo: async () => {
-                try {
-                    for (const step of [...steps].reverse()) await moveTaskTo(step.id, { sectionId: step.from.sectionId, parentTaskId: step.from.parentTaskId }, step.from.index)
-                } finally {
-                    await reloadNote()
-                }
-            },
-            redo: async () => {
-                try {
-                    for (const step of steps) await moveTaskTo(step.id, { sectionId: step.to.sectionId, parentTaskId: step.to.parentTaskId }, step.to.index)
-                } finally {
-                    await reloadNote()
-                }
-            },
+            items: steps,
+            undoEach: step => moveTaskTo(step.id, { sectionId: step.from.sectionId, parentTaskId: step.from.parentTaskId }, step.from.index),
+            redoEach: step => moveTaskTo(step.id, { sectionId: step.to.sectionId, parentTaskId: step.to.parentTaskId }, step.to.index),
+            reloadUndo: reloadNote,
+            reloadRedo: reloadNote,
+            reloadEvenOnFailure: true,
         }),
 
         /** Move of a task (with its subtasks) to another section or parent task. */
@@ -454,7 +468,7 @@ export function createUndoCommands(deps: UndoDeps) {
     }
 }
 
-export type UndoCommands = ReturnType<typeof createUndoCommands>
+type UndoCommands = ReturnType<typeof createUndoCommands>
 
 type RecorderOf<T> = { [K in keyof T]: T[K] extends (...args: infer A) => UndoCommand ? (...args: A) => void : never }
 
@@ -467,11 +481,14 @@ export type UndoRecorder = RecorderOf<UndoCommands> & {
 }
 
 /** Wraps the builders so that every call records the command. */
-export function createUndoRecorder(commands: UndoCommands, record: (command: UndoCommand) => void, track: UndoRecorder["track"] = write => write, getScope?: () => number | undefined): UndoRecorder {
+export function createUndoRecorder(commands: UndoCommands, record: (command: UndoCommand) => void, track: UndoRecorder["track"] = write => write, getScope?: () => number | undefined, getNoteId?: () => number | null | undefined): UndoRecorder {
     // Every command is stamped with the template draft it is done in (if any), so it is only undone from that draft
     const scoped = (command: UndoCommand) => {
         const scope = getScope?.()
         if (scope !== undefined && command.scopeNoteId === undefined) command.scopeNoteId = scope
+        // ...and with the note that was active (in the focused pane) when it was done, so undo/redo can refresh that note
+        const noteId = getNoteId?.()
+        if (noteId != null && command.noteId === undefined) command.noteId = noteId
         record(command)
     }
     const entries = Object.entries(commands).map(([name, build]) =>

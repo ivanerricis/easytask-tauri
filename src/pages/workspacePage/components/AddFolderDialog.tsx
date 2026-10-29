@@ -1,24 +1,19 @@
 import { FolderPlus } from "lucide-react"
-import { useId, useState } from "react"
+import { useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Button } from "@/components/ui/button"
-import { getErrorMessage } from "@/lib/utils"
-import { MAX_NAME_LENGTH } from "@/lib/names"
 import {
     Dialog,
     DialogContent,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { FormError } from "@/components/form-error"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { FormFooter } from "@/components/form-footer"
+import { NameField } from "@/components/name-field"
+import { useFormSubmit } from "@/components/use-form-submit"
 import { OptionalColorField } from "@/components/optional-color-field"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 type AddFolderDialogProps = {
     open: boolean
@@ -34,39 +29,33 @@ export function AddFolderDialog({ open, onOpenChange, parentId, withColor = fals
     const { t } = useTranslation()
     const [name, setName] = useState("")
     const [color, setColor] = useState<string | undefined>(undefined)
-    const [error, setError] = useState<string | null>(null)
     const { currentWorkspace } = useWorkspace()
     const { createWorkspaceFolder, createSubFolder } = useWorkspaceActions()
     const recorder = useUndoRecorder()
-    const { saving, run } = useSubmitOnce()
-    const nameId = useId()
-    const errorId = useId()
 
-    const handleOpenChange = (next: boolean) => {
-        if (!next) {
-            setName("")
-            setColor(undefined)
-            setError(null)
-        }
-        onOpenChange(next)
+    const reset = () => {
+        setName("")
+        setColor(undefined)
     }
 
-    const handleCreateFolder = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const { busy: saving, error, setError, submit } = useFormSubmit(async () => {
         if (!currentWorkspace?.id) return
         const trimmed = name.trim()
         if (trimmed === "") return
-        await run(async () => {
-            try {
-                const id = parentId === null
-                    ? await createWorkspaceFolder(currentWorkspace.id, trimmed, withColor ? color : undefined)
-                    : await createSubFolder(currentWorkspace.id, parentId, trimmed)
-                if (typeof id === "number") recorder.create("folder", id, trimmed)
-                handleOpenChange(false)
-            } catch (err) {
-                setError(getErrorMessage(err))
-            }
-        })
+        const id = parentId === null
+            ? await createWorkspaceFolder(currentWorkspace.id, trimmed, withColor ? color : undefined)
+            : await createSubFolder(currentWorkspace.id, parentId, trimmed)
+        if (typeof id === "number") recorder.create("folder", id, trimmed)
+        reset()
+        onOpenChange(false)
+    })
+
+    const handleOpenChange = (next: boolean) => {
+        if (!next) {
+            reset()
+            setError(null)
+        }
+        onOpenChange(next)
     }
 
     return (
@@ -75,44 +64,26 @@ export function AddFolderDialog({ open, onOpenChange, parentId, withColor = fals
                 <DialogHeader>
                     <DialogTitle>{t("dialogs.addFolder.title")}</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleCreateFolder}>
+                <form onSubmit={submit}>
                     <div className="grid gap-4">
                         <div className="grid gap-3">
-                            <Label htmlFor={nameId}>{t("common.name")}</Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    id={nameId}
-                                    name="name"
-                                    maxLength={MAX_NAME_LENGTH}
-                                    aria-invalid={error ? true : undefined}
-                                    aria-describedby={error ? errorId : undefined}
-                                    value={name}
-                                    onChange={e => {
-                                        setError(null)
-                                        setName(e.target.value)
-                                    }}
-                                />
+                            <NameField
+                                label={t("common.name")}
+                                value={name}
+                                error={error}
+                                onChange={value => {
+                                    setError(null)
+                                    setName(value)
+                                }}
+                            >
                                 {withColor && <OptionalColorField value={color} onChange={setColor} />}
-                            </div>
-                            <FormError id={errorId}>{error}</FormError>
+                            </NameField>
                         </div>
                     </div>
-                    <DialogFooter className="mt-4">
-                        <Button
-                            variant="outline"
-                            type="button"
-                            onClick={() => handleOpenChange(false)}
-                        >
-                            {t("common.cancel")}
-                        </Button>
-                        <Button
-                            type="submit"
-                            disabled={!name.trim() || saving}
-                        >
-                            <FolderPlus />
-                            {t("dialogs.addFolder.submit")}
-                        </Button>
-                    </DialogFooter>
+                    <FormFooter onCancel={() => handleOpenChange(false)} disabled={!name.trim() || saving}>
+                        <FolderPlus />
+                        {t("dialogs.addFolder.submit")}
+                    </FormFooter>
                 </form>
             </DialogContent>
         </Dialog>

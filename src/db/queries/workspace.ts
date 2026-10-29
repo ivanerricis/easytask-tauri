@@ -1,7 +1,8 @@
 import i18n from "@/i18n"
 import type { Folder, Note, Workspace } from "@/types/types";
 import { getDB } from "../dbManager"
-import { createError, handleDBError } from "@/types/error";
+import { createError } from "@/types/error";
+import { withDBErrors, WORKSPACE_MESSAGES } from "./errors";
 import { getErrorMessage } from "@/lib/utils";
 
 /**
@@ -54,13 +55,8 @@ export async function getDBWorkspaces() {
  * @category Database Queries
  */
 export async function createDBWorkspace(name: string, color?: string | null) {
-    try {
+    return withDBErrors("WORKSPACE", WORKSPACE_MESSAGES, async () => {
         const db = await getDB();
         await db.execute('INSERT INTO workspace (name, color) VALUES (?, ?)', [name, color ?? null])
-    } catch (error: unknown) {
-        handleDBError(error, "WORKSPACE", {
-            UNIQUE: i18n.t("errors.workspace.unique"),
-            CHECK: i18n.t("errors.workspace.check"),
-        })
-    }
+    })
 }

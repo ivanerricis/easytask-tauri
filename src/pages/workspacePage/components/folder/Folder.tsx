@@ -1,15 +1,15 @@
-import { useActiveNoteSelector } from "@/contexts/use-tabs"
 import { ChevronDown } from "lucide-react"
 import React, { useId, useState } from "react"
 import { DropLine } from "../sidebar/DropLine"
 import { useItemSize } from "../sidebar/item-size"
-import { isInsideZone, openOnKeyboardFocus, stopDragActivation, treeRowKey, treeRowKeyDown, useIsTreeTabStop, useTreeDropZone, useTreeRow, wasTreeJustDragged } from "../sidebar/tree-row"
+import { isInsideZone, openOnKeyboardFocus, treeRowKey, treeRowKeyDown, useIsTreeTabStop, useTreeDropZone, useTreeRow } from "../sidebar/tree-row"
 import { SelectionMark } from "../sidebar/SelectionMark"
-import { handleSelectionClick } from "../sidebar/selection"
-import { useIsSelected, useSelectionStore } from "../sidebar/selection-context"
+import { useFolderHoldsActiveNote } from "../sidebar/active-ancestors"
+import { useIsSelected } from "../sidebar/selection-context"
+import { useTreeRowHandlers } from "../sidebar/use-tree-row-handlers"
+import { TreeRowMenu } from "../sidebar/TreeRowMenu"
 import type { DropZone } from "../sidebar/tree-dnd"
 import { ButtonMenuFolder } from "./ButtonMenuFolder"
-import { ItemMenuButton } from "@/components/item-menu"
 import type { Folder } from "@/types/types"
 import { focusRing } from "@/lib/a11y"
 import { TooltipTrigger } from "@/components/ui/tooltip"
@@ -21,35 +21,28 @@ import { useInlineRename } from "@/hooks/use-inline-rename"
 import { InlineNameInput } from "@/components/inline-name-input"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 
-/** Whether the note is anywhere inside the folder (subfolders included). */
-const holdsNote = (folder: Folder, noteId: number): boolean =>
-    folder.notes.some(note => note.id === noteId) || (folder.subfolders ?? []).some(sub => holdsNote(sub, noteId))
-
 type ItemFolderProps = {
     folder: Folder
-    className?: string
     children?: React.ReactNode
     isOpen: boolean
     onToggle: (folderId: number) => void
-    /** Drop feedback while another item is dragged over this row. */
-    dropZone?: DropZone | null
     /** Depth in the tree, starting at 1 (aria-level). */
     level?: number
 }
 
-type FolderRowProps = ItemFolderProps & Omit<ReturnType<typeof useTreeRow>, "ref"> & { dndRef: ReturnType<typeof useTreeRow>["ref"] }
+type FolderRowProps = ItemFolderProps & { dropZone: DropZone | null } & Omit<ReturnType<typeof useTreeRow>, "ref"> & { dndRef: ReturnType<typeof useTreeRow>["ref"] }
 
 /**
  * The drag & drop hooks of dnd-kit re-render the component that calls them every time the dragged item moves over another
  * row, so they live in this thin shell: the row below is memoized and only re-renders when its own props change.
  */
-export const ItemFolder = React.memo(({ dropZone, ...props }: ItemFolderProps) => {
+export const ItemFolder = React.memo((props: ItemFolderProps) => {
     const { ref, attributes, listeners, isDragging } = useTreeRow("folder", props.folder.id)
     const hoverZone = useTreeDropZone("folder", props.folder.id)
-    return <FolderRow {...props} dropZone={dropZone ?? hoverZone} dndRef={ref} attributes={attributes} listeners={listeners} isDragging={isDragging} />
+    return <FolderRow {...props} dropZone={hoverZone} dndRef={ref} attributes={attributes} listeners={listeners} isDragging={isDragging} />
 })
 
-const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = null, level = 1, dndRef, attributes, listeners, isDragging }: FolderRowProps) => {
+const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone, level = 1, dndRef, attributes, listeners, isDragging }: FolderRowProps) => {
     const { t } = useTranslation()
     const [isHovered, setIsHovered] = useState(false)
     // The sidebar tree is updated by the context: no reload
@@ -58,25 +51,16 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
     const size = useItemSize()
     const colorAlpha = useColorAlpha()
     const hasContent = React.Children.count(children) > 0
-    const store = useSelectionStore()
     const selected = useIsSelected("folder", folder.id)
     // A collapsed folder hides the open note: it gets a discreet mark so that the note can be found again
-    // (selector: a tab switch re-renders only the collapsed folders whose answer changes)
-    const holdsActiveNote = useActiveNoteSelector(activeId => !isOpen && activeId !== null && holdsNote(folder, activeId))
+    // (the ancestors of the open note are computed once, see ActiveAncestorsProvider)
+    const holdsActiveNote = useFolderHoldsActiveNote(folder.id, isOpen)
     const holdsNoteId = useId()
     // Roving tabindex: one row of the tree is in the tab order, the others are reached with the arrows
     const tabStop = useIsTreeTabStop("folder", folder.id)
 
     // Ctrl/Cmd+click and Shift+click only select; a plain click toggles the folder and clears the selection
-    const handleClick = (e: React.MouseEvent) => {
-        if (wasTreeJustDragged()) return
-        if (handleSelectionClick(store, treeRowKey("folder", folder.id), e)) return
-        onToggle(folder.id)
-    }
-    const handleActivate = () => {
-        store?.reset(treeRowKey("folder", folder.id))
-        onToggle(folder.id)
-    }
+    const { handleClick, handleActivate } = useTreeRowHandlers("folder", folder.id, () => onToggle(folder.id))
 
     return (
         <Collapsible open={isOpen && hasContent} className="relative flex flex-col w-full">
@@ -99,7 +83,6 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
                             aria-level={level}
                             tabIndex={tabStop ? 0 : -1}
                             aria-expanded={isOpen}
-                            aria-pressed={undefined}
                             onClick={handleClick}
                             aria-selected={selected}
                             data-holds-active={holdsActiveNote || undefined}
@@ -127,9 +110,7 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
                                     <span id={holdsNoteId} className="sr-only">{t("sidebar.holdsOpenNote")}</span>
                                 </>}
                             </div>
-                            <div className={`flex items-center leading-none shrink-0 px-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 ${size.menu}`} {...stopDragActivation}>
-                                <ItemMenuButton name={folder.name} tabIndex={tabStop ? undefined : -1} />
-                            </div>
+                            <TreeRowMenu name={folder.name} tabStop={tabStop} />
                         </div>
                     </TooltipTrigger>
                 </ButtonMenuFolder>

@@ -8,9 +8,8 @@ import { Separator } from "@/components/ui/separator"
 import { useActiveNote } from "@/contexts/use-active-note"
 import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import type { ItemMenuState } from "@/hooks/use-item-menu-state"
-import { useSelectedTaskKeys } from "./task-selection-context"
-import { useTaskSelectionActions } from "./task-selection-actions"
-import { getTaskDestinations } from "./task-selection"
+import { useSelectedTaskKeys, useTaskSelectionActions } from "./use-task-selection"
+import { getTaskDestinations, getTopMostTasks, parseTaskKey } from "./task-selection"
 
 /**
  * Entries of the menu of a selected task while 2 or more tasks are selected: move, color, archive and delete, all applied
@@ -26,9 +25,8 @@ export const TaskSelectionMenuItems = ({ menu }: { menu: ItemMenuState }) => {
     const destinations = useMemo(() => noteDataTree ? getTaskDestinations(noteDataTree) : [], [noteDataTree])
     // A selected task stands for its subtasks: the count is of the tasks the actions really apply to
     const count = useMemo(
-        () => actions?.getTargets().length ?? 0,
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        [actions, selected, noteDataTree],
+        () => noteDataTree ? getTopMostTasks(noteDataTree, [...selected].flatMap(key => parseTaskKey(key) ?? [])).length : 0,
+        [selected, noteDataTree],
     )
     if (!actions) return null
 

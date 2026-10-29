@@ -1,7 +1,7 @@
 import { createContext } from "react"
 import type { TrashedWorkspace, Workspace } from "@/types/types"
 
-export type WorkspaceContextType = {
+type WorkspaceContextType = {
     workspaces: Workspace[]
     currentWorkspace: Workspace | null
     isLoading: boolean

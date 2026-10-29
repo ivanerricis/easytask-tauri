@@ -29,9 +29,8 @@ export async function renameDBItem(itemType: DBItemType, itemID: number, name: s
     assertItemType(itemType)
     if (itemType === "note_template")
         return renameDBTemplate(itemID, name)
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         if (itemType === "section")
             // A section may have no title: a blank one clears it
             await db.execute('UPDATE ' + itemType + ' SET title=? WHERE id=?', [name.trim() || null, itemID])
@@ -59,9 +58,8 @@ export async function renameDBItem(itemType: DBItemType, itemID: number, name: s
  */
 export async function updateDBColor(itemType: DBItemType, itemID: number, color?: string | null) {
     assertItemType(itemType)
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         await db.execute('UPDATE ' + itemType + ' SET color=? WHERE id=?', [color ?? null, itemID])
     } catch (error: unknown) {
         handleDBError(error, itemType.toUpperCase(), {
@@ -82,9 +80,8 @@ const SOFT_DELETE = "SET deleted_at = datetime('now','localtime')"
  */
 export async function deleteDBItem(itemType: DBItemType, itemID: number) {
     assertItemType(itemType)
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         // The default section of a group is hidden and goes away only with its group
         // The working copy of a template (a note with a templateID) is deleted with the editor, never sent to the trash
         const guard = itemType === "section" ? " AND is_default = 0" : itemType === "note" ? " AND templateID IS NULL" : ""

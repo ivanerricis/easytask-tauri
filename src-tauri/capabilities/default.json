@@ -37,7 +37,7 @@
           "url": "https://github.com/ivanerricis/easytask-tauri"
         },
         {
-          "url": "https://github.com/ivanerricis/easytask-tauri/releases*"
+          "url": "https://github.com/ivanerricis/easytask-tauri/*"
         },
         {
           "url": "https://ivanerricis.github.io/easytask-tauri/*"
@@ -50,8 +50,8 @@
     "sql:allow-close",
     "store:allow-load",
     "store:allow-get",
+    "store:allow-entries",
     "store:allow-set",
-    "store:allow-has",
     "store:allow-delete",
     "store:allow-save",
     "clipboard-manager:allow-read-text",

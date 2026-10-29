@@ -26,10 +26,8 @@ export const common: Translation["common"] = {
     workspaceRoot: "Workspace root",
     name: "Name",
     addColor: "Add color",
-    closePalette: "Close the palette",
     creationDate: "Created on {{date}} at {{time}}",
     editDate: "Modified on {{date}} at {{time}}",
-    add: "Add",
     colors: {
         c1: "Red",
         c2: "Green",
@@ -75,4 +73,5 @@ export const dnd: Translation["dnd"] = {
     endNone: "{{name}} was dropped outside a valid target.",
     cancel: "Moving {{name}} cancelled.",
     audioPlayer: "Audio player",
+    tabMovedToPane: "{{name}} moved to: {{pane}}.",
 }

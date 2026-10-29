@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react"
+import { useCallback, useContext, useEffect, useMemo, useState } from "react"
 import type { AudioFile } from "@/types/types"
 import { AudioContext } from "@/contexts/audio-context-object"
 import { getDBGroupAudioFiles } from "@/db/queries/audio"
@@ -33,21 +33,21 @@ export function RightPanelProvider({ children }: { children: React.ReactNode }) 
     }
 
     const open = compact ? overlayOpen : sidebarRightOpen
-    const setOpen = (value: boolean) => {
+    const setOpen = useCallback((value: boolean) => {
         if (compact) setOverlayOpen(value)
         else setSideBarRightOpen(value)
-    }
-    const showTaskDetails = (taskId: number) => {
+    }, [compact, setSideBarRightOpen])
+    const showTaskDetails = useCallback((taskId: number) => {
         selectTask(taskId)
         setRightPanelTab("details")
         setOpen(true)
-    }
+    }, [selectTask, setRightPanelTab, setOpen])
 
-    const showAudioInfo = (file: AudioFile) => {
+    const showAudioInfo = useCallback((file: AudioFile) => {
         setAudioInfoFile(file)
         setRightPanelTab("details")
         setOpen(true)
-    }
+    }, [setRightPanelTab, setOpen])
 
     // The chosen file that was deleted or trashed is dropped (the loaded track is shown again); a renamed or
     // relinked one is refreshed. Runs when the audio files may have changed.
@@ -70,8 +70,13 @@ export function RightPanelProvider({ children }: { children: React.ReactNode }) 
         return () => { stale = true }
     }, [chosenId, chosenGroupId, audioVersion])
 
+    const value = useMemo(
+        () => ({ open, setOpen, tab: rightPanelTab, setTab: setRightPanelTab, showTaskDetails, audioInfoFile, showAudioInfo }),
+        [open, setOpen, rightPanelTab, setRightPanelTab, showTaskDetails, audioInfoFile, showAudioInfo],
+    )
+
     return (
-        <RightPanelContext.Provider value={{ open, setOpen, tab: rightPanelTab, setTab: setRightPanelTab, showTaskDetails, audioInfoFile, showAudioInfo }}>
+        <RightPanelContext.Provider value={value}>
             {children}
         </RightPanelContext.Provider>
     )

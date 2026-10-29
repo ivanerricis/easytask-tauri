@@ -10,17 +10,22 @@ import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/component
 
 type ItemMenuContextValue = {
     state: ItemMenuState
-    items: React.ReactNode
+    items: ItemMenuItems
     contentClassName?: string
     onCloseAutoFocus?: (event: Event) => void
 }
+
+/** The entries, or a function building them (called only while a menu is open, so closed menus build no JSX). */
+export type ItemMenuItems = React.ReactNode | (() => React.ReactNode)
+
+const renderItems = (items: ItemMenuItems) => typeof items === "function" ? items() : items
 
 const ItemMenuContext = React.createContext<ItemMenuContextValue | null>(null)
 
 type ItemMenuProps = {
     state: ItemMenuState
-    /** Menu entries, written once with the Menu* primitives: shown by both the "…" button and the right click. */
-    items: React.ReactNode
+    /** Menu entries, written once with the Menu* primitives: shown by both the "…" button and the right click. A function is called only while the menu is open. */
+    items: ItemMenuItems
     /** Dialogs opened by the entries; rendered outside the row so they never receive the row's events. */
     dialogs?: React.ReactNode
     contentClassName?: string
@@ -61,7 +66,7 @@ export const ItemMenu = ({ state, items, dialogs, contentClassName, onCloseAutoF
                     className={contentClassName}
                     onCloseAutoFocus={onCloseAutoFocus}
                 >
-                    <MenuKindProvider value="context">{items}</MenuKindProvider>
+                    <MenuKindProvider value="context">{renderItems(items)}</MenuKindProvider>
                 </ContextMenuContent>
             </ContextMenu>
             {dialogs}
@@ -99,7 +104,7 @@ export const ItemMenuButton = ({ className, iconClassName = "size-4", label, nam
                 className={contentClassName}
                 onCloseAutoFocus={onCloseAutoFocus}
             >
-                <MenuKindProvider value="dropdown">{items}</MenuKindProvider>
+                <MenuKindProvider value="dropdown">{renderItems(items)}</MenuKindProvider>
             </DropdownMenuContent>
         </DropdownMenu>
     )

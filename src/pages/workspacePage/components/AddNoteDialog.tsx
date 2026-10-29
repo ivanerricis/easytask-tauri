@@ -1,26 +1,23 @@
 import { FilePlus } from "lucide-react"
 import { useId, useState } from "react"
 import { useTranslation } from "react-i18next"
-import { Button } from "@/components/ui/button"
-import { getErrorMessage } from "@/lib/utils"
-import { MAX_NAME_LENGTH } from "@/lib/names"
 import {
     Dialog,
     DialogContent,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
 import { FormError } from "@/components/form-error"
-import { Input } from "@/components/ui/input"
+import { FormFooter } from "@/components/form-footer"
 import { Label } from "@/components/ui/label"
+import { NameField } from "@/components/name-field"
+import { useFormSubmit } from "@/components/use-form-submit"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { OptionalColorField } from "@/components/optional-color-field"
 import { useTemplates } from "@/hooks/use-templates"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import { useSubmitOnce } from "@/hooks/use-submit-once"
 
 const NO_TEMPLATE = "none"
 
@@ -38,12 +35,10 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
     const { t } = useTranslation()
     const [name, setName] = useState("")
     const [color, setColor] = useState<string | undefined>(undefined)
-    const [error, setError] = useState<string | null>(null)
     const [templateId, setTemplateId] = useState("")
     const { currentWorkspace } = useWorkspace()
     const { createWorkspaceNote, createNoteInFolder, createNoteFromTemplate } = useWorkspaceActions()
     const recorder = useUndoRecorder()
-    const { saving, run } = useSubmitOnce()
     const nameId = useId()
     const errorId = useId()
     const templateFieldId = useId()
@@ -51,35 +46,33 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
     // A stale selection (template deleted meanwhile) behaves as "no template"
     const template = templates.find(tpl => String(tpl.id) === templateId)
 
-    const handleOpenChange = (next: boolean) => {
-        if (!next) {
-            setName("")
-            setColor(undefined)
-            setError(null)
-            setTemplateId("")
-        }
-        onOpenChange(next)
+    const reset = () => {
+        setName("")
+        setColor(undefined)
+        setTemplateId("")
     }
 
-    const handleCreateNote = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const { busy: saving, error, setError, submit } = useFormSubmit(async () => {
         if (!currentWorkspace?.id) return
         const trimmed = name.trim()
         if (trimmed === "") return
-        await run(async () => {
-            try {
-                // Both are added to the sidebar tree by the context
-                const id = template
-                    ? await createNoteFromTemplate(template.id, currentWorkspace.id, parentId, trimmed, template.color)
-                    : parentId === null
-                        ? await createWorkspaceNote(currentWorkspace.id, trimmed, withColor ? color : undefined)
-                        : await createNoteInFolder(currentWorkspace.id, parentId, trimmed)
-                if (typeof id === "number") recorder.create("note", id, trimmed)
-                handleOpenChange(false)
-            } catch (err) {
-                setError(getErrorMessage(err))
-            }
-        })
+        // Both are added to the sidebar tree by the context
+        const id = template
+            ? await createNoteFromTemplate(template.id, currentWorkspace.id, parentId, trimmed, template.color)
+            : parentId === null
+                ? await createWorkspaceNote(currentWorkspace.id, trimmed, withColor ? color : undefined)
+                : await createNoteInFolder(currentWorkspace.id, parentId, trimmed)
+        if (typeof id === "number") recorder.create("note", id, trimmed)
+        reset()
+        onOpenChange(false)
+    })
+
+    const handleOpenChange = (next: boolean) => {
+        if (!next) {
+            reset()
+            setError(null)
+        }
+        onOpenChange(next)
     }
 
     return (
@@ -88,25 +81,23 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
                 <DialogHeader>
                     <DialogTitle>{t("dialogs.addNote.title")}</DialogTitle>
                 </DialogHeader>
-                <form onSubmit={handleCreateNote}>
+                <form onSubmit={submit}>
                     <div className="grid gap-4">
                         <div className="grid gap-3">
-                            <Label htmlFor={nameId}>{t("common.name")}</Label>
-                            <div className="flex gap-2">
-                                <Input
-                                    id={nameId}
-                                    name="name"
-                                    maxLength={MAX_NAME_LENGTH}
-                                    aria-invalid={error ? true : undefined}
-                                    aria-describedby={error ? errorId : undefined}
-                                    value={name}
-                                    onChange={e => {
-                                        setError(null)
-                                        setName(e.target.value)
-                                    }}
-                                />
+                            <NameField
+                                id={nameId}
+                                label={t("common.name")}
+                                value={name}
+                                error={error}
+                                errorId={errorId}
+                                showError={false}
+                                onChange={value => {
+                                    setError(null)
+                                    setName(value)
+                                }}
+                            >
                                 {withColor && !template && <OptionalColorField value={color} onChange={setColor} />}
-                            </div>
+                            </NameField>
                         </div>
                         {templates.length > 0 && (
                             <div className="grid gap-3">
@@ -125,19 +116,10 @@ export function AddNoteDialog({ open, onOpenChange, parentId, withColor = false 
                         )}
                         <FormError id={errorId}>{error}</FormError>
                     </div>
-                    <DialogFooter className="mt-4">
-                        <Button
-                            variant="outline"
-                            type="button"
-                            onClick={() => handleOpenChange(false)}
-                        >
-                            {t("common.cancel")}
-                        </Button>
-                        <Button type="submit" disabled={!name.trim() || saving}>
-                            <FilePlus />
-                            {t("dialogs.addNote.submit")}
-                        </Button>
-                    </DialogFooter>
+                    <FormFooter onCancel={() => handleOpenChange(false)} disabled={!name.trim() || saving}>
+                        <FilePlus />
+                        {t("dialogs.addNote.submit")}
+                    </FormFooter>
                 </form>
             </DialogContent>
         </Dialog>

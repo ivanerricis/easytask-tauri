@@ -8,6 +8,7 @@ import { addCollapsedColumns } from "./collapsed";
 import { addGroupArchivedAt, addGroupColorColumn, addGroupWidthColumn, createSectionGroupIndexes, createSectionGroupTable } from "./section_group";
 import { createTaskIndexes, createTaskTable, addTaskArchivedAt, createTaskTrigger, dropTaskArchivedColumn } from "./task";
 import { createWorkspaceEditTriggers } from "./workspace_edit";
+import { trashIndexSchema } from "./trash_index";
 import { createWorkspaceIndexes, createWorkspaceTable, createWorkspaceTrigger } from "./workspace";
 
 /**
@@ -90,11 +91,16 @@ export const sectionOrderSchema: string[] = [...addSectionSharedOrder]
 export const collapsedSchema: string[] = [...addCollapsedColumns]
 
 /**
- * Migration v11: the working copy (draft) of a template while it is edited, a note with no workspace (
-ote.templateID).
+ * Migration v11: the working copy (draft) of a template while it is edited, a note with no workspace (`note.templateID`).
  * @category Database Schema
  */
 export const templateDraftSchema: string[] = [...addNoteTemplateDraft]
+
+/**
+ * Migration v12: partial indexes on the trashed and archived rows (trash/archive views, auto-empty of the trash).
+ * @category Database Schema
+ */
+export const trashIndexesSchema: string[] = [...trashIndexSchema]
 
 /**
  * The whole schema at the latest version (initial schema plus every additive migration), as statements.
@@ -102,5 +108,5 @@ export const templateDraftSchema: string[] = [...addNoteTemplateDraft]
  * @category Database Schema
  */
 export const latestSchema: string[] = [
-    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema, ...groupStructureSchema, ...sectionOrderSchema, ...collapsedSchema, ...templateDraftSchema,
+    ...initialSchema, addGroupColorColumn, ...createWorkspaceEditTriggers, ...archiveSchema, ...automationSchema, ...taskArchiveSchema, ...sectionTitleSchema, ...groupStructureSchema, ...sectionOrderSchema, ...collapsedSchema, ...templateDraftSchema, ...trashIndexesSchema,
 ]

@@ -12,7 +12,7 @@ import { UndoContext, type UndoContextType } from "@/contexts/undo/context"
 import { DetailsPanel } from "./DetailsPanel"
 import { makeDefaultSection, makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const updateTaskPriority = vi.fn()
 const updateTaskDescription = vi.fn()
 const updateItemColor = vi.fn()

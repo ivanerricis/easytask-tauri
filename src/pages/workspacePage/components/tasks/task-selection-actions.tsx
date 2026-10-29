@@ -1,5 +1,4 @@
-/* eslint-disable react-refresh/only-export-components */
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from "react"
+import { useCallback, useMemo, useRef, useState, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { Trash2 } from "lucide-react"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
@@ -15,26 +14,8 @@ import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import { toastTrashed } from "@/lib/toast-trashed"
 import { getErrorMessage } from "@/lib/utils"
 import { END_INDEX } from "../note-dnd"
-import { useTaskSelectionStore } from "./task-selection-context"
+import { TaskSelectionActionsContext, useTaskSelectionStore, type TaskSelectionActions } from "./use-task-selection"
 import { getSelectedTasks, getTopMostTasks, parseTaskKey } from "./task-selection"
-
-export type TaskSelectionActions = {
-    /** The tasks the actions apply to: the selected ones without those under another selected task, in tree order. */
-    getTargets: () => ManyItemRef[]
-    /** Opens the confirmation to move the selection to the trash. */
-    requestDelete: () => void
-    /** Archives the selection (no confirmation) in one undo step, then clears the selection. */
-    archiveSelection: () => Promise<void>
-    /** Sets (or, with null, removes) the color of every selected task, subtasks included; one undo step. */
-    applyColor: (color: string | null) => Promise<void>
-    /** Moves the selection to the end of a section, in the order of the tasks; one undo step. */
-    moveTo: (sectionId: number) => Promise<void>
-}
-
-const TaskSelectionActionsContext = createContext<TaskSelectionActions | null>(null)
-
-/** The actions on the task multi-selection (null outside a TaskSelectionActionsProvider). */
-export const useTaskSelectionActions = () => useContext(TaskSelectionActionsContext)
 
 /**
  * Implements what the menu of a multi-selection of tasks does (delete, archive, color, move) and renders the delete

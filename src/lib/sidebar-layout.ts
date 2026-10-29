@@ -1,4 +1,7 @@
 ﻿import { useEffect, useState } from "react"
+import { MIN_PANE_WIDTH } from "@/lib/split-layout"
+import { clampNumber } from "@/lib/number"
+import { resizeKeyDelta } from "@/lib/resize-keys"
 
 /** Sidebar widths in pixels. */
 export const SIDEBAR_DEFAULT_WIDTH = 260
@@ -13,6 +16,9 @@ export const COMPACT_BREAKPOINT = 900
 export const CHROME_HEIGHT_CLASS = "min-h-[42px]"
 /** Room always left to the note next to the sidebar (rail included). */
 export const MIN_CONTENT_WIDTH = 420
+/** Room always left to the centre with the given number of panes: each pane of a split keeps its own minimum. */
+export const minContentWidth = (panes: number = 1): number => Math.max(MIN_CONTENT_WIDTH, Math.max(1, Math.floor(panes)) * MIN_PANE_WIDTH)
+
 /** Width of the little sidebar (rail) that stays visible next to each panel. */
 export const SIDEBAR_RAIL_WIDTH = 45
 
@@ -21,8 +27,7 @@ export const maxSidebarWidth = (windowWidth: number): number =>
     Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, windowWidth - MIN_CONTENT_WIDTH))
 
 export const clampSidebarWidth = (width: number, windowWidth: number = Infinity): number => {
-    if (!Number.isFinite(width)) return SIDEBAR_DEFAULT_WIDTH
-    return Math.round(Math.min(Math.max(width, SIDEBAR_MIN_WIDTH), maxSidebarWidth(windowWidth)))
+    return clampNumber(width, SIDEBAR_MIN_WIDTH, maxSidebarWidth(windowWidth), SIDEBAR_DEFAULT_WIDTH, 1)
 }
 
 /**
@@ -30,14 +35,9 @@ export const clampSidebarWidth = (width: number, windowWidth: number = Infinity)
  * `direction` is 1 when the sidebar grows to the right (left sidebar), -1 for a right sidebar.
  */
 export const widthForKey = (key: string, width: number, windowWidth: number, shift: boolean, direction: 1 | -1 = 1): number | null => {
-    const step = shift ? SIDEBAR_KEY_STEP_LARGE : SIDEBAR_KEY_STEP
-    switch (key) {
-        case "ArrowRight": return clampSidebarWidth(width + step * direction, windowWidth)
-        case "ArrowLeft": return clampSidebarWidth(width - step * direction, windowWidth)
-        case "Home": return SIDEBAR_MIN_WIDTH
-        case "End": return maxSidebarWidth(windowWidth)
-        default: return null
-    }
+    const delta = resizeKeyDelta(key, shift, SIDEBAR_KEY_STEP, SIDEBAR_KEY_STEP_LARGE)
+    if (delta === null) return null
+    return delta === "min" ? SIDEBAR_MIN_WIDTH : delta === "max" ? maxSidebarWidth(windowWidth) : clampSidebarWidth(width + delta * direction, windowWidth)
 }
 
 type SidebarState = { open: boolean, width: number }
@@ -50,17 +50,18 @@ export const noteWidthFor = (windowWidth: number, left: SidebarState, right: Sid
 
 /**
  * Which open sidebars must close for the note to keep at least MIN_CONTENT_WIDTH: the right one first, then the left one,
- * until the note fits (or nothing is left open).
+ * until the note fits (or nothing is left open). With `panes` panes side by side (default 1) the minimum is that of the panes together.
  */
-export const sidebarsToClose = (windowWidth: number, left: SidebarState, right: SidebarState): { left: boolean, right: boolean } => {
+export const sidebarsToClose = (windowWidth: number, left: SidebarState, right: SidebarState, panes: number = 1): { left: boolean, right: boolean } => {
     const l = left
     let r = right
     const closed = { left: false, right: false }
-    if (noteWidthFor(windowWidth, l, r) < MIN_CONTENT_WIDTH && r.open) {
+    const minimum = minContentWidth(panes)
+    if (noteWidthFor(windowWidth, l, r) < minimum && r.open) {
         r = { ...r, open: false }
         closed.right = true
     }
-    if (noteWidthFor(windowWidth, l, r) < MIN_CONTENT_WIDTH && l.open) {
+    if (noteWidthFor(windowWidth, l, r) < minimum && l.open) {
         closed.left = true
     }
     return closed

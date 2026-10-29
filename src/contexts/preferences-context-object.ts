@@ -1,5 +1,6 @@
 import { createContext } from "react"
 import type { PrefValue, UiPrefName } from "@/lib/store/preferences"
+import type { ExternalStore } from "@/lib/external-store"
 import type { AudioPlayerPosition } from "@/types/types"
 
 /** The name of the setter of a preference (setShowProgressBar for showProgressBar; the sidebar ones keep their capital B). */
@@ -25,3 +26,6 @@ export type PreferencesContextType = {
 }
 
 export const PreferencesContext = createContext<PreferencesContextType | undefined>(undefined)
+
+/** The store behind the selector hook `usePreference` (null outside of a PreferencesProvider). */
+export const PreferencesStoreContext = createContext<ExternalStore<PreferencesContextType> | null>(null)

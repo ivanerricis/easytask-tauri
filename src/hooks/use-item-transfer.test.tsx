@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react"
 import { toast } from "sonner"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { reportError } from "@/lib/report-error"
 
 const exportItemToFile = vi.fn()
@@ -9,14 +10,12 @@ const importItemsFromFile = vi.fn()
 const getWorkspaceData = vi.fn()
 const create = vi.hoisted(() => vi.fn())
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-vi.mock("@/lib/report-error", () => ({ reportError: vi.fn(), resetReportErrorDedupe: vi.fn() }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
+vi.mock("@/lib/report-error", async () => (await import("@/test/mocks")).reportErrorMock())
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 7 }, getWorkspaces: vi.fn() }) }))
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ getWorkspaceData }) }))
-vi.mock("@/contexts/undo/use-undo", () => {
-    const recorder = { create }
-    return { useUndoRecorder: () => recorder }
-})
+const recorder = makeUndoRecorderMock({ create })
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
 vi.mock("@/lib/workspace-transfer", () => ({
     exportWorkspaceToFile: vi.fn(),
     importWorkspaceFromFile: vi.fn(),

@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogRenameItem } from "@/components/dialogs/dialog-rename"
 import { DialogNoteFromTemplate } from "@/components/dialogs/dialog-note-from-template"
+import { OpenInPaneItem } from "../OpenInPaneItem"
 import { ItemMenu } from "@/components/item-menu"
 import { MenuGroup } from "@/components/menu-kind"
 import { Separator } from "@/components/ui/separator"
@@ -53,6 +54,7 @@ export const DraftTabMenu = ({ draft, children }: DraftTabMenuProps) => {
 
     const items = (
         <MenuGroup className="flex flex-col gap-1">
+            <OpenInPaneItem noteId={draft.noteId} onDone={menu.close} />
             <ButtonInPopover
                 text={t("templateEditor.tabMenu.rename")}
                 type="rename"

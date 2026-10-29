@@ -1,5 +1,5 @@
 import i18n from "@/i18n"
-import { isDefaultSection, taskSections } from "@/lib/group-sections"
+import { groupsByPosition, isDefaultSection, taskSections } from "@/lib/group-sections"
 import type { NoteDataTree, Section, Task } from "@/types/types"
 import { getGroupLabel } from "../groups/group-label"
 import { getSectionLabel } from "../section/section-label"
@@ -14,7 +14,7 @@ export function parseTaskKey(key: string): number | null {
     return match ? Number(match[1]) : null
 }
 
-export type FlattenOptions = {
+type FlattenOptions = {
     hideCompleted: boolean
     /** The completed tasks follow the open ones of their list, as they are drawn ("completed tasks last"). */
     completedLast?: boolean
@@ -23,8 +23,6 @@ export type FlattenOptions = {
     /** Whether the subtasks of a task are shown (default: always). */
     isTaskOpen?: (taskId: number) => boolean
 }
-
-const sortedGroups = (tree: NoteDataTree) => [...tree.groups].sort((a, b) => a.position - b.position)
 
 /**
  * The tasks of the note in the order they are drawn: groups by position (closed groups leave out their tasks), in each
@@ -41,7 +39,7 @@ export function flattenVisibleTasks(tree: NoteDataTree, { hideCompleted, complet
             if (!isTaskOpen || isTaskOpen(task.id)) visit(task.subtasks ?? [])
         }
     }
-    for (const group of sortedGroups(tree)) {
+    for (const group of groupsByPosition(tree.groups)) {
         if (!isGroupOpen(group.id)) continue
         for (const section of taskSections(group)) {
             // The default section has no header to close: it is open as long as the group is
@@ -64,7 +62,7 @@ function listAllTasks(tree: NoteDataTree): TaskInfo[] {
             visit(task.subtasks ?? [], sectionId, task.id)
         }
     }
-    for (const group of sortedGroups(tree))
+    for (const group of groupsByPosition(tree.groups))
         for (const section of taskSections(group)) visit(section.tasks ?? [], section.id, null)
     return result
 }
@@ -93,11 +91,9 @@ export function getSelectedTasks(tree: NoteDataTree, ids: Iterable<number>): Tas
     return listAllTasks(tree).filter(({ task }) => wanted.has(task.id)).map(({ task }) => task)
 }
 
-export type TaskDestination = {
+type TaskDestination = {
     key: string
     sectionId: number
-    /** The area directly in the group (no section), instead of a section. */
-    direct: boolean
     label: string
     /** Label of the group the destination belongs to. */
     groupLabel: string
@@ -110,12 +106,11 @@ export type TaskDestination = {
  */
 export function getTaskDestinations(tree: NoteDataTree): TaskDestination[] {
     const result: TaskDestination[] = []
-    sortedGroups(tree).forEach((group, index) => {
+    groupsByPosition(tree.groups).forEach((group, index) => {
         const groupLabel = getGroupLabel(group, index)
         const add = (section: Section, direct: boolean) => result.push({
             key: `section-${section.id}`,
             sectionId: section.id,
-            direct,
             label: direct ? i18n.t("tasks.selection.directTasks") : getSectionLabel(section),
             groupLabel,
         })

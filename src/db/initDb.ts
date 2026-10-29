@@ -1,6 +1,6 @@
 import type Database from "@tauri-apps/plugin-sql";
 import i18n from "@/i18n";
-import { APPLICATION_ID, archiveSchema, collapsedSchema, groupStructureSchema, initialSchema, sectionOrderSchema, sectionTitleSchema, taskArchiveSchema, templateDraftSchema } from "./schema/initial";
+import { APPLICATION_ID, archiveSchema, collapsedSchema, groupStructureSchema, initialSchema, sectionOrderSchema, sectionTitleSchema, taskArchiveSchema, templateDraftSchema, trashIndexesSchema } from "./schema/initial";
 import { addGroupColorColumn } from "./schema/section_group";
 import { createWorkspaceEditTriggers } from "./schema/workspace_edit";
 import { automationSchema } from "./schema/automation";
@@ -34,6 +34,8 @@ const migrations: string[][] = [
     collapsedSchema,
     // v11: working copy (draft) of a template while it is edited: a note with no workspace and a templateID
     templateDraftSchema,
+    // v12: partial indexes on the trashed/archived rows
+    trashIndexesSchema,
 ];
 
 /**
@@ -56,7 +58,7 @@ export const legacyDbMessage = () => i18n.t("errors.db.legacy");
  */
 export const newerDbMessage = () => i18n.t("errors.db.newer");
 
-export type InitDbOptions = {
+type InitDbOptions = {
     /**
      * Called once, before the first migration is applied, only when an existing database (user_version > 0) has
      * migrations to run: the place to take a safety copy. A rejection aborts the migration.

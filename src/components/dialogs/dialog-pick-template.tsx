@@ -1,12 +1,11 @@
 import { useTranslation } from "react-i18next"
-import { useEffect, useRef, useState } from "react"
 import { LayoutTemplate } from "lucide-react"
 import { CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
-import { getErrorMessage } from "@/lib/utils"
 import { countTemplateContent, type NoteTemplate } from "@/types/template"
 import { FormError } from "@/components/form-error"
+import { useOpenList } from "./use-open-list"
 
 type DialogPickTemplateProps = {
     isOpen: boolean
@@ -24,21 +23,11 @@ export const DialogPickTemplate = ({ isOpen, onOpenChange, onPick }: DialogPickT
     const { currentWorkspace } = useWorkspace()
     const { getTemplates } = useWorkspaceActions()
     const workspaceID = currentWorkspace?.id
-    const [templates, setTemplates] = useState<NoteTemplate[]>([])
-    const [loaded, setLoaded] = useState(false)
-    const [error, setError] = useState<string | null>(null)
-    const getTemplatesRef = useRef(getTemplates)
-    useEffect(() => { getTemplatesRef.current = getTemplates })
-
-    useEffect(() => {
-        if (!isOpen || workspaceID === undefined) return
-        let cancelled = false
-        getTemplatesRef.current(workspaceID)
-            .then(list => { if (!cancelled) setTemplates(list) })
-            .catch(err => { if (!cancelled) setError(getErrorMessage(err)) })
-            .finally(() => { if (!cancelled) setLoaded(true) })
-        return () => { cancelled = true; setLoaded(false); setError(null) }
-    }, [isOpen, workspaceID])
+    const { items: templates, isLoading, loadError: error } = useOpenList<NoteTemplate>({
+        isOpen,
+        resetKey: workspaceID,
+        load: async () => workspaceID === undefined ? [] : getTemplates(workspaceID),
+    })
 
     return (
         <CommandDialog
@@ -51,8 +40,8 @@ export const DialogPickTemplate = ({ isOpen, onOpenChange, onPick }: DialogPickT
             <CommandInput placeholder={t("dialogs.pickTemplate.placeholder")} />
             <CommandList>
                 {error && <FormError className="px-3 py-2 text-xs">{error}</FormError>}
-                {!loaded && <p role="status" aria-busy="true" className="px-3 py-6 text-center text-sm text-muted-foreground">{t("common.loading")}</p>}
-                {loaded && !error && <CommandEmpty>{templates.length === 0 ? t("dialogs.pickTemplate.none") : t("common.noResults")}</CommandEmpty>}
+                {isLoading && <p role="status" aria-busy="true" className="px-3 py-6 text-center text-sm text-muted-foreground">{t("common.loading")}</p>}
+                {!isLoading && !error && <CommandEmpty>{templates.length === 0 ? t("dialogs.pickTemplate.none") : t("common.noResults")}</CommandEmpty>}
                 <CommandGroup heading={t("dialogs.pickTemplate.heading")}>
                     {templates.map(template => {
                         const counts = countTemplateContent(template.content)

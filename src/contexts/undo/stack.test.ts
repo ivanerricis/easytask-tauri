@@ -29,6 +29,22 @@ describe("createUndoHistory", () => {
         expect(await history.undo()).toEqual({ status: "empty" })
     })
 
+    it("awaits onApplied after each applied command, with its direction, and ignores its errors; a failed command does not call it", async () => {
+        const history = createUndoHistory()
+        const onApplied = vi.fn().mockRejectedValue(new Error("reload"))
+        history.setOnApplied(onApplied)
+        const ok = makeCommand("ok", { noteId: 4 })
+        history.record(ok)
+        expect(await history.undo()).toEqual({ status: "done", label: "ok" })
+        expect(await history.redo()).toEqual({ status: "done", label: "ok" })
+        expect(onApplied.mock.calls).toEqual([[ok, "undo"], [ok, "redo"]])
+
+        const bad = makeCommand("bad", { undo: vi.fn().mockRejectedValue(new Error("x")) })
+        history.record(bad)
+        expect((await history.undo()).status).toBe("failed")
+        expect(onApplied).toHaveBeenCalledTimes(2)
+    })
+
     it("starts empty and answers 'empty' to undo and redo", async () => {
         const history = createUndoHistory()
         expect(history.getSnapshot()).toEqual({ canUndo: false, canRedo: false, undoLabel: null, redoLabel: null })

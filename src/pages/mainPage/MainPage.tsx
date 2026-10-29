@@ -17,20 +17,60 @@ import { useStartupRestore } from "./startup-restore"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import type { WorkspaceSortBy, WorkspaceSortDir } from "@/lib/store/preferences"
 
+const WorkspaceSortMenu = () => {
+    const { t } = useTranslation()
+    const { workspaceSort, setWorkspaceSort } = usePreferences()
+    const isNameSort = workspaceSort.by === "name"
+    return (
+        <DropdownMenu>
+            <TooltipCustom text={t("home.sort.label")}>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="icon" aria-label={t("home.sort.label")}>
+                        <ArrowUpDown />
+                    </Button>
+                </DropdownMenuTrigger>
+            </TooltipCustom>
+            <DropdownMenuContent align="end">
+                <DropdownMenuLabel>{t("home.sort.by")}</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                    value={workspaceSort.by}
+                    onValueChange={(by) => setWorkspaceSort({ ...workspaceSort, by: by as WorkspaceSortBy })}>
+                    <DropdownMenuRadioItem value="edited">{t("home.sort.edited")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="created">{t("home.sort.created")}</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="name">{t("home.sort.name")}</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel>{t("home.sort.direction")}</DropdownMenuLabel>
+                <DropdownMenuRadioGroup
+                    value={workspaceSort.dir}
+                    onValueChange={(dir) => setWorkspaceSort({ ...workspaceSort, dir: dir as WorkspaceSortDir })}>
+                    <DropdownMenuRadioItem value="asc">
+                        {t(isNameSort ? "home.sort.nameAsc" : "home.sort.dateAsc")}
+                    </DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="desc">
+                        {t(isNameSort ? "home.sort.nameDesc" : "home.sort.dateDesc")}
+                    </DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+        </DropdownMenu>
+    )
+}
+
 const MainPage = () => {
     const { t } = useTranslation()
     const { workspaces, getWorkspaces, error } = useWorkspace()
     const [loaded, setLoaded] = useState(false)
-    const { workspaceView, setWorkspaceView, workspaceSort, setWorkspaceSort, reopenLastWorkspace } = usePreferences()
+    const { workspaceView, setWorkspaceView, workspaceSort, reopenLastWorkspace } = usePreferences()
     const { importWorkspace, isBusy: isImporting } = useWorkspaceTransfer()
     const isList = workspaceView === "list"
-    const isNameSort = workspaceSort.by === "name"
     const { pending: restorePending } = useStartupRestore(loaded)
 
     useEffect(() => {
         getWorkspaces().catch(error => reportError(error)).finally(() => setLoaded(true))
     }, [getWorkspaces])
 
+    // reopenLastWorkspace comes from the preferences context here, while startup-restore.ts reads the store directly (it runs
+    // before the context may be ready); both read the same persisted preference.
     // When the last workspace is going to be reopened the home page is not shown at all (it would only flash): a loading
     // page until the check is done. Otherwise the page is shown at once, with the workspaces drawn as skeletons until
     // they are loaded. Only the first load counts: later operations (e.g. restoring a workspace from the trash) must not
@@ -83,37 +123,7 @@ const MainPage = () => {
                                     {isList ? <LayoutGrid /> : <LayoutList />}
                                 </Button>
                             </TooltipCustom>
-                            <DropdownMenu>
-                                <TooltipCustom text={t("home.sort.label")}>
-                                    <DropdownMenuTrigger asChild>
-                                        <Button variant="outline" size="icon" aria-label={t("home.sort.label")}>
-                                            <ArrowUpDown />
-                                        </Button>
-                                    </DropdownMenuTrigger>
-                                </TooltipCustom>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>{t("home.sort.by")}</DropdownMenuLabel>
-                                    <DropdownMenuRadioGroup
-                                        value={workspaceSort.by}
-                                        onValueChange={(by) => setWorkspaceSort({ ...workspaceSort, by: by as WorkspaceSortBy })}>
-                                        <DropdownMenuRadioItem value="edited">{t("home.sort.edited")}</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="created">{t("home.sort.created")}</DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="name">{t("home.sort.name")}</DropdownMenuRadioItem>
-                                    </DropdownMenuRadioGroup>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuLabel>{t("home.sort.direction")}</DropdownMenuLabel>
-                                    <DropdownMenuRadioGroup
-                                        value={workspaceSort.dir}
-                                        onValueChange={(dir) => setWorkspaceSort({ ...workspaceSort, dir: dir as WorkspaceSortDir })}>
-                                        <DropdownMenuRadioItem value="asc">
-                                            {t(isNameSort ? "home.sort.nameAsc" : "home.sort.dateAsc")}
-                                        </DropdownMenuRadioItem>
-                                        <DropdownMenuRadioItem value="desc">
-                                            {t(isNameSort ? "home.sort.nameDesc" : "home.sort.dateDesc")}
-                                        </DropdownMenuRadioItem>
-                                    </DropdownMenuRadioGroup>
-                                </DropdownMenuContent>
-                            </DropdownMenu>
+                            <WorkspaceSortMenu />
                             <ButtonTrashWorkspaces />
                         </div>
                     </div>

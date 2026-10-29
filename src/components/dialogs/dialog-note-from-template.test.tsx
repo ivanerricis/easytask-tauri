@@ -10,8 +10,7 @@ vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceState: () => ({ workspaceDataTree: null }),
 }))
 vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn() }) }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const template = { id: 5, workspaceID: 1, name: "Sprint tipo", color: null, content: { groups: [] } } as unknown as NoteTemplate
 
 beforeEach(() => {

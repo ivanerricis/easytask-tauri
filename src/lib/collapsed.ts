@@ -1,7 +1,7 @@
 import type { NoteDataTree, Section, Task } from "@/types/types"
 
 /** Anything that carries the saved open/closed state (a group, a section or a task; SQLite gives 0/1, the app true/false). */
-export type MaybeCollapsed = { collapsed?: boolean | number | null } | null | undefined
+type MaybeCollapsed = { collapsed?: boolean | number | null } | null | undefined
 
 /**
  * Whether an element is saved as closed: `collapsed` can be true/false or 0/1 from the database, and is absent on
@@ -11,7 +11,7 @@ export type MaybeCollapsed = { collapsed?: boolean | number | null } | null | un
 export const isCollapsed = (item: MaybeCollapsed): boolean => Boolean(item?.collapsed)
 
 /** The ids of the closed elements of a note. */
-export type CollapsedIds = { groups: ReadonlySet<number>, sections: ReadonlySet<number>, tasks: ReadonlySet<number> }
+type CollapsedIds = { groups: ReadonlySet<number>, sections: ReadonlySet<number>, tasks: ReadonlySet<number> }
 
 const cache = new WeakMap<NoteDataTree, CollapsedIds>()
 

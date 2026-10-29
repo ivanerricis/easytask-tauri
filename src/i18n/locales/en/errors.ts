@@ -65,7 +65,6 @@ export const errors: Translation["errors"] = {
         unique: "A template with this name already exists.",
         check: "The template name cannot be empty.",
         noteUnique: "A note with this name already exists in the target folder.",
-        noteCheck: "The note name cannot be empty.",
         sourceMissing: "The source note no longer exists.",
         notFound: "The template no longer exists.",
         loadAll: "Failed to load the templates: {{message}}",
@@ -108,7 +107,6 @@ export const errors: Translation["errors"] = {
         untitled: "(untitled)",
         invalidFolderTree: "The folder structure of the file is not valid.",
         suffix: "imported",
-        nameEmpty: "The name cannot be empty.",
         nameTaken: "An item named \"{{name}}\" already exists here.",
     },
     backup: {
@@ -143,7 +141,6 @@ export const errors: Translation["errors"] = {
     loadAudio: "Could not load the audio files.",
     loadTemplates: "Could not load the templates.",
     loadWorkspaceData: "Could not load the workspace data",
-    refreshWorkspaceData: "Could not refresh the workspace data. Try again.",
 }
 
 export const crash: Translation["crash"] = {

@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from "react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { Task } from "./Task"
 import { TabsProvider } from "@/contexts/tabs-context"
 import { useSelectedTask, useTabsActions } from "@/contexts/use-tabs"
@@ -9,11 +10,10 @@ import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { NoteDataTree } from "@/types/types"
 import { createSelectionStore } from "../sidebar/selection"
 import { PreferencesContext } from "@/contexts/preferences-context-object"
-import { TaskSelectionContext } from "./task-selection-context"
+import { TaskSelectionContext } from "./use-task-selection"
 import { TaskSelectionActionsProvider } from "./task-selection-actions"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const sub = makeTask({ id: 13, sectionID: 10, taskID: 12, text: "Sotto" })
 const tasks = [
     makeTask({ id: 10, text: "Primo" }),
@@ -35,10 +35,7 @@ const patchTask = vi.fn(() => () => { })
 const removeTask = vi.fn(() => () => { })
 const applyTaskMove = vi.fn(() => () => { })
 const dispatch = vi.fn()
-const recorder = {
-    removeMany: vi.fn(), archiveMany: vi.fn(), colorMany: vi.fn(), taskMoveMany: vi.fn(),
-    rename: vi.fn(), taskCompletion: vi.fn(), track: <T,>(write: Promise<T>) => write,
-}
+const recorder = makeUndoRecorderMock()
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({
         updateTaskCompletion: vi.fn(), renameItem: vi.fn(), updateTaskPriority: vi.fn(), updateTaskDescription: vi.fn(),

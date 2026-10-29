@@ -5,18 +5,27 @@ import { AccentContrastHint } from "./AccentContrastHint"
 import { DEFAULT_PRIMARY_COLOR, accentContrast } from "@/lib/accent-color"
 
 const setPrimaryColor = vi.fn()
-const state = { theme: "light" as "light" | "dark" | "system", primaryColor: DEFAULT_PRIMARY_COLOR }
-vi.mock("@/components/use-theme", () => ({ useTheme: () => ({ theme: state.theme, setTheme: vi.fn() }) }))
+const state = { theme: "light" as "light" | "dark" | "system", primaryColor: DEFAULT_PRIMARY_COLOR, resolved: undefined as "light" | "dark" | undefined }
+vi.mock("@/components/use-theme", () => ({ useTheme: () => ({ theme: state.theme, resolvedTheme: state.resolved, setTheme: vi.fn() }) }))
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ primaryColor: state.primaryColor, setPrimaryColor }) }))
 
 beforeEach(() => {
     vi.clearAllMocks()
     state.theme = "light"
+    state.resolved = undefined
     state.primaryColor = DEFAULT_PRIMARY_COLOR
     document.documentElement.style.removeProperty("--primary")
 })
 
 describe("AccentContrastHint", () => {
+    it("uses the resolved theme of the context when the theme is system", () => {
+        state.theme = "system"
+        state.resolved = "dark"
+        state.primaryColor = "#1e3a8a"
+        render(<AccentContrastHint />)
+        expect(screen.getByRole("status")).toHaveTextContent(/tema scuro/)
+    })
+
     it("shows nothing for a color with enough contrast", () => {
         const { container } = render(<AccentContrastHint />)
         expect(container).toBeEmptyDOMElement()

@@ -27,7 +27,7 @@ vi.mock("@tauri-apps/plugin-fs", () => ({
     writeTextFile: (...a: unknown[]) => writeTextFile(...a),
     remove: (...a: unknown[]) => removeFile(...a),
 }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/db/backup", () => ({
     createBackup: (...a: unknown[]) => createBackup(...a),
     deleteBackup: (...a: unknown[]) => deleteBackup(...a),

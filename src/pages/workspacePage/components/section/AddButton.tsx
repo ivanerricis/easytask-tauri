@@ -4,11 +4,12 @@ import { Button } from "@/components/ui/button"
 
 type AddButtonProps = {
     onClick?: () => void
+    /** Text of the button; the default is the "new section" one. */
+    label?: string
 }
 
-export const AddButton = ({ onClick }: AddButtonProps) => {
+export const AddButton = ({ onClick, label }: AddButtonProps) => {
     const { t } = useTranslation()
-    const label = t("sections.new")
     return (
         <Button
             type="button"
@@ -17,7 +18,7 @@ export const AddButton = ({ onClick }: AddButtonProps) => {
             className="w-full h-9 rounded-xs border border-dashed border-muted-foreground/45 hover:border-foreground/60 font-normal text-muted-foreground hover:text-foreground"
         >
             <Plus />
-            <span className="text-nowrap">{label}</span>
+            <span className="text-nowrap">{label ?? t("sections.new")}</span>
         </Button>
     )
 }

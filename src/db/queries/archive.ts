@@ -5,7 +5,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
 import type { DBItemType } from "./shared_queries";
-import { buildRestoreStatements, formatTrashSummary, loadTrashCounts } from "./trash";
+import { buildRestoreStatements, loadTrashCounts, mapHiddenRows } from "./trash";
 
 const ARCHIVE_TYPES: readonly ArchiveItemType[] = ["folder", "note", "section_group", "section", "task"]
 
@@ -26,9 +26,8 @@ function assertArchiveType(itemType: string): asserts itemType is ArchiveItemTyp
  */
 export async function archiveDBItem(itemType: ArchiveItemType, itemID: number) {
     assertArchiveType(itemType)
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         // The default section of a group is hidden and is archived only with its group
         const notDefault = itemType === "section" ? " AND is_default = 0" : ""
         await db.execute(
@@ -121,16 +120,7 @@ export async function getDBArchive(workspaceId: number): Promise<ArchiveItem[]> 
 
         const counts = await loadTrashCounts(db, workspaceId, new Set<DBItemType>(rows.map(row => row.type)), "archived_at")
 
-        return rows.map((row): ArchiveItem => ({
-            type: row.type,
-            id: row.id,
-            name: row.type === "section_group" && !row.name
-                ? i18n.t("trash.unnamedGroup", { count: row.extra })
-                : row.name,
-            context: row.context ?? "",
-            summary: formatTrashSummary(row.type, counts.get(row.type)?.get(row.id) ?? {}),
-            archived_at: row.archived_at,
-        }))
+        return mapHiddenRows(rows, counts, "archived_at")
     } catch (error: unknown) {
         throw createError("ARCHIVE_LOAD_FAILED", i18n.t("errors.archive.load", { message: getErrorMessage(error) }))
     }

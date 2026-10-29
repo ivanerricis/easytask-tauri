@@ -5,9 +5,11 @@ export type ShortcutEntry = {
     handler: (e: KeyboardEvent) => void
     enabled: boolean
     allowInInputs: boolean
+    // Reads whether the pane of the registering component has the focus; absent = a global handler that always runs
+    isFocused?: () => boolean
 }
 
-export type ShortcutsContextType = {
+type ShortcutsContextType = {
     bindings: Record<string, Binding>
     overrides: Record<string, Binding>
     getBinding: (id: string) => Binding | undefined

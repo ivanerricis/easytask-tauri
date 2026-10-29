@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { Monitor, Moon, Sun } from "lucide-react"
+import { Moon, Sun } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -9,19 +9,15 @@ import {
     DropdownMenuRadioItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { isTheme, THEME_OPTIONS } from "@/components/theme-options"
 import { useTheme } from "@/components/use-theme"
 
 export function ModeToggle() {
     const { t } = useTranslation()
     const { theme, setTheme } = useTheme()
 
-    const getThemeText = () => {
-        switch (theme) {
-            case 'light': return t("settings.appearance.theme.light")
-            case 'dark': return t("settings.appearance.theme.dark")
-            default: return t("common.system")
-        }
-    }
+    // "system" is also the label of any value that is not a known theme
+    const getThemeText = () => t((THEME_OPTIONS.find(option => option.value === theme) ?? THEME_OPTIONS[2]).labelKey)
 
     return (
         <DropdownMenu >
@@ -35,10 +31,10 @@ export function ModeToggle() {
                 </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-                <DropdownMenuRadioGroup value={theme} onValueChange={value => setTheme(value as typeof theme)}>
-                    <DropdownMenuRadioItem value="light"><Sun />{t("settings.appearance.theme.light")}</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="dark"><Moon />{t("settings.appearance.theme.dark")}</DropdownMenuRadioItem>
-                    <DropdownMenuRadioItem value="system"><Monitor />{t("common.system")}</DropdownMenuRadioItem>
+                <DropdownMenuRadioGroup value={theme} onValueChange={value => { if (isTheme(value)) setTheme(value) }}>
+                    {THEME_OPTIONS.map(({ value, icon: Icon, labelKey }) => (
+                        <DropdownMenuRadioItem key={value} value={value}><Icon />{t(labelKey)}</DropdownMenuRadioItem>
+                    ))}
                 </DropdownMenuRadioGroup>
             </DropdownMenuContent>
         </DropdownMenu>

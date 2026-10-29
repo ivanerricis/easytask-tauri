@@ -6,8 +6,7 @@ import { DialogCreateTemplate } from "./dialog-create-template"
 
 const data = { createTemplateFromNote: vi.fn() }
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => data }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const note = { id: 9, name: "Sprint 12" }
 
 describe("DialogCreateTemplate", () => {

@@ -1,3 +1,5 @@
+import { createEmitter } from "@/lib/emitter"
+
 /**
  * One undoable user action. `undo` and `redo` are the inverse of each other: they only use stable ids
  * (a soft delete keeps the ids) and reject when the operation could not be applied.
@@ -11,6 +13,8 @@ export type UndoCommand = {
      * Undefined for the actions on the normal notes and on the workspace.
      */
     scopeNoteId?: number
+    /** The note open when the action was recorded. */
+    noteId?: number
     undo: () => Promise<void>
     redo: () => Promise<void>
 }
@@ -51,6 +55,7 @@ export const UNDO_LIMIT = 50
  * - while an undo/redo runs, `record` is ignored (the inverse operations must not create history);
  * - undo/redo requests are serialized, so quick repeated shortcuts apply in order;
  * - a command that fails is dropped (its state can no longer be trusted) and the error is returned, never thrown;
+ * - `onApplied` is awaited after each applied command (its errors are ignored);
  * - a command for which `isBlocked` is true (an action done in a template draft, while another note is active) is not run;
  * - `dropScope` removes the commands of a closed template draft;
  * - `clear` also discards the effect of a command that was running meanwhile.
@@ -58,12 +63,13 @@ export const UNDO_LIMIT = 50
  */
 export function createUndoHistory(limit = UNDO_LIMIT, initialIsBlocked: (command: UndoCommand) => boolean = () => false) {
     let isBlocked = initialIsBlocked
+    let onApplied: (command: UndoCommand, direction: "undo" | "redo") => void | Promise<void> = () => {}
     let undoStack: UndoCommand[] = []
     let redoStack: UndoCommand[] = []
     let running = false
     let generation = 0
     let queue: Promise<unknown> = Promise.resolve()
-    const listeners = new Set<() => void>()
+    const changes = createEmitter()
 
     const buildSnapshot = (): UndoSnapshot => ({
         canUndo: undoStack.length > 0,
@@ -79,7 +85,7 @@ export function createUndoHistory(limit = UNDO_LIMIT, initialIsBlocked: (command
             next.undoLabel === snapshot.undoLabel && next.redoLabel === snapshot.redoLabel
         if (same && !entriesChanged) return
         if (!same) snapshot = next
-        listeners.forEach(listener => listener())
+        changes.emit()
     }
 
     const buildEntries = (): UndoEntries => ({
@@ -119,6 +125,8 @@ export function createUndoHistory(limit = UNDO_LIMIT, initialIsBlocked: (command
             running = true
             try {
                 await command[direction]()
+                // A failure of the follow-up (e.g. a reload) is its own business: the command was applied
+                try { await onApplied(command, direction) } catch { /* ignored */ }
             } catch (error) {
                 // A failed command is dropped: its state can no longer be trusted
                 if (startedAt === generation) {
@@ -186,6 +194,8 @@ export function createUndoHistory(limit = UNDO_LIMIT, initialIsBlocked: (command
         track,
         /** Replaces the check that tells a command cannot run now (see `createUndoHistory`). */
         setIsBlocked: (next: (command: UndoCommand) => boolean) => { isBlocked = next },
+        /** Sets a callback awaited after every successful undo/redo, with the command that was applied (the provider reloads the note it belongs to). */
+        setOnApplied: (next: (command: UndoCommand, direction: "undo" | "redo") => void | Promise<void>) => { onApplied = next },
         /** Changes the limit: the oldest actions beyond it are dropped at once. Invalid values are ignored. */
         setLimit: (next: number) => {
             if (!Number.isInteger(next) || next < 1) return
@@ -215,10 +225,7 @@ export function createUndoHistory(limit = UNDO_LIMIT, initialIsBlocked: (command
         isLatest: (command: UndoCommand) => undoStack.at(-1) === command,
         getSnapshot: () => snapshot,
         getEntries: () => entries,
-        subscribe: (listener: () => void) => {
-            listeners.add(listener)
-            return () => { listeners.delete(listener) }
-        },
+        subscribe: changes.subscribe,
     }
 }
 

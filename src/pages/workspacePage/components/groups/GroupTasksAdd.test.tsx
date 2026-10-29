@@ -10,7 +10,7 @@ import { makeDefaultSection, makeGroup, makeNote, makeTask } from "@/test/ui-fix
 import type { Group } from "@/types/types"
 
 vi.mock("@/hooks/use-automations", () => ({ useAutomations: () => ({ dispatch: vi.fn() }) }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create: vi.fn() }) }))
+vi.mock("@/contexts/undo/use-undo", async () => (await import("@/test/mocks")).undoModuleMock())
 vi.mock("./GroupHeader", () => ({ GroupHeader: () => <div>header</div> }))
 vi.mock("./GroupAudioFiles", () => ({ GroupAudioFiles: () => null }))
 vi.mock("../section/Section", () => ({ Section: () => null }))

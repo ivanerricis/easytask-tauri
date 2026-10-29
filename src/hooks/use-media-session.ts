@@ -55,10 +55,11 @@ export const useMediaSession = ({ title, artist, playing, position, duration, ac
 
     // The flyout does not move the position by itself: once per second while playing is enough
     const second = Math.floor(position)
+    const positionRef = useRef(position)
+    useEffect(() => { positionRef.current = position })
     useEffect(() => {
         if (!native) return
-        invoke("media_session_timeline", { position, duration: Number.isFinite(duration) ? duration : 0 }).catch(reportError)
-        // eslint-disable-next-line react-hooks/exhaustive-deps -- `position` is sampled by `second`
+        invoke("media_session_timeline", { position: positionRef.current, duration: Number.isFinite(duration) ? duration : 0 }).catch(reportError)
     }, [native, second, duration, playing])
 
     useEffect(() => {

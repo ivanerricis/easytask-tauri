@@ -6,6 +6,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Split view: the **Split into two areas** button on the right of the path bar (or Ctrl+\) shows two notes side by side. Each area has its own tabs and its own open note, and **Close the split** closes the tabs of the right area. A note is open in one area at a time, the divider between the areas can be dragged (or moved with the arrow keys, double click for 50%), and the split and its tabs are reopened at the next start when "Reopen notes at startup" is on.
+- You can drag a tab from one tab bar to the other (or into the empty bar) to move the note to the other area.
+- New entries "Open on the right" and "Open on the left" in the menu of a note and of its tab: the first one creates the split if needed.
+- New shortcuts: Ctrl+\ splits the workspace or closes the split, Ctrl+Alt+→ (also Ctrl+Alt+←) moves the active note to the other area, and Ctrl+Alt+\ moves the focus to the other area. They can be changed in Settings > Shortcuts (except Ctrl+Alt+←).
+
+### Changed
+
+- Emptying the trash and opening large workspaces are faster (new database indexes: the database moves to version 12, and a safety copy is taken before migrating, as for any migration).
+- Fewer redraws while dragging the divider between the two areas, moving tasks, switching tabs and changing settings, so the app feels smoother.
+- Importing a workspace with many audio files checks them in batches.
+- The audio settings, the audio player and the update dialog look and work the same; the update dialog now also waits for open confirmation dialogs.
+
+### Fixed
+
+- The System theme now follows the operating system's light/dark change while the app is open.
+- A file with a corrupt tag can no longer close the app while its audio metadata is read (the release build no longer aborts on a panic).
+- Preferences, tabs and other settings are written with a single delayed save, so no setting is lost when you close the app right after a change.
+- The links to the project's issues and comparison pages in the release notes now open.
+- The add task and add section forms no longer react to clicks while they are closed, and an extra `undefined` style class on the sidebar is gone.
+
 ## [0.17.0] - 2026-10-28
 
 ### Added

@@ -4,6 +4,28 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+### Aggiunto
+
+- Vista divisa in due aree: il pulsante **Dividi in due aree** a destra della barra del percorso (o Ctrl+\) mostra due note affiancate. Ogni area ha i suoi tab e la sua nota aperta, e **Chiudi la divisione** chiude i tab dell'area destra. Una nota è aperta in una sola area alla volta, il divisore tra le aree si può trascinare (o spostare con le frecce, doppio clic per il 50%), e la divisione con i suoi tab viene riaperta al prossimo avvio se "Riapri le note all'avvio" è attivo.
+- Puoi trascinare una scheda da una barra di schede all'altra (o nella barra vuota) per spostare la nota nell'altra area.
+- Nuove voci "Apri a destra" e "Apri a sinistra" nel menu di una nota e della sua scheda: la prima crea la divisione se serve.
+- Nuove scorciatoie: Ctrl+\ divide lo spazio o chiude la divisione, Ctrl+Alt+→ (anche Ctrl+Alt+←) sposta la nota attiva nell'altra area, e Ctrl+Alt+\ sposta il focus sull'altra area. Si possono cambiare in Impostazioni > Scorciatoie (tranne Ctrl+Alt+←).
+
+### Modificato
+
+- Svuotare il cestino e aprire workspace grandi è più veloce (nuovi indici del database: il database passa alla versione 12, e prima di migrare viene fatta una copia di sicurezza, come per ogni migrazione).
+- Meno ridisegni mentre trascini il divisore tra le due aree, sposti i task, cambi scheda e modifichi le impostazioni, così l'app è più fluida.
+- L'importazione di un workspace con molti file audio li controlla a blocchi.
+- Le impostazioni audio, il player audio e la finestra di aggiornamento si vedono e funzionano come prima; la finestra di aggiornamento ora aspetta anche le finestre di conferma aperte.
+
+### Corretto
+
+- Il tema Sistema ora segue il passaggio chiaro/scuro del sistema operativo mentre l'app è aperta.
+- Un file con un tag danneggiato non può più chiudere l'app mentre ne vengono letti i metadati audio (la build di rilascio non si interrompe più su un panic).
+- Preferenze, schede e altre impostazioni vengono scritte con un unico salvataggio ritardato, così non si perde nessuna impostazione se chiudi l'app subito dopo una modifica.
+- I link alle pagine delle issue e dei confronti del progetto nelle note di rilascio ora si aprono.
+- I moduli per aggiungere un task o una sezione non reagiscono più ai clic quando sono chiusi, e una classe di stile `undefined` in più sulla barra laterale è sparita.
+
 ## [0.17.0] - 2026-10-28
 
 ### Aggiunto

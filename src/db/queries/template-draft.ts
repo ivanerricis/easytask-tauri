@@ -20,7 +20,7 @@ export type TemplateDraft = {
 }
 
 /** What `saveDBTemplateDraft` did: wrote the template, found it already equal, or found it purged. */
-export type TemplateDraftSave = "written" | "unchanged" | "missing"
+type TemplateDraftSave = "written" | "unchanged" | "missing"
 
 const updateFailed = (error: unknown) =>
     createError("TEMPLATE_UPDATE_FAILED", i18n.t("errors.template.update", { message: getErrorMessage(error) }))
@@ -146,6 +146,26 @@ export async function getDBTemplateDrafts(workspaceId: number, includeTrashed = 
              WHERE t.workspaceID = ?${includeTrashed ? '' : ' AND t.deleted_at IS NULL'}
              ORDER BY n.id`, [workspaceId])
         return rows.map(row => ({ ...row, color: row.color ?? null, trashed: !!row.trashed }))
+    } catch (error: unknown) {
+        throw createError("TEMPLATE_LOAD_FAILED", i18n.t("errors.template.loadAll", { message: getErrorMessage(error) }))
+    }
+}
+
+/**
+ * A single draft by the ID of its note (null when the note is no draft of a template).
+ * @param noteId The ID of the draft note.
+ * @category Database Queries
+ */
+export async function getDBTemplateDraft(noteId: number): Promise<TemplateDraft | null> {
+    try {
+        const db = await getDB()
+        const rows = await db.select<(Omit<TemplateDraft, "trashed"> & { trashed: number })[]>(
+            `SELECT n.id AS noteId, t.id AS templateId, t.name AS templateName, n.color,
+                    t.deleted_at IS NOT NULL AS trashed
+             FROM note n INNER JOIN note_template t ON t.id = n.templateID
+             WHERE n.id = ?`, [noteId])
+        const row = rows[0]
+        return row ? { ...row, color: row.color ?? null, trashed: !!row.trashed } : null
     } catch (error: unknown) {
         throw createError("TEMPLATE_LOAD_FAILED", i18n.t("errors.template.loadAll", { message: getErrorMessage(error) }))
     }

@@ -10,18 +10,18 @@ import { AboutSettings } from "./AboutSettings"
 
 export type SettingsCategory = {
     id: string
-    labelKey: `settings.categories.${"appearance" | "notes" | "audio" | "shortcuts" | "data" | "system" | "about"}`
+    labelKey: `settings.${"appearance" | "notes" | "audio" | "shortcuts" | "data" | "system" | "about"}.title`
     icon: LucideIcon
     Panel: ComponentType
 }
 
 // Order here is the order in the nav. Keep "about" last.
 export const SETTINGS_CATEGORIES: SettingsCategory[] = [
-    { id: "appearance", labelKey: "settings.categories.appearance", icon: Palette, Panel: AppearanceSettings },
-    { id: "notes", labelKey: "settings.categories.notes", icon: LayoutList, Panel: NotesSettings },
-    { id: "audio", labelKey: "settings.categories.audio", icon: Music, Panel: AudioSettings },
-    { id: "shortcuts", labelKey: "settings.categories.shortcuts", icon: Keyboard, Panel: ShortcutsSettings },
-    { id: "data", labelKey: "settings.categories.data", icon: Database, Panel: DataSettings },
-    { id: "system", labelKey: "settings.categories.system", icon: Monitor, Panel: SystemSettings },
-    { id: "about", labelKey: "settings.categories.about", icon: Info, Panel: AboutSettings },
+    { id: "appearance", labelKey: "settings.appearance.title", icon: Palette, Panel: AppearanceSettings },
+    { id: "notes", labelKey: "settings.notes.title", icon: LayoutList, Panel: NotesSettings },
+    { id: "audio", labelKey: "settings.audio.title", icon: Music, Panel: AudioSettings },
+    { id: "shortcuts", labelKey: "settings.shortcuts.title", icon: Keyboard, Panel: ShortcutsSettings },
+    { id: "data", labelKey: "settings.data.title", icon: Database, Panel: DataSettings },
+    { id: "system", labelKey: "settings.system.title", icon: Monitor, Panel: SystemSettings },
+    { id: "about", labelKey: "settings.about.title", icon: Info, Panel: AboutSettings },
 ]

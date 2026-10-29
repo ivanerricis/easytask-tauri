@@ -4,30 +4,42 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { NoteDataTree } from "@/types/types"
 import type { UndoCommand } from "@/contexts/undo/stack"
 import type { Automation } from "@/lib/automations/types"
+import { toastMock } from "@/test/mocks"
 import { groupIds, makeGroups, makeRule, taskOf } from "@/test/automation-fixtures"
 
 const mocks = vi.hoisted(() => ({
     tree: null as NoteDataTree | null,
+    trees: {} as Record<number, NoteDataTree>,
+    activeId: 1,
+    getNoteData: vi.fn(async (id: number) => { void id }),
     rules: [] as Automation[],
     recorded: [] as UndoCommand[],
     setNoteDataTree: vi.fn(),
     refreshActiveNote: vi.fn(async () => {}),
     notifyArchiveChanged: vi.fn(),
     applyDBAutomationChanges: vi.fn(async (...args: unknown[]) => { void args }),
-    toastSuccess: vi.fn(),
     recorder: null as unknown as { record: (command: UndoCommand) => void, track: (promise: Promise<void>) => Promise<void> },
     getDBAutomations: vi.fn(async () => [] as Automation[]),
+    reportError: vi.fn(),
 }))
 
 // Stable like the real actions: new functions on every render would re-run the sync effect
 const noteActions = vi.hoisted(() => ({
     getNoteTree: () => mocks.tree,
-    setNoteDataTree: (tree: NoteDataTree) => { mocks.tree = tree; mocks.setNoteDataTree(tree) },
+    getCachedNoteTree: (id: number) => mocks.trees[id] ?? (id === 1 ? mocks.tree : null),
+    getNoteData: mocks.getNoteData,
+    setNoteDataTree: (tree: NoteDataTree, noteId?: number) => {
+        // Like the real action: the note given, else the focused one
+        if (noteId === undefined || noteId === mocks.activeId) mocks.tree = tree
+        else mocks.trees[noteId] = tree
+        mocks.setNoteDataTree(tree, noteId)
+    },
     refreshActiveNote: mocks.refreshActiveNote,
 }))
 
-vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, info: vi.fn(), error: vi.fn() } }))
-vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => 1 }))
+vi.mock("@/lib/report-error", async importOriginal => ({ ...await importOriginal<typeof import("@/lib/report-error")>(), reportError: mocks.reportError }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
+vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => mocks.activeId }))
 vi.mock("@/contexts/use-active-note", () => ({
     useActiveNote: () => ({ noteDataTree: mocks.tree }),
     useActiveNoteActions: () => noteActions,
@@ -61,6 +73,8 @@ beforeEach(() => {
     vi.clearAllMocks()
     mocks.recorded = []
     mocks.tree = fresh()
+    mocks.trees = {}
+    mocks.activeId = 1
     mocks.rules = [makeRule(1, { type: "group.completed", groupId: null }, [{ type: "archiveGroup" }])]
     mocks.getDBAutomations.mockImplementation(async () => mocks.rules)
 })
@@ -77,10 +91,10 @@ describe("AutomationsProvider with group rules", () => {
         expect(statements.some(s => s.sql.includes("archived_at = datetime"))).toBe(true)
         expect(mocks.notifyArchiveChanged).toHaveBeenCalledTimes(1)
         expect(mocks.recorded).toHaveLength(1)
-        expect(mocks.toastSuccess).toHaveBeenCalledTimes(1)
+        expect(toastMock.success).toHaveBeenCalledTimes(1)
         // A short title, and the sentence of the rule (which names the group) as the description
-        expect(mocks.toastSuccess.mock.calls[0][0]).toBe("Automazione eseguita")
-        expect(mocks.toastSuccess.mock.calls[0][1].description).toContain("Sprint")
+        expect(toastMock.success.mock.calls[0][0]).toBe("Automazione eseguita")
+        expect(toastMock.success.mock.calls[0][1].description).toContain("Sprint")
     })
 
     it("undo brings the group back and redo archives it again, notifying each time", async () => {
@@ -117,7 +131,7 @@ describe("AutomationsProvider with group rules", () => {
         const { result } = renderHook(() => useAutomations(), { wrapper })
         await result.current.dispatch({ type: "task.completed", taskId: 11 })
 
-        expect(mocks.refreshActiveNote).toHaveBeenCalled()
+        expect(mocks.getNoteData).toHaveBeenCalledWith(1)
         expect(mocks.notifyArchiveChanged).not.toHaveBeenCalled()
         expect(mocks.recorded).toHaveLength(0)
     })
@@ -186,7 +200,7 @@ describe("AutomationsProvider state rules (sync)", () => {
         expect(mocks.applyDBAutomationChanges).toHaveBeenCalled()
         const sql = written(0).map(s => s.sql).join(" ")
         expect(sql).toContain("UPDATE section SET color")
-        expect(mocks.toastSuccess).not.toHaveBeenCalled()
+        expect(toastMock.success).not.toHaveBeenCalled()
         expect(mocks.recorded).toHaveLength(0)
     })
 
@@ -221,6 +235,7 @@ describe("AutomationsProvider state rules (sync)", () => {
         expect(sectionColor(10)).toBe(GREEN)
         // The sync recolors the tree it was given: re-rendering with the colored tree must not sync again
         rerender()
+        // Real waits on purpose here and below: they assert that no sync happens, so there is no condition to wait for
         await new Promise(resolve => setTimeout(resolve, 20))
         const writes = mocks.applyDBAutomationChanges.mock.calls.length
         expect(writes).toBe(1)
@@ -281,7 +296,99 @@ describe("AutomationsProvider state rules (sync)", () => {
         mocks.applyDBAutomationChanges.mockRejectedValueOnce(new Error("boom"))
         const { result } = renderHook(() => useAutomations(), { wrapper })
         await expect(result.current.sync()).resolves.toBeUndefined()
-        expect(mocks.refreshActiveNote).toHaveBeenCalled()
+        expect(mocks.getNoteData).toHaveBeenCalledWith(1)
         expect(mocks.recorded).toHaveLength(0)
+    })
+})
+
+describe("AutomationsProvider with two panes", () => {
+    it("runs the rules against the note of the pane that is not focused, writes it and updates that note only, optimistically", async () => {
+        mocks.trees[2] = fresh()
+        const other = mocks.trees[2]
+        const focusedTree = mocks.tree
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await result.current.dispatch({ type: "task.completed", taskId: 11 }, 2)
+
+        expect(mocks.getDBAutomations).toHaveBeenCalledWith(2)
+        expect(mocks.applyDBAutomationChanges).toHaveBeenCalledTimes(1)
+        // The focused note is untouched; the other one is written in the cache by id, with no reload (the write succeeded)
+        expect(mocks.setNoteDataTree).toHaveBeenCalledTimes(1)
+        expect(mocks.setNoteDataTree).toHaveBeenCalledWith(expect.anything(), 2)
+        expect(mocks.tree).toBe(focusedTree)
+        expect(mocks.trees[2]).not.toBe(other)
+        expect(groupIds(mocks.trees[2])).toEqual([2])
+        expect(mocks.getNoteData).not.toHaveBeenCalled()
+        expect(mocks.refreshActiveNote).not.toHaveBeenCalled()
+        expect(mocks.recorded).toHaveLength(1)
+        expect(mocks.recorded[0].noteId).toBe(2)
+    })
+
+    it("undo of an automation done in the other pane restores that note by id without reloading it", async () => {
+        mocks.trees[2] = fresh()
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await result.current.dispatch({ type: "task.completed", taskId: 11 }, 2)
+        mocks.getNoteData.mockClear()
+        mocks.applyDBAutomationChanges.mockClear()
+        await mocks.recorded[0].undo()
+        expect(mocks.applyDBAutomationChanges).toHaveBeenCalledTimes(1)
+        expect(mocks.setNoteDataTree).toHaveBeenCalledWith(expect.anything(), 2)
+        expect(groupIds(mocks.trees[2])).toEqual([1, 2])
+        expect(mocks.getNoteData).not.toHaveBeenCalled()
+    })
+
+    it("writes the note the event came from even when the focus moves during the awaits", async () => {
+        mocks.trees[2] = fresh()
+        mocks.getDBAutomations.mockImplementation(async () => {
+            mocks.activeId = 2
+            return mocks.rules
+        })
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await result.current.dispatch({ type: "task.completed", taskId: 11 }, 1)
+        expect(mocks.setNoteDataTree).toHaveBeenCalledWith(expect.anything(), 1)
+        expect(mocks.setNoteDataTree).not.toHaveBeenCalledWith(expect.anything(), 2)
+    })
+
+    it("does nothing when the note of the action is not cached (closed)", async () => {
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await result.current.dispatch({ type: "task.completed", taskId: 11 }, 7)
+        expect(mocks.applyDBAutomationChanges).not.toHaveBeenCalled()
+        expect(mocks.recorded).toHaveLength(0)
+    })
+
+    it("reads the rules of each note separately and reloads the right note when the write fails", async () => {
+        mocks.trees[2] = fresh()
+        mocks.applyDBAutomationChanges.mockRejectedValueOnce(new Error("boom"))
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await result.current.dispatch({ type: "task.completed", taskId: 11 }, 2)
+        await result.current.dispatch({ type: "task.completed", taskId: 11 })
+        expect((mocks.getDBAutomations.mock.calls as unknown as number[][]).map(c => c[0]).sort()).toEqual([1, 2])
+        expect(mocks.getNoteData).toHaveBeenCalledWith(2)
+        expect(mocks.refreshActiveNote).not.toHaveBeenCalled()
+    })
+
+    it("a failed write to the other pane's note reloads it, and the failure (not the reload) is reported", async () => {
+        mocks.trees[2] = fresh()
+        mocks.applyDBAutomationChanges.mockRejectedValueOnce(new Error("boom"))
+        mocks.getNoteData.mockRejectedValueOnce(new Error("reload"))
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await expect(result.current.dispatch({ type: "task.completed", taskId: 11 }, 2)).resolves.toBeUndefined()
+        expect(mocks.getNoteData).toHaveBeenCalledWith(2)
+        expect(mocks.reportError).toHaveBeenCalledTimes(1)
+        expect(mocks.recorded).toHaveLength(0)
+    })
+
+    it("a failed write during the sync of the other pane's note reloads it, is reported and does not throw", async () => {
+        mocks.trees[2] = fresh()
+        mocks.rules = [
+            makeRule(1, { type: "section.noOpenTasks", sectionId: null }, [{ type: "setColor", color: "#00ff00" }]),
+            makeRule(2, { type: "section.hasOpenTasks", sectionId: null }, [{ type: "setColor", color: "#ff0000" }]),
+        ]
+        mocks.applyDBAutomationChanges.mockRejectedValueOnce(new Error("boom"))
+        mocks.activeId = 3 // no cached focused note: the sync on mount does nothing
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await expect(result.current.sync(2)).resolves.toBeUndefined()
+        expect(mocks.setNoteDataTree).toHaveBeenCalledWith(expect.anything(), 2)
+        expect(mocks.getNoteData).toHaveBeenCalledWith(2)
+        expect(mocks.reportError).toHaveBeenCalled()
     })
 })

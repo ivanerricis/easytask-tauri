@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils"
+
 type SideBarContainerProps = {
     header?: React.ReactNode
     children?: React.ReactNode
@@ -6,7 +8,7 @@ type SideBarContainerProps = {
 }
 
 export const SideBarContainer = ({ header, children, footer, className }: SideBarContainerProps) => (
-    <div className={`w-full bg-secondary flex flex-col h-full ${className}`}>
+    <div className={cn("w-full bg-secondary flex flex-col h-full", className)}>
         {header && <div className="shrink-0">{header}</div>}
         <div data-tree-scroll className="flex-1 min-h-0 overflow-y-auto">
             {children}

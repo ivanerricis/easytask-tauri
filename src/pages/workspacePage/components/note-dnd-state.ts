@@ -27,7 +27,7 @@ export type NoteHover = {
     /** While dragging a task: the section that would receive it (highlighted as a whole), null otherwise. */
     targetSectionId?: number | null
 }
-export type NoteDndState = { active: NoteDragRef | null, hover: NoteHover }
+type NoteDndState = { active: NoteDragRef | null, hover: NoteHover }
 
 export const NO_HOVER: NoteHover = { overKey: null, zone: null }
 

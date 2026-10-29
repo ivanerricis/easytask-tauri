@@ -235,7 +235,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
             await byLabel(await tr("settings.title")).click()
             await $('[role="dialog"]').waitForDisplayed()
             const nav = $(`[role="tablist"][aria-label="${await tr("settings.nav")}"]`)
-            await byText(await tr("settings.categories.notes"), nav).click()
+            await byText(await tr("settings.notes.title"), nav).click()
             await $(`//*[@role="dialog"]//*[@role="switch"][@id=//label[normalize-space()=${xpathString(await tr("settings.notes.completedLast.label"))}]/@for]`).click()
             await browser.keys("Escape")
             await $('[role="dialog"]').waitForExist({ reverse: true })
@@ -415,7 +415,7 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         })
 
         it("changes size and intensity in Appearance and resets them all after a confirmation", async () => {
-            await category("settings.categories.appearance")
+            await category("settings.appearance.title")
             const sizeLabel = await tr("settings.appearance.sidebarSize.label")
             const radio = async (key: string) => byText(await tr(`settings.appearance.sidebarSize.${key}`))
             const range = $(`[role="slider"][aria-label=${JSON.stringify(await tr("settings.appearance.colorIntensity.label"))}]`)
@@ -461,9 +461,9 @@ describe("New features: reordering, undo, trash, templates and appearance", () =
         })
 
         it("shows the reset button in the title row of Audio and Shortcuts as well", async () => {
-            await category("settings.categories.audio")
+            await category("settings.audio.title")
             await expectResetInTitleRow("settings.audio.title")
-            await category("settings.categories.shortcuts")
+            await category("settings.shortcuts.title")
             await expectResetInTitleRow("settings.shortcuts.title")
         })
 

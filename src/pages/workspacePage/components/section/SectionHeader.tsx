@@ -1,12 +1,12 @@
 import { MAX_NAME_LENGTH } from "@/lib/names"
-import { memo } from "react"
+import { memo, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { getErrorMessage, hexToRgba } from "@/lib/utils"
-import type { Section as SectionType, Task } from "@/types/types"
+import type { Section as SectionType } from "@/types/types"
 import { ChevronDown } from "lucide-react"
 import { ButtonMenuSection } from "./ButtonMenuSection"
 import { ItemMenuButton } from "@/components/item-menu"
@@ -17,9 +17,10 @@ import { InlineErrorTooltip } from "@/components/inline-error-tooltip"
 import { withRollback } from "@/contexts/with-rollback"
 import { useInlineEdit } from "@/hooks/use-inline-edit"
 import { getSectionLabel } from "./section-label"
+import { getSectionCompletionPercent } from "./section-progress"
 import { Highlight } from "@/components/highlight"
 import { useSearchHighlight } from "../note-search-context"
-import { usePreferences } from "@/contexts/use-preferences"
+import { usePreference } from "@/contexts/use-preference"
 import type { HTMLAttributes } from "react"
 
 type SectionHeaderProps = {
@@ -30,25 +31,14 @@ type SectionHeaderProps = {
     dragProps?: HTMLAttributes<HTMLElement>
 }
 
-const calculateCompletionPercentage = (tasks: Task[]): number => {
-    const totalTasks = tasks.length
-    if (totalTasks === 0) return 100
-
-    const completedTasks = tasks.reduce((acc, task) => {
-        const isTaskCompleted = task.completed ||
-            (task.subtasks.length > 0 && task.subtasks.every(subtask => subtask.completed))
-        return acc + (isTaskCompleted ? 1 : 0)
-    }, 0)
-
-    return (completedTasks / totalTasks) * 100
-}
-
 export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }: SectionHeaderProps) => {
     const { t } = useTranslation()
     const { renameItem } = useWorkspaceActions()
     const { patchSection } = useActiveNoteActions()
     const recorder = useUndoRecorder()
-    const { showProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
+    const showProgressBar = usePreference(p => p.showProgressBar)
+    const showUnnamedLabels = usePreference(p => p.showUnnamedLabels)
+    const renameOnClick = usePreference(p => p.renameOnClick) ?? true
     const colorAlpha = useColorAlpha()
     const search = useSearchHighlight("section", section.id)
     // An empty text removes the title (a section can have none)
@@ -67,7 +57,7 @@ export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }:
         onOpenChange(!isOpen)
     }
 
-    const completionPercentage = calculateCompletionPercentage(section.tasks)
+    const completionPercentage = useMemo(() => getSectionCompletionPercent(section.tasks), [section.tasks])
 
     return (
         <div className="relative flex flex-col items-center justify-center">

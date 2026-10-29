@@ -15,6 +15,7 @@ vi.mock("@/lib/store/initStore", () => ({ store: {} }))
 vi.mock("@/lib/store/preferences", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@/lib/store/preferences")>()),
     getPref: vi.fn(),
+    getAllPrefs: vi.fn(),
     savePref: vi.fn(),
     getPrimaryColor: vi.fn(),
     savePrimaryColor: vi.fn(),
@@ -75,6 +76,8 @@ describe("PreferencesContext", () => {
             showSubtaskCount: false,
         }
         vi.mocked(prefs.getPref).mockImplementation(async name => name in stored ? stored[name] : prefs.UI_PREFS[name as prefs.UiPrefName].default)
+        vi.mocked(prefs.getAllPrefs).mockImplementation(async () => Object.fromEntries(
+            (Object.keys(prefs.UI_PREFS) as prefs.UiPrefName[]).map(name => [name, name in stored ? stored[name] : prefs.UI_PREFS[name].default])) as Awaited<ReturnType<typeof prefs.getAllPrefs>>)
         // The saves are promises (the provider reports their failures)
         for (const [name, fn] of Object.entries(prefs)) {
             if (/^(save|reset)/.test(name) && vi.isMockFunction(fn)) fn.mockResolvedValue(undefined)
@@ -526,10 +529,7 @@ describe("PreferencesContext", () => {
 
     it("reports a failing preference save and a failing initial load instead of leaving them unhandled", async () => {
         vi.mocked(prefs.savePref).mockRejectedValue(new Error("save"))
-        vi.mocked(prefs.getPref).mockImplementation(async name => {
-            if (name === "showTaskCount") throw new Error("load")
-            return prefs.UI_PREFS[name as prefs.UiPrefName].default
-        })
+        vi.mocked(prefs.getAllPrefs).mockRejectedValue(new Error("load"))
         const { result } = renderHook(() => usePreferences(), { wrapper })
         await waitFor(() => expect(reportError).toHaveBeenCalledTimes(1))
         act(() => result.current.setShowProgressBar(false))

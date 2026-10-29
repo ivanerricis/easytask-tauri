@@ -7,7 +7,7 @@ import { DataSettings } from "./DataSettings"
 const invoke = vi.fn()
 
 vi.mock("@tauri-apps/api/core", () => ({ invoke: (...a: unknown[]) => invoke(...a) }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const setUndoLimit = vi.fn()
 const setTrashAutoEmptyDays = vi.fn()
 vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => ({ undoLimit: 50, setUndoLimit, trashAutoEmptyDays: 0, setTrashAutoEmptyDays }) }))

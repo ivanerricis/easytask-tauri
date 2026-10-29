@@ -7,9 +7,9 @@ import { makeWorkspace } from "@/test/ui-fixtures"
 
 const data = {
     getTrashCount: vi.fn(),
-    trashVersion: 0,
+    version: 0,
 }
-vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => data }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => data, useWorkspaceVersion: () => data.version }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
 vi.mock("@/components/dialogs/dialog-trash", () => ({ DialogTrash: () => null }))
 
@@ -18,7 +18,7 @@ const Harness = () => {
     const [, setTick] = useState(0)
     return (
         <>
-            <button onClick={() => { data.trashVersion += 1; setTick(t => t + 1) }}>simulate-delete</button>
+            <button onClick={() => { data.version += 1; setTick(t => t + 1) }}>simulate-delete</button>
             <ButtonTrash />
         </>
     )
@@ -27,7 +27,7 @@ const Harness = () => {
 describe("ButtonTrash", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        data.trashVersion = 0
+        data.version = 0
     })
 
     it("shows the number of trashed items", async () => {

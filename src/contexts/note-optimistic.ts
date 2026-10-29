@@ -54,7 +54,7 @@ type FallibleActions = "appendGroup" | "appendSection" | "appendTask" | "applySe
  * The actions as built here: the appends return null when they could not apply (the provider then reloads the note).
  * @category ActiveNote Context
  */
-export type BaseNoteOptimisticActions = Omit<NoteOptimisticActions, FallibleActions> & {
+type BaseNoteOptimisticActions = Omit<NoteOptimisticActions, FallibleActions> & {
     [K in FallibleActions]: (...args: Parameters<NoteOptimisticActions[K]>) => Rollback | null
 }
 
@@ -63,7 +63,7 @@ export type BaseNoteOptimisticActions = Omit<NoteOptimisticActions, FallibleActi
  * `commit` must invalidate the in-flight reloads of the note (they would overwrite the optimistic data).
  * @category ActiveNote Context
  */
-export type NoteTreeStore = {
+type NoteTreeStore = {
     /** The id and cached tree of the active note, null without active note or cached data. */
     active: () => { id: number, tree: NoteDataTree } | null
     get: (noteId: number) => NoteDataTree | undefined

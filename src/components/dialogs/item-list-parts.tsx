@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import type { LucideIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { TooltipCustom } from "@/components/tooltip-custom"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useDelayedFlag } from "@/hooks/use-delayed-flag"
 import { ITEM_ICONS } from "./item-list-utils"
@@ -31,6 +32,41 @@ export const ItemRow = ({ icon: Icon, name, details, children }: ItemRowProps) =
         </div>
         {children}
     </div>
+)
+
+type RowAction = {
+    icon: LucideIcon
+    /** Text of the tooltip. */
+    tooltip: string
+    /** Accessible name of the button (with the name of the item). */
+    ariaLabel: string
+    onClick: () => void
+}
+
+type ItemRowActionsProps = {
+    /** The outline button on the left (restore). */
+    restore: RowAction
+    /** The destructive button on the right (delete, move to the trash). */
+    remove: RowAction
+    disabled?: boolean
+}
+
+/** The pair of icon buttons of a row of the trash / archive: restore and (destructive) remove, each with its tooltip. */
+export const ItemRowActions = ({ restore, remove, disabled }: ItemRowActionsProps) => (
+    <>
+        {([["outline", restore], ["destructive", remove]] as const).map(([variant, action]) => (
+            <TooltipCustom key={variant} text={action.tooltip}>
+                <Button variant={variant} size="icon" aria-label={action.ariaLabel} disabled={disabled} onClick={action.onClick}>
+                    <action.icon />
+                </Button>
+            </TooltipCustom>
+        ))}
+    </>
+)
+
+/** The message of an empty list of a list dialog. */
+export const ListEmpty = ({ children }: { children: ReactNode }) => (
+    <p className="py-6 text-center text-muted-foreground text-sm">{children}</p>
 )
 
 /** One row of {@link ListSkeleton}: the shape of an {@link ItemRow} (icon, two lines, two action buttons). */

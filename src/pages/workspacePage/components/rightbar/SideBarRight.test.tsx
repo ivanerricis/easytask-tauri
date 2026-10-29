@@ -82,7 +82,7 @@ afterEach(() => { window.innerWidth = originalWidth })
 describe("SideBarRight tabs", () => {
     it("is a tablist with the Details and History tabs, and the panel of the selected tab", async () => {
         renderPanel()
-        expect(await screen.findByRole("tablist", { name: "Schede del pannello" })).toBeInTheDocument()
+        expect(await screen.findByRole("tablist", { name: "Tab del pannello" })).toBeInTheDocument()
         expect(screen.getAllByRole("tab").map(el => el.textContent)).toEqual(["Dettagli", "Cronologia"])
         expect(tab("Dettagli")).toHaveAttribute("aria-selected", "true")
         expect(tab("Cronologia")).toHaveAttribute("aria-selected", "false")

@@ -49,7 +49,7 @@ La CI esegue gli stessi controlli, più le soglie di copertura e gli audit. Vedi
 
 ## Regole per il codice
 
-- **Traduzioni:** ogni testo visibile all'utente deve esistere in entrambe le lingue, in `src/i18n/locales/it` e `src/i18n/locales/en`. Una chiave mancante rompe il controllo dei tipi.
+- **Traduzioni:** ogni testo visibile all'utente deve esistere in entrambe le lingue, in `src/i18n/locales/it` e `src/i18n/locales/en`. Una chiave mancante rompe il controllo dei tipi, e una chiave nuova deve essere usata nel codice (altrimenti fallisce il test delle chiavi inutilizzate).
 - **Componenti dell'interfaccia:** usa prima i componenti [shadcn/ui](https://ui.shadcn.com/) in `src/components/ui` e aggiungi quelli mancanti con la CLI di shadcn, invece di creare controlli nativi o personalizzati.
 - **Database:** aggiungi una nuova migrazione; non modificare mai una già applicata. Vedi [Architettura](./architecture#migrazioni).
 - **Test:** aggiungi o aggiorna i test per ciò che modifichi.

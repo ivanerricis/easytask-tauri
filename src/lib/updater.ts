@@ -1,5 +1,7 @@
 import { check, type Update } from "@tauri-apps/plugin-updater"
 import { openUrl } from "@tauri-apps/plugin-opener"
+import { reportError } from "@/lib/report-error"
+import { createWindowEvent } from "@/lib/window-event"
 import { isPortable } from "@/db/appPaths"
 import { getCheckUpdatesOnStartup, getSkippedUpdateVersion } from "@/lib/store/preferences"
 
@@ -13,10 +15,11 @@ export const UPDATE_AVAILABLE_EVENT = "easytask:update-available"
 export type UpdateAvailableDetail = { update: Update, portable: boolean }
 const STARTUP_CHECK_DELAY_MS = 3000
 
+const openSettingsEvent = createWindowEvent<{ category: string }>(OPEN_SETTINGS_EVENT)
+const updateAvailableEvent = createWindowEvent<UpdateAvailableDetail>(UPDATE_AVAILABLE_EVENT)
+
 /** Asks the app to open the settings dialog on the given category. */
-export const requestOpenSettings = (category: string): void => {
-    window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_EVENT, { detail: { category } }))
-}
+export const requestOpenSettings = (category: string): void => openSettingsEvent.emit({ category })
 
 /**
  * Asks the update endpoint whether a newer version exists. Nothing is downloaded.
@@ -36,10 +39,10 @@ export const runStartupUpdateCheck = async (): Promise<Update | null> => {
         if (!update) return null
         if ((await getSkippedUpdateVersion().catch(() => null)) === update.version) return null
         const portable = await isPortable().catch(() => false)
-        window.dispatchEvent(new CustomEvent<UpdateAvailableDetail>(UPDATE_AVAILABLE_EVENT, { detail: { update, portable } }))
+        updateAvailableEvent.emit({ update, portable })
         return update
     } catch (error) {
-        console.warn("update check failed", error)
+        reportError(error)
         return null
     }
 }

@@ -6,6 +6,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { assertItemType, type DBItemType } from "./shared_queries";
 import { Transaction } from "../transaction";
+import { TRASHABLE_TABLES } from "../schema/trash_index";
 import { parseTemplateContent } from "./template";
 
 const RESTORE_UNIQUE_MESSAGE = () => i18n.t("errors.trash.restoreUnique")
@@ -32,6 +33,13 @@ const SUBITEM_KEYS: Partial<Record<DBItemType, Partial<Record<keyof TrashCounts,
     task: { tasks: "subtasks" },
 }
 
+// Counters that reuse the shared plural keys; the others have their own "trash.summary" key
+const SHARED_COUNT_KEYS: Partial<Record<keyof TrashCounts, "common.counts.group" | "common.counts.section" | "common.counts.task">> = {
+    groups: "common.counts.group",
+    sections: "common.counts.section",
+    tasks: "common.counts.task",
+}
+
 /**
  * Describes what a trashed item contained, e.g. "2 gruppi · 3 sezioni · 5 task".
  * Zero counts are omitted, "Vuoto" (translated) is returned when nothing is left, and audio files (no content) give "".
@@ -44,7 +52,11 @@ export function formatTrashSummary(type: DBItemType, counts: TrashCounts): strin
     if (!fields) return ""
     const parts = fields
         .filter(field => (counts[field] ?? 0) > 0)
-        .map(field => i18n.t(`trash.summary.${SUBITEM_KEYS[type]?.[field] ?? field}`, { count: counts[field]! }))
+        .map(field => {
+            const shared = SHARED_COUNT_KEYS[field]
+            const own = (SUBITEM_KEYS[type]?.[field] ?? field) as "folders" | "notes" | "audio" | "subfolders" | "subtasks"
+            return i18n.t(shared && !SUBITEM_KEYS[type]?.[field] ? shared : `trash.summary.${own}`, { count: counts[field]! })
+        })
     return parts.length > 0 ? parts.join(" · ") : i18n.t("trash.summary.empty")
 }
 
@@ -135,6 +147,28 @@ export async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, wor
 /** Counts of a trashed template, read from its JSON snapshot (a corrupted one counts as empty). */
 const countTemplateJson = (content: string): TrashCounts => countTemplateContent(parseTemplateContent(content))
 
+/** A row of the trash/archive listings: the SQL columns shared by both (the date column is `deleted_at` or `archived_at`). */
+type HiddenRow<K extends string> = { type: DBItemType, id: number, name: string, context: string | null, extra: number } & Record<K, string>
+
+/**
+ * Maps the rows of the trash (`dateKey` "deleted_at") or archive ("archived_at") listing to their items: an unnamed group
+ * gets the "unnamed group" name (with its section count), a missing context is empty, the summary comes from the counts.
+ */
+export function mapHiddenRows<K extends "deleted_at" | "archived_at", T extends DBItemType>(
+    rows: (HiddenRow<K> & { type: T })[], counts: Map<DBItemType, Map<number, TrashCounts>>, dateKey: K,
+): ({ type: T, id: number, name: string, context: string, summary: string } & Record<K, string>)[] {
+    return rows.map(row => ({
+        type: row.type,
+        id: row.id,
+        name: row.type === "section_group" && !row.name
+            ? i18n.t("trash.unnamedGroup", { count: row.extra })
+            : row.name,
+        context: row.context ?? "",
+        summary: formatTrashSummary(row.type, counts.get(row.type)?.get(row.id) ?? {}),
+        [dateKey]: row[dateKey],
+    }) as { type: T, id: number, name: string, context: string, summary: string } & Record<K, string>)
+}
+
 /**
  * Retrieves the items moved to the trash that belong to a workspace.
  * Only the items deleted directly are listed (their children are removed with them).
@@ -204,16 +238,7 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
             counts.set("note_template", new Map(contents.map(({ id, content }) => [id, countTemplateJson(content)])))
         }
 
-        return rows.map(row => ({
-            type: row.type,
-            id: row.id,
-            name: row.type === "section_group" && !row.name
-                ? i18n.t("trash.unnamedGroup", { count: row.extra })
-                : row.name,
-            context: row.context ?? "",
-            summary: formatTrashSummary(row.type, counts.get(row.type)?.get(row.id) ?? {}),
-            deleted_at: row.deleted_at,
-        }))
+        return mapHiddenRows(rows, counts, "deleted_at")
     } catch (error: unknown) {
         throw createError("TRASH_LOAD_FAILED", i18n.t("errors.trash.load", { message: getErrorMessage(error) }))
     }
@@ -408,9 +433,8 @@ export async function restoreDBItem(itemType: DBItemType, itemID: number) {
  */
 export async function purgeDBItem(itemType: DBItemType, itemID: number) {
     assertItemType(itemType)
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         await db.execute(`DELETE FROM ${itemType} WHERE id=? AND deleted_at IS NOT NULL`, [itemID])
     } catch (error: unknown) {
         throw createError(`${itemType.toUpperCase()}_PURGE_FAILED`, i18n.t("errors.trash.purge", { message: getErrorMessage(error) }))
@@ -449,8 +473,9 @@ export async function emptyDBTrash(workspaceId: number) {
     }
 }
 
-// Every table with a trash, children before parents (a cascade then never hides a row that is still to be counted)
-const TRASHABLE_TABLES = ["audio_file", "task", "section", "section_group", "note", "folder", "note_template", "workspace"] as const
+// Every table with a trash, children before parents (a cascade then never hides a row that is still to be counted).
+// The COUNT queries stay (instead of the rows affected by the DELETEs): the rows deleted by a cascade of the same statement
+// (e.g. trashed subtasks) would not be counted the same way, and the totals must keep their meaning.
 
 /**
  * Permanently deletes everything that has been in the trash for more than `days` days, in ALL workspaces

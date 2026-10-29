@@ -1,11 +1,12 @@
 import { useId, type ReactNode } from "react"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { cn } from "@/lib/utils"
 import { HIDE_WHEN_NO_ROWS, SettingsSearchContext, matchesSearch, useSettingsSearch } from "./settings-search-context"
 
 /** Ids a control of a {@link SettingsRow} uses to be named and described by the row. */
-export type SettingsControlProps = {
+type SettingsControlProps = {
     /** `id` of the control (the label points to it). */
     id: string
     /** Id of the label, for controls that cannot be the target of a `<label>` (groups, sliders). */
@@ -60,6 +61,32 @@ export const SettingsSwitchRow = ({ label, description, checked, onCheckedChange
     <SettingsRow label={label} description={description}>
         {({ id, descriptionId }) => (
             <Switch id={id} aria-describedby={descriptionId} checked={checked} onCheckedChange={onCheckedChange} disabled={disabled} />
+        )}
+    </SettingsRow>
+)
+
+type SettingsSelectRowProps = {
+    label: string
+    description?: string
+    value: string
+    onValueChange: (value: string) => void
+    disabled?: boolean
+    /** Width of the select (a Tailwind class such as `w-40`). */
+    width: string
+    /** The `SelectItem`s (and groups) of the menu. */
+    children: ReactNode
+}
+
+/** A row with a select: the label names the trigger and the description is announced with it. */
+export const SettingsSelectRow = ({ label, description, value, onValueChange, disabled, width, children }: SettingsSelectRowProps) => (
+    <SettingsRow label={label} description={description}>
+        {({ id, descriptionId }) => (
+            <Select value={value} onValueChange={onValueChange} disabled={disabled}>
+                <SelectTrigger id={id} aria-describedby={descriptionId} size="sm" className={width}>
+                    <SelectValue />
+                </SelectTrigger>
+                <SelectContent>{children}</SelectContent>
+            </Select>
         )}
     </SettingsRow>
 )

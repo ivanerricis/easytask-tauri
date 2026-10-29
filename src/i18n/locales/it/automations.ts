@@ -6,7 +6,6 @@ export const automations = {
     emptyExample: "Ad esempio: quando un task viene completato, sposta in Fatto.",
     noSections: "Aggiungi almeno una sezione alla nota per creare un'automazione.",
     add: "Nuova automazione",
-    newTitle: "Nuova automazione",
     editTitle: "Modifica automazione",
     edit: "Modifica",
     saved: "Automazione salvata",
@@ -14,11 +13,9 @@ export const automations = {
     delete: "Elimina",
     enabled: "Regola attiva",
     name: "Nome (facoltativo)",
-    when: "Quando",
     where: "In quale sezione",
     whenHint: "Scegli cosa fa partire la regola.",
     thenHint: "Scegli cosa deve succedere.",
-    then: "Allora",
     stepStatus: "Passo {{current}} di {{total}}: {{name}}",
     stepsAria: "Passaggi",
     steps: {
@@ -76,12 +73,8 @@ export const automations = {
         archiveGroup: "Archivia il gruppo",
     },
     values: {
-        top: "In cima",
-        bottom: "In fondo",
         completed: "Completato",
         open: "Da fare",
-        add: "Aggiungi priorità",
-        remove: "Rimuovi priorità",
         noColor: "Nessun colore",
     },
     describe: {

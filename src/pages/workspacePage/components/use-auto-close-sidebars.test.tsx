@@ -1,5 +1,8 @@
 ﻿import { act, renderHook } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import type { ReactNode } from "react"
+import { IsSplitStoreContext } from "@/contexts/layout-context-object"
+import { createExternalStore } from "@/lib/external-store"
 import { useAutoCloseSidebars } from "./use-auto-close-sidebars"
 
 const prefs = vi.hoisted(() => ({ value: {} as Record<string, unknown> }))
@@ -46,5 +49,52 @@ describe("useAutoCloseSidebars", () => {
         resizeTo(600)
         expect(setRight).not.toHaveBeenCalled()
         expect(setLeft).not.toHaveBeenCalled()
+    })
+
+    describe("with the split workspace", () => {
+        const splitStore = (value: boolean) => createExternalStore(value)
+        const withStore = (store: ReturnType<typeof splitStore>) =>
+            ({ children }: { children: ReactNode }) => <IsSplitStoreContext.Provider value={store}>{children}</IsSplitStoreContext.Provider>
+
+        beforeEach(() => {
+            window.innerWidth = 1000
+            // 1000 - 90 rails - 2 * 224 leaves 462: enough for one pane (420) but not for two (640)
+            prefs.value = { ...prefs.value, sidebarLeftWidth: 224, sidebarRightWidth: 224 }
+        })
+
+        it("closes the sidebars as needed when the workspace gets split, without any resize", () => {
+            const store = splitStore(false)
+            renderHook(() => useAutoCloseSidebars(), { wrapper: withStore(store) })
+            expect(setRight).not.toHaveBeenCalled()
+            act(() => store.set(true))
+            expect(setRight).toHaveBeenCalledWith(false)
+            expect(setLeft).not.toHaveBeenCalled()
+        })
+
+        it("does nothing when the workspace is not split, and does not loop", () => {
+            const store = splitStore(false)
+            const { rerender } = renderHook(() => useAutoCloseSidebars(), { wrapper: withStore(store) })
+            rerender()
+            rerender()
+            expect(setRight).not.toHaveBeenCalled()
+            expect(setLeft).not.toHaveBeenCalled()
+            act(() => store.set(true))
+            const calls = setRight.mock.calls.length + setLeft.mock.calls.length
+            rerender()
+            expect(setRight.mock.calls.length + setLeft.mock.calls.length).toBe(calls)
+        })
+
+        it("does not close anything when the split leaves enough room, nor on compact windows, nor when unsplitting", () => {
+            const store = splitStore(false)
+            window.innerWidth = 1400
+            renderHook(() => useAutoCloseSidebars(), { wrapper: withStore(store) })
+            act(() => store.set(true))
+            expect(setRight).not.toHaveBeenCalled()
+            window.innerWidth = 600
+            act(() => store.set(false))
+            act(() => store.set(true))
+            expect(setRight).not.toHaveBeenCalled()
+            expect(setLeft).not.toHaveBeenCalled()
+        })
     })
 })

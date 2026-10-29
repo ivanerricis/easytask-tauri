@@ -1,6 +1,7 @@
 import { render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { toast } from "sonner"
 import { DialogArchive } from "./dialog-archive"
 import { makeWorkspace } from "@/test/ui-fixtures"
@@ -13,13 +14,12 @@ const data = {
     getWorkspaceData: vi.fn(),
 }
 const note = { refreshActiveNote: vi.fn() }
-const recorder = { unarchive: vi.fn(), remove: vi.fn() }
+const recorder = makeUndoRecorderMock()
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => data }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => note }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const items: ArchiveItem[] = [
     { type: "note", id: 2, name: "Nota B", context: "Cartella A", summary: "2 gruppi · 3 sezioni", archived_at: "2026-09-02 08:05:00" },
     { type: "note", id: 5, name: "Nota E", context: "", summary: "", archived_at: "2026-09-03 09:00:00" },

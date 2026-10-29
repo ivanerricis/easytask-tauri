@@ -27,7 +27,7 @@ const noteDataTree: NoteDataTree = {
     ],
 }
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ moveSection, moveSectionToNewGroup, moveTask }),
 }))

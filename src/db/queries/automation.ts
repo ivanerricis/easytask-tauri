@@ -5,7 +5,7 @@ import { isAutomationAction, isAutomationTrigger, isValidRule, type Automation, 
 import { buildGroupIndex, buildSectionIndex, sectionOffsets, toPortable, type PortableAutomation, type PortableSectionRef } from "@/lib/automations/portable"
 import type { NoteTemplateContent } from "@/types/template"
 import { getDB } from "../dbManager"
-import { chunked, placeholders } from "./sql"
+import { chunked, nextPositionSql, placeholders } from "./sql"
 import { runTransaction, type Transaction, type TxRef, type TxStatement } from "../transaction"
 
 type AutomationRow = {
@@ -183,7 +183,7 @@ export async function createDBAutomation(noteId: number, draft: AutomationDraft)
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO automation (noteID, name, enabled, trigger, actions, position)
-             SELECT ?, ?, ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM automation WHERE noteID = ?`,
+             SELECT ?, ?, ?, ?, ?, ${nextPositionSql("automation", "noteID = ?")}`,
             [noteId, draft.name?.trim() || null, draft.enabled ? 1 : 0, JSON.stringify(draft.trigger), JSON.stringify(draft.actions), noteId])
         return result.lastInsertId as number
     } catch (error: unknown) {

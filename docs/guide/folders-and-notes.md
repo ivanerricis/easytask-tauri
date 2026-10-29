@@ -54,6 +54,8 @@ Click the menu button of a row (it appears when you point at it) or right-click 
 | -------------------- | :----: | :--: | ----------------------------------------------------------------------------------- |
 | **New note**, **New folder** | yes |  | Creates the item inside the folder.                                                  |
 | **Open**             |        | yes  | Opens the note in a tab.                                                            |
+| **Open on the right** |       | yes  | Opens the note in the right area, creating the split if needed. See [Split into two areas](#split-into-two-areas). |
+| **Open on the left** |        | yes  | Moves a note of the right area to the left one (only if the note is open on the right). |
 | **Rename**           | yes    | yes  | The name becomes a text field in place. `Enter` saves, `Esc` cancels.               |
 | **Duplicate**        |        | yes  | Makes a copy named like `Roadmap (copy)` and opens it.                              |
 | **Color content**    | yes    |      | Gives the color of the folder to every note and subfolder inside it.                |
@@ -101,18 +103,34 @@ Click a note in the sidebar to open it. Open notes appear as tabs above the note
 | Close the active note     | `Ctrl+L`, or the **Close current note** button on the tab        |
 | Close all notes           | `Ctrl+T`, or the **Close all notes** button in the sidebar       |
 | Reorder tabs              | Drag a tab, or use **Move tab left** / **Move tab right**        |
+| Split into two areas      | `Ctrl+\` (`Cmd+\` on macOS), or the **Split into two areas** button |
 
 You can change every editable shortcut in **Settings > Shortcuts**. See [Keyboard shortcuts](./shortcuts).
 
+### Split into two areas
+
+You can keep two notes side by side. Each area has its own tab bar and its own open note.
+
+- Click **Split into two areas** on the right of the path bar, or press `Ctrl+\` (`Cmd+\` on macOS). An empty area appears on the right. Click **Close the split** (or press the same shortcut) to go back to one area: this closes the tabs of the right area.
+- A note is open in one area at a time. If you open a note that is already open in the other area, EasyTask switches to it there.
+- To move a note, drag its tab to the other tab bar (or drop it in the empty bar). Without the mouse, use **Open on the right** / **Open on the left** in the menu of the note or of its tab, or press `Ctrl+Alt+→` (also `Ctrl+Alt+←`) to move the active note to the other area. **Open on the right** creates the split if there is none.
+- `Ctrl+Alt+\` moves the focus to the other area.
+- The area you clicked last is the focused one. The sidebar, the command menu, the details panel and the shortcuts (close the note, next or previous note, search in the note, new group, undo and redo) act on it.
+- Drag the divider between the areas to resize them. With the divider focused, the arrow keys change the size (`Shift` for bigger steps), and a double click brings it back to 50%. Each area is at least 320 pixels wide, and the sidebars close by themselves when there is not enough room.
+
+The split and the tabs of each workspace are reopened at the next start when **Reopen notes at startup** is on. There can be at most two areas.
+
+The three shortcuts for the split can be changed in **Settings > Shortcuts**, except `Ctrl+Alt+←`.
+
 ### The path bar
 
-Under the tabs, a thin bar shows the path of the open note, for example `Work > Projects > Plan`. Click a folder or the note in the path to show it in the sidebar: the sidebar opens if it was closed, the folders above it expand and the item is selected. A long path keeps the first folder and the last two items. The **Hide completed tasks** button is on the right of the same bar.
+Under the tabs, a thin bar shows the path of the open note, for example `Work > Projects > Plan`. Click a folder or the note in the path to show it in the sidebar: the sidebar opens if it was closed, the folders above it expand and the item is selected. A long path keeps the first folder and the last two items. On the right of the same bar you find the **Hide completed tasks** button and the **Split into two areas** button (it reads **Close the split** while the view is split).
 
 ![The path bar](../screenshots/en/path-bar-light.png)
 
 ### What is reopened at startup
 
-When you open a workspace, EasyTask reopens the notes that were open and the active one. This is saved for each workspace. To turn it off, go to **Settings > Notes and sections** and switch off **Reopen notes at startup**. The same page has **Reopen the last workspace at startup**.
+When you open a workspace, EasyTask reopens the notes that were open, the active one and the split into two areas (if you used it). This is saved for each workspace. To turn it off, go to **Settings > Notes and sections** and switch off **Reopen notes at startup**. The same page has **Reopen the last workspace at startup**.
 
 ## Search a note
 

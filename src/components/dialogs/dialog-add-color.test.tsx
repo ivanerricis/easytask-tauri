@@ -4,8 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import { toast } from "sonner"
 import { DialogAddColor } from "./dialog-add-color"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const setup = (over: Partial<Parameters<typeof DialogAddColor>[0]> = {}) => {
     const addColorItem = vi.fn().mockResolvedValue(undefined)
     const getItemData = vi.fn().mockResolvedValue(undefined)

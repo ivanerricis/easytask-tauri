@@ -131,8 +131,14 @@ fn read_settings(data_dir: &Path) -> Option<serde_json::Value> {
 
 /// A boolean setting from the settings file of the data folder; `default` when the file, the key or a boolean
 /// value is missing. The keys are the ones of the JS side (src/lib/store/preferences.ts): keep them identical.
+#[cfg(test)]
 fn setting_bool(data_dir: &Path, key: &str, default: bool) -> bool {
-    read_settings(data_dir)
+    setting_bool_from(read_settings(data_dir).as_ref(), key, default)
+}
+
+/// Like `setting_bool`, on settings already read (the startup reads the file once and passes the value around).
+fn setting_bool_from(settings: Option<&serde_json::Value>, key: &str, default: bool) -> bool {
+    settings
         .and_then(|settings| settings.get(key)?.as_bool())
         .unwrap_or(default)
 }
@@ -155,27 +161,45 @@ fn webview_browser_args(hardware_acceleration: bool) -> String {
 /// The custom backup folder chosen in the settings, read from the settings file of the data folder. None when
 /// there is none, or when it is not an existing absolute folder (the default folder is used then).
 fn custom_backup_folder(data_dir: &Path) -> Option<PathBuf> {
-    let settings = read_settings(data_dir)?;
-    let folder = PathBuf::from(settings.get(BACKUP_FOLDER_KEY)?.as_str()?.trim());
+    custom_backup_folder_from(read_settings(data_dir).as_ref())
+}
+
+/// Like `custom_backup_folder`, on settings already read.
+fn custom_backup_folder_from(settings: Option<&serde_json::Value>) -> Option<PathBuf> {
+    let folder = PathBuf::from(settings?.get(BACKUP_FOLDER_KEY)?.as_str()?.trim());
     (folder.is_absolute() && folder.is_dir()).then_some(folder)
 }
 
 /// Opens the data folder (or one of its allowed subfolders) in the file manager. The "backups" subfolder resolves
 /// to the custom backup folder when one is set; the UI never passes a path.
+/// The file system work runs outside the UI thread.
 #[tauri::command]
-fn open_data_folder(
+async fn open_data_folder(
     app: tauri::AppHandle,
     info: tauri::State<'_, DataDirInfo>,
     subfolder: Option<String>,
 ) -> Result<(), String> {
+    let data_path = info.path.clone();
+    tauri::async_runtime::spawn_blocking(move || {
+        open_data_folder_blocking(&app, data_path, subfolder)
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
+fn open_data_folder_blocking(
+    app: &tauri::AppHandle,
+    data_path: PathBuf,
+    subfolder: Option<String>,
+) -> Result<(), String> {
     use tauri_plugin_opener::OpenerExt;
 
-    let mut target = info.path.clone();
+    let mut target = data_path.clone();
     if let Some(name) = subfolder {
         if !OPENABLE_SUBFOLDERS.contains(&name.as_str()) {
             return Err("folder not allowed".to_string());
         }
-        match custom_backup_folder(&info.path).filter(|_| name == BACKUPS_SUBFOLDER) {
+        match custom_backup_folder(&data_path).filter(|_| name == BACKUPS_SUBFOLDER) {
             Some(custom) => target = custom,
             None => {
                 target.push(name);
@@ -206,20 +230,26 @@ fn is_audio_file(path: &str) -> bool {
 /// Tells whether an audio file is still where the database says it is.
 /// Only files with an audio extension are considered, so the command cannot be used to probe other paths.
 #[tauri::command]
-fn audio_file_exists(path: String) -> bool {
-    is_audio_file(&path)
+async fn audio_file_exists(path: String) -> bool {
+    tauri::async_runtime::spawn_blocking(move || is_audio_file(&path))
+        .await
+        .unwrap_or(false)
 }
 
 /// Grants the asset protocol access to ONE audio file (no global scope is configured), so the webview
 /// can stream it through convertFileSrc. Fails if the file is missing or is not an audio file.
 #[tauri::command]
-fn allow_audio_file(app: tauri::AppHandle, path: String) -> Result<(), String> {
-    if !is_audio_file(&path) {
-        return Err("audio file not found".to_string());
-    }
-    app.asset_protocol_scope()
-        .allow_file(Path::new(&path))
-        .map_err(|error| error.to_string())
+async fn allow_audio_file(app: tauri::AppHandle, path: String) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        if !is_audio_file(&path) {
+            return Err("audio file not found".to_string());
+        }
+        app.asset_protocol_scope()
+            .allow_file(Path::new(&path))
+            .map_err(|error| error.to_string())
+    })
+    .await
+    .map_err(|error| error.to_string())?
 }
 
 /// Largest cover art (bytes) returned by `audio_metadata`; bigger pictures are left out to keep the reply small.
@@ -421,7 +451,7 @@ async fn run_transaction(
             query = match value {
                 serde_json::Value::Null => query.bind(None::<i64>),
                 serde_json::Value::Bool(flag) => query.bind(*flag),
-                serde_json::Value::String(text) => query.bind(text.clone()),
+                serde_json::Value::String(text) => query.bind(text.as_str()),
                 serde_json::Value::Number(number) => match number.as_i64() {
                     Some(integer) => query.bind(integer),
                     None => query.bind(number.as_f64().unwrap_or_default()),
@@ -454,12 +484,16 @@ async fn db_transaction(
     db: String,
     statements: Vec<Stmt>,
 ) -> Result<Vec<StmtResult>, String> {
-    let instances = db_instances.0.read().await;
-    let pool = match instances.get(&db) {
-        Some(tauri_plugin_sql::DbPool::Sqlite(pool)) => pool,
-        None => return Err(format!("database {db} is not loaded")),
+    // Clone the pool out of the map: the read guard must not live across the whole transaction (it would block
+    // load/close of databases meanwhile)
+    let pool = {
+        let instances = db_instances.0.read().await;
+        match instances.get(&db) {
+            Some(tauri_plugin_sql::DbPool::Sqlite(pool)) => pool.clone(),
+            None => return Err(format!("database {db} is not loaded")),
+        }
     };
-    run_transaction(pool, &statements).await
+    run_transaction(&pool, &statements).await
 }
 
 /// Portable mode as seen before the app exists (plugins are registered first).
@@ -488,8 +522,9 @@ fn set_app_user_model_id(identifier: &str) {
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let context = tauri::generate_context!();
     #[cfg(windows)]
-    set_app_user_model_id("com.ivanerricis.easytask");
+    set_app_user_model_id(&context.config().identifier);
     let mut builder = tauri::Builder::default();
     // Must be the first plugin. A second launch focuses the window of the running instance.
     #[cfg(desktop)]
@@ -540,13 +575,16 @@ pub fn run() {
                 }
             };
 
+            // The settings file is read once and shared by the startup steps below
+            let settings = read_settings(&info.path);
+
             // Runtime scope limited to the data folder (no global scope in the capabilities).
             app.fs_scope().allow_directory(&info.path, true)?;
             app.asset_protocol_scope()
                 .allow_directory(&info.path, true)?;
             // The custom backup folder (if any): only the folder itself, not its subfolders. When the user picks a
             // new one the dialog plugin adds it to the scope for the current session.
-            if let Some(folder) = custom_backup_folder(&info.path) {
+            if let Some(folder) = custom_backup_folder_from(settings.as_ref()) {
                 app.fs_scope().allow_directory(&folder, false)?;
             }
 
@@ -583,14 +621,13 @@ pub fn run() {
                 .first()
                 .cloned()
                 .ok_or("no window configured")?;
-            #[allow(unused_mut)]
             let mut window = tauri::WebviewWindowBuilder::from_config(app.handle(), &config)?;
             // The arguments of WebView2 are read when the webview is created: the hardware acceleration setting
             // applies at the next start
             #[cfg(windows)]
             {
-                window = window.additional_browser_args(&webview_browser_args(setting_bool(
-                    &info.path,
+                window = window.additional_browser_args(&webview_browser_args(setting_bool_from(
+                    settings.as_ref(),
                     HARDWARE_ACCELERATION_KEY,
                     true,
                 )));
@@ -599,12 +636,12 @@ pub fn run() {
             if info.portable {
                 window = window.data_directory(info.path.join("webview"));
             }
-            if setting_bool(&info.path, ALWAYS_ON_TOP_KEY, false) {
+            if setting_bool_from(settings.as_ref(), ALWAYS_ON_TOP_KEY, false) {
                 window = window.always_on_top(true);
             }
             // Without the plugin (portable mode) there is no state to restore
-            let restore_state =
-                !info.portable && setting_bool(&info.path, REMEMBER_WINDOW_STATE_KEY, true);
+            let restore_state = !info.portable
+                && setting_bool_from(settings.as_ref(), REMEMBER_WINDOW_STATE_KEY, true);
             if restore_state {
                 // Hidden until the saved position and size are applied, or it would flash at the default place
                 window = window.visible(false);
@@ -632,7 +669,6 @@ pub fn run() {
             ))?;
 
             app.manage(info);
-            #[cfg(windows)]
             app.manage(media_session::MediaSession::new());
             Ok(())
         })
@@ -650,7 +686,7 @@ pub fn run() {
             media_session::media_session_timeline,
             media_session::media_session_clear
         ])
-        .run(tauri::generate_context!())
+        .run(context)
         .expect("error while running tauri application");
 }
 

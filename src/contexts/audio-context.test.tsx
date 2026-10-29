@@ -21,7 +21,7 @@ vi.mock("@tauri-apps/api/core", () => ({
     convertFileSrc: vi.fn((path: string) => `asset://localhost/${encodeURIComponent(path)}`),
 }))
 vi.mock("@tauri-apps/plugin-dialog", () => ({ open: vi.fn() }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn(), info: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/db/queries/audio", async (importOriginal) => ({
     ...(await importOriginal<typeof import("@/db/queries/audio")>()),
     getDBGroupAudioFiles: vi.fn(),
@@ -36,7 +36,7 @@ const workspaceActions = {
 }
 const workspaceState = { audioVersion: 0 }
 vi.mock("./workspace-data", () => ({
-    useWorkspaceState: () => workspaceState,
+    useWorkspaceVersion: (kind: string) => kind === "audio" ? workspaceState.audioVersion : 0,
     useWorkspaceActions: () => workspaceActions,
     useWorkspaceData: () => ({ ...workspaceState, ...workspaceActions }),
 }))

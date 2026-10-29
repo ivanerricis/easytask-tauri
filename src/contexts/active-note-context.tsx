@@ -1,10 +1,12 @@
 import i18n from "@/i18n"
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { createEmitter } from "@/lib/emitter"
 import { reportError } from "@/lib/report-error"
 import type { NoteDataTree } from "@/types/types"
 import { useActiveNoteId, useTabs } from "./use-tabs"
 import { ActiveNoteActionsContext, ActiveNoteContext, type ActiveNoteActionsType } from "./active-note-context-object"
 import { fetchNoteTree } from "./tree-builders"
+import { PaneNoteActionsContext, PaneNoteTreesContext, PaneTabsContext } from "./layout-context-object"
 import { createNoteOptimisticActions, type NoteOptimisticActions, type Rollback } from "./note-optimistic"
 
 /* ------------------------------------------------------------------------------------ */
@@ -31,9 +33,8 @@ type NoteCache = {
  */
 function createNoteCache(): NoteCache {
     const entries = new Map<number, NoteDataTree>()
-    const listeners = new Set<() => void>()
+    const { subscribe, emit } = createEmitter()
     const changeListeners = new Set<(noteId: number) => void>()
-    const emit = () => listeners.forEach(listener => listener())
 
     return {
         get: noteId => entries.get(noteId),
@@ -53,10 +54,7 @@ function createNoteCache(): NoteCache {
             }
             if (removed) emit()
         },
-        subscribe: listener => {
-            listeners.add(listener)
-            return () => { listeners.delete(listener) }
-        },
+        subscribe,
         subscribeChanges: listener => {
             changeListeners.add(listener)
             return () => { changeListeners.delete(listener) }
@@ -67,26 +65,37 @@ function createNoteCache(): NoteCache {
 /* ------------------------------------------------------------------------------------ */
 
 /**
- * Single place that loads the data of the active note. It loads on every activation (effect on the active id),
+ * Single place that loads the data of the active notes. It loads on every activation (effect on the active id of each pane),
  * shows the cached data instantly and revalidates in background, and ignores stale responses
  * (a response is used only if no newer request for the same note started and, to be displayed, the note is still active).
+ * With a split workspace both panes' active notes are loaded and the cache keeps the notes open in either pane.
+ * It provides the actions of the focused pane (`ActiveNoteActionsContext`) and of each pane (`PaneNoteActionsContext`).
  * @category ActiveNote Context
  */
 export function ActiveNoteProvider({ children }: { children: React.ReactNode }) {
-    const activeId = useActiveNoteId()
+    const focusedId = useActiveNoteId()
     const { openIds } = useTabs()
+    const paneTabs = useContext(PaneTabsContext)
     const [cache] = useState(createNoteCache)
 
-    const activeIdRef = useRef(activeId)
+    // Outside the layout provider the single active note is the one of pane 0
+    const id0 = paneTabs ? paneTabs[0].tabs.activeId : focusedId
+    const id1 = paneTabs ? paneTabs[1].tabs.activeId : null
+
+    const activeIdRef = useRef(focusedId)
+    const id0Ref = useRef(id0)
+    const id1Ref = useRef(id1)
     const openIdsRef = useRef(openIds)
     const requestSeq = useRef(new Map<number, number>())
 
     useEffect(() => {
-        activeIdRef.current = activeId
+        activeIdRef.current = focusedId
+        id0Ref.current = id0
+        id1Ref.current = id1
         openIdsRef.current = openIds
-    }, [activeId, openIds])
+    }, [focusedId, id0, id1, openIds])
 
-    // Evict the cache entries of closed tabs
+    // Evict the cache entries of closed tabs (the union of the panes)
     useEffect(() => {
         cache.retain(openIds)
     }, [cache, openIds])
@@ -106,40 +115,49 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
     }, [cache, nextSeq])
 
     useEffect(() => {
-        if (activeId === null) return
-        loadNote(activeId).catch(error => {
+        if (id0 === null) return
+        loadNote(id0).catch(error => {
             reportError(error, i18n.t("errors.loadNote"))
         })
-    }, [activeId, loadNote])
+    }, [id0, loadNote])
 
-    const noteDataTree = useSyncExternalStore(
-        cache.subscribe,
-        () => activeId !== null ? cache.get(activeId) ?? null : null,
-    )
+    useEffect(() => {
+        // id0 is read from its ref: a change of the other pane must not reload this one
+        if (id1 === null || id1 === id0Ref.current) return
+        loadNote(id1).catch(error => {
+            reportError(error, i18n.t("errors.loadNote"))
+        })
+    }, [id1, loadNote])
 
-    const getActive = useCallback(() => {
-        const id = activeIdRef.current
-        const tree = id !== null ? cache.get(id) : undefined
-        return id !== null && tree ? { id, tree } : null
-    }, [cache])
+    const treeOf = useCallback((id: number | null) => () => id !== null ? cache.get(id) ?? null : null, [cache])
+    const getFocusedTree = useMemo(() => treeOf(focusedId), [treeOf, focusedId])
+    const getTree0 = useMemo(() => treeOf(id0), [treeOf, id0])
+    const getTree1 = useMemo(() => treeOf(id1), [treeOf, id1])
+    const noteDataTree = useSyncExternalStore(cache.subscribe, getFocusedTree)
+    const tree0 = useSyncExternalStore(cache.subscribe, getTree0)
+    const tree1 = useSyncExternalStore(cache.subscribe, getTree1)
 
     const commit = useCallback((noteId: number, tree: NoteDataTree) => {
         nextSeq(noteId) // an in-flight reload would overwrite this newer data
         cache.set(noteId, tree)
     }, [cache, nextSeq])
 
-    const refreshActiveNote = useCallback(async () => {
-        if (activeIdRef.current !== null) await loadNote(activeIdRef.current)
-    }, [loadNote])
-
-    const actions = useMemo<ActiveNoteActionsType>(() => {
-        const setNoteDataTree = (tree: NoteDataTree | null) => {
-            const id = activeIdRef.current
+    /** The actions bound to the note that `getActiveId` returns when an action runs. */
+    const buildActions = useCallback((getActiveId: () => number | null): ActiveNoteActionsType => {
+        const getActive = () => {
+            const id = getActiveId()
+            const tree = id !== null ? cache.get(id) : undefined
+            return id !== null && tree ? { id, tree } : null
+        }
+        const refreshActiveNote = async () => {
+            const id = getActiveId()
+            if (id !== null) await loadNote(id)
+        }
+        const setNoteDataTree = (tree: NoteDataTree | null, noteId?: number) => {
+            const id = noteId ?? getActiveId()
             if (id === null || !tree) return
             commit(id, tree)
         }
-        // The store only reads the ref when an action runs (never during render)
-        // eslint-disable-next-line react-hooks/refs
         const base = createNoteOptimisticActions({ active: getActive, get: cache.get, commit })
         // A creation that cannot be applied locally falls back to a background reload (never awaited by the UI)
         const withReload = <A extends unknown[]>(append: (...args: A) => Rollback | null) => (...args: A): Rollback => {
@@ -164,15 +182,30 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
             subscribeNoteChanges: cache.subscribeChanges,
             ...optimistic,
         }
-    }, [cache, loadNote, refreshActiveNote, getActive, commit])
+    }, [cache, loadNote, commit])
+
+    // The store only reads the refs when an action runs (never during render)
+    /* eslint-disable react-hooks/refs */
+    const actions = useMemo(() => ({
+        focused: buildActions(() => activeIdRef.current),
+        pane0: buildActions(() => id0Ref.current),
+        pane1: buildActions(() => id1Ref.current),
+    }), [buildActions])
+    /* eslint-enable react-hooks/refs */
 
     const value = useMemo(() => ({ noteDataTree }), [noteDataTree])
+    const paneActions = useMemo(() => [actions.pane0, actions.pane1] as const, [actions])
+    const paneTrees = useMemo(() => [tree0, tree1] as const, [tree0, tree1])
 
     return (
-        <ActiveNoteActionsContext.Provider value={actions}>
-            <ActiveNoteContext.Provider value={value}>
-                {children}
-            </ActiveNoteContext.Provider>
+        <ActiveNoteActionsContext.Provider value={actions.focused}>
+            <PaneNoteActionsContext.Provider value={paneActions}>
+                <PaneNoteTreesContext.Provider value={paneTrees}>
+                    <ActiveNoteContext.Provider value={value}>
+                        {children}
+                    </ActiveNoteContext.Provider>
+                </PaneNoteTreesContext.Provider>
+            </PaneNoteActionsContext.Provider>
         </ActiveNoteActionsContext.Provider>
     )
 }

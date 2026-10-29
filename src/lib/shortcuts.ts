@@ -1,9 +1,9 @@
 import i18n from "@/i18n"
 
-export type ShortcutCategory = "general" | "notes" | "groups" | "tasks" | "home"
+type ShortcutCategory = "general" | "notes" | "groups" | "tasks" | "home"
 
 // "global" shortcuts clash with every scope; "workspace" and "home" are separate pages and can reuse the same keys
-export type ShortcutScope = "global" | "workspace" | "home"
+type ShortcutScope = "global" | "workspace" | "home"
 
 /** `ctrl` matches both Ctrl and Cmd; `key` is compared case-insensitively against KeyboardEvent.key. */
 export interface Binding {
@@ -71,6 +71,11 @@ export const SHORTCUTS: Shortcut[] = [
     { id: "toggle-hide-completed", defaultBinding: { key: "h", ctrl: true, shift: true }, editable: true, scope: "workspace", category: "notes" },
     // Plays or pauses the audio player while it is open
     { id: "toggle-audio", defaultBinding: { key: "p", alt: true }, editable: true, scope: "workspace", category: "notes" },
+    // Split workspace: Ctrl+Alt+Right moves the active note to the right area (or to the other one), Ctrl+Alt+Left is its fixed alternative
+    { id: "toggle-split", defaultBinding: { key: "\\", ctrl: true }, editable: true, scope: "workspace", category: "notes" },
+    { id: "move-note-to-other-pane", defaultBinding: { key: "ArrowRight", ctrl: true, alt: true }, editable: true, scope: "workspace", category: "notes" },
+    { id: "move-note-to-other-pane-alt", defaultBinding: { key: "ArrowLeft", ctrl: true, alt: true }, editable: false, scope: "workspace", category: "notes" },
+    { id: "focus-other-pane", defaultBinding: { key: "\\", ctrl: true, alt: true }, editable: true, scope: "workspace", category: "notes" },
     { id: "new-group", defaultBinding: { key: "n", alt: true }, editable: true, scope: "workspace", category: "groups" },
     { id: "confirm-rename", keys: ["enter"], editable: false, scope: "workspace", category: "groups" },
     { id: "cancel-rename", keys: ["escape"], editable: false, scope: "workspace", category: "groups" },

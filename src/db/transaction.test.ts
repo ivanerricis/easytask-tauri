@@ -10,7 +10,7 @@ vi.mock("@tauri-apps/api/core", () => ({ invoke: vi.fn() }))
 
 import { invoke } from "@tauri-apps/api/core"
 import { createRecordingInvoke, createSqliteInvoke, resolveTxParam, runSqliteTransaction } from "@/test/db-mock"
-import { Transaction, TransactionError, runTransaction } from "./transaction"
+import { Transaction, TransactionError, rethrowTxError, runTransaction } from "./transaction"
 
 const rows = (sql: string) => sqlite.prepare(sql).all() as Record<string, unknown>[]
 
@@ -164,5 +164,16 @@ describe("$ref resolution (mirrors the Rust command)", () => {
             { sql: "INSERT INTO child (parentID, label) VALUES (?, ?)", params: [{ $ref: 5, offset: 0 }, "x"] },
         ])).toThrow(/^statement 1 failed/)
         expect(rows("SELECT * FROM parent")).toEqual([])
+    })
+})
+
+describe("rethrowTxError", () => {
+    it("translates the error of the given statement and ignores any other error", () => {
+        const unique = new TransactionError("statement 1: UNIQUE constraint failed", 1)
+        expect(() => rethrowTxError(unique, 1, "NOTE", { UNIQUE: "taken" })).toThrow(expect.objectContaining({ code: "NOTE_EXISTS", message: "taken" }))
+        expect(() => rethrowTxError(new TransactionError("statement 1: CHECK constraint failed", 1), 1, "NOTE")).toThrow(expect.objectContaining({ code: "NOTE_CHECK_FAILED" }))
+        expect(() => rethrowTxError(unique, 0, "NOTE")).not.toThrow()
+        expect(() => rethrowTxError(new TransactionError("x", null), 0, "NOTE")).not.toThrow()
+        expect(() => rethrowTxError(new Error("UNIQUE"), 0, "NOTE")).not.toThrow()
     })
 })

@@ -3,7 +3,7 @@ import { X } from "lucide-react"
 import React from "react"
 import { reportError } from "@/lib/report-error"
 import type { DBItemType } from "@/db/queries/shared_queries"
-import { cn, getErrorMessage } from "@/lib/utils"
+import { getErrorMessage } from "@/lib/utils"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getItemName, isUndoableType } from "@/contexts/undo/commands"
 import { Button } from "@/components/ui/button"
@@ -20,7 +20,6 @@ export type DialogAddColorProps<T> = {
     /** Reloads the data after the change; not needed when `addColorItem` updates the cached data itself. */
     getItemData?: (id: number) => Promise<void>
     setDropDownOpen?: (open: boolean) => void
-    className?: string
 }
 
 type defaultItemType = {
@@ -28,46 +27,41 @@ type defaultItemType = {
     color?: string | null | undefined
 }
 
-export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getItemId, addColorItem, onPick, getItemData, setDropDownOpen, className }: DialogAddColorProps<T>) => {
+export const DialogAddColor = <T extends defaultItemType>({ item, itemType, getItemId, addColorItem, onPick, getItemData, setDropDownOpen }: DialogAddColorProps<T>) => {
     const { t } = useTranslation()
     const recorder = useUndoRecorder()
     // Reloading needs the id; without a reload hook the change is saved as is
     const canSave = !getItemData || !!getItemId
 
-    const handleSaveColor = async (colorToSave: string, e?: React.MouseEvent) => {
-        e?.stopPropagation()
+    // Saves the color (null removes it); closes the menu first, so the click does not reach the row below
+    const apply = async (color: string | null) => {
         if (setDropDownOpen) setDropDownOpen(false)
         try {
             if (onPick) {
-                await onPick(colorToSave)
-            } else if (item && itemType && addColorItem && item.color !== colorToSave && canSave) {
-                await addColorItem(itemType, item.id, colorToSave)
+                await onPick(color)
+            } else if (item && itemType && addColorItem && canSave && (color === null ? item.color : item.color !== color)) {
+                if (color === null) await addColorItem(itemType, item.id)
+                else await addColorItem(itemType, item.id, color)
                 if (getItemData && getItemId) await getItemData(getItemId)
-                if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, colorToSave)
+                if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, color)
             }
         } catch (err) {
             reportError(err, getErrorMessage(err))
         }
     }
 
-    const handleDeleteColor = async (e: React.MouseEvent) => {
+    const handleSaveColor = (color: string, e?: React.MouseEvent) => {
+        e?.stopPropagation()
+        return apply(color)
+    }
+
+    const handleDeleteColor = (e: React.MouseEvent) => {
         e.stopPropagation()
-        if (setDropDownOpen) setDropDownOpen(false)
-        try {
-            if (onPick) {
-                await onPick(null)
-            } else if (item && itemType && addColorItem && item.color && canSave) {
-                await addColorItem(itemType, item.id)
-                if (getItemData && getItemId) await getItemData(getItemId)
-                if (isUndoableType(itemType)) recorder.color(itemType, item.id, getItemName(item), item.color ?? null, null)
-            }
-        } catch (err) {
-            reportError(err, getErrorMessage(err))
-        }
+        return apply(null)
     }
 
     return (
-        <div className={cn("flex flex-col rounded-xs", className)}>
+        <div className="flex flex-col rounded-xs">
             <ColorPalette value={item?.color} onPick={handleSaveColor} />
             <div className="flex items-center p-1">
                 <Button

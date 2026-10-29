@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react"
+import { useAfterMenuClose } from "./use-after-menu-close"
 
 /**
  * The "Rename" entry of an item menu starts the inline edit, but only once the menu has given the focus back,
@@ -7,16 +7,6 @@ import { useCallback, useRef } from "react"
  * @category Hooks
  */
 export function useRenameAfterClose(onRename?: () => void) {
-    const pending = useRef(false)
-
-    const requestRename = useCallback(() => { pending.current = true }, [])
-
-    const onCloseAutoFocus = useCallback((e: Event) => {
-        if (!pending.current) return
-        e.preventDefault()
-        pending.current = false
-        onRename?.()
-    }, [onRename])
-
-    return { requestRename, onCloseAutoFocus }
+    const { request, onCloseAutoFocus } = useAfterMenuClose(onRename)
+    return { requestRename: request, onCloseAutoFocus }
 }

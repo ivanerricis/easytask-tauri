@@ -1,35 +1,36 @@
 import { useTranslation } from "react-i18next"
 import { getErrorMessage } from "@/lib/utils"
-import type { DBItemType } from "@/db/queries/shared_queries"
 import type { Task } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import { withRollback } from "@/contexts/with-rollback"
 import { reportError } from "@/lib/report-error"
 import { toast } from "sonner"
-import { useRef, useState, type ReactElement } from "react"
+import { useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { Separator } from "@/components/ui/separator"
 import { DialogDeleteItem } from "@/components/dialogs/dialog-delete"
 import { ColorSubmenu } from "../ColorSubmenu"
 import { MenuGroup } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
+import { useAfterMenuClose } from "@/hooks/use-after-menu-close"
+import { useItemMutations } from "@/hooks/use-item-mutations"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
-import { DialogTaskDescription } from "./DialogTaskDescription"
 import { TaskMoveSubmenu } from "../NoteMoveSubmenus"
 import { TaskStepMoves } from "../NoteStepMoves"
 import { useShowTaskDetails } from "../rightbar/use-right-panel"
 import { useActiveNoteId, useSelectTask } from "@/contexts/use-tabs"
 import { useIsActiveDraft } from "@/contexts/use-template-drafts"
-import { useIsInTaskMultiSelection } from "./task-selection-context"
+import { useIsInTaskMultiSelection } from "./use-task-selection"
 import { TaskSelectionMenuItems } from "./TaskSelectionMenu"
 
-type ButtonMenuFolderProps = {
+type ButtonMenuTaskProps = {
     task: Task
     onAddSubtask?: () => void
     /** Starts the inline edit of the text (once the menu has given the focus back). */
     onRename?: () => void
+    /** Opens the description dialog (owned by the row, which also opens it from its own buttons). */
+    onEditDescription: () => void
     /** Whether the subtasks are shown; with {@link onToggleSubtasks} it gives the "Collapse / Expand subtasks" entry (only on a task that has subtasks). */
     subtasksOpen?: boolean
     onToggleSubtasks?: () => void
@@ -37,18 +38,19 @@ type ButtonMenuFolderProps = {
     children: ReactElement
 }
 
-export const ButtonMenuTask = ({ task, onAddSubtask, onRename, subtasksOpen = true, onToggleSubtasks, children }: ButtonMenuFolderProps) => {
+export const ButtonMenuTask = ({ task, onAddSubtask, onRename, onEditDescription, subtasksOpen = true, onToggleSubtasks, children }: ButtonMenuTaskProps) => {
     const { t } = useTranslation()
     // The inline input is opened once the menu has given the focus back, otherwise the input would lose it
-    const afterClose = useRef<"addSubtask" | "rename" | null>(null)
+    const { request: requestAddSubtask, onCloseAutoFocus: addSubtaskAfterClose } = useAfterMenuClose(onAddSubtask)
+    const { request: requestRename, onCloseAutoFocus: renameAfterClose } = useAfterMenuClose(onRename)
     const menu = useItemMenuState()
-    const [isDescriptionOpen, setDescriptionOpen] = useState(false)
     const [isDeleteTaskOpen, setDeleteTaskOpen] = useState(false)
-    const { updateTaskPriority, updateTaskDescription, updateItemColor, archiveItem } = useWorkspaceActions()
+    const { updateTaskPriority, updateTaskDescription } = useWorkspaceActions()
     const activeId = useActiveNoteId()
     const isDraft = useIsActiveDraft()
     const { patchTask, removeTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
+    const { addColorItem, archive } = useItemMutations("task", patchTask, removeTask)
     const selectTask = useSelectTask()
     const showTaskDetails = useShowTaskDetails()
     const multi = useIsInTaskMultiSelection(task.id)
@@ -82,30 +84,14 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, subtasksOpen = tr
         }
         else {
             menu.close()
-            setDescriptionOpen(true)
-        }
-    }
-
-    // The color is applied to the cached tree at once and restored if the write fails
-    const addColorItem = async (itemType: DBItemType, itemId: number, color?: string) => {
-        const rollback = patchTask(itemId, { color: color ?? null })
-        try {
-            await updateItemColor(itemType, itemId, color)
-        } catch (error) {
-            rollback()
-            throw error
+            onEditDescription()
         }
     }
 
     // Removed from the open note at once (put back if the write fails), with its subtasks; no confirmation, undo brings it back
-    const handleArchive = async () => {
+    const handleArchive = () => {
         menu.close()
-        try {
-            await withRollback(removeTask(task.id), () => archiveItem("task", task.id))
-            recorder.archive("task", task.id, task.text)
-        } catch (error) {
-            reportError(error, getErrorMessage(error))
-        }
+        return archive(task.id, task.text)
     }
 
     // The dialogs call it after their write succeeded: the cached tree needs no reload
@@ -117,7 +103,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, subtasksOpen = tr
             <ButtonInPopover
                 text={t("tasks.addSubtask")}
                 type="addSubtask"
-                onClick={() => { afterClose.current = "addSubtask"; menu.close() }}
+                onClick={() => { requestAddSubtask(); menu.close() }}
             />
             {onToggleSubtasks && task.subtasks.length > 0 &&
                 <ButtonInPopover
@@ -139,7 +125,7 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, subtasksOpen = tr
             <ButtonInPopover
                 text={t("common.rename")}
                 type="rename"
-                onClick={() => { afterClose.current = "rename"; menu.close() }}
+                onClick={() => { requestRename(); menu.close() }}
             />
             <ColorSubmenu
                 item={task}
@@ -181,13 +167,6 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, subtasksOpen = tr
 
     const dialogs = (
         <>
-            {isDescriptionOpen &&
-                <DialogTaskDescription
-                    task={task}
-                    open={isDescriptionOpen}
-                    onOpenChange={setDescriptionOpen}
-                />}
-
             {isDeleteTaskOpen &&
                 <DialogDeleteItem
                     item={task}
@@ -207,12 +186,8 @@ export const ButtonMenuTask = ({ task, onAddSubtask, onRename, subtasksOpen = tr
             dialogs={dialogs}
             contentClassName="p-1 rounded-xs"
             onCloseAutoFocus={(e) => {
-                const action = afterClose.current
-                if (!action) return
-                e.preventDefault()
-                afterClose.current = null
-                if (action === "rename") onRename?.()
-                else onAddSubtask?.()
+                renameAfterClose(e)
+                addSubtaskAfterClose(e)
             }}
         >
             {children}

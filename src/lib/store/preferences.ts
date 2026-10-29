@@ -1,53 +1,27 @@
 import type { AudioPlayerPosition } from "@/types/types"
+import { clampNumber, isFiniteNumber } from "@/lib/number"
+import { isHexColor } from "@/lib/colors"
 import { store } from "./initStore"
+import { flushStore, saveStoreSoon } from "./save-soon"
 import { DEFAULT_PRIMARY_COLOR } from "@/lib/accent-color"
 import { SIDEBAR_DEFAULT_WIDTH, clampSidebarWidth } from "@/lib/sidebar-layout"
+import { DEFAULT_SPLIT_RATIO, clampRatio } from "@/lib/split-layout"
 import { DEFAULT_COLOR_INTENSITY, clampColorIntensity } from "@/lib/color-intensity"
 import { UNDO_LIMIT } from "@/contexts/undo/stack"
 import { DEFAULT_LANGUAGE_PREFERENCE, isLanguagePreference, type LanguagePreference } from "@/i18n"
 
-const PRIMARY_COLOR_KEY = "primaryColor"
-const AUDIOPLAYER_POSITION_KEY = "audioPlayerPosition"
 export { DEFAULT_PRIMARY_COLOR }
 
-const SAVE_DEBOUNCE_MS = 500
-
-let saveTimer: ReturnType<typeof setTimeout> | null = null
-let pendingResolvers: { resolve: () => void; reject: (e: unknown) => void }[] = []
-
-const runSave = async (): Promise<void> => {
-    if (saveTimer) clearTimeout(saveTimer)
-    saveTimer = null
-    const waiting = pendingResolvers
-    pendingResolvers = []
-    try {
-        await store.save()
-        waiting.forEach(w => w.resolve())
-    } catch (e) {
-        waiting.forEach(w => w.reject(e))
-    }
-}
+// One debounced save for the whole store (shared with tabs and shortcuts, see save-soon.ts)
+const persist = saveStoreSoon
 
 /**
- * Schedules a debounced save of the store; values already set stay in memory immediately.
- * @returns A promise that resolves when the save has actually happened.
- * @category Store
- */
-const persist = (): Promise<void> =>
-    new Promise<void>((resolve, reject) => {
-        pendingResolvers.push({ resolve, reject })
-        if (saveTimer) clearTimeout(saveTimer)
-        saveTimer = setTimeout(() => { void runSave() }, SAVE_DEBOUNCE_MS)
-    })
-
-/**
- * Saves immediately any pending preference change (call before the app closes).
+ * Saves immediately any pending store change (call before the app closes).
+ * Same as `flushStore`: preferences share its single debounce timer.
  * @returns A promise that resolves when nothing is left to save.
  * @category Store
  */
-export const flushPreferences = async (): Promise<void> => {
-    if (saveTimer) await runSave()
-}
+export const flushPreferences = flushStore
 
 export const DEFAULT_AUDIO_VOLUME = 1
 export const AUDIO_PLAYER_SCALES = [0.85, 1, 1.2] as const
@@ -58,14 +32,12 @@ export const DEFAULT_AUDIO_PLAYER_OPACITY = 1
 
 /** Brings a volume into 0-1 (non-numbers give the default). */
 const clampAudioVolume = (value: unknown): number => {
-    if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_AUDIO_VOLUME
-    return Math.min(1, Math.max(0, Math.round(value * 100) / 100))
+    return clampNumber(value, 0, 1, DEFAULT_AUDIO_VOLUME, 0.01)
 }
 
 /** Brings an opacity into 0.4-1 (non-numbers give the default). */
 const clampAudioPlayerOpacity = (value: unknown): number => {
-    if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_AUDIO_PLAYER_OPACITY
-    return Math.min(1, Math.max(MIN_AUDIO_PLAYER_OPACITY, Math.round(value * 100) / 100))
+    return clampNumber(value, MIN_AUDIO_PLAYER_OPACITY, 1, DEFAULT_AUDIO_PLAYER_OPACITY, 0.01)
 }
 
 /** Returns the allowed scale (0.85, 1 or 1.2) a stored value stands for; anything else gives 1. */
@@ -82,22 +54,22 @@ const normalizeAudioPlaybackRate = (value: unknown): AudioPlaybackRate =>
     AUDIO_PLAYBACK_RATES.find(rate => rate === value) ?? DEFAULT_AUDIO_PLAYBACK_RATE
 
 /** Where a track was left: the position in seconds and when it was saved (the keys are numbers, so the object itself keeps no order). */
-export type AudioPosition = { position: number, updatedAt: number }
+type AudioPosition = { position: number, updatedAt: number }
 /** The remembered positions of the audio files, by audio id. */
 export type AudioPositions = Record<string, AudioPosition>
 /** Most positions kept: past this the oldest ones are dropped. */
 export const MAX_AUDIO_POSITIONS = 200
 
 /** Keeps the valid entries (id key, finite position >= 0; a bare number is a position saved without a date) and the most recent MAX_AUDIO_POSITIONS. */
-export const normalizeAudioPositions = (value: unknown): AudioPositions => {
+const normalizeAudioPositions = (value: unknown): AudioPositions => {
     if (typeof value !== "object" || value === null || Array.isArray(value)) return {}
     const entries: [string, AudioPosition][] = []
     for (const [id, raw] of Object.entries(value)) {
         if (!/^\d+$/.test(id)) continue
         const entry = typeof raw === "number" ? { position: raw, updatedAt: 0 } : (raw ?? {}) as Partial<AudioPosition>
         const { position, updatedAt } = entry
-        if (typeof position !== "number" || !Number.isFinite(position) || position < 0) continue
-        entries.push([id, { position, updatedAt: typeof updatedAt === "number" && Number.isFinite(updatedAt) ? updatedAt : 0 }])
+        if (!isFiniteNumber(position) || position < 0) continue
+        entries.push([id, { position, updatedAt: isFiniteNumber(updatedAt) ? updatedAt : 0 }])
     }
     entries.sort((a, b) => b[1].updatedAt - a[1].updatedAt)
     return Object.fromEntries(entries.slice(0, MAX_AUDIO_POSITIONS))
@@ -120,14 +92,14 @@ export const textPxFromZoom = (zoom: TextZoom): number => Math.round(zoom * BASE
 
 /** Brings a stored value to a whole number of px between the limits; anything else gives the normal zoom. */
 const normalizeTextZoom = (value: unknown): TextZoom =>
-    typeof value === "number" && Number.isFinite(value) ? textZoomFromPx(value * BASE_TEXT_PX) : DEFAULT_TEXT_ZOOM
+    isFiniteNumber(value) ? textZoomFromPx(value * BASE_TEXT_PX) : DEFAULT_TEXT_ZOOM
 
 /** Fonts of the app: the default one (the one used so far) and fonts bundled with the app (loaded when chosen). */
 export const FONT_FAMILIES = ["system", "inter", "lora", "jetbrains-mono", "atkinson", "opendyslexic"] as const
 export type FontFamily = typeof FONT_FAMILIES[number]
 export const DEFAULT_FONT_FAMILY: FontFamily = "system"
 
-export type WorkspaceView = "grid" | "list"
+type WorkspaceView = "grid" | "list"
 export type WorkspaceSortBy = "edited" | "created" | "name"
 export type WorkspaceSortDir = "asc" | "desc"
 export type WorkspaceSort = { by: WorkspaceSortBy, dir: WorkspaceSortDir }
@@ -162,8 +134,7 @@ export const MAX_BACKUP_KEEP = 100
 
 /** Brings a number of backups to keep into the allowed range (non-numbers give the default). */
 export const clampBackupKeep = (value: unknown): number => {
-    if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_BACKUP_KEEP
-    return Math.min(MAX_BACKUP_KEEP, Math.max(MIN_BACKUP_KEEP, Math.round(value)))
+    return clampNumber(value, MIN_BACKUP_KEEP, MAX_BACKUP_KEEP, DEFAULT_BACKUP_KEEP, 1)
 }
 
 /** The values offered for the undo history limit. */
@@ -179,10 +150,9 @@ const isValidUndoLimit = (value: unknown): value is number =>
  * - `default`: the value used when nothing valid is stored.
  * - `normalize`: brings any value (stored or about to be saved) into the allowed ones; without it a missing value gives the default.
  */
-export type PrefDef<T> = { key: string, default: T, normalize?: (raw: unknown) => T }
+type PrefDef<T> = { key: string, default: T, normalize?: (raw: unknown) => T }
 
 const def = <T>(definition: PrefDef<T>): PrefDef<T> => definition
-const isFiniteNumber = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value)
 const normalizeSidebarWidth = (value: unknown): number => isFiniteNumber(value) ? clampSidebarWidth(value) : SIDEBAR_DEFAULT_WIDTH
 
 /** The preferences exposed by `usePreferences()` (the name of each one is the name of its field there). */
@@ -249,10 +219,35 @@ export const UI_PREFS = {
     confirmDeleteWithContent: def({ key: "confirmDeleteWithContent", default: true, normalize: value => value !== false }),
 }
 
+/** The accent color, stored as `{ hex }`. */
+export type PrimaryColorPref = { hex: string }
+
+const DEFAULT_AUDIO_PLAYER_POSITION: AudioPlayerPosition = { x: 0, y: 0, scaleX: 1, scaleY: 1 }
+
+/** Keeps a position made of finite numbers (a missing scale counts as 1); anything else gives the default position. */
+const normalizeAudioPlayerPosition = (value: unknown): AudioPlayerPosition => {
+    const position = (typeof value === "object" && value !== null ? value : {}) as Partial<AudioPlayerPosition>
+    if (!isFiniteNumber(position.x) || !isFiniteNumber(position.y)) return { ...DEFAULT_AUDIO_PLAYER_POSITION }
+    return { x: position.x, y: position.y, scaleX: isFiniteNumber(position.scaleX) ? position.scaleX : 1, scaleY: isFiniteNumber(position.scaleY) ? position.scaleY : 1 }
+}
+
 /** The preferences used by the app only (not part of `usePreferences()`); saving null removes them from the store. */
 export const APP_PREFS = {
+    /** The accent color (kept as `{ hex }` on disk); anything that is not a "#rgb"/"#rrggbb" gives the default. */
+    primaryColor: def<PrimaryColorPref>({
+        key: "primaryColor",
+        default: { hex: DEFAULT_PRIMARY_COLOR },
+        normalize: value => {
+            const hex = (value as { hex?: unknown } | null | undefined)?.hex
+            return { hex: isHexColor(hex) ? hex : DEFAULT_PRIMARY_COLOR }
+        },
+    }),
+    /** Where the floating audio player was left (position and scale). */
+    audioPlayerPosition: def<AudioPlayerPosition>({ key: "audioPlayerPosition", default: DEFAULT_AUDIO_PLAYER_POSITION, normalize: normalizeAudioPlayerPosition }),
     /** Where each audio file was left (see `lib/audio-positions.ts`): kept out of the React state, it changes every few seconds while playing. */
     audioPositions: def<AudioPositions>({ key: "audioPositions", default: {}, normalize: normalizeAudioPositions }),
+    /** Share of the width given to the left pane of the split workspace (internal: no settings row). */
+    splitRatio: def<number>({ key: "splitRatio", default: DEFAULT_SPLIT_RATIO, normalize: value => isFiniteNumber(value) ? clampRatio(value, Infinity) : DEFAULT_SPLIT_RATIO }),
     lastWorkspaceId: def<number | null>({ key: "lastWorkspaceId", default: null, normalize: value => typeof value === "number" ? value : null }),
     skippedUpdateVersion: def<string | null>({ key: "skippedUpdateVersion", default: null, normalize: value => typeof value === "string" && value.length > 0 ? value : null }),
     checkUpdatesOnStartup: def({ key: "checkUpdatesOnStartup", default: true }),
@@ -278,7 +273,7 @@ export const APP_PREFS = {
 const ALL_PREFS = { ...UI_PREFS, ...APP_PREFS }
 
 export type UiPrefName = keyof typeof UI_PREFS
-export type PrefName = keyof typeof ALL_PREFS
+type PrefName = keyof typeof ALL_PREFS
 export type PrefValue<K extends PrefName> = (typeof ALL_PREFS)[K] extends PrefDef<infer T> ? T : never
 
 /**
@@ -301,6 +296,22 @@ export const normalizePref = <K extends PrefName>(name: K, value: unknown): Pref
  */
 export const getPref = async <K extends PrefName>(name: K): Promise<PrefValue<K>> =>
     normalizePref(name, await store.get(ALL_PREFS[name].key))
+
+/**
+ * Reads every UI preference at once (one `entries()` call of the store instead of one `get` per preference).
+ * @returns A promise that resolves to the value of each one, normalized (the default when nothing valid is stored).
+ * @category Store
+ */
+export const getAllPrefs = async (): Promise<{ [K in UiPrefName]: PrefValue<K> }> => {
+    const names = Object.keys(UI_PREFS) as UiPrefName[]
+    const raw = new Map<string, unknown>()
+    if (typeof store.entries === "function") {
+        for (const [key, value] of await store.entries<unknown>()) raw.set(key, value)
+    } else {
+        await Promise.all(names.map(async name => raw.set(UI_PREFS[name].key, await store.get(UI_PREFS[name].key))))
+    }
+    return Object.fromEntries(names.map(name => [name, normalizePref(name, raw.get(UI_PREFS[name].key))])) as { [K in UiPrefName]: PrefValue<K> }
+}
 
 /**
  * Saves a preference (the value is brought into the allowed ones first).
@@ -352,30 +363,21 @@ export const getRightPanelTab = () => getPref("rightPanelTab")
 export const getSideBarRightOpen = () => getPref("sidebarRightOpen")
 export const getSidebarRightWidth = () => getPref("sidebarRightWidth")
 
-// The preferences below are not plain values, so they stay out of the tables
-
 /**
  * Gets the primary color preference.
  * If no value is set (or it is not a hex color), it defaults to DEFAULT_PRIMARY_COLOR.
  * @returns A promise that resolves to the primary color hex code.
  * @category Store
  */
-export const getPrimaryColor = async (): Promise<string> => {
-    const value = await store.get<{ hex: unknown }>(PRIMARY_COLOR_KEY)
-    const hex = value?.hex
-    return typeof hex === "string" && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(hex) ? hex : DEFAULT_PRIMARY_COLOR
-}
+export const getPrimaryColor = async (): Promise<string> => (await getPref("primaryColor")).hex
 
 /**
- * Saves the primary color preference.
+ * Saves the primary color preference (a value that is not a "#rgb"/"#rrggbb" color saves the default).
  * @param hex A string representing the primary color in hex format.
  * @returns A promise that resolves when the primary color is saved.
  * @category Store
  */
-export const savePrimaryColor = async (hex: string): Promise<void> => {
-    await store.set(PRIMARY_COLOR_KEY, { hex })
-    await persist()
-}
+export const savePrimaryColor = (hex: string): Promise<void> => savePref("primaryColor", { hex })
 
 /**
  * Gets the current position of the audio player.
@@ -383,22 +385,15 @@ export const savePrimaryColor = async (hex: string): Promise<void> => {
  * @returns A promise that resolves to an object containing the audio player's position and scale.
  * @category Store
  */
-export const getAudioPlayerPosition = async (): Promise<AudioPlayerPosition> => {
-    const value = await store.get<Partial<AudioPlayerPosition>>(AUDIOPLAYER_POSITION_KEY)
-    if (!value || typeof value !== "object" || !isFiniteNumber(value.x) || !isFiniteNumber(value.y)) return { x: 0, y: 0, scaleX: 1, scaleY: 1 }
-    return { x: value.x, y: value.y, scaleX: isFiniteNumber(value.scaleX) ? value.scaleX : 1, scaleY: isFiniteNumber(value.scaleY) ? value.scaleY : 1 }
-}
+export const getAudioPlayerPosition = (): Promise<AudioPlayerPosition> => getPref("audioPlayerPosition")
 
 /**
- * Saves the current position of the audio player.
+ * Saves the current position of the audio player (non-finite coordinates save the default position).
  * @param position An object containing the audio player's position and scale.
  * @returns A promise that resolves when the position is saved.
  * @category Store
  */
-export const saveAudioPlayerPosition = async (position: AudioPlayerPosition): Promise<void> => {
-    await store.set(AUDIOPLAYER_POSITION_KEY, position)
-    await persist()
-}
+export const saveAudioPlayerPosition = (position: AudioPlayerPosition): Promise<void> => savePref("audioPlayerPosition", position)
 
 /**
  * Resets the audio player position to its default state.
@@ -406,6 +401,6 @@ export const saveAudioPlayerPosition = async (position: AudioPlayerPosition): Pr
  * @category Store
  */
 export const resetAudioPlayerPosition = async (): Promise<void> => {
-    await store.delete(AUDIOPLAYER_POSITION_KEY)
+    await store.delete(APP_PREFS.audioPlayerPosition.key)
     await persist()
 }

@@ -137,6 +137,25 @@ describe("AppMenu", () => {
         expect(setTheme).toHaveBeenCalledWith("light")
     })
 
+    it("splits the workspace and moves the note to the other area from the View menu", async () => {
+        const user = userEvent.setup()
+        const toggleSplit = vi.fn()
+        const moveNote = vi.fn()
+        render(
+            <ShortcutsProvider>
+                <Probe id="toggle-split" handler={toggleSplit} />
+                <Probe id="move-note-to-other-pane" handler={moveNote} />
+                <AppMenu page="workspace" />
+            </ShortcutsProvider>,
+        )
+        await openMenu(user, "Visualizza")
+        await user.click(await screen.findByRole("menuitem", { name: /Dividi in due aree o chiudi la divisione\s*Ctrl\+\\/ }))
+        await waitFor(() => expect(toggleSplit).toHaveBeenCalledTimes(1))
+        await openMenu(user, "Visualizza")
+        await user.click(await screen.findByRole("menuitem", { name: /Sposta la nota nell'altra area/ }))
+        await waitFor(() => expect(moveNote).toHaveBeenCalledTimes(1))
+    })
+
     it("focuses the first menu with Alt alone or F10, and gives the focus back", () => {
         render(<ShortcutsProvider><input aria-label="campo" /><AppMenu page="home" /></ShortcutsProvider>)
         const input = screen.getByLabelText("campo")

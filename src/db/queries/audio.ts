@@ -3,6 +3,8 @@ import type { AudioFile } from "@/types/types";
 import { createError, handleDBError, toAppError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
+import { nextPositionSql } from "./sql";
+import { uniqueName } from "./names";
 
 /**
  * Extensions (lowercase, without dot) of the audio files that can be attached to a group.
@@ -33,16 +35,12 @@ export function getFileName(path: string): string {
  * @category Database Queries
  */
 export function makeUniqueName(name: string, taken: string[]): string {
-    const used = new Set(taken.map(item => item.toLowerCase()))
-    if (!used.has(name.toLowerCase())) return name
-
-    const dot = name.lastIndexOf(".")
-    const base = dot > 0 ? name.slice(0, dot) : name
-    const extension = dot > 0 ? name.slice(dot) : ""
-    for (let counter = 2; ; counter++) {
-        const candidate = `${base} (${counter})${extension}`
-        if (!used.has(candidate.toLowerCase())) return candidate
-    }
+    return uniqueName(name, taken, (original, attempt) => {
+        const dot = original.lastIndexOf(".")
+        const base = dot > 0 ? original.slice(0, dot) : original
+        const extension = dot > 0 ? original.slice(dot) : ""
+        return `${base} (${attempt + 1})${extension}`
+    }, { caseInsensitive: true })
 }
 
 /**
@@ -119,8 +117,7 @@ export async function createDBAudioFile(groupId: number, path: string): Promise<
 
         const result = await db.execute(
             `INSERT INTO audio_file (section_groupID, name, path, position)
-             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM audio_file
-             WHERE section_groupID = ? AND deleted_at IS NULL`,
+             SELECT ?, ?, ?, ${nextPositionSql("audio_file", "section_groupID = ? AND deleted_at IS NULL")}`,
             [groupId, name, path, groupId])
 
         const created = result.lastInsertId !== undefined ? await getDBAudioFile(result.lastInsertId) : null

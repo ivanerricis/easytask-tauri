@@ -3,28 +3,23 @@ import { useContext, useEffect, useState } from "react"
 import type { AudioFile } from "@/types/types"
 import { getDBGroupAudioFiles, getDBNoteAudioFiles } from "@/db/queries/audio"
 import { reportError } from "@/lib/report-error"
+import { createRequiredContextHook } from "@/lib/required-context"
 import { AudioActionsContext, AudioContext, AudioFilesContext } from "./audio-context-object"
 
 /**
  * The audio state and actions.
  * @category Audio Context
  */
-export const useAudio = () => {
-    const context = useContext(AudioContext)
-    if (!context) throw new Error("useAudio must be used within an AudioProvider")
-    return context
-}
+export const useAudio = createRequiredContextHook(AudioContext, "useAudio", "AudioProvider")
 
 /**
  * The audio actions only. Unlike `useAudio` the result keeps its identity while the playback changes, so the component does not
  * re-render on play/pause.
  * @category Audio Context
  */
-export const useAudioActions = () => {
-    const context = useContext(AudioActionsContext)
-    if (!context) throw new Error("useAudioActions must be used within an AudioProvider")
-    return context
-}
+export const useAudioActions = createRequiredContextHook(AudioActionsContext, "useAudioActions", "AudioProvider")
+
+const useAudioFilesContext = createRequiredContextHook(AudioFilesContext, "useGroupAudioFiles", "AudioProvider")
 
 /**
  * The audio files of a group, reloaded whenever the audio state changes. The last list is remembered, so a group that
@@ -33,9 +28,7 @@ export const useAudioActions = () => {
  * @category Audio Context
  */
 export function useGroupAudioFiles(groupId: number): AudioFile[] {
-    const context = useContext(AudioFilesContext)
-    if (!context) throw new Error("useGroupAudioFiles must be used within an AudioProvider")
-    const { version, filesCache } = context
+    const { version, filesCache } = useAudioFilesContext()
     const [files, setFiles] = useState<AudioFile[]>(() => filesCache.get(groupId) ?? [])
 
     useEffect(() => {

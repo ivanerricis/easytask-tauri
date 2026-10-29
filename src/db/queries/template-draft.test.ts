@@ -20,7 +20,7 @@ vi.mock("@tauri-apps/api/core", async () => {
 
 import { createDBNoteFromTemplate, createDBTemplateFromNote, getDBTemplates, updateDBTemplateFromNote } from "./template"
 import {
-    createDBTemplateDraft, deleteDBTemplateDraft, getDBTemplateDrafts, saveDBTemplateDraft, setDBTemplateDraftColor,
+    createDBTemplateDraft, deleteDBTemplateDraft, getDBTemplateDraft, getDBTemplateDrafts, saveDBTemplateDraft, setDBTemplateDraftColor,
 } from "./template-draft"
 import { duplicateDBNote, duplicateDBTemplate } from "./duplicate"
 import { deleteDBItem } from "./shared_queries"
@@ -286,5 +286,16 @@ describe("duplicateDBTemplate", () => {
 
         expect(await thrown(duplicateDBTemplate(templateId))).toMatchObject({ code: "TEMPLATE_NOT_FOUND" })
         expect(await thrown(duplicateDBTemplate(999))).toMatchObject({ code: "TEMPLATE_NOT_FOUND" })
+    })
+})
+
+describe("getDBTemplateDraft", () => {
+    it("reads one draft by its note, null for a note that is no draft", async () => {
+        const template = await createDBTemplateFromNote(1, "Viva")
+        const noteId = await createDBTemplateDraft(template)
+        expect(await getDBTemplateDraft(noteId)).toEqual({ noteId, templateId: template, templateName: "Viva", color: "#ff0000", trashed: false })
+        expect(await getDBTemplateDraft(1)).toBeNull()
+        sqlite.exec(`UPDATE note_template SET deleted_at = datetime('now') WHERE id = ${template}`)
+        expect((await getDBTemplateDraft(noteId))?.trashed).toBe(true)
     })
 })

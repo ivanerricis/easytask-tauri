@@ -31,10 +31,12 @@ import { useCompactLayout } from "@/lib/sidebar-layout"
 import { useTreeRevealRequest } from "@/lib/tree-reveal"
 import { treeRowKey } from "./tree-row"
 import { getAncestorFolderIds } from "./note-path"
+import { useTreeData } from "./use-tree-data"
 
 export const SideBarLeft = () => {
     const { currentWorkspace } = useWorkspace()
-    const { folders, workspaceDataTree, getWorkspaceData } = useWorkspaceData()
+    const { folders, getWorkspaceData } = useWorkspaceData()
+    const tree = useTreeData()
     const { sidebarLeftOpen, setSideBarLeftOpen, sidebarLeftWidth, setSidebarLeftWidth } = usePreferences()
     // Compact window: the sidebar is an overlay, closed by default, whose state is not persisted
     const compact = useCompactLayout()
@@ -83,7 +85,6 @@ export const SideBarLeft = () => {
     const [reveal, setReveal] = useState<{ key: string, seq: number } | null>(null)
     useTreeRevealRequest(ref => {
         setOpen(true)
-        const tree = { rootFolders: workspaceDataTree?.rootFolders ?? [], rootNotes: workspaceDataTree?.rootNotes ?? [] }
         getAncestorFolderIds(tree, ref).forEach(expandFolder)
         setReveal(prev => ({ key: treeRowKey(ref.type, ref.id), seq: (prev?.seq ?? 0) + 1 }))
     })

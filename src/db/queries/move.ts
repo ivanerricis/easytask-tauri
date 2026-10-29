@@ -1,11 +1,26 @@
 import i18n from "@/i18n"
 import { createError, handleDBError, toAppError } from "@/types/error"
+import type Database from "@tauri-apps/plugin-sql"
 import { getDB } from "../dbManager"
 import { Transaction, type TxRef } from "../transaction"
 import { addPositions, clampIndex, groupOrderRows, insertAmongSections, isSelfOrAncestor, siblingIds } from "./ordering"
 import { DEFAULT_SECTION_SQL } from "./sql"
 
 const SECTION_UNIQUE_MESSAGE = () => i18n.t("errors.move.sectionUnique")
+
+/**
+ * The section to move (neither deleted nor the hidden default section of a group) with its group and note.
+ * @throws SECTION_MOVE_INVALID when it does not exist.
+ */
+async function loadMovableSection(db: Database, sectionId: number): Promise<{ id: number, groupID: number, noteID: number }> {
+    const sections = await db.select<{ id: number, groupID: number, noteID: number }[]>(
+        `SELECT s.id, s.groupID, g.noteID FROM section s
+         INNER JOIN section_group g ON g.id = s.groupID
+         WHERE s.id = ? AND s.deleted_at IS NULL AND s.is_default = 0`, [sectionId])
+    if (!sections[0])
+        throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.sectionMissing"))
+    return sections[0]
+}
 
 
 /**
@@ -27,16 +42,9 @@ const SECTION_UNIQUE_MESSAGE = () => i18n.t("errors.move.sectionUnique")
  * @category Database Queries
  */
 export async function moveDBSection(sectionId: number, targetGroupId: number, targetIndex: number, options: { beforeList?: boolean } = {}) {
-    const db = await getDB()
-
     try {
-        const sections = await db.select<{ id: number, groupID: number, noteID: number }[]>(
-            `SELECT s.id, s.groupID, g.noteID FROM section s
-             INNER JOIN section_group g ON g.id = s.groupID
-             WHERE s.id = ? AND s.deleted_at IS NULL AND s.is_default = 0`, [sectionId])
-        const section = sections[0]
-        if (!section)
-            throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.sectionMissing"))
+        const db = await getDB()
+        const section = await loadMovableSection(db, sectionId)
 
         const targets = await db.select<{ id: number, noteID: number }[]>(
             'SELECT id, noteID FROM section_group WHERE id = ? AND deleted_at IS NULL AND archived_at IS NULL', [targetGroupId])
@@ -70,16 +78,9 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
  * @category Database Queries
  */
 export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: number): Promise<{ groupId: number, defaultSectionId: number }> {
-    const db = await getDB()
-
     try {
-        const sections = await db.select<{ id: number, groupID: number, noteID: number }[]>(
-            `SELECT s.id, s.groupID, g.noteID FROM section s
-             INNER JOIN section_group g ON g.id = s.groupID
-             WHERE s.id = ? AND s.deleted_at IS NULL AND s.is_default = 0`, [sectionId])
-        const section = sections[0]
-        if (!section)
-            throw createError("SECTION_MOVE_INVALID", i18n.t("errors.move.sectionMissing"))
+        const db = await getDB()
+        const section = await loadMovableSection(db, sectionId)
 
         const groups = await db.select<{ id: number }[]>(
             'SELECT id FROM section_group WHERE noteID = ? AND deleted_at IS NULL ORDER BY position, id', [section.noteID])
@@ -117,9 +118,8 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
  * @category Database Queries
  */
 export async function moveDBDirectSection(groupId: number, index: number) {
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         const rows = await db.select<{ id: number }[]>(
             `SELECT s.id FROM section s INNER JOIN section_group g ON g.id = s.groupID
              WHERE s.groupID = ? AND s.is_default = 1 AND s.deleted_at IS NULL AND g.deleted_at IS NULL AND g.archived_at IS NULL`, [groupId])
@@ -160,30 +160,33 @@ export type TaskMoveTarget = {
  * @category Database Queries
  */
 export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetIndex: number) {
-    const db = await getDB()
-
     try {
-        const tasks = await db.select<{ id: number, sectionID: number, taskID: number | null, noteID: number }[]>(
-            `SELECT t.id, t.sectionID, t.taskID, g.noteID FROM task t
-             INNER JOIN section s ON s.id = t.sectionID
-             INNER JOIN section_group g ON g.id = s.groupID
-             WHERE t.id = ? AND t.deleted_at IS NULL`, [taskId])
+        const db = await getDB()
+        const parentId = target.parentTaskId ?? null
+        // The three lookups are independent: run them together, then check them in the same order as before
+        const [tasks, sectionsFound, parents] = await Promise.all([
+            db.select<{ id: number, sectionID: number, taskID: number | null, noteID: number }[]>(
+                `SELECT t.id, t.sectionID, t.taskID, g.noteID FROM task t
+                 INNER JOIN section s ON s.id = t.sectionID
+                 INNER JOIN section_group g ON g.id = s.groupID
+                 WHERE t.id = ? AND t.deleted_at IS NULL`, [taskId]),
+            db.select<{ id: number, noteID: number }[]>(
+                `SELECT s.id, g.noteID FROM section s
+                 INNER JOIN section_group g ON g.id = s.groupID
+                 WHERE s.id = ? AND s.deleted_at IS NULL AND g.deleted_at IS NULL
+                   AND s.archived_at IS NULL AND g.archived_at IS NULL`, [target.sectionId]),
+            parentId != null
+                ? db.select<{ id: number, sectionID: number }[]>('SELECT id, sectionID FROM task WHERE id = ? AND deleted_at IS NULL', [parentId])
+                : Promise.resolve(null),
+        ])
         const task = tasks[0]
         if (!task)
             throw createError("TASK_MOVE_INVALID", i18n.t("errors.move.taskMissing"))
 
-        const sectionsFound = await db.select<{ id: number, noteID: number }[]>(
-            `SELECT s.id, g.noteID FROM section s
-             INNER JOIN section_group g ON g.id = s.groupID
-             WHERE s.id = ? AND s.deleted_at IS NULL AND g.deleted_at IS NULL
-               AND s.archived_at IS NULL AND g.archived_at IS NULL`, [target.sectionId])
         if (!sectionsFound[0] || sectionsFound[0].noteID !== task.noteID)
             throw createError("TASK_MOVE_INVALID", i18n.t("errors.move.sectionTargetInvalid"))
 
-        const parentId = target.parentTaskId ?? null
-        if (parentId != null) {
-            const parents = await db.select<{ id: number, sectionID: number }[]>(
-                'SELECT id, sectionID FROM task WHERE id = ? AND deleted_at IS NULL', [parentId])
+        if (parentId != null && parents) {
             if (!parents[0] || parents[0].sectionID !== target.sectionId)
                 throw createError("TASK_MOVE_INVALID", i18n.t("errors.move.taskTargetInvalid"))
 

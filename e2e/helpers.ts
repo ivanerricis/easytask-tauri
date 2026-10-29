@@ -28,10 +28,9 @@ const xpathString = (value: string) =>
 
 /** Element by its accessible name (aria-label). */
 export const byLabel = (label: string) => $(`[aria-label=${cssString(label)}]`)
-export const allByLabel = (label: string) => $$(`[aria-label=${cssString(label)}]`)
 
 /** The language select of Settings > Appearance: a combobox tied (label for=id) to the label of its row, in the current language. */
-export const languageSelect = async () =>
+const languageSelect = async () =>
     $(`//button[@role='combobox'][@id=//label[normalize-space()=${xpathString(await tr("settings.appearance.language.label"))}]/@for]`)
 
 /**
@@ -87,7 +86,7 @@ export const byText = (text: string, scope?: ChainablePromiseElement | Webdriver
  * The "add task" button of a section card (it is a "+" icon with an aria-label). The input that replaces
  * it carries the same label, so only buttons are matched.
  */
-export const addTaskButton = async (scope: ChainablePromiseElement | WebdriverIO.Element) =>
+const addTaskButton = async (scope: ChainablePromiseElement | WebdriverIO.Element) =>
     scope.$(`button[aria-label="${await tr("tasks.add")}"]`)
 
 /**
@@ -120,7 +119,7 @@ export const typeInto = async (input: ChainablePromiseElement, value: string) =>
     try {
         await input.click()
     } catch (error) {
-        await browser.pause(500)
+        await input.waitForClickable({ timeout: 2_000 }).catch(() => undefined)
         await input.click().catch(async () => {
             const covering = await browser.execute((el: HTMLElement) => {
                 const rect = el.getBoundingClientRect()
@@ -331,7 +330,7 @@ export const dataDir = (): Promise<string> =>
     })
 
 /** Path of the SQLite database for the sql plugin ("sqlite:<dir>/easytask.db"). */
-export const dbUrl = async (): Promise<string> => {
+const dbUrl = async (): Promise<string> => {
     const dir = await dataDir()
     return `sqlite:${dir}${dir.includes("\\") ? "\\" : "/"}easytask.db`
 }
@@ -464,7 +463,7 @@ export const openSettingsOn = async (category: "appearance" | "notes") => {
     const dialog = $('[role="dialog"]')
     await dialog.waitForDisplayed({ timeoutMsg: "the settings dialog did not open" })
     // A real click: Radix tabs activate on mouse down, which the DOM click of domClick does not dispatch
-    await byText(await tr(`settings.categories.${category}`), dialog).click()
+    await byText(await tr(`settings.${category}.title`), dialog).click()
     return dialog
 }
 
@@ -496,3 +495,9 @@ export const openTemplatesDialog = async () => {
 
 /** The tab of the editor of a template (its label carries the full name in the title). */
 export const templateEditorTab = async (name: string) => $(`[title=${cssString(await tr("templateEditor.tab", { name }))}]`)
+
+/** A pane of the split workspace (`[data-pane]`, 0 = left, 1 = right); everything of the pane is searched inside it. */
+export const pane = (index: 0 | 1) => $(`[data-pane="${index}"]`)
+
+/** The tab of a note inside a pane (the tab carries the full note name in its title). */
+export const paneTab = (index: 0 | 1, noteName: string) => $(`[data-pane="${index}"] [role="tab"][title=${cssString(noteName)}]`)

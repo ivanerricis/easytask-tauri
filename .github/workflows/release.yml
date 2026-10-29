@@ -73,30 +73,17 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The package index of the runner image can be stale (the cached .deb versions would 404)
-      - name: Update the apt package index
-        run: sudo apt-get update
       - name: Install Linux dependencies
         timeout-minutes: 10
-        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
-        with:
-          # The Azure mirror sometimes crawls (a run once spent 27 min on the download): the .deb files are cached
-          packages: libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-          version: 1
-          execute_install_scripts: true
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
+        uses: ./.github/actions/linux-tauri-deps
+      - uses: ./.github/actions/setup-node-deps
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
         with:
           components: clippy
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri -> target
-      - run: npm ci
-      - run: npx eslint .
-      - run: npx tsc -b
+      - run: npm run lint
       - run: npm test
       - run: npm run build
       - run: cargo clippy -- -D warnings
@@ -116,28 +103,15 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      # The package index of the runner image can be stale (the cached .deb versions would 404)
-      - name: Update the apt package index
-        if: runner.os == 'Linux'
-        run: sudo apt-get update
       - name: Install Linux dependencies
         if: runner.os == 'Linux'
         timeout-minutes: 10
-        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
-        with:
-          # The Azure mirror sometimes crawls (a run once spent 27 min on the download): the .deb files are cached
-          packages: libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-          version: 1
-          execute_install_scripts: true
-      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        with:
-          node-version: 24
-          cache: npm
+        uses: ./.github/actions/linux-tauri-deps
+      - uses: ./.github/actions/setup-node-deps
       - uses: dtolnay/rust-toolchain@6bed0761d98439e5a578e2877258200ad565ba87 # stable
       - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
         with:
           workspaces: src-tauri -> target
-      - run: npm ci
       # Builds the installers (NSIS on Windows, deb + AppImage on Linux), signs the updater artifacts and uploads
       # them, with latest.json (merged across the two jobs), to a DRAFT release. Nothing is published automatically.
       - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1.0.0

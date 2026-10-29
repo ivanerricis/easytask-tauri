@@ -8,9 +8,9 @@ import { makeWorkspace } from "@/test/ui-fixtures"
 
 const data = {
     countTemplates: vi.fn(),
-    templatesVersion: 0,
+    version: 0,
 }
-vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => data }))
+vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => data, useWorkspaceVersion: () => data.version }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
 vi.mock("@/components/dialogs/dialog-templates", () => ({
     DialogTemplates: ({ isOpen }: { isOpen: boolean }) => isOpen ? <div>Dialog template</div> : null,
@@ -21,7 +21,7 @@ const Harness = () => {
     const [, setTick] = useState(0)
     return (
         <>
-            <button onClick={() => { data.templatesVersion += 1; setTick(t => t + 1) }}>simulate-create</button>
+            <button onClick={() => { data.version += 1; setTick(t => t + 1) }}>simulate-create</button>
             <ButtonTemplates />
         </>
     )
@@ -30,7 +30,7 @@ const Harness = () => {
 describe("ButtonTemplates", () => {
     beforeEach(() => {
         vi.resetAllMocks()
-        data.templatesVersion = 0
+        data.version = 0
     })
 
     it("shows the number of templates and opens the dialog", async () => {

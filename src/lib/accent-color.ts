@@ -1,3 +1,5 @@
+import { parseHex } from "@/lib/colors"
+
 /**
  * The accent color of a new install and of the reset: a deep orange (Tailwind orange-700) that carries white text at
  * about 5.2:1, so the buttons read white on both themes (the brighter orange-500 it replaces needed dark text).
@@ -14,10 +16,9 @@ const LIGHT_LUMINANCE = 1
 
 /** WCAG relative luminance of a "#rgb" or "#rrggbb" color, null when it is not one. */
 const luminance = (hex: string): number | null => {
-    const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim())
-    if (!match) return null
-    const digits = match[1].length === 3 ? match[1].split("").map(d => d + d).join("") : match[1]
-    const [r, g, b] = [0, 2, 4].map(i => parseInt(digits.slice(i, i + 2), 16) / 255)
+    const rgb = parseHex(hex)
+    if (!rgb) return null
+    const [r, g, b] = rgb.map(v => v / 255)
         .map(v => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4))
     return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
@@ -68,10 +69,9 @@ export const accentContrast = (hex: string, theme: AccentTheme): number | null =
 }
 
 const toHsl = (hex: string): [number, number, number] | null => {
-    const match = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(hex.trim())
-    if (!match) return null
-    const digits = match[1].length === 3 ? match[1].split("").map(d => d + d).join("") : match[1]
-    const [r, g, b] = [0, 2, 4].map(i => parseInt(digits.slice(i, i + 2), 16) / 255)
+    const rgb = parseHex(hex)
+    if (!rgb) return null
+    const [r, g, b] = rgb.map(v => v / 255)
     const max = Math.max(r, g, b)
     const min = Math.min(r, g, b)
     const l = (max + min) / 2

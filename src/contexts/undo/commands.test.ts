@@ -1,14 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 import {
-    NOOP_RECORDER, captureSectionPlace, captureTaskPlace, captureTreePlace, createUndoCommands, createUndoRecorder,
+    NOOP_RECORDER, eachInOrder, manyCommand, captureSectionPlace, captureTaskPlace, captureTreePlace, createUndoCommands, createUndoRecorder,
     getItemName, isUndoableType, makeLabel, type UndoDeps,
 } from "./commands"
 import type { UndoCommand } from "./stack"
 import { makeDefaultSection, makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { Folder, NoteDataTree } from "@/types/types"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const fn = () => vi.fn().mockResolvedValue(undefined)
 
 function makeDeps() {
@@ -433,6 +432,19 @@ describe("recorder", () => {
         expect(record).toHaveBeenLastCalledWith(own)
     })
 
+    it("stamps every command with the note active in the focused pane, keeping a note id that is already set", () => {
+        const record = vi.fn()
+        let active: number | null = 10
+        const recorder = createUndoRecorder(commands, record, undefined, undefined, () => active)
+        recorder.rename("task", 1, "a", "b")
+        active = 11
+        recorder.create("note", 2, "N")
+        recorder.record({ label: "own", noteId: 5, undo: fn(), redo: fn() })
+        active = null
+        recorder.rename("task", 1, "a", "c")
+        expect(record.mock.calls.map(call => (call[0] as UndoCommand).noteId)).toEqual([10, 11, 5, undefined])
+    })
+
     it("the no-op recorder accepts every call", () => {
         expect(() => {
             NOOP_RECORDER.rename("task", 1, "a", "b")
@@ -699,5 +711,49 @@ describe("places in the direct area of a group (default section)", () => {
     it("captureSectionPlace records the place of the list of the group", () => {
         const withList = { groups: [{ ...tree.groups[0], defaultIndex: 1 }] }
         expect(captureSectionPlace(withList, 20)).toEqual({ groupId: 1, index: 0, listIndex: 1, name: "S" })
+    })
+})
+
+describe("eachInOrder", () => {
+    it("awaits the items one after the other, in order or from the last", async () => {
+        const seen: number[] = []
+        const fn = async (n: number) => { await Promise.resolve(); seen.push(n) }
+        await eachInOrder([1, 2, 3], false, fn)
+        await eachInOrder([1, 2, 3], true, fn)
+        expect(seen).toEqual([1, 2, 3, 3, 2, 1])
+    })
+})
+
+describe("manyCommand", () => {
+    const build = (over: Partial<Parameters<typeof manyCommand<number>>[0]> = {}) => {
+        const calls: string[] = []
+        const command = manyCommand<number>({
+            label: "many", items: [1, 2, 3],
+            undoEach: async n => { calls.push(`u${n}`) },
+            redoEach: async n => { calls.push(`r${n}`) },
+            ...over,
+        })
+        return { calls, command }
+    }
+
+    it("undoes from the last item, redoes in order, and reloads once when asked", async () => {
+        const reload = vi.fn(async () => {})
+        const { calls, command } = build({ reloadUndo: reload })
+        await command.undo()
+        expect(calls).toEqual(["u3", "u2", "u1"])
+        expect(reload).toHaveBeenCalledTimes(1)
+        await command.redo()
+        expect(calls.slice(3)).toEqual(["r1", "r2", "r3"])
+        expect(reload).toHaveBeenCalledTimes(1)
+        expect(command.label).toBe("many")
+    })
+
+    it("does not reload after a failure unless reloadEvenOnFailure is set", async () => {
+        const reload = vi.fn(async () => {})
+        const failing = async (n: number) => { if (n === 2) throw new Error("boom") }
+        await expect(build({ undoEach: failing, reloadUndo: reload }).command.undo()).rejects.toThrow("boom")
+        expect(reload).not.toHaveBeenCalled()
+        await expect(build({ redoEach: failing, reloadRedo: reload, reloadEvenOnFailure: true }).command.redo()).rejects.toThrow("boom")
+        expect(reload).toHaveBeenCalledTimes(1)
     })
 })

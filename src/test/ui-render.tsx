@@ -1,6 +1,5 @@
-/* eslint-disable react-refresh/only-export-components */
 import type { ReactElement, ReactNode } from "react"
-import { render } from "@testing-library/react"
+import { act, render } from "@testing-library/react"
 import { MemoryRouter } from "react-router-dom"
 import { WorkspaceProvider } from "@/contexts/workspace-context"
 import { ShortcutsProvider } from "@/contexts/shortcuts-context"
@@ -29,4 +28,9 @@ export function deferred<T = void>() {
         reject = rej
     })
     return { promise, resolve, reject }
+}
+
+/** Lets pending promises and state updates settle inside act(). */
+export async function flushAsync() {
+    await act(async () => {})
 }

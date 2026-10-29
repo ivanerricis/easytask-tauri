@@ -1,12 +1,9 @@
 import { useContext } from "react"
+import { createRequiredContextHook } from "@/lib/required-context"
 import { formatBinding, getShortcut, keyLabel, type Binding } from "@/lib/shortcuts"
 import { ShortcutsContext } from "./shortcuts-context-object"
 
-export const useShortcutsContext = () => {
-    const context = useContext(ShortcutsContext)
-    if (!context) throw new Error("useShortcutsContext must be used within a ShortcutsProvider")
-    return context
-}
+export const useShortcutsContext = createRequiredContextHook(ShortcutsContext, "useShortcutsContext", "ShortcutsProvider")
 
 /** The effective binding of a shortcut (the default one outside a provider). */
 const useBinding = (id: string): Binding | undefined => {

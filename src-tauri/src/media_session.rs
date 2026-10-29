@@ -5,6 +5,7 @@
 //! `MEDIA_ACTION_EVENT`; on the other systems the commands do nothing and the page keeps `navigator.mediaSession`.
 
 use serde::Serialize;
+use tauri::Manager;
 
 /// Emitted to the page when a button of the system is pressed or the system asks for another position.
 #[cfg_attr(not(windows), allow(dead_code))]
@@ -134,11 +135,18 @@ mod platform {
             app: &tauri::AppHandle,
             f: impl FnOnce(&SystemMediaTransportControls) -> windows::core::Result<T>,
         ) -> Result<T, String> {
-            let mut guard = self.0.lock().map_err(|e| e.to_string())?;
+            // A poisoned lock only means another call panicked: the Option inside is still valid
+            let mut guard = self
+                .0
+                .lock()
+                .unwrap_or_else(|poisoned| poisoned.into_inner());
             if guard.is_none() {
                 *guard = Some(controls_for(app).map_err(|e| e.to_string())?);
             }
-            f(guard.as_ref().expect("set above")).map_err(|e| e.to_string())
+            let controls = guard
+                .as_ref()
+                .ok_or_else(|| "the media session is not available".to_string())?;
+            f(controls).map_err(|e| e.to_string())
         }
 
         pub fn update(
@@ -191,7 +199,42 @@ mod platform {
     }
 }
 
-#[cfg(windows)]
+/// Other systems: the same methods, which do nothing (the page keeps `navigator.mediaSession`).
+#[cfg(not(windows))]
+mod platform {
+    #[derive(Default)]
+    pub struct MediaSession;
+
+    impl MediaSession {
+        pub fn new() -> Self {
+            Self
+        }
+
+        pub fn update(
+            &self,
+            _app: &tauri::AppHandle,
+            _title: &str,
+            _artist: &str,
+            _playing: bool,
+        ) -> Result<(), String> {
+            Ok(())
+        }
+
+        pub fn timeline(
+            &self,
+            _app: &tauri::AppHandle,
+            _position: f64,
+            _duration: f64,
+        ) -> Result<(), String> {
+            Ok(())
+        }
+
+        pub fn clear(&self, _app: &tauri::AppHandle) -> Result<(), String> {
+            Ok(())
+        }
+    }
+}
+
 pub use platform::MediaSession;
 
 /// Whether the commands below publish the session (the page then leaves `navigator.mediaSession` alone).
@@ -208,18 +251,8 @@ pub fn media_session_update(
     artist: String,
     playing: bool,
 ) -> Result<(), String> {
-    #[cfg(windows)]
-    let result = {
-        use tauri::Manager;
-        app.state::<MediaSession>()
-            .update(&app, &title, &artist, playing)
-    };
-    #[cfg(not(windows))]
-    let result = {
-        let _ = (app, title, artist, playing);
-        Ok(())
-    };
-    result
+    app.state::<MediaSession>()
+        .update(&app, &title, &artist, playing)
 }
 
 /// Position and length of the track, in seconds.
@@ -229,32 +262,12 @@ pub fn media_session_timeline(
     position: f64,
     duration: f64,
 ) -> Result<(), String> {
-    #[cfg(windows)]
-    let result = {
-        use tauri::Manager;
-        app.state::<MediaSession>()
-            .timeline(&app, position, duration)
-    };
-    #[cfg(not(windows))]
-    let result = {
-        let _ = (app, position, duration);
-        Ok(())
-    };
-    result
+    app.state::<MediaSession>()
+        .timeline(&app, position, duration)
 }
 
 /// Removes the session (the player was closed).
 #[tauri::command]
 pub fn media_session_clear(app: tauri::AppHandle) -> Result<(), String> {
-    #[cfg(windows)]
-    let result = {
-        use tauri::Manager;
-        app.state::<MediaSession>().clear(&app)
-    };
-    #[cfg(not(windows))]
-    let result = {
-        let _ = app;
-        Ok(())
-    };
-    result
+    app.state::<MediaSession>().clear(&app)
 }

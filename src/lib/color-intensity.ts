@@ -1,3 +1,5 @@
+import { clampNumber } from "@/lib/number"
+
 /** Multiplier applied to the opacity of the colors of folders, notes, groups and sections (1 = 100%). */
 export const MIN_COLOR_INTENSITY = 0.25
 export const MAX_COLOR_INTENSITY = 1.75
@@ -19,8 +21,7 @@ export const COLOR_ALPHA_BASE = {
 
 /** Brings an intensity into 0.25-1.75, rounded to 1% (non-numbers give the default 1). */
 export const clampColorIntensity = (value: unknown): number => {
-    if (typeof value !== "number" || !Number.isFinite(value)) return DEFAULT_COLOR_INTENSITY
-    return Math.min(MAX_COLOR_INTENSITY, Math.max(MIN_COLOR_INTENSITY, Math.round(value * 100) / 100))
+    return clampNumber(value, MIN_COLOR_INTENSITY, MAX_COLOR_INTENSITY, DEFAULT_COLOR_INTENSITY, 0.01)
 }
 
 /**

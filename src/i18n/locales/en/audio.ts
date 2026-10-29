@@ -24,8 +24,6 @@ export const audio: Translation["audio"] = {
     ended: "Ended",
     add: "Add audio files",
     updatePath: "Update path",
-    fileMenu: "Audio file menu",
-    info: "Information",
     files: "Audio files",
     dialogFilter: "Audio files",
     added_one: "Audio file added",

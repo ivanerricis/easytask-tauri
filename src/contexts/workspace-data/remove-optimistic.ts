@@ -1,4 +1,5 @@
 import type { Folder } from "@/types/types"
+import { withRollback } from "../with-rollback"
 import { findTreeItem, insertTreeItem, removeTreeItem } from "../workspace-tree-ops"
 import type { Runtime } from "./types"
 
@@ -36,4 +37,21 @@ export function removeOptimistically(
         if (itemType === "folder") setCurrentFolder(current => current && folderIds.has(current.id) ? null : current)
     }
     return { undoRemoval, clearCurrentFolder }
+}
+
+/**
+ * Deletes or archives a folder or a note: removes it optimistically (see removeOptimistically), runs the write (the removal is
+ * put back when it fails), then `afterWrite` (the version bumps) and unselects the current folder if it was affected.
+ */
+export async function removeThenWrite(
+    runtime: Pick<Runtime, "tabsBridge" | "applyTree" | "getTree" | "setCurrentFolder">,
+    itemType: string,
+    itemID: number,
+    write: () => Promise<unknown>,
+    afterWrite: () => void,
+): Promise<void> {
+    const { undoRemoval, clearCurrentFolder } = removeOptimistically(runtime, itemType, itemID)
+    await withRollback(undoRemoval, write)
+    afterWrite()
+    clearCurrentFolder()
 }

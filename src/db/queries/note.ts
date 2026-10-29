@@ -1,10 +1,17 @@
 import i18n from "@/i18n"
 import type { Group, Section, Task } from "@/types/types";
 import { getDB } from "../dbManager";
-import { createError, handleDBError } from "@/types/error";
+import { createError } from "@/types/error";
+import { withDBErrors, NOTE_MESSAGES } from "./errors";
 import { getErrorMessage } from "@/lib/utils";
-import { chunked, placeholders } from "./sql";
+import { chunked, nextPositionSql, placeholders } from "./sql";
 
+/** SQL filter that hides the archived rows (nothing when they are kept); `alias` is the table alias of the column. */
+const notArchived = (includeArchived: boolean, alias = "") =>
+    includeArchived ? "" : ` AND ${alias ? `${alias}.` : ""}archived_at IS NULL`
+
+/** A section without a title (NULL) is an empty string in the app. */
+const withTitle = <T extends { title: string | null }>(section: T) => ({ ...section, title: section.title ?? "" })
 
 /**
  * Retrieves the data for a specific note from the database.
@@ -19,7 +26,7 @@ import { chunked, placeholders } from "./sql";
 export async function getDBNoteData(noteId: number, includeArchived = false) {
     try {
         const db = await getDB()
-        const gA = includeArchived ? "" : " AND archived_at IS NULL"
+        const gA = notArchived(includeArchived)
         // Three independent selects (no transaction): the pooled connection can serve them in parallel
         const [groups, sectionRows, tasks] = await Promise.all([
             db.select<Group[]>(
@@ -34,8 +41,7 @@ export async function getDBNoteData(noteId: number, includeArchived = false) {
                 SELECT id FROM section_group WHERE noteID=? AND deleted_at IS NULL${gA}))
                 ORDER BY position, id`, [noteId]),
         ])
-        // A section without a title (NULL) is an empty string in the app
-        const sections = sectionRows.map(section => ({ ...section, title: section.title ?? "" }))
+        const sections = sectionRows.map(withTitle)
         return { groups, sections, tasks }
     } catch (error: unknown) {
         throw createError('NOTE_DATA_LOAD_FAILED', i18n.t("errors.note.load", { message: getErrorMessage(error) }))
@@ -57,7 +63,7 @@ export type NoteData = { groups: Group[], sections: Section[], tasks: Task[] }
 export async function getDBNotesData(noteIds: readonly number[], includeArchived = false): Promise<Map<number, NoteData>> {
     try {
         const db = await getDB()
-        const arch = (alias: string) => includeArchived ? "" : ` AND ${alias}.archived_at IS NULL`
+        const arch = (alias: string) => notArchived(includeArchived, alias)
         const result = new Map<number, NoteData>(noteIds.map(id => [id, { groups: [], sections: [], tasks: [] }]))
         const dataOf = (noteID: number) => result.get(noteID)!
 
@@ -80,7 +86,7 @@ export async function getDBNotesData(noteIds: readonly number[], includeArchived
                      ORDER BY t.position, t.id`, ids),
             ])
             for (const group of groups) dataOf(group.noteID).groups.push(group)
-            for (const { _noteID, ...section } of sections) dataOf(_noteID).sections.push({ ...section, title: section.title ?? "" })
+            for (const { _noteID, ...section } of sections) dataOf(_noteID).sections.push(withTitle(section))
             for (const { _noteID, ...task } of tasks) dataOf(_noteID).tasks.push(task as Task)
         }
         return result
@@ -97,20 +103,14 @@ export async function getDBNotesData(noteIds: readonly number[], includeArchived
  * @category Database
  */
 export async function createDBWorkspaceNote(workspaceId: number, name: string, color?: string | null) {
-    try {
+    return withDBErrors("NOTE", NOTE_MESSAGES, async () => {
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO note (workspaceID, name, color, position)
-             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
-             WHERE workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL`,
+             SELECT ?, ?, ?, ${nextPositionSql("note", "workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL")}`,
             [workspaceId, name, color ?? null, workspaceId]);
         return result.lastInsertId as number
-    } catch (error: unknown) {
-        handleDBError(error, "NOTE", {
-            UNIQUE: i18n.t("errors.note.unique"),
-            CHECK: i18n.t("errors.note.check"),
-        })
-    }
+    })
 }
 
 /**
@@ -122,20 +122,14 @@ export async function createDBWorkspaceNote(workspaceId: number, name: string, c
  * @category Database
  */
 export async function createDBNoteInFolder(workspaceId: number, folderId: number, name: string) {
-    try {
+    return withDBErrors("NOTE", NOTE_MESSAGES, async () => {
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO note (workspaceID, folderID, name, position)
-             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
-             WHERE folderID = ? AND deleted_at IS NULL`,
+             SELECT ?, ?, ?, ${nextPositionSql("note", "folderID = ? AND deleted_at IS NULL")}`,
             [workspaceId, folderId, name, folderId]);
         return result.lastInsertId as number
-    } catch (error: unknown) {
-        handleDBError(error, "NOTE", {
-            UNIQUE: i18n.t("errors.note.unique"),
-            CHECK: i18n.t("errors.note.check"),
-        })
-    }
+    })
 }
 
 /**

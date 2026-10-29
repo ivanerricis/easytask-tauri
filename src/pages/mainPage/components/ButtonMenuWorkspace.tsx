@@ -14,9 +14,9 @@ import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer";
 
 type ButtonMenuProps = {
     workspace: Workspace
-    /** The workspace card: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
     /** Starts the inline edit of the name (once the menu has given the focus back). */
     onRename?: () => void
+    /** The workspace card: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
     children: ReactElement
 };
 

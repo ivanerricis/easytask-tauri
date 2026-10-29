@@ -26,10 +26,7 @@ export const home: Translation["home"] = {
     },
     workspace: {
         open: "Open the workspace {{name}}",
-        createdOn: "Created on {{date}} at {{time}}",
-        editedOn: "Modified on {{date}} at {{time}}",
     },
-    noWorkspaces: "No workspace found.",
     noWorkspacesHint: "Create your first workspace to get started.",
 }
 
@@ -57,6 +54,17 @@ export const notes: Translation["notes"] = {
         title: "Empty note",
     },
     closeAll: "Close all notes",
+    split: {
+        split: "Split into two areas",
+        close: "Close the split",
+        divider: "Resize the two areas",
+        dividerValue: "{{percent}}% left",
+        emptyTitle: "Empty area",
+        emptyHint: "Drag a tab here or use \"Open on the right\" from a note's menu.",
+        leftPane: "Left area",
+        rightPane: "Right area",
+        openTabsPane: "Open notes, {{pane}}",
+    },
     search: {
         placeholder: "Search a note…",
         empty: "No results.",
@@ -67,7 +75,6 @@ export const notes: Translation["notes"] = {
         inNote: "Search in the note",
         placeholder: "Search in the note…",
         counter: "{{current}} of {{total}}",
-        noResults: "No results",
         next: "Next result",
         previous: "Previous result",
         close: "Close the search",

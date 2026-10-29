@@ -1,18 +1,18 @@
 import { useCallback, useMemo } from "react"
 import { archiveDBItem, getDBArchive, getDBArchiveCount, unarchiveDBItem } from "@/db/queries/archive"
 import type { ArchiveItemType } from "@/types/types"
-import { withRollback } from "../with-rollback"
-import { removeOptimistically } from "./remove-optimistic"
+import { removeThenWrite } from "./remove-optimistic"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type ArchiveActions = Pick<WorkspaceActionsType, "archiveItem" | "unarchiveItem" | "getArchive" | "getArchiveCount">
 
 /**
- * Archive and unarchive. Every write that changes the archive bumps archiveVersion (the trash actions bump it too, because
+ * Archive and unarchive. Every write that changes the archive bumps the archive version (the trash actions bump it too, because
  * an archived item can be moved to the trash and restored back to the archive).
  * @category WorkspaceData Context
  */
-export function useArchiveActions({ tabsBridge, withLoading, withArchiveChange, bumpAudioVersion, setCurrentFolder, applyTree, getTree }: Runtime): ArchiveActions {
+export function useArchiveActions(rt: Runtime): ArchiveActions {
+    const { withLoading, withArchiveChange, bumpAudioVersion } = rt
     /**
      * Archives an item: it disappears from the sidebar / the open note without going to the trash.
      * A folder or a note is removed from the sidebar tree at once and put back if the write fails; the tabs of archived
@@ -25,14 +25,12 @@ export function useArchiveActions({ tabsBridge, withLoading, withArchiveChange, 
      * @throws Will throw an error if the item cannot be archived.
      * @category Workspace Data Context
      */
-    const archiveItem = useCallback((itemType: ArchiveItemType, itemID: number) => withArchiveChange(async () => {
-        const { undoRemoval, clearCurrentFolder } = removeOptimistically({ tabsBridge, applyTree, getTree, setCurrentFolder }, itemType, itemID)
-        await withRollback(undoRemoval, () => archiveDBItem(itemType, itemID))
-        // Groups, notes and folders carry audio files
-        if (itemType !== "section" && itemType !== "task") bumpAudioVersion()
-
-        clearCurrentFolder()
-    }), [tabsBridge, withArchiveChange, applyTree, getTree, bumpAudioVersion, setCurrentFolder])
+    const archiveItem = useCallback((itemType: ArchiveItemType, itemID: number) => withArchiveChange(() =>
+        removeThenWrite(rt, itemType, itemID, () => archiveDBItem(itemType, itemID), () => {
+            // Groups, notes and folders carry audio files
+            if (itemType !== "section" && itemType !== "task") bumpAudioVersion()
+        })
+    ), [rt, withArchiveChange, bumpAudioVersion])
 
     /**
      * Brings an item back from the archive together with its archived ancestors. Does not reload the data: the caller

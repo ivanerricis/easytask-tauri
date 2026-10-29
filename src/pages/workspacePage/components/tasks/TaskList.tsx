@@ -1,7 +1,7 @@
 import { memo } from "react"
 import { useTranslation } from "react-i18next"
 import type { Task as TaskType } from "@/types/types"
-import { usePreferences } from "@/contexts/use-preferences"
+import { usePreference } from "@/contexts/use-preference"
 import { Task } from "./Task"
 import { TaskTree } from "./TaskTree"
 import { useTaskDensity } from "./task-density"
@@ -30,7 +30,10 @@ type TaskListProps = {
  */
 export const TaskList = memo(({ tasks, listKey, sectionId, clipped, label }: TaskListProps) => {
     const { t } = useTranslation()
-    const { hideCompletedTasks, completedTasksLast = false, showSubtaskCount = true, renameOnClick = true } = usePreferences()
+    const hideCompletedTasks = usePreference(p => p.hideCompletedTasks)
+    const completedTasksLast = usePreference(p => p.completedTasksLast) ?? false
+    const showSubtaskCount = usePreference(p => p.showSubtaskCount) ?? true
+    const renameOnClick = usePreference(p => p.renameOnClick) ?? true
     const density = useTaskDensity()
     const hiddenCount = hideCompletedTasks ? countHiddenCompleted(tasks) : 0
     const visible = orderedVisibleTasks(tasks, { hideCompleted: hideCompletedTasks, completedLast: completedTasksLast })
