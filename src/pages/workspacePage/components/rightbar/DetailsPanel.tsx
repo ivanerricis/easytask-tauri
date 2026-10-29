@@ -17,6 +17,7 @@ import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { findTask } from "@/contexts/note-tree-ops"
 import { formatDate, getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
+import { useItemMutations } from "@/hooks/use-item-mutations"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 import { AudioContext, type AudioTrack } from "@/contexts/audio-context-object"
@@ -161,9 +162,11 @@ const TaskDescription = ({ task }: { task: Task }) => {
 const TaskDetails = ({ task, tree, noteName }: { task: Task, tree: NoteDataTree, noteName: string }) => {
     const { t } = useTranslation()
     const activeId = useActiveNoteId()
-    const { updateTaskPriority, updateItemColor } = useWorkspaceActions()
-    const { patchTask } = useActiveNoteActions()
+    const { updateTaskPriority } = useWorkspaceActions()
+    const { patchTask, removeTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
+    // The color is applied to the cached tree at once and restored if the write fails
+    const { addColorItem } = useItemMutations("task", patchTask, removeTask)
     const place = useMemo(() => findTaskPlace(tree, task.id), [tree, task.id])
     const subtasks = countTasks(task.subtasks)
     const path = [noteName, place?.group, place?.section].filter(Boolean).join(t("details.pathSeparator"))
@@ -177,17 +180,6 @@ const TaskDetails = ({ task, tree, noteName }: { task: Task, tree: NoteDataTree,
         } catch {
             rollback()
             toast.error(t("tasks.errors.priority"))
-        }
-    }
-
-    // The color is applied to the cached tree at once and restored if the write fails
-    const addColorItem = async (itemType: DBItemType, itemId: number, color?: string) => {
-        const rollback = patchTask(itemId, { color: color ?? null })
-        try {
-            await updateItemColor(itemType, itemId, color)
-        } catch (error) {
-            rollback()
-            throw error
         }
     }
 

@@ -61,7 +61,7 @@ beforeEach(() => {
 describe("ButtonMenuTask in a template draft", () => {
     it("has no archive entry", async () => {
         draftActive = true
-        render(<ButtonMenuTask task={makeTask({ id: 5 })}><div data-testid="row">Task</div></ButtonMenuTask>)
+        render(<ButtonMenuTask onEditDescription={vi.fn()} task={makeTask({ id: 5 })}><div data-testid="row">Task</div></ButtonMenuTask>)
         fireEvent.contextMenu(screen.getByTestId("row"))
         expect(await screen.findByText("Elimina")).toBeInTheDocument()
         expect(screen.queryByText("Archivia")).not.toBeInTheDocument()
@@ -70,7 +70,7 @@ describe("ButtonMenuTask in a template draft", () => {
 
 describe("ButtonMenuTask optimistic updates", () => {
     const openMenu = async (task = makeTask({ id: 5 })) => {
-        render(<ButtonMenuTask task={task}><div data-testid="row">Task</div></ButtonMenuTask>)
+        render(<ButtonMenuTask onEditDescription={vi.fn()} task={task}><div data-testid="row">Task</div></ButtonMenuTask>)
         fireEvent.contextMenu(screen.getByTestId("row"))
     }
 
@@ -185,7 +185,7 @@ describe("ButtonMenuTask", () => {
         const user = userEvent.setup()
         const onAddSubtask = vi.fn()
         const { container } = render(
-            <ButtonMenuTask task={makeTask({ id: 5 })} onAddSubtask={onAddSubtask}>
+            <ButtonMenuTask onEditDescription={vi.fn()} task={makeTask({ id: 5 })} onAddSubtask={onAddSubtask}>
                 <div><ItemMenuButton /></div>
             </ButtonMenuTask>,
         )
@@ -201,7 +201,7 @@ describe("ButtonMenuTask", () => {
         const user = userEvent.setup()
         const onAddSubtask = vi.fn()
         render(
-            <ButtonMenuTask task={makeTask({ id: 5 })} onAddSubtask={onAddSubtask}>
+            <ButtonMenuTask onEditDescription={vi.fn()} task={makeTask({ id: 5 })} onAddSubtask={onAddSubtask}>
                 <div data-testid="row">Task</div>
             </ButtonMenuTask>,
         )

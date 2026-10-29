@@ -7,7 +7,7 @@ import type { TaskDensity } from "@/lib/store/preferences"
  * "normal" is the original look: py-1.5, text-sm.
  * The offsets of the tree connectors follow the padding and the line height of the text (they point at the checkbox).
  */
-export type TaskDensityClasses = {
+type TaskDensityClasses = {
     /** Vertical padding of a task row. */
     padding: string
     /** Text of the task (and of the field that renames it). */

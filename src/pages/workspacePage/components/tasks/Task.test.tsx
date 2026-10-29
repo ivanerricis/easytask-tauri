@@ -45,7 +45,7 @@ vi.mock("../note-dnd-state", () => ({
 vi.mock("../NoteMoveSubmenus", () => ({ TaskMoveSubmenu: () => null }))
 vi.mock("../NoteStepMoves", () => ({ TaskStepMoves: () => null }))
 vi.mock("./AddTask", () => ({ AddTask: () => null }))
-// Like the real one, it shows only while it is open (ButtonMenuTask mounts its own copy, closed)
+// Like the real one, it shows only while it is open
 vi.mock("./DialogTaskDescription", () => ({ DialogTaskDescription: ({ open }: { open: boolean }) => open ? <div>description dialog</div> : null }))
 vi.mock("@/components/dialogs/dialog-delete", () => ({ DialogDeleteItem: () => null }))
 vi.mock("@/components/dialogs/dialog-add-color", () => ({ DialogAddColor: () => null }))

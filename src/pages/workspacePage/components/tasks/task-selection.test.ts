@@ -91,11 +91,11 @@ describe("getTopMostTasks", () => {
 describe("getTaskDestinations", () => {
     it("lists the direct area of the groups that have one and every section, group by group", () => {
         const destinations = getTaskDestinations(tree)
-        expect(destinations.map(d => [d.sectionId, d.direct, d.label, d.groupLabel])).toEqual([
-            [99, true, "Task diretti", "Gruppo 1"],
-            [10, false, "A", "Gruppo 1"],
-            [11, false, "B", "Gruppo 1"],
-            [12, false, "C", "Altro"],
+        expect(destinations.map(d => [d.sectionId, d.label, d.groupLabel])).toEqual([
+            [99, "Task diretti", "Gruppo 1"],
+            [10, "A", "Gruppo 1"],
+            [11, "B", "Gruppo 1"],
+            [12, "C", "Altro"],
         ])
     })
 })
@@ -121,6 +121,6 @@ describe("the list of the direct tasks placed among the sections", () => {
     })
 
     it("the destinations of the multi-selection list the area of the group where it is", () => {
-        expect(getTaskDestinations(placed).map(d => [d.sectionId, d.direct])).toEqual([[10, false], [99, true], [11, false]])
+        expect(getTaskDestinations(placed).map(d => d.sectionId)).toEqual([10, 99, 11])
     })
 })

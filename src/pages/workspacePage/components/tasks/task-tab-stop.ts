@@ -12,7 +12,7 @@ type TaskTabStopValue = { listKey: string, store: TaskTabStopStore }
 
 /** Without a provider (a task rendered alone) the task is its own tab stop. */
 const inertStore = createTaskTabStopStore()
-export const TaskTabStopContext = createContext<TaskTabStopValue | null>(null)
+const TaskTabStopContext = createContext<TaskTabStopValue | null>(null)
 
 /** One per list: owns the store of its tab stop. */
 export function TaskTabStopProvider({ listKey, children }: { listKey: string, children: ReactNode }) {

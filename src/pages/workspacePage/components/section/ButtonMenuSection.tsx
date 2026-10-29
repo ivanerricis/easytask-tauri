@@ -1,9 +1,7 @@
 import { useTranslation } from "react-i18next"
-import { lazyWithPreload, preloadWhenIdle } from "@/lib/lazy-preload"
 import { useState, type ReactElement } from "react"
 import { ButtonInPopover } from "@/components/button-in-popover"
 import { ColorSubmenu } from "../ColorSubmenu"
-import type { DBItemType } from "@/db/queries/shared_queries"
 import type { Section } from "@/types/types"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
@@ -16,24 +14,22 @@ import { SectionStepMoves } from "../NoteStepMoves"
 import { MenuGroup } from "@/components/menu-kind"
 import { ItemMenu } from "@/components/item-menu"
 import { useItemMenuState } from "@/hooks/use-item-menu-state"
+import { useItemMutations } from "@/hooks/use-item-mutations"
 import { useRenameAfterClose } from "@/hooks/use-rename-after-close"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { getErrorMessage } from "@/lib/utils"
 import { reportError } from "@/lib/report-error"
 import { toast } from "sonner"
-import { withRollback } from "@/contexts/with-rollback"
+import { LazyDialogAutomations } from "./LazyDialogAutomations"
 import { LazyMount } from "@/components/lazy-mount"
 import { useActiveNoteId } from "@/contexts/use-tabs"
 import { useIsActiveDraft } from "@/contexts/use-template-drafts"
 
-const DialogAutomations = lazyWithPreload(() => import("@/components/dialogs/dialog-automations").then(m => ({ default: m.DialogAutomations })))
-preloadWhenIdle(DialogAutomations)
-
 type ButtonMenuSectionProps = {
     section: Section
-    /** The section header: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
     /** Starts the inline edit of the title (once the menu has given the focus back). */
     onRename?: () => void
+    /** The section header: right click on it opens this menu, its <ItemMenuButton /> opens it below the button. */
     children: ReactElement
 }
 
@@ -45,9 +41,10 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
     const isDraft = useIsActiveDraft()
     const menu = useItemMenuState()
     const { requestRename, onCloseAutoFocus } = useRenameAfterClose(onRename)
-    const { updateItemColor, duplicateSection, archiveItem } = useWorkspaceActions()
+    const { duplicateSection } = useWorkspaceActions()
     const { patchSection, removeSection, refreshActiveNote } = useActiveNoteActions()
     const recorder = useUndoRecorder()
+    const { addColorItem, archive } = useItemMutations("section", patchSection, removeSection)
     const { request: requestDelete } = useDeleteRequest({
         item: section,
         itemType: "section",
@@ -69,26 +66,10 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
         }
     }
 
-    // The color is applied to the cached tree at once and restored if the write fails
-    const addColorItem = async (itemType: DBItemType, itemId: number, color?: string) => {
-        const rollback = patchSection(itemId, { color: color ?? null })
-        try {
-            await updateItemColor(itemType, itemId, color)
-        } catch (error) {
-            rollback()
-            throw error
-        }
-    }
-
     // Removed from the open note at once (put back if the write fails); no confirmation, undo brings it back
-    const handleArchive = async () => {
+    const handleArchive = () => {
         menu.close()
-        try {
-            await withRollback(removeSection(section.id), () => archiveItem("section", section.id))
-            recorder.archive("section", section.id, section.title)
-        } catch (error) {
-            reportError(error, getErrorMessage(error))
-        }
+        return archive(section.id, section.title)
     }
 
     // Groups, apart by a separator: add, edit, move, the rest, delete (the same order in the menus of groups and tasks)
@@ -147,7 +128,7 @@ export const ButtonMenuSection = ({ section, onRename, children }: ButtonMenuSec
     const dialogs = (
         <>
             {noteId !== null && !isDraft && <LazyMount active={isAutomationsOpen}>
-                <DialogAutomations
+                <LazyDialogAutomations
                     noteId={noteId}
                     sectionId={section.id}
                     isOpen={isAutomationsOpen}

@@ -17,7 +17,7 @@ export type InsertSlot = {
  * Only one insert field is open at a time, so its place lives in a small store: opening it, or moving it after a created
  * task, re-renders just the list involved (and the field), not every row of the note.
  */
-export type TaskInsertStore = {
+type TaskInsertStore = {
     getState: () => InsertSlot | null
     subscribe: (listener: () => void) => () => void
     /** Opens the field at `slot`; the field open elsewhere is closed (and its text discarded). */

@@ -39,6 +39,10 @@ import { useIsTaskTabStop, useTaskTabStopStore } from "./task-tab-stop"
 import { useTaskRowKeys } from "./use-task-row-keys"
 import { isFocusKeepingDetails } from "./task-focus-intent"
 
+// Classes of the text of a task: wrapping at any character; the textarea (read-only or editing) also grows with its content
+const TASK_TEXT_WRAP = "w-full min-w-0 text-wrap break-words [overflow-wrap:anywhere]"
+const TASK_TEXT_CLASS = `${TASK_TEXT_WRAP} max-h-auto whitespace-normal resize-none`
+
 // Clicks on these keep their own action (checkbox, buttons) and do not select the row
 const SELECTION_IGNORED = "button, [role=button], [role=checkbox]"
 
@@ -94,7 +98,7 @@ export const Task = React.memo((props: TaskProps) => {
 
 const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideCompleted = false, completedLast = false, renameOnClick = true, density = "normal", treeKey = "", isFirst = false, setRowRef, dragProps, isDragging, dropZone }: TaskRowProps) => {
     const { t } = useTranslation()
-    const [open, onOpenChange] = useState(false)
+    const [descriptionOpen, setDescriptionOpen] = useState(false)
     const [isAddingSubtask, setAddingSubtask] = useState(false)
     const { updateTaskCompletion, renameItem } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
@@ -158,6 +162,9 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
         setAddingSubtask(true)
     }
 
+    const openDescription = useCallback(() => setDescriptionOpen(true), [])
+    const closeAddSubtask = useCallback(() => setAddingSubtask(false), [])
+
     const handleCheckedChange = async () => {
         // Optimistic: the cached tree is updated at once and restored if the write fails
         const rollback = patchTask(task.id, { completed: !task.completed })
@@ -184,7 +191,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                 <span aria-hidden className={cn("pointer-events-none absolute -top-px -bottom-px w-px bg-muted-foreground/45 [.subtask:last-child>&]:hidden", lineLeft)} />
                 <span aria-hidden className={cn("pointer-events-none absolute -top-px w-px [.subtask:last-child>&]:bg-muted-foreground/45", sizes.tickHeight, lineLeft)} />
             </>}
-            <ButtonMenuTask task={task} onAddSubtask={startAddSubtask} onRename={startEdit} subtasksOpen={subtasksOpen} onToggleSubtasks={toggleSubtasks}>
+            <ButtonMenuTask task={task} onAddSubtask={startAddSubtask} onRename={startEdit} onEditDescription={openDescription} subtasksOpen={subtasksOpen} onToggleSubtasks={toggleSubtasks}>
                 <div
                     ref={setRef}
                     {...dragProps}
@@ -267,7 +274,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                     onClick={renameOnClick ? startEdit : undefined}
                                     onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); startEdit() } }}
                                     className={cn(
-                                        "w-full min-w-0 text-wrap break-words [overflow-wrap:anywhere]", sizes.text,
+                                        TASK_TEXT_WRAP, sizes.text,
                                         !renameOnClick && "cursor-default",
                                         task.completed && "line-through text-muted-foreground"
                                     )}
@@ -287,7 +294,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                     // Read only until the click opens the editing: a right click here opens the menu of the task, not the one of a text field
                                     readOnly
                                     className={cn(
-                                        "w-full min-w-0 max-h-auto text-wrap break-words [overflow-wrap:anywhere] whitespace-normal resize-none", sizes.text,
+                                        TASK_TEXT_CLASS, sizes.text,
                                         !renameOnClick && "cursor-default",
                                         task.completed && "line-through text-muted-foreground"
                                     )}
@@ -300,7 +307,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                     }}
                                     onPointerDown={e => e.stopPropagation()}
                                     minRows={1}
-                                    className={cn("w-full min-w-0 max-h-auto text-wrap break-words [overflow-wrap:anywhere] whitespace-normal resize-none", sizes.text)}
+                                    className={cn(TASK_TEXT_CLASS, sizes.text)}
                                 /></InlineErrorTooltip>}
                             </div>
 
@@ -314,7 +321,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                             <span
                                                 aria-hidden
                                                 data-testid="description-indicator"
-                                                onClick={e => { e.stopPropagation(); onOpenChange(true) }}
+                                                onClick={e => { e.stopPropagation(); setDescriptionOpen(true) }}
                                                 className="flex size-6 -m-1 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground">
                                                 <AlignLeft className="size-3.5" />
                                             </span>
@@ -353,7 +360,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                                             size="icon"
                                             aria-label={t("tasks.showDescription")}
                                             tabIndex={inner}
-                                            onClick={() => { onOpenChange(true) }}
+                                            onClick={() => { setDescriptionOpen(true) }}
                                             className="size-6">
                                             <AlignLeft />
                                         </Button>
@@ -374,7 +381,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                             </div>
                         </div>
                     </div>
-                    {open && <DialogTaskDescription task={task} open={open} onOpenChange={onOpenChange} />}
+                    {descriptionOpen && <DialogTaskDescription task={task} open={descriptionOpen} onOpenChange={setDescriptionOpen} />}
                 </div>
             </ButtonMenuTask>
             {isSubtask && <span aria-hidden className={cn("pointer-events-none absolute h-px bg-muted-foreground/45", sizes.tickTop, lineLeft, nestedSubtask ? "w-[13px]" : "w-[14px]")} />}
@@ -390,7 +397,7 @@ const TaskRow = React.memo(({ task, depth = 0, showSubtaskCount = true, hideComp
                     renderTask: subtask => <Task key={subtask.id} task={subtask} depth={depth + 1} treeKey={treeKey} showSubtaskCount={showSubtaskCount} hideCompleted={hideCompleted} completedLast={completedLast} renameOnClick={renameOnClick} density={density} />,
                 })}
                 {isAddingSubtask &&
-                    <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={() => setAddingSubtask(false)} />}
+                    <AddTask sectionId={task.sectionID} parentTaskId={task.id} onClose={closeAddSubtask} />}
             </div>}
         </div >
     )

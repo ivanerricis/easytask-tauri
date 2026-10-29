@@ -18,7 +18,7 @@ import { END_INDEX } from "../note-dnd"
 import { useTaskSelectionStore } from "./task-selection-context"
 import { getSelectedTasks, getTopMostTasks, parseTaskKey } from "./task-selection"
 
-export type TaskSelectionActions = {
+type TaskSelectionActions = {
     /** The tasks the actions apply to: the selected ones without those under another selected task, in tree order. */
     getTargets: () => ManyItemRef[]
     /** Opens the confirmation to move the selection to the trash. */

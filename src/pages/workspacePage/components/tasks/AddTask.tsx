@@ -4,15 +4,15 @@ import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
 import { usePreference } from "@/contexts/use-preference"
-import { cn, getErrorMessage } from "@/lib/utils"
+import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
 import { useState, useRef, useEffect, useCallback } from "react"
-import type { FormEvent, KeyboardEvent } from "react"
-import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { useAutomations } from "@/hooks/use-automations"
-import { reportError } from "@/lib/report-error"
 import { TASK_DENSITIES, useTaskDensity } from "./task-density"
+import { AddButton } from "../section/AddButton"
+import { NewTaskCheckbox } from "./NewTaskCheckbox"
+import { useNewTaskField } from "./use-new-task-field"
 import { useEndFieldReplaced, useTaskInsertStore } from "./task-insert-state"
 
 type AddTaskProps = {
@@ -37,15 +37,11 @@ type AddTaskProps = {
  */
 const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: number, sectionId: number | null, onClose?: () => void }) => {
     const { t } = useTranslation()
-    const [text, setText] = useState("")
-    const { saving, run } = useSubmitOnce()
     const { createSubTask } = useWorkspaceActions()
     const { appendTask, applyTaskMove } = useActiveNoteActions()
     const newTaskPosition = usePreference(p => p.newTaskPosition)
-    const keepAddingTasks = usePreference(p => p.keepAddingTasks)
     const sizes = TASK_DENSITIES[useTaskDensity()]
     const recorder = useUndoRecorder()
-    const inputRef = useRef<HTMLInputElement>(null)
     const insertStore = useTaskInsertStore()
     const listKey = `t-${parentTaskId}`
     const replaced = useEndFieldReplaced(listKey)
@@ -57,53 +53,29 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
     // Only one field of a new task is open at a time: a "+" line (or another bottom field) opened elsewhere closes this one
     useEffect(() => { if (replaced) onClose?.() }, [replaced, onClose])
 
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault()
-        const value = text.trim()
-        if (!value) return
-        await run(async () => {
-            try {
-                const id = await createSubTask(parentTaskId, value, newTaskPosition)
-                if (keepAddingTasks) setText("")
-                else close()
-                appendTask(id, { parentTaskId }, value)
-                // The cache appends it: at the top it moves before its siblings, as the database ordered it
-                if (newTaskPosition === "top" && sectionId !== null) applyTaskMove(id, { sectionId, parentTaskId }, 0)
-                recorder.create("task", id, value)
-            } catch (error: unknown) {
-                reportError(error, getErrorMessage(error) || t("tasks.errors.createSubtask"))
-            } finally {
-                if (keepAddingTasks) inputRef.current?.focus()
-            }
-        })
-    }
+    const { inputProps, onSubmit, saving } = useNewTaskField({
+        onClose: close,
+        errorFallback: t("tasks.errors.createSubtask"),
+        create: async (value, { next }) => {
+            const id = await createSubTask(parentTaskId, value, newTaskPosition)
+            next()
+            appendTask(id, { parentTaskId }, value)
+            // The cache appends it: at the top it moves before its siblings, as the database ordered it
+            if (newTaskPosition === "top" && sectionId !== null) applyTaskMove(id, { sectionId, parentTaskId }, 0)
+            recorder.create("task", id, value)
+        },
+    })
 
     return (
-        <form onSubmit={handleSubmit} className="w-full border-b">
+        <form onSubmit={onSubmit} className="w-full border-b">
             <div className={cn("flex items-start w-full px-1", sizes.padding)}>
                 <div className="flex items-start gap-2 ml-4 w-full">
-                    {/* Inert placeholder in the exact spot (and look) of a real subtask checkbox */}
-                    <span aria-hidden className={cn("size-4 shrink-0 rounded-xs border border-input opacity-50", sizes.checkbox)} />
+                    <NewTaskCheckbox className={sizes.checkbox} />
                     <Input
-                        ref={inputRef}
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
+                        {...inputProps}
                         placeholder={t("tasks.newSubtaskPlaceholder")}
                         aria-label={t("tasks.newSubtask")}
                         autoFocus
-                        autoComplete="off"
-                        aria-description={t("tasks.inputHint")}
-                        readOnly={saving}
-                        aria-busy={saving}
-                        onKeyDown={(e) => {
-                            if (e.key === "Escape") { e.preventDefault(); close() }
-                            else if (e.key === "Enter" && e.nativeEvent.isComposing) e.preventDefault()
-                            // Enter on the empty input ends the series, like the field of a new task (there is nothing to submit)
-                            else if (e.key === "Enter" && keepAddingTasks && !text.trim() && !saving) { e.preventDefault(); close() }
-                        }}
-                        onBlur={() => {
-                            if (!text.trim() && !saving) close()
-                        }}
                         className={cn("flex-1 px-1 py-0 shadow-none", sizes.input, saving && "opacity-60")}
                     />
                 </div>
@@ -121,29 +93,47 @@ const focusIsFree = (form: HTMLElement | null) => {
 const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inGroup?: boolean }) => {
     const { t } = useTranslation()
     const [isOpen, setOpen] = useState(false)
-    const [text, setText] = useState("")
     const { createTask } = useWorkspaceActions()
     const { appendTask, applyTaskMove } = useActiveNoteActions()
     const newTaskPosition = usePreference(p => p.newTaskPosition)
-    const keepAddingTasks = usePreference(p => p.keepAddingTasks)
     const recorder = useUndoRecorder()
     const { dispatch } = useAutomations()
     const formRef = useRef<HTMLFormElement>(null)
-    const inputRef = useRef<HTMLInputElement>(null)
-    const { saving, run } = useSubmitOnce()
     const insertStore = useTaskInsertStore()
     const listKey = `s-${sectionId}`
+
+    // Escape closes the row and discards the text.
+    // With keepAddingTasks, Enter on an empty field closes it too (there is nothing to submit).
+    const { inputProps, onSubmit, text, setText } = useNewTaskField({
+        onClose: () => closeField(),
+        errorFallback: t("tasks.errors.createTask"),
+        stopEscape: true,
+        closeOnBlur: false,
+        canSubmit: sectionId !== null,
+        // The task is created a moment later: if the focus went elsewhere meanwhile (a menu just opened) it is not taken back
+        shouldRefocus: () => focusIsFree(formRef.current),
+        create: async (value, { next }) => {
+            if (sectionId === null) return
+            const id = await createTask(sectionId, value, newTaskPosition)
+            next()
+            appendTask(id, { sectionId }, value)
+            // The cache appends it: at the top it moves before its siblings, as the database ordered it
+            if (newTaskPosition === "top") applyTaskMove(id, { sectionId, parentTaskId: null }, 0)
+            recorder.create("task", id, value)
+            void dispatch({ type: "task.created", taskId: id })
+        },
+    })
 
     const closeField = useCallback(() => {
         insertStore.releaseEnd(listKey)
         setOpen(false)
         setText("")
-    }, [insertStore, listKey])
+    }, [insertStore, listKey, setText])
     // Only one field of a new task is open at a time: a "+" line (or another bottom field) opened elsewhere closes this one, text discarded
     useEffect(() => insertStore.subscribe(() => {
         const slot = insertStore.getState()
         if (slot && !(slot.end && slot.listKey === listKey)) { setOpen(false); setText("") }
-    }), [insertStore, listKey])
+    }), [insertStore, listKey, setText])
 
     // The listener reads the text through a ref, so it is not registered again at every keystroke
     const textRef = useRef(text)
@@ -167,56 +157,10 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
         setText("")
     }
 
-    // Escape closes the row and discards the text.
-    // With keepAddingTasks, Enter on an empty field closes it too (there is nothing to submit).
-    const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-        if (e.key === "Enter" && keepAddingTasks && !text.trim() && !saving && !e.nativeEvent.isComposing) {
-            e.preventDefault()
-            closeField()
-            return
-        }
-        if (e.key !== "Escape") return
-        e.preventDefault()
-        e.stopPropagation()
-        closeField()
-    }
-
-    const handleSubmit = async (e: FormEvent) => {
-        e.preventDefault()
-        if (text.trim() && sectionId !== null) {
-            await run(async () => {
-                try {
-                    const value = text.trim()
-                    const id = await createTask(sectionId, value, newTaskPosition)
-                    if (keepAddingTasks) setText("")
-                    else handleOpen()
-                    appendTask(id, { sectionId }, value)
-                    // The cache appends it: at the top it moves before its siblings, as the database ordered it
-                    if (newTaskPosition === "top") applyTaskMove(id, { sectionId, parentTaskId: null }, 0)
-                    recorder.create("task", id, value)
-                    void dispatch({ type: "task.created", taskId: id })
-                } catch (error: unknown) {
-                    reportError(error, getErrorMessage(error) || t("tasks.errors.createTask"))
-                } finally {
-                    // The task is created a moment later: if the focus went elsewhere meanwhile (a menu just opened) it is not taken back
-                    if (keepAddingTasks && focusIsFree(formRef.current)) inputRef.current?.focus()
-                }
-            })
-        }
-    }
-
     return (
         !isOpen ? (
             inGroup ? (
-                <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={handleOpen}
-                    className="w-full h-9 rounded-xs border border-dashed border-muted-foreground/45 hover:border-foreground/60 font-normal text-muted-foreground hover:text-foreground"
-                >
-                    <Plus />
-                    <span className="text-nowrap">{t("groups.addTask")}</span>
-                </Button>
+                <AddButton onClick={handleOpen} label={t("groups.addTask")} />
             ) : (
                 <Button
                     type="button"
@@ -232,21 +176,15 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
         ) : (
             <form
                 ref={formRef}
-                onSubmit={handleSubmit}
+                onSubmit={onSubmit}
                 className="flex flex-col items-center justify-center w-full"
             >
                 <div className="flex items-center justify-center w-full bg-background">
                     <Input
-                        ref={inputRef}
-                        value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        onKeyDown={handleKeyDown}
+                        {...inputProps}
                         placeholder={t("tasks.placeholder")}
                         aria-label={t("tasks.add")}
-                        aria-description={t("tasks.inputHint")}
                         autoFocus
-                        readOnly={saving}
-                        aria-busy={saving}
                         className="rounded-none border-none text-sm"
                     />
                 </div>
