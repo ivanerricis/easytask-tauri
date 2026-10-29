@@ -10,7 +10,7 @@ import { createDraftAutosaver } from "@/lib/template-draft"
 import { TemplateDraftsActionsContext, TemplateDraftsContext, type TemplateDraftsActionsType } from "./template-drafts-context-object"
 import { useActiveNoteActions } from "./use-active-note"
 import { useTabs, useTabsActions } from "./use-tabs"
-import { useWorkspaceState } from "./workspace-data/context"
+import { useWorkspaceVersion } from "./workspace-data/versions"
 
 type TemplateDraftsProviderProps = {
     /** The ID of the loaded workspace (null when none). */
@@ -39,7 +39,7 @@ export function TemplateDraftsProvider({ workspaceId, drafts, setDrafts, whenIdl
     const { openIds, restored } = useTabs()
     const { openNote } = useTabsActions()
     const { subscribeNoteChanges } = useActiveNoteActions()
-    const { templatesVersion } = useWorkspaceState()
+    const templatesVersion = useWorkspaceVersion("templates")
 
     const draftsRef = useRef(drafts)
     const openIdsRef = useRef(openIds)
@@ -122,7 +122,7 @@ export function TemplateDraftsProvider({ workspaceId, drafts, setDrafts, whenIdl
         setDrafts(previous => sameDrafts(previous, list) ? previous : list)
     }).catch(error => reportError(error)), [enqueue, workspaceId, setDrafts])
 
-    // A template renamed, deleted, restored or purged changes its draft (those trash operations bump templatesVersion too;
+    // A template renamed, deleted, restored or purged changes its draft (those trash operations bump the templates version too;
     // a plain task or section move changes neither, so it costs no read)
     useEffect(() => {
         void refreshDrafts()

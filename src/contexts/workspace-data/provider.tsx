@@ -1,16 +1,19 @@
 import i18n from "@/i18n"
 import { useCallback, useMemo, useRef, useState } from "react"
 import type { Folder, WorkspaceDataTree } from "@/types/types"
+import type { DBItemType } from "@/db/queries/shared_queries"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
 import { getDBTemplateDrafts, type TemplateDraft } from "@/db/queries/template-draft"
 import { draftToNote } from "@/lib/template-draft"
 import { reportError } from "@/lib/report-error"
 import { buildWorkspaceTree } from "../tree-builders"
 import { flattenTree } from "../workspace-tree-ops"
+import { usePendingCounter } from "../use-pending-counter"
 import { TabsProvider } from "../tabs-context"
 import { ActiveNoteProvider } from "../active-note-context"
 import { TemplateDraftsProvider } from "../template-drafts-context"
 import { WorkspaceActionsContext, WorkspaceLoadingContext, WorkspaceStateContext } from "./context"
+import { bumpVersions, createVersionsStore, WorkspaceVersionsContext } from "./versions"
 import { useTreeActions } from "./tree"
 import { useNoteContentActions } from "./note-content"
 import { useTaskActions } from "./tasks"
@@ -21,6 +24,9 @@ import type { Runtime, TabsBridge, WorkspaceActionsType, WorkspaceStateType } fr
 
 /** Refetches of a reload whose response was overtaken by an optimistic update. */
 const MAX_RELOAD_RETRIES = 3
+
+/** The items whose deletion, restore or purge can change the visible audio files. */
+const AUDIO_TYPES: readonly DBItemType[] = ["folder", "note", "section_group", "audio_file"]
 
 export function WorkspaceDataProvider({ children }: { children: React.ReactNode }) {
 
@@ -33,20 +39,20 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
     const [currentFolder, setCurrentFolder] = useState<Folder | null>(null)
 
-    const [trashVersion, setTrashVersion] = useState(0)
-    const [archiveVersion, setArchiveVersion] = useState(0)
-    const [audioVersion, setAudioVersion] = useState(0)
-    const [templatesVersion, setTemplatesVersion] = useState(0)
+    // The version counters are apart from the state: bumping one re-renders only the components that read it
+    const [versions] = useState(createVersionsStore)
 
     // The flat lists follow the tree: they change identity only when the tree does
     const { folders, notes } = useMemo(
         () => workspaceDataTree ? flattenTree(workspaceDataTree) : { folders: [], notes: [] },
         [workspaceDataTree])
-    const bumpAudioVersion = useCallback(() => setAudioVersion(version => version + 1), [])
-    const notifyArchiveChanged = useCallback(() => {
-        setArchiveVersion(version => version + 1)
-        setAudioVersion(version => version + 1)
-    }, [])
+    const bumpAudioVersion = useCallback(() => bumpVersions(versions, "audio"), [versions])
+    const bumpTemplates = useCallback(() => bumpVersions(versions, "templates"), [versions])
+    const afterItemChange = useCallback<Runtime["afterItemChange"]>((itemType, forceAudio = false) => {
+        if (itemType === "note_template") bumpTemplates()
+        if (forceAudio || AUDIO_TYPES.includes(itemType)) bumpAudioVersion()
+    }, [bumpTemplates, bumpAudioVersion])
+    const notifyArchiveChanged = useCallback(() => bumpVersions(versions, "archive", "audio"), [versions])
 
     // The tree is also kept in a ref, so consecutive optimistic updates chain on the latest one even before a render
     const treeRef = useRef<WorkspaceDataTree | null>(null)
@@ -55,61 +61,46 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const optimisticSeq = useRef(0)
     // Bumped by every reload request: only the latest one applies its response
     const reloadSeq = useRef(0)
-    const pendingOps = useRef(0)
     const idleWaiters = useRef<(() => void)[]>([])
     const tabsBridge = useRef<TabsBridge | null>(null)
 
-    /**
-     * Runs an async operation and keeps isLoading true while any operation is in flight.
-     * @param operation The operation to run.
-     * @returns The result of the operation.
-     * @category WorkspaceData Context
-     */
-    const withLoading = useCallback(async <T,>(operation: () => Promise<T>): Promise<T> => {
-        pendingOps.current += 1
-        setIsLoading(true)
-        try {
-            return await operation()
-        } finally {
-            pendingOps.current -= 1
-            setIsLoading(pendingOps.current > 0)
-            if (pendingOps.current === 0) idleWaiters.current.splice(0).forEach(resolve => resolve())
-        }
-    }, [])
+    const { track: withLoading, getPending } = usePendingCounter(useCallback((pending: number) => {
+        setIsLoading(pending > 0)
+        if (pending === 0) idleWaiters.current.splice(0).forEach(resolve => resolve())
+    }, []))
 
     /**
      * Resolves when no operation is in flight (a save of a template draft must not read a half written note).
      * @category WorkspaceData Context
      */
-    const whenIdle = useCallback(() => pendingOps.current === 0
+    const whenIdle = useCallback(() => getPending() === 0
         ? Promise.resolve()
-        : new Promise<void>(resolve => { idleWaiters.current.push(resolve) }), [])
+        : new Promise<void>(resolve => { idleWaiters.current.push(resolve) }), [getPending])
 
     /**
-     * Runs an operation that can change the trash content and bumps trashVersion once it succeeds.
-     * archiveVersion moves with it: an archived item that goes to the trash (or comes back from it) changes the archive too.
+     * Runs an operation that can change the trash content and bumps the trash version once it succeeds.
+     * The archive version moves with it: an archived item that goes to the trash (or comes back from it) changes the archive too.
      * @param operation The operation to run.
      * @returns The result of the operation.
      * @category WorkspaceData Context
      */
     const withTrashChange = useCallback(<T,>(operation: () => Promise<T>): Promise<T> => withLoading(async () => {
         const result = await operation()
-        setTrashVersion(version => version + 1)
-        setArchiveVersion(version => version + 1)
+        bumpVersions(versions, "trash", "archive")
         return result
-    }), [withLoading])
+    }), [withLoading, versions])
 
     /**
-     * Runs an operation that can change the archive content and bumps archiveVersion once it succeeds.
+     * Runs an operation that can change the archive content and bumps the archive version once it succeeds.
      * @param operation The operation to run.
      * @returns The result of the operation.
      * @category WorkspaceData Context
      */
     const withArchiveChange = useCallback(<T,>(operation: () => Promise<T>): Promise<T> => withLoading(async () => {
         const result = await operation()
-        setArchiveVersion(version => version + 1)
+        bumpVersions(versions, "archive")
         return result
-    }), [withLoading])
+    }), [withLoading, versions])
 
     /**
      * Sets the tree (the flat folders/notes are derived from it).
@@ -155,6 +146,11 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
         }
     }), [withLoading])
 
+    /** A failed refresh is reported, not thrown: the caller does not wait for it. */
+    const reloadTreeInBackground = useCallback((workspaceID: number) => {
+        getWorkspaceData(workspaceID).catch(error => reportError(error, i18n.t("errors.refreshTree")))
+    }, [getWorkspaceData])
+
     const getTree = useCallback(() => treeRef.current, [])
 
     const applyTree = useCallback<Runtime["applyTree"]>((forward, inverse) => {
@@ -170,9 +166,9 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
             optimisticSeq.current += 1
             if (current === next) setWorkspaceDataTree(previous)
             else if (current && inverse) setWorkspaceDataTree(inverse(current))
-            else if (loadedWorkspaceRef.current !== null) getWorkspaceData(loadedWorkspaceRef.current).catch(error => reportError(error, i18n.t("errors.refreshWorkspaceData")))
+            else if (loadedWorkspaceRef.current !== null) reloadTreeInBackground(loadedWorkspaceRef.current)
         }
-    }, [setWorkspaceDataTree, getWorkspaceData])
+    }, [setWorkspaceDataTree, reloadTreeInBackground])
 
     /**
      * Clears the workspace state (this also closes every tab, since the tabs follow the loaded workspace).
@@ -187,9 +183,11 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
     /* ------------------------------------------------------------------------------------ */
 
-    const runtime: Runtime = {
-        tabsBridge, withLoading, withTrashChange, withArchiveChange, bumpAudioVersion, setCurrentFolder, setTemplatesVersion, getWorkspaceData, getTree, applyTree,
-    }
+    // Every member is stable, so the runtime is too (the actions built on it keep their identity)
+    const runtime = useMemo<Runtime>(() => ({
+        tabsBridge, withLoading, withTrashChange, withArchiveChange, bumpAudioVersion, bumpTemplates, afterItemChange, reloadTreeInBackground,
+        setCurrentFolder, getWorkspaceData, getTree, applyTree,
+    }), [withLoading, withTrashChange, withArchiveChange, bumpAudioVersion, bumpTemplates, afterItemChange, reloadTreeInBackground, getWorkspaceData, getTree, applyTree])
     const treeActions = useTreeActions(runtime)
     const noteContentActions = useNoteContentActions(runtime)
     const taskActions = useTaskActions(runtime)
@@ -201,8 +199,8 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
     const tabNotes = useMemo(() => [...notes, ...drafts.filter(draft => !draft.trashed).map(draftToNote)], [notes, drafts])
 
     const state = useMemo<WorkspaceStateType>(() => ({
-        folders, notes, workspaceDataTree, currentFolder, error, trashVersion, archiveVersion, audioVersion, templatesVersion, loadedWorkspaceId
-    }), [folders, notes, workspaceDataTree, currentFolder, error, trashVersion, archiveVersion, audioVersion, templatesVersion, loadedWorkspaceId])
+        folders, notes, workspaceDataTree, currentFolder, error, loadedWorkspaceId
+    }), [folders, notes, workspaceDataTree, currentFolder, error, loadedWorkspaceId])
 
     // Every group of actions is memoized on stable callbacks, so this object is created once
     const actions = useMemo<WorkspaceActionsType>(() => ({
@@ -221,6 +219,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
 
     return (
         <WorkspaceLoadingContext.Provider value={isLoading}>
+            <WorkspaceVersionsContext.Provider value={versions}>
             <WorkspaceStateContext.Provider value={state}>
                 <WorkspaceActionsContext.Provider value={actions}>
                     <TabsProvider notes={tabNotes} workspaceId={loadedWorkspaceId} bridgeRef={tabsBridge}>
@@ -232,6 +231,7 @@ export function WorkspaceDataProvider({ children }: { children: React.ReactNode 
                     </TabsProvider>
                 </WorkspaceActionsContext.Provider>
             </WorkspaceStateContext.Provider>
+            </WorkspaceVersionsContext.Provider>
         </WorkspaceLoadingContext.Provider>
     )
 }

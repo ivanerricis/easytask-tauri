@@ -36,7 +36,7 @@ const workspaceActions = {
 }
 const workspaceState = { audioVersion: 0 }
 vi.mock("./workspace-data", () => ({
-    useWorkspaceState: () => workspaceState,
+    useWorkspaceVersion: (kind: string) => kind === "audio" ? workspaceState.audioVersion : 0,
     useWorkspaceActions: () => workspaceActions,
     useWorkspaceData: () => ({ ...workspaceState, ...workspaceActions }),
 }))

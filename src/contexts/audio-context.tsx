@@ -9,7 +9,7 @@ import {
     AUDIO_EXTENSIONS, createDBAudioFile, getDBAudioFile, updateDBAudioFilePath,
 } from "@/db/queries/audio"
 import { usePreferences } from "./use-preferences"
-import { useWorkspaceActions, useWorkspaceState } from "./workspace-data"
+import { useWorkspaceActions, useWorkspaceVersion } from "./workspace-data"
 import {
     AudioActionsContext, AudioContext, AudioFilesContext,
     type AudioActionsContextType, type AudioContextType, type AudioFilesContextType, type AudioTrack, type PlaybackState,
@@ -30,7 +30,7 @@ const getFilters = () => [{ name: i18n.t("audio.dialogFilter"), extensions: [...
  */
 export function AudioProvider({ children }: { children: React.ReactNode }) {
     const { t } = useTranslation()
-    const { audioVersion } = useWorkspaceState()
+    const audioVersion = useWorkspaceVersion("audio")
     const { deleteItem } = useWorkspaceActions()
     const { audioPlayerVisible } = usePreferences()
     const [track, setTrack] = useState<AudioTrack | null>(null)
@@ -43,7 +43,7 @@ export function AudioProvider({ children }: { children: React.ReactNode }) {
     const knownFiles = useRef(new Map<number, AudioFile>())
     const [filesCache] = useState(() => new Map<number, AudioFile[]>())
 
-    // Both counters only grow, so their sum changes whenever either does (audioVersion, not trashVersion: that one
+    // Both counters only grow, so their sum changes whenever either does (the audio version, not the trash one: that one
     // moves with every task move and would reload the audio of every group)
     const version = localVersion + audioVersion
 

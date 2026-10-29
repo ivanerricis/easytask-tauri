@@ -8,10 +8,10 @@ type TemplateActions = Pick<WorkspaceActionsType,
     "getTemplates" | "countTemplates" | "createTemplateFromNote" | "updateTemplateFromNote" | "duplicateTemplate" | "createNoteFromTemplate">
 
 /**
- * Note templates. Every write bumps templatesVersion.
+ * Note templates. Every write bumps the templates version.
  * @category WorkspaceData Context
  */
-export function useTemplateActions({ withLoading, setTemplatesVersion, applyTree, getWorkspaceData }: Runtime): TemplateActions {
+export function useTemplateActions({ withLoading, bumpTemplates, applyTree, getWorkspaceData }: Runtime): TemplateActions {
     /**
      * Retrieves the templates of a workspace. Does not touch the context state.
      * @param workspaceID - The ID of the workspace.
@@ -38,9 +38,9 @@ export function useTemplateActions({ withLoading, setTemplatesVersion, applyTree
      */
     const createTemplateFromNote = useCallback((noteID: number, name: string) => withLoading(async () => {
         const id = await createDBTemplateFromNote(noteID, name)
-        setTemplatesVersion(version => version + 1)
+        bumpTemplates()
         return id
-    }), [withLoading, setTemplatesVersion])
+    }), [withLoading, bumpTemplates])
 
     /**
      * Refreshes the snapshot of a template from its source note, or from another note of the workspace (which then
@@ -52,8 +52,8 @@ export function useTemplateActions({ withLoading, setTemplatesVersion, applyTree
      */
     const updateTemplateFromNote = useCallback((templateID: number, noteID?: number) => withLoading(async () => {
         await updateDBTemplateFromNote(templateID, noteID)
-        setTemplatesVersion(version => version + 1)
-    }), [withLoading, setTemplatesVersion])
+        bumpTemplates()
+    }), [withLoading, bumpTemplates])
 
     /**
      * Duplicates a template in the same workspace ("<name> (copy)").
@@ -64,9 +64,9 @@ export function useTemplateActions({ withLoading, setTemplatesVersion, applyTree
      */
     const duplicateTemplate = useCallback((templateID: number) => withLoading(async () => {
         const id = await duplicateDBTemplate(templateID)
-        setTemplatesVersion(version => version + 1)
+        bumpTemplates()
         return id
-    }), [withLoading, setTemplatesVersion])
+    }), [withLoading, bumpTemplates])
 
     /**
      * Creates a note from a template at the end of the destination and adds it to the sidebar tree (the content of

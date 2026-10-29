@@ -1,3 +1,5 @@
+import { createEmitter } from "@/lib/emitter"
+
 /**
  * One undoable user action. `undo` and `redo` are the inverse of each other: they only use stable ids
  * (a soft delete keeps the ids) and reject when the operation could not be applied.
@@ -67,7 +69,7 @@ export function createUndoHistory(limit = UNDO_LIMIT, initialIsBlocked: (command
     let running = false
     let generation = 0
     let queue: Promise<unknown> = Promise.resolve()
-    const listeners = new Set<() => void>()
+    const changes = createEmitter()
 
     const buildSnapshot = (): UndoSnapshot => ({
         canUndo: undoStack.length > 0,
@@ -83,7 +85,7 @@ export function createUndoHistory(limit = UNDO_LIMIT, initialIsBlocked: (command
             next.undoLabel === snapshot.undoLabel && next.redoLabel === snapshot.redoLabel
         if (same && !entriesChanged) return
         if (!same) snapshot = next
-        listeners.forEach(listener => listener())
+        changes.emit()
     }
 
     const buildEntries = (): UndoEntries => ({
@@ -223,10 +225,7 @@ export function createUndoHistory(limit = UNDO_LIMIT, initialIsBlocked: (command
         isLatest: (command: UndoCommand) => undoStack.at(-1) === command,
         getSnapshot: () => snapshot,
         getEntries: () => entries,
-        subscribe: (listener: () => void) => {
-            listeners.add(listener)
-            return () => { listeners.delete(listener) }
-        },
+        subscribe: changes.subscribe,
     }
 }
 

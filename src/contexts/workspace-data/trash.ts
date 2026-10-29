@@ -1,20 +1,17 @@
 import { useCallback, useMemo } from "react"
 import { emptyDBTrash, getDBTrash, getDBTrashCount, purgeDBItem, restoreDBItem } from "@/db/queries/trash"
 import { deleteDBItem, type DBItemType } from "@/db/queries/shared_queries"
-import { withRollback } from "../with-rollback"
-import { removeOptimistically } from "./remove-optimistic"
+import { removeThenWrite } from "./remove-optimistic"
 import type { Runtime, WorkspaceActionsType } from "./types"
 
 type TrashActions = Pick<WorkspaceActionsType, "deleteItem" | "getTrash" | "getTrashCount" | "restoreItem" | "purgeItem" | "emptyTrash">
 
-/** The items whose deletion, restore or purge can change the visible audio files. */
-const AUDIO_TYPES: readonly DBItemType[] = ["folder", "note", "section_group", "audio_file"]
-
 /**
- * Delete (move to trash), restore, purge and empty. Every write that changes the trash bumps trashVersion.
+ * Delete (move to trash), restore, purge and empty. Every write that changes the trash bumps the trash version.
  * @category WorkspaceData Context
  */
-export function useTrashActions({ tabsBridge, withLoading, withTrashChange, bumpAudioVersion, setCurrentFolder, setTemplatesVersion, applyTree, getTree }: Runtime): TrashActions {
+export function useTrashActions(rt: Runtime): TrashActions {
+    const { withLoading, withTrashChange, bumpAudioVersion, bumpTemplates, afterItemChange } = rt
     /**
      * Delete an item from the workspace (moves it to the trash). A folder or a note is removed from the sidebar tree
      * at once and put back if the write fails; the tabs of deleted notes (or of notes inside a deleted folder) are
@@ -25,15 +22,10 @@ export function useTrashActions({ tabsBridge, withLoading, withTrashChange, bump
      * @throws Will throw an error if the item cannot be deleted.
      * @category Workspace Data Context
      */
-    const deleteItem = useCallback((itemType: DBItemType, itemID: number) => withTrashChange(async () => {
+    const deleteItem = useCallback((itemType: DBItemType, itemID: number) => withTrashChange(() =>
         // Folders and notes leave the sidebar tree at once (and their open tabs close with them); restored on failure
-        const { undoRemoval, clearCurrentFolder } = removeOptimistically({ tabsBridge, applyTree, getTree, setCurrentFolder }, itemType, itemID)
-        await withRollback(undoRemoval, () => deleteDBItem(itemType, itemID))
-        if (itemType === "note_template") setTemplatesVersion(version => version + 1)
-        if (AUDIO_TYPES.includes(itemType)) bumpAudioVersion()
-
-        clearCurrentFolder()
-    }), [tabsBridge, withTrashChange, applyTree, getTree, bumpAudioVersion, setCurrentFolder, setTemplatesVersion])
+        removeThenWrite(rt, itemType, itemID, () => deleteDBItem(itemType, itemID), () => afterItemChange(itemType))
+    ), [rt, withTrashChange, afterItemChange])
 
     /**
      * Retrieves the trashed items of a workspace. Does not touch the context state.
@@ -58,10 +50,9 @@ export function useTrashActions({ tabsBridge, withLoading, withTrashChange, bump
     const restoreItem = useCallback((itemType: DBItemType, itemID: number) =>
         withTrashChange(async () => {
             await restoreDBItem(itemType, itemID)
-            if (itemType === "note_template") setTemplatesVersion(version => version + 1)
             // Restoring a section or a task can bring back its deleted group too
-            bumpAudioVersion()
-        }), [withTrashChange, bumpAudioVersion, setTemplatesVersion])
+            afterItemChange(itemType, true)
+        }), [withTrashChange, afterItemChange])
 
     /**
      * Permanently deletes a trashed item. Does not reload the data.
@@ -70,9 +61,8 @@ export function useTrashActions({ tabsBridge, withLoading, withTrashChange, bump
     const purgeItem = useCallback((itemType: DBItemType, itemID: number) =>
         withTrashChange(async () => {
             await purgeDBItem(itemType, itemID)
-            if (itemType === "note_template") setTemplatesVersion(version => version + 1)
-            if (AUDIO_TYPES.includes(itemType)) bumpAudioVersion()
-        }), [withTrashChange, bumpAudioVersion, setTemplatesVersion])
+            afterItemChange(itemType)
+        }), [withTrashChange, afterItemChange])
 
     /**
      * Permanently deletes every trashed item of a workspace. Does not reload the data.
@@ -81,9 +71,9 @@ export function useTrashActions({ tabsBridge, withLoading, withTrashChange, bump
     const emptyTrash = useCallback((workspaceID: number) =>
         withTrashChange(async () => {
             await emptyDBTrash(workspaceID)
-            setTemplatesVersion(version => version + 1)
+            bumpTemplates()
             bumpAudioVersion()
-        }), [withTrashChange, bumpAudioVersion, setTemplatesVersion])
+        }), [withTrashChange, bumpAudioVersion, bumpTemplates])
 
     return useMemo(() => ({ deleteItem, getTrash, getTrashCount, restoreItem, purgeItem, emptyTrash }), [ deleteItem, getTrash, getTrashCount, restoreItem, purgeItem, emptyTrash ])
 }

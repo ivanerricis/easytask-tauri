@@ -143,7 +143,6 @@ export const errors: Translation["errors"] = {
     loadAudio: "Could not load the audio files.",
     loadTemplates: "Could not load the templates.",
     loadWorkspaceData: "Could not load the workspace data",
-    refreshWorkspaceData: "Could not refresh the workspace data. Try again.",
 }
 
 export const crash: Translation["crash"] = {

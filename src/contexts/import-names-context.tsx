@@ -1,14 +1,13 @@
-import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from "react"
+import { useCallback, useContext, useState, type ReactNode } from "react"
 import type { ChooseImportNames, ImportName } from "@/lib/workspace-transfer"
 import { DialogImportNames } from "@/components/dialogs/dialog-import-names"
+import { ImportNamesContext } from "./import-names-context-object"
 
 type PendingRequest = {
     proposed: ImportName[]
     submit: (names: string[]) => Promise<unknown>
     resolve: (result: unknown) => void
 }
-
-const ImportNamesContext = createContext<ChooseImportNames | undefined>(undefined)
 
 /**
  * Hosts the dialog that shows the names of what an import creates (proposed, editable) before importing.
@@ -27,9 +26,8 @@ export function ImportNamesProvider({ children }: { children: ReactNode }) {
         setRequest(null)
     }
 
-    const value = useMemo(() => choose, [choose])
     return (
-        <ImportNamesContext.Provider value={value}>
+        <ImportNamesContext.Provider value={choose}>
             {children}
             {request && (
                 <DialogImportNames

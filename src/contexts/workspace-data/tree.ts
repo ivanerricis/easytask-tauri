@@ -1,9 +1,7 @@
-import i18n from "@/i18n"
 import { useCallback, useMemo } from "react"
 import { createDBNoteInFolder, createDBWorkspaceNote } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder"
 import { withRollback } from "../with-rollback"
-import { reportError } from "@/lib/report-error"
 import { moveDBTreeItem } from "@/db/queries/tree"
 import { duplicateDBNote } from "@/db/queries/duplicate"
 import { renameDBItem, updateDBColor, type DBItemType } from "@/db/queries/shared_queries"
@@ -30,7 +28,7 @@ const collectColors = (folder: Folder): PreviousColor[] => [
  * @category WorkspaceData Context
  */
 export function useTreeActions(rt: Runtime): TreeActions {
-    const { withLoading, applyTree, getTree, getWorkspaceData } = rt
+    const { withLoading, applyTree, getTree, getWorkspaceData, reloadTreeInBackground } = rt
 
     /**
      * Adds the created item to the sidebar tree. Without the new id, or when the parent is not in the tree,
@@ -45,9 +43,9 @@ export function useTreeActions(rt: Runtime): TreeActions {
                     : buildNote(id, workspaceID, parentId, name, color, getFolderNotes(tree, parentId)),
                 parentId),
             tree => removeTreeItem(tree, type, id))
-        if (!applied) getWorkspaceData(workspaceID).catch(error => reportError(error, i18n.t("errors.refreshTree")))
+        if (!applied) reloadTreeInBackground(workspaceID)
         return typeof id === "number" ? id : null
-    }, [applyTree, getWorkspaceData])
+    }, [applyTree, reloadTreeInBackground])
 
     const createWorkspaceFolder = useCallback((workspaceID: number, name: string, color?: string) =>
         withLoading(async () => {

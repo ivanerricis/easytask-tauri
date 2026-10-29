@@ -1,5 +1,6 @@
 import i18n from "@/i18n"
 import { useCallback, useContext, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react"
+import { createEmitter } from "@/lib/emitter"
 import { reportError } from "@/lib/report-error"
 import type { NoteDataTree } from "@/types/types"
 import { useActiveNoteId, useTabs } from "./use-tabs"
@@ -32,9 +33,8 @@ type NoteCache = {
  */
 function createNoteCache(): NoteCache {
     const entries = new Map<number, NoteDataTree>()
-    const listeners = new Set<() => void>()
+    const { subscribe, emit } = createEmitter()
     const changeListeners = new Set<(noteId: number) => void>()
-    const emit = () => listeners.forEach(listener => listener())
 
     return {
         get: noteId => entries.get(noteId),
@@ -54,10 +54,7 @@ function createNoteCache(): NoteCache {
             }
             if (removed) emit()
         },
-        subscribe: listener => {
-            listeners.add(listener)
-            return () => { listeners.delete(listener) }
-        },
+        subscribe,
         subscribeChanges: listener => {
             changeListeners.add(listener)
             return () => { changeListeners.delete(listener) }

@@ -10,13 +10,12 @@ import { defaultIndexAfterInsert, directIndexOf, isDefaultSection, taskSections 
 
 export type GroupPatch = Partial<Omit<Group, "sections">>
 export type SectionPatch = Partial<Omit<Section, "tasks">>
-export type TaskPatch = Partial<Omit<Task, "subtasks">>
 
 /** Where a task lives: at the top level of a section or under another task. */
 export type TaskParent = { sectionId: number } | { parentTaskId: number }
 
 /** Location of a task in the tree. */
-export type TaskLocation = { task: Task, parent: TaskParent, index: number }
+type TaskLocation = { task: Task, parent: TaskParent, index: number }
 
 const clamp = (index: number | undefined, length: number) =>
     index === undefined ? length : Math.max(0, Math.min(Math.trunc(index) || 0, length))

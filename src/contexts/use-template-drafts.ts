@@ -8,12 +8,6 @@ export const useTemplateDrafts = () => useContext(TemplateDraftsContext).drafts
 /** The stable actions on the drafts (open an editor, save now, retry). */
 export const useTemplateDraftActions = () => useContext(TemplateDraftsActionsContext)
 
-/** True when the note is the working copy of a template (its tab is a template editor). */
-export function useIsDraftNote(noteId: number | null): boolean {
-    const drafts = useTemplateDrafts()
-    return noteId !== null && drafts.some(draft => draft.noteId === noteId)
-}
-
 /** The draft shown by the note, null when the note is a normal one. */
 export function useDraftOfNote(noteId: number | null) {
     const drafts = useTemplateDrafts()
@@ -27,4 +21,8 @@ export function useDraftSaveStatus(noteId: number | null) {
 }
 
 /** True when the active note is the working copy of a template: archive, audio and automations make no sense there. */
-export const useIsActiveDraft = () => useIsDraftNote(useActiveNoteId())
+export function useIsActiveDraft(): boolean {
+    const drafts = useTemplateDrafts()
+    const noteId = useActiveNoteId()
+    return noteId !== null && drafts.some(draft => draft.noteId === noteId)
+}

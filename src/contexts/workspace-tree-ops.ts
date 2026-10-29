@@ -8,11 +8,11 @@ import { insertAt, localTimestamp, nextPosition } from "./note-tree-ops"
  */
 
 export type TreeItemType = "folder" | "note"
-export type FolderPatch = Partial<Omit<Folder, "subfolders" | "notes">>
-export type NotePatch = Partial<Omit<Note, "groups">>
+type FolderPatch = Partial<Omit<Folder, "subfolders" | "notes">>
+type NotePatch = Partial<Omit<Note, "groups">>
 
 /** Location of an item: the parent folder (null = workspace root) and the index among its siblings of the same type. */
-export type TreeLocation = { item: Folder | Note, parentId: number | null, index: number }
+type TreeLocation = { item: Folder | Note, parentId: number | null, index: number }
 
 /** Applies a change to the folder with the given id (at any depth); the same array when it is not found. */
 function mapFolder(folders: Folder[], folderId: number, change: (folder: Folder) => Folder): Folder[] {

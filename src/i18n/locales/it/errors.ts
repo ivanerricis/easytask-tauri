@@ -141,7 +141,6 @@ export const errors = {
     loadAudio: "Impossibile caricare i file audio.",
     loadTemplates: "Impossibile caricare i template.",
     loadWorkspaceData: "Impossibile caricare i dati del workspace",
-    refreshWorkspaceData: "Impossibile aggiornare i dati del workspace. Riprova.",
 }
 
 export const crash = {

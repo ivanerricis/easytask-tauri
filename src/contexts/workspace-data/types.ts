@@ -13,20 +13,6 @@ export type WorkspaceStateType = {
     workspaceDataTree: WorkspaceDataTree | null
     currentFolder: Folder | null
     error: string | null
-    /** Incremented after every operation that can change the trash content (delete, restore, purge, empty, moves). */
-    trashVersion: number
-    /**
-     * Incremented after every operation that can change the archive content: archive, unarchive, and every trash operation
-     * (an archived item can be moved to the trash and back, so the archive list must be reloaded).
-     */
-    archiveVersion: number
-    /**
-     * Incremented after every operation that can change which audio files are visible (delete, restore, purge and empty
-     * and archive/unarchive of groups, notes, folders and audio files). Unlike trashVersion it does not move with a task or section move.
-     */
-    audioVersion: number
-    /** Incremented after every operation that can change the templates of the workspace (create, update, delete, restore, purge). */
-    templatesVersion: number
     /** Id of the workspace whose data is loaded in the context (null while nothing is loaded or a load is pending). */
     loadedWorkspaceId: number | null
 }
@@ -51,8 +37,8 @@ export type WorkspaceActionsType = {
     setWorkspaceDataTree: (tree: WorkspaceDataTree) => void
 
     /**
-     * Tells that the archive changed outside the archive actions (e.g. an automation archived a group): bumps archiveVersion
-     * and audioVersion, so the archive badge and the audio lists reload.
+     * Tells that the archive changed outside the archive actions (e.g. an automation archived a group): bumps the archive
+     * and audio versions (see useWorkspaceVersion), so the archive badge and the audio lists reload.
      */
     notifyArchiveChanged: () => void
 
@@ -137,14 +123,22 @@ export type Runtime = {
     tabsBridge: MutableRefObject<TabsBridge | null>
     /** Runs an async operation and keeps isLoading true while any operation is in flight. */
     withLoading: <T>(operation: () => Promise<T>) => Promise<T>
-    /** Runs an operation that can change the trash content and bumps trashVersion once it succeeds. */
+    /** Runs an operation that can change the trash content and bumps the trash (and archive) version once it succeeds. */
     withTrashChange: <T>(operation: () => Promise<T>) => Promise<T>
-    /** Runs an operation that can change the archive content and bumps archiveVersion once it succeeds. */
+    /** Runs an operation that can change the archive content and bumps the archive version once it succeeds. */
     withArchiveChange: <T>(operation: () => Promise<T>) => Promise<T>
-    /** Bumps audioVersion (call it once an operation that can change the visible audio files has succeeded). */
+    /** Bumps the audio version (call it once an operation that can change the visible audio files has succeeded). */
     bumpAudioVersion: () => void
+    /** Bumps the templates version (call it once an operation that can change the templates has succeeded). */
+    bumpTemplates: () => void
+    /**
+     * Bumps what a succeeded delete, restore or purge of an item of this type changes: the templates for a template, the audio
+     * for the types that carry audio files (`forceAudio`: for every type, e.g. a restored section can bring back its group).
+     */
+    afterItemChange: (itemType: DBItemType, forceAudio?: boolean) => void
+    /** Reloads the tree without waiting for it; a failure is reported, not thrown. */
+    reloadTreeInBackground: (workspaceId: number) => void
     setCurrentFolder: Dispatch<SetStateAction<Folder | null>>
-    setTemplatesVersion: Dispatch<SetStateAction<number>>
     getWorkspaceData: WorkspaceActionsType["getWorkspaceData"]
     /** The current workspace tree (null before the first load). */
     getTree: () => WorkspaceDataTree | null

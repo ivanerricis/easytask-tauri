@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
-import { act, renderHook, waitFor } from "@testing-library/react"
+import { act, render, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { WorkspaceDataProvider, useWorkspaceData, useWorkspaceLoading } from "./workspace-data"
+import { WorkspaceDataProvider, useWorkspaceActions, useWorkspaceData, useWorkspaceLoading, useWorkspaceState, useWorkspaceVersion } from "./workspace-data"
 import { useActiveNote, useActiveNoteActions } from "./use-active-note"
 import { useTabs, useTabsActions } from "./use-tabs"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
@@ -114,6 +114,26 @@ describe("WorkspaceDataContext", () => {
         const spy = vi.spyOn(console, "error").mockImplementation(() => {})
         expect(() => renderHook(() => useAll())).toThrow(/WorkspaceDataProvider/)
         spy.mockRestore()
+    })
+
+    describe("version counters", () => {
+        it("re-renders only the readers of a counter when it is bumped, not the consumers of the tree", async () => {
+            vi.mocked(restoreDBItem).mockResolvedValue(undefined as never)
+            const onTree = vi.fn(), onTrash = vi.fn(), onTemplates = vi.fn(), onActions = vi.fn()
+            function Tree() { useWorkspaceState(); onTree(); return null }
+            function Trash() { onTrash(useWorkspaceVersion("trash")); return null }
+            function Templates() { useWorkspaceVersion("templates"); onTemplates(); return null }
+            function Grab() { onActions(useWorkspaceActions()); return null }
+            render(<WorkspaceDataProvider><Grab /><Tree /><Trash /><Templates /></WorkspaceDataProvider>)
+            const before = { tree: onTree.mock.calls.length, trash: onTrash.mock.calls.length, templates: onTemplates.mock.calls.length }
+
+            await act(() => onActions.mock.lastCall![0].restoreItem("task", 1))
+
+            expect(onTrash).toHaveBeenLastCalledWith(1)
+            expect(onTrash.mock.calls.length).toBe(before.trash + 1)
+            expect(onTree.mock.calls.length).toBe(before.tree)
+            expect(onTemplates.mock.calls.length).toBe(before.templates)
+        })
     })
 
     describe("getWorkspaceData", () => {

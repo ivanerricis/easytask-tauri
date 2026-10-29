@@ -9,7 +9,7 @@ export type ShortcutEntry = {
     isFocused?: () => boolean
 }
 
-export type ShortcutsContextType = {
+type ShortcutsContextType = {
     bindings: Record<string, Binding>
     overrides: Record<string, Binding>
     getBinding: (id: string) => Binding | undefined

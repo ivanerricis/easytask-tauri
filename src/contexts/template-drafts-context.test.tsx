@@ -9,8 +9,7 @@ import { useTabs, useTabsActions } from "./use-tabs"
 import { useLayout, useLayoutActions } from "./use-layout"
 import { useActiveNoteActions } from "./use-active-note"
 import { useTemplateDraftActions, useTemplateDrafts } from "./use-template-drafts"
-import { WorkspaceStateContext } from "./workspace-data/context"
-import type { WorkspaceStateType } from "./workspace-data/types"
+import { createVersionsStore, WorkspaceVersionsContext } from "./workspace-data/versions"
 import { createDBTemplateDraft, deleteDBTemplateDraft, getDBTemplateDraft, getDBTemplateDrafts, saveDBTemplateDraft, type TemplateDraft } from "@/db/queries/template-draft"
 import { getDBNoteData } from "@/db/queries/note"
 import { getReopenNotes } from "@/lib/store/preferences"
@@ -45,7 +44,7 @@ type Api = ReturnType<typeof useTabs> & ReturnType<typeof useTabsActions> & Retu
 function setup(initial: TemplateDraft[] = []) {
     const latest: { current: Api } = { current: undefined as never }
     const whenIdle = () => Promise.resolve()
-    const state = { templatesVersion: 0, trashVersion: 0 } as WorkspaceStateType
+    const versions = createVersionsStore()
     function Probe() {
         latest.current = { ...useTabs(), ...useTabsActions(), ...useActiveNoteActions(), ...useTemplateDraftActions(), drafts: useTemplateDrafts(), layout: useLayout(), layoutActions: useLayoutActions() }
         return null
@@ -54,7 +53,7 @@ function setup(initial: TemplateDraft[] = []) {
         const [drafts, setDrafts] = useState(initial)
         const notes = [makeNote({ id: 1 }), ...drafts.filter(candidate => !candidate.trashed).map(draftToNote)]
         return (
-            <WorkspaceStateContext.Provider value={state}>
+            <WorkspaceVersionsContext.Provider value={versions}>
                 <TabsProvider notes={notes} workspaceId={WORKSPACE}>
                     <ActiveNoteProvider>
                         <TemplateDraftsProvider workspaceId={WORKSPACE} drafts={drafts} setDrafts={setDrafts} whenIdle={whenIdle}>
@@ -62,7 +61,7 @@ function setup(initial: TemplateDraft[] = []) {
                         </TemplateDraftsProvider>
                     </ActiveNoteProvider>
                 </TabsProvider>
-            </WorkspaceStateContext.Provider>
+            </WorkspaceVersionsContext.Provider>
         )
     }
     render(<Host />)

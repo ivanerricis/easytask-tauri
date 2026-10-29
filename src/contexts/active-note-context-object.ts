@@ -2,7 +2,7 @@ import { createContext } from "react"
 import type { NoteDataTree } from "@/types/types"
 import type { NoteOptimisticActions } from "./note-optimistic"
 
-export type ActiveNoteContextType = {
+type ActiveNoteContextType = {
     /** Data of the active note (null while it is loaded for the first time, or without active note). */
     noteDataTree: NoteDataTree | null
 }
