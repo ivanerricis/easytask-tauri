@@ -1,9 +1,9 @@
 import i18n from "@/i18n"
 
-export type ShortcutCategory = "general" | "notes" | "groups" | "tasks" | "home"
+type ShortcutCategory = "general" | "notes" | "groups" | "tasks" | "home"
 
 // "global" shortcuts clash with every scope; "workspace" and "home" are separate pages and can reuse the same keys
-export type ShortcutScope = "global" | "workspace" | "home"
+type ShortcutScope = "global" | "workspace" | "home"
 
 /** `ctrl` matches both Ctrl and Cmd; `key` is compared case-insensitively against KeyboardEvent.key. */
 export interface Binding {

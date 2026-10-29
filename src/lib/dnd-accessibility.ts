@@ -7,7 +7,7 @@ type Draggable = Active | Over
  * How a context describes what is being dragged or hovered. Returns the display name of the element, or
  * undefined when the element is unknown (the announcements then fall back to a generic text).
  */
-export type DndDescriber = (entry: Draggable) => string | undefined
+type DndDescriber = (entry: Draggable) => string | undefined
 
 /**
  * Screen reader texts of a dnd-kit context, translated in the current language and naming the elements involved.

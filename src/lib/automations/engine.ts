@@ -28,7 +28,7 @@ type EngineEvent =
  * `tree` is the very tree given in input when nothing changed.
  * @category Automations
  */
-export type AutomationOutcome = { tree: NoteDataTree, applied: Automation[], touched: number[], touchedGroups: number[], archivedGroups: Group[] }
+type AutomationOutcome = { tree: NoteDataTree, applied: Automation[], touched: number[], touchedGroups: number[], archivedGroups: Group[] }
 
 /** Whether every task under `task` (at any depth) is completed; false without subtasks. */
 export function allSubtasksCompleted(task: Task): boolean {

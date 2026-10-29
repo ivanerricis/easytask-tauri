@@ -3,6 +3,7 @@ import type { TxStatement } from "@/db/transaction"
 import { buildPositionUpdate } from "@/db/queries/ordering"
 import { findGroup, findSection, findTask, moveGroupInList, moveTask, patchGroup, patchTask, removeGroup } from "@/contexts/note-tree-ops"
 import { taskSections } from "@/lib/group-sections"
+import { clampIndex } from "@/lib/number"
 
 /** The persisted state of a task: where it is (`s<id>` = top level of a section, `t<id>` = under a task) and its flags. */
 type TaskState = {
@@ -248,7 +249,7 @@ export function withGroups(tree: NoteDataTree, extra: readonly Group[]): NoteDat
 /** Puts a group at `index` among the groups of the tree (by position), renumbering the positions from 0. */
 function placeGroup(tree: NoteDataTree, group: Group, index: number): NoteDataTree {
     const groups = byPosition(tree)
-    groups.splice(Math.max(0, Math.min(index, groups.length)), 0, group)
+    groups.splice(clampIndex(index, groups.length), 0, group)
     return { groups: groups.map((item, position) => ({ ...item, position })) }
 }
 

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { getAllPrefs, flushPreferences, getPref, savePref, normalizePref, UI_PREFS, APP_PREFS, clearLastWorkspaceId, getLastWorkspaceId, saveLastWorkspaceId, getReopenLastWorkspace, getRightPanelTab, getSidebarRightWidth, getPrimaryColor, getAudioPlayerPosition } from "./preferences"
+import { getAllPrefs, flushPreferences, getPref, savePref, normalizePref, UI_PREFS, APP_PREFS, clearLastWorkspaceId, getLastWorkspaceId, saveLastWorkspaceId, getReopenLastWorkspace, getRightPanelTab, getSidebarRightWidth, getPrimaryColor, getAudioPlayerPosition, savePrimaryColor, saveAudioPlayerPosition, resetAudioPlayerPosition } from "./preferences"
 
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn(), delete: vi.fn() },
@@ -352,6 +352,39 @@ describe("primary color preference validation", () => {
     })
 })
 
+describe("primary color saving", () => {
+    beforeEach(() => vi.resetAllMocks())
+
+    it("stores a valid color as { hex }", async () => {
+        await savePrimaryColor("#fff")
+        expect(store.set).toHaveBeenCalledWith("primaryColor", { hex: "#fff" })
+    })
+
+    it("stores the default for an invalid color", async () => {
+        await savePrimaryColor("url(x)")
+        expect(store.set).toHaveBeenCalledWith("primaryColor", { hex: "#c2410c" })
+    })
+})
+
+describe("audio player position saving", () => {
+    beforeEach(() => vi.resetAllMocks())
+
+    it("stores a valid position", async () => {
+        await saveAudioPlayerPosition({ x: 3, y: 4, scaleX: 2, scaleY: 2 })
+        expect(store.set).toHaveBeenCalledWith("audioPlayerPosition", { x: 3, y: 4, scaleX: 2, scaleY: 2 })
+    })
+
+    it("stores the default position when the coordinates are not finite", async () => {
+        await saveAudioPlayerPosition({ x: Number.NaN, y: 4, scaleX: 1, scaleY: 1 })
+        expect(store.set).toHaveBeenCalledWith("audioPlayerPosition", { x: 0, y: 0, scaleX: 1, scaleY: 1 })
+    })
+
+    it("reset removes the key", async () => {
+        await resetAudioPlayerPosition()
+        expect(store.delete).toHaveBeenCalledWith("audioPlayerPosition")
+    })
+})
+
 describe("audio player position validation", () => {
     beforeEach(() => vi.resetAllMocks())
 
@@ -541,9 +574,9 @@ describe("preference table", () => {
 
     it("keeps the keys saved on disk", () => {
         expect(Object.values(all).map(definition => definition.key).sort()).toEqual([
-            "alwaysOnTop", "animationSpeed", "audioPlaybackRate", "audioPlayerOpacity", "audioPlayerPinned", "audioPlayerScale", "audioPlayerVisible", "audioPositions", "audioRepeat", "audioResume", "audioVolume", "autoBackup", "backupFolder",
+            "alwaysOnTop", "animationSpeed", "audioPlaybackRate", "audioPlayerOpacity", "audioPlayerPinned", "audioPlayerPosition", "audioPlayerScale", "audioPlayerVisible", "audioPositions", "audioRepeat", "audioResume", "audioVolume", "autoBackup", "backupFolder",
             "backupFrequency", "backupKeep", "checkUpdatesOnStartup", "closeToTray", "colorIntensity", "completedTasksLast", "confirmDeleteWithContent", "fontFamily", "hardwareAcceleration", "hideCompletedTasks", "keepAddingTasks", "language",
-            "lastWorkspaceId", "newTaskPosition", "rememberWindowState", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
+            "lastWorkspaceId", "newTaskPosition", "primaryColor", "rememberWindowState", "renameOnClick", "reopenLastWorkspace", "reopenNotes", "rightPanelTab", "showAudioFileCount",
             "showGroupProgressBar", "showGroupSeparators", "showProgressBar", "showSectionCount", "showSubtaskCount", "showTaskCount",
             "showTaskInsertLine", "showUnnamedLabels", "sidebarItemSize", "sidebarLeftOpen", "sidebarLeftWidth", "sidebarRightOpen", "sidebarRightWidth",
             "skippedUpdateVersion", "spellcheck", "splitRatio", "startupWorkspaceId", "taskBackground", "taskDensity", "textZoom", "trashAutoEmptyDays", "undoLimit", "workspaceSort", "workspaceView",

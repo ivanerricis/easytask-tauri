@@ -6,7 +6,7 @@ import { reportError } from "@/lib/report-error"
 import { getErrorMessage } from "@/lib/utils"
 
 /** Download progress of an update being installed: bytes received and total size (null when unknown). */
-export type InstallProgress = { downloaded: number, total: number | null }
+type InstallProgress = { downloaded: number, total: number | null }
 
 /**
  * Downloads and installs an update, then restarts the app (shared by the update dialog and Settings > About).

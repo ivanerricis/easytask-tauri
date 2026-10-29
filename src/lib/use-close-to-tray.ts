@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { reportError } from "@/lib/report-error"
@@ -19,12 +19,13 @@ import {
  * @category Window
  */
 export function useCloseToTray(): void {
-    const { t, i18n } = useTranslation()
-    const labels: TrayLabels = {
+    const { t } = useTranslation()
+    // The texts change with the language only (`t` changes with it)
+    const labels = useMemo<TrayLabels>(() => ({
         tooltip: t("settings.system.tray.tooltip"),
         open: t("settings.system.tray.open"),
         quit: t("settings.system.tray.quit"),
-    }
+    }), [t])
     const labelsRef = useRef(labels)
     // Applies the current texts to the icon, once there is one
     const refreshRef = useRef<(() => void) | null>(null)
@@ -32,9 +33,7 @@ export function useCloseToTray(): void {
     useEffect(() => {
         labelsRef.current = labels
         refreshRef.current?.()
-    // The texts change with the language only
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [i18n.language, t])
+    }, [labels])
 
     useEffect(() => {
         let disposed = false

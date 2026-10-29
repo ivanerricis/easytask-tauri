@@ -1,5 +1,5 @@
 /** Languages the release notes are written in. */
-export type NotesLanguage = "en" | "it"
+type NotesLanguage = "en" | "it"
 
 // The body of a release has one section per language, each under its own "## " heading
 // ("## English" first, then "## Italiano"): see RELEASING.md and the release workflow, which build it from CHANGELOG.md

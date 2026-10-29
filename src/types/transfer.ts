@@ -82,7 +82,7 @@ export type WorkspaceExport = {
  * What an export file contains: a whole workspace or a part of it (one note or one folder).
  * @category Types
  */
-export type ExportScope = "workspace" | "items"
+type ExportScope = "workspace" | "items"
 
 export const WORKSPACE_EXPORT_FORMAT = "easytask-workspace"
 export const WORKSPACE_EXPORT_VERSION = 2

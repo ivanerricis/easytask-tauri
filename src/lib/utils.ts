@@ -1,15 +1,21 @@
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { currentLanguage } from "@/i18n"
+import { parseHex } from "@/lib/colors"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+/**
+ * "rgba(r, g, b, alpha)" for a "#rgb" or "#rrggbb" color.
+ * @returns `hex` itself when empty or missing; undefined when it is not a hex color (before, a garbage "rgba(NaN, ...)" the browser ignored).
+ */
 export function hexToRgba(alpha: number, hex?: string) {
-  const match = hex?.replace('#', '').match(/.{1,2}/g)
-  if (!match) return hex
-  const [r, g, b] = match.map(x => parseInt(x, 16))
+  if (!hex) return hex
+  const rgb = parseHex(hex)
+  if (!rgb) return undefined
+  const [r, g, b] = rgb
   return `rgba(${r}, ${g}, ${b}, ${alpha})`
 }
 

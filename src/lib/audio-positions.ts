@@ -1,15 +1,16 @@
+import { isFiniteNumber } from "@/lib/number"
 import { getPref, savePref, type AudioPositions } from "@/lib/store/preferences"
 import { reportError } from "@/lib/report-error"
 
 /** Nearer than this (seconds) to the start or to the end of a track there is nothing worth resuming. */
-export const RESUME_MARGIN_SECONDS = 3
+const RESUME_MARGIN_SECONDS = 3
 /** Seconds between two saves of the position while a track plays. */
 export const POSITION_SAVE_INTERVAL_MS = 3000
 
 /** Whether a position is worth remembering: at least RESUME_MARGIN_SECONDS from the start and, when the length is known, from the end. */
 export const isResumable = (position: number, duration?: number): boolean => {
-    if (!Number.isFinite(position) || position < RESUME_MARGIN_SECONDS) return false
-    return !(typeof duration === "number" && Number.isFinite(duration) && duration > 0 && position > duration - RESUME_MARGIN_SECONDS)
+    if (!isFiniteNumber(position) || position < RESUME_MARGIN_SECONDS) return false
+    return !(isFiniteNumber(duration) && duration > 0 && position > duration - RESUME_MARGIN_SECONDS)
 }
 
 // Reads and writes go one after the other, so two quick updates cannot overwrite each other.

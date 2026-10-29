@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { applyLanguagePreference } from "@/i18n"
-import { cn, formatDate, getErrorMessage } from "./utils"
+import { cn, formatDate, getErrorMessage, hexToRgba } from "./utils"
 
 describe("getErrorMessage", () => {
     it("returns the message of an Error", () => {
@@ -48,5 +48,18 @@ describe("formatDate", () => {
         await applyLanguagePreference("en")
         expect(formatDate("2024-03-15")).toBe("03/15/2024")
         expect(formatDate("")).toBe("")
+    })
+})
+
+describe("hexToRgba", () => {
+    it("converts #rrggbb and #rgb", () => {
+        expect(hexToRgba(0.5, "#c2410c")).toBe("rgba(194, 65, 12, 0.5)")
+        expect(hexToRgba(0.3, "#fff")).toBe("rgba(255, 255, 255, 0.3)")
+    })
+
+    it("gives back a missing or empty color and undefined (no NaN) for an invalid one", () => {
+        expect(hexToRgba(0.5, undefined)).toBeUndefined()
+        expect(hexToRgba(0.5, "")).toBe("")
+        expect(hexToRgba(0.5, "red")).toBeUndefined()
     })
 })

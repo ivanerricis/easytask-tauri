@@ -1,4 +1,5 @@
 import { usePaneFocusGetter } from "@/contexts/use-layout"
+import { createWindowEvent } from "@/lib/window-event"
 import { useEffect, useRef, useSyncExternalStore } from "react"
 
 /** Window event the app menu fires for the actions that have no shortcut (the component that owns the action listens to it). */
@@ -6,10 +7,10 @@ export const APP_COMMAND_EVENT = "easytask:app-command"
 
 export type AppCommand = "open-trash" | "open-archive" | "open-templates" | "note-from-template" | "export-workspace" | "open-workspace-trash" | "new-group"
 
+const appCommandEvent = createWindowEvent<AppCommand>(APP_COMMAND_EVENT)
+
 /** Asks the component that owns `command` to run it. */
-export const requestAppCommand = (command: AppCommand): void => {
-    window.dispatchEvent(new CustomEvent<AppCommand>(APP_COMMAND_EVENT, { detail: command }))
-}
+export const requestAppCommand = appCommandEvent.emit
 
 // How many enabled handlers each command has right now, so the menu can disable the entries nobody would run
 const activeCounts = new Map<AppCommand, number>()

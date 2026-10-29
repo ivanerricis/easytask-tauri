@@ -4,7 +4,7 @@ import { lazy, type ComponentType } from "react"
 const IDLE_FALLBACK_MS = 1500
 
 /** A lazily loaded component that can be loaded ahead of time with `preload()`. */
-export type PreloadableComponent<C extends ComponentType<never>> = C & {
+type PreloadableComponent<C extends ComponentType<never>> = C & {
     preload: () => Promise<unknown>
 }
 

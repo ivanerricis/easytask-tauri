@@ -1,3 +1,6 @@
+import { clampNumber, isFiniteNumber } from "@/lib/number"
+import { resizeKeyDelta } from "@/lib/resize-keys"
+
 /** Minimum width in pixels of each pane of the split workspace. */
 export const MIN_PANE_WIDTH = 320
 /** Share of the width given to the left pane by default. */
@@ -8,11 +11,9 @@ const FALLBACK_MARGIN = 0.1
 const KEY_STEP = 0.02
 const KEY_STEP_LARGE = 0.1
 
-const round = (value: number): number => Math.round(value * 10000) / 10000
-
 /** The smallest share the left pane may take (the largest is its complement) for the given container width. */
 const minRatioFor = (containerWidth: number): number => {
-    if (!Number.isFinite(containerWidth) || containerWidth <= 0) return FALLBACK_MARGIN
+    if (!isFiniteNumber(containerWidth) || containerWidth <= 0) return FALLBACK_MARGIN
     return Math.min(0.5, MIN_PANE_WIDTH / containerWidth)
 }
 
@@ -23,9 +24,8 @@ const minRatioFor = (containerWidth: number): number => {
  * @param containerWidth Width in pixels of the container of the two panes.
  */
 export const clampRatio = (ratio: number, containerWidth: number): number => {
-    if (!Number.isFinite(ratio)) return DEFAULT_SPLIT_RATIO
     const min = minRatioFor(containerWidth)
-    return round(Math.min(1 - min, Math.max(min, ratio)))
+    return clampNumber(ratio, min, 1 - min, DEFAULT_SPLIT_RATIO, 0.0001)
 }
 
 /**
@@ -33,12 +33,7 @@ export const clampRatio = (ratio: number, containerWidth: number): number => {
  * Arrows move it by 2% (10% with Shift), Home and End send it to the extremes.
  */
 export const ratioForKey = (key: string, ratio: number, containerWidth: number, shift: boolean): number | null => {
-    const step = shift ? KEY_STEP_LARGE : KEY_STEP
-    switch (key) {
-        case "ArrowLeft": return clampRatio(ratio - step, containerWidth)
-        case "ArrowRight": return clampRatio(ratio + step, containerWidth)
-        case "Home": return clampRatio(0, containerWidth)
-        case "End": return clampRatio(1, containerWidth)
-        default: return null
-    }
+    const delta = resizeKeyDelta(key, shift, KEY_STEP, KEY_STEP_LARGE)
+    if (delta === null) return null
+    return clampRatio(delta === "min" ? 0 : delta === "max" ? 1 : ratio + delta, containerWidth)
 }

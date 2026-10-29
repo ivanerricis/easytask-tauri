@@ -18,12 +18,12 @@ type GroupTriggerType = "group.completed" | "group.noOpenTasks" | "group.hasOpen
  * A trigger of a portable rule: the section is a position in the content (null = any section); the group of
  * the group triggers is its index in `content.groups` (null = any group).
  */
-export type PortableTrigger =
+type PortableTrigger =
     | { type: Exclude<AutomationTriggerType, GroupTriggerType>, sectionId: PortableSectionRef | null }
     | { type: GroupTriggerType, groupId: number | null }
 
 /** An action of a portable rule: a move targets a position in the content. */
-export type PortableAction =
+type PortableAction =
     | Exclude<AutomationAction, { type: "moveTo" }>
     | { type: "moveTo", sectionId: PortableSectionRef, at: "top" | "bottom" }
 

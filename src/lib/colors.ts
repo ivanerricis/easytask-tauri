@@ -8,3 +8,18 @@ export const PALETTE_COLORS = [
 
 export const isPaletteColor = (color: string | null | undefined): boolean =>
     !!color && (PALETTE_COLORS as readonly string[]).includes(color.toLowerCase())
+
+const HEX_COLOR = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i
+
+/** Parses "#rgb" or "#rrggbb" (the "#" is optional, surrounding spaces are ignored) into [r, g, b] (0-255); null when it is not one. */
+export const parseHex = (hex: string): [number, number, number] | null => {
+    const match = HEX_COLOR.exec(hex.trim())
+    if (!match) return null
+    const digits = match[1].length === 3 ? match[1].split("").map(d => d + d).join("") : match[1]
+    return [0, 2, 4].map(i => parseInt(digits.slice(i, i + 2), 16)) as [number, number, number]
+}
+
+const STRICT_HEX_COLOR = /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i
+
+/** True for exactly a "#rgb" or "#rrggbb" string (stricter than {@link parseHex}: "#" required, no spaces). */
+export const isHexColor = (value: unknown): value is string => typeof value === "string" && STRICT_HEX_COLOR.test(value)

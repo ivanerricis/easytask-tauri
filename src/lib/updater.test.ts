@@ -15,7 +15,7 @@ beforeEach(() => {
     check.mockReset()
     isPortable.mockReset().mockResolvedValue(false)
     vi.mocked(toast).mockClear()
-    vi.spyOn(console, "warn").mockImplementation(() => undefined)
+    vi.spyOn(console, "error").mockImplementation(() => undefined)
 })
 
 describe("runStartupUpdateCheck", () => {

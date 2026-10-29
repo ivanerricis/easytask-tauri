@@ -2,6 +2,7 @@ import { initialLayoutState, normalizeLayout, type LayoutState, type PaneIndex }
 import { initialTabsState, type TabsState } from "@/contexts/tabs-reducer"
 import { store } from "./initStore"
 import { saveStoreSoon } from "./save-soon"
+import { isFiniteNumber } from "@/lib/number"
 
 const tabsKey = (workspaceId: number) => `openTabs:${workspaceId}`
 
@@ -9,7 +10,7 @@ const tabsKey = (workspaceId: number) => `openTabs:${workspaceId}`
 function readPane(value: unknown): TabsState {
     if (typeof value !== "object" || value === null) return initialTabsState
     const { openIds: rawIds, activeId: rawActive } = value as { openIds?: unknown, activeId?: unknown }
-    const openIds = Array.isArray(rawIds) ? rawIds.filter((id): id is number => typeof id === "number" && Number.isFinite(id)) : []
+    const openIds = Array.isArray(rawIds) ? rawIds.filter((id): id is number => isFiniteNumber(id)) : []
     const activeId = typeof rawActive === "number" && openIds.includes(rawActive) ? rawActive : (openIds[0] ?? null)
     return { openIds, activeId }
 }

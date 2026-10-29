@@ -7,7 +7,7 @@ import type { Note } from "@/types/types"
  */
 export type DraftSaveStatus = "idle" | "saving" | "saved" | "error"
 
-export type DraftAutosaverOptions = {
+type DraftAutosaverOptions = {
     /** Writes the current content of the draft `key` into its template. Resolves false when nothing needed to be written. */
     save: (key: number) => Promise<boolean | void>
     /** Resolves when the writes in flight to the draft have finished (a save must not read a half written note). */
@@ -18,7 +18,7 @@ export type DraftAutosaverOptions = {
     savingDelay?: number
 }
 
-export type DraftAutosaver = {
+type DraftAutosaver = {
     /** The draft `key` changed: a save is scheduled after the quiet time. */
     notify: (key: number) => void
     /** Saves the draft now if it is dirty, and waits for the save in progress. Resolves false when the draft is not saved. */

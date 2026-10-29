@@ -1,4 +1,5 @@
 import type { Group, Section } from "@/types/types"
+import { clampIndex } from "@/lib/number"
 
 /**
  * True for the hidden default section of a group (the one holding the tasks created directly in the group).
@@ -15,7 +16,7 @@ export function isDefaultSection(section: Pick<Section, "is_default"> | null | u
  * @category Lib
  */
 export function directIndexOf(group: Pick<Group, "defaultIndex" | "sections">): number {
-    return Math.max(0, Math.min(Math.trunc(group.defaultIndex ?? 0) || 0, group.sections.length))
+    return clampIndex(group.defaultIndex ?? 0, group.sections.length)
 }
 
 /**

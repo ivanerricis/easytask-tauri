@@ -1,5 +1,7 @@
 ﻿import { useEffect, useState } from "react"
 import { MIN_PANE_WIDTH } from "@/lib/split-layout"
+import { clampNumber } from "@/lib/number"
+import { resizeKeyDelta } from "@/lib/resize-keys"
 
 /** Sidebar widths in pixels. */
 export const SIDEBAR_DEFAULT_WIDTH = 260
@@ -25,8 +27,7 @@ export const maxSidebarWidth = (windowWidth: number): number =>
     Math.max(SIDEBAR_MIN_WIDTH, Math.min(SIDEBAR_MAX_WIDTH, windowWidth - MIN_CONTENT_WIDTH))
 
 export const clampSidebarWidth = (width: number, windowWidth: number = Infinity): number => {
-    if (!Number.isFinite(width)) return SIDEBAR_DEFAULT_WIDTH
-    return Math.round(Math.min(Math.max(width, SIDEBAR_MIN_WIDTH), maxSidebarWidth(windowWidth)))
+    return clampNumber(width, SIDEBAR_MIN_WIDTH, maxSidebarWidth(windowWidth), SIDEBAR_DEFAULT_WIDTH, 1)
 }
 
 /**
@@ -34,14 +35,9 @@ export const clampSidebarWidth = (width: number, windowWidth: number = Infinity)
  * `direction` is 1 when the sidebar grows to the right (left sidebar), -1 for a right sidebar.
  */
 export const widthForKey = (key: string, width: number, windowWidth: number, shift: boolean, direction: 1 | -1 = 1): number | null => {
-    const step = shift ? SIDEBAR_KEY_STEP_LARGE : SIDEBAR_KEY_STEP
-    switch (key) {
-        case "ArrowRight": return clampSidebarWidth(width + step * direction, windowWidth)
-        case "ArrowLeft": return clampSidebarWidth(width - step * direction, windowWidth)
-        case "Home": return SIDEBAR_MIN_WIDTH
-        case "End": return maxSidebarWidth(windowWidth)
-        default: return null
-    }
+    const delta = resizeKeyDelta(key, shift, SIDEBAR_KEY_STEP, SIDEBAR_KEY_STEP_LARGE)
+    if (delta === null) return null
+    return delta === "min" ? SIDEBAR_MIN_WIDTH : delta === "max" ? maxSidebarWidth(windowWidth) : clampSidebarWidth(width + delta * direction, windowWidth)
 }
 
 type SidebarState = { open: boolean, width: number }
