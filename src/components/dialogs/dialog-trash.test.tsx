@@ -24,8 +24,7 @@ const ws = {
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => data }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => note }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ws }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const items: TrashItem[] = [
     { type: "folder", id: 1, name: "Cartella A", context: "", summary: "1 sottocartella · 2 note", deleted_at: "2026-09-01 10:30:00" },
     { type: "note", id: 2, name: "Nota B", context: "Cartella A", summary: "", deleted_at: "2026-09-02 08:05:00" },

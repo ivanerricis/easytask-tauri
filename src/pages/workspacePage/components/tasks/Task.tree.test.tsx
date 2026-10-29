@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { act, render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { TabsProvider } from "@/contexts/tabs-context"
 import { useTabsActions } from "@/contexts/use-tabs"
 import { PreferencesContext } from "@/contexts/preferences-context-object"
@@ -10,8 +11,7 @@ import type { NoteDataTree, Task as TaskType } from "@/types/types"
 import { TaskList } from "./TaskList"
 import { NoteAnnouncer } from "./NoteAnnouncer"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const sub = makeTask({ id: 13, sectionID: 10, taskID: 12, text: "Sotto" })
 const initial: TaskType[] = [
     makeTask({ id: 10, text: "Primo" }),
@@ -28,7 +28,7 @@ const listeners = new Set<() => void>()
 let applyPatch: (id: number, patch: Partial<TaskType>) => void = () => { }
 const moveTaskTo = vi.fn()
 const dispatch = vi.fn()
-const recorder = { rename: vi.fn(), taskCompletion: vi.fn(), track: <T,>(write: Promise<T>) => write }
+const recorder = makeUndoRecorderMock()
 let order: number[] = []
 
 vi.mock("@/contexts/workspace-data", () => ({

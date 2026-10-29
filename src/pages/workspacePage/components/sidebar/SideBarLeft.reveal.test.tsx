@@ -34,7 +34,7 @@ vi.mock("@/contexts/workspace-data", () => ({
     }),
 }))
 vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => ({ openNote: vi.fn() }), useActiveNoteId: () => null, useActiveNoteSelector: (select: (id: number | null) => unknown) => select(null) }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({}) }))
+vi.mock("@/contexts/undo/use-undo", async () => (await import("@/test/mocks")).undoModuleMock())
 vi.mock("@/hooks/use-workspace-transfer", () => ({ useWorkspaceTransfer: () => ({ exportWorkspace: vi.fn(), isBusy: false }) }))
 vi.mock("@/hooks/use-shortcut", () => ({ useShortcut: () => {} }))
 vi.mock("@/contexts/use-shortcuts", () => ({ useShortcutLabel: () => "" }))

@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from "react"
 import { fireEvent, render, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
+import { flushAsync } from "@/test/ui-render"
 import { ShortcutsProvider } from "@/contexts/shortcuts-context"
 import { useShortcutsContext } from "@/contexts/use-shortcuts"
 import { store } from "@/lib/store/initStore"
@@ -41,7 +42,7 @@ describe("useShortcut", () => {
         const closeAll = vi.fn()
         setup(<><Probe id="close-note" handler={closeNote} /><Probe id="close-all-notes" handler={closeAll} /></>)
         await waitFor(() => expect(store.get).toBeDefined())
-        await new Promise(resolve => setTimeout(resolve, 0))
+        await flushAsync()
         fireEvent.keyDown(document.body, { key: "l", ctrlKey: true })
         fireEvent.keyDown(document.body, { key: "t", ctrlKey: true })
         expect(closeNote).toHaveBeenCalledTimes(1)

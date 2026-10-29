@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { toastMock } from "@/test/mocks"
 
-const toastSuccess = vi.fn()
-vi.mock("sonner", () => ({ toast: { success: (...a: unknown[]) => toastSuccess(...a) } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const purge = vi.fn()
 vi.mock("@/db/queries/trash", () => ({ purgeDBTrashOlderThan: (...a: unknown[]) => purge(...a) }))
 const getDays = vi.fn()
@@ -12,7 +12,7 @@ vi.mock("@/lib/report-error", () => ({ reportError: (...a: unknown[]) => reportE
 import { runTrashAutoEmpty } from "./trash-auto-empty"
 
 beforeEach(() => {
-    toastSuccess.mockReset()
+    toastMock.success.mockReset()
     purge.mockReset().mockResolvedValue(0)
     getDays.mockReset().mockResolvedValue(30)
     reportError.mockReset()
@@ -23,21 +23,21 @@ describe("runTrashAutoEmpty", () => {
         getDays.mockResolvedValue(0)
         await runTrashAutoEmpty()
         expect(purge).not.toHaveBeenCalled()
-        expect(toastSuccess).not.toHaveBeenCalled()
+        expect(toastMock.success).not.toHaveBeenCalled()
     })
 
     it("purges with the chosen days and tells how many items went", async () => {
         purge.mockResolvedValue(3)
         await runTrashAutoEmpty()
         expect(purge).toHaveBeenCalledWith(30)
-        expect(toastSuccess).toHaveBeenCalledWith(expect.stringContaining("3"))
-        expect(toastSuccess).toHaveBeenCalledWith(expect.stringContaining("30"))
+        expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("3"))
+        expect(toastMock.success).toHaveBeenCalledWith(expect.stringContaining("30"))
     })
 
     it("stays silent when nothing was deleted", async () => {
         await runTrashAutoEmpty()
         expect(purge).toHaveBeenCalledWith(30)
-        expect(toastSuccess).not.toHaveBeenCalled()
+        expect(toastMock.success).not.toHaveBeenCalled()
     })
 
     it("only reports a failure", async () => {
@@ -45,6 +45,6 @@ describe("runTrashAutoEmpty", () => {
         purge.mockRejectedValue(error)
         await expect(runTrashAutoEmpty()).resolves.toBeUndefined()
         expect(reportError).toHaveBeenCalledWith(error)
-        expect(toastSuccess).not.toHaveBeenCalled()
+        expect(toastMock.success).not.toHaveBeenCalled()
     })
 })

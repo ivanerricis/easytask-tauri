@@ -42,8 +42,7 @@ vi.mock("@/contexts/workspace-data", () => ({
 }))
 vi.mock("@/contexts/use-tabs", () => ({ useTabsActions: () => tabs }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: makeWorkspace({ id: 4 }) }) }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const content: NoteTemplateContent = {
     version: 1,
     groups: [

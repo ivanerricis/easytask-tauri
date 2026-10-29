@@ -1,11 +1,11 @@
 import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { toastMock } from "@/test/mocks"
 
 const clipboard = vi.hoisted(() => ({ writeText: vi.fn().mockResolvedValue(undefined) }))
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => clipboard)
-const sonner = vi.hoisted(() => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-vi.mock("sonner", () => sonner)
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 
 import { ErrorBoundary } from "./error-boundary"
 
@@ -17,8 +17,8 @@ describe("ErrorBoundary", () => {
     beforeEach(() => {
         vi.spyOn(console, "error").mockImplementation(() => { })
         clipboard.writeText.mockClear()
-        sonner.toast.error.mockClear()
-        sonner.toast.success.mockClear()
+        toastMock.error.mockClear()
+        toastMock.success.mockClear()
     })
     afterEach(() => vi.restoreAllMocks())
 
@@ -36,7 +36,7 @@ describe("ErrorBoundary", () => {
         expect(screen.getByRole("heading", { level: 1 })).toBeTruthy()
         expect(screen.getByRole("button", { name: "Ricarica" })).toBeTruthy()
         expect(console.error).toHaveBeenCalled()
-        expect(sonner.toast.error).not.toHaveBeenCalled()
+        expect(toastMock.error).not.toHaveBeenCalled()
     })
 
     it("shows a translated message and keeps the raw one in the technical details", async () => {
@@ -55,6 +55,6 @@ describe("ErrorBoundary", () => {
         render(<ErrorBoundary><Boom /></ErrorBoundary>)
         await user.click(screen.getByRole("button", { name: "Copia dettagli" }))
         expect(clipboard.writeText).toHaveBeenCalledWith(expect.stringContaining("Error: kaboom"))
-        expect(sonner.toast.success).toHaveBeenCalled()
+        expect(toastMock.success).toHaveBeenCalled()
     })
 })

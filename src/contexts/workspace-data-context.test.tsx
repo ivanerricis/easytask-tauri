@@ -1,7 +1,7 @@
 import type { ReactNode } from "react"
 import { act, render, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { WorkspaceDataProvider, useWorkspaceActions, useWorkspaceData, useWorkspaceLoading, useWorkspaceState, useWorkspaceVersion } from "./workspace-data"
+import { WorkspaceDataProvider, useWorkspaceActions, useWorkspaceLoading, useWorkspaceState, useWorkspaceVersion } from "./workspace-data"
 import { useActiveNote, useActiveNoteActions } from "./use-active-note"
 import { useTabs, useTabsActions } from "./use-tabs"
 import { getDBWorkspaceData } from "@/db/queries/workspace"
@@ -23,8 +23,7 @@ import { deferred } from "@/test/ui-render"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { Folder } from "@/types/types"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/db/queries/workspace", () => ({ getDBWorkspaceData: vi.fn() }))
 vi.mock("@/db/queries/note", () => ({
     createDBNoteInFolder: vi.fn(),
@@ -82,7 +81,12 @@ const wrapper = ({ children }: { children: ReactNode }) => <WorkspaceDataProvide
 
 /** Every context of the provider tree in one object, like the old single context. */
 const useAll = () => ({
-    ...useWorkspaceData(),
+    ...useWorkspaceState(),
+    ...useWorkspaceActions(),
+    trashVersion: useWorkspaceVersion("trash"),
+    archiveVersion: useWorkspaceVersion("archive"),
+    audioVersion: useWorkspaceVersion("audio"),
+    templatesVersion: useWorkspaceVersion("templates"),
     isLoading: useWorkspaceLoading(),
     ...useTabs(),
     ...useTabsActions(),

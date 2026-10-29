@@ -1,7 +1,8 @@
 import { useLayoutEffect, useState } from "react"
-import { act, fireEvent, render } from "@testing-library/react"
+import { fireEvent, render } from "@testing-library/react"
 import { DndContext, useDndContext, type DragEndEvent } from "@dnd-kit/core"
 import { describe, it, expect, vi, beforeAll } from "vitest"
+import { flushAsync } from "@/test/ui-render"
 import { restrictToParentElement } from "@dnd-kit/modifiers"
 import { AUDIO_PLAYER_MEASURING } from "@/lib/audio-player-dnd"
 import { DraggableAudioPlayer } from "./draggable-audio-player"
@@ -66,7 +67,7 @@ describe("DraggableAudioPlayer release", () => {
         vi.stubGlobal("PointerEvent", FakePointerEvent)
     })
 
-    const tick = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 30)) })
+    const tick = flushAsync
 
     it("rests at its position with the transform alone, top and left stay 0", () => {
         const { getByTestId } = render(<Host />)

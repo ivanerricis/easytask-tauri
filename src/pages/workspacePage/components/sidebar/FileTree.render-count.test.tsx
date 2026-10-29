@@ -21,7 +21,7 @@ vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorks
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceData: () => ({ workspaceDataTree: tree, getWorkspaceData: vi.fn(), moveTreeItem: vi.fn() }),
 }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({}) }))
+vi.mock("@/contexts/undo/use-undo", async () => (await import("@/test/mocks")).undoModuleMock())
 vi.mock("@/contexts/use-color-alpha", () => ({ useColorAlpha: () => ({ item: () => "#000" }) }))
 vi.mock("./item-size", () => ({ useItemSize: () => ({ row: "", text: "" }) }))
 // Counters: the menu is rendered by FileTree itself, the rows only when their own props change

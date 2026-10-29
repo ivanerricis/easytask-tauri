@@ -2,6 +2,8 @@ import { useEffect, useState } from "react"
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { flushAsync } from "@/test/ui-render"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { TabsProvider } from "@/contexts/tabs-context"
 import { useTabsActions } from "@/contexts/use-tabs"
 import { PreferencesContext } from "@/contexts/preferences-context-object"
@@ -13,8 +15,7 @@ import { createSelectionStore } from "../sidebar/selection"
 import { TaskSelectionContext } from "./use-task-selection"
 import { useSelectedTask } from "@/contexts/use-tabs"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const sub = makeTask({ id: 13, sectionID: 10, taskID: 12, text: "Sotto" })
 const initial: TaskType[] = [
     makeTask({ id: 10, text: "Primo" }),
@@ -31,7 +32,7 @@ const listeners = new Set<() => void>()
 let applyPatch: (id: number, patch: Partial<TaskType>) => void = () => { }
 const moveTaskTo = vi.fn()
 const dispatch = vi.fn()
-const recorder = { rename: vi.fn(), taskCompletion: vi.fn(), track: <T,>(write: Promise<T>) => write }
+const recorder = makeUndoRecorderMock()
 let order: number[] = []
 
 vi.mock("@/contexts/workspace-data", () => ({
@@ -331,6 +332,7 @@ describe("focus recovery", () => {
         document.body.appendChild(outside)
         outside.focus()
         act(() => setTasks(initial.filter(task => task.id !== 11)))
+        // A real wait on purpose: it asserts that nothing moves the focus, so there is no condition to wait for
         await act(async () => { await new Promise(resolve => setTimeout(resolve, 50)) })
         expect(outside).toHaveFocus()
         expect(row(12)).toHaveAttribute("tabindex", "0")
@@ -356,7 +358,7 @@ describe("tab stop of a closed task", () => {
         setup()
         act(() => row(13).focus())
         act(() => applyPatch(12, { collapsed: true }))
-        await act(async () => { await new Promise(resolve => setTimeout(resolve, 30)) })
+        await flushAsync()
         expect(document.querySelectorAll("[role=treeitem][tabindex='0']")).toHaveLength(1)
     })
 })

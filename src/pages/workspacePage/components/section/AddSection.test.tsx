@@ -11,8 +11,7 @@ import { requestAppCommand } from "@/lib/app-commands"
 
 const render = (ui: ReactElement) => rtlRender(ui, { wrapper: ShortcutsProvider })
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const ctx = {
     createGroup: vi.fn(),
     createSectionInGroup: vi.fn(),

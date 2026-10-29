@@ -1,10 +1,11 @@
 import { renderHook } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { useItemMutations } from "./use-item-mutations"
 
 const updateItemColor = vi.fn()
 const archiveItem = vi.fn()
-const recorder = { archive: vi.fn() }
+const recorder = makeUndoRecorderMock()
 const reportError = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor, archiveItem }) }))
 vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))

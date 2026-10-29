@@ -12,7 +12,7 @@ vi.mock("@/contexts/use-preferences", () => ({ usePreferences: () => prefs }))
 const ctx = { insertTaskAfter: vi.fn(), appendTask: vi.fn() }
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ctx }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ctx }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create: vi.fn() }) }))
+vi.mock("@/contexts/undo/use-undo", async () => (await import("@/test/mocks")).undoModuleMock())
 vi.mock("@/hooks/use-automations", () => ({ useAutomations: () => ({ dispatch: vi.fn() }) }))
 vi.mock("../tasks/AddTask", () => ({ AddTask: () => <div>add task</div> }))
 // Shows the task and, nested, its visible subtasks (what the real Task does: it renders them itself)

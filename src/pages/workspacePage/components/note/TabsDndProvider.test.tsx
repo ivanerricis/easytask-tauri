@@ -1,5 +1,6 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react"
+import { fireEvent, render, screen, within } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
+import { flushAsync } from "@/test/ui-render"
 import type { Note } from "@/types/types"
 import { SplitHarness } from "@/test/split-harness"
 import { noopActions } from "@/test/split-fixtures"
@@ -66,7 +67,7 @@ const right = () => screen.getByRole("tablist", { name: "Note aperte, Area destr
 /** The box (draggable / droppable) of the tab of a note; the fixtures name every note "Note 1". */
 const box = (id: number) => document.querySelector<HTMLElement>(`[role="tab"][data-note-id="${id}"]`)!.parentElement!
 
-const settle = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 30)) })
+const settle = flushAsync
 const pointer = (x: number, y: number) => ({ clientX: x, clientY: y, isPrimary: true, pointerId: 1 })
 
 /** Drags a tab with the pointer: press it, move past the activation distance, then to the target, and (optionally) release. */

@@ -7,8 +7,7 @@ import { toast } from "sonner"
 import { deferred } from "@/test/ui-render"
 import { TaskInsertProvider, useTaskInsertStore } from "./task-insert-state"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const ctx = {
     createTask: vi.fn(),
     createSubTask: vi.fn(),

@@ -24,7 +24,7 @@ vi.mock("@tauri-apps/api/app", () => ({
     getTauriVersion: vi.fn().mockResolvedValue("2.1.0"),
 }))
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/db/appPaths", () => ({
     ensureAppFolder: vi.fn().mockResolvedValue("C:\\Docs\\EasyTask"),
     isPortable: vi.fn().mockResolvedValue(false),

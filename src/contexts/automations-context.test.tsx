@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest"
 import type { NoteDataTree } from "@/types/types"
 import type { UndoCommand } from "@/contexts/undo/stack"
 import type { Automation } from "@/lib/automations/types"
+import { toastMock } from "@/test/mocks"
 import { groupIds, makeGroups, makeRule, taskOf } from "@/test/automation-fixtures"
 
 const mocks = vi.hoisted(() => ({
@@ -17,7 +18,6 @@ const mocks = vi.hoisted(() => ({
     refreshActiveNote: vi.fn(async () => {}),
     notifyArchiveChanged: vi.fn(),
     applyDBAutomationChanges: vi.fn(async (...args: unknown[]) => { void args }),
-    toastSuccess: vi.fn(),
     recorder: null as unknown as { record: (command: UndoCommand) => void, track: (promise: Promise<void>) => Promise<void> },
     getDBAutomations: vi.fn(async () => [] as Automation[]),
     reportError: vi.fn(),
@@ -38,7 +38,7 @@ const noteActions = vi.hoisted(() => ({
 }))
 
 vi.mock("@/lib/report-error", async importOriginal => ({ ...await importOriginal<typeof import("@/lib/report-error")>(), reportError: mocks.reportError }))
-vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, info: vi.fn(), error: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => mocks.activeId }))
 vi.mock("@/contexts/use-active-note", () => ({
     useActiveNote: () => ({ noteDataTree: mocks.tree }),
@@ -91,10 +91,10 @@ describe("AutomationsProvider with group rules", () => {
         expect(statements.some(s => s.sql.includes("archived_at = datetime"))).toBe(true)
         expect(mocks.notifyArchiveChanged).toHaveBeenCalledTimes(1)
         expect(mocks.recorded).toHaveLength(1)
-        expect(mocks.toastSuccess).toHaveBeenCalledTimes(1)
+        expect(toastMock.success).toHaveBeenCalledTimes(1)
         // A short title, and the sentence of the rule (which names the group) as the description
-        expect(mocks.toastSuccess.mock.calls[0][0]).toBe("Automazione eseguita")
-        expect(mocks.toastSuccess.mock.calls[0][1].description).toContain("Sprint")
+        expect(toastMock.success.mock.calls[0][0]).toBe("Automazione eseguita")
+        expect(toastMock.success.mock.calls[0][1].description).toContain("Sprint")
     })
 
     it("undo brings the group back and redo archives it again, notifying each time", async () => {
@@ -200,7 +200,7 @@ describe("AutomationsProvider state rules (sync)", () => {
         expect(mocks.applyDBAutomationChanges).toHaveBeenCalled()
         const sql = written(0).map(s => s.sql).join(" ")
         expect(sql).toContain("UPDATE section SET color")
-        expect(mocks.toastSuccess).not.toHaveBeenCalled()
+        expect(toastMock.success).not.toHaveBeenCalled()
         expect(mocks.recorded).toHaveLength(0)
     })
 
@@ -235,6 +235,7 @@ describe("AutomationsProvider state rules (sync)", () => {
         expect(sectionColor(10)).toBe(GREEN)
         // The sync recolors the tree it was given: re-rendering with the colored tree must not sync again
         rerender()
+        // Real waits on purpose here and below: they assert that no sync happens, so there is no condition to wait for
         await new Promise(resolve => setTimeout(resolve, 20))
         const writes = mocks.applyDBAutomationChanges.mock.calls.length
         expect(writes).toBe(1)

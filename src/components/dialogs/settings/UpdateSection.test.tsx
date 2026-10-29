@@ -13,8 +13,7 @@ vi.mock("@tauri-apps/plugin-updater", () => ({ check: () => check() }))
 vi.mock("@tauri-apps/plugin-process", () => ({ relaunch: () => relaunch() }))
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: (...a: unknown[]) => openUrl(...a) }))
 vi.mock("@/db/appPaths", () => ({ isPortable: () => isPortable() }))
-vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const fakeUpdate = (downloadAndInstall = vi.fn().mockResolvedValue(undefined)) => ({
     version: "1.2.3",
     currentVersion: "1.2.0",

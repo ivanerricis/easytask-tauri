@@ -1,6 +1,7 @@
 import { render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { AddNoteDialog } from "./AddNoteDialog"
 import { AddFolderDialog } from "./AddFolderDialog"
 
@@ -14,7 +15,8 @@ vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ createWorkspaceNote, createNoteInFolder, createNoteFromTemplate, createWorkspaceFolder, createSubFolder }),
 }))
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: { id: 1 } }) }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create }) }))
+const recorder = makeUndoRecorderMock({ create })
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
 vi.mock("@/hooks/use-templates", () => ({ useTemplates: () => [] }))
 
 beforeEach(() => {

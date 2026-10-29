@@ -24,8 +24,7 @@ import { deleteDBItem, renameDBItem, updateDBColor } from "@/db/queries/shared_q
 import { makeGroup, makeNote, makeSection, makeTask, makeWorkspace } from "@/test/ui-fixtures"
 import type { Folder } from "@/types/types"
 
-vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), info: vi.fn() }) }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/db/queries/workspace", () => ({ getDBWorkspaces: vi.fn(), createDBWorkspace: vi.fn(), getDBWorkspaceData: vi.fn() }))
 vi.mock("@/db/queries/note", () => ({
     createDBNoteInFolder: vi.fn(),

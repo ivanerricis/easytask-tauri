@@ -1,9 +1,9 @@
 import { act, renderHook, waitFor } from "@testing-library/react"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { toastMock } from "@/test/mocks"
 import { useOpenList } from "./use-open-list"
 
-const toastSuccess = vi.fn()
-vi.mock("sonner", () => ({ toast: { success: (...a: unknown[]) => toastSuccess(...a) } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 
 type Item = { id: number, type: "a" | "b" }
 
@@ -14,7 +14,7 @@ const setup = (load: () => Promise<Item[]>, isOpen = true) =>
         firstSelected: list => list[0]?.type ?? "a",
     }), { initialProps: { open: isOpen } })
 
-beforeEach(() => toastSuccess.mockReset())
+beforeEach(() => toastMock.success.mockReset())
 
 describe("useOpenList", () => {
     it("does not load while closed", () => {
@@ -85,7 +85,7 @@ describe("useOpenList", () => {
             expect(result.current.busy).toBe(true)
             await act(async () => { finish(); await outcome })
             expect(await outcome).toBe(true)
-            expect(toastSuccess).toHaveBeenCalledWith("done")
+            expect(toastMock.success).toHaveBeenCalledWith("done")
             expect(load).toHaveBeenCalledTimes(2)
             expect(result.current.busy).toBe(false)
         })
@@ -98,7 +98,7 @@ describe("useOpenList", () => {
             await act(async () => { ok = await result.current.run(async () => { throw new Error("nope") }, "done") })
             expect(ok).toBe(false)
             expect(result.current.error).toBe("nope")
-            expect(toastSuccess).not.toHaveBeenCalled()
+            expect(toastMock.success).not.toHaveBeenCalled()
             expect(load).toHaveBeenCalledTimes(2)
         })
 
@@ -117,7 +117,7 @@ describe("useOpenList", () => {
             let ok = true
             await act(async () => { ok = await result.current.run(async () => false, "done") })
             expect(ok).toBe(false)
-            expect(toastSuccess).not.toHaveBeenCalled()
+            expect(toastMock.success).not.toHaveBeenCalled()
         })
 
         it("can skip the reload", async () => {

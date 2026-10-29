@@ -14,7 +14,7 @@ import type { ActiveNoteActionsType } from "./active-note-context-object"
 import { PaneNoteActionsContext, PaneNoteTreesContext } from "./layout-context-object"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/db/queries/note", () => ({ getDBNoteData: vi.fn() }))
 
 const notes = [1, 2, 3].map(id => makeNote({ id }))

@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect } from "react"
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
-import { AllProviders } from "@/test/ui-render"
+import { AllProviders, flushAsync } from "@/test/ui-render"
 import { makeDefaultSection, makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import { CenterContainer } from "./CenterContainer"
 import { RightPanelProvider } from "./rightbar/right-panel-context"
@@ -19,7 +19,7 @@ import { updateDBTaskCompletion } from "@/db/queries/task"
 import { saveWorkspaceTabs } from "@/lib/store/tabs"
 import { requestAppCommand } from "@/lib/app-commands"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/db/queries/workspace")
 vi.mock("@/db/queries/note")
 vi.mock("@/db/queries/task")
@@ -77,7 +77,7 @@ const renderStack = () => render(
 
 const pane = (i: 0 | 1) => document.querySelector<HTMLElement>(`[data-pane="${i}"]`)
 const tasksIn = (el: HTMLElement) => within(el).queryAllByRole("treeitem").map(row => row.getAttribute("aria-label"))
-const settle = () => act(async () => { await new Promise(resolve => setTimeout(resolve, 20)) })
+const settle = flushAsync
 
 /** Renders the real stack, loads the workspace and opens note A in the single pane. */
 async function setup() {

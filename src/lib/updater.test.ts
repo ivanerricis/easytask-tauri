@@ -9,8 +9,7 @@ const isPortable = vi.fn()
 vi.mock("@tauri-apps/plugin-updater", () => ({ check: () => check() }))
 vi.mock("@tauri-apps/plugin-opener", () => ({ openUrl: vi.fn() }))
 vi.mock("@/db/appPaths", () => ({ isPortable: () => isPortable() }))
-vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn() }) }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 beforeEach(() => {
     check.mockReset()
     isPortable.mockReset().mockResolvedValue(false)

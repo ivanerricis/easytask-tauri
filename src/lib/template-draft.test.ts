@@ -110,6 +110,7 @@ describe("createDraftAutosaver", () => {
         const save = vi.fn(async () => {
             running += 1
             if (running > 1) overlap = true
+            // Fake timers: advanced by vi.advanceTimersByTimeAsync below (not a real sleep)
             await new Promise(resolve => setTimeout(resolve, 10))
             running -= 1
         })

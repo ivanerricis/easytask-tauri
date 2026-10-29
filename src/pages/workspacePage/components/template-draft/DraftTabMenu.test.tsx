@@ -16,7 +16,7 @@ vi.mock("@/db/queries/template-draft", () => ({ setDBTemplateDraftColor: (...arg
 vi.mock("@/db/queries/template", () => ({ getDBTemplate: vi.fn().mockResolvedValue({ id: 3, name: "Sprint" }) }))
 vi.mock("@/components/dialogs/dialog-rename", () => ({ DialogRenameItem: ({ itemType }: { itemType: string }) => <div>Dialog rename {itemType}</div> }))
 vi.mock("@/components/dialogs/dialog-note-from-template", () => ({ DialogNoteFromTemplate: ({ template }: { template: { id: number } }) => <div>Dialog note {template.id}</div> }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({}) }))
+vi.mock("@/contexts/undo/use-undo", async () => (await import("@/test/mocks")).undoModuleMock())
 
 const draft = { noteId: 7, templateId: 3, templateName: "Sprint", color: null, trashed: false }
 

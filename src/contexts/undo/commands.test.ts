@@ -7,8 +7,7 @@ import type { UndoCommand } from "./stack"
 import { makeDefaultSection, makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 import type { Folder, NoteDataTree } from "@/types/types"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
-
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const fn = () => vi.fn().mockResolvedValue(undefined)
 
 function makeDeps() {

@@ -2,11 +2,11 @@ import { render, screen } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { MemoryRouter } from "react-router-dom"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { toastMock } from "@/test/mocks"
 
 const clipboard = vi.hoisted(() => ({ writeText: vi.fn().mockResolvedValue(undefined) }))
 vi.mock("@tauri-apps/plugin-clipboard-manager", () => clipboard)
-const sonner = vi.hoisted(() => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-vi.mock("sonner", () => sonner)
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ resetWorkspace: vi.fn() }) }))
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceData: () => ({ resetData: vi.fn() }) }))
 
@@ -17,7 +17,7 @@ const renderPage = (props: Parameters<typeof ErrorPage>[0]) => render(<MemoryRou
 describe("ErrorPage", () => {
     beforeEach(() => {
         clipboard.writeText.mockClear()
-        sonner.toast.success.mockClear()
+        toastMock.success.mockClear()
     })
 
     it("shows a translated message with the raw one in the technical details", async () => {
@@ -32,7 +32,7 @@ describe("ErrorPage", () => {
         renderPage({ error: "db unavailable" })
         await userEvent.click(screen.getByRole("button", { name: "Copia dettagli" }))
         expect(clipboard.writeText).toHaveBeenCalledWith("db unavailable")
-        expect(sonner.toast.success).toHaveBeenCalled()
+        expect(toastMock.success).toHaveBeenCalled()
     })
 
     it("has no details nor copy button without an error", () => {

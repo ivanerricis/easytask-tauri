@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { toast } from "sonner"
 import userEvent from "@testing-library/user-event"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { ButtonMenuGroup } from "./ButtonMenuGroup"
 import { makeGroup, makeSection } from "@/test/ui-fixtures"
 // The request to delete is tested with its hook (use-delete-request.test.tsx): here it opens the dialog
@@ -12,13 +13,14 @@ const removeGroup = vi.fn()
 vi.mock("../NoteStepMoves", () => ({ GroupStepMoves: () => null, DirectStepMoves: ({ groupId }: { groupId: number }) => <div role="menuitem">mosse lista {groupId}</div> }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchGroup, removeGroup }) }))
 vi.mock("@/contexts/use-audio", () => ({ useAudioActions: () => ({ addFiles: vi.fn() }) }))
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const updateItemColor = vi.fn()
 const recordColor = vi.fn()
 const archive = vi.fn()
 const archiveItem = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateItemColor, archiveItem }) }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ color: recordColor, archive }) }))
+const recorder = makeUndoRecorderMock({ color: recordColor, archive })
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
 vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => 7 }))
 let draftActive = false
 vi.mock("@/contexts/use-template-drafts", () => ({ useIsActiveDraft: () => draftActive }))

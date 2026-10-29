@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { toast } from "sonner"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { ButtonMenuNote } from "./ButtonMenuNote"
 import { ItemMenuButton } from "@/components/item-menu"
 import { makeNote } from "@/test/ui-fixtures"
@@ -16,8 +17,9 @@ const create = vi.fn()
 const archive = vi.fn()
 const archiveItem = vi.fn()
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create, archive }) }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
+const recorder = makeUndoRecorderMock({ create, archive })
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
 
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ getWorkspaceData: vi.fn(), updateItemColor: vi.fn(), duplicateNote, archiveItem }),

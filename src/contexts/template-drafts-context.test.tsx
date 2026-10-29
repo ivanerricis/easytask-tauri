@@ -17,7 +17,7 @@ import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
 import { draftToNote } from "@/lib/template-draft"
 import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 
-vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), info: vi.fn(), success: vi.fn() }) }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@/db/queries/template-draft", () => ({
     createDBTemplateDraft: vi.fn(), saveDBTemplateDraft: vi.fn(), deleteDBTemplateDraft: vi.fn(), getDBTemplateDrafts: vi.fn(), getDBTemplateDraft: vi.fn(),
 }))

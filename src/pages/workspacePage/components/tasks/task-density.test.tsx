@@ -7,7 +7,7 @@ import { TASK_DENSITIES } from "./task-density"
 
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ updateTaskCompletion: vi.fn(), renameItem: vi.fn() }) }))
 vi.mock("@/contexts/use-active-note", () => ({ useActiveNoteActions: () => ({ patchTask: vi.fn(() => vi.fn()) }) }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({}) }))
+vi.mock("@/contexts/undo/use-undo", async () => (await import("@/test/mocks")).undoModuleMock())
 vi.mock("@/hooks/use-automations", () => ({ useAutomations: () => ({ dispatch: vi.fn() }) }))
 vi.mock("@/contexts/use-color-alpha", () => ({ useColorAlpha: () => ({ taskBackground: false, task: () => 0 }) }))
 vi.mock("@/contexts/use-tabs", () => ({ useIsTaskSelected: () => false, useSelectTask: () => vi.fn(), useSubtasksOpen: () => [true, vi.fn()] }))

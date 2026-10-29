@@ -8,11 +8,11 @@ const importWorkspaceFromFile = vi.fn()
 const getWorkspaces = vi.fn()
 const flushAll = vi.fn()
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn(), success: vi.fn() } }))
-vi.mock("@/lib/report-error", () => ({ reportError: vi.fn(), resetReportErrorDedupe: vi.fn() }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
+vi.mock("@/lib/report-error", async () => (await import("@/test/mocks")).reportErrorMock())
 vi.mock("@/contexts/use-workspace", () => ({ useWorkspace: () => ({ currentWorkspace: null, getWorkspaces }) }))
 vi.mock("@/contexts/workspace-data", () => ({ useWorkspaceActions: () => ({ getWorkspaceData: vi.fn() }) }))
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ create: vi.fn() }) }))
+vi.mock("@/contexts/undo/use-undo", async () => (await import("@/test/mocks")).undoModuleMock())
 vi.mock("@/contexts/use-template-drafts", () => ({ useTemplateDraftActions: () => ({ flushAll }) }))
 vi.mock("@/lib/workspace-transfer", () => ({
     exportWorkspaceToFile: (...a: unknown[]) => exportWorkspaceToFile(...a),

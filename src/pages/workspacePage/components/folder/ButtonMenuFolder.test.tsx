@@ -2,16 +2,18 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import userEvent from "@testing-library/user-event"
 import { toast } from "sonner"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+import { makeUndoRecorderMock } from "@/test/mocks"
 import { ButtonMenuFolder } from "./ButtonMenuFolder"
 import { ItemMenuButton } from "@/components/item-menu"
 import type { Folder } from "@/types/types"
 
-vi.mock("sonner", () => ({ toast: { error: vi.fn() } }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 const updateFolderColorContent = vi.fn()
 const colorContent = vi.fn()
 const archive = vi.fn()
 const archiveItem = vi.fn()
-vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => ({ colorContent, archive }) }))
+const recorder = makeUndoRecorderMock({ colorContent, archive })
+vi.mock("@/contexts/undo/use-undo", () => ({ useUndoRecorder: () => recorder }))
 const getWorkspaceData = vi.fn()
 vi.mock("@/contexts/workspace-data", () => ({
     useWorkspaceActions: () => ({ updateFolderColorContent, getWorkspaceData, updateItemColor: vi.fn(), archiveItem }),

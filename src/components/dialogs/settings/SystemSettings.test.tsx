@@ -21,7 +21,7 @@ let alwaysOnTop = false
 let closeToTray = false
 let rememberWindowState = true
 
-vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), success: vi.fn() }) }))
+vi.mock("sonner", async () => (await import("@/test/mocks")).sonnerMock())
 vi.mock("@tauri-apps/plugin-autostart", () => ({
     isEnabled: () => isEnabled(),
     enable: () => enable(),
