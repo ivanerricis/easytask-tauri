@@ -8,7 +8,7 @@ import {
     type LayoutContextType,
     type PaneContextType,
 } from "./layout-context-object"
-import { findPane, type PaneIndex } from "./layout-reducer"
+import { findPane, type PaneIndex } from "@/lib/tabs/layout-reducer"
 import { useStoreSelector } from "@/lib/external-store"
 
 const ALWAYS_FOCUSED = () => true

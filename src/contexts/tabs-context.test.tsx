@@ -12,7 +12,7 @@ import { getReopenNotes } from "@/lib/store/preferences"
 import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
 import { makeNote } from "@/test/ui-fixtures"
 import type { Note } from "@/types/types"
-import type { LayoutState } from "./layout-reducer"
+import type { LayoutState } from "@/lib/tabs/layout-reducer"
 
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn() }))
 vi.mock("@/lib/store/tabs", () => ({ getWorkspaceTabs: vi.fn(), saveWorkspaceTabs: vi.fn() }))

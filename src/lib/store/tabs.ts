@@ -1,5 +1,5 @@
-import { initialLayoutState, normalizeLayout, type LayoutState, type PaneIndex } from "@/contexts/layout-reducer"
-import { initialTabsState, type TabsState } from "@/contexts/tabs-reducer"
+import { initialLayoutState, normalizeLayout, type LayoutState, type PaneIndex } from "@/lib/tabs/layout-reducer"
+import { initialTabsState, type TabsState } from "@/lib/tabs/tabs-reducer"
 import { store } from "./initStore"
 import { saveStoreSoon } from "./save-soon"
 import { isFiniteNumber } from "@/lib/number"

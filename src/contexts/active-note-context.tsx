@@ -122,18 +122,20 @@ export function ActiveNoteProvider({ children }: { children: React.ReactNode }) 
     }, [id0, loadNote])
 
     useEffect(() => {
-        if (id1 === null || id1 === id0) return
+        // id0 is read from its ref: a change of the other pane must not reload this one
+        if (id1 === null || id1 === id0Ref.current) return
         loadNote(id1).catch(error => {
             reportError(error, i18n.t("errors.loadNote"))
         })
-        // id0 is deliberately not a dependency: a change of the other pane must not reload this one
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id1, loadNote])
 
-    const treeOf = (id: number | null) => () => id !== null ? cache.get(id) ?? null : null
-    const noteDataTree = useSyncExternalStore(cache.subscribe, treeOf(focusedId))
-    const tree0 = useSyncExternalStore(cache.subscribe, treeOf(id0))
-    const tree1 = useSyncExternalStore(cache.subscribe, treeOf(id1))
+    const treeOf = useCallback((id: number | null) => () => id !== null ? cache.get(id) ?? null : null, [cache])
+    const getFocusedTree = useMemo(() => treeOf(focusedId), [treeOf, focusedId])
+    const getTree0 = useMemo(() => treeOf(id0), [treeOf, id0])
+    const getTree1 = useMemo(() => treeOf(id1), [treeOf, id1])
+    const noteDataTree = useSyncExternalStore(cache.subscribe, getFocusedTree)
+    const tree0 = useSyncExternalStore(cache.subscribe, getTree0)
+    const tree1 = useSyncExternalStore(cache.subscribe, getTree1)
 
     const commit = useCallback((noteId: number, tree: NoteDataTree) => {
         nextSeq(noteId) // an in-flight reload would overwrite this newer data

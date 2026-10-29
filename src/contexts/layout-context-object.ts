@@ -3,8 +3,8 @@ import type { NoteDataTree } from "@/types/types"
 import { createExternalStore, type ExternalStore } from "@/lib/external-store"
 import type { TabsActionsType, TabsContextType } from "./tabs-context-object"
 import type { ActiveNoteActionsType } from "./active-note-context-object"
-import { initialTabsState, type TabsState } from "./tabs-reducer"
-import type { PaneIndex } from "./layout-reducer"
+import { initialTabsState, type TabsState } from "@/lib/tabs/tabs-reducer"
+import type { PaneIndex } from "@/lib/tabs/layout-reducer"
 
 export type LayoutContextType = {
     /** Tabs of the left pane (always present). */

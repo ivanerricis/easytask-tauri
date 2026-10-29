@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { renderHook } from "@testing-library/react"
-import { initialTabsState } from "./tabs-reducer"
+import { initialTabsState } from "@/lib/tabs/tabs-reducer"
 import { useIsFocusedPane, useLayout, useLayoutActions, usePane, usePaneFocusGetter, usePaneOfNote, usePaneRoot } from "./use-layout"
 
 describe("use-layout fuori dai provider", () => {

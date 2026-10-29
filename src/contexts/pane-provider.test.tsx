@@ -9,7 +9,7 @@ import { PaneProvider } from "./pane-provider"
 import { useActiveNote, useActiveNoteActions } from "./use-active-note"
 import { useActiveNoteId, useActiveNoteSelector, useTabs, useTabsActions } from "./use-tabs"
 import { useIsFocusedPane, usePane, usePaneFocusGetter } from "./use-layout"
-import type { PaneIndex } from "./layout-reducer"
+import type { PaneIndex } from "@/lib/tabs/layout-reducer"
 import { TabsActionsContext, TabsContext, ActiveIdContext } from "./tabs-context-object"
 
 vi.mock("@/db/queries/note", () => ({ getDBNoteData: vi.fn(async () => ({ groups: [], sections: [], tasks: [] })) }))
