@@ -1,5 +1,5 @@
 import { useTranslation } from "react-i18next"
-import { Fragment, useEffect, useState } from "react"
+import { Fragment, useEffect, useState, type ReactNode } from "react"
 import { getName, getTauriVersion, getVersion } from "@tauri-apps/api/app"
 import { ensureAppFolder } from "@/db/appPaths"
 import { openUrl } from "@tauri-apps/plugin-opener"
@@ -26,11 +26,18 @@ const settle = async (fn: () => Promise<string>) => {
     }
 }
 
-const InfoRow = ({ label, value }: { label: string, value: string }) => (
+/** A row of the About page: the label on the left, the value (any content) on the right. */
+const AboutRow = ({ label, children }: { label: string, children: ReactNode }) => (
     <div className="flex items-baseline justify-between gap-4 text-sm">
         <span className="text-muted-foreground shrink-0">{label}</span>
-        <span className="text-right break-all">{value}</span>
+        {children}
     </div>
+)
+
+const InfoRow = ({ label, value }: { label: string, value: string }) => (
+    <AboutRow label={label}>
+        <span className="text-right break-all">{value}</span>
+    </AboutRow>
 )
 
 /** Copies `text` to the clipboard, with the result in a toast. */
@@ -62,8 +69,7 @@ const DatabaseRow = ({ path }: { path: string }) => {
     const { t } = useTranslation()
     const copy = useCopy("settings.about.pathCopied")
     return (
-        <div className="flex items-baseline justify-between gap-4 text-sm">
-            <span className="text-muted-foreground shrink-0">{t("settings.about.database")}</span>
+        <AboutRow label={t("settings.about.database")}>
             <span className="flex min-w-0 items-center gap-1.5 text-right">
                 <span className="min-w-0 select-text"><WrappablePath path={path} /></span>
                 {path !== EMPTY && (
@@ -74,7 +80,7 @@ const DatabaseRow = ({ path }: { path: string }) => {
                     </TooltipCustom>
                 )}
             </span>
-        </div>
+        </AboutRow>
     )
 }
 
@@ -93,8 +99,7 @@ const LinkRow = ({ label, url }: { label: string, url: string }) => {
     const handleCopy = () => copy(url)
 
     return (
-        <div className="flex items-baseline justify-between gap-4 text-sm">
-            <span className="text-muted-foreground shrink-0">{label}</span>
+        <AboutRow label={label}>
             <span className="flex items-center gap-1.5 text-right">
                 <TooltipCustom text={t("settings.about.openInBrowser")}>
                     <Button
@@ -112,7 +117,7 @@ const LinkRow = ({ label, url }: { label: string, url: string }) => {
                     </Button>
                 </TooltipCustom>
             </span>
-        </div>
+        </AboutRow>
     )
 }
 

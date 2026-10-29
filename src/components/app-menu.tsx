@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import {
     Archive, ArrowLeft, ArrowRight, ArrowRightLeft, BookOpen, CircleX, Columns2, EyeOff, FileDown, FilePlus, FileText, FolderPlus, House, Info, Keyboard, LayoutTemplate,
-    LogOut, Monitor, Moon, PanelLeft, PanelRight, Plus, Redo2, Rows3, ScrollText, Search, Settings, Sun, SunMoon, Trash2, Undo2, X, type LucideIcon,
+    LogOut, PanelLeft, PanelRight, Plus, Redo2, Rows3, ScrollText, Search, Settings, SunMoon, Trash2, Undo2, X, type LucideIcon,
 } from "lucide-react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import {
@@ -19,6 +19,8 @@ import {
     MenubarSubTrigger,
     MenubarTrigger,
 } from "@/components/ui/menubar"
+import { isDialogOpen } from "@/components/dialog-open"
+import { isTheme, THEME_OPTIONS } from "@/components/theme-options"
 import { useTheme } from "@/components/use-theme"
 import { useShortcutKeys, useShortcutsContext } from "@/contexts/use-shortcuts"
 import { requestAppCommand, useIsAppCommandActive, type AppCommand } from "@/lib/app-commands"
@@ -40,8 +42,6 @@ const afterClose = (action: () => void) => { window.setTimeout(action, 0) }
 
 // The radio items of the theme have no icon styling of their own: same size and color as the other entries
 const RADIO_ICON = "size-4 shrink-0 text-muted-foreground"
-
-const isDialogOpen = () => document.querySelector("[role='dialog'], [role='alertdialog']") !== null
 
 /** An entry that runs a shortcut: it shows the effective binding and is disabled while no handler is active. */
 const ShortcutItem = ({ id, label, icon: Icon }: { id: string, label: string, icon: LucideIcon }) => {
@@ -116,6 +116,7 @@ export const AppMenu = ({ page }: AppMenuProps) => {
         }
     }, [])
 
+    // No category (requestOpenSettings needs one): the settings dialog opens on its first page
     const openSettings = () => { window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_EVENT, { detail: {} })) }
     const exit = () => { getCurrentWindow().close().catch(error => reportError(error)) }
     const releaseNotes = () => { openReleasesPage().catch(error => reportError(error)) }
@@ -197,10 +198,10 @@ export const AppMenu = ({ page }: AppMenuProps) => {
                     <MenubarSub>
                         <MenubarSubTrigger><SunMoon />{t("appMenu.theme")}</MenubarSubTrigger>
                         <MenubarSubContent>
-                            <MenubarRadioGroup value={theme} onValueChange={value => setTheme(value as typeof theme)}>
-                                <MenubarRadioItem value="light"><Sun className={RADIO_ICON} />{t("settings.appearance.theme.light")}</MenubarRadioItem>
-                                <MenubarRadioItem value="dark"><Moon className={RADIO_ICON} />{t("settings.appearance.theme.dark")}</MenubarRadioItem>
-                                <MenubarRadioItem value="system"><Monitor className={RADIO_ICON} />{t("common.system")}</MenubarRadioItem>
+                            <MenubarRadioGroup value={theme} onValueChange={value => { if (isTheme(value)) setTheme(value) }}>
+                                {THEME_OPTIONS.map(({ value, icon: Icon, labelKey }) => (
+                                    <MenubarRadioItem key={value} value={value}><Icon className={RADIO_ICON} />{t(labelKey)}</MenubarRadioItem>
+                                ))}
                             </MenubarRadioGroup>
                         </MenubarSubContent>
                     </MenubarSub>

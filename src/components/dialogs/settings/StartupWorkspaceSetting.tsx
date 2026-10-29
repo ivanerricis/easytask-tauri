@@ -1,8 +1,8 @@
 import { useTranslation } from "react-i18next"
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectSeparator, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SelectGroup, SelectItem, SelectLabel, SelectSeparator } from "@/components/ui/select"
 import { usePreferences } from "@/contexts/use-preferences"
 import { useWorkspace } from "@/contexts/use-workspace"
-import { SettingsRow } from "./SettingsRow"
+import { SettingsSelectRow } from "./SettingsRow"
 
 const HOME = "home"
 const LAST = "last"
@@ -30,29 +30,26 @@ export const StartupWorkspaceSetting = () => {
     }
 
     return (
-        <SettingsRow label={t("settings.notes.startupWorkspace.label")} description={t("settings.notes.startupWorkspace.description")}>
-            {({ id, descriptionId }) => (
-                <Select value={value} onValueChange={change}>
-                    <SelectTrigger id={id} aria-describedby={descriptionId} size="sm" className="w-56">
-                        <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value={HOME}>{t("settings.notes.startupWorkspace.home")}</SelectItem>
-                        <SelectItem value={LAST}>{t("settings.notes.startupWorkspace.last")}</SelectItem>
-                        {workspaces.length > 0 && (
-                            <>
-                                <SelectSeparator />
-                                <SelectGroup>
-                                    <SelectLabel>{t("settings.notes.startupWorkspace.always")}</SelectLabel>
-                                    {workspaces.map(workspace => (
-                                        <SelectItem key={workspace.id} value={`${FIXED_PREFIX}${workspace.id}`}>{workspace.name}</SelectItem>
-                                    ))}
-                                </SelectGroup>
-                            </>
-                        )}
-                    </SelectContent>
-                </Select>
+        <SettingsSelectRow
+            label={t("settings.notes.startupWorkspace.label")}
+            description={t("settings.notes.startupWorkspace.description")}
+            value={value}
+            onValueChange={change}
+            width="w-56"
+        >
+            <SelectItem value={HOME}>{t("settings.notes.startupWorkspace.home")}</SelectItem>
+            <SelectItem value={LAST}>{t("settings.notes.startupWorkspace.last")}</SelectItem>
+            {workspaces.length > 0 && (
+                <>
+                    <SelectSeparator />
+                    <SelectGroup>
+                        <SelectLabel>{t("settings.notes.startupWorkspace.always")}</SelectLabel>
+                        {workspaces.map(workspace => (
+                            <SelectItem key={workspace.id} value={`${FIXED_PREFIX}${workspace.id}`}>{workspace.name}</SelectItem>
+                        ))}
+                    </SelectGroup>
+                </>
             )}
-        </SettingsRow>
+        </SettingsSelectRow>
     )
 }

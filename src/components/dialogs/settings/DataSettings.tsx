@@ -8,12 +8,12 @@ import { Button } from "@/components/ui/button"
 import { FormError } from "@/components/form-error"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { usePreferences } from "@/contexts/use-preferences"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { SelectItem } from "@/components/ui/select"
 import { TRASH_AUTO_EMPTY_DAYS, UNDO_LIMIT_OPTIONS, type TrashAutoEmptyDays } from "@/lib/store/preferences"
 import { useWorkspaceTransfer } from "@/hooks/use-workspace-transfer"
-import { getErrorMessage } from "@/lib/utils"
 import { BackupSettings } from "./BackupSettings"
-import { SettingsPanel, SettingsRow, SettingsSubsection } from "./SettingsRow"
+import { useOpenDataFolder } from "./use-open-data-folder"
+import { SettingsPanel, SettingsRow, SettingsSelectRow, SettingsSubsection } from "./SettingsRow"
 
 const TRASH_OPTION_KEYS = {
     0: "settings.data.trashAutoEmpty.never",
@@ -42,14 +42,7 @@ export const DataSettings = () => {
 
     const [folderError, setFolderError] = useState<string | null>(null)
 
-    const openDataFolder = async () => {
-        setFolderError(null)
-        try {
-            await invoke("open_data_folder")
-        } catch (error) {
-            setFolderError(getErrorMessage(error))
-        }
-    }
+    const openDataFolder = useOpenDataFolder(setFolderError)
 
     return (
         <SettingsPanel title={t("settings.data.title")}>
@@ -92,36 +85,30 @@ export const DataSettings = () => {
                 <BackupSettings />
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.data.sections.trash")}>
-                <SettingsRow label={t("settings.data.trashAutoEmpty.label")} description={t("settings.data.trashAutoEmpty.description")}>
-                    {({ id, descriptionId }) => (
-                    <Select value={String(trashAutoEmptyDays)} onValueChange={value => setTrashAutoEmptyDays(Number(value) as TrashAutoEmptyDays)}>
-                        <SelectTrigger id={id} aria-describedby={descriptionId} size="sm" className="w-40">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {TRASH_AUTO_EMPTY_DAYS.map(value => (
-                                <SelectItem key={value} value={String(value)}>{t(TRASH_OPTION_KEYS[value])}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    )}
-                </SettingsRow>
+                <SettingsSelectRow
+                    label={t("settings.data.trashAutoEmpty.label")}
+                    description={t("settings.data.trashAutoEmpty.description")}
+                    value={String(trashAutoEmptyDays)}
+                    onValueChange={value => setTrashAutoEmptyDays(Number(value) as TrashAutoEmptyDays)}
+                    width="w-40"
+                >
+                    {TRASH_AUTO_EMPTY_DAYS.map(value => (
+                        <SelectItem key={value} value={String(value)}>{t(TRASH_OPTION_KEYS[value])}</SelectItem>
+                    ))}
+                </SettingsSelectRow>
             </SettingsSubsection>
             <SettingsSubsection title={t("settings.data.sections.history")}>
-                <SettingsRow label={t("settings.data.undoLimit.label")} description={t("settings.data.undoLimit.description")}>
-                    {({ id, descriptionId }) => (
-                    <Select value={String(undoLimit)} onValueChange={value => setUndoLimit(Number(value))}>
-                        <SelectTrigger id={id} aria-describedby={descriptionId} size="sm" className="w-24">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {/* A limit outside the options (not reachable from the UI) is still shown */}
-                            {!(UNDO_LIMIT_OPTIONS as readonly number[]).includes(undoLimit) && <SelectItem value={String(undoLimit)}>{undoLimit}</SelectItem>}
-                            {UNDO_LIMIT_OPTIONS.map(value => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}
-                        </SelectContent>
-                    </Select>
-                    )}
-                </SettingsRow>
+                <SettingsSelectRow
+                    label={t("settings.data.undoLimit.label")}
+                    description={t("settings.data.undoLimit.description")}
+                    value={String(undoLimit)}
+                    onValueChange={value => setUndoLimit(Number(value))}
+                    width="w-24"
+                >
+                    {/* A limit outside the options (not reachable from the UI) is still shown */}
+                    {!(UNDO_LIMIT_OPTIONS as readonly number[]).includes(undoLimit) && <SelectItem value={String(undoLimit)}>{undoLimit}</SelectItem>}
+                    {UNDO_LIMIT_OPTIONS.map(value => <SelectItem key={value} value={String(value)}>{value}</SelectItem>)}
+                </SettingsSelectRow>
             </SettingsSubsection>
             {/* Further subsections are appended here as <SettingsSubsection> */}
         </SettingsPanel>

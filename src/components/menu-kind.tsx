@@ -23,7 +23,7 @@ import {
  * The Menu* primitives below render the DropdownMenu or ContextMenu flavour depending on the menu they are in,
  * so an item list is written once. Outside any provider they fall back to the dropdown flavour.
  */
-export type MenuKind = "dropdown" | "context"
+type MenuKind = "dropdown" | "context"
 
 const MenuKindContext = React.createContext<MenuKind>("dropdown")
 

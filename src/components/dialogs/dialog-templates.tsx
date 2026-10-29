@@ -1,7 +1,6 @@
 import { useTranslation } from "react-i18next"
-import { useCallback, useEffect, useId, useRef, useState } from "react"
+import { useId, useState } from "react"
 import { Copy, FilePlus, LayoutTemplate, MoreHorizontal, Pencil, Plus, FileInput, SquarePen, Trash2 } from "lucide-react"
-import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { ConfirmDialog } from "./dialog-confirm"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -9,7 +8,8 @@ import { FormError } from "@/components/form-error"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { ItemRow, ListError, ListSkeleton } from "./item-list-parts"
+import { ItemRow, ListEmpty, ListError, ListSkeleton } from "./item-list-parts"
+import { useOpenList } from "./use-open-list"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useTemplateDraftActions, useTemplateDrafts } from "@/contexts/use-template-drafts"
@@ -19,8 +19,7 @@ import { DialogNoteFromTemplate } from "@/components/dialogs/dialog-note-from-te
 import { DialogCreateTemplate } from "@/components/dialogs/dialog-create-template"
 import { DialogPickNote } from "@/components/dialogs/dialog-pick-note"
 import { useAllNotes } from "@/hooks/use-all-notes"
-import { useSubmitOnce } from "@/hooks/use-submit-once"
-import { formatDate, getErrorMessage } from "@/lib/utils"
+import { formatDate } from "@/lib/utils"
 import { countTemplateContent, type NoteTemplate } from "@/types/template"
 
 // The search box is shown only when the list gets long
@@ -49,9 +48,17 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     const workspaceID = currentWorkspace?.id
     const allNotes = useAllNotes()
 
-    const [templates, setTemplates] = useState<NoteTemplate[]>([])
-    const [loaded, setLoaded] = useState(false)
-    const { saving: busy, run } = useSubmitOnce()
+    const { items: templates, isLoading, loadError, reload, run, busy, error, setError } = useOpenList<NoteTemplate>({
+        isOpen,
+        resetKey: workspaceID,
+        load: async () => {
+            if (workspaceID === undefined) return []
+            const list = await getTemplates(workspaceID)
+            // A renamed template renames the tab of its editor
+            void refreshDrafts()
+            return list
+        },
+    })
     const [search, setSearch] = useState("")
     const [creating, setCreating] = useState<NoteTemplate | null>(null)
     const [renaming, setRenaming] = useState<NoteTemplate | null>(null)
@@ -63,32 +70,6 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
     // Creating a template here: first the note is chosen, then the template gets its name
     const [picking, setPicking] = useState(false)
     const [source, setSource] = useState<{ id: number, name: string } | null>(null)
-    const getTemplatesRef = useRef(getTemplates)
-    const refreshDraftsRef = useRef(refreshDrafts)
-    useEffect(() => { getTemplatesRef.current = getTemplates; refreshDraftsRef.current = refreshDrafts })
-
-    // Error of an action (shown under the list) and error of the load (shown instead of the list)
-    const [error, setError] = useState<string | null>(null)
-    const [loadError, setLoadError] = useState<string | null>(null)
-
-    const reload = useCallback(async () => {
-        if (workspaceID === undefined) return
-        try {
-            setTemplates(await getTemplatesRef.current(workspaceID))
-            setLoadError(null)
-            // A renamed template renames the tab of its editor
-            void refreshDraftsRef.current()
-        } catch (err) {
-            setLoadError(getErrorMessage(err))
-        }
-    }, [workspaceID])
-
-    useEffect(() => {
-        if (!isOpen) return
-        reload().finally(() => setLoaded(true))
-        return () => setLoaded(false)
-    }, [isOpen, reload])
-    const isLoading = isOpen && !loaded
 
     // The template is saved first, so what the user sees in the list is what the action works on
     const saved = async (template: NoteTemplate) => {
@@ -97,50 +78,25 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
         return false
     }
 
-    const handleEdit = async (template: NoteTemplate) => {
-        setError(null)
-        await run(async () => {
-            try {
-                await openTemplateEditor(template)
-                onOpenChange(false)
-            } catch (err) {
-                setError(getErrorMessage(err))
-            }
-        })
-    }
+    const handleEdit = (template: NoteTemplate) => run(async () => {
+        await openTemplateEditor(template)
+        onOpenChange(false)
+    }, undefined, { reload: false })
 
-    const handleDuplicate = async (template: NoteTemplate) => {
-        setError(null)
-        await run(async () => {
-            try {
-                if (!await saved(template)) return
-                await duplicateTemplate(template.id)
-                toast.success(t("templateEditor.duplicated"))
-            } catch (err) {
-                setError(getErrorMessage(err))
-            } finally {
-                await reload()
-            }
-        })
-    }
+    const handleDuplicate = (template: NoteTemplate) => run(async () => {
+        if (!await saved(template)) return false
+        await duplicateTemplate(template.id)
+    }, t("templateEditor.duplicated"))
 
     const handleRefresh = async () => {
         const target = refreshing
         setRefreshing(null)
         if (!target) return
         const { template, note } = target
-        setError(null)
         await run(async () => {
-            try {
-                if (note) await updateTemplateFromNote(template.id, note.id)
-                else await updateTemplateFromNote(template.id)
-                toast.success(t("dialogs.templates.updated"))
-            } catch (err) {
-                setError(getErrorMessage(err))
-            } finally {
-                await reload()
-            }
-        })
+            if (note) await updateTemplateFromNote(template.id, note.id)
+            else await updateTemplateFromNote(template.id)
+        }, t("dialogs.templates.updated"))
     }
 
     const query = search.trim().toLowerCase()
@@ -170,11 +126,9 @@ export const DialogTemplates = ({ isOpen, onOpenChange }: DialogTemplatesProps) 
                         ) : loadError !== null ? (
                             <ListError message={loadError} onRetry={() => void reload()} />
                         ) : templates.length === 0 ? (
-                            <p className="py-6 text-center text-muted-foreground text-sm">
-                                {t("dialogs.templates.empty")}
-                            </p>
+                            <ListEmpty>{t("dialogs.templates.empty")}</ListEmpty>
                         ) : visible.length === 0 ? (
-                            <p className="py-6 text-center text-muted-foreground text-sm">{t("common.noResults")}</p>
+                            <ListEmpty>{t("common.noResults")}</ListEmpty>
                         ) : (
                             visible.map(template => {
                                 const counts = countTemplateContent(template.content)

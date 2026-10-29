@@ -26,8 +26,6 @@ type Props = {
     fileName?: string
     listenersHandle: SyntheticListenerMap | undefined
     attributesHandle: DraggableAttributes
-    /** Controlled visibility (default: visible). */
-    open?: boolean
     /** Called after the X button paused the playback. */
     onClose?: () => void
     /** Changes at every play request: when set, the track (re)starts from the beginning as soon as it changes. */
@@ -145,7 +143,7 @@ const MediaSessionSync = ({ audioRef, title, playing, actions }: MediaSessionSyn
 }
 
 export const AudioPlayer = ({
-    src, fileName, listenersHandle, attributesHandle, open = true, onClose, autoPlayKey, toggleKey, onStateChange, onError,
+    src, fileName, listenersHandle, attributesHandle, onClose, autoPlayKey, toggleKey, onStateChange, onError,
     volume: volumeProp = 1, onVolumeChange, pinned = false, onPinnedChange,
     playbackRate: rateProp = 1, onPlaybackRateChange, repeat = false, audioId, resume = false,
 }: Props) => {
@@ -347,7 +345,7 @@ export const AudioPlayer = ({
     const volumeLabel = muted ? 0 : Math.round(volume * 100)
 
     return (
-        <div className={`w-[350px] p-2 rounded-xs bg-background border shadow-lg flex flex-col gap-2 text-muted-foreground ${open ? '' : 'hidden'}`}>
+        <div className="w-[350px] p-2 rounded-xs bg-background border shadow-lg flex flex-col gap-2 text-muted-foreground">
             {/* The header is the drag handle (unless pinned) and holds the pin toggle and the close button */}
             <div
                 className={cn("-mx-2 -mt-2 -mb-2 p-0.5 flex items-center justify-between touch-none", pinned ? "cursor-default" : "cursor-grab active:cursor-grabbing")}

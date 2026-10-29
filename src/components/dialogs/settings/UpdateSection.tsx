@@ -1,18 +1,18 @@
 import { useEffect, useState } from "react"
 import { useTranslation } from "react-i18next"
 import type { Update } from "@tauri-apps/plugin-updater"
-import { toast } from "sonner"
 import { Download, ExternalLink, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { UpdateInstallProgress, UpdateNotesBox } from "@/components/update-parts"
-import { Switch } from "@/components/ui/switch"
+import { useOpenReleasesPage } from "@/components/use-open-releases-page"
 import { isPortable } from "@/db/appPaths"
 import { useUpdateInstall } from "@/hooks/use-update-install"
 import { reportError } from "@/lib/report-error"
 import { getCheckUpdatesOnStartup, saveCheckUpdatesOnStartup } from "@/lib/store/preferences"
-import { checkForUpdate, openReleasesPage } from "@/lib/updater"
+import { checkForUpdate } from "@/lib/updater"
 import { getErrorMessage } from "@/lib/utils"
-import { SettingsCard, SettingsRow } from "./SettingsRow"
+import { SettingsCard, SettingsRow, SettingsSwitchRow } from "./SettingsRow"
+import { useStoredSwitch } from "./use-stored-switch"
 
 type Status =
     | { kind: "idle" }
@@ -26,13 +26,16 @@ export const UpdateSection = () => {
     const { t } = useTranslation()
     const [status, setStatus] = useState<Status>({ kind: "idle" })
     const [portable, setPortable] = useState(false)
-    const [onStartup, setOnStartup] = useState(true)
+    const { checked: onStartup, change: handleStartupChange } = useStoredSwitch(getCheckUpdatesOnStartup, saveCheckUpdatesOnStartup, {
+        initial: true,
+        onError: error => reportError(error, getErrorMessage(error)),
+    })
+    const handleOpenReleases = useOpenReleasesPage()
     const { progress, percent, label: installLabel, install } = useUpdateInstall()
 
     useEffect(() => {
         let cancelled = false
         void isPortable().then(value => { if (!cancelled) setPortable(value) }).catch(() => undefined)
-        void getCheckUpdatesOnStartup().then(value => { if (!cancelled) setOnStartup(value) }).catch(error => reportError(error))
         return () => { cancelled = true }
     }, [])
 
@@ -51,19 +54,6 @@ export const UpdateSection = () => {
     const handleInstall = async (update: Update) => {
         // On success the app restarts; on failure the hook shows the error and the update stays offered
         await install(update)
-    }
-
-    const handleOpenReleases = async () => {
-        try {
-            await openReleasesPage()
-        } catch (error) {
-            toast.error(t("settings.about.openError", { message: getErrorMessage(error) }))
-        }
-    }
-
-    const handleStartupChange = (value: boolean) => {
-        setOnStartup(value)
-        void saveCheckUpdatesOnStartup(value).catch(error => reportError(error, getErrorMessage(error)))
     }
 
     const installing = progress !== null
@@ -120,13 +110,12 @@ export const UpdateSection = () => {
                 </div>
             </div>
 
-            <SettingsRow label={t("settings.about.update.startup.label")} description={t("settings.about.update.startup.description")}>
-                <Switch
-                    aria-label={t("settings.about.update.startup.label")}
-                    checked={onStartup}
-                    onCheckedChange={handleStartupChange}
-                />
-            </SettingsRow>
+            <SettingsSwitchRow
+                label={t("settings.about.update.startup.label")}
+                description={t("settings.about.update.startup.description")}
+                checked={onStartup}
+                onCheckedChange={value => void handleStartupChange(value)}
+            />
         </SettingsCard>
     )
 }

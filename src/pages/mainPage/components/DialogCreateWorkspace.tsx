@@ -6,51 +6,35 @@ import { Button } from "@/components/ui/button"
 import {
     Dialog,
     DialogContent,
-    DialogFooter,
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { FormError } from "@/components/form-error"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { FormFooter } from "@/components/form-footer"
+import { NameField } from "@/components/name-field"
+import { useFormSubmit } from "@/components/use-form-submit"
 import { OptionalColorField } from "@/components/optional-color-field"
 import { useWorkspace } from "@/contexts/use-workspace"
 import { Plus } from "lucide-react"
-import { useId, useState } from "react"
-import { useSubmitOnce } from "@/hooks/use-submit-once"
-import { getErrorMessage } from "@/lib/utils"
-import { MAX_NAME_LENGTH } from "@/lib/names"
+import { useState } from "react"
 
 export function DialogCreateWorkspace() {
     const { t } = useTranslation()
     const [name, setName] = useState("")
     const [color, setColor] = useState<string | undefined>(undefined)
-    const [error, setError] = useState<string | null>(null)
     const [isOpen, setIsOpen] = useState(false)
     const { createWorkspace, getWorkspaces } = useWorkspace()
-    const { saving, run } = useSubmitOnce()
-    const nameId = useId()
-    const errorId = useId()
 
     useShortcut("new-workspace", () => setIsOpen(true), { allowInInputs: true })
     const shortcutLabel = useShortcutLabel("new-workspace")
 
-    const handleCreate = async (e: React.FormEvent) => {
-        e.preventDefault()
+    const { busy: saving, error, setError, submit } = useFormSubmit(async () => {
         if (name.trim() === "") return
-        await run(async () => {
-            try {
-                await createWorkspace(name.trim(), color)
-                await getWorkspaces()
-                setError(null)
-                setIsOpen(false)
-                setName("")
-                setColor(undefined)
-            } catch (err) {
-                setError(getErrorMessage(err))
-            }
-        })
-    }
+        await createWorkspace(name.trim(), color)
+        await getWorkspaces()
+        setIsOpen(false)
+        setName("")
+        setColor(undefined)
+    })
 
     const handleCancel = () => {
         setName("")
@@ -66,41 +50,26 @@ export function DialogCreateWorkspace() {
                     <DialogHeader>
                         <DialogTitle>{t("home.createWorkspace.title")}</DialogTitle>
                     </DialogHeader>
-                    <form onSubmit={handleCreate}>
+                    <form onSubmit={submit}>
                         <div className="grid gap-4">
                             <div className="grid gap-3">
-                                <Label htmlFor={nameId}>{t("home.createWorkspace.name")}</Label>
-                                <div className="flex gap-2">
-                                    <Input
-                                        id={nameId}
-                                        name="name"
-                                        maxLength={MAX_NAME_LENGTH}
-                                        aria-invalid={error ? true : undefined}
-                                        aria-describedby={error ? errorId : undefined}
-                                        value={name}
-                                        onChange={e => {
-                                            setError(null)
-                                            setName(e.target.value)
-                                        }}
-                                    />
+                                <NameField
+                                    label={t("home.createWorkspace.name")}
+                                    value={name}
+                                    error={error}
+                                    onChange={value => {
+                                        setError(null)
+                                        setName(value)
+                                    }}
+                                >
                                     <OptionalColorField value={color} onChange={setColor} />
-                                </div>
-                                <FormError id={errorId}>{error}</FormError>
+                                </NameField>
                             </div>
                         </div>
-                        <DialogFooter className="mt-4">
-                            <Button
-                                variant="outline"
-                                type="button"
-                                onClick={handleCancel}
-                            >
-                                {t("common.cancel")}
-                            </Button>
-                            <Button type="submit" disabled={!name.trim() || saving}>
-                                <Plus />
-                                {t("home.createWorkspace.title")}
-                            </Button>
-                        </DialogFooter>
+                        <FormFooter onCancel={handleCancel} disabled={!name.trim() || saving}>
+                            <Plus />
+                            {t("home.createWorkspace.title")}
+                        </FormFooter>
                     </form>
                 </DialogContent>
             </Dialog >
