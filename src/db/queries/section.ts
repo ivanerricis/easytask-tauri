@@ -1,5 +1,4 @@
-import i18n from "@/i18n"
-import { handleDBError } from "@/types/error";
+import { withDBErrors, SECTION_MESSAGES } from "./errors";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
 import { DEFAULT_SECTION_SQL, nextPositionSql } from "./sql";
@@ -11,19 +10,14 @@ import { DEFAULT_SECTION_SQL, nextPositionSql } from "./sql";
  * @category Database Queries
  */
 export async function createDBSectionInGroup(groupId: number, title: string) {
-    try {
+    return withDBErrors("SECTION", SECTION_MESSAGES, async () => {
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO section (groupID, title, position)
              SELECT ?, ?, ${nextPositionSql("section", "groupID = ? AND deleted_at IS NULL")}`,
             [groupId, title.trim() || null, groupId]);
         return result.lastInsertId as number
-    } catch (error: unknown) {
-        handleDBError(error, "SECTION", {
-            UNIQUE: i18n.t("errors.section.unique"),
-            CHECK: i18n.t("errors.section.check"),
-        })
-    }
+    })
 }
 
 /**
@@ -35,7 +29,7 @@ export async function createDBSectionInGroup(groupId: number, title: string) {
  * @category Database Queries
  */
 export async function createDBSection(noteId: number, title: string, position: number) {
-    try {
+    return withDBErrors("SECTION", SECTION_MESSAGES, async () => {
         // One transaction: a failing section leaves no orphan group behind
         const tx = new Transaction()
         const group = tx.add('INSERT INTO section_group (noteID, position) VALUES (?, ?)', [noteId, position])
@@ -47,10 +41,5 @@ export async function createDBSection(noteId: number, title: string, position: n
             defaultSectionId: results[defaultSection].lastInsertId,
             sectionId: results[section].lastInsertId,
         }
-    } catch (error: unknown) {
-        handleDBError(error, "SECTION", {
-            UNIQUE: i18n.t("errors.section.unique"),
-            CHECK: i18n.t("errors.section.check"),
-        })
-    }
+    })
 }

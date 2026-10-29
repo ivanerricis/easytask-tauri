@@ -1,5 +1,4 @@
-import i18n from "@/i18n"
-import { handleDBError } from "@/types/error";
+import { withDBErrors, FOLDER_MESSAGES } from "./errors";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
 import { nextPositionSql } from "./sql";
@@ -13,19 +12,14 @@ import { nextPositionSql } from "./sql";
  * @category Database Queries
  */
 export async function createDBWorkspaceFolder(workspaceId: number, name: string, color?: string | null) {
-    try {
+    return withDBErrors("FOLDER", FOLDER_MESSAGES, async () => {
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO folder (workspaceID, name, color, position)
              SELECT ?, ?, ?, ${nextPositionSql("folder", "workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL")}`,
             [workspaceId, name, color ?? null, workspaceId])
         return result.lastInsertId as number
-    } catch (error: unknown) {
-        handleDBError(error, "FOLDER", {
-            UNIQUE: i18n.t("errors.folder.unique"),
-            CHECK: i18n.t("errors.folder.check"),
-        })
-    }
+    })
 }
 
 /**
@@ -37,19 +31,14 @@ export async function createDBWorkspaceFolder(workspaceId: number, name: string,
  * @category Database Queries
  */
 export async function createDBSubFolder(workspaceID: number, folderId: number, name: string) {
-    try {
+    return withDBErrors("FOLDER", FOLDER_MESSAGES, async () => {
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO folder (workspaceID, folderID, name, position)
              SELECT ?, ?, ?, ${nextPositionSql("folder", "folderID = ? AND deleted_at IS NULL")}`,
             [workspaceID, folderId, name, folderId])
         return result.lastInsertId as number
-    } catch (error: unknown) {
-        handleDBError(error, "FOLDER", {
-            UNIQUE: i18n.t("errors.folder.unique"),
-            CHECK: i18n.t("errors.folder.check"),
-        })
-    }
+    })
 }
 
 /**
@@ -59,7 +48,7 @@ export async function createDBSubFolder(workspaceID: number, folderId: number, n
  * @category Database Queries
  */
 export async function updateDBFolderColorContent(folderId: number, color?: string | null) {
-    try {
+    return withDBErrors("FOLDER", FOLDER_MESSAGES, async () => {
         // The subtree is a recursive CTE inside each UPDATE (no list of ids to bind); both run in one transaction
         const subtree = `WITH RECURSIVE folder_tree AS (
                 SELECT id FROM folder WHERE id = ?
@@ -71,10 +60,5 @@ export async function updateDBFolderColorContent(folderId: number, color?: strin
         tx.add(`${subtree} UPDATE folder SET color = ? WHERE id IN (SELECT id FROM folder_tree)`, [folderId, color ?? null])
         tx.add(`${subtree} UPDATE note SET color = ? WHERE folderID IN (SELECT id FROM folder_tree)`, [folderId, color ?? null])
         await tx.run()
-    } catch (error: unknown) {
-        handleDBError(error, "FOLDER", {
-            UNIQUE: i18n.t("errors.folder.unique"),
-            CHECK: i18n.t("errors.folder.check"),
-        })
-    }
+    })
 }

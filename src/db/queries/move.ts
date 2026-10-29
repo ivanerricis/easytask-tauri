@@ -42,9 +42,8 @@ async function loadMovableSection(db: Database, sectionId: number): Promise<{ id
  * @category Database Queries
  */
 export async function moveDBSection(sectionId: number, targetGroupId: number, targetIndex: number, options: { beforeList?: boolean } = {}) {
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         const section = await loadMovableSection(db, sectionId)
 
         const targets = await db.select<{ id: number, noteID: number }[]>(
@@ -79,9 +78,8 @@ export async function moveDBSection(sectionId: number, targetGroupId: number, ta
  * @category Database Queries
  */
 export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: number): Promise<{ groupId: number, defaultSectionId: number }> {
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         const section = await loadMovableSection(db, sectionId)
 
         const groups = await db.select<{ id: number }[]>(
@@ -120,9 +118,8 @@ export async function moveDBSectionToNewGroup(sectionId: number, groupPosition: 
  * @category Database Queries
  */
 export async function moveDBDirectSection(groupId: number, index: number) {
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         const rows = await db.select<{ id: number }[]>(
             `SELECT s.id FROM section s INNER JOIN section_group g ON g.id = s.groupID
              WHERE s.groupID = ? AND s.is_default = 1 AND s.deleted_at IS NULL AND g.deleted_at IS NULL AND g.archived_at IS NULL`, [groupId])
@@ -163,9 +160,8 @@ export type TaskMoveTarget = {
  * @category Database Queries
  */
 export async function moveDBTask(taskId: number, target: TaskMoveTarget, targetIndex: number) {
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         const parentId = target.parentTaskId ?? null
         // The three lookups are independent: run them together, then check them in the same order as before
         const [tasks, sectionsFound, parents] = await Promise.all([

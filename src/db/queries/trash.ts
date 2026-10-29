@@ -136,6 +136,28 @@ export async function loadTrashCounts(db: Awaited<ReturnType<typeof getDB>>, wor
 /** Counts of a trashed template, read from its JSON snapshot (a corrupted one counts as empty). */
 const countTemplateJson = (content: string): TrashCounts => countTemplateContent(parseTemplateContent(content))
 
+/** A row of the trash/archive listings: the SQL columns shared by both (the date column is `deleted_at` or `archived_at`). */
+type HiddenRow<K extends string> = { type: DBItemType, id: number, name: string, context: string | null, extra: number } & Record<K, string>
+
+/**
+ * Maps the rows of the trash (`dateKey` "deleted_at") or archive ("archived_at") listing to their items: an unnamed group
+ * gets the "unnamed group" name (with its section count), a missing context is empty, the summary comes from the counts.
+ */
+export function mapHiddenRows<K extends "deleted_at" | "archived_at", T extends DBItemType>(
+    rows: (HiddenRow<K> & { type: T })[], counts: Map<DBItemType, Map<number, TrashCounts>>, dateKey: K,
+): ({ type: T, id: number, name: string, context: string, summary: string } & Record<K, string>)[] {
+    return rows.map(row => ({
+        type: row.type,
+        id: row.id,
+        name: row.type === "section_group" && !row.name
+            ? i18n.t("trash.unnamedGroup", { count: row.extra })
+            : row.name,
+        context: row.context ?? "",
+        summary: formatTrashSummary(row.type, counts.get(row.type)?.get(row.id) ?? {}),
+        [dateKey]: row[dateKey],
+    }) as { type: T, id: number, name: string, context: string, summary: string } & Record<K, string>)
+}
+
 /**
  * Retrieves the items moved to the trash that belong to a workspace.
  * Only the items deleted directly are listed (their children are removed with them).
@@ -205,16 +227,7 @@ export async function getDBTrash(workspaceId: number): Promise<TrashItem[]> {
             counts.set("note_template", new Map(contents.map(({ id, content }) => [id, countTemplateJson(content)])))
         }
 
-        return rows.map(row => ({
-            type: row.type,
-            id: row.id,
-            name: row.type === "section_group" && !row.name
-                ? i18n.t("trash.unnamedGroup", { count: row.extra })
-                : row.name,
-            context: row.context ?? "",
-            summary: formatTrashSummary(row.type, counts.get(row.type)?.get(row.id) ?? {}),
-            deleted_at: row.deleted_at,
-        }))
+        return mapHiddenRows(rows, counts, "deleted_at")
     } catch (error: unknown) {
         throw createError("TRASH_LOAD_FAILED", i18n.t("errors.trash.load", { message: getErrorMessage(error) }))
     }
@@ -409,9 +422,8 @@ export async function restoreDBItem(itemType: DBItemType, itemID: number) {
  */
 export async function purgeDBItem(itemType: DBItemType, itemID: number) {
     assertItemType(itemType)
-    const db = await getDB()
-
     try {
+        const db = await getDB()
         await db.execute(`DELETE FROM ${itemType} WHERE id=? AND deleted_at IS NOT NULL`, [itemID])
     } catch (error: unknown) {
         throw createError(`${itemType.toUpperCase()}_PURGE_FAILED`, i18n.t("errors.trash.purge", { message: getErrorMessage(error) }))

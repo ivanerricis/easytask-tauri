@@ -491,6 +491,14 @@ describe("items export and import", () => {
         expect(() => validateWorkspaceExport({ ...ws, scope: "workspace" })).not.toThrow()
     })
 
+    it("does not mutate the export it imports", async () => {
+        const data = validateWorkspaceExport(await json("folder", 1))
+        data.notes[0].archived_at = "2020-01-01 00:00:00"
+        const before = JSON.stringify(data)
+        await importDBItems(data, 1, null)
+        expect(JSON.stringify(data)).toBe(before)
+    })
+
     it("imports a note at the root with a free name, appended after the siblings", async () => {
         const data = validateWorkspaceExport(await json("note", 1))
         const result = await importDBItems(data, 1, null)

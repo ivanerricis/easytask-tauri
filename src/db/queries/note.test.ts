@@ -11,7 +11,7 @@ vi.mock("../dbManager", async () => {
     return { getDB: vi.fn(async () => createSqliteDb(() => sqlite)) }
 })
 
-import { noteHasContent } from "./note"
+import { getDBNoteData, getDBNotesData, noteHasContent } from "./note"
 
 beforeEach(() => {
     sqlite = new DatabaseSync(":memory:")
@@ -40,5 +40,31 @@ describe("noteHasContent", () => {
 
     it("is false for an unknown note", async () => {
         expect(await noteHasContent(99)).toBe(false)
+    })
+})
+
+describe("getDBNoteData vs getDBNotesData", () => {
+    beforeEach(() => {
+        sqlite.exec(`
+            INSERT INTO note (id, workspaceID, name) VALUES (10, 1, 'Ties'), (11, 1, 'Other');
+            INSERT INTO section_group (id, noteID, position, archived_at) VALUES (25, 10, 0, NULL), (21, 10, 0, NULL), (23, 10, 1, NULL), (22, 10, 0, '2026-01-01 00:00:00'), (30, 11, 0, NULL);
+            INSERT INTO section (id, groupID, title, position, is_default, archived_at) VALUES
+                (50, 25, NULL, 0, 0, NULL), (40, 25, 'B', 0, 0, NULL), (45, 21, 'C', 0, 0, NULL), (41, 23, 'D', 1, 0, '2026-01-01 00:00:00'), (60, 30, 'E', 0, 0, NULL);
+            INSERT INTO task (id, sectionID, text, position, archived_at) VALUES
+                (9, 50, 'a', 0, NULL), (3, 40, 'b', 0, NULL), (7, 45, 'c', 0, NULL), (5, 41, 'd', 0, NULL), (4, 40, 'e', 0, '2026-01-01 00:00:00'), (8, 60, 'f', 0, NULL);
+        `)
+    })
+
+    for (const includeArchived of [false, true]) {
+        it(`return the same data when positions tie (includeArchived=${includeArchived})`, async () => {
+            const bulk = await getDBNotesData([10, 11, 99], includeArchived)
+            for (const id of [10, 11]) expect(bulk.get(id)).toEqual(await getDBNoteData(id, includeArchived))
+            expect(bulk.get(99)).toEqual({ groups: [], sections: [], tasks: [] })
+        })
+    }
+
+    it("maps a NULL section title to an empty string", async () => {
+        const { sections } = await getDBNoteData(10)
+        expect(sections.find(section => section.id === 50)?.title).toBe("")
     })
 })
