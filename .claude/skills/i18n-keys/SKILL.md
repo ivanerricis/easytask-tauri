@@ -9,7 +9,7 @@ Two languages, always together: `src/i18n/locales/en/*.ts` and `src/i18n/locales
 
 ## What checks keys
 - `tsc -b`: keys used with `t("...")` in `src` exist (typed). Dynamic keys (template strings, `as never`) are not checked.
-- `src/i18n/unused-keys.test.ts`: every key is used somewhere. Removing the last use of a key fails it; so does leaving a key that nothing uses.
+- `src/i18n/unused-keys.test.ts`: every key is used somewhere. Removing the last use of a key fails it; so does leaving a key that nothing uses. Keys read with a computed name are matched by prefix (the `DYNAMIC_PREFIXES` list at the top of the test, for example `settings.appearance.`, `undo.`, `trash.`): a new family of computed keys needs its prefix added there, and keys under a listed prefix are never reported as unused.
 - `src/i18n/i18n.test.tsx`: both languages have the same keys.
 - **Not checked by any unit test**: the keys used by the e2e (`e2e/specs/*.ts`, `e2e/helpers.ts`, `e2e/ui-tour/tour-kit.ts`, `e2e/docs-shots`). They read the text with `tr("key")`, also with computed keys such as `settings.${category}.title`. A key that disappeared makes the spec fail only in the CI (Windows or the Linux shards).
 

@@ -5,7 +5,7 @@ description: Align the Trello board of EasyTask with finished work - comment wit
 
 # Trello sync (EasyTask)
 
-The user writes in Italian: answer and write the cards in Italian. Board: **EasyTask**. Load the Trello tools first (`ToolSearch` with `select:mcp__Trello__trelloSearch,mcp__Trello__trelloReadCard,mcp__Trello__trelloReadList,mcp__Trello__trelloWriteCard`; add `trelloWriteChecklist` to tick items). Card ids are ARIs: get them from a search or a read, never from the URL.
+The user writes in Italian: answer and write the cards in Italian. Board: **EasyTask**. Load the Trello tools first (`ToolSearch` with `select:mcp__Trello__trelloSearch,mcp__Trello__trelloReadCard,mcp__Trello__trelloReadList,mcp__Trello__trelloWriteCard`; add `trelloWriteChecklist` to tick items). Card ids are ARIs: get them from a search or a read, never from the URL. `trelloReadCard` with `action: "get"` takes `cardIdOrUrl` (not `cardId`); the write tools take `cardId`.
 
 ## Lists
 - **To do**: decided work, not started.

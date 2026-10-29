@@ -30,7 +30,7 @@ cd src-tauri && cargo fmt --check
 
 ## Faster loops
 - One file: `npx vitest run src/path/to/file.test.ts`. The whole suite is about 280 files and 3400 tests (about 100 s).
-- Coverage thresholds (lines/branches/functions/statements about 89/83/87/91): `npm run test:coverage` when a lot of untested code was added. New code needs its test.
+- Coverage: the CI runs `npm run test:coverage`, not plain vitest, and fails below the thresholds of `vitest.config.ts` (statements 89, branches 83, functions 87, lines 91). Run it when a lot of code was added. New code needs its test.
 - Release only: `npm run release:check` (versions in sync), the full list is in the `release` skill.
 
 ## Before you push

@@ -5,7 +5,7 @@ description: Find and fix a red CI run of EasyTask (frontend, backend ubuntu/win
 
 # CI failure (EasyTask)
 
-Workflow `.github/workflows/ci.yml`. Jobs: `versions`, `frontend` (eslint, tsc, e2e typecheck, vitest, build), `backend` (ubuntu and windows: fmt, clippy `-D warnings`, test), `audit`, `e2e` (3 Linux shards). The Windows e2e job runs only by `workflow_dispatch`.
+Workflow `.github/workflows/ci.yml`. Jobs: `versions`, `frontend` (eslint, e2e typecheck, `npm run test:coverage`, build with tsc), `backend` (ubuntu and windows: fmt, clippy `-D warnings`, test), `audit`, `e2e` (3 Linux shards). The Windows e2e job runs only by `workflow_dispatch`.
 
 ## Tools
 There is no `gh` in the cloud session: use the GitHub MCP tools (`ToolSearch` with `select:mcp__github__pull_request_read,mcp__github__actions_list,mcp__github__actions_get,mcp__github__get_job_logs`).

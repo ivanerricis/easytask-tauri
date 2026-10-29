@@ -15,7 +15,7 @@ Every command the frontend can reach needs its permission in the `permissions` a
 2. Open `src-tauri/capabilities/default.json` and compare. Currently the store has `load, get, entries, set, delete, save` (not `has`: it was removed because nothing uses it).
 3. Add the missing permissions; remove those that nothing calls any more (least privilege). Check with `rg "\.has\(|\.keys\(|\.values\(" src` before removing one.
 4. URLs opened with the opener plugin are an allowlist in the same file (`opener:allow-open-url` with `allow` urls): a new link host or path must be added there (the release notes link to the repository pages).
-5. Paths of the fs plugin use scopes: a new folder needs a scope entry.
+5. The fs plugin commands are listed too (`fs:allow-read-text-file`, `fs:allow-mkdir`, ...): a new fs call needs its own `fs:allow-<command>`. Check whether the path is also limited by a scope before assuming it is reachable.
 6. Test in the real app: `npm run tauri dev`, do the action, restart if it is about persistence. The e2e (`npm run e2e` on Windows, or the CI) also catches it.
 7. Add or extend an e2e step when the feature must survive a restart (see `e2e/specs/persistence.e2e.ts`).
 
