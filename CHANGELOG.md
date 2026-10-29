@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-29
+
 ### Added
 
 - Split view: the **Split into two areas** button on the right of the path bar (or Ctrl+\) shows two notes side by side. Each area has its own tabs and its own open note, and **Close the split** closes the tabs of the right area. A note is open in one area at a time, the divider between the areas can be dragged (or moved with the arrow keys, double click for 50%), and the split and its tabs are reopened at the next start when "Reopen notes at startup" is on.
@@ -483,7 +485,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 First public release.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...v0.15.0

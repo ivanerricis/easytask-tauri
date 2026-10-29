@@ -4,6 +4,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 ## [Unreleased]
 
+## [0.18.0] - 2026-10-29
+
 ### Aggiunto
 
 - Vista divisa in due aree: il pulsante **Dividi in due aree** a destra della barra del percorso (o Ctrl+\) mostra due note affiancate. Ogni area ha i suoi tab e la sua nota aperta, e **Chiudi la divisione** chiude i tab dell'area destra. Una nota è aperta in una sola area alla volta, il divisore tra le aree si può trascinare (o spostare con le frecce, doppio clic per il 50%), e la divisione con i suoi tab viene riaperta al prossimo avvio se "Riapri le note all'avvio" è attivo.
@@ -481,7 +483,8 @@ Versione italiana di [CHANGELOG.md](CHANGELOG.md): è il testo che l'app mostra 
 
 Prima versione pubblica.
 
-[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.17.0...HEAD
+[Unreleased]: https://github.com/ivanerricis/easytask-tauri/compare/v0.18.0...HEAD
+[0.18.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.17.0...v0.18.0
 [0.17.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.16.0...v0.17.0
 [0.16.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.15.0...v0.16.0
 [0.15.0]: https://github.com/ivanerricis/easytask-tauri/compare/v0.14.0...v0.15.0
