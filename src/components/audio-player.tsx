@@ -97,15 +97,15 @@ const useAudioProgress = (audioRef: React.RefObject<HTMLAudioElement | null>) =>
 const notifyProgress = (audio: HTMLAudioElement) => { audio.dispatchEvent(new Event("timeupdate")) }
 
 type SeekBarProps = {
-    audioRef: React.RefObject<HTMLAudioElement | null>
+    currentTime: number
+    duration: number
     onSeek: (time: number) => void
     onKeyDown: (e: React.KeyboardEvent<HTMLSpanElement>) => void
 }
 
 /** The elapsed time, the seek slider and the length of the track. */
-const SeekBar = ({ audioRef, onSeek, onKeyDown }: SeekBarProps) => {
+const SeekBar = ({ currentTime, duration, onSeek, onKeyDown }: SeekBarProps) => {
     const { t } = useTranslation()
-    const { currentTime, duration } = useAudioProgress(audioRef)
 
     return (
         <div className="w-full flex items-center gap-2 text-[13px] text-foreground tabular-nums">
@@ -128,19 +128,58 @@ const SeekBar = ({ audioRef, onSeek, onKeyDown }: SeekBarProps) => {
 }
 
 type MediaSessionSyncProps = {
-    audioRef: React.RefObject<HTMLAudioElement | null>
+    currentTime: number
+    duration: number
     title: string
     playing: boolean
     actions: MediaSessionActions
 }
 
 /** Publishes the track to the system (media keys, volume flyout, lock screen); renders nothing. */
-const MediaSessionSync = ({ audioRef, title, playing, actions }: MediaSessionSyncProps) => {
-    const { currentTime, duration } = useAudioProgress(audioRef)
+const MediaSessionSync = ({ currentTime, duration, title, playing, actions }: MediaSessionSyncProps) => {
     // Hardware media keys, the volume flyout and the lock screen of the system show the title and drive the player
     useMediaSession({ title, artist: "EasyTask", playing, position: currentTime, duration, actions })
     return null
 }
+
+type ProgressProps = {
+    audioRef: React.RefObject<HTMLAudioElement | null>
+    title: string
+    playing: boolean
+    actions: MediaSessionActions
+    onSeek: (time: number) => void
+    onKeyDown: (e: React.KeyboardEvent<HTMLSpanElement>) => void
+}
+
+/** Follows the progress once (one set of listeners) for the seek bar and the system media session; only these re-render with it. */
+const PlayerProgress = ({ audioRef, title, playing, actions, onSeek, onKeyDown }: ProgressProps) => {
+    const { currentTime, duration } = useAudioProgress(audioRef)
+    return (
+        <>
+            <SeekBar currentTime={currentTime} duration={duration} onSeek={onSeek} onKeyDown={onKeyDown} />
+            <MediaSessionSync currentTime={currentTime} duration={duration} title={title} playing={playing} actions={actions} />
+        </>
+    )
+}
+
+type SkipButtonProps = { label: string, icon: React.ReactNode, onClick: () => void }
+
+/** The "back" / "forward" button: a circular arrow with the seconds written inside. */
+const SkipButton = ({ label, icon, onClick }: SkipButtonProps) => (
+    <TooltipCustom text={label}>
+        <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            onClick={onClick}
+            aria-label={label}
+            className="relative shrink-0 rounded-full"
+        >
+            {icon}
+            <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[11px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
+        </Button>
+    </TooltipCustom>
+)
 
 export const AudioPlayer = ({
     src, fileName, listenersHandle, attributesHandle, onClose, autoPlayKey, toggleKey, onStateChange, onError,
@@ -376,8 +415,7 @@ export const AudioPlayer = ({
             <Separator className="-mx-2 data-[orientation=horizontal]:w-[calc(100%+1rem)]" />
             {/* The title has a row of its own, as wide as the player: two lines at most, the tooltip has the whole name */}
             <div className="w-full line-clamp-2 break-words text-sm font-medium text-foreground" title={title}>{title}</div>
-            <SeekBar audioRef={audioRef} onSeek={seekTo} onKeyDown={handleSeekKeyDown} />
-            <MediaSessionSync audioRef={audioRef} title={title} playing={isPlaying} actions={mediaActions} />
+            <PlayerProgress audioRef={audioRef} title={title} playing={isPlaying} actions={mediaActions} onSeek={seekTo} onKeyDown={handleSeekKeyDown} />
             {/* Transport: start over, 15 s back, play / pause, 15 s forward, speed */}
             <div className="w-full flex items-center justify-center gap-1.5 text-xs">
                 <TooltipCustom text={t("audio.player.restart")}>
@@ -392,19 +430,7 @@ export const AudioPlayer = ({
                         <SkipBack className="!size-4" />
                     </Button>
                 </TooltipCustom>
-                <TooltipCustom text={t("audio.player.back", { seconds: SKIP_SECONDS })}>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => skip(-SKIP_SECONDS)}
-                        aria-label={t("audio.player.back", { seconds: SKIP_SECONDS })}
-                        className="relative shrink-0 rounded-full"
-                    >
-                        <RotateCcw className="!size-6" />
-                        <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[11px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
-                    </Button>
-                </TooltipCustom>
+                <SkipButton label={t("audio.player.back", { seconds: SKIP_SECONDS })} icon={<RotateCcw className="!size-6" />} onClick={() => skip(-SKIP_SECONDS)} />
                 <TooltipCustom text={isPlaying ? t("audio.player.pause") : t("audio.player.play")}>
                     <Button
                         type="button"
@@ -417,19 +443,7 @@ export const AudioPlayer = ({
                         {isPlaying ? <Pause /> : <Play />}
                     </Button>
                 </TooltipCustom>
-                <TooltipCustom text={t("audio.player.forward", { seconds: SKIP_SECONDS })}>
-                    <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => skip(SKIP_SECONDS)}
-                        aria-label={t("audio.player.forward", { seconds: SKIP_SECONDS })}
-                        className="relative shrink-0 rounded-full"
-                    >
-                        <RotateCw className="!size-6" />
-                        <span aria-hidden className="absolute inset-0 flex items-center justify-center pt-px text-[11px] font-semibold tabular-nums">{SKIP_SECONDS}</span>
-                    </Button>
-                </TooltipCustom>
+                <SkipButton label={t("audio.player.forward", { seconds: SKIP_SECONDS })} icon={<RotateCw className="!size-6" />} onClick={() => skip(SKIP_SECONDS)} />
                 <TooltipCustom text={t("audio.player.speed", { rate })}>
                     <Button
                         type="button"

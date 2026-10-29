@@ -102,8 +102,12 @@ export function buildNoteTree(groups: Group[], sections: Section[], tasks: Task[
     }
 }
 
+/** Builds the tree of a note from its database rows (empty when the note does not exist). */
+export function buildNoteTreeFromData(data: Awaited<ReturnType<typeof getDBNoteData>>): NoteDataTree {
+    return buildNoteTree(data?.groups ?? [], data?.sections ?? [], data?.tasks ?? [])
+}
+
 /** Reads a note from the database and builds its tree (empty when the note does not exist). */
 export async function fetchNoteTree(noteId: number): Promise<NoteDataTree> {
-    const data = await getDBNoteData(noteId)
-    return buildNoteTree(data?.groups ?? [], data?.sections ?? [], data?.tasks ?? [])
+    return buildNoteTreeFromData(await getDBNoteData(noteId))
 }
