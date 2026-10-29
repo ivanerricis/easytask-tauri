@@ -165,7 +165,7 @@ fn custom_backup_folder(data_dir: &Path) -> Option<PathBuf> {
 
 /// Like `custom_backup_folder`, on settings already read.
 fn custom_backup_folder_from(settings: Option<&serde_json::Value>) -> Option<PathBuf> {
-    let folder = PathBuf::from(settings.get(BACKUP_FOLDER_KEY)?.as_str()?.trim());
+    let folder = PathBuf::from(settings?.get(BACKUP_FOLDER_KEY)?.as_str()?.trim());
     (folder.is_absolute() && folder.is_dir()).then_some(folder)
 }
 
