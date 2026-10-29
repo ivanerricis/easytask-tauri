@@ -158,7 +158,7 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         if (focused) setNoteDataTree(after)
         // Groups first (archive, color, order), then the tasks: the tasks of an archived group are not in `after`
         await applyOrRefresh(noteId, () => applyDBAutomationChanges([...diffGroupStatements(before, after), ...diffTaskStatements(before, fullAfter)]))
-        if (!focused) await getNoteData(noteId)
+        if (!focused) await getNoteData(noteId).catch(error => reportError(error))
 
         const tasks = taskChanges(before, fullAfter, touched)
         const groups = groupChanges(before, after, touchedGroups)
@@ -219,7 +219,7 @@ export function AutomationsProvider({ children }: { children: ReactNode }) {
         const focused = activeIdRef.current === noteId
         if (focused) setNoteDataTree(after)
         await applyOrRefresh(noteId, () => applyDBAutomationChanges([...diffGroupStatements(before, after), ...diffSectionStatements(before, after)]))
-        if (!focused) await getNoteData(noteId)
+        if (!focused) await getNoteData(noteId).catch(error => reportError(error))
     })().catch(error => {
         reportError(error, getErrorMessage(error))
     })), [recorder, getRules, getCachedNoteTree, getNoteData, setNoteDataTree, applyOrRefresh])

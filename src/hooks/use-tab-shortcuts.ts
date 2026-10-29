@@ -1,6 +1,5 @@
-import { useEffect, useRef } from "react"
 import { useTabsActions } from "@/contexts/use-tabs"
-import { useLayout, useLayoutActions } from "@/contexts/use-layout"
+import { useLayoutActions } from "@/contexts/use-layout"
 import { useShortcut } from "@/hooks/use-shortcut"
 
 /**
@@ -11,15 +10,11 @@ import { useShortcut } from "@/hooks/use-shortcut"
  */
 export function useTabShortcuts() {
     const { closeActiveNote, closeAllNotes, cycleNote } = useTabsActions()
-    const layout = useLayout()
-    const { toggleSplit, focusPane, openInPane, moveToPane } = useLayoutActions()
-
-    // The handlers read the layout at call time through a ref, so the shortcuts are not re-registered on every tab change
-    const layoutRef = useRef(layout)
-    useEffect(() => { layoutRef.current = layout }, [layout])
+    // The handlers read the layout at key-press time: no subscription, so tab changes do not re-render the host
+    const { toggleSplit, focusPane, openInPane, moveToPane, getLayout } = useLayoutActions()
 
     const moveActiveToOtherPane = () => {
-        const { left, right, focused } = layoutRef.current
+        const { left, right, focused } = getLayout()
         const activeId = (focused === 1 ? right : left)?.activeId ?? null
         if (activeId === null) return
         if (focused === 1) moveToPane(activeId, 0)
@@ -27,7 +22,7 @@ export function useTabShortcuts() {
     }
 
     const focusOtherPane = () => {
-        const { isSplit, focused } = layoutRef.current
+        const { isSplit, focused } = getLayout()
         if (isSplit) focusPane(focused === 0 ? 1 : 0)
     }
 

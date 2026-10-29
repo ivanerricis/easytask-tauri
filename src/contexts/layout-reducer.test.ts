@@ -413,6 +413,57 @@ describe("reopen", () => {
         expect(next.left.activeId).toBe(5)
     })
 
+    it("dopo la promozione della destra (nota sinistra eliminata) ripristina le due aree", () => {
+        const snapshot = layout(tabs([1]), tabs([2]), 1)
+        const collapsed = layoutReducer(snapshot, { type: "close", id: 1 })
+        expect(collapsed).toEqual(layout(tabs([2]), null, 0))
+        const next = layoutReducer(collapsed, { type: "reopen", state: snapshot })
+        expect(next.left).toEqual(tabs([1]))
+        expect(next.right).toEqual(tabs([2]))
+        expectValid(next)
+    })
+
+    it("caso simmetrico: la destra svuotata si chiude e torna con la sua nota", () => {
+        const snapshot = layout(tabs([1]), tabs([2]), 1)
+        const collapsed = layoutReducer(snapshot, { type: "close", id: 2 })
+        expect(collapsed.right).toBeNull()
+        const next = layoutReducer(collapsed, { type: "reopen", state: snapshot })
+        expect(next.left).toEqual(tabs([1]))
+        expect(next.right).toEqual(tabs([2]))
+        expectValid(next)
+    })
+
+    it("la promozione con più tab riporta ogni nota nella sua area e nella posizione originale", () => {
+        const snapshot = layout(tabs([1, 3], 1), tabs([2, 4], 4), 0)
+        const collapsed = layoutReducer(snapshot, { type: "closeMany", ids: [1, 3] })
+        expect(collapsed.right).toBeNull()
+        const next = layoutReducer(collapsed, { type: "reopen", state: snapshot })
+        expect(next.left).toEqual(tabs([1, 3], 1))
+        expect(next.right).toEqual(tabs([2, 4], 4))
+        expectValid(next)
+    })
+
+    it("una nota aperta nel frattempo resta dov'è", () => {
+        const snapshot = layout(tabs([1]), tabs([2]), 1)
+        const collapsed = layoutReducer(snapshot, { type: "close", id: 1 })
+        const withNew = layoutReducer(collapsed, { type: "pane", pane: 0, action: { type: "open", id: 9 } })
+        expect(withNew.left.openIds).toEqual([2, 9])
+        const next = layoutReducer(withNew, { type: "reopen", state: snapshot })
+        expect(next.left.openIds).toEqual([1, 9])
+        expect(next.right?.openIds).toEqual([2])
+        expectValid(next)
+    })
+
+    it("conserva il focus corrente", () => {
+        const snapshot = layout(tabs([1]), tabs([2]), 1)
+        const collapsed = layoutReducer(snapshot, { type: "close", id: 1 })
+        expect(collapsed.focused).toBe(0)
+        expect(layoutReducer(collapsed, { type: "reopen", state: snapshot }).focused).toBe(0)
+        const split = layout(tabs([1]), tabs([2, 3], 2), 1)
+        const current = layout(tabs([1]), tabs([2], 2), 1)
+        expect(layoutReducer(current, { type: "reopen", state: split }).focused).toBe(1)
+    })
+
     it("senza note chiuse non cambia lo stato", () => {
         const state = layout(tabs([1]), tabs([2]), 1)
         expect(layoutReducer(state, { type: "reopen", state })).toBe(state)

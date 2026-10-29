@@ -74,6 +74,23 @@ describe("PaneProvider", () => {
         expect(result.current.flag).toBe(false)
     })
 
+    it("does not re-render a note data consumer when only the focus changes", () => {
+        const store = createExternalStore<PaneIndex>(0)
+        let renders = 0
+        function Probe() {
+            useActiveNote()
+            renders++
+            return null
+        }
+        const probe = <Probe />
+        const Wrap = wrapper(1, store)
+        render(<Wrap>{probe}</Wrap>)
+        const before = renders
+        act(() => store.set(1))
+        act(() => store.set(0))
+        expect(renders).toBe(before)
+    })
+
     it("is a pure passthrough without a layout provider", () => {
         const tabs = tabsValue([5], 5)
         const { result } = renderHook(() => ({ tabs: useTabs(), id: useActiveNoteId(), pane: usePane(), actions: useTabsActions() }), {

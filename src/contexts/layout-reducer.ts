@@ -170,19 +170,33 @@ function applyToBoth(state: LayoutState, action: TabsAction): LayoutState {
     return collapse(state, { ...state, left, right })
 }
 
+/** A pane rebuilt by `reopen`: the saved ids first (original order), then the notes opened since the snapshot that already live in the pane. */
+function reopenedPane(current: TabsState | null, from: TabsState, saved: ReadonlySet<number>, closed: ReadonlySet<number>): TabsState {
+    const extras = (current?.openIds ?? []).filter(id => !saved.has(id))
+    const openIds = [...from.openIds, ...extras]
+    const keep = (id: number | null | undefined) => (id !== null && id !== undefined && openIds.includes(id) ? id : null)
+    const activeId = (from.activeId !== null && closed.has(from.activeId) ? keep(from.activeId) : null)
+        ?? keep(current?.activeId) ?? keep(from.activeId) ?? (openIds[0] ?? null)
+    return { openIds, activeId }
+}
+
 function reopen(state: LayoutState, snapshot: LayoutState): LayoutState {
     const saved = normalizeLayout(snapshot)
     const open = new Set(unionOpenIds(state))
     if (!unionOpenIds(saved).some(id => !open.has(id))) return state
-    const inLeft = new Set(state.left.openIds)
+    if (saved.right) {
+        // A two-pane snapshot: each note goes back to its pane, also one that was promoted to the other pane by a collapse
+        const savedIds = new Set(unionOpenIds(saved))
+        const closed = new Set([...savedIds].filter(id => !open.has(id)))
+        const left = reopenedPane(state.left, saved.left, savedIds, closed)
+        const right = reopenedPane(state.right, saved.right, savedIds, closed)
+        // The split is restored only when a tab comes back to the right pane
+        const keptRight = state.right === null && right.openIds.length === 0 ? null : right
+        return normalizeLayout({ left, right: keptRight, focused: state.focused })
+    }
     const inRight = new Set(state.right?.openIds ?? [])
-    const reopenIn = (current: TabsState, from: TabsState, other: ReadonlySet<number>) =>
-        tabsReducer(current, { type: "reopen", state: { openIds: from.openIds.filter(id => !other.has(id)), activeId: from.activeId } })
-    const left = reopenIn(state.left, saved.left, inRight)
-    const reopened = saved.right ? reopenIn(state.right ?? initialTabsState, saved.right, inLeft) : state.right
-    // The split is restored only when a tab comes back to the right pane
-    const right = state.right === null && reopened?.openIds.length === 0 ? null : reopened
-    return normalizeLayout({ left, right, focused: state.focused })
+    const left = tabsReducer(state.left, { type: "reopen", state: { openIds: saved.left.openIds.filter(id => !inRight.has(id)), activeId: saved.left.activeId } })
+    return normalizeLayout({ left, right: state.right, focused: state.focused })
 }
 
 /**

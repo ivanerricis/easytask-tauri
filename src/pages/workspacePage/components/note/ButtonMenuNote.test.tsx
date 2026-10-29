@@ -187,7 +187,7 @@ describe("ButtonMenuNote", () => {
 })
 
 describe("ButtonMenuNote in a split workspace", () => {
-    const layoutActions: LayoutActionsType = { split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn() }
+    const layoutActions: LayoutActionsType = { split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn(), getLayout: () => ({ left: { openIds: [], activeId: null }, right: null, focused: 0, isSplit: false }) }
     const reorder0 = vi.fn()
     const reorder1 = vi.fn()
     const paneValue = (ids: number[], reorderTabs: () => void): PaneTabsValue => ({

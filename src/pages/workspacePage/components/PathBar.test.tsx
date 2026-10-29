@@ -293,7 +293,7 @@ describe("PathBar of a template editor", () => {
 describe("PathBar split button", () => {
     const renderWithLayout = async (isSplit: boolean) => {
         const toggleSplit = vi.fn()
-        const layoutActions = { split: vi.fn(), unsplit: vi.fn(), toggleSplit, focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn() }
+        const layoutActions = { split: vi.fn(), unsplit: vi.fn(), toggleSplit, focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn(), getLayout: () => ({ left: { openIds: [], activeId: null }, right: null, focused: 0 as const, isSplit: false }) }
         render(
             <ShortcutsProvider>
                 <TabsProvider notes={notes} workspaceId={null}>

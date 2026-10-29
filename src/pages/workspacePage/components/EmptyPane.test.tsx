@@ -7,7 +7,7 @@ import { EmptyPane } from "./EmptyPane"
 const renderPane = (pane: 0 | 1) => {
     const unsplit = vi.fn()
     render(
-        <LayoutActionsContext.Provider value={{ split: vi.fn(), unsplit, toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn() }}>
+        <LayoutActionsContext.Provider value={{ split: vi.fn(), unsplit, toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn(), getLayout: () => ({ left: { openIds: [], activeId: null }, right: null, focused: 0, isSplit: false }) }}>
             <EmptyPane pane={pane} />
         </LayoutActionsContext.Provider>,
     )

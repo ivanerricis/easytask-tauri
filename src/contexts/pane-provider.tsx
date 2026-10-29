@@ -29,16 +29,19 @@ export function PaneProvider({ pane, children }: { pane: PaneIndex, children: Re
     const isFocused = useCallback(() => focusStore.getState() === pane, [focusStore, pane])
     const paneContext = useMemo<PaneContextType>(() => ({ pane, focused, isFocused, rootRef }), [pane, focused, isFocused])
 
+    const tree = paneTrees?.[pane] ?? null
+    // Stable while the tree is the same, so a focus change does not re-render the note data consumers
+    const noteData = useMemo(() => ({ noteDataTree: tree }), [tree])
+
     if (!paneTabs) return <>{children}</>
     const mine = paneTabs[pane]
     const actions = paneActions?.[pane] ?? null
-    const tree = paneTrees?.[pane] ?? null
 
     let content = children
     if (actions) {
         content = (
             <ActiveNoteActionsContext.Provider value={actions}>
-                <ActiveNoteContext.Provider value={{ noteDataTree: tree }}>{content}</ActiveNoteContext.Provider>
+                <ActiveNoteContext.Provider value={noteData}>{content}</ActiveNoteContext.Provider>
             </ActiveNoteActionsContext.Provider>
         )
     }

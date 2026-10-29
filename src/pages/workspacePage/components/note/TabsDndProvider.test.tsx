@@ -17,7 +17,7 @@ vi.mock("./NoteHeader", () => ({
 
 const moveToPane = vi.fn()
 const layoutActions: LayoutActionsType = {
-    split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane,
+    split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane, getLayout: () => ({ left: { openIds: [], activeId: null }, right: null, focused: 0, isSplit: false }),
 }
 const reorder0 = vi.fn()
 const reorder1 = vi.fn()

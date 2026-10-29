@@ -17,7 +17,7 @@ const state: SplitState = { open0: [1], active0: 1, open1: [], active1: null, fo
 const setup = (pane: PaneIndex, s: SplitState = state) => {
     const focusPane = vi.fn()
     render(
-        <LayoutActionsContext.Provider value={{ split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane, openInPane: vi.fn(), moveToPane: vi.fn() }}>
+        <LayoutActionsContext.Provider value={{ split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane, openInPane: vi.fn(), moveToPane: vi.fn(), getLayout: () => ({ left: { openIds: [], activeId: null }, right: null, focused: 0, isSplit: false }) }}>
             <SplitHarness state={s}>
                 <PaneProvider pane={pane}><SplitPane pane={pane} share={0.4} /></PaneProvider>
             </SplitHarness>

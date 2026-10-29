@@ -68,7 +68,7 @@ describe("DraftTabMenu", () => {
 })
 
 describe("DraftTabMenu open in the other pane", () => {
-    const actions: LayoutActionsType = { split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn() }
+    const actions: LayoutActionsType = { split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn(), getLayout: () => ({ left: { openIds: [], activeId: null }, right: null, focused: 0, isSplit: false }) }
     const renderIn = (right: number[] | null) => {
         render(
             <LayoutContext.Provider value={{ left: { openIds: right ? [] : [7], activeId: null }, right: right && { openIds: right, activeId: null }, focused: 0, isSplit: right !== null }}>

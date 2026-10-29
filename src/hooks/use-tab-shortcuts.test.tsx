@@ -122,7 +122,9 @@ describe("useTabShortcuts", () => {
 })
 
 describe("useTabShortcuts split shortcuts", () => {
-    const actions: LayoutActionsType = { split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn() }
+    // The shortcuts read the layout through getLayout() at key-press time
+    const current: { value: LayoutContextType } = { value: undefined as never }
+    const actions: LayoutActionsType = { split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane: vi.fn(), openInPane: vi.fn(), moveToPane: vi.fn(), getLayout: () => current.value }
     const layout = (left: number | null, right: number | null | undefined, focused: 0 | 1): LayoutContextType => ({
         left: { openIds: left === null ? [] : [left], activeId: left },
         right: right === undefined ? null : { openIds: right === null ? [] : [right], activeId: right },
@@ -130,6 +132,7 @@ describe("useTabShortcuts split shortcuts", () => {
         isSplit: right !== undefined,
     })
     const setup = (value: LayoutContextType) => {
+        current.value = value
         const view = render(
             <ShortcutsProvider><TabsProvider notes={notes} workspaceId={null}>
                 <LayoutContext.Provider value={value}><LayoutActionsContext.Provider value={actions}><Shortcuts /></LayoutActionsContext.Provider></LayoutContext.Provider>
@@ -199,6 +202,7 @@ describe("useTabShortcuts split shortcuts", () => {
 
     it("reads the layout at the time of the key press", () => {
         const view = setup(layout(2, 3, 0))
+        current.value = layout(2, 3, 1)
         view.rerender(
             <ShortcutsProvider><TabsProvider notes={notes} workspaceId={null}>
                 <LayoutContext.Provider value={layout(2, 3, 1)}><LayoutActionsContext.Provider value={actions}><Shortcuts /></LayoutActionsContext.Provider></LayoutContext.Provider>

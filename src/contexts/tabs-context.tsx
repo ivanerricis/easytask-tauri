@@ -3,7 +3,7 @@ import type { MutableRefObject } from "react"
 import type { Note } from "@/types/types"
 import type { TabsBridge } from "./workspace-data/types"
 import {
-    FocusedPaneStoreContext, LayoutActionsContext, LayoutContext, PaneTabsContext,
+    FocusedPaneStoreContext, IsSplitStoreContext, LayoutActionsContext, LayoutContext, PaneTabsContext,
     type LayoutActionsType, type LayoutContextType, type PaneTabsValue,
 } from "./layout-context-object"
 import {
@@ -120,6 +120,7 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
     const [uiStore] = useState(createTabUiStore)
     const [activeStore] = useState(() => createExternalStore<number | null>(null))
     const [focusedStore] = useState(() => createExternalStore<PaneIndex>(0))
+    const [isSplitStore] = useState(() => createExternalStore<boolean>(false))
     const [paneStores] = useState(() => [createExternalStore<number | null>(null), createExternalStore<number | null>(null)] as const)
     const [restoredTick, setRestoredTick] = useState(0)
     const [restoredFor, setRestoredFor] = useState<number | null>(null)
@@ -133,6 +134,7 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
     const stateRef = useRef<LayoutState>(state)
 
     const { left, right, focused } = state
+    const isSplit = right !== null
     const active = focusedPane(state).activeId
     const openIds = useMemo(() => unionOpenIds({ left, right, focused }), [left, right, focused])
 
@@ -144,9 +146,10 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
     useLayoutEffect(() => {
         activeStore.set(active)
         focusedStore.set(focused)
+        isSplitStore.set(isSplit)
         paneStores[0].set(left.activeId)
         paneStores[1].set(right?.activeId ?? null)
-    }, [activeStore, focusedStore, paneStores, active, focused, left.activeId, right?.activeId])
+    }, [activeStore, focusedStore, isSplitStore, paneStores, active, focused, left.activeId, right?.activeId, isSplit])
 
     useEffect(() => {
         stateRef.current = state
@@ -240,6 +243,10 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
         focusPane: pane => dispatch({ type: "focus", pane }),
         openInPane: (noteId, pane) => dispatch({ type: "pane", pane, action: { type: "open", id: noteId } }),
         moveToPane: (noteId, pane, index) => dispatch({ type: "moveToPane", id: noteId, pane, index }),
+        getLayout: () => {
+            const { left, right, focused } = stateRef.current
+            return { left, right, focused, isSplit: right !== null }
+        },
     }), [])
 
     const paneActions = useMemo(() => ([0, 1] as const).map((pane): TabsActionsType => ({
@@ -287,17 +294,19 @@ export function TabsProvider({ notes, workspaceId, bridgeRef, children }: TabsPr
             <LayoutActionsContext.Provider value={layoutActions}>
                 <TabUiContext.Provider value={uiStore}>
                     <FocusedPaneStoreContext.Provider value={focusedStore}>
-                        <LayoutContext.Provider value={layout}>
-                            <PaneTabsContext.Provider value={paneTabs}>
-                                <ActiveIdContext.Provider value={active}>
-                                    <ActiveIdStoreContext.Provider value={activeStore}>
-                                        <TabsContext.Provider value={value}>
-                                            {children}
-                                        </TabsContext.Provider>
-                                    </ActiveIdStoreContext.Provider>
-                                </ActiveIdContext.Provider>
-                            </PaneTabsContext.Provider>
-                        </LayoutContext.Provider>
+                        <IsSplitStoreContext.Provider value={isSplitStore}>
+                            <LayoutContext.Provider value={layout}>
+                                <PaneTabsContext.Provider value={paneTabs}>
+                                    <ActiveIdContext.Provider value={active}>
+                                        <ActiveIdStoreContext.Provider value={activeStore}>
+                                            <TabsContext.Provider value={value}>
+                                                {children}
+                                            </TabsContext.Provider>
+                                        </ActiveIdStoreContext.Provider>
+                                    </ActiveIdContext.Provider>
+                                </PaneTabsContext.Provider>
+                            </LayoutContext.Provider>
+                        </IsSplitStoreContext.Provider>
                     </FocusedPaneStoreContext.Provider>
                 </TabUiContext.Provider>
             </LayoutActionsContext.Provider>

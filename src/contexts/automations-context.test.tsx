@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
     toastSuccess: vi.fn(),
     recorder: null as unknown as { record: (command: UndoCommand) => void, track: (promise: Promise<void>) => Promise<void> },
     getDBAutomations: vi.fn(async () => [] as Automation[]),
+    reportError: vi.fn(),
 }))
 
 // Stable like the real actions: new functions on every render would re-run the sync effect
@@ -31,6 +32,7 @@ const noteActions = vi.hoisted(() => ({
     refreshActiveNote: mocks.refreshActiveNote,
 }))
 
+vi.mock("@/lib/report-error", async importOriginal => ({ ...await importOriginal<typeof import("@/lib/report-error")>(), reportError: mocks.reportError }))
 vi.mock("sonner", () => ({ toast: { success: mocks.toastSuccess, info: vi.fn(), error: vi.fn() } }))
 vi.mock("@/contexts/use-tabs", () => ({ useActiveNoteId: () => mocks.activeId }))
 vi.mock("@/contexts/use-active-note", () => ({
@@ -341,5 +343,30 @@ describe("AutomationsProvider with two panes", () => {
         expect((mocks.getDBAutomations.mock.calls as unknown as number[][]).map(c => c[0]).sort()).toEqual([1, 2])
         expect(mocks.getNoteData).toHaveBeenCalledWith(2)
         expect(mocks.refreshActiveNote).not.toHaveBeenCalled()
+    })
+
+    it("a failed reload of the other pane's note is reported but the undo entry and the toast still happen", async () => {
+        mocks.trees[2] = fresh()
+        mocks.getNoteData.mockRejectedValueOnce(new Error("reload"))
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await expect(result.current.dispatch({ type: "task.completed", taskId: 11 }, 2)).resolves.toBeUndefined()
+        expect(mocks.reportError).toHaveBeenCalledTimes(1)
+        expect(mocks.recorded).toHaveLength(1)
+        expect(mocks.recorded[0].noteId).toBe(2)
+        expect(mocks.toastSuccess).toHaveBeenCalled()
+    })
+
+    it("a failed reload during the sync of the other pane's note is reported and does not throw", async () => {
+        mocks.trees[2] = fresh()
+        mocks.rules = [
+            makeRule(1, { type: "section.noOpenTasks", sectionId: null }, [{ type: "setColor", color: "#00ff00" }]),
+            makeRule(2, { type: "section.hasOpenTasks", sectionId: null }, [{ type: "setColor", color: "#ff0000" }]),
+        ]
+        mocks.getNoteData.mockRejectedValue(new Error("reload"))
+        const { result } = renderHook(() => useAutomations(), { wrapper })
+        await expect(result.current.sync(2)).resolves.toBeUndefined()
+        expect(mocks.applyDBAutomationChanges).toHaveBeenCalled()
+        expect(mocks.getNoteData).toHaveBeenCalledWith(2)
+        expect(mocks.reportError).toHaveBeenCalled()
     })
 })

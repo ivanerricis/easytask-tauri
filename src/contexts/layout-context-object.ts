@@ -27,6 +27,8 @@ export type LayoutActionsType = {
     openInPane: (noteId: number, pane: PaneIndex) => void
     /** Moves a note to a pane, at an optional position of its tabs. */
     moveToPane: (noteId: number, pane: PaneIndex, index?: number) => void
+    /** Reads the current layout without subscribing to it, for event handlers. Stable identity. */
+    getLayout: () => LayoutContextType
 }
 
 /** The tabs data and actions of one pane, as the hooks of the tabs return them outside the panes. */
@@ -46,7 +48,9 @@ export type PaneContextType = {
     rootRef: RefObject<HTMLDivElement | null>
 }
 
-export const LayoutContext = createContext<LayoutContextType>({ left: initialTabsState, right: null, focused: 0, isSplit: false })
+const EMPTY_LAYOUT: LayoutContextType = { left: initialTabsState, right: null, focused: 0, isSplit: false }
+
+export const LayoutContext = createContext<LayoutContextType>(EMPTY_LAYOUT)
 export const LayoutActionsContext = createContext<LayoutActionsType>({
     split: () => {},
     unsplit: () => {},
@@ -54,7 +58,10 @@ export const LayoutActionsContext = createContext<LayoutActionsType>({
     focusPane: () => {},
     openInPane: () => {},
     moveToPane: () => {},
+    getLayout: () => EMPTY_LAYOUT,
 })
+/** Whether the workspace is split, as a store: its subscribers re-render only when it flips (false outside the provider). */
+export const IsSplitStoreContext = createContext<ExternalStore<boolean>>(createExternalStore<boolean>(false))
 export const FocusedPaneStoreContext = createContext<ExternalStore<PaneIndex>>(createExternalStore<PaneIndex>(0))
 /** Tabs of the two panes (null outside the layout provider). */
 export const PaneTabsContext = createContext<readonly [PaneTabsValue, PaneTabsValue] | null>(null)

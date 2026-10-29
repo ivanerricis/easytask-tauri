@@ -1,6 +1,7 @@
 import { useCallback, useContext } from "react"
 import {
     LayoutActionsContext,
+    IsSplitStoreContext,
     LayoutContext,
     PaneContext,
     type LayoutActionsType,
@@ -8,6 +9,7 @@ import {
     type PaneContextType,
 } from "./layout-context-object"
 import type { PaneIndex } from "./layout-reducer"
+import { useStoreSelector } from "@/lib/external-store"
 
 const ALWAYS_FOCUSED = () => true
 
@@ -15,6 +17,9 @@ const readRoot = (ref: PaneContextType["rootRef"] | undefined): ParentNode => re
 
 /** The layout of the panes. Outside the provider: a single empty pane. */
 export const useLayout = (): LayoutContextType => useContext(LayoutContext)
+
+/** Whether the workspace is split. Unlike `useLayout` it re-renders only when this flips, not on every tab change. False outside the provider. */
+export const useIsSplit = (): boolean => useStoreSelector(useContext(IsSplitStoreContext), isSplit => isSplit)
 
 /** The actions on the layout. Outside the provider they do nothing. */
 export const useLayoutActions = (): LayoutActionsType => useContext(LayoutActionsContext)
