@@ -21,26 +21,23 @@ import { InlineNameInput } from "@/components/inline-name-input"
 
 type ItemNoteProps = {
     note: Note
-    className?: string
-    /** Drop feedback while another item is dragged over this row. */
-    dropZone?: DropZone | null
     /** Depth in the tree, starting at 1 (aria-level). */
     level?: number
 }
 
-type NoteRowProps = ItemNoteProps & Omit<ReturnType<typeof useTreeRow>, "ref"> & { dndRef: ReturnType<typeof useTreeRow>["ref"] }
+type NoteRowProps = ItemNoteProps & { dropZone: DropZone | null } & Omit<ReturnType<typeof useTreeRow>, "ref"> & { dndRef: ReturnType<typeof useTreeRow>["ref"] }
 
 /**
  * The drag & drop hooks of dnd-kit re-render the component that calls them every time the dragged item moves over another
  * row, so they live in this thin shell: the row below is memoized and only re-renders when its own props change.
  */
-export const ItemNote = React.memo(({ dropZone, ...props }: ItemNoteProps) => {
+export const ItemNote = React.memo((props: ItemNoteProps) => {
     const { ref, attributes, listeners, isDragging } = useTreeRow("note", props.note.id)
     const hoverZone = useTreeDropZone("note", props.note.id)
-    return <NoteRow {...props} dropZone={dropZone ?? hoverZone} dndRef={ref} attributes={attributes} listeners={listeners} isDragging={isDragging} />
+    return <NoteRow {...props} dropZone={hoverZone} dndRef={ref} attributes={attributes} listeners={listeners} isDragging={isDragging} />
 })
 
-const NoteRow = React.memo(({ note, className, dropZone = null, level = 1, dndRef, attributes, listeners, isDragging }: NoteRowProps) => {
+const NoteRow = React.memo(({ note, dropZone, level = 1, dndRef, attributes, listeners, isDragging }: NoteRowProps) => {
     const { t } = useTranslation()
     // The sidebar tree is updated by the context: no reload
     const { editing, error, start: startRename, inputProps } = useInlineRename({ itemType: "note", id: note.id, name: note.name })
@@ -87,7 +84,6 @@ const NoteRow = React.memo(({ note, className, dropZone = null, level = 1, dndRe
                         data-row-key={treeRowKey("note", note.id)}
                         aria-level={level}
                         tabIndex={tabStop ? 0 : -1}
-                        aria-pressed={undefined}
                         onClick={handleOpenFile}
                         aria-selected={selected}
                         aria-current={isActive ? "true" : undefined}
@@ -95,7 +91,7 @@ const NoteRow = React.memo(({ note, className, dropZone = null, level = 1, dndRe
                         onMouseEnter={() => setIsHovered(true)}
                         onMouseLeave={() => setIsHovered(false)}
                         // Flat row: a hover fill and no visible border, except the open or selected note, which has an accent border all around
-                        className={`${focusRing} relative group cursor-pointer w-full min-w-0 ${size.row} flex items-center rounded-xs border select-none hover:bg-accent ${selected || isActive ? "border-primary" : "border-transparent"} ${isActive ? "bg-accent" : ""} overflow-hidden ${isDragging ? "opacity-40" : ""} ${className ?? ""}`}
+                        className={`${focusRing} relative group cursor-pointer w-full min-w-0 ${size.row} flex items-center rounded-xs border select-none hover:bg-accent ${selected || isActive ? "border-primary" : "border-transparent"} ${isActive ? "bg-accent" : ""} overflow-hidden ${isDragging ? "opacity-40" : ""}`}
                         style={{ backgroundColor: hexToRgba(colorAlpha.item(isHovered), note.color) }}
                     >
                         <DropLine zone={dropZone} />

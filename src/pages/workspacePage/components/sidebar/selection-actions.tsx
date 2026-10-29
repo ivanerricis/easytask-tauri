@@ -9,10 +9,10 @@ import { DialogDeleteSelection } from "@/components/dialogs/dialog-delete-select
 import { useItemTransfer } from "@/hooks/use-workspace-transfer"
 import { reportError } from "@/lib/report-error"
 import { getErrorMessage } from "@/lib/utils"
-import type { WorkspaceDataTree } from "@/types/types"
 import { getTopMostItems } from "./selection"
 import { useSelectionStore } from "./selection-context"
-import { listTreeItems, type DropZone, type TreeRef } from "./tree-dnd"
+import { listTreeItems, type DropZone, type TreeData, type TreeRef } from "./tree-dnd"
+import { useTreeData } from "./use-tree-data"
 import { planMultiMove, type PlannedMove } from "./tree-multi-move"
 
 export type SelectionActions = {
@@ -39,8 +39,8 @@ const SelectionActionsContext = createContext<SelectionActions | null>(null)
 /** The actions on the multi-selection (null outside a SelectionActionsProvider). */
 export const useSelectionActions = () => useContext(SelectionActionsContext)
 
-const describe = (tree: WorkspaceDataTree | null, refs: TreeRef[]): TreeItemRef[] => {
-    const { folders, notes } = listTreeItems({ rootFolders: tree?.rootFolders ?? [], rootNotes: tree?.rootNotes ?? [] })
+const describe = (tree: TreeData, refs: TreeRef[]): TreeItemRef[] => {
+    const { folders, notes } = listTreeItems(tree)
     return refs.flatMap(ref => {
         const item = ref.type === "folder" ? folders.get(ref.id) : notes.get(ref.id)
         return item ? [{ itemType: ref.type, id: ref.id, name: item.name }] : []
@@ -55,19 +55,16 @@ export function SelectionActionsProvider({ children }: { children: ReactNode }) 
     const { t } = useTranslation()
     const store = useSelectionStore()
     const { currentWorkspace } = useWorkspace()
-    const { workspaceDataTree, updateItemColor, moveTreeItem, getWorkspaceData, archiveItem } = useWorkspaceData()
+    const { updateItemColor, moveTreeItem, getWorkspaceData, archiveItem } = useWorkspaceData()
     const recorder = useUndoRecorder()
     const { exportItems } = useItemTransfer()
     const [deleting, setDeleting] = useState<{ items: TreeItemRef[], open: boolean }>({ items: [], open: false })
 
-    const tree = useMemo(
-        () => ({ rootFolders: workspaceDataTree?.rootFolders ?? [], rootNotes: workspaceDataTree?.rootNotes ?? [] }),
-        [workspaceDataTree],
-    )
+    const tree = useTreeData()
 
     const getTargets = useCallback(
-        () => describe(workspaceDataTree, getTopMostItems(tree, store?.getRefs() ?? [])),
-        [workspaceDataTree, tree, store],
+        () => describe(tree, getTopMostItems(tree, store?.getRefs() ?? [])),
+        [tree, store],
     )
 
     const requestDelete = useCallback(() => {

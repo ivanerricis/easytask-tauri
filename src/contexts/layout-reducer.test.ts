@@ -140,7 +140,7 @@ describe("pane", () => {
 
     it("le altre azioni sull'area destra inesistente non fanno nulla", () => {
         const state = layout(tabs([1]))
-        expect(layoutReducer(state, { type: "pane", pane: 1, action: { type: "closeAll" } })).toBe(state)
+        expect(layoutReducer(state, { type: "pane", pane: 1, action: { type: "closeActive" } })).toBe(state)
     })
 
     it("reorder sposta e attiva il tab nell'area", () => {
@@ -151,18 +151,12 @@ describe("pane", () => {
 
     it("close dell'ultimo tab a destra chiude l'area destra", () => {
         const state = layout(tabs([1]), tabs([2]), 1)
-        expect(layoutReducer(state, { type: "pane", pane: 1, action: { type: "close", id: 2 } })).toEqual(layout(tabs([1])))
+        expect(layoutReducer(state, { type: "close", id: 2 })).toEqual(layout(tabs([1])))
     })
 
     it("close dell'ultimo tab a sinistra promuove l'area destra", () => {
         const state = layout(tabs([1]), tabs([2, 3], 3), 0)
-        expect(layoutReducer(state, { type: "pane", pane: 0, action: { type: "close", id: 1 } })).toEqual(layout(tabs([2, 3], 3)))
-    })
-
-    it("closeAll di un'area svuota quell'area e collassa", () => {
-        const state = layout(tabs([1]), tabs([2, 3]), 0)
-        expect(layoutReducer(state, { type: "pane", pane: 1, action: { type: "closeAll" } })).toEqual(layout(tabs([1])))
-        expect(layoutReducer(state, { type: "pane", pane: 0, action: { type: "closeAll" } })).toEqual(layout(tabs([2, 3])))
+        expect(layoutReducer(state, { type: "close", id: 1 })).toEqual(layout(tabs([2, 3], 3)))
     })
 
     it("l'azione che non cambia nulla mantiene lo stato se l'area è già focalizzata", () => {
@@ -172,7 +166,7 @@ describe("pane", () => {
 
     it("l'area destra vuota creata da dividi resta se si chiude un tab a sinistra", () => {
         const state = layout(tabs([1, 2], 1), tabs([]), 1)
-        const next = layoutReducer(state, { type: "pane", pane: 0, action: { type: "close", id: 1 } })
+        const next = layoutReducer(state, { type: "close", id: 1 })
         expect(next.right).toEqual(tabs([]))
         expect(next.left).toEqual(tabs([2], 2))
     })

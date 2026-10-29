@@ -47,3 +47,11 @@ export function defaultIndexAfterInsert(defaultIndex: number, index: number, bef
     const at = Math.max(0, Math.trunc(index) || 0)
     return at < defaultIndex || (beforeList && at === defaultIndex) ? defaultIndex + 1 : defaultIndex
 }
+
+/**
+ * The groups of a note in display order (by `position`), as a new array.
+ * @category Lib
+ */
+export function groupsByPosition<T extends Pick<Group, "position">>(groups: readonly T[]): T[] {
+    return [...groups].sort((a, b) => a.position - b.position)
+}

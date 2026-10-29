@@ -20,7 +20,7 @@ export type LayoutState = {
 export const initialLayoutState: LayoutState = { left: initialTabsState, right: null, focused: 0 }
 
 /** The actions that act on the tabs of a single pane. */
-type PaneScoped = Extract<TabsAction, { type: "open" | "activate" | "close" | "closeActive" | "cycle" | "reorder" | "closeAll" }>
+type PaneScoped = Extract<TabsAction, { type: "open" | "activate" | "closeActive" | "cycle" | "reorder" }>
 
 export type LayoutAction =
     /** Applies a tab action to a pane and focuses it; "open" there moves the note from the other pane if it is in it. */

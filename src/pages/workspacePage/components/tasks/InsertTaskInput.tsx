@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import { usePreferences } from "@/contexts/use-preferences"
+import { usePreference } from "@/contexts/use-preference"
 import { useSubmitOnce } from "@/hooks/use-submit-once"
 import { useAutomations } from "@/hooks/use-automations"
 import { reportError } from "@/lib/report-error"
@@ -28,7 +28,7 @@ function InsertTaskForm({ listKey, afterTaskId, parent, depth = 0 }: InsertTaskI
     const { saving, run } = useSubmitOnce()
     const { insertTaskAfter } = useWorkspaceActions()
     const { appendTask } = useActiveNoteActions()
-    const { keepAddingTasks } = usePreferences()
+    const keepAddingTasks = usePreference(p => p.keepAddingTasks)
     const sizes = TASK_DENSITIES[useTaskDensity()]
     const recorder = useUndoRecorder()
     const { dispatch } = useAutomations()

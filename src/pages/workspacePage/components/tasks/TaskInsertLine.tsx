@@ -2,7 +2,7 @@
 import { useTranslation } from "react-i18next"
 import { Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { usePreferences } from "@/contexts/use-preferences"
+import { usePreference } from "@/contexts/use-preference"
 import { useNoteDndSelector } from "../note-dnd-state"
 import { useHasTaskSelection } from "./task-selection-context"
 import { useTaskInsertStore } from "./task-insert-state"
@@ -22,7 +22,7 @@ type TaskInsertLineProps = {
  */
 export const TaskInsertLine = memo(function TaskInsertLine({ listKey, afterTaskId, first }: TaskInsertLineProps) {
     const { t } = useTranslation()
-    const { showTaskInsertLine } = usePreferences()
+    const showTaskInsertLine = usePreference(p => p.showTaskInsertLine)
     const dragging = useNoteDndSelector(state => state.active !== null)
     const hasSelection = useHasTaskSelection()
     const store = useTaskInsertStore()

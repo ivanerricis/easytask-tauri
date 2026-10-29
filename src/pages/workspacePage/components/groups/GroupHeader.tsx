@@ -1,7 +1,7 @@
 import { MAX_NAME_LENGTH } from "@/lib/names"
-import { memo } from "react"
+import { memo, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { usePreferences } from "@/contexts/use-preferences"
+import { usePreference } from "@/contexts/use-preference"
 import { useColorAlpha } from "@/contexts/use-color-alpha"
 import { ChevronDown, FileAudio, LayoutList, SquareCheckBig, type LucideIcon } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
@@ -52,17 +52,22 @@ type GroupHeaderProps = {
 
 export const GroupHeader = memo(({ group, index = 0, dragProps, audioCount = 0, compact = false, onAddSection }: GroupHeaderProps) => {
     const { t } = useTranslation()
-    const { showSectionCount, showTaskCount, showAudioFileCount, showGroupProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
+    const showSectionCount = usePreference(p => p.showSectionCount)
+    const showTaskCount = usePreference(p => p.showTaskCount)
+    const showAudioFileCount = usePreference(p => p.showAudioFileCount)
+    const showGroupProgressBar = usePreference(p => p.showGroupProgressBar)
+    const showUnnamedLabels = usePreference(p => p.showUnnamedLabels)
+    const renameOnClick = usePreference(p => p.renameOnClick) ?? true
     const colorAlpha = useColorAlpha()
     const search = useSearchHighlight("group", group.id)
     const [isOpen, toggleOpen] = useGroupOpen(group.id)
-    const progress = getGroupProgress(group)
+    const progress = useMemo(() => getGroupProgress(group), [group])
     const { renameItem } = useWorkspaceActions()
     const { patchGroup } = useActiveNoteActions()
     const recorder = useUndoRecorder()
     const name = group.name?.trim() ?? ""
     const label = getGroupLabel(group, index)
-    const taskCount = taskSections(group).reduce((sum, section) => sum + section.tasks.length, 0)
+    const taskCount = useMemo(() => taskSections(group).reduce((sum, section) => sum + section.tasks.length, 0), [group])
     // An empty text removes the name (a group can have none)
     const { editing: isEditing, error, start: startEditing, inputProps } = useInlineEdit({
         value: name,

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { store } from "./initStore"
-import { flushPreferences, getPref, savePref, normalizePref, UI_PREFS, APP_PREFS, clearLastWorkspaceId, getLastWorkspaceId, saveLastWorkspaceId, getReopenLastWorkspace, getRightPanelTab, getSidebarRightWidth, getPrimaryColor, getAudioPlayerPosition } from "./preferences"
+import { getAllPrefs, flushPreferences, getPref, savePref, normalizePref, UI_PREFS, APP_PREFS, clearLastWorkspaceId, getLastWorkspaceId, saveLastWorkspaceId, getReopenLastWorkspace, getRightPanelTab, getSidebarRightWidth, getPrimaryColor, getAudioPlayerPosition } from "./preferences"
 
 vi.mock("./initStore", () => ({
     store: { get: vi.fn(), set: vi.fn(), save: vi.fn(), delete: vi.fn() },
@@ -638,5 +638,28 @@ describe("text zoom preference", () => {
         expect(normalizePref("textZoom", 9)).toBe(24 / 16)
         expect(normalizePref("textZoom", "big")).toBe(1)
         expect(normalizePref("textZoom", Number.NaN)).toBe(1)
+    })
+})
+
+describe("getAllPrefs", () => {
+    beforeEach(() => vi.resetAllMocks())
+
+    it("reads the store with one entries() call and normalizes each preference", async () => {
+        const entries = vi.fn().mockResolvedValue([["undoLimit", 200], ["sidebarItemSize", "huge"], ["unrelated", 1]])
+        Object.assign(store, { entries })
+        const all = await getAllPrefs()
+        delete (store as { entries?: unknown }).entries
+        expect(entries).toHaveBeenCalledTimes(1)
+        expect(store.get).not.toHaveBeenCalled()
+        expect(all.undoLimit).toBe(200)
+        expect(all.sidebarItemSize).toBe("normal")
+        expect(Object.keys(all).sort()).toEqual(Object.keys(UI_PREFS).sort())
+    })
+
+    it("falls back to one get per preference when the store has no entries()", async () => {
+        vi.mocked(store.get).mockImplementation(async (key: string) => key === "undoLimit" ? 200 : undefined)
+        const all = await getAllPrefs()
+        expect(all.undoLimit).toBe(200)
+        expect(all.showProgressBar).toBe(true)
     })
 })

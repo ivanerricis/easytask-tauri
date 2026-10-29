@@ -2,7 +2,7 @@ import i18n from "@/i18n"
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react"
 import { toast } from "sonner"
 import {
-    createDBTemplateDraft, deleteDBTemplateDraft, getDBTemplateDrafts, saveDBTemplateDraft, type TemplateDraft,
+    createDBTemplateDraft, deleteDBTemplateDraft, getDBTemplateDraft, getDBTemplateDrafts, saveDBTemplateDraft, type TemplateDraft,
 } from "@/db/queries/template-draft"
 import { registerBeforeClose } from "@/lib/before-close"
 import { reportError } from "@/lib/report-error"
@@ -39,7 +39,7 @@ export function TemplateDraftsProvider({ workspaceId, drafts, setDrafts, whenIdl
     const { openIds, restored } = useTabs()
     const { openNote } = useTabsActions()
     const { subscribeNoteChanges } = useActiveNoteActions()
-    const { templatesVersion, trashVersion } = useWorkspaceState()
+    const { templatesVersion } = useWorkspaceState()
 
     const draftsRef = useRef(drafts)
     const openIdsRef = useRef(openIds)
@@ -122,10 +122,11 @@ export function TemplateDraftsProvider({ workspaceId, drafts, setDrafts, whenIdl
         setDrafts(previous => sameDrafts(previous, list) ? previous : list)
     }).catch(error => reportError(error)), [enqueue, workspaceId, setDrafts])
 
-    // A template renamed, deleted, restored or purged changes its draft
+    // A template renamed, deleted, restored or purged changes its draft (those trash operations bump templatesVersion too;
+    // a plain task or section move changes neither, so it costs no read)
     useEffect(() => {
         void refreshDrafts()
-    }, [refreshDrafts, templatesVersion, trashVersion])
+    }, [refreshDrafts, templatesVersion])
 
     // Before the window closes the changes are saved; the drafts stay, their tabs come back at the next start
     useEffect(() => registerBeforeClose(async () => {
@@ -143,7 +144,7 @@ export function TemplateDraftsProvider({ workspaceId, drafts, setDrafts, whenIdl
         return {
             openTemplateEditor: template => enqueue(async () => {
                 const noteId = await createDBTemplateDraft(template.id)
-                const [draft] = await getDBTemplateDrafts(workspaceId ?? -1).then(list => list.filter(candidate => candidate.noteId === noteId))
+                const draft = await getDBTemplateDraft(noteId)
                 tracked.current.set(noteId, template.id)
                 if (draft) setDrafts(list => list.some(candidate => candidate.noteId === noteId) ? list : [...list, draft])
                 openNote(noteId)
@@ -154,7 +155,7 @@ export function TemplateDraftsProvider({ workspaceId, drafts, setDrafts, whenIdl
             refreshDrafts,
             statusStore: { subscribe: saver.subscribe, getStatus: saver.getStatus },
         }
-    }, [saver, enqueue, workspaceId, setDrafts, openNote, refreshDrafts])
+    }, [saver, enqueue, setDrafts, openNote, refreshDrafts])
 
     const visible = useMemo(() => drafts.filter(draft => !draft.trashed), [drafts])
     const value = useMemo(() => ({ drafts: visible }), [visible])

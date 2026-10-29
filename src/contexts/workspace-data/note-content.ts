@@ -15,7 +15,7 @@ type NoteContentActions = Pick<WorkspaceActionsType,
  * the optimistic data with the active note actions), the moves do not reload anything.
  * @category WorkspaceData Context
  */
-export function useNoteContentActions({ withLoading, withTrashChange }: Runtime): NoteContentActions {
+export function useNoteContentActions({ withLoading }: Runtime): NoteContentActions {
     const createGroup = useCallback((noteID: number, name: string) =>
         withLoading(() => createDBGroup(noteID, name)), [withLoading])
 
@@ -65,7 +65,7 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
      * @category Workspace Data Context
      */
     const moveSection = useCallback((sectionID: number, targetGroupID: number, targetIndex: number, beforeList?: boolean) =>
-        withTrashChange(() => moveDBSection(sectionID, targetGroupID, targetIndex, ...(beforeList ? [{ beforeList }] as const : [] as const))), [withTrashChange])
+        withLoading(() => moveDBSection(sectionID, targetGroupID, targetIndex, ...(beforeList ? [{ beforeList }] as const : [] as const))), [withLoading])
 
     /**
      * Moves the list of the direct tasks of a group among the sections of the group. It does NOT reload the data: the caller
@@ -75,7 +75,7 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
      * @category Workspace Data Context
      */
     const moveDirectSection = useCallback((groupID: number, index: number) =>
-        withTrashChange(() => moveDBDirectSection(groupID, index)), [withTrashChange])
+        withLoading(() => moveDBDirectSection(groupID, index)), [withLoading])
 
     /**
      * Moves a section into a new group created at the given index among the groups of the open note.
@@ -86,7 +86,7 @@ export function useNoteContentActions({ withLoading, withTrashChange }: Runtime)
      * @category Workspace Data Context
      */
     const moveSectionToNewGroup = useCallback((sectionID: number, groupPosition: number) =>
-        withTrashChange(() => moveDBSectionToNewGroup(sectionID, groupPosition)), [withTrashChange])
+        withLoading(() => moveDBSectionToNewGroup(sectionID, groupPosition)), [withLoading])
 
     /**
      * Duplicates a section with its tasks, right after the original in its group. It does NOT reload the data:

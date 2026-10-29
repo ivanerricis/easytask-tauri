@@ -1,4 +1,4 @@
-import type { ReactNode } from "react"
+import { useMemo, type ReactNode } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import { selectReleaseNotes } from "@/lib/release-notes"
@@ -43,46 +43,49 @@ type Item = { text: string, nested: boolean }
  */
 export const ReleaseNotes = ({ body }: { body: string }) => {
     const { t, i18n } = useTranslation()
-    const notes = selectReleaseNotes(body, i18n.language === "it" ? "it" : "en")
-
-    const onLink = (url: string) => {
-        openExternalUrl(url).catch(error => toast.error(t("settings.about.openError", { message: getErrorMessage(error) })))
-    }
-
-    const blocks: ReactNode[] = []
-    let items: Item[] = []
-    const flush = () => {
-        if (items.length === 0) return
-        const rows: ReactNode[] = []
-        for (let i = 0; i < items.length; i++) {
-            // Nested items follow their parent; one with no parent (first of the list) is shown as a top-level one
-            const parent = items[i]
-            const children: Item[] = []
-            while (i + 1 < items.length && items[i + 1].nested) children.push(items[++i])
-            rows.push(
-                <li key={rows.length}>
-                    {inline(parent.text, onLink)}
-                    {children.length > 0 && (
-                        <ul className="list-[circle] pl-5 flex flex-col gap-0.5">
-                            {children.map((child, j) => <li key={j}>{inline(child.text, onLink)}</li>)}
-                        </ul>
-                    )}
-                </li>)
+    const language = i18n.language === "it" ? "it" : "en"
+    const blocks = useMemo(() => {
+        const notes = selectReleaseNotes(body, language)
+        const onLink = (url: string) => {
+            openExternalUrl(url).catch(error => toast.error(t("settings.about.openError", { message: getErrorMessage(error) })))
         }
-        blocks.push(<ul key={blocks.length} className="list-disc pl-5 flex flex-col gap-0.5">{rows}</ul>)
-        items = []
-    }
-    for (const raw of notes.split(/\r?\n/)) {
-        const bullet = /^(\s*)[-*] (.*)$/.exec(raw)
-        if (bullet) { items.push({ text: bullet[2].trim(), nested: bullet[1].length >= 2 }); continue }
+
+        const blocks: ReactNode[] = []
+        let items: Item[] = []
+        const flush = () => {
+            if (items.length === 0) return
+            const rows: ReactNode[] = []
+            for (let i = 0; i < items.length; i++) {
+                // Nested items follow their parent; one with no parent (first of the list) is shown as a top-level one
+                const parent = items[i]
+                const children: Item[] = []
+                while (i + 1 < items.length && items[i + 1].nested) children.push(items[++i])
+                rows.push(
+                    <li key={rows.length}>
+                        {inline(parent.text, onLink)}
+                        {children.length > 0 && (
+                            <ul className="list-[circle] pl-5 flex flex-col gap-0.5">
+                                {children.map((child, j) => <li key={j}>{inline(child.text, onLink)}</li>)}
+                            </ul>
+                        )}
+                    </li>)
+            }
+            blocks.push(<ul key={blocks.length} className="list-disc pl-5 flex flex-col gap-0.5">{rows}</ul>)
+            items = []
+        }
+        for (const raw of notes.split(/\r?\n/)) {
+            const bullet = /^(\s*)[-*] (.*)$/.exec(raw)
+            if (bullet) { items.push({ text: bullet[2].trim(), nested: bullet[1].length >= 2 }); continue }
+            flush()
+            const line = raw.trim()
+            if (!line) continue
+            const heading = /^#{1,6}\s+(.*)$/.exec(line)
+            blocks.push(heading
+                ? <h4 key={blocks.length} className={blocks.length > 0 ? "font-semibold mt-2" : "font-semibold"}>{inline(heading[1], onLink)}</h4>
+                : <p key={blocks.length}>{inline(line, onLink)}</p>)
+        }
         flush()
-        const line = raw.trim()
-        if (!line) continue
-        const heading = /^#{1,6}\s+(.*)$/.exec(line)
-        blocks.push(heading
-            ? <h4 key={blocks.length} className={blocks.length > 0 ? "font-semibold mt-2" : "font-semibold"}>{inline(heading[1], onLink)}</h4>
-            : <p key={blocks.length}>{inline(line, onLink)}</p>)
-    }
-    flush()
+        return blocks
+    }, [body, language, t])
     return <div className="flex flex-col gap-1 text-sm select-text">{blocks}</div>
 }

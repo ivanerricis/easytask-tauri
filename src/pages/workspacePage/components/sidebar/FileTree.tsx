@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import i18n from "@/i18n"
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent } from "react"
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FocusEvent, type KeyboardEvent } from "react"
 import {
     DndContext, DragOverlay, KeyboardSensor, PointerSensor, closestCenter, pointerWithin, useDroppable, useSensor, useSensors,
     type CollisionDetection, type DragEndEvent, type DragMoveEvent, type DragStartEvent,
@@ -22,6 +22,7 @@ import {
     computeDropTarget, computeDropZone, findTreeItem,
     type DropTarget, type DropZone, type TreeRef,
 } from "./tree-dnd"
+import { useTreeData } from "./use-tree-data"
 import { useItemSize } from "./item-size"
 import { useGrabbingCursor } from "@/hooks/use-grabbing-cursor"
 import { NO_TREE_HOVER, TreeHoverStoreContext, TreeTabStopContext, createTreeHoverStore, createTreeTabStopStore, markTreeDragEnd, treeRowKey, useTreeRootActive, type TreeHover } from "./tree-row"
@@ -50,9 +51,7 @@ type FileTreeItemProps = {
 }
 
 /** Recursive tree node. Defined at module level so the tree is not remounted on every render. */
-const FileTreeItem = ({ item, collapsedIds, onToggleFolder, depth = 0 }: FileTreeItemProps) => {
-    if (!item) return null
-
+const FileTreeItem = memo(({ item, collapsedIds, onToggleFolder, depth = 0 }: FileTreeItemProps) => {
     if ("subfolders" in item) {
         return (
             <ItemFolder
@@ -82,6 +81,13 @@ const FileTreeItem = ({ item, collapsedIds, onToggleFolder, depth = 0 }: FileTre
     }
 
     return <ItemNote note={item} level={depth + 1} />
+})
+
+/** The virtualized tree, which alone follows the tab stop: a focus move re-renders it, not the whole FileTree. */
+const TabStopVirtualTree = (props: Omit<React.ComponentProps<typeof VirtualTree>, "tabStopKey"> & { tabStopStore: ReturnType<typeof createTreeTabStopStore> }) => {
+    const { tabStopStore, ...rest } = props
+    const tabStopKey = useStoreSelector(tabStopStore, key => key)
+    return <VirtualTree {...rest} tabStopKey={tabStopKey} />
 }
 
 /** What follows the pointer: the dragged item, or "N items" when the whole selection is dragged. */
@@ -202,6 +208,7 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
     const { t } = useTranslation()
     const { currentWorkspace } = useWorkspace()
     const { workspaceDataTree, getWorkspaceData, moveTreeItem } = useWorkspaceData()
+    const tree = useTreeData()
     const recorder = useUndoRecorder()
     // What is hovered lives in a store: each row reads only its own drop zone (see TreeHover)
     const [hoverStore] = useState(createTreeHoverStore)
@@ -226,16 +233,12 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
         useSensor(KeyboardSensor),
     )
 
-    const tree = useMemo(
-        () => ({ rootFolders: workspaceDataTree?.rootFolders ?? [], rootNotes: workspaceDataTree?.rootNotes ?? [] }),
-        [workspaceDataTree],
-    )
-
-    const accessibility = buildDndAccessibility(entry => {
-        if (entry.id === ROOT_ID) return currentWorkspace?.name
+    const workspaceName = currentWorkspace?.name
+    const accessibility = useMemo(() => buildDndAccessibility(entry => {
+        if (entry.id === ROOT_ID) return workspaceName
         const ref = entry.data.current as TreeRef | undefined
         return ref ? findTreeItem(tree, ref)?.name : undefined
-    }, { keyboard: true })
+    }, { keyboard: true }), [tree, workspaceName])
 
     const reset = useCallback(() => {
         targetRef.current = null
@@ -368,7 +371,6 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
         const focused = focusedKeyRef.current
         tabStopStore.set(focused && flatRows.some(row => row.key === focused) ? focused : flatRows[0]?.key ?? null)
     }, [tabStopStore, flatRows])
-    const tabStopKey = useStoreSelector(tabStopStore, key => key)
     // After the sync above: the key has to be in the rows in view (the folders above it expanded) before it can be selected
     useEffect(() => {
         if (!reveal) return
@@ -461,12 +463,12 @@ export const FileTree = ({ collapsedIds, onToggleFolder, onExpandFolder, onToggl
                 {isEmpty ? (
                     <EmptyTree />
                 ) : virtualized ? (
-                    <VirtualTree
+                    <TabStopVirtualTree
+                        tabStopStore={tabStopStore}
                         rows={flatRows}
                         collapsedIds={collapsedIds}
                         onToggleFolder={onToggleFolder}
                         activeKey={activeRef ? treeRowKey(activeRef.type, activeRef.id) : null}
-                        tabStopKey={tabStopKey}
                         getScrollElement={getScrollElement}
                         handleRef={virtualRef}
                     />

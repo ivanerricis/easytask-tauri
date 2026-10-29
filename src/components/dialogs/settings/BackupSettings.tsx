@@ -76,13 +76,14 @@ export const BackupSettings = () => {
     }, [])
 
     const refresh = useCallback(async () => {
+        // Informative only: a failure of the pre-migration list is logged but not shown
+        const preMigrationRequest = listPreMigrationBackups().catch((err: unknown) => { reportError(err); return [] })
         try {
             setBackups(await listBackups())
         } catch (err) {
             fail(err, t("settings.data.backup.errors.list"))
         }
-        // Informative only: a failure here is logged but not shown
-        setPreMigration(await listPreMigrationBackups().catch((err: unknown) => { reportError(err); return [] }))
+        setPreMigration(await preMigrationRequest)
     }, [t, fail])
 
     useEffect(() => {
@@ -259,10 +260,12 @@ export const BackupSettings = () => {
                     <p className="text-xs text-muted-foreground">{t("settings.data.backup.list.empty")}</p>
                 ) : (
                     <ul className="flex flex-col gap-1 max-h-48 overflow-y-auto rounded-xs border p-1" aria-label={t("settings.data.backup.list.title")}>
-                        {backups.map(backup => (
+                        {backups.map(backup => {
+                            const date = backup.date.toLocaleString(i18n.language)
+                            return (
                             <li key={backup.name} className="flex items-center justify-between gap-2 text-sm">
                                 <span className="min-w-0 truncate">
-                                    {backup.date.toLocaleString(i18n.language)}
+                                    {date}
                                     {backup.preRestore && (
                                         <span className="ml-2 text-xs text-muted-foreground">{t("settings.data.backup.list.preRestore")}</span>
                                     )}
@@ -274,7 +277,7 @@ export const BackupSettings = () => {
                                             variant="outline"
                                             size="icon"
                                             disabled={busy}
-                                            aria-label={t("settings.data.backup.restore.aria", { date: backup.date.toLocaleString(i18n.language) })}
+                                            aria-label={t("settings.data.backup.restore.aria", { date })}
                                             onClick={() => setToRestore(backup)}
                                         >
                                             <History />
@@ -285,7 +288,7 @@ export const BackupSettings = () => {
                                             variant="destructive"
                                             size="icon"
                                             disabled={busy}
-                                            aria-label={t("settings.data.backup.delete.aria", { date: backup.date.toLocaleString(i18n.language) })}
+                                            aria-label={t("settings.data.backup.delete.aria", { date })}
                                             onClick={() => setToDelete(backup)}
                                         >
                                             <Trash2 />
@@ -293,7 +296,8 @@ export const BackupSettings = () => {
                                     </TooltipCustom>
                                 </span>
                             </li>
-                        ))}
+                            )
+                        })}
                     </ul>
                 )}
             </div>

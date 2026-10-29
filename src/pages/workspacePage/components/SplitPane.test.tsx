@@ -19,7 +19,7 @@ const setup = (pane: PaneIndex, s: SplitState = state) => {
     render(
         <LayoutActionsContext.Provider value={{ split: vi.fn(), unsplit: vi.fn(), toggleSplit: vi.fn(), focusPane, openInPane: vi.fn(), moveToPane: vi.fn(), getLayout: () => ({ left: { openIds: [], activeId: null }, right: null, focused: 0, isSplit: false }) }}>
             <SplitHarness state={s}>
-                <PaneProvider pane={pane}><SplitPane pane={pane} share={0.4} /></PaneProvider>
+                <PaneProvider pane={pane}><SplitPane pane={pane} split /></PaneProvider>
             </SplitHarness>
         </LayoutActionsContext.Provider>,
     )
@@ -33,7 +33,7 @@ describe("SplitPane", () => {
         expect(region).toHaveAttribute("data-pane", "0")
         expect(region).toHaveAttribute("data-focused", "true")
         expect(region.className).toContain("border-t-primary")
-        expect(region.style.flexBasis).toBe("40%")
+        expect(region.style.flexBasis).toBe("calc(var(--split-ratio) * 100%)")
         expect(screen.getByTestId("note-list")).toBeInTheDocument()
         expect(screen.getByTestId("path-bar")).toBeInTheDocument()
         expect(screen.getByTestId("groups")).toBeInTheDocument()

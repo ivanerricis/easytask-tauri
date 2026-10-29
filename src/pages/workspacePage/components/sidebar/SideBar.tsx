@@ -16,7 +16,6 @@ type SideBarProps = {
     children: React.ReactNode
     position?: "left" | "right"
     className?: string
-    topContainer?: React.ReactNode
     bottomContainer?: React.ReactNode
     open: boolean
     onOpenChange: (value: boolean) => void
@@ -32,7 +31,7 @@ type SideBarProps = {
 }
 
 export const SideBar = ({
-    children, position = "left", className, topContainer, bottomContainer,
+    children, position = "left", className, bottomContainer,
     open, onOpenChange, width = SIDEBAR_DEFAULT_WIDTH, onWidthChange, overlay = false,
     toggleShortcut = "toggle-sidebar", toggleLabels,
 }: SideBarProps) => {
@@ -100,7 +99,6 @@ export const SideBar = ({
         if (railRef.current) setRailWidth(railRef.current.offsetWidth)
     }, [overlay])
 
-    const showPanel = open
     const flexDirection = position === "left" ? "flex-row-reverse" : "flex-row"
     const borderClass = position === "left" ? "border-r" : "border-l"
     const resizerPosition = position === "left" ? "right-0" : "left-0"
@@ -139,15 +137,15 @@ export const SideBar = ({
             {!overlay && <div
                 ref={sidebarRef}
                 data-testid="sidebar-panel"
-                className={`relative flex flex-col h-full bg-secondary ${isResizing ? "transition-none" : "transition-[width]"} ${showPanel ? borderClass : ""}`}
+                className={`relative flex flex-col h-full bg-secondary ${isResizing ? "transition-none" : "transition-[width]"} ${open ? borderClass : ""}`}
                 style={{
-                    width: showPanel ? currentWidth : 0,
+                    width: open ? currentWidth : 0,
                     minWidth: 0,
                     overflow: "hidden",
                 }}
             >
                 {/* Laid out at its final width from the first frame: while the panel opens (or closes) it is only revealed, so the text does not reflow */}
-                {showPanel && (
+                {open && (
                     <div
                         className={`flex h-full min-h-0 shrink-0 flex-col ${position === "left" ? "self-start" : "self-end"}`}
                         style={{ width: currentWidth }}
@@ -155,7 +153,7 @@ export const SideBar = ({
                         {children}
                     </div>
                 )}
-                {showPanel && (
+                {open && (
                     <div
                         role="separator"
                         aria-orientation="vertical"
@@ -191,7 +189,6 @@ export const SideBar = ({
                             {position === "left" ? <PanelLeft /> : <PanelRight />}
                         </Button>
                     </TooltipCustom>
-                    {topContainer}
                 </div>
                 <div className="h-full w-full flex flex-col-reverse">{bottomContainer}</div>
             </div>

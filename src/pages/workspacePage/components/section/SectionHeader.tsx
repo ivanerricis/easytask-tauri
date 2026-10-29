@@ -1,5 +1,5 @@
 import { MAX_NAME_LENGTH } from "@/lib/names"
-import { memo } from "react"
+import { memo, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
@@ -20,7 +20,7 @@ import { getSectionLabel } from "./section-label"
 import { getSectionCompletionPercent } from "./section-progress"
 import { Highlight } from "@/components/highlight"
 import { useSearchHighlight } from "../note-search-context"
-import { usePreferences } from "@/contexts/use-preferences"
+import { usePreference } from "@/contexts/use-preference"
 import type { HTMLAttributes } from "react"
 
 type SectionHeaderProps = {
@@ -36,7 +36,9 @@ export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }:
     const { renameItem } = useWorkspaceActions()
     const { patchSection } = useActiveNoteActions()
     const recorder = useUndoRecorder()
-    const { showProgressBar, showUnnamedLabels, renameOnClick = true } = usePreferences()
+    const showProgressBar = usePreference(p => p.showProgressBar)
+    const showUnnamedLabels = usePreference(p => p.showUnnamedLabels)
+    const renameOnClick = usePreference(p => p.renameOnClick) ?? true
     const colorAlpha = useColorAlpha()
     const search = useSearchHighlight("section", section.id)
     // An empty text removes the title (a section can have none)
@@ -55,7 +57,7 @@ export const SectionHeader = memo(({ isOpen, onOpenChange, section, dragProps }:
         onOpenChange(!isOpen)
     }
 
-    const completionPercentage = getSectionCompletionPercent(section.tasks)
+    const completionPercentage = useMemo(() => getSectionCompletionPercent(section.tasks), [section.tasks])
 
     return (
         <div className="relative flex flex-col items-center justify-center">

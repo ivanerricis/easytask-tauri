@@ -21,35 +21,45 @@ import { useInlineRename } from "@/hooks/use-inline-rename"
 import { InlineNameInput } from "@/components/inline-name-input"
 import { Collapsible, CollapsibleContent } from "@/components/ui/collapsible"
 
+// Ids of every note inside a folder (subfolders included), computed once per folder object: the tree is immutable
+// (a change builds new objects only along the changed path), so an active-tab change is a set lookup per collapsed folder.
+const noteIdsCache = new WeakMap<Folder, Set<number>>()
+const noteIdsOf = (folder: Folder): Set<number> => {
+    let ids = noteIdsCache.get(folder)
+    if (!ids) {
+        ids = new Set<number>()
+        for (const note of folder.notes ?? []) ids.add(note.id)
+        for (const sub of folder.subfolders ?? []) for (const id of noteIdsOf(sub)) ids.add(id)
+        noteIdsCache.set(folder, ids)
+    }
+    return ids
+}
+
 /** Whether the note is anywhere inside the folder (subfolders included). */
-const holdsNote = (folder: Folder, noteId: number): boolean =>
-    folder.notes.some(note => note.id === noteId) || (folder.subfolders ?? []).some(sub => holdsNote(sub, noteId))
+const holdsNote = (folder: Folder, noteId: number): boolean => noteIdsOf(folder).has(noteId)
 
 type ItemFolderProps = {
     folder: Folder
-    className?: string
     children?: React.ReactNode
     isOpen: boolean
     onToggle: (folderId: number) => void
-    /** Drop feedback while another item is dragged over this row. */
-    dropZone?: DropZone | null
     /** Depth in the tree, starting at 1 (aria-level). */
     level?: number
 }
 
-type FolderRowProps = ItemFolderProps & Omit<ReturnType<typeof useTreeRow>, "ref"> & { dndRef: ReturnType<typeof useTreeRow>["ref"] }
+type FolderRowProps = ItemFolderProps & { dropZone: DropZone | null } & Omit<ReturnType<typeof useTreeRow>, "ref"> & { dndRef: ReturnType<typeof useTreeRow>["ref"] }
 
 /**
  * The drag & drop hooks of dnd-kit re-render the component that calls them every time the dragged item moves over another
  * row, so they live in this thin shell: the row below is memoized and only re-renders when its own props change.
  */
-export const ItemFolder = React.memo(({ dropZone, ...props }: ItemFolderProps) => {
+export const ItemFolder = React.memo((props: ItemFolderProps) => {
     const { ref, attributes, listeners, isDragging } = useTreeRow("folder", props.folder.id)
     const hoverZone = useTreeDropZone("folder", props.folder.id)
-    return <FolderRow {...props} dropZone={dropZone ?? hoverZone} dndRef={ref} attributes={attributes} listeners={listeners} isDragging={isDragging} />
+    return <FolderRow {...props} dropZone={hoverZone} dndRef={ref} attributes={attributes} listeners={listeners} isDragging={isDragging} />
 })
 
-const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = null, level = 1, dndRef, attributes, listeners, isDragging }: FolderRowProps) => {
+const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone, level = 1, dndRef, attributes, listeners, isDragging }: FolderRowProps) => {
     const { t } = useTranslation()
     const [isHovered, setIsHovered] = useState(false)
     // The sidebar tree is updated by the context: no reload
@@ -99,7 +109,6 @@ const FolderRow = React.memo(({ folder, children, isOpen, onToggle, dropZone = n
                             aria-level={level}
                             tabIndex={tabStop ? 0 : -1}
                             aria-expanded={isOpen}
-                            aria-pressed={undefined}
                             onClick={handleClick}
                             aria-selected={selected}
                             data-holds-active={holdsActiveNote || undefined}

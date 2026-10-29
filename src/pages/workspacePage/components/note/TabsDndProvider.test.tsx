@@ -180,3 +180,25 @@ describe("TabsDndProvider with two bars", () => {
         expect(activate0).not.toHaveBeenCalled()
     })
 })
+
+describe("TabsDndProvider with a single bar", () => {
+    const Single = () => (
+        <SplitHarness
+            state={{ open0: [1, 2, 3], active0: 1, open1: [], active1: null, focused: 0 }}
+            actions0={{ ...noopActions, reorderTabs: reorder0 }}
+        >
+            <TabsDndProvider split={false}><NoteList /></TabsDndProvider>
+        </SplitHarness>
+    )
+
+    it("reorders the tabs of the only bar, without overlay", async () => {
+        render(<Single />)
+        expect(screen.getByRole("tablist", { name: "Note aperte" }).className).not.toContain("min-h-")
+        await drag(box(1), [450, 20], [680, 20], false)
+        expect(screen.queryByTestId("tab-drag-overlay")).toBeNull()
+        fireEvent.pointerUp(document, pointer(680, 20))
+        await settle()
+        expect(reorder0).toHaveBeenCalledWith(0, 2)
+        expect(moveToPane).not.toHaveBeenCalled()
+    })
+})

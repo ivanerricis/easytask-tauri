@@ -11,7 +11,10 @@ type PaneDividerProps = {
     containerRef: RefObject<HTMLElement | null>
     /** Width in pixels of the container (Infinity until measured): it sets the range exposed to assistive technologies and the keyboard limits. */
     containerWidth: number
-    /** Called with every new ratio (while dragging too). */
+    /**
+     * Called with every new ratio, while dragging too: the parent should only paint it (e.g. write a CSS variable), not store it in React
+     * state, so the panes are not re-rendered on every pointer move.
+     */
     onRatioChange: (ratio: number) => void
     /** Called with the final ratio when a change is over (end of a drag, key press, reset): the moment to save it. */
     onRatioCommit: (ratio: number) => void
@@ -22,8 +25,10 @@ export const PaneDivider = ({ ratio, containerRef, containerWidth, onRatioChange
     const { t } = useTranslation()
     const [dragging, setDragging] = useState(false)
     const dragRatioRef = useRef<number | null>(null)
+    // The value read by assistive technologies follows the drag without waiting for the commit (a state of this tiny component only)
+    const [dragPercent, setDragPercent] = useState<number | null>(null)
 
-    const percent = Math.round(ratio * 100)
+    const percent = dragPercent ?? Math.round(ratio * 100)
 
     // The divider captures the pointer, so move and up events keep coming to it even outside its few pixels
     const startDragging = (e: PointerEvent<HTMLDivElement>) => {
@@ -40,6 +45,7 @@ export const PaneDivider = ({ ratio, containerRef, containerWidth, onRatioChange
         if (rect.width <= 0) return
         const next = clampRatio((e.clientX - rect.left) / rect.width, rect.width)
         dragRatioRef.current = next
+        setDragPercent(Math.round(next * 100))
         onRatioChange(next)
     }
 
@@ -48,6 +54,7 @@ export const PaneDivider = ({ ratio, containerRef, containerWidth, onRatioChange
         if (final === null) return
         dragRatioRef.current = null
         setDragging(false)
+        setDragPercent(null)
         onRatioCommit(final)
     }
 

@@ -15,6 +15,7 @@ import { createDBNoteInFolder, createDBWorkspaceNote } from "@/db/queries/note"
 import { createDBSubFolder, createDBWorkspaceFolder, updateDBFolderColorContent } from "@/db/queries/folder"
 import { moveDBTreeItem } from "@/db/queries/tree"
 import { moveDBSection, moveDBSectionToNewGroup, moveDBTask } from "@/db/queries/move"
+import { getDBTemplateDrafts } from "@/db/queries/template-draft"
 import { emptyDBTrash, getDBTrash, getDBTrashCount, purgeDBItem, restoreDBItem } from "@/db/queries/trash"
 import { createDBNoteFromTemplate } from "@/db/queries/template"
 import { archiveDBItem, getDBArchive, getDBArchiveCount, unarchiveDBItem } from "@/db/queries/archive"
@@ -325,7 +326,7 @@ describe("WorkspaceDataContext", () => {
             await act(() => result.current.moveTask(9, { sectionId: 4, parentTaskId: null }, 0))
             await act(() => result.current.moveSection(4, 2, 1))
             expect(result.current.audioVersion).toBe(0)
-            expect(result.current.trashVersion).toBe(3)
+            expect(result.current.trashVersion).toBe(1)
 
             let expected = 0
             const ops: Array<() => Promise<unknown>> = [
@@ -340,6 +341,19 @@ describe("WorkspaceDataContext", () => {
                 expected += 1
                 expect(result.current.audioVersion).toBe(expected)
             }
+        })
+
+        it("a task or section move bumps no version and reads no template draft", async () => {
+            vi.mocked(getDBWorkspaceData).mockResolvedValue({ folders: [], notes: [] } as never)
+            const { result } = renderHook(() => useAll(), { wrapper })
+            await act(() => result.current.getWorkspaceData(1))
+            vi.mocked(getDBTemplateDrafts).mockClear()
+            const before = [result.current.trashVersion, result.current.archiveVersion, result.current.audioVersion, result.current.templatesVersion]
+            await act(() => result.current.moveTask(9, { sectionId: 4, parentTaskId: null }, 0))
+            await act(() => result.current.moveSection(4, 2, 1))
+            await act(() => result.current.moveSectionToNewGroup(4, 0))
+            expect([result.current.trashVersion, result.current.archiveVersion, result.current.audioVersion, result.current.templatesVersion]).toEqual(before)
+            expect(getDBTemplateDrafts).not.toHaveBeenCalled()
         })
 
         it("does not bump audioVersion when the delete fails", async () => {
@@ -728,9 +742,6 @@ describe("WorkspaceDataContext", () => {
                 () => result.current.restoreItem("note", 1),
                 () => result.current.purgeItem("folder", 2),
                 () => result.current.emptyTrash(4),
-                () => result.current.moveSection(4, 2, 1),
-                () => result.current.moveSectionToNewGroup(4, 0),
-                () => result.current.moveTask(9, { sectionId: 4, parentTaskId: null }, 0),
             ]
             for (const op of ops) {
                 await act(() => op())

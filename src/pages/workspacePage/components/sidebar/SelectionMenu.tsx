@@ -5,8 +5,8 @@ import { ButtonInPopover } from "@/components/button-in-popover"
 import { DialogAddColor } from "@/components/dialogs/dialog-add-color"
 import { MenuGroup, MenuItem, MenuSub, MenuSubContent, MenuSubTrigger } from "@/components/menu-kind"
 import { Separator } from "@/components/ui/separator"
-import { useWorkspaceData } from "@/contexts/workspace-data"
 import type { ItemMenuState } from "@/hooks/use-item-menu-state"
+import { useTreeData } from "./use-tree-data"
 import { getTopMostItems } from "./selection"
 import { useSelectedKeys, useSelectionStore } from "./selection-context"
 import { useSelectionActions } from "./selection-actions"
@@ -20,14 +20,10 @@ export const SelectionMenuItems = ({ menu }: { menu: ItemMenuState }) => {
     const { t } = useTranslation()
     const store = useSelectionStore()
     const actions = useSelectionActions()
-    const { workspaceDataTree } = useWorkspaceData()
     const selected = useSelectedKeys()
 
     // Without the actions provider a multi menu cannot exist (the row never asks for it)
-    const tree = useMemo(
-        () => ({ rootFolders: workspaceDataTree?.rootFolders ?? [], rootNotes: workspaceDataTree?.rootNotes ?? [] }),
-        [workspaceDataTree],
-    )
+    const tree = useTreeData()
     const targets = useMemo(
         () => getTopMostItems(tree, store?.getRefs() ?? []),
         // eslint-disable-next-line react-hooks/exhaustive-deps

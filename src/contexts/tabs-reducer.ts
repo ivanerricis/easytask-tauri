@@ -16,14 +16,9 @@ export type TabsAction =
     | { type: "closeActive" }
     /** Activates the next (1) or previous (-1) tab, wrapping around the ends. */
     | { type: "cycle", direction: 1 | -1 }
-    | { type: "closeAll" }
     | { type: "reorder", from: number, to: number }
     /** Closes the tabs whose id is not in `existing` (deleted, trashed or from another workspace). */
     | { type: "prune", existing: ReadonlySet<number> }
-    /** Replaces the whole state (reset on workspace change). */
-    | { type: "restore", state: TabsState }
-    /** Restores a saved state, unless the user already opened a tab in the meantime. */
-    | { type: "hydrate", state: TabsState }
     /** Reopens the tabs of a snapshot that were closed meanwhile (a failed delete): the others stay as they are. */
     | { type: "reopen", state: TabsState }
 
@@ -83,8 +78,6 @@ export function tabsReducer(state: TabsState, action: TabsAction): TabsState {
         }
         case "closeActive":
             return state.activeId === null ? state : closeTabs(state, new Set([state.activeId]))
-        case "closeAll":
-            return state.openIds.length === 0 && state.activeId === null ? state : initialTabsState
         case "reorder": {
             const { from, to } = action
             if (from === to || from < 0 || to < 0 || from >= state.openIds.length || to >= state.openIds.length) return state
@@ -98,8 +91,6 @@ export function tabsReducer(state: TabsState, action: TabsAction): TabsState {
             const missing = state.openIds.filter(id => !action.existing.has(id))
             return missing.length === 0 ? state : closeTabs(state, new Set(missing))
         }
-        case "restore":
-            return action.state
         case "reopen": {
             const current = new Set(state.openIds)
             const closed = action.state.openIds.filter(id => !current.has(id))
@@ -109,7 +100,5 @@ export function tabsReducer(state: TabsState, action: TabsAction): TabsState {
             const activeId = action.state.activeId !== null && closed.includes(action.state.activeId) ? action.state.activeId : state.activeId
             return { openIds, activeId }
         }
-        case "hydrate":
-            return state.openIds.length === 0 ? action.state : state
     }
 }

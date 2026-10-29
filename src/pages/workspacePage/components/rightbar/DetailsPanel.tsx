@@ -1,4 +1,4 @@
-import { useContext, useEffect, useState } from "react"
+import { useContext, useEffect, useMemo, useState } from "react"
 import { useTranslation } from "react-i18next"
 import { toast } from "sonner"
 import type { DBItemType } from "@/db/queries/shared_queries"
@@ -59,10 +59,11 @@ type ColorFieldProps = {
     getItemId?: number
 }
 
+const noReload = async () => { }
+
 /** The color of an item: a button showing it (or "no color") that opens the palette. */
 const ColorField = ({ item, itemType, addColorItem, getItemId }: ColorFieldProps) => {
     const { t } = useTranslation()
-    const noReload = async () => { }
     return (
         <div className="flex items-center justify-between gap-2">
             <h3 className={sectionTitle}>{t("details.color")}</h3>
@@ -163,7 +164,7 @@ const TaskDetails = ({ task, tree, noteName }: { task: Task, tree: NoteDataTree,
     const { updateTaskPriority, updateItemColor } = useWorkspaceActions()
     const { patchTask } = useActiveNoteActions()
     const recorder = useUndoRecorder()
-    const place = findTaskPlace(tree, task.id)
+    const place = useMemo(() => findTaskPlace(tree, task.id), [tree, task.id])
     const subtasks = countTasks(task.subtasks)
     const path = [noteName, place?.group, place?.section].filter(Boolean).join(t("details.pathSeparator"))
 
@@ -226,6 +227,14 @@ function NoteOrTaskDetails() {
     const { noteDataTree } = useActiveNote()
     const { updateItemColor } = useWorkspaceActions()
     const [selectedId] = useSelectedTask(currentNote?.id ?? null)
+    const stats = useMemo(() => {
+        if (!noteDataTree) return null
+        return {
+            sectionCount: noteDataTree.groups.flatMap(group => group.sections).length,
+            // The tasks directly in the groups count too (they live in the hidden default sections, which are not counted as sections)
+            counts: countTasks(noteDataTree.groups.flatMap(taskSections).flatMap(section => section.tasks)),
+        }
+    }, [noteDataTree])
 
     if (!currentNote) return <p role="status" className="p-3 text-sm text-muted-foreground">{t("details.emptyNote")}</p>
     if (!noteDataTree) return <p role="status" className="p-3 text-sm text-muted-foreground">{t("details.loading")}</p>
@@ -239,16 +248,14 @@ function NoteOrTaskDetails() {
         )
     }
 
-    const sections = noteDataTree.groups.flatMap(group => group.sections)
-    // The tasks directly in the groups count too (they live in the hidden default sections, which are not counted as sections)
-    const counts = countTasks(noteDataTree.groups.flatMap(taskSections).flatMap(section => section.tasks))
+    const { sectionCount, counts } = stats!
     return (
         <div className="flex flex-col gap-4 p-3">
             <h2 className="text-base font-semibold break-words"><span className="sr-only">{t("details.noteTitle")} </span>{currentNote.name}</h2>
             <Field label={t("details.stats")}>
                 <ul className="flex flex-col gap-0.5">
                     <li>{t("common.counts.group", { count: noteDataTree.groups.length })}</li>
-                    <li>{t("common.counts.section", { count: sections.length })}</li>
+                    <li>{t("common.counts.section", { count: sectionCount })}</li>
                     <li>{t("common.counts.task", { count: counts.total })}</li>
                 </ul>
             </Field>

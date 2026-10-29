@@ -11,7 +11,7 @@ type TaskActions = Pick<WorkspaceActionsType,
  * Tasks and subtasks of the open note.
  * @category WorkspaceData Context
  */
-export function useTaskActions({ withLoading, withTrashChange }: Runtime): TaskActions {
+export function useTaskActions({ withLoading }: Runtime): TaskActions {
     const createTask = useCallback((sectionID: number, text: string, position?: NewTaskPosition) =>
         withLoading(() => createDBTask(sectionID, text, position)), [withLoading])
 
@@ -54,7 +54,7 @@ export function useTaskActions({ withLoading, withTrashChange }: Runtime): TaskA
      * @category Workspace Data Context
      */
     const moveTask = useCallback((taskID: number, target: TaskMoveTarget, targetIndex: number) =>
-        withTrashChange(() => moveDBTask(taskID, target, targetIndex)), [withTrashChange])
+        withLoading(() => moveDBTask(taskID, target, targetIndex)), [withLoading])
 
     return useMemo(() => ({ createTask, createSubTask, insertTaskAfter, updateTaskPriority, updateTaskCompletion, updateTaskDescription, moveTask }), [ createTask, createSubTask, insertTaskAfter, updateTaskPriority, updateTaskCompletion, updateTaskDescription, moveTask ])
 }

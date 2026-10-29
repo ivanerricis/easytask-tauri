@@ -100,17 +100,13 @@ describe("tabsReducer", () => {
         })
     })
 
-    describe("closeActive / closeAll", () => {
+    describe("closeActive", () => {
         it("closes the active tab with the neighbour rule", () => {
             expect(tabsReducer(state([1, 2, 3], 1), { type: "closeActive" })).toEqual(state([2, 3], 2))
         })
 
         it("closeActive does nothing without an active tab", () => {
             expect(tabsReducer(initialTabsState, { type: "closeActive" })).toBe(initialTabsState)
-        })
-
-        it("closeAll empties the tabs", () => {
-            expect(tabsReducer(state([1, 2], 2), { type: "closeAll" })).toEqual(state([], null))
         })
     })
 
@@ -136,18 +132,6 @@ describe("tabsReducer", () => {
         it("returns the same state when every tab still exists", () => {
             const current = state([1, 2], 1)
             expect(tabsReducer(current, { type: "prune", existing: new Set([1, 2, 3]) })).toBe(current)
-        })
-    })
-
-    describe("restore / hydrate", () => {
-        it("restore replaces the state", () => {
-            expect(tabsReducer(state([1], 1), { type: "restore", state: state([4, 5], 5) })).toEqual(state([4, 5], 5))
-        })
-
-        it("hydrate applies only when no tab is open yet", () => {
-            expect(tabsReducer(initialTabsState, { type: "hydrate", state: state([4, 5], 5) })).toEqual(state([4, 5], 5))
-            const current = state([1], 1)
-            expect(tabsReducer(current, { type: "hydrate", state: state([4, 5], 5) })).toBe(current)
         })
     })
 })

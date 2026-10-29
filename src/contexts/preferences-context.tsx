@@ -1,8 +1,9 @@
 import { DEFAULT_PRIMARY_COLOR, applyAccentColor } from "@/lib/accent-color"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react"
+import { createExternalStore } from "@/lib/external-store"
 import {
     UI_PREFS,
-    getPref,
+    getAllPrefs,
     savePref,
     normalizePref,
     getPrimaryColor,
@@ -24,7 +25,7 @@ import { applyAnimationSpeed } from "@/lib/animation-speed"
 import { applyTextZoom } from "@/lib/text-zoom"
 import { applyFontFamily } from "@/lib/font-family"
 import type { AudioPlayerPosition } from "@/types/types"
-import { PreferencesContext, type PreferencesContextType, type PrefSetterName } from "./preferences-context-object"
+import { PreferencesContext, PreferencesStoreContext, type PreferencesContextType, type PrefSetterName } from "./preferences-context-object"
 
 /** Fallback size of the player at scale 1 (title row + controls row), used only until the real one is measured. */
 const AUDIO_PLAYER_WIDTH = 350
@@ -107,12 +108,11 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         setPrefs(current => Object.is(current[name], value) ? current : { ...current, [name]: value }), [])
 
     useEffect(() => {
-        for (const name of PREF_NAMES) {
-            getPref(name).then(value => {
-                setPref(name, value)
-                if (name === "language") void applyLanguagePreference(value as PrefValues["language"])
-            }).catch(reportError)
-        }
+        // One read of the whole store and one state update (instead of one get and one setState per preference)
+        getAllPrefs().then(loaded => {
+            setPrefs(current => PREF_NAMES.every(name => Object.is(current[name], loaded[name])) ? current : loaded)
+            void applyLanguagePreference(loaded.language)
+        }).catch(reportError)
         getAudioPlayerPosition().then(position => {
             const fitted = fitPositionRef.current(position)
             positionRef.current = fitted
@@ -122,7 +122,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
             setPrimaryColorState(hex)
             applyAccentColor(hex)
         }).catch(reportError)
-    }, [setPref])
+    }, [])
 
     // The actions only go through setState and refs: built once, so their identity never changes and the value below
     // changes only with the preferences (every colored row reads it through useColorAlpha)
@@ -188,7 +188,7 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         return { ...setters, setAudioPlayerScale, setPrimaryColor, setAudioPlayerPosition, resetPlayerPosition, resetAudioSettings }
     }, [setPref])
 
-    const value = useMemo(() => ({
+    const value = useMemo<PreferencesContextType>(() => ({
         ...prefs,
         ...actions,
         primaryColor,
@@ -197,9 +197,16 @@ export const PreferencesProvider = ({ children }: { children: React.ReactNode })
         reportAudioPlayerSize,
     }), [prefs, actions, primaryColor, audioPlayerPosition, reportAudioPlayerSize])
 
+    // The same value in an external store: usePreference(selector) re-renders its component only when the selected value changes
+    // eslint-disable-next-line react-hooks/refs -- only the ref object is stored, its current is never read
+    const [store] = useState(() => createExternalStore(value))
+    useLayoutEffect(() => store.set(value), [store, value])
+
     return (
-        <PreferencesContext.Provider value={value}>
-            {children}
-        </PreferencesContext.Provider>
+        <PreferencesStoreContext.Provider value={store}>
+            <PreferencesContext.Provider value={value}>
+                {children}
+            </PreferencesContext.Provider>
+        </PreferencesStoreContext.Provider>
     )
 }

@@ -1,35 +1,16 @@
-import { useContext, useEffect, useRef, useState, type KeyboardEvent } from "react"
-import {
-    DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors,
-    type CollisionDetection, type DragMoveEvent,
-} from "@dnd-kit/core"
-import { restrictToHorizontalAxis } from "@dnd-kit/modifiers"
+import { useContext, useEffect, useRef, type KeyboardEvent } from "react"
+import { useDraggable, useDroppable } from "@dnd-kit/core"
 import { CSS } from "@dnd-kit/utilities"
 import { useActiveNoteId, useTabs, useTabsActions } from "@/contexts/use-tabs"
 import { usePane } from "@/contexts/use-layout"
 import { useTranslation } from "react-i18next"
-import { buildDndAccessibility } from "@/lib/dnd-accessibility"
 import { cn } from "@/lib/utils"
-import { useGrabbingCursor } from "@/hooks/use-grabbing-cursor"
 import { NoteHeader } from "./NoteHeader"
 import { DropLine } from "../sidebar/DropLine"
-import { computeTabMove, computeTabZone, pickTabByX, barDndId, tabDndId, type TabHover, type TabZone } from "./tab-reorder"
+import { barDndId, tabDndId, type TabHover, type TabZone } from "./tab-reorder"
+import { TabsDndProvider } from "./TabsDndProvider"
 import { TabsDndContext } from "./tabs-dnd-context-object"
 import type { Note } from "@/types/types"
-
-type Hover = { overId: number, zone: TabZone } | null
-
-// Only the horizontal position matters: the tab under the pointer's x wins, whatever the y.
-// Past either end of the bar the first / last tab wins, so a tab can be dropped at the very start or end.
-const collisionDetection: CollisionDetection = ({ droppableContainers, droppableRects, pointerCoordinates }) => {
-    if (!pointerCoordinates) return []
-    const tabs = droppableContainers.flatMap(container => {
-        const rect = droppableRects.get(container.id)
-        return rect ? [{ id: container.id, left: rect.left, right: rect.right }] : []
-    })
-    const id = pickTabByX(tabs, pointerCoordinates.x)
-    return id === null ? [] : [{ id }]
-}
 
 /**
  * One draggable / droppable tab. `dndId` is the note id in a bar with its own dnd context, `tab:<pane>:<noteId>` in the shared one;
@@ -96,15 +77,16 @@ function useTabBar(tabs: Note[]) {
 const BAR_CLASS = "flex shrink-0 w-full overflow-x-auto overflow-y-hidden bg-secondary divide-x-1 shadow-[inset_0_-1px_0_0_var(--color-primary)]"
 
 /**
- * The tab bar of a pane inside `TabsDndProvider`: the drag and drop context is the shared one, the bar is a droppable
+ * The tab bar of a pane, inside `TabsDndProvider`. Split: the drag and drop context is the shared one, the bar is a droppable
  * (`bar:<pane>`, also the target of an empty bar) and keeps a minimum height so an empty pane can still receive a tab.
+ * Not split: the only bar, whose tabs can just be reordered (plain note ids, no minimum height).
  */
-function SharedNoteList({ hover }: { hover: TabHover | null }) {
+function TabBar({ hover, split }: { hover: TabHover | null, split: boolean }) {
     const { t } = useTranslation()
     const { tabs } = useTabs()
     const pane = usePane()?.pane ?? 0
     const { listRef, handleKeyDown } = useTabBar(tabs)
-    const { setNodeRef } = useDroppable({ id: barDndId(pane) })
+    const { setNodeRef } = useDroppable({ id: barDndId(pane), disabled: !split })
     const mine = hover?.pane === pane ? hover : null
     const label = t(pane === 0 ? "notes.split.leftPane" : "notes.split.rightPane")
 
@@ -115,83 +97,36 @@ function SharedNoteList({ hover }: { hover: TabHover | null }) {
                 setNodeRef(node)
             }}
             role="tablist"
-            aria-label={t("notes.split.openTabsPane", { pane: label })}
+            aria-label={split ? t("notes.split.openTabsPane", { pane: label }) : t("notes.openTabs")}
             onKeyDown={handleKeyDown}
-            className={cn(BAR_CLASS, "relative min-h-[42px]")}
+            className={cn(BAR_CLASS, split && "relative min-h-[42px]")}
         >
             {tabs.map(note => (
                 <Tab
                     key={note.id}
                     note={note}
-                    dndId={tabDndId(pane, note.id)}
-                    overlay
+                    dndId={split ? tabDndId(pane, note.id) : note.id}
+                    overlay={split}
                     indicator={mine?.overId === note.id ? mine.zone : null}
                 />
             ))}
             {/* Over the bar itself (it has no tab to point at): the line at the start, which is also its end */}
-            {tabs.length === 0 && <DropLine zone={mine && mine.overId === null ? "before" : null} vertical />}
+            {split && tabs.length === 0 && <DropLine zone={mine && mine.overId === null ? "before" : null} vertical />}
         </div>
     )
 }
 
+function NoteListInContext() {
+    const shared = useContext(TabsDndContext)!
+    return <TabBar hover={shared.hover} split={shared.split} />
+}
+
 /**
- * The tab bar of the open notes. Inside `TabsDndProvider` (workspace split in two panes) it takes part in the shared drag and drop;
- * on its own it runs its own context: tabs can only be reordered, along the horizontal axis.
+ * The tab bar of the open notes. It takes part in the drag and drop of `TabsDndProvider` (shared by the two bars when the workspace is split);
+ * rendered on its own, it wraps itself in one for a single bar: tabs can only be reordered, along the horizontal axis.
  */
 export const NoteList = () => {
     const shared = useContext(TabsDndContext)
-    return shared ? <SharedNoteList hover={shared.hover} /> : <StandaloneNoteList />
-}
-
-function StandaloneNoteList() {
-    const { t } = useTranslation()
-    const { tabs } = useTabs()
-    const { reorderTabs } = useTabsActions()
-    const { listRef, handleKeyDown } = useTabBar(tabs)
-    const [hover, setHover] = useState<Hover>(null)
-    const hoverRef = useRef<Hover>(null)
-    const [dragging, setDragging] = useState(false)
-    useGrabbingCursor(dragging)
-
-    // A small distance keeps plain clicks (open / close tab) working
-    const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }))
-
-    const accessibility = buildDndAccessibility(entry => tabs.find(tab => tab.id === entry.id)?.name, { keyboard: false })
-
-    const updateHover = (next: Hover) => {
-        hoverRef.current = next
-        setHover(prev => prev?.overId === next?.overId && prev?.zone === next?.zone ? prev : next)
-    }
-
-    const handleDragMove = (event: DragMoveEvent) => {
-        const { over, active, activatorEvent, delta } = event
-        const origin = activatorEvent as { clientX?: number } | null
-        if (!over || over.id === active.id || typeof origin?.clientX !== "number") return updateHover(null)
-        updateHover({ overId: Number(over.id), zone: computeTabZone(over.rect, origin.clientX + delta.x) })
-    }
-
-    const handleDragEnd = (activeId: number) => {
-        const current = hoverRef.current
-        updateHover(null)
-        if (!current) return
-        const move = computeTabMove(tabs.map(tab => tab.id), activeId, current.overId, current.zone)
-        if (move) reorderTabs(move.from, move.to)
-    }
-
-    return (
-        <DndContext
-            sensors={sensors}
-            accessibility={accessibility}
-            modifiers={[restrictToHorizontalAxis]}
-            collisionDetection={collisionDetection}
-            onDragStart={() => setDragging(true)}
-            onDragMove={handleDragMove}
-            onDragEnd={event => { setDragging(false); handleDragEnd(Number(event.active.id)) }}
-            onDragCancel={() => { setDragging(false); updateHover(null) }}
-        >
-            <div ref={listRef} role="tablist" aria-label={t("notes.openTabs")} onKeyDown={handleKeyDown} className={BAR_CLASS}>
-                {tabs.map(note => <Tab key={note.id} note={note} indicator={hover?.overId === note.id ? hover.zone : null} />)}
-            </div>
-        </DndContext>
-    )
+    if (shared) return <NoteListInContext />
+    return <TabsDndProvider split={false}><NoteListInContext /></TabsDndProvider>
 }

@@ -1,6 +1,6 @@
 ﻿import { useCallback, useEffect, useRef } from "react"
 import { useIsSplit } from "@/contexts/use-layout"
-import { usePreferences } from "@/contexts/use-preferences"
+import { usePreference } from "@/contexts/use-preference"
 import { COMPACT_BREAKPOINT, sidebarsToClose } from "@/lib/sidebar-layout"
 
 /**
@@ -10,7 +10,12 @@ import { COMPACT_BREAKPOINT, sidebarsToClose } from "@/lib/sidebar-layout"
  * they are left alone. With the workspace split the note needs the room of both panes.
  */
 export function useAutoCloseSidebars() {
-    const { sidebarLeftOpen, sidebarLeftWidth, setSideBarLeftOpen, sidebarRightOpen, sidebarRightWidth, setSideBarRightOpen } = usePreferences()
+    const sidebarLeftOpen = usePreference(p => p.sidebarLeftOpen)
+    const sidebarLeftWidth = usePreference(p => p.sidebarLeftWidth)
+    const setSideBarLeftOpen = usePreference(p => p.setSideBarLeftOpen)
+    const sidebarRightOpen = usePreference(p => p.sidebarRightOpen)
+    const sidebarRightWidth = usePreference(p => p.sidebarRightWidth)
+    const setSideBarRightOpen = usePreference(p => p.setSideBarRightOpen)
     const isSplit = useIsSplit()
     const panes = isSplit ? 2 : 1
     const latest = useRef({ sidebarLeftOpen, sidebarLeftWidth, setSideBarLeftOpen, sidebarRightOpen, sidebarRightWidth, setSideBarRightOpen, panes })

@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next"
 import { TooltipCustom } from "@/components/tooltip-custom"
-import { useActiveNoteId, useTabsActions } from "@/contexts/use-tabs"
+import { useActiveNoteSelector, useTabsActions } from "@/contexts/use-tabs"
 import type { Note } from "@/types/types"
 import { useShortcutLabel } from "@/contexts/use-shortcuts"
 import { X } from "lucide-react"
@@ -26,9 +26,8 @@ type NoteHeaderProps = {
 export const NoteHeader = React.memo(({ note }: NoteHeaderProps) => {
     const { t } = useTranslation()
 
-    const activeId = useActiveNoteId()
     const { closeNote, activateNote } = useTabsActions()
-    const isActive = activeId === note.id
+    const isActive = useActiveNoteSelector(activeId => activeId === note.id)
     // A template editor: its tab shows the template (badge, name, color) and has its own menu
     const draft = useDraftOfNote(note.id)
     const color = draft ? draft.color : note.color

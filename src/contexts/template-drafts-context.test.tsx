@@ -11,7 +11,7 @@ import { useActiveNoteActions } from "./use-active-note"
 import { useTemplateDraftActions, useTemplateDrafts } from "./use-template-drafts"
 import { WorkspaceStateContext } from "./workspace-data/context"
 import type { WorkspaceStateType } from "./workspace-data/types"
-import { createDBTemplateDraft, deleteDBTemplateDraft, getDBTemplateDrafts, saveDBTemplateDraft, type TemplateDraft } from "@/db/queries/template-draft"
+import { createDBTemplateDraft, deleteDBTemplateDraft, getDBTemplateDraft, getDBTemplateDrafts, saveDBTemplateDraft, type TemplateDraft } from "@/db/queries/template-draft"
 import { getDBNoteData } from "@/db/queries/note"
 import { getReopenNotes } from "@/lib/store/preferences"
 import { getWorkspaceTabs, saveWorkspaceTabs } from "@/lib/store/tabs"
@@ -20,7 +20,7 @@ import { makeGroup, makeNote, makeSection, makeTask } from "@/test/ui-fixtures"
 
 vi.mock("sonner", () => ({ toast: Object.assign(vi.fn(), { error: vi.fn(), info: vi.fn(), success: vi.fn() }) }))
 vi.mock("@/db/queries/template-draft", () => ({
-    createDBTemplateDraft: vi.fn(), saveDBTemplateDraft: vi.fn(), deleteDBTemplateDraft: vi.fn(), getDBTemplateDrafts: vi.fn(),
+    createDBTemplateDraft: vi.fn(), saveDBTemplateDraft: vi.fn(), deleteDBTemplateDraft: vi.fn(), getDBTemplateDrafts: vi.fn(), getDBTemplateDraft: vi.fn(),
 }))
 vi.mock("@/db/queries/note", () => ({ getDBNoteData: vi.fn() }))
 vi.mock("@/lib/store/preferences", () => ({ getReopenNotes: vi.fn() }))
@@ -79,6 +79,7 @@ describe("TemplateDraftsProvider", () => {
         vi.mocked(saveWorkspaceTabs).mockResolvedValue(undefined)
         vi.mocked(getDBNoteData).mockImplementation(async id => noteData(id) as never)
         vi.mocked(getDBTemplateDrafts).mockImplementation(async () => dbDrafts)
+        vi.mocked(getDBTemplateDraft).mockImplementation(async noteId => dbDrafts.find(candidate => candidate.noteId === noteId) ?? null)
         vi.mocked(createDBTemplateDraft).mockImplementation(async templateId => {
             const existing = dbDrafts.find(candidate => candidate.templateId === templateId)
             if (existing) return existing.noteId

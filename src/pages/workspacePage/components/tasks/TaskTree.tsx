@@ -45,12 +45,13 @@ function TaskTreeBody({ label, children }: { label: string, children: ReactNode 
         if (!tree || !store) return
         const reconcile = () => {
             const ids = Array.from(tree.querySelectorAll<HTMLElement>(ROWS), item => Number(item.dataset.taskId))
+            const inView = new Set(ids)
             const stop = store.getState()
-            if (stop !== null && !ids.includes(stop)) {
+            if (stop !== null && !inView.has(stop)) {
                 const before = snapshot.current
                 const at = before.indexOf(stop)
                 const candidates = at < 0 ? [] : [...before.slice(at + 1), ...before.slice(0, at).reverse()]
-                const next = candidates.find(id => ids.includes(id)) ?? null
+                const next = candidates.find(id => inView.has(id)) ?? null
                 store.set(next)
                 if (next !== null) focusIfLost(tree, next)
             }

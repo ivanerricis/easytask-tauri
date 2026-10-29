@@ -279,6 +279,22 @@ export const getPref = async <K extends PrefName>(name: K): Promise<PrefValue<K>
     normalizePref(name, await store.get(ALL_PREFS[name].key))
 
 /**
+ * Reads every UI preference at once (one `entries()` call of the store instead of one `get` per preference).
+ * @returns A promise that resolves to the value of each one, normalized (the default when nothing valid is stored).
+ * @category Store
+ */
+export const getAllPrefs = async (): Promise<{ [K in UiPrefName]: PrefValue<K> }> => {
+    const names = Object.keys(UI_PREFS) as UiPrefName[]
+    const raw = new Map<string, unknown>()
+    if (typeof store.entries === "function") {
+        for (const [key, value] of await store.entries<unknown>()) raw.set(key, value)
+    } else {
+        await Promise.all(names.map(async name => raw.set(UI_PREFS[name].key, await store.get(UI_PREFS[name].key))))
+    }
+    return Object.fromEntries(names.map(name => [name, normalizePref(name, raw.get(UI_PREFS[name].key))])) as { [K in UiPrefName]: PrefValue<K> }
+}
+
+/**
  * Saves a preference (the value is brought into the allowed ones first).
  * @param name The preference (see UI_PREFS and APP_PREFS).
  * @param value The value to save; null removes the preference from the store.

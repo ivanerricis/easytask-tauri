@@ -1,52 +1,62 @@
+import { memo, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { useActiveNoteId } from "@/contexts/use-tabs"
 import { useLayoutActions, usePane } from "@/contexts/use-layout"
 import type { PaneIndex } from "@/contexts/layout-reducer"
 import { MIN_PANE_WIDTH } from "@/lib/split-layout"
 import { cn } from "@/lib/utils"
-import { GroupContainer } from "./groups/GroupContainer"
-import { NoteList } from "./note/NoteList"
+import { BlankNote } from "./BlankNote"
 import { EmptyPane } from "./EmptyPane"
-import { PathBar } from "./PathBar"
-import { NoteSearchProvider } from "./note-search-context"
+import { PaneBody } from "./PaneBody"
 
 type SplitPaneProps = {
     pane: PaneIndex
-    /** Share of the container width given to this pane. */
-    share: number
+    /**
+     * Whether the workspace is split. Not split, the pane is the whole centre of the workspace (no region, no minimum width);
+     * split, it takes its share of the container from the `--split-ratio` custom property the container carries (share of the left pane).
+     */
+    split: boolean
 }
 
 /**
- * One of the two panes of the split workspace: its tab bar and its note (or the empty placeholder). It must be rendered
- * inside the `PaneProvider` of the same pane, whose root ref it attaches. A press or the focus inside it gives it the focus.
+ * A pane of the workspace: its tab bar and its note (or the empty placeholder). It is meant to be rendered inside the `PaneProvider` of
+ * the same pane, whose root ref it attaches (without one it still renders, but cannot give the pane the focus). A press or the focus inside it gives it the focus. The same component renders the
+ * only pane of the unsplit workspace, so the left pane keeps its identity (search, scroll, groups) when the workspace is split.
+ * Memoized: its width comes from a CSS variable, so moving the divider or resizing the window does not re-render it.
  */
-export const SplitPane = ({ pane, share }: SplitPaneProps) => {
+export const SplitPane = memo(function SplitPane({ pane, split }: SplitPaneProps) {
     const { t } = useTranslation()
-    const activeId = useActiveNoteId()
     const { focusPane } = useLayoutActions()
-    const { rootRef, focused, isFocused } = usePane()!
+    // Without a PaneProvider (no layout) the pane has no root ref to attach and always counts as focused
+    const paneContext = usePane()
+    const rootRef = paneContext?.rootRef
+    const focused = paneContext?.focused ?? true
+    const empty = useMemo(() => split ? <EmptyPane pane={pane} /> : <BlankNote />, [split, pane])
 
-    const claimFocus = () => { if (!isFocused()) focusPane(pane) }
+    const claimFocus = () => { if (paneContext && !paneContext.isFocused()) focusPane(pane) }
 
     return (
         <div
             ref={rootRef}
-            role="region"
-            aria-label={t(pane === 0 ? "notes.split.leftPane" : "notes.split.rightPane")}
-            data-pane={pane}
-            data-focused={focused}
+            role={split ? "region" : undefined}
+            aria-label={split ? t(pane === 0 ? "notes.split.leftPane" : "notes.split.rightPane") : undefined}
+            data-pane={split ? pane : undefined}
+            data-focused={split ? focused : undefined}
             className={cn(
-                "relative flex min-w-0 flex-col overflow-hidden border-t-2 border-t-transparent",
-                focused && "border-t-primary",
+                "relative flex min-w-0 flex-col overflow-hidden",
+                split ? "border-t-2 border-t-transparent" : "w-full",
+                split && focused && "border-t-primary",
             )}
-            style={{ flexBasis: `${share * 100}%`, flexGrow: 0, minWidth: MIN_PANE_WIDTH }}
-            onPointerDownCapture={claimFocus}
-            onFocusCapture={claimFocus}
+            style={split
+                ? {
+                    flexBasis: pane === 0 ? "calc(var(--split-ratio) * 100%)" : "calc((1 - var(--split-ratio)) * 100%)",
+                    flexGrow: 0,
+                    minWidth: MIN_PANE_WIDTH,
+                }
+                : undefined}
+            onPointerDownCapture={split ? claimFocus : undefined}
+            onFocusCapture={split ? claimFocus : undefined}
         >
-            <NoteList />
-            {activeId !== null
-                ? <NoteSearchProvider><PathBar /><GroupContainer /></NoteSearchProvider>
-                : <EmptyPane pane={pane} />}
+            <PaneBody empty={empty} alwaysTabs={split} />
         </div>
     )
-}
+})

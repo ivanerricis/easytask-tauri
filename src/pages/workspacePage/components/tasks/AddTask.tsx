@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input"
 import { useWorkspaceActions } from "@/contexts/workspace-data"
 import { useActiveNoteActions } from "@/contexts/use-active-note"
 import { useUndoRecorder } from "@/contexts/undo/use-undo"
-import { usePreferences } from "@/contexts/use-preferences"
+import { usePreference } from "@/contexts/use-preference"
 import { cn, getErrorMessage } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
@@ -41,7 +41,8 @@ const SubtaskInput = ({ parentTaskId, sectionId, onClose }: { parentTaskId: numb
     const { saving, run } = useSubmitOnce()
     const { createSubTask } = useWorkspaceActions()
     const { appendTask, applyTaskMove } = useActiveNoteActions()
-    const { newTaskPosition, keepAddingTasks } = usePreferences()
+    const newTaskPosition = usePreference(p => p.newTaskPosition)
+    const keepAddingTasks = usePreference(p => p.keepAddingTasks)
     const sizes = TASK_DENSITIES[useTaskDensity()]
     const recorder = useUndoRecorder()
     const inputRef = useRef<HTMLInputElement>(null)
@@ -123,7 +124,8 @@ const TopLevelAddTask = ({ sectionId, inGroup }: { sectionId: number | null, inG
     const [text, setText] = useState("")
     const { createTask } = useWorkspaceActions()
     const { appendTask, applyTaskMove } = useActiveNoteActions()
-    const { newTaskPosition, keepAddingTasks } = usePreferences()
+    const newTaskPosition = usePreference(p => p.newTaskPosition)
+    const keepAddingTasks = usePreference(p => p.keepAddingTasks)
     const recorder = useUndoRecorder()
     const { dispatch } = useAutomations()
     const formRef = useRef<HTMLFormElement>(null)

@@ -1,5 +1,5 @@
 import { AddSection } from "../section/AddSection"
-import { useLayoutEffect, useRef } from "react"
+import { useLayoutEffect, useMemo, useRef } from "react"
 import { Group } from "./Group"
 import { useActiveNote } from "@/contexts/use-active-note"
 import { useActiveNoteId, useTabUiStore } from "@/contexts/use-tabs"
@@ -16,6 +16,7 @@ import { SelectionBarInset, TaskSelectionBar } from "../tasks/TaskSelectionBar"
 import { NoteAnnouncer } from "../tasks/NoteAnnouncer"
 import { TaskSelectionActionsProvider } from "../tasks/task-selection-actions"
 import { cn } from "@/lib/utils"
+import { groupsByPosition } from "@/lib/group-sections"
 
 export const GroupContainer = () => {
     const { noteDataTree } = useActiveNote()
@@ -27,6 +28,7 @@ export const GroupContainer = () => {
     const groups = noteDataTree?.groups
     const audioCounts = useNoteAudioCounts(activeId, showAudioFileCount)
     const hasData = groups !== undefined
+    const orderedGroups = useMemo(() => Array.isArray(groups) ? groupsByPosition(groups) : [], [groups])
     // A note opened for the first time has no data yet: its skeleton instead of an empty note with only "Nuovo gruppo"
     const isLoadingNote = activeId !== null && !hasData
 
@@ -67,9 +69,8 @@ export const GroupContainer = () => {
                 "flex w-full h-full items-start p-2 space-x-2 overflow-x-auto",
             )}
         >
-            {Array.isArray(groups) && groups.length > 0 &&
-                [...groups]
-                    .sort((a, b) => a.position - b.position)
+            {orderedGroups.length > 0 &&
+                orderedGroups
                     .map((group, index) => (
                         <div key={group.id} className={cn("relative h-full w-fit", group.width ? "shrink-0" : "max-w-full")}>
                             {/* Vertical guide line centered in the gap (space-x-2) before every group but the first */}
