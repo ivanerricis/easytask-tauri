@@ -10,9 +10,9 @@ import { ensureAppFolder } from "./appPaths"
 import { closeDB, DB_FILE, getDB, setRestoring } from "./dbManager"
 import { APPLICATION_ID, LATEST_SCHEMA_VERSION } from "./initDb"
 
-export const BACKUP_FOLDER = "backups"
+const BACKUP_FOLDER = "backups"
 /** Subfolder of the backups folder holding the copies taken before a migration (not rotated). */
-export const PRE_MIGRATION_FOLDER = "pre-migration"
+const PRE_MIGRATION_FOLDER = "pre-migration"
 
 const PRE_MIGRATION_PATTERN = /^easytask-pre-migration-v(\d+)-to-v(\d+)\.db$/
 
@@ -22,7 +22,7 @@ export const MAX_PRE_MIGRATION_BACKUPS = 10
 const REGULAR_PATTERN = /^easytask-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:-(\d+))?\.db$/
 const PRE_RESTORE_PATTERN = /^easytask-pre-restore-(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:-(\d+))?\.db$/
 
-export type BackupKind = "manual" | "auto" | "pre-restore"
+type BackupKind = "manual" | "auto" | "pre-restore"
 
 export type BackupInfo = {
     /** File name inside the backups folder. */
@@ -40,7 +40,7 @@ export type BackupInfo = {
 const pad = (value: number) => String(value).padStart(2, "0")
 
 /** "YYYYMMDD-HHmmss" in local time. */
-export function formatTimestamp(date: Date): string {
+function formatTimestamp(date: Date): string {
     return `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}-${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`
 }
 
@@ -58,10 +58,25 @@ export function parseBackupName(name: string): { date: Date, preRestore: boolean
     return { date: new Date(year, month - 1, day, hour, minute, second), preRestore: preRestore !== null, sequence: match[7] ? Number(match[7]) : 1 }
 }
 
+/** Creates the folder (and its parents) if missing; `mkdir` with `recursive` is idempotent, no `exists` check needed. */
+async function ensureDir(folder: string): Promise<void> {
+    await mkdir(folder, { recursive: true })
+}
+
+/**
+ * Runs `VACUUM INTO` for `target`. VACUUM cannot run in a transaction and the plugin's binding of its argument is not
+ * verified, so the path goes in as an SQL string literal: single quotes are doubled and a path that could end the
+ * literal early or confuse the statement (NUL character, empty path) is refused.
+ */
+async function vacuumInto(db: Database, target: string): Promise<void> {
+    if (target.length === 0 || target.includes("\0")) throw new Error("Invalid backup path")
+    await db.execute(`VACUUM INTO '${target.replace(/'/g, "''")}'`)
+}
+
 /** The default backups folder, inside the data folder. Pre-migration copies always live here. */
 async function defaultBackupFolderPath(): Promise<string> {
     const folder = await join(await ensureAppFolder(), BACKUP_FOLDER)
-    if (!(await exists(folder))) await mkdir(folder, { recursive: true })
+    await ensureDir(folder)
     return folder
 }
 
@@ -69,7 +84,7 @@ async function defaultBackupFolderPath(): Promise<string> {
 async function backupFolderPath(): Promise<string> {
     const custom = await getBackupFolder()
     if (!custom) return defaultBackupFolderPath()
-    if (!(await exists(custom))) await mkdir(custom, { recursive: true })
+    await ensureDir(custom)
     return custom
 }
 
@@ -80,14 +95,13 @@ async function backupFolderPath(): Promise<string> {
 export async function listBackups(): Promise<BackupInfo[]> {
     const folder = await backupFolderPath()
     const entries = await readDir(folder)
-    const backups: BackupInfo[] = []
-    for (const entry of entries) {
+    const backups = await Promise.all(entries.map(async (entry): Promise<BackupInfo | null> => {
         const parsed = entry.isFile ? parseBackupName(entry.name) : null
-        if (!parsed) continue
+        if (!parsed) return null
         const path = await join(folder, entry.name)
         const size = await stat(path).then(info => info.size, () => 0)
-        backups.push({ name: entry.name, path, size, date: parsed.date, preRestore: parsed.preRestore })
-    }
+        return { name: entry.name, path, size, date: parsed.date, preRestore: parsed.preRestore }
+    })).then(list => list.filter((backup): backup is BackupInfo => backup !== null))
     const sequenceOf = (backup: BackupInfo) => parseBackupName(backup.name)?.sequence ?? 1
     return backups.sort((a, b) => b.date.getTime() - a.date.getTime() || sequenceOf(b) - sequenceOf(a) || b.name.localeCompare(a.name))
 }
@@ -125,8 +139,7 @@ export async function createBackup(kind: BackupKind = "manual", database?: Datab
     }
 
     const db = database ?? await getDB()
-    // The file name goes into the SQL as a literal: single quotes are escaped by doubling them
-    await db.execute(`VACUUM INTO '${path.replace(/'/g, "''")}'`)
+    await vacuumInto(db, path)
 
     if (preRestore) {
         const previous = (await listBackups()).filter(backup => backup.preRestore && backup.name !== name)
@@ -147,13 +160,13 @@ export type PreMigrationBackupInfo = {
 }
 
 /** "easytask-pre-migration-v6-to-v7.db" */
-export function preMigrationFileName(from: number, to: number): string {
+function preMigrationFileName(from: number, to: number): string {
     return `easytask-pre-migration-v${from}-to-v${to}.db`
 }
 
 async function preMigrationFolderPath(): Promise<string> {
     const folder = await join(await defaultBackupFolderPath(), PRE_MIGRATION_FOLDER)
-    if (!(await exists(folder))) await mkdir(folder, { recursive: true })
+    await ensureDir(folder)
     return folder
 }
 
@@ -176,7 +189,7 @@ export async function createPreMigrationBackup(database: Database, from: number,
 
     const temp = `${path}.tmp`
     if (await exists(temp)) await remove(temp)
-    await database.execute(`VACUUM INTO '${temp.replace(/'/g, "''")}'`)
+    await vacuumInto(database, temp)
     await rename(temp, path)
     await prunePreMigrationBackups(folder, name).catch(reportError)
     const info = await stat(path).catch(() => null)
@@ -221,7 +234,7 @@ const DAY_MS = 24 * 60 * 60 * 1000
  * True when no regular backup is recent enough for the frequency: daily = none taken today (calendar day),
  * weekly = none in the last 7 days, monthly = none in the last 30 days. The pre-restore copy does not count.
  */
-export function isBackupDue(frequency: BackupFrequency, backups: readonly BackupInfo[], now = new Date()): boolean {
+function isBackupDue(frequency: BackupFrequency, backups: readonly BackupInfo[], now = new Date()): boolean {
     const regular = backups.filter(backup => !backup.preRestore)
     if (frequency === "daily") {
         const today = formatTimestamp(now).slice(0, 8)

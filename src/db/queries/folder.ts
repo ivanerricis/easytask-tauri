@@ -2,6 +2,7 @@ import i18n from "@/i18n"
 import { handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
+import { nextPositionSql } from "./sql";
 
 /**
  * Creates a new folder at the root of a workspace, appended after its siblings.
@@ -16,8 +17,7 @@ export async function createDBWorkspaceFolder(workspaceId: number, name: string,
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO folder (workspaceID, name, color, position)
-             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM folder
-             WHERE workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL`,
+             SELECT ?, ?, ?, ${nextPositionSql("folder", "workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL")}`,
             [workspaceId, name, color ?? null, workspaceId])
         return result.lastInsertId as number
     } catch (error: unknown) {
@@ -41,8 +41,7 @@ export async function createDBSubFolder(workspaceID: number, folderId: number, n
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO folder (workspaceID, folderID, name, position)
-             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM folder
-             WHERE folderID = ? AND deleted_at IS NULL`,
+             SELECT ?, ?, ?, ${nextPositionSql("folder", "folderID = ? AND deleted_at IS NULL")}`,
             [workspaceID, folderId, name, folderId])
         return result.lastInsertId as number
     } catch (error: unknown) {

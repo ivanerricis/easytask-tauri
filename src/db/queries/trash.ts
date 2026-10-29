@@ -6,6 +6,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { getDB } from "../dbManager";
 import { assertItemType, type DBItemType } from "./shared_queries";
 import { Transaction } from "../transaction";
+import { TRASHABLE_TABLES } from "../schema/trash_index";
 import { parseTemplateContent } from "./template";
 
 const RESTORE_UNIQUE_MESSAGE = () => i18n.t("errors.trash.restoreUnique")
@@ -449,8 +450,9 @@ export async function emptyDBTrash(workspaceId: number) {
     }
 }
 
-// Every table with a trash, children before parents (a cascade then never hides a row that is still to be counted)
-const TRASHABLE_TABLES = ["audio_file", "task", "section", "section_group", "note", "folder", "note_template", "workspace"] as const
+// Every table with a trash, children before parents (a cascade then never hides a row that is still to be counted).
+// The COUNT queries stay (instead of the rows affected by the DELETEs): the rows deleted by a cascade of the same statement
+// (e.g. trashed subtasks) would not be counted the same way, and the totals must keep their meaning.
 
 /**
  * Permanently deletes everything that has been in the trash for more than `days` days, in ALL workspaces

@@ -4,9 +4,10 @@ import type { NoteTemplate } from "@/types/template"
 import { createError, handleDBError, toAppError } from "@/types/error"
 import { getErrorMessage } from "@/lib/utils"
 import { getDB } from "../dbManager"
-import { Transaction, TransactionError } from "../transaction"
+import { rethrowTxError, Transaction } from "../transaction"
 import type { PortableAutomation } from "@/lib/automations/portable"
 import { addNoteContent, addSections, buildContentWithSectionIds, createSectionSnapshotter, getDBTemplate } from "./template"
+import { uniqueName } from "./names"
 import { addNoteAutomations, getDBPortableAutomations } from "./automation"
 
 /**
@@ -18,9 +19,7 @@ import { addNoteAutomations, getDBPortableAutomations } from "./automation"
  */
 export function uniqueCopyName(name: string, taken: ReadonlySet<string>): string {
     const word = i18n.t("duplicate.suffix")
-    let candidate = `${name} (${word})`
-    for (let n = 2; taken.has(candidate); n++) candidate = `${name} (${word} ${n})`
-    return candidate
+    return uniqueName(name, taken, (original, attempt) => attempt === 1 ? `${original} (${word})` : `${original} (${word} ${attempt})`, { allowOriginal: false })
 }
 
 type NoteRow = { workspaceID: number, folderID: number | null, name: string, color: string | null, position: number }
@@ -74,8 +73,7 @@ export async function duplicateDBNote(noteId: number): Promise<number> {
         const results = await tx.run()
         return results[note].lastInsertId
     } catch (error: unknown) {
-        if (error instanceof TransactionError && error.statementIndex === note)
-            handleDBError(error, "NOTE", { UNIQUE: i18n.t("errors.template.noteUnique"), CHECK: i18n.t("errors.template.noteCheck") })
+        rethrowTxError(error, note, "NOTE", { UNIQUE: i18n.t("errors.template.noteUnique"), CHECK: i18n.t("errors.template.noteCheck") })
         throw createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.apply", { message: getErrorMessage(error) }))
     }
 }
@@ -157,8 +155,7 @@ export async function duplicateDBSection(sectionId: number): Promise<number> {
         const results = await tx.run()
         return results[sectionStatement].lastInsertId
     } catch (error: unknown) {
-        if (error instanceof TransactionError && error.statementIndex === sectionStatement)
-            handleDBError(error, "SECTION", { UNIQUE: i18n.t("errors.section.unique"), CHECK: i18n.t("errors.section.check") })
+        rethrowTxError(error, sectionStatement, "SECTION", { UNIQUE: i18n.t("errors.section.unique"), CHECK: i18n.t("errors.section.check") })
         throw createError("DUPLICATE_FAILED", i18n.t("errors.duplicate.apply", { message: getErrorMessage(error) }))
     }
 }

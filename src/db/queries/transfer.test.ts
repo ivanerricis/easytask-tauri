@@ -301,6 +301,28 @@ describe("importDBWorkspace", () => {
         expect(files).toEqual([{ name: "song.mp3" }])
     })
 
+    it("checks each distinct audio path once, at most 20 at a time", async () => {
+        const data = await exportOf()
+        const note = data.notes.find(n => n.name === "Sorgente")!
+        note.audio = Array.from({ length: 45 }, (_, i) => ({ groupIndex: 0, name: `t${i}.mp3`, path: `/x/${i % 30}.mp3`, position: i }))
+        let running = 0, peak = 0
+        const calls: string[] = []
+        const { skippedAudio } = await importDBWorkspace(data, {
+            audioExists: async path => {
+                calls.push(path)
+                running += 1; peak = Math.max(peak, running)
+                await new Promise(resolve => setTimeout(resolve, 1))
+                running -= 1
+                return true
+            },
+        })
+        expect(skippedAudio).toBe(0)
+        expect(new Set(calls).size).toBe(30)
+        expect(calls).toHaveLength(30)
+        expect(peak).toBeGreaterThan(1)
+        expect(peak).toBeLessThanOrEqual(20)
+    })
+
     it("rolls the whole import back when a statement fails (nothing is created)", async () => {
         const data = await exportOf()
         const counts = () => ["workspace", "folder", "note", "section_group", "section", "task", "audio_file", "note_template"]

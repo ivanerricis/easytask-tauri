@@ -15,7 +15,8 @@ import { isPortableAutomation } from "@/lib/automations/portable";
 import { addNoteContent, buildNotesContent, parseTemplateContent } from "./template";
 import { addNoteAutomations, getDBAutomationsByNote, toPortableAutomations } from "./automation";
 import { chunked, placeholders } from "./sql";
-import { Transaction, TransactionError, type TxRef } from "../transaction";
+import { uniqueName } from "./names";
+import { rethrowTxError, Transaction, type TxRef } from "../transaction";
 
 const INVALID_FILE_MESSAGE = () => i18n.t("errors.transfer.invalidFile")
 const MALFORMED_MESSAGE = () => i18n.t("errors.transfer.malformed")
@@ -33,12 +34,13 @@ async function buildNotesExport(db: Database, entries: ExportEntry[]): Promise<E
     const [contents, rules] = await Promise.all([buildNotesContent(noteIds, true), getDBAutomationsByNote(noteIds)])
 
     const audioByNote = new Map<number, AudioRow[]>()
-    for (const ids of chunked(noteIds)) {
-        const rows = await db.select<(AudioRow & { noteID: number })[]>(
-            `SELECT a.section_groupID, a.name, a.path, a.position, g.noteID FROM audio_file a
-             INNER JOIN section_group g ON g.id = a.section_groupID
-             WHERE g.noteID IN (${placeholders(ids.length)}) AND g.deleted_at IS NULL AND a.deleted_at IS NULL
-             ORDER BY a.position, a.id`, ids)
+    // The chunks are independent reads (each note is in one chunk only): run them together, merge in chunk order
+    const audioChunks = await Promise.all(chunked(noteIds).map(ids => db.select<(AudioRow & { noteID: number })[]>(
+        `SELECT a.section_groupID, a.name, a.path, a.position, g.noteID FROM audio_file a
+         INNER JOIN section_group g ON g.id = a.section_groupID
+         WHERE g.noteID IN (${placeholders(ids.length)}) AND g.deleted_at IS NULL AND a.deleted_at IS NULL
+         ORDER BY a.position, a.id`, ids)))
+    for (const rows of audioChunks) {
         for (const row of rows) {
             const list = audioByNote.get(row.noteID)
             if (list) list.push(row)
@@ -82,13 +84,15 @@ export async function buildDBWorkspaceExport(workspaceId: number): Promise<Works
         if (workspaces.length === 0)
             throw createError("TRANSFER_WORKSPACE_MISSING", i18n.t("errors.transfer.workspaceMissing"))
 
-        const folders = await db.select<(Folder & { color: string | null })[]>(
-            'SELECT * FROM folder WHERE workspaceID = ? AND deleted_at IS NULL ORDER BY position, id', [workspaceId])
-        const notes = await db.select<(Note & { color: string | null })[]>(
-            'SELECT * FROM note WHERE workspaceID = ? AND deleted_at IS NULL ORDER BY position, id', [workspaceId])
-        const templates = await db.select<{ name: string, color: string | null, content: string }[]>(
-            'SELECT name, color, content FROM note_template WHERE workspaceID = ? AND deleted_at IS NULL ORDER BY name COLLATE NOCASE, id',
-            [workspaceId])
+        const [folders, notes, templates] = await Promise.all([
+            db.select<(Folder & { color: string | null })[]>(
+                'SELECT * FROM folder WHERE workspaceID = ? AND deleted_at IS NULL ORDER BY position, id', [workspaceId]),
+            db.select<(Note & { color: string | null })[]>(
+                'SELECT * FROM note WHERE workspaceID = ? AND deleted_at IS NULL ORDER BY position, id', [workspaceId]),
+            db.select<{ name: string, color: string | null, content: string }[]>(
+                'SELECT name, color, content FROM note_template WHERE workspaceID = ? AND deleted_at IS NULL ORDER BY name COLLATE NOCASE, id',
+                [workspaceId]),
+        ])
 
         // An item inside a trashed folder is hidden with it: it is exported only when its whole folder chain is alive
         const folderById = new Map(folders.map(folder => [folder.id, folder]))
@@ -314,8 +318,7 @@ const cleanColor = (color: string | null | undefined): string | null => color ? 
 
 /** Returns "name", or "name (2)", "name (3)"... the first one not in `used`; the result is added to `used`. */
 function uniqueSibling(name: string, used: Set<string>): string {
-    let candidate = name
-    for (let counter = 2; used.has(candidate); counter++) candidate = `${name} (${counter})`
+    const candidate = uniqueName(name, used, (original, attempt) => `${original} (${attempt + 1})`)
     used.add(candidate)
     return candidate
 }
@@ -475,13 +478,27 @@ export async function suggestDBWorkspaceImportName(data: WorkspaceExport): Promi
 async function uniqueWorkspaceName(db: Database, name: string): Promise<string> {
     // Trashed workspaces are included: they still hold the UNIQUE constraint on the name
     const rows = await db.select<{ name: string }[]>('SELECT name FROM workspace')
-    const used = new Set(rows.map(row => row.name.toLowerCase()))
-    if (!used.has(name.toLowerCase())) return name
     const word = i18n.t("errors.transfer.suffix")
-    for (let counter = 1; ; counter++) {
-        const candidate = counter === 1 ? `${name} (${word})` : `${name} (${word} ${counter})`
-        if (!used.has(candidate.toLowerCase())) return candidate
+    return uniqueName(name, rows.map(row => row.name),
+        (original, attempt) => attempt === 1 ? `${original} (${word})` : `${original} (${word} ${attempt})`, { caseInsensitive: true })
+}
+
+/** How many `audioExists` checks (each a Tauri invoke) run at the same time. */
+const AUDIO_CHECK_BATCH = 20
+
+/**
+ * Checks each distinct path once, in batches of {@link AUDIO_CHECK_BATCH} running together.
+ * A check that throws counts as "missing" (the file is skipped).
+ * @returns Whether each path exists.
+ */
+async function checkAudioPaths(paths: readonly string[], audioExists: (path: string) => Promise<boolean>): Promise<Map<string, boolean>> {
+    const unique = [...new Set(paths)]
+    const result = new Map<string, boolean>()
+    for (const batch of chunked(unique, AUDIO_CHECK_BATCH)) {
+        const answers = await Promise.all(batch.map(path => Promise.resolve().then(() => audioExists(path)).then(found => Boolean(found), () => false)))
+        batch.forEach((path, i) => result.set(path, answers[i]))
     }
+    return result
 }
 
 type PendingFolder = { folder: ExportFolder, parentRef: TxRef | number | null }
@@ -521,6 +538,7 @@ async function insertItems(
 
     let noteRefs: TxRef[] = []
     if (data.notes.length > 0) {
+        const existing = await checkAudioPaths(data.notes.flatMap(note => note.audio.map(file => file.path)).filter(hasAudioExtension), audioExists)
         noteRefs = tx.insertRows("note", ["workspaceID", "folderID", "name", "color", "archived_at", "position"],
             data.notes.map(note => [
                 workspaceRef, note.folderRef === null ? rootParent : folderRefs.get(note.folderRef) ?? null,
@@ -533,14 +551,7 @@ async function insertItems(
             const rows: unknown[][] = []
             const taken = new Set<string>()
             for (const file of note.audio) {
-                let keep = hasAudioExtension(file.path)
-                if (keep) {
-                    try {
-                        keep = await audioExists(file.path)
-                    } catch {
-                        keep = false
-                    }
-                }
+                const keep = hasAudioExtension(file.path) && existing.get(file.path) === true
                 // UNIQUE(name, section_groupID): a duplicated name in the file is skipped instead of failing the import
                 const key = `${file.groupIndex}^@${file.name.toLowerCase()}`
                 if (!keep || taken.has(key)) {
@@ -599,17 +610,16 @@ export async function importDBWorkspace(
         return { workspaceId: results[workspace].lastInsertId, skippedAudio }
     } catch (error: unknown) {
         // Statement 0 is the workspace row itself: a name clash (race with another writer) or an invalid name
-        if (error instanceof TransactionError && error.statementIndex === workspace)
-            handleDBError(error, "WORKSPACE", {
-                UNIQUE: i18n.t("errors.workspace.unique"),
-                CHECK: i18n.t("errors.workspace.check"),
-            })
+        rethrowTxError(error, workspace, "WORKSPACE", {
+            UNIQUE: i18n.t("errors.workspace.unique"),
+            CHECK: i18n.t("errors.workspace.check"),
+        })
         throw createError("TRANSFER_IMPORT_FAILED", i18n.t("errors.transfer.import", { message: getErrorMessage(error) }))
     }
 }
 
 /** A top item of an items import (folders first, then notes, in file order) and the name it would get. */
-export type ImportItemName = { type: "folder" | "note", name: string }
+type ImportItemName = { type: "folder" | "note", name: string }
 
 /** The top items of an items file, the existing siblings under the destination and the free names of the top items. */
 async function topItemNames(db: Database, data: WorkspaceExport, workspaceId: number, parentFolderId: number | null) {
@@ -617,8 +627,9 @@ async function topItemNames(db: Database, data: WorkspaceExport, workspaceId: nu
     const taken = async (table: "folder" | "note") => db.select<{ name: string, position: number }[]>(
         `SELECT name, position FROM ${table} WHERE workspaceID = ? AND IFNULL(folderID, 0) = ? AND deleted_at IS NULL`,
         [workspaceId, parentKey])
-    const folders = { items: data.folders.filter(folder => folder.parentRef === null), rows: await taken("folder") }
-    const notes = { items: data.notes.filter(note => note.folderRef === null), rows: await taken("note") }
+    const [folderRows, noteRows] = await Promise.all([taken("folder"), taken("note")])
+    const folders = { items: data.folders.filter(folder => folder.parentRef === null), rows: folderRows }
+    const notes = { items: data.notes.filter(note => note.folderRef === null), rows: noteRows }
     const suggestions: ImportItemName[] = []
     for (const [type, { items, rows }] of [["folder", folders], ["note", notes]] as const) {
         const used = new Set(rows.map(row => row.name))

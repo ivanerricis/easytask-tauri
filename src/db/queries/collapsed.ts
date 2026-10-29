@@ -27,12 +27,3 @@ export async function setDBCollapsed(kind: CollapsibleKind, id: number, collapse
         throw createError("COLLAPSED_UPDATE_ERROR", i18n.t("errors.collapsed.save", { message: getErrorMessage(error) }))
     }
 }
-
-/** Saves whether a group is closed. */
-export const setDBGroupCollapsed = (groupId: number, collapsed: boolean) => setDBCollapsed("group", groupId, collapsed)
-
-/** Saves whether a section is closed. */
-export const setDBSectionCollapsed = (sectionId: number, collapsed: boolean) => setDBCollapsed("section", sectionId, collapsed)
-
-/** Saves whether the subtasks of a task are closed (hidden). */
-export const setDBTaskCollapsed = (taskId: number, collapsed: boolean) => setDBCollapsed("task", taskId, collapsed)

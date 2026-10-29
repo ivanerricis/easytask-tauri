@@ -18,7 +18,7 @@ vi.mock("@tauri-apps/api/core", async () => {
     return { invoke: createSqliteInvoke(() => sqlite) }
 })
 
-import { setDBCollapsed, setDBGroupCollapsed, setDBSectionCollapsed, setDBTaskCollapsed } from "./collapsed"
+import { setDBCollapsed } from "./collapsed"
 import { duplicateDBNote, duplicateDBSection } from "./duplicate"
 import { getDBNoteData } from "./note"
 import { buildContentFromRows } from "./template"
@@ -43,20 +43,20 @@ beforeEach(() => {
 
 describe("setDBCollapsed", () => {
     it("closes and opens one group, section or task and nothing else", async () => {
-        await setDBGroupCollapsed(1, true)
-        await setDBSectionCollapsed(11, true)
-        await setDBTaskCollapsed(1, true)
+        await setDBCollapsed("group", 1, true)
+        await setDBCollapsed("section", 11, true)
+        await setDBCollapsed("task", 1, true)
         expect([flag("section_group", 1), flag("section_group", 2), flag("section", 11), flag("section", 12), flag("task", 1), flag("task", 2)]).toEqual([1, 0, 1, 0, 1, 0])
-        await setDBGroupCollapsed(1, false)
-        await setDBSectionCollapsed(11, false)
-        await setDBTaskCollapsed(1, false)
+        await setDBCollapsed("group", 1, false)
+        await setDBCollapsed("section", 11, false)
+        await setDBCollapsed("task", 1, false)
         expect([flag("section_group", 1), flag("section", 11), flag("task", 1)]).toEqual([0, 0, 0])
     })
 
     it("is loaded with the note data (open by default)", async () => {
-        await setDBGroupCollapsed(2, true)
-        await setDBSectionCollapsed(12, true)
-        await setDBTaskCollapsed(2, true)
+        await setDBCollapsed("group", 2, true)
+        await setDBCollapsed("section", 12, true)
+        await setDBCollapsed("task", 2, true)
         const { groups, sections, tasks } = await getDBNoteData(1)
         expect(groups.map(g => Boolean(g.collapsed))).toEqual([false, true])
         expect(sections.filter(s => !s.is_default).map(s => Boolean(s.collapsed))).toEqual([false, true])
@@ -68,9 +68,9 @@ describe("setDBCollapsed", () => {
             UPDATE task SET edit_date = '2000-01-01', edit_time = '00:00';
             UPDATE section SET edit_date = '2000-01-01', edit_time = '00:00';
             UPDATE workspace SET edit_date = '2000-01-01', edit_time = '00:00'`)
-        await setDBGroupCollapsed(1, true)
-        await setDBSectionCollapsed(11, true)
-        await setDBTaskCollapsed(1, true)
+        await setDBCollapsed("group", 1, true)
+        await setDBCollapsed("section", 11, true)
+        await setDBCollapsed("task", 1, true)
         expect(wsEdit()).toEqual({ edit_date: "2000-01-01", edit_time: "00:00" })
         expect(rows("SELECT edit_date FROM section WHERE id = 11")[0].edit_date).toBe("2000-01-01")
         expect(rows("SELECT edit_date FROM task WHERE id = 1")[0].edit_date).toBe("2000-01-01")
@@ -79,7 +79,7 @@ describe("setDBCollapsed", () => {
     it("rejects an unknown kind and wraps a failure", async () => {
         await expect(setDBCollapsed("note" as never, 1, true)).rejects.toThrow()
         sqlite.close()
-        await expect(setDBGroupCollapsed(1, true)).rejects.toThrow()
+        await expect(setDBCollapsed("group", 1, true)).rejects.toThrow()
     })
 })
 

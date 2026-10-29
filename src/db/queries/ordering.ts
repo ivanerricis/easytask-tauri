@@ -73,7 +73,7 @@ export async function siblingIds(
 }
 
 /** A live row of the shared order of a group: a section with a header or the default section (the list of the direct tasks). */
-export type OrderRow = { id: number, isDefault: boolean, archived?: boolean }
+type OrderRow = { id: number, isDefault: boolean, archived?: boolean }
 
 /**
  * The live rows of a group (the default section included), in their shared order, without `excludeId`.

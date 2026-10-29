@@ -20,7 +20,7 @@ export type TemplateDraft = {
 }
 
 /** What `saveDBTemplateDraft` did: wrote the template, found it already equal, or found it purged. */
-export type TemplateDraftSave = "written" | "unchanged" | "missing"
+type TemplateDraftSave = "written" | "unchanged" | "missing"
 
 const updateFailed = (error: unknown) =>
     createError("TEMPLATE_UPDATE_FAILED", i18n.t("errors.template.update", { message: getErrorMessage(error) }))

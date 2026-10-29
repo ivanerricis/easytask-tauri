@@ -2,20 +2,10 @@ import i18n from "@/i18n"
 import { createError, handleDBError, toAppError } from "@/types/error"
 import { getDB } from "../dbManager"
 import { getErrorMessage } from "@/lib/utils"
-import { DEFAULT_SECTION_SQL } from "./sql"
+import { DEFAULT_SECTION_SQL, newPositionSql } from "./sql"
 import type { NewTaskPosition } from "@/lib/store/preferences"
 import { Transaction, type TxRef } from "../transaction"
 import { addPositions, siblingIds } from "./ordering"
-
-/**
- * SQL of the position of a new row among its siblings: after the last one, or before the first one ("top": one below the
- * lowest position, so the siblings are not renumbered and the order stays valid for restore from the trash and for the
- * moves, which renumber the whole list anyway). The siblings are selected by `where`, an empty list starts at 0.
- */
-const newPositionSql = (position: NewTaskPosition, from: string, where: string) =>
-    position === "top"
-        ? `COALESCE((SELECT MIN(position) - 1 FROM ${from} WHERE ${where}), 0)`
-        : `COALESCE((SELECT MAX(position) + 1 FROM ${from} WHERE ${where}), 0)`
 
 /**
  * Creates a new top level task in a section, after its siblings or before them.

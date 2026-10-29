@@ -160,6 +160,13 @@ describe("createBackup", () => {
         expect(String(db.execute.mock.calls[0][0])).toBe("VACUUM INTO '/da''ta/x.db'")
     })
 
+    it("refuses a path with a NUL character and never runs the statement", async () => {
+        const { join } = await import("@tauri-apps/api/path")
+        vi.mocked(join).mockImplementationOnce(async () => BACKUPS).mockImplementationOnce(async () => "/data/x\0'; DROP TABLE note; --.db")
+        await expect(createBackup("manual")).rejects.toThrow("Invalid backup path")
+        expect(db.execute).not.toHaveBeenCalled()
+    })
+
     it("rotates the oldest regular backups, keeping the preferred number", async () => {
         keep = 3
         for (let day = 1; day <= 5; day++) seed(`easytask-2026010${day}-100000.db`)

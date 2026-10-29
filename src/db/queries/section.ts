@@ -2,7 +2,7 @@ import i18n from "@/i18n"
 import { handleDBError } from "@/types/error";
 import { getDB } from "../dbManager";
 import { Transaction } from "../transaction";
-import { DEFAULT_SECTION_SQL } from "./sql";
+import { DEFAULT_SECTION_SQL, nextPositionSql } from "./sql";
 
 /**
  * Creates a new section in a specific group, appended after every other row of the group (the default section included: it shares their order).
@@ -15,8 +15,7 @@ export async function createDBSectionInGroup(groupId: number, title: string) {
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO section (groupID, title, position)
-             SELECT ?, ?, COALESCE(MAX(position) + 1, 0) FROM section
-             WHERE groupID = ? AND deleted_at IS NULL`,
+             SELECT ?, ?, ${nextPositionSql("section", "groupID = ? AND deleted_at IS NULL")}`,
             [groupId, title.trim() || null, groupId]);
         return result.lastInsertId as number
     } catch (error: unknown) {

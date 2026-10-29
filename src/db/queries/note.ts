@@ -3,7 +3,7 @@ import type { Group, Section, Task } from "@/types/types";
 import { getDB } from "../dbManager";
 import { createError, handleDBError } from "@/types/error";
 import { getErrorMessage } from "@/lib/utils";
-import { chunked, placeholders } from "./sql";
+import { chunked, nextPositionSql, placeholders } from "./sql";
 
 
 /**
@@ -101,8 +101,7 @@ export async function createDBWorkspaceNote(workspaceId: number, name: string, c
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO note (workspaceID, name, color, position)
-             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
-             WHERE workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL`,
+             SELECT ?, ?, ?, ${nextPositionSql("note", "workspaceID = ? AND folderID IS NULL AND deleted_at IS NULL")}`,
             [workspaceId, name, color ?? null, workspaceId]);
         return result.lastInsertId as number
     } catch (error: unknown) {
@@ -126,8 +125,7 @@ export async function createDBNoteInFolder(workspaceId: number, folderId: number
         const db = await getDB()
         const result = await db.execute(
             `INSERT INTO note (workspaceID, folderID, name, position)
-             SELECT ?, ?, ?, COALESCE(MAX(position) + 1, 0) FROM note
-             WHERE folderID = ? AND deleted_at IS NULL`,
+             SELECT ?, ?, ?, ${nextPositionSql("note", "folderID = ? AND deleted_at IS NULL")}`,
             [workspaceId, folderId, name, folderId]);
         return result.lastInsertId as number
     } catch (error: unknown) {
