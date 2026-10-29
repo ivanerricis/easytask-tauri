@@ -131,6 +131,7 @@ fn read_settings(data_dir: &Path) -> Option<serde_json::Value> {
 
 /// A boolean setting from the settings file of the data folder; `default` when the file, the key or a boolean
 /// value is missing. The keys are the ones of the JS side (src/lib/store/preferences.ts): keep them identical.
+#[cfg(test)]
 fn setting_bool(data_dir: &Path, key: &str, default: bool) -> bool {
     setting_bool_from(read_settings(data_dir).as_ref(), key, default)
 }
