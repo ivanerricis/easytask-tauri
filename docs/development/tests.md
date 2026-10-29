@@ -16,9 +16,15 @@ npm run test:coverage   # with coverage
 
 | Statements | Branches | Functions | Lines |
 | --- | --- | --- | --- |
-| 73% | 66% | 72% | 74% |
+| 89% | 83% | 87% | 91% |
 
 Never lower the thresholds to make a build pass: add the missing tests. `src/components/ui` (shadcn) and `src/main.tsx` are excluded from coverage.
+
+### Shared test helpers
+
+Common helpers live in `src/test`: `sonnerMock` and `toastMock` (`mocks.ts`) mock `sonner` and let you assert on the toasts, `makeUndoRecorderMock` and `undoModuleMock` (`mocks.ts`) replace the undo recorder, `flushAsync` (`ui-render.tsx`) waits for pending promises and effects, and `SplitHarness` (`split-harness.tsx`, with `split-fixtures.ts`) renders components inside a split layout with the pane providers. Use them instead of writing your own copies.
+
+`src/i18n/unused-keys.test.ts` fails when a translation key is not used anywhere in the code.
 
 ## End-to-end tests
 

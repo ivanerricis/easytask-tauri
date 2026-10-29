@@ -16,9 +16,15 @@ npm run test:coverage   # con copertura
 
 | Statement | Branch | Funzioni | Righe |
 | --- | --- | --- | --- |
-| 73% | 66% | 72% | 74% |
+| 89% | 83% | 87% | 91% |
 
 Non abbassare mai le soglie per far passare una build: aggiungi i test mancanti. `src/components/ui` (shadcn) e `src/main.tsx` sono esclusi dalla copertura.
+
+### Helper di test condivisi
+
+Gli helper comuni stanno in `src/test`: `sonnerMock` e `toastMock` (`mocks.ts`) simulano `sonner` e permettono di verificare i toast, `makeUndoRecorderMock` e `undoModuleMock` (`mocks.ts`) sostituiscono il registratore dell'undo, `flushAsync` (`ui-render.tsx`) aspetta promise ed effetti in sospeso, e `SplitHarness` (`split-harness.tsx`, con `split-fixtures.ts`) mostra i componenti dentro un layout diviso con i provider delle aree. Usali invece di scrivere copie tue.
+
+`src/i18n/unused-keys.test.ts` fallisce quando una chiave di traduzione non è usata in nessun punto del codice.
 
 ## Test end-to-end
 

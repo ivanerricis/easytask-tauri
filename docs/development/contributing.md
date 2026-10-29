@@ -49,7 +49,7 @@ CI runs the same checks, plus the coverage thresholds and the audits. See [Tests
 
 ## Rules for the code
 
-- **Translations:** every text the user sees must exist in both languages, in `src/i18n/locales/it` and `src/i18n/locales/en`. A missing key breaks the type-check.
+- **Translations:** every text the user sees must exist in both languages, in `src/i18n/locales/it` and `src/i18n/locales/en`. A missing key breaks the type-check, and a new key must be used in the code (the unused-keys test fails otherwise).
 - **UI components:** use the [shadcn/ui](https://ui.shadcn.com/) components in `src/components/ui` first, and add missing ones with the shadcn CLI, instead of building native or custom controls.
 - **Database:** add a new migration; never edit one that was already applied. See [Architecture](./architecture#migrations).
 - **Tests:** add or update tests for what you change.
